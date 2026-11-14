@@ -32,7 +32,7 @@ impl From<&vessel_proto::LinkError> for LinkProblem {
             vessel_proto::LinkError::Prefix => Self::WrongKind,
             vessel_proto::LinkError::Encoding => Self::Encoding,
             // Decoder coordinates are diagnostics, not a recovery sentence.
-            vessel_proto::LinkError::Offer { column: _ } => Self::Offer,
+            vessel_proto::LinkError::Offer { .. } => Self::Offer,
         }
     }
 }

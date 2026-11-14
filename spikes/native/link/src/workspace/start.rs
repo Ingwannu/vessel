@@ -193,14 +193,14 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
             Err(problem) => return Made::Failed(problem),
         };
         let listed = match outcome {
-            CreateWorktreeOutcome::Created { worktree } => {
+            CreateWorktreeOutcome::Created { worktree, .. } => {
                 return set_up(walk, worktree, commands).await;
             }
-            CreateWorktreeOutcome::Refused { reason } => {
+            CreateWorktreeOutcome::Refused { reason, .. } => {
                 walk.show(Step::Refused(Refusal::Worktree(reason))).await;
                 return Made::Stopped;
             }
-            CreateWorktreeOutcome::NeedsApproval { commands } => commands,
+            CreateWorktreeOutcome::NeedsApproval { commands, .. } => commands,
         };
         let Some(asked) = Listed::of(&listed) else {
             // Only a listed set needs an approval; anything else is a

@@ -573,6 +573,33 @@ once; nothing animates continuously.
   caret is steady while the flag is set. Measures in
   `backend-m12-effort-slider.md`, "Known costs".
 
+## Resizable side panels (the owner's word 29, 0.0.0.0.16)
+
+Both side panels, the sidebar at the left and the code panel at the
+right, are resized by dragging their inner edge, after Paseo's
+`sidebar-resize-handle.tsx` and its layout files.
+
+- One kit control (`vessel_app_kit::resize`): a 10-point strip
+  straddling the edge with the column-resize pointer; after 100 ms of
+  hovering a 1-point line in the ink at 25 %; a press starts the drag and
+  a window-wide shield (a `popup::layer`) holds the resize pointer, takes
+  every move and the release, and lets nothing under it be hovered or its
+  text selected; a double-click returns to the default (an addition:
+  Paseo has none).
+- Widths (`vessel_app_view::panels`, under test): the asked width kept
+  between the panel's least and most and never leaving what is beside it
+  less than its own least; the least wins when the window is too narrow.
+  Sidebar: 200 to 600, the centre keeps 400 (Paseo's), default 264
+  (Paseo's 320; the shell was laid out at 264). Code panel: 320 to 1600,
+  the conversation keeps 480, default 440 (Paseo's Explorer 240 / 360 /
+  320; the panel shows a diff inside it).
+- Kept in the preferences' layout (`sidebar_width`, `panel_width`, whole
+  points, `None` for the default), written once when the drag ends, not
+  per move (`app::areas::edge`). Settings' own list stands in the
+  sidebar's place at the same width.
+- Below the phone's width the sidebar is a sheet and the code panel the
+  whole screen, as before: no handle.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

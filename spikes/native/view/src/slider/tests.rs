@@ -4,27 +4,71 @@
     reason = "checking float formulas against their expected values"
 )]
 
+use super::drag::{Pointer, RELEASE, STICK, magnet, nearest};
 use super::flair::{self, FastStops};
 use super::motion::{EASE, GLIDE, GROW, SETTLE, SLIDE, Spring, Tween, Wheel};
 use super::state::{Input, Motion};
-use super::{along, commits, fraction, stop_under};
+use super::{INSET, along, commits, fraction};
 
 fn near(a: f32, b: f32, within: f32) -> bool {
     (a - b).abs() <= within
 }
 
-/// The stop changes as the pointer crosses a midpoint of the whole width.
+/// The track the drag tests use: 260 wide, so 234 between the end stops;
+/// six stops 46.8 apart.
+const WIDTH: f32 = 260.0;
+
+/// A pointer `x` points from the track's start.
+const fn at(x: f32) -> Pointer {
+    Pointer { x, width: WIDTH }
+}
+
+/// Where stop `index` of six is, points from the track's start.
+fn stop_x(index: usize) -> f32 {
+    along(fraction(index, 6), WIDTH)
+}
+
+/// The stop under a pointer is the nearest along the line between the
+/// end stops; the ends hold past the track.
 #[test]
-fn the_pointer_picks_the_stop_by_rounding_over_the_whole_width() {
-    // Five stops over 200 points: midpoints at 25, 75, 125, 175.
-    assert_eq!(stop_under(24.0, 200.0, 5), 0);
-    assert_eq!(stop_under(26.0, 200.0, 5), 1);
-    assert_eq!(stop_under(124.0, 200.0, 5), 2);
-    assert_eq!(stop_under(126.0, 200.0, 5), 3);
-    assert_eq!(stop_under(-40.0, 200.0, 5), 0);
-    assert_eq!(stop_under(400.0, 200.0, 5), 4);
-    assert_eq!(stop_under(80.0, 200.0, 1), 0);
-    assert_eq!(stop_under(80.0, 0.0, 5), 0);
+fn the_pointer_picks_the_nearest_stop() {
+    let line = WIDTH - 2.0 * INSET;
+    assert!((at(INSET).fraction()).abs() < 1e-6);
+    assert!((at(WIDTH - INSET).fraction() - 1.0).abs() < 1e-6);
+    assert!((at(-40.0).fraction()).abs() < 1e-6);
+    let midpoint = INSET + line * 0.1;
+    assert_eq!(nearest(at(midpoint - 0.5).fraction(), 6), 0);
+    assert_eq!(nearest(at(midpoint + 0.5).fraction(), 6), 1);
+    assert_eq!(nearest(1.0, 6), 5);
+    assert_eq!(nearest(0.7, 1), 0);
+}
+
+/// The pull: on the stop within the sticky zone, behind the pointer
+/// leaving it, with the pointer at the midpoint, ahead of it arriving at
+/// the next stop, and never moving back as the pointer goes on.
+#[test]
+fn the_magnet_holds_then_pulls_to_the_next_stop() {
+    let line = WIDTH - 2.0 * INSET;
+    let drawn = |x: f32| magnet(at(x).fraction(), 6, line);
+    let stop = fraction(1, 6);
+    assert!(near(drawn(stop_x(1) + STICK - 0.5), stop, 1e-6), "held");
+    assert!(near(drawn(stop_x(1) - STICK + 0.5), stop, 1e-6), "held");
+    let leaving = stop_x(1) + 14.0;
+    assert!(
+        drawn(leaving) < at(leaving).fraction(),
+        "behind the pointer"
+    );
+    let midpoint = f32::midpoint(stop_x(1), stop_x(2));
+    assert!(near(drawn(midpoint), at(midpoint).fraction(), 1e-4));
+    let arriving = stop_x(2) - 14.0;
+    assert!(drawn(arriving) > at(arriving).fraction(), "ahead of it");
+    let mut last = 0.0_f32;
+    for step in 0..=520_u16 {
+        let place = drawn(f32::from(step) / 2.0);
+        assert!(place + 1e-6 >= last, "never back at {step}");
+        assert!(place - last < 0.03, "no jump at {step}: {last} -> {place}");
+        last = place;
+    }
 }
 
 /// Stops sit 13 in from either end; a drag sends only a change.
@@ -208,16 +252,135 @@ fn input(current: Option<usize>, fast: bool, reduce: bool) -> Input {
 #[test]
 fn a_drag_previews_live_and_sends_once() {
     let mut motion = Motion::default();
-    motion.press(2, Some(2));
-    motion.drag(3);
-    motion.drag(4);
+    motion.press(at(stop_x(2)), 6, Some(2));
+    motion.drag(at(stop_x(3)), 6);
+    motion.drag(at(stop_x(4)), 6);
     assert_eq!(motion.shown(Some(2)), Some(4), "the word follows live");
     assert_eq!(motion.release(), Some(4));
-    motion.press(4, Some(4));
-    motion.drag(3);
-    motion.drag(4);
+    motion.press(at(stop_x(4)), 6, Some(4));
+    motion.drag(at(stop_x(3)), 6);
+    motion.drag(at(stop_x(4)), 6);
     assert_eq!(motion.release(), None, "back where it began: nothing sent");
     assert_eq!(motion.release(), None);
+}
+
+/// A scripted drag at 60 frames a second, the pointer 2 points a frame
+/// from stop 1 to stop 4: the thumb follows frame by frame (no step larger
+/// than the pull allows), never goes back, the word changes at each
+/// midpoint, and on release it springs onto stop 4 in under 0.3 s
+/// without passing it by more than a point.
+#[test]
+fn a_dragged_thumb_follows_then_springs_onto_its_stop() {
+    let frame = 1.0 / 60.0;
+    let line = WIDTH - 2.0 * INSET;
+    let mut motion = Motion::default();
+    let mut now = 0.0;
+    let _rest = motion.frame(input(Some(1), false, false), now);
+    motion.press(at(stop_x(1)), 6, Some(1));
+    let mut x = stop_x(1);
+    let mut last = fraction(1, 6);
+    let mut shown = Vec::new();
+    // Released 10 to 12 points short of stop 4: past its sticky zone, so
+    // the thumb is not on the stop yet.
+    while x < stop_x(4) - 12.0 {
+        x += 2.0;
+        now += frame;
+        motion.drag(at(x), 6);
+        let drawn = motion.frame(input(Some(1), false, false), now);
+        let place = drawn.fraction.expect("a place");
+        assert!(place + 1e-6 >= last, "never back");
+        assert!(
+            (place - last) * line < 6.0,
+            "a step of {}",
+            (place - last) * line
+        );
+        last = place;
+        shown.push(motion.shown(Some(1)));
+    }
+    shown.dedup();
+    assert_eq!(shown, vec![Some(1), Some(2), Some(3), Some(4)]);
+    let target = fraction(4, 6);
+    assert!(last < target, "short of the stop at release");
+    assert_eq!(motion.release(), Some(4));
+    // Settled: within a quarter point of the stop from then on. (The
+    // thumb's shrink after the release, a separate spring, runs a little
+    // longer.)
+    let mut settled = None;
+    let mut furthest = last;
+    let mut resting = false;
+    for step in 1..=60_u8 {
+        now += frame;
+        let drawn = motion.frame(input(Some(4), false, false), now);
+        let place = drawn.fraction.expect("a place");
+        furthest = furthest.max(place);
+        let close = (place - target).abs() * line < 0.25;
+        if close && settled.is_none() {
+            settled = Some(f32::from(step) * frame);
+        }
+        assert!(close || settled.is_none(), "it left the stop again");
+        resting = !drawn.moving;
+    }
+    let settled = settled.expect("it comes to rest");
+    assert!(settled < 0.3, "settled after {settled} s");
+    assert!(resting, "nothing moves a second later");
+    assert!(
+        (furthest - target) * line < 1.0,
+        "overshoot {}",
+        (furthest - target) * line
+    );
+}
+
+/// The release spring is critically damped: from 30 points away it
+/// passes its stop by under a tenth of a point.
+#[test]
+fn the_release_spring_does_not_overshoot() {
+    let mut spring = Spring::rest(0.0);
+    let mut furthest = 0.0_f32;
+    for _ in 0..60 {
+        spring.step(30.0, RELEASE, 1.0 / 60.0);
+        furthest = furthest.max(spring.value);
+    }
+    assert!(spring.settled(30.0));
+    assert!(furthest < 30.1, "{furthest}");
+}
+
+/// A press then a move begins away from the thumb: the thumb closes the
+/// gap instead of jumping; a press without a move glides like a click;
+/// with reduced motion the thumb stays on stops.
+#[test]
+fn a_drag_catches_up_and_a_click_glides() {
+    let frame = 1.0 / 60.0;
+    let line = WIDTH - 2.0 * INSET;
+    let mut motion = Motion::default();
+    let _rest = motion.frame(input(Some(0), false, false), 0.0);
+    motion.press(at(stop_x(3) + 12.0), 6, Some(0));
+    motion.drag(at(stop_x(3) + 16.0), 6);
+    let first = motion.frame(input(Some(0), false, false), frame);
+    let pulled = magnet(at(stop_x(3) + 16.0).fraction(), 6, line);
+    let place = first.fraction.expect("a place");
+    assert!(place < pulled - 0.1, "starts near the thumb: {place}");
+    assert!(first.moving);
+    let later = motion.frame(input(Some(0), false, false), frame * 30.0);
+    assert!(
+        near(later.fraction.expect("a place"), pulled, 1e-3),
+        "caught up"
+    );
+    let _sent = motion.release();
+    let mut click = Motion::default();
+    let _rest = click.frame(input(Some(0), false, false), 0.0);
+    click.press(at(stop_x(5)), 6, Some(0));
+    let _started = click.frame(input(Some(0), false, false), frame);
+    let halfway = click.frame(input(Some(0), false, false), frame + GLIDE / 2.0);
+    let x = halfway.fraction.expect("a place");
+    assert!(x > 0.0 && x < 1.0 && halfway.moving, "{x}");
+    assert_eq!(click.release(), Some(5));
+    let mut still = Motion::default();
+    let _rest = still.frame(input(Some(0), false, true), 0.0);
+    still.press(at(stop_x(0)), 6, Some(0));
+    still.drag(at(stop_x(2) - 4.0), 6);
+    let held = still.frame(input(Some(0), false, true), frame);
+    assert!(near(held.fraction.expect("a place"), fraction(2, 6), 1e-6));
+    assert!(!held.moving);
 }
 
 /// The thumb glides to a new stop and rests; with reduced motion it
@@ -259,10 +422,7 @@ fn the_top_stop_and_fast_animate_until_reduced() {
     assert!(!rested.moving, "left alone, it comes to rest");
     motion.engage(true, 5.0);
     let engaged = motion.frame(input(Some(5), false, false), 5.1);
-    assert!(
-        engaged.moving && !engaged.smooth,
-        "the pointer back: it moves, at 30 a second"
-    );
+    assert!(engaged.moving, "the pointer back: it moves");
     let fast = motion.frame(input(Some(2), true, false), 6.0);
     assert_eq!(fast.dots.len(), flair::FAST_DOTS);
     let mut still = Motion::default();
@@ -281,8 +441,8 @@ fn the_top_stop_and_fast_animate_until_reduced() {
 fn the_warning_shows_while_dragged_to_the_top() {
     let mut motion = Motion::default();
     let _rest = motion.frame(input(Some(3), false, false), 0.0);
-    motion.press(3, Some(3));
-    motion.drag(5);
+    motion.press(at(stop_x(3)), 6, Some(3));
+    motion.drag(at(stop_x(5)), 6);
     let dragged = motion.frame(input(Some(3), false, false), 0.1);
     assert_eq!(dragged.warning, Some(0.0));
     assert!(motion.dragging());

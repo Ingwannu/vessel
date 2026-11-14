@@ -108,6 +108,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Track P: the session composer swaps the draft it holds.
+        self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
         let takes_prompts = open.structured;
         self.areas.session.pending = None;
@@ -467,11 +469,17 @@ pub(crate) fn render(
             // agent shows only its callout); a send would only try to
             // start it again.
             let ended_for_good = shell.conversation_cannot_resume();
+            // The draft's pills on the session's own options (Paseo's
+            // AgentControls on a running agent).
+            let touch = crate::areas::draft::compact(window);
+            let (controls, over) =
+                crate::areas::draft::running_controls(shell, touch, tokens, window, cx).unzip();
             frame
                 .children(dock.map(column))
                 .when(!ended_for_good, |frame| {
-                    frame.child(composer(shell, tokens, working, window, cx))
+                    frame.child(composer(shell, tokens, working, controls, window, cx))
                 })
+                .children(over.into_iter().flatten())
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot: the screen, with the code panel beside it when out.
@@ -553,6 +561,7 @@ fn composer(
     shell: &Shell,
     tokens: &Tokens,
     working: bool,
+    controls: Option<Div>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -584,18 +593,35 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
+    // Track P: the `/` menu over the card, and the text with its keys
+    // offered to the menu first.
+    let commands = crate::areas::composer::menu(shell, tokens, window, cx);
     column(
         vessel_app_kit::composer_card(tokens, touch)
-            .child(field.element(tokens, touch, cx))
+            .relative()
+            .children(commands)
+            .child(crate::areas::composer::text(shell, tokens, touch, cx))
             .child(
+                // The draft's row: the agent's controls on the left (Paseo's
+                // button row bleeds 6 past the card's padding), the meter
+                // and send/stop on the right.
                 div()
+                    .mx(px(-6.0))
                     .flex()
                     .flex_row()
                     .items_center()
-                    .justify_end()
+                    .justify_between()
                     .gap(px(8.0))
-                    .children(super::conversation::meter(shell, tokens, window, cx))
-                    .child(button),
+                    .child(div().flex_1().min_w_0().children(controls))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(8.0))
+                            .children(super::conversation::meter(shell, tokens, window, cx))
+                            .child(button),
+                    ),
             ),
     )
     .pb(px(12.0))

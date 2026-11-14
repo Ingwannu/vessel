@@ -188,7 +188,7 @@ impl Agent {
                 name: agent_name(&harness.kind),
                 unavailable: match &harness.structured {
                     StructuredSupport::Available => None,
-                    StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                    StructuredSupport::Unavailable { reason, .. } => Some(reason.clone()),
                 },
                 not_installed: false,
             })
@@ -209,7 +209,7 @@ impl Agent {
             .map(|info| {
                 let installed = harnesses.iter().find(|harness| harness.kind == info.agent);
                 let name = match &info.detail {
-                    AgentDetail::Added { added } => added.label.as_ref().map_or_else(
+                    AgentDetail::Added { added, .. } => added.label.as_ref().map_or_else(
                         || agent_name(&info.agent),
                         |label| label.as_str().to_owned(),
                     ),
@@ -218,7 +218,7 @@ impl Agent {
                 let unavailable = match installed {
                     Some(harness) => match &harness.structured {
                         StructuredSupport::Available => None,
-                        StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                        StructuredSupport::Unavailable { reason, .. } => Some(reason.clone()),
                     },
                     None => Some(not_installed(&info.detail)),
                 };
@@ -263,7 +263,7 @@ fn not_installed(detail: &AgentDetail) -> String {
                     )
                 },
             ),
-        AgentDetail::Added { added } => format!(
+        AgentDetail::Added { added, .. } => format!(
             "its program `{}` is not found on this machine",
             added.program.as_str()
         ),

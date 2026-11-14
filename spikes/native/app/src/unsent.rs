@@ -119,7 +119,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::Stop { .. }
         | Command::Answer { .. }
         | Command::Reload
-        | Command::SavePrefs(_) => return Settle::Say,
+        | Command::SavePrefs(_)
+        | Command::KeepCommands { .. }
+        | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
 }

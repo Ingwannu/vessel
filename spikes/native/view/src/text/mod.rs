@@ -20,10 +20,12 @@ mod board;
 mod conversation;
 mod devices;
 mod files;
+mod git;
 pub mod localization;
 mod machine_book;
 mod machines;
 mod marks;
+mod motion;
 mod notices;
 mod options;
 mod palette;
@@ -38,6 +40,10 @@ pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
+pub use git::{
+    GitFailureText, GitHashText, GitHeaderText, GitLabels, GitStashText, GitSuccessCommits,
+    GitSuccessText,
+};
 pub use machines::MachinesText;
 pub use marks::MarkText;
 pub use notices::NoticeWords;

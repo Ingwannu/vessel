@@ -154,11 +154,13 @@ impl Switch {
     /// `on` and `off` (by id, as the agents send them).
     fn of(option: &SessionOption) -> Option<Self> {
         match &option.kind {
-            OptionKind::Toggle { on } => Some(Self::Toggle {
+            OptionKind::Toggle { on, .. } => Some(Self::Toggle {
                 id: option.id.clone(),
                 on: *on,
             }),
-            OptionKind::Select { current, values } => {
+            OptionKind::Select {
+                current, values, ..
+            } => {
                 let find = |word: &str| {
                     values
                         .iter()

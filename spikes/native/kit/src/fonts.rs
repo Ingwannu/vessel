@@ -9,6 +9,15 @@
 //! files beside the binary: one file to install, nothing to find at
 //! start, at about 6.7 MB (Pretendard's four weights are most of it; the
 //! real build subsets them, as the page does).
+//!
+//! [Decision Log: form paths]
+//! - Purpose: match GOAT's `GitActionsControl` inherited text-sm14/20 mono rows.
+//! - Constraint: existing Mono12/20 callers and fallbacks must stay unchanged.
+//! - Alternatives: area font literals, or a UI-scaled label with a mono family.
+//! - Choice: one named MonoBody14/20 normal step on the code scale and face.
+//! - Why: metrics cannot mix independent UI/code preferences; `TypeExt` already
+//!   consumes the shared metrics/family and retains its fallback list.
+//! - Cost: one additional public type step; no font asset or editing engine.
 
 use std::borrow::Cow;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -134,6 +143,8 @@ pub enum Type {
     Tiny,
     /// `--t-mono`: 12 / 20 / 400, ids, paths.
     Mono,
+    /// GOAT's form path row: 14 / 20 / 400, on the code scale and face.
+    MonoBody,
 }
 
 impl Type {
@@ -141,11 +152,21 @@ impl Type {
     /// ([`ui`], [`code`]).
     #[must_use]
     pub fn metrics(self) -> (f32, f32, FontWeight) {
+        self.metrics_with(ui, code)
+    }
+
+    // Injectable resolvers exercise the same production path with unequal
+    // preferences without racing process-wide font settings in parallel tests.
+    fn metrics_with(
+        self,
+        interface: fn(f32) -> f32,
+        code: fn(f32) -> f32,
+    ) -> (f32, f32, FontWeight) {
         let (size, line, weight) = self.written();
-        if self == Self::Mono {
+        if matches!(self, Self::Mono | Self::MonoBody) {
             (code(size), code(line), weight)
         } else {
-            (ui(size), ui(line), weight)
+            (interface(size), interface(line), weight)
         }
     }
 
@@ -161,6 +182,7 @@ impl Type {
             Self::Card => (11.5, 14.4, FontWeight::SEMIBOLD),
             Self::Tiny => (10.5, 14.0, FontWeight::NORMAL),
             Self::Mono => (12.0, 20.0, FontWeight::NORMAL),
+            Self::MonoBody => (14.0, 20.0, FontWeight::NORMAL),
         }
     }
 
@@ -168,7 +190,7 @@ impl Type {
     #[must_use]
     pub fn family(self) -> SharedString {
         match self {
-            Self::Mono => MONO.into(),
+            Self::Mono | Self::MonoBody => MONO.into(),
             Self::Title
             | Self::Body
             | Self::Label
@@ -263,6 +285,49 @@ pub fn elide_middle_by(text: &str, fits: impl Fn(&str) -> bool) -> String {
         }
     }
     cut(low)
+}
+
+#[cfg(test)]
+mod mono_body_tests {
+    use super::*;
+
+    fn same(points: f32) -> f32 {
+        points
+    }
+    fn code_eighteen(points: f32) -> f32 {
+        points.mul_add(1.5, 0.0)
+    }
+
+    #[test]
+    fn form_paths_add_the_exact_reference_step_without_changing_existing_mono() {
+        assert_eq!(
+            Type::Mono.metrics_with(same, same),
+            (12.0, 20.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::MonoBody.metrics_with(same, same),
+            (14.0, 20.0, FontWeight::NORMAL)
+        );
+        assert_eq!(Type::Mono.family(), SharedString::from(MONO));
+        assert_eq!(Type::MonoBody.family(), SharedString::from(MONO));
+        assert_eq!(Type::Body.family(), SharedString::from(SANS));
+    }
+
+    #[test]
+    fn both_code_steps_keep_size_and_line_on_code_while_body_stays_on_interface() {
+        assert_eq!(
+            Type::Mono.metrics_with(same, code_eighteen),
+            (18.0, 30.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::MonoBody.metrics_with(same, code_eighteen),
+            (21.0, 30.0, FontWeight::NORMAL)
+        );
+        assert_eq!(
+            Type::Body.metrics_with(same, code_eighteen),
+            (14.0, 21.0, FontWeight::NORMAL)
+        );
+    }
 }
 
 #[cfg(test)]

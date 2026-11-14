@@ -292,3 +292,72 @@ also found workspace clone-follow tasks retain client clones: that owner's
 cancel/rekey seam is required before whole-app disconnect is claimed. The
 watched-forget regression here covers the session follow and two real RPC
 clients, not every area's background work.
+
+## E3: Paseo's Settings, section by section (2026-11-14)
+
+The owner (words 43 and 45): this version carries Paseo's features and
+settings over as they are. Worker E3 rebuilds Settings on Paseo 0.15.4
+(`packages/app/src/screens/settings-screen.tsx` and the section
+components it names), branch `backend/m12-app-settings2`. The gap list
+is outside the repository (the coordinator's survey of every Paseo
+setting against Vessel's).
+
+### Slice 1: the frame
+
+Followed: `settings-screen.tsx` (`SIDEBAR_SECTION_ITEMS`,
+`HOST_SECTION_ITEMS`, `SettingsSidebar`, `SidebarGroup`, `HostPicker`,
+`sidebarStyles`), labels from `i18n/resources/en.ts` and `ko.ts`
+(`settings.sections`, `settings.hostSections`, `settings.groups`).
+
+- **Sections and order** (`view/src/settings.rs`): Paseo's 26 sections
+  in its two groups. App: General, Appearance, Sidebar, Chat, Terminal,
+  Browser, Editor, Files, Shortcuts, Integrations, Notifications,
+  Permissions, Diagnostics, About. Machine (Paseo's Host): Overview,
+  Projects, Connections, Pair device, Agents, Metadata, Voice,
+  Workspaces, Providers, Usage, Terminals, Plugins; then Vessel's own
+  Models and Sync. Paseo's `desktopOnly` (Browser, Shortcuts,
+  Integrations, Notifications, Permissions) and `webOnly` (Editor) are
+  `Section::available_on(Surface)`, and the app names its surface at
+  build time (`settings/sections.rs`, `SURFACE`).
+- **Where the page's sections went**: Machines is Paseo's Overview;
+  Devices is Paseo's "Pair device" slot and label (the page also lists
+  and revokes paired devices, which Paseo's does not); the agents page
+  (installed, signed in, install, sign-in, defaults) is Paseo's
+  Providers, so Paseo's host Agents section (Paseo tools, system
+  prompt, restart recovery, idle release) is free for slice 3's
+  idle-release card.
+- **One registry** (`app/src/areas/settings/sections.rs`, `page`): a
+  section is listed exactly when a renderer is registered for it, so
+  the list and the pages cannot disagree; the placeholder page
+  (`page::elsewhere`) and its sentence are gone.
+- **The machine group** exists while the book has a machine, headed by
+  the picker (Paseo's `HostPicker`); with an empty book it is one row
+  under no heading, "Add a machine" (Paseo's "Add host"). Paseo's
+  settings list has no search.
+- **Motion** (word 39): a section's page fades in when it arrives
+  (`motion::STANDARD`), the selected row's fill fades in as the
+  selection moves (`motion::QUICK`); both are one-shot GPUI animations
+  keyed by an arrival count, drawn at their end while motion is held.
+
+Listed in this build: General, Appearance, About; Projects, Pair
+device, Providers. Hidden, nothing behind them yet: Sidebar, Chat,
+Notifications, Diagnostics, Overview, Agents (the next slices);
+Shortcuts (track S3's page, one line in `page` when it lands); Terminal,
+Browser, Editor, Files, Integrations, Permissions, Connections,
+Metadata, Voice, Workspaces, Usage, Terminals, Plugins, Models (no
+Vessel feature behind them yet); Sync (held back by the coordinator).
+
+Differences from Paseo, stated:
+
+- The group Paseo calls "Host" is "Machine" ("머신"), Vessel's word
+  for a host everywhere else in the app ("Add a machine").
+- The list keeps the workspace sidebar's width (264) and ground, not
+  Paseo's 320 on `surfaceSidebar` (unchanged from slice 3).
+- Glyphs: the kit gained Stethoscope (G2's, as it is), FolderGit and
+  Boxes (original drawings after Paseo's FolderGit2 and Boxes) for the
+  sections listed now and next; the hidden sections' glyphs the kit
+  still lacks stand in, named in `nav::section_glyph`.
+- The Providers page's list heading says "Providers on <machine>"
+  ("<machine>의 프로바이더"), as its title, where it said "Agents on".
+- The picker's name is in the foreground and it has no open fill, as
+  Paseo's trigger (before: muted, with the selected fill while open).

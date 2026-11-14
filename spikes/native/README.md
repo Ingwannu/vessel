@@ -14,19 +14,45 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 
 ## Crates, and what may depend on what
 
-| Crate | Owns | Must not |
-| --- | --- | --- |
-| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit |
-| `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
-| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) |
+| Crate | Owns | Must not | Depends on |
+| --- | --- | --- | --- |
+| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
+| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
 ```
 app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text field, Markdown only)
  │
- ├──> link ──> vessel-client, vessel-proto
- └──> view ──> vessel-proto
+ ├──> link ──> view, vessel-client, vessel-proto
+ ├──> view ──> vessel-proto
+ └──> vessel-proto; on the desktop vessel-app-updater, vessel-app-log (spikes/release)
 ```
+
+The table is checked: `node ../../scripts/check-boundaries.mjs --workspace .`
+compares the last column with every crate's normal and build dependencies
+on `vessel-*` crates (in both directions), and holds the two tables below;
+it builds nothing (`cargo metadata --no-deps`). A new edge is a change of
+this table, with its reason in the same commit.
+
+### External crates with one owner
+
+| Crate | Who may depend on it | Why |
+| --- | --- | --- |
+| `gpui-pre` | only `vessel-app-kit`, `vessel-app` | Nothing of GPUI's reaches `view` or `link` (ADRs 0035, 0036). |
+| `gpui-pre-platform` | only `vessel-app` | The platform layer is chosen where the app starts. |
+| `gpui-component` | only `vessel-app-kit` | The component layer (text field, Markdown) is reached through the kit. |
+| `gpui-base` | only `vessel-app-kit` | The kit's field draws on its editing engine. |
+| `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
+| `vte` | only `vessel-app-view` | The terminal parser (ADR 0073). Only the grid decodes PTY bytes; the kit draws cells it is given. |
+| `tokio` | never `vessel-app-view`, `vessel-app-kit` | `view` does no I/O and `kit` draws; the runtime is `link`'s (and the app's entry). |
+
+### Names only some files may use
+
+| Names | Crate | Where | Why |
+| --- | --- | --- | --- |
+| `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
+| `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 
 Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
@@ -48,6 +74,27 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+The command palette's matching lives in the shared pure `view::matcher`
+module; its cursor and result bands stay in `view::palette`. Provider
+catalogs reuse the same parsed `Query` and opaque ordered `Score` with
+their visible name/id fields. Each query token must match a visible label/subtitle or hidden
+keyword; subsequences stay within a word. Visible matches rank first,
+command groups rank by relevance, and session navigation follows below
+them by match tier and last activity. Before searching, only five recent
+sessions appear; archived sessions are excluded. A query resets selection
+to the best result; passive fleet updates retain identity and do not
+scroll. The app only supplies entries, draws kit rows and reveals the
+selection when the person types or presses an arrow.
+
+Git action preparation lives beside the code panel's existing models in
+`view::workspace::git`: commit scope and validated message, branch
+create/rename/switch, per-file index actions, discard decisions and stash
+identity. It reuses `workspace::git_quick` and the workspace's refusal
+words, and produces the existing wire requests for `link::workspace`.
+The node remains authoritative; preparation never runs a local git
+command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
+repository root.
+
 ## The app's layout
 
 ```
@@ -58,6 +105,9 @@ app/src/
   chrome.rs        what is in the title bar (the mark and label; the update's status at the right)
   update.rs        the updater (track R's crate) on the shell: its state followed, check now,
                    automatic or only when asked, restart into a new build, "Updated to …" once
+  brand.rs         the brand's drawing behind the content panel (ADR 0059): the screens report
+                   their boxes while laid out, the backdrop draws the same frame; the first
+                   message's journey; brand/avatar.rs, the agent message's avatar
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
@@ -66,6 +116,9 @@ app/src/
                    features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
+    composer/      what the composers share: an agent's lists kept and refreshed
+                   (offers.rs), a running session's controls (running.rs, modes.rs),
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
@@ -117,9 +170,12 @@ The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
 
-Settings sections register their renderer in `settings::content` and their
-presence in `settings::drawn`; the latter controls navigation, so a page
-must appear in both. State and event slots are added only when needed.
+Settings lists Paseo's sections in Paseo's two groups and order
+(`view::settings`: App, then the chosen machine's, Paseo's Host, headed by
+the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
+section registers its renderer once, in `settings::sections::page`; a
+section without one is not listed (no placeholder pages), so the list and
+the pages cannot disagree. State and event slots are added only when needed.
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
@@ -182,6 +238,18 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+`kit/split_button.rs` supplies Paseo's joined primary action and caret:
+26-point pointer / 44-point touch geometry, shared busy spinner, disabled
+primary, and `menu_right` for the menu aligned to the caret's right edge.
+The caller owns its actions, labels and menu state.
+
+Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
+is the explicit 14-point slot used by Paseo’s branch switcher.
+
+`kit/toolbar_label.rs` supplies Paseo’s compact current/base branch trigger:
+12-point muted label and caret, highlighted fill, typed open/disabled state,
+and explicit single-line or wrapping text. Composer pills keep their shape.
+
 Provider error detail follows Paseo's fixed palette red[300] through
 `Tokens::status().red_300`; its semantic status dot still uses the ordinary
 status error signal. Areas use the shared token rather than a local colour.
@@ -198,6 +266,40 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
 
+`kit/command.rs` supplies Paseo's Command Center pieces. The canonical
+`command_row_parts` renderer accepts semantic prose and code-path captions
+with separate UTF-8 marks; the existing plain-row APIs delegate to it.
+The kit validates ranges and merges overlaps; matching/ranking stay in
+`view`. Paths use the existing code face and code-size preference at 12/16,
+while their prose prefixes use the interface caption metrics.
+
+A host opts into persistent `CommandState` and `command_frame_animated`
+for the desktop entering fade (the motion tokens' surface length and
+curve) and the shared `sheet::snap`
+60/90% stops, pan-down dismissal and content-scroll handoff. The static
+entry point and existing edge-sheet API remain available. The desktop
+panel has no exit animation: Paseo's Command Center unmounts its Modal
+at close (`command-center.tsx`, `if (!state.open) return null`), so only
+the entering curve runs. The compact sheet closes with its spring, and
+its backdrop keeps input until it is gone, as `sheet-backdrop.web.tsx`
+keeps its target until the portal dismisses. `CommandState::is_open` is
+the logical state (input and focus); the host presents and samples
+state, restores prior focus once at close, and stops drawing only when
+`CommandMotion::hidden` becomes true. A zero-height window waits for a
+resize instead of requesting frames. Direct dragging remains available
+with the App's reduced-motion flag; springs and fades finish at once.
+The App supplies this flag. On Linux/FreeBSD its portal follower reads and
+subscribes to the system preference; `VESSEL_APP_REDUCE_MOTION=1` or `0`
+forces the flag for one execution and skips that follower. Nothing is
+saved. Actual OS startup/live-change behavior remains unverified here;
+Windows/macOS system following is still absent.
+
+GPUI provides pointer coordinates and native capture, but no recognizer
+velocity: a bounded 100 ms/eight-sample history supplies release velocity.
+The shared spring follows the installed Reanimated helper (including its
+64 ms delayed-frame cap); its numeric fixtures were sampled from that
+helper.
+
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates
 with no action. Areas supply the action’s state and tooltip, rather than
@@ -212,10 +314,83 @@ shapes fade, leaving cards and borders solid. Callers supply typed shape
 sizes/corner steps and compose existing settings/card frames. The pulse
 stops scheduling frames when unmounted; reduced motion follows GPUI.
 
+`kit::popup::appear` is how a floating surface arrives (the owner's word
+39): from clear to solid and four points below its place, over a length
+from `kit::motion` on its curve; menus, a combobox's list and tooltips
+use the quick length (Paseo's menu enters in 150 ms), dialogs, sheets and
+toasts the surface length. Nothing plays on the way out: Paseo's desktop
+popovers, menus and dialogs unmount at once. `popup::fill_in` fills the
+row a list's keyboard position arrives on over the quick length. Held
+motion (Animations off, reduced motion, a software renderer) draws every
+end state at once (GPUI's `with_animation`).
+
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and
 after twelve lines the editor scrolls. Its marked-text regression also
 exercises the composer; platform input-method support remains shared.
+
+`kit::field::composer_hooks` gives a composer's screen what Paseo's
+composer needs of its text: `caret`, `selection`, `replace_range` and
+`replace_all` (byte offsets; one undoable edit, the caret after it),
+`on_edit` (after every edit), and `hooked`, which offers Up, Down, Enter
+(alone), Tab and Escape, and a paste of images or files, to the screen
+before the text sees them. `KeyAnswer::Pass` leaves everything as before
+(Enter sends, Tab indents); `Taken` stops the key. An input method
+composing is never asked. Screens take a key only while their menu shows.
+
+The permissions modes' marks are Paseo's shield family on the kit's own
+`Shield` outline: `ShieldPlus`, `ShieldCheck`, `ShieldOff`, `ShieldEllipsis`
+and `ShieldAlert` (`assets.rs`, the 24-unit 1.5-stroke grid). A list row
+draws one in the foreground with `Leading::Mark` (Paseo's mode rows);
+`Leading::Glyph` stays muted. `cargo run -p vessel-app-kit --example
+shield_marks` with `GPUI_X11_SCALE_FACTOR` draws them beside `Shield` at
+14, 16 and 20 points, off the pixel grid, for the scale check.
+A list in which any row leads with a mark keeps the mark's column on every
+row (an empty one where a row has none), so labels share one left edge;
+agent lists, whose marks are the agents' own widths, are left as they are.
+`ComboHeader::note` is a muted line above a list's rows: the composer's
+lists say there that the list shown could not be refreshed.
+
+What each agent on each machine offers (its models, efforts, modes, on/off
+options) is one store, `view::offers`: shown at once when a control opens,
+refreshed behind it (on open, at connect, when a machine's agents change;
+one request per agent in flight), laid over an open list at the edge away
+from its anchor so the rows shown stay put (the list's keyboard highlight
+follows its row). The link keeps the last lists on the device between runs
+(`link/src/offers.rs`: `agent-options.json` in the app's state folder,
+owner-only, versioned, bounded, keyed by the node's id) and hands them over
+when a machine connects. `docs/plans/backend-m12-composer.md` has the
+rules and what was followed from Paseo.
+
+A composer's text that was not sent is its draft (per session, and the
+new chat's): put back when the composer comes back and kept on the device
+(`link/src/drafts.rs`: `drafts.json` beside the agents' lists, owner-only,
+versioned, bounded; a file that does not read is set aside as
+`drafts.json.unread`). Up and Down in an empty session composer recall
+the messages sent in it, newest first.
+
+`kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
+list): rows drawn best last (nearest the text), the chosen one on
+`surface2`, a chosen command's card above the list, the loading, empty and
+failed states as one muted line; at most 220 high, scrolling, the chosen
+row kept in view. `cargo run -p vessel-app-kit --example autocomplete`
+with `VESSEL_AUTOCOMPLETE_SCENE` (`commands`, `long`, `files`, `empty`,
+`loading`, `failed`, `scroll`) and `VESSEL_APP_THEME` draws each state.
+The list takes a `Motion` (an easing and a length) from the screen, which
+reads the app's one set of motion tokens; the kit has none of its own.
+
+`Tooltips::on_code` keeps the tooltip’s existing chrome and placement but
+uses the code face for a whole path or hash. Existing `on` stays body text.
+
+`kit::form_summary` supplies GOAT’s branch/files summary and fixed file-list
+inset. Static outer edges keep the content geometry and never take focus.
+
+`kit/toast.rs` retains its legacy toast entry and adds `toast_with` for typed
+content/optional hover wiring. Info uses neutral chrome and foreground Info16,
+with no close control. `view::toasts` owns its keyed monotonic3200ms lifetime,
+pausing and resuming the remainder; old callbacks cannot clear a replacement.
+Legacy Ok4s/Error-persistent cards keep their stack and controls. Only older
+Info is replaced, an explicit compatibility difference from Paseo's single card.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
@@ -231,6 +406,12 @@ use the same shared `kit::screen_header` frame as other areas. The existing
 `compact_header` wrapper supplies its navigation callback to that renderer,
 so ordinary and detail navigation keep one compact look.
 
+Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
+consumed at16 for pointer and20 for compact settings navigation.
+Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
+`Glyph::Boxes` (Providers): original drawings on the same grid after
+Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -240,7 +421,12 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
 - Words through `view/locales/` (or an active area's remaining `view/src/text/` table); English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
-  generic family anywhere.
+  generic family anywhere. `node scripts/check-tokens.mjs` holds the part a
+  tool can see: a `px(<number>)` in `app/src` (one equal to a spacing step
+  is written `px(spacing::S…)`), and a hex colour anywhere outside the
+  kit's tokens (`kit/src/theme.rs`, `kit/src/theme/`). What was there on
+  2026-11-14 is listed per file in `scripts/tokens-allow.txt` and may only
+  fall (`px-step` 443, `px-other` 90, `hex` 44).
 - An error belongs beside the control it is about; the frame's foot is
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
@@ -265,6 +451,51 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   buttons the kit's; carets and marks are the kit's vector glyphs
   (`assets::Glyph`), never characters. Controls take their colours from
   `tokens.neutral` (Paseo's scale); the accent is the brand's.
+
+### The brand's drawing (ADR 0059)
+
+`view::brand` decides the mark's large multiline drawing without a toolkit:
+the measured ratios (`ratios`), offset lines with concentric turns, loops
+and the star (`geometry`), where each screen's drawing goes and how it
+steps down as the window narrows (`layout`), the first message's journey
+(`motion`: 300 ms move, 150 ms star to circle, 150 ms the agent's mark, the
+kit's motion tokens and curve), and the shapes the kit paints. Its
+tests place the drawing over the real screens' measured boxes (1280, 1920
+and 390 wide) and check it never comes within 12 points of text.
+
+`kit::vector` paints shapes it is given (points with a stroke or a fill,
+a share of one theme ink) as the agent marks are painted: rasterised at
+exactly the device pixels they cover and drawn 1:1, cached by content
+(twelve rasters, at most two of them panel-sized; one pushed out is
+dropped from GPUI's atlas). `vector::drawing` makes its shapes at paint
+time, so a backdrop can use boxes the content measured in the same frame,
+and rasterises only the area it fills (the open session's frame runs far
+below the screen); `vector::inline` draws in a box of its own (the
+avatar).
+
+`app::brand` is the shell's `brand`: the new session's column gives
+`on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
+composer's card and the pickers after `skip` children), the session's
+screen gives `shell.brand.session_body(viewport)` and its composer's column
+`shell.brand.session_column()`, the row waiting for the reply gives
+`shell.brand.reply_head()` (its first child is the avatar's slot, where the
+star lands), `shell.brand.sent()` starts the journey, and `brand::avatar(…)`
+draws an agent message's avatar. The
+journey steps once per presented frame while it runs; held motion (reduced,
+off, a software renderer) shows its end at once.
+
+`kit::window_glyph` draws the title bar's minimise, maximise, restore and
+close glyphs in the mark's line language (one line, round ends, corners on
+half a pitch, the back stroke broken one gap short of the front one) at 9
+points, in whole device pixels at every scale: the line `⌊scale + ¼⌋`
+pixels (1, 1, 1, 2), the gap at least two, straight strokes on whole rows
+through `vector::snapped`. The cells, their fills and their hit areas stay
+the chrome's. `kit::frame::panel_edges` draws the content panel's edge as
+two lines one pitch apart (one at a phone's width) with GPUI quads whose
+boxes and widths are whole device pixels; it sits in a parent that does not
+clip and replaces the panel's own border. `kit/examples/window_glyphs.rs`
+is the audit sheet: every glyph in the bar's four states and the two-line
+edge, captured at 1, 1.25, 1.5 and 2 (`GPUI_X11_SCALE_FACTOR`).
 
 ## Why GPUI, and which
 
@@ -302,9 +533,20 @@ track runs exactly this before it reports a slice:
 ```bash
 cd spikes/native
 cargo fmt --all --check
+node ../../scripts/check-rust-size.mjs --workspace .     # file budget
+node ../../scripts/check-boundaries.mjs --workspace .    # this README's crate tables
+node scripts/check-tokens.mjs                            # tokens, not literals
 cargo clippy --all-targets -- -D warnings
 cargo test
 ```
+
+The three `node` checks build nothing and take about a second, so a
+violation fails before the compile. The file budget is the main
+workspace's (`docs/QUALITY.md`, M3): a file of product code over 500 lines
+fails unless `scripts/rust-size-allow.txt` lists it, and a listed file may
+not grow past its recorded size (22 files on 2026-11-14). The release
+workspace (`spikes/release`, whose crates the app links) has the same two
+checks in its own gate (`spikes/release/README.md`).
 
 Environment:
 
@@ -322,6 +564,9 @@ Environment:
   setting shows them (every tool call a row of its own; an agent's log
   as one folded row) instead of collapsing tool calls, until the app
   reads that setting.
+- `VESSEL_APP_SLOW_MOTION=<n>`: the brand's first-message journey runs
+  n times slower, so a capture on a virtual display can take its frames
+  (with `VESSEL_APP_REDUCE_MOTION=0`). Nothing is stored.
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.
@@ -396,6 +641,13 @@ the question card is checked against them. Three more, `permit plan`,
 in the real adapters' shapes (Claude Code leaving plan mode with five
 "always" answers, Codex's five answers, two at once): the permission card
 is checked against them and the `shapes-asking` session's long command.
+
+`scripts/shell-fixtures.py` adds eight long English/Korean session titles
+and long working paths through the real CLI, pins two and archives two.
+It reads the disposable node's durable projection to fail startup when
+these shapes are missing. It refuses a book outside disposable loopback
+endpoints or an adapter that is not the real-shape fake. This tests shell
+layout against node data rather than hand-built screen rows.
 
 The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
 an added agent with a long name and argument, a definition whose program
@@ -547,6 +799,23 @@ paths, without this harness.
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
 
+Git's screen policy models live beside its request preparation in
+`view::workspace::git`: the compact Changes head, checked branch choices,
+commit scope and submit gates, keyed pending intentions and file actions bound
+to the code panel's shown machine/root and comparison. Retained draft facts
+preserve the form after a failed refresh; only a ready read authorizes a write.
+Drawing belongs to `app` through the kit, and prepared node calls belong in
+`link`; Git output is never interpreted in a drawing callback.
+
+Git's commit scope count, path preview and submit share one eligibility rule;
+a partial zero remains unknown. Failed and unread facts give retry/read guidance,
+and only a pending read says it is refreshing. Keyed success receipts retain the
+original stash intention and protect the one-second success reset from late timers.
+
+`Type::MonoBody` is the form path's 14/20 normal code step (GOAT's commit
+summary). Existing `Mono` remains 12/20. Both use the independent code scale and
+same embedded face/fallbacks; ordinary type continues to use the UI scale.
+
 ### Official agent artwork (ADR 0048)
 
 `kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
@@ -600,6 +869,38 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+Branch choices distinguish local identity from a remote-tracking ref even when
+their printable names match. Only the current local branch is a no-op; remote
+choices always pass the existing remote-prefix and local-name validation.
+
+The git toolbar (`app/src/areas/git/`) sits in track F's Changes-tab slot
+and follows the repository F shows (`Shell::code_git_context`, read only).
+It uses the workspace channel the code panel already has: a read is taken
+when its echoed root is the one followed and a read of it is out; a write
+when it equals the one write in flight. What choosing an action does is
+`view::workspace::git::step` (explain in an Info toast and send nothing,
+open a form, or send one prepared write). Its shapes on a running fleet:
+`bash scripts/git-fixtures.sh ROOT TARGET` adds one project and session
+per state (commit on a feature branch and on the default branch, push,
+pull, no upstream, in step, push refused by the remote, no commits,
+detached), bare remotes under `ROOT/remotes` with `main` as `origin/HEAD`, and a
+device paired as a person pairs one in `ROOT/person-config`; the fleet's
+`ROOT/readonly-config` shows what a read-only device sees. Run the app
+with `HOME=ROOT` for either book: they name their credentials from it.
+A branch name is drawn on one line cut in its middle, never wrapped
+(`app/src/areas/git/name.rs`).
+
+A session's pull request (`app/src/areas/pulls/`, rules in
+`view::workspace::pull`) is read from its card (`CardDetail.pull_request`,
+the node's watcher keeps it fresh) and asked on the same workspace channel
+(`Ask::Pull`: `pr.get`, `pr.open`). The git menu offers Create PR or View
+PR after the remote actions (Paseo's `git/policy.ts`); Create PR opens a
+form with `gh pr create --fill`'s defaults, as the node takes no title
+from a model. The link at the head of the Changes tab opens its facts; a
+card shows its number, state and checks under the branch. The fleet's
+nodes reach no forge (the remotes are bare repositories), so the screens
+there show why a pull request cannot be opened.
 
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),

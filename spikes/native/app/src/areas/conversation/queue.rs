@@ -92,10 +92,6 @@ impl Shell {
     /// running turn when the agent takes a steer, as a turn of its own
     /// when none runs; never in place of a running turn. Whether one
     /// went.
-    #[expect(
-        dead_code,
-        reason = "the app's shortcuts (track S2) bind it; remove with their first call"
-    )]
     pub(crate) fn conversation_steer_next(&self) -> bool {
         let facts = self.areas.conversation.timeline.facts();
         let Some(first) = facts.queue.as_ref().and_then(|queue| queue.entries.first()) else {
@@ -124,10 +120,6 @@ impl Shell {
     /// `thread.editQueuedMessage`, Alt+Up from the composer's start, in
     /// the app's shortcuts); not while another is edited. Whether one
     /// opened.
-    #[expect(
-        dead_code,
-        reason = "the app's shortcuts (track S2) bind it; remove with their first call"
-    )]
     pub(crate) fn conversation_edit_latest_queued(
         &mut self,
         window: &mut Window,
