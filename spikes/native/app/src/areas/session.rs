@@ -459,17 +459,8 @@ pub(crate) fn render(
                 })
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
-    // Track F's slot beside the conversation column: the code panel.
-    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
-        Some(panel) => div()
-            .size_full()
-            .relative()
-            .flex()
-            .flex_row()
-            .child(screen.flex_1().min_w(px(0.0)))
-            .child(panel),
-        None => screen,
-    }
+    // Track F's slot: the screen, with the code panel beside it when out.
+    crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }
 
 /// Under an ended session's conversation: that sending starts it again;
