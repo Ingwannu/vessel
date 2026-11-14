@@ -128,7 +128,13 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 - Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
   numeric prefix such as `2x` is accepted. Vessel parses the whole
   non-negative count and refuses a suffix; this prevents a mistyped count
-  silently selecting another window. Paseo uses `Date.parse`; Vessel uses
+  silently selecting another window. A non-number or negative count makes
+  the parser return `undefined`, but the command explicitly refuses that
+  result in follow (`:273-278`) and one-shot (`:299-304`); it is not ignored
+  or replaced by a default. Vessel makes this refusal before connecting.
+  Paseo connects and resolves the agent first, and one-shot fetches history
+  before checking the count. Early validation avoids that unnecessary work.
+  Paseo uses `Date.parse`; Vessel uses
   RFC 3339 with an explicit offset so machine locale cannot alter selection.
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
@@ -281,6 +287,9 @@ No row of the crate table changes.
   inputs precede connection. Tail follows time/kind selection; filtered gaps
   separate streamed messages and cannot fabricate a retention warning. The
   fake-node selection and history-to-live tests have not run yet.
+- The contract's follow bullet and EOF explanation now name the same end.
+  Parser and command-level checks are documented together: an invalid tail
+  is refused by both products, with earlier validation in Vessel.
 - Next: report the independent decoder gate, then gate the log draft while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Windows, macOS, native UI and real harnesses remain

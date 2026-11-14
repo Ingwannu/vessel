@@ -226,7 +226,8 @@ person reloads. There is no MCP tool for it.
 - `--since` an RFC 3339 timestamp. Unparseable is a usage error. A
   record's `at` must be greater than or equal to it.
 - `-f` / `--follow`. After the selection, wait on the session stream
-  for later matching records until interrupted. No sleep.
+  for later matching records until the session's log ends (its final status
+  record) or the person interrupts. No sleep.
 
 Order: `--from`, then `--since`, then `--filter`, then `--tail`. Follow
 continues after the last record it printed. Rendering stays the view
@@ -235,7 +236,12 @@ those four kinds, so a filter prints nothing of its bytes.
 
 These flags are not a wire call. `read_events` is unchanged. Count parsing
 consumes the whole integer rather than Paseo's numeric-prefix `parseInt`;
-a trailing typo is refused. RFC 3339 replaces locale-sensitive date parsing.
+a trailing typo is refused. Both commands refuse a non-numeric or negative
+count: Paseo's command checks the parser's `undefined` result in both modes
+before applying a default. Vessel refuses before connecting; Paseo connects
+and resolves the agent first (and fetches one-shot history before refusal).
+Early refusal avoids credential, connection and history work for invalid input.
+RFC 3339 replaces locale-sensitive date parsing.
 The existing session stream ends at a run's final status, so follow ends
 there or at Ctrl-C; a later resume needs a new invocation. Paseo's timeline
 subscription waits for an explicit stop. Preserving the existing stream EOF
