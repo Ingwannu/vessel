@@ -49,8 +49,7 @@ const WIDTH: f32 = 264.0;
 /// A section's glyph: Paseo's (`SIDEBAR_SECTION_ITEMS`,
 /// `HOST_SECTION_ITEMS`, Lucide's names in the comments) where the kit
 /// has it. Where it does not yet, the nearest kit glyph stands in, named
-/// as one; all but Projects and Providers are of sections not drawn yet,
-/// so not listed.
+/// as one; each of those is a section not drawn yet, so not listed.
 const fn section_glyph(section: Section) -> Glyph {
     match section {
         Section::General => Glyph::Gear,
@@ -61,21 +60,21 @@ const fn section_glyph(section: Section) -> Glyph {
         Section::Shortcuts => Glyph::Keyboard,
         Section::Notifications => Glyph::Bell,
         Section::Permissions => Glyph::Shield,
+        Section::Diagnostics => Glyph::Stethoscope,
         Section::About => Glyph::Info,
         Section::Overview => Glyph::Server,
+        Section::Projects | Section::Workspaces => Glyph::FolderGit,
         Section::Devices => Glyph::Smartphone,
-        // Agents is Paseo's Bot; Providers' Boxes stands in as Bot below.
-        Section::Agents | Section::Providers => Glyph::Bot,
+        Section::Agents => Glyph::Bot,
         Section::Metadata | Section::Models => Glyph::Sparkles,
-        // Stand-ins: Paseo's FolderGit2 (Projects, Workspaces), Files, Globe (Browser), Code2 (Editor), Puzzle
-        // (Integrations), Stethoscope (Diagnostics), Network
-        // (Connections), Mic (Voice), Gauge (Usage), Blocks (Plugins).
-        Section::Projects | Section::Workspaces => Glyph::Folder,
+        Section::Providers => Glyph::Boxes,
+        // Stand-ins: Paseo's Files, Globe (Browser), Code2 (Editor), Puzzle
+        // (Integrations), Network (Connections), Mic (Voice), Gauge
+        // (Usage), Blocks (Plugins).
         Section::Files => Glyph::File,
         Section::Browser
         | Section::Editor
         | Section::Integrations
-        | Section::Diagnostics
         | Section::Connections
         | Section::Voice
         | Section::Usage

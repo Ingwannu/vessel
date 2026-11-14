@@ -353,8 +353,11 @@ Differences from Paseo, stated:
   for a host everywhere else in the app ("Add a machine").
 - The list keeps the workspace sidebar's width (264) and ground, not
   Paseo's 320 on `surfaceSidebar` (unchanged from slice 3).
-- Glyphs the kit lacks stand in until it has them (named in
-  `nav::section_glyph`): Providers draws Bot for Paseo's Boxes,
-  Projects Folder for FolderGit2.
+- Glyphs: the kit gained Stethoscope (G2's, as it is), FolderGit and
+  Boxes (original drawings after Paseo's FolderGit2 and Boxes) for the
+  sections listed now and next; the hidden sections' glyphs the kit
+  still lacks stand in, named in `nav::section_glyph`.
+- The Providers page's list heading says "Providers on <machine>"
+  ("<machine>의 프로바이더"), as its title, where it said "Agents on".
 - The picker's name is in the foreground and it has no open fill, as
   Paseo's trigger (before: muted, with the selected fill while open).
