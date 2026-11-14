@@ -80,7 +80,7 @@ pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};
-pub use devices::{CredentialHash, StoredDevice};
+pub use devices::{CredentialHash, DeviceWindow, StoredDevice};
 pub use error::{Column, Quantity, StoreError};
 pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
 pub use lock::{NodeLock, NodeOwner, StartLock};

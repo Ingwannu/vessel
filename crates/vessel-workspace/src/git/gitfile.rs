@@ -72,14 +72,14 @@ pub fn registered(worktree: &Path, project: &Path) -> bool {
 
 /// The path a `.git` file's `gitdir:` line names; `None` for anything but
 /// a small regular file of that form.
-fn gitdir_line(file: &Path) -> Option<PathBuf> {
+pub(super) fn gitdir_line(file: &Path) -> Option<PathBuf> {
     let line = first_line(file)?;
     line.strip_prefix("gitdir: ").map(PathBuf::from)
 }
 
 /// The first line of `file`, which must be a regular file (a link is not
 /// followed) of at most [`MAX_GITFILE`] bytes.
-fn first_line(file: &Path) -> Option<String> {
+pub(super) fn first_line(file: &Path) -> Option<String> {
     let opened = crate::regular::open(file).ok()??;
     if opened.metadata().ok()?.len() > MAX_GITFILE {
         return None;

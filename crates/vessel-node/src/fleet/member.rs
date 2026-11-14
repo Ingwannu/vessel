@@ -1,6 +1,5 @@
-//! The member role: joining a home ([`join`]), leaving ([`leave`]), and
-//! the loop that pulls the home's bundle, applies it and reports
-//! ([`run`]).
+//! The member pull loop: fetch the home's bundle, apply and report.
+//! Joining and leaving live in `joining`, shared by the offline CLI and RPC.
 //!
 //! [Decision Log]
 //! - Membership is a pairing (ADR 0012): the home makes an invitation
@@ -34,18 +33,13 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
-use vessel_client::secure::{
-    DialError, ReachError, RouteTimeouts, SecureConnector, TlsError, WsDialer, pair_over,
-};
+use vessel_client::secure::{SecureConnector, TlsError, WsDialer};
 use vessel_client::{
     Backoff, CallError, Connector, CredentialError, CredentialMismatch, DeviceCredential,
     NodeClient, Pinned, SecureTarget,
 };
 use vessel_fleet::BlobStore;
-use vessel_proto::{
-    ClientInfo, Generation, Manifest, NodeId, NodeInfo, NodePublicKey, PairingOffer, RouteUrl,
-    Scope,
-};
+use vessel_proto::{ClientInfo, Generation, Manifest, NodeId, NodePublicKey, RouteUrl, Scope};
 
 use vessel_client::FetchError;
 
@@ -87,110 +81,6 @@ impl Membership {
     }
 }
 
-/// A node joined a fleet.
-#[derive(Debug, Clone)]
-pub struct Joined {
-    /// The home, as it introduced itself.
-    pub home: NodeInfo,
-    /// The route the pairing took.
-    pub route: String,
-}
-
-/// Why `join` did not join.
-#[derive(Debug, thiserror::Error)]
-pub enum JoinError {
-    /// This node is a fleet's home.
-    #[error("this node is a fleet's home (it has fleet.toml); a home does not join another")]
-    Home,
-    /// This node is a member already.
-    #[error("this node is already a member of a fleet; `vessel fleet leave` first")]
-    Member,
-    /// No TLS for a `wss://` route.
-    #[error("TLS for the home's relays: {0}")]
-    Tls(#[source] TlsError),
-    /// The home could not be reached, or refused the link.
-    #[error("{0}")]
-    Reach(#[source] ReachError<DialError>),
-    /// The credential or membership could not be written.
-    #[error(transparent)]
-    File(#[from] FileError),
-    /// The credential could not be written.
-    #[error(transparent)]
-    Credential(#[from] CredentialError),
-}
-
-/// Join the fleet whose home made `offer` (a link with the `sync` scope,
-/// from `vessel fleet invite` on the home): pair with it as `device_name`
-/// and store the credential and the home's routes in `files`. The node
-/// starts pulling within a few seconds, or when it next starts.
-///
-/// The caller shows the offer (node, key fingerprint, routes) and asks
-/// for consent before calling; the link must come from standard input or
-/// a prompt, never the command line.
-///
-/// # Errors
-/// See [`JoinError`].
-///
-/// `grant` is what the home may do on this node once it runs (protocol 6;
-/// [`DEFAULT_GRANT`] unless the owner chose otherwise, empty for nothing).
-pub async fn join(
-    files: &FleetFiles,
-    offer: &PairingOffer,
-    device_name: &str,
-    grant: Vec<Scope>,
-) -> Result<Joined, JoinError> {
-    if files.sources().exists() {
-        return Err(JoinError::Home);
-    }
-    if files.membership().exists() {
-        return Err(JoinError::Member);
-    }
-    let dialer =
-        WsDialer::for_routes(offer.direct.iter().chain(&offer.relays)).map_err(JoinError::Tls)?;
-    let (paired, route) = pair_over(&dialer, offer, device_name, RouteTimeouts::default())
-        .await
-        .map_err(JoinError::Reach)?;
-    let membership = Membership {
-        home: offer.node,
-        key: offer.key,
-        relays: offer.relays.clone(),
-        direct: offer.direct.clone(),
-        joined_at: Utc::now(),
-        grant,
-    };
-    let files = files.clone();
-    let credential = paired.credential;
-    tokio::task::spawn_blocking(move || -> Result<(), JoinError> {
-        files::create_private_dir(files.dir())
-            .map_err(|error| FileError::io(files.dir(), error))?;
-        // The credential first: a membership without it would be unusable.
-        credential.write(&files.credential())?;
-        files::write_json(&files.membership(), &membership)?;
-        Ok(())
-    })
-    .await
-    .map_err(|error| {
-        FileError::io(std::path::Path::new("fleet"), std::io::Error::other(error))
-    })??;
-    Ok(Joined {
-        home: paired.node,
-        route: route.to_string(),
-    })
-}
-
-/// Stop being a member: forget the home and this node's credential on it.
-/// The files Vessel wrote stay, as they are. Whether this node was one.
-/// Blocks.
-///
-/// # Errors
-/// A file could not be removed.
-pub fn leave(files: &FleetFiles) -> Result<bool, FileError> {
-    let was = files.membership().exists();
-    files::remove(&files.membership())?;
-    files::remove(&files.credential())?;
-    Ok(was)
-}
-
 /// Why the node cannot pull with its membership.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum MembershipError {
@@ -223,12 +113,14 @@ pub(crate) fn connector(
 }
 
 /// How the pull loop runs.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct Pacing {
     /// Pull at least this often.
     pub(crate) pull_every: Duration,
     /// Waits after failures.
     pub(crate) backoff: Backoff,
+    /// One coalescing manual request, including during a retry wait.
+    pub(crate) manual: Arc<tokio::sync::Notify>,
 }
 
 fn client_info() -> ClientInfo {
@@ -284,7 +176,10 @@ pub(crate) async fn run<C: Connector>(
                 tracing::warn!("{message}");
                 note_error(&local, message).await;
                 failures = failures.saturating_add(1);
-                pause(pacing.backoff.delay(failures), &stop).await;
+                match pause(pacing.backoff.delay(failures), &stop, &pacing.manual).await {
+                    Wake::Stopped => return,
+                    Wake::Elapsed | Wake::Manual => {}
+                }
                 continue;
             }
         };
@@ -308,7 +203,7 @@ pub(crate) async fn run<C: Connector>(
         // ticket while connected (`fleet.callback`); the connection's end
         // stops that.
         tokio::select! {
-            () = session(&client, &local, pacing, &mut applied, &stop) => {}
+            () = session(&client, &local, &pacing, &mut applied, &stop) => {}
             () = links.keep_callback(&client, &membership) => {}
         }
         links.lost_home();
@@ -319,7 +214,7 @@ pub(crate) async fn run<C: Connector>(
 async fn session(
     client: &NodeClient,
     local: &Arc<Local>,
-    pacing: Pacing,
+    pacing: &Pacing,
     applied: &mut Option<Generation>,
     stop: &CancellationToken,
 ) {
@@ -350,7 +245,10 @@ async fn session(
                     tracing::warn!("{message}");
                     note_error(local, message).await;
                     failures = failures.saturating_add(1);
-                    pause(pacing.backoff.delay(failures), stop).await;
+                    match pause(pacing.backoff.delay(failures), stop, &pacing.manual).await {
+                        Wake::Stopped => return,
+                        Wake::Elapsed | Wake::Manual => {}
+                    }
                     if stop.is_cancelled() {
                         return;
                     }
@@ -373,11 +271,14 @@ async fn session(
                     let message = format!("watching the home: {error}");
                     tracing::warn!("{message}");
                     note_error(local, message).await;
-                    pause(pacing.backoff.delay(1), stop).await;
-                    due = false;
+                    due = match pause(pacing.backoff.delay(1), stop, &pacing.manual).await {
+                        Wake::Manual => true,
+                        Wake::Elapsed | Wake::Stopped => false,
+                    };
                 }
             },
             _tick = timer.tick() => due = true,
+            () = pacing.manual.notified() => due = true,
             () = stop.cancelled() => return,
             () = client.closed() => return,
         }
@@ -469,9 +370,16 @@ async fn contacted(local: &Arc<Local>) {
 }
 
 /// Wait `delay`, or until `stop`.
-async fn pause(delay: Duration, stop: &CancellationToken) {
+enum Wake {
+    Elapsed,
+    Manual,
+    Stopped,
+}
+
+async fn pause(delay: Duration, stop: &CancellationToken, manual: &tokio::sync::Notify) -> Wake {
     tokio::select! {
-        () = tokio::time::sleep(delay) => {}
-        () = stop.cancelled() => {}
+        () = tokio::time::sleep(delay) => Wake::Elapsed,
+        () = stop.cancelled() => Wake::Stopped,
+        () = manual.notified() => Wake::Manual,
     }
 }

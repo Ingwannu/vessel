@@ -51,6 +51,7 @@ free_port() {
 }
 
 python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" prepare "$root" "$target"
 
 : > "$root/pids"
 for name in laptop build-server; do
@@ -84,7 +85,7 @@ cli() {
 }
 
 # The schedule preview is real node behaviour, not a client calculation.
-python3 "$(dirname "$0")/wire-gaps-fixtures.py" "$root" "$target"
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" check "$root" "$target"
 agent_fixture_seed "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the

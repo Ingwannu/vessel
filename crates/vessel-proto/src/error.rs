@@ -62,6 +62,11 @@ pub enum ErrorDetail {
         /// The stable preview reason.
         reason: crate::automation::SchedulePreviewError,
     },
+    /// A fleet control could not complete.
+    FleetControl {
+        /// The stable fleet reason.
+        reason: crate::FleetControlError,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,

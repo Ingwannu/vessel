@@ -627,3 +627,14 @@ The disposable settings fixture also checks read-only and session-access
 device rows. For an already-seeded fake fleet, `settings-fixtures.py
 row-access <fixture-root>` updates only its named inert records; fresh
 `fleet.sh` runs seed those scopes directly.
+
+It also joins the build server to the Settings fixture's laptop home,
+checks leave and standalone refusal, revokes that temporary identity, then
+joins with a long member label and waits for the real apply/report. The
+existing behind/conflict report remains a synthetic Settings fixture.
+Only disposable harness homes receive files. A real Read-only pairing is
+stored as `laptop` in the separate `ROOT/readonly-config` book (select it
+with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
+identities and is refused sync/leave. `node pair --read-only` creates that
+credential through the same public invitation RPC; no credential or link is
+written to the fixture report.

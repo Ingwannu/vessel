@@ -185,6 +185,10 @@ untargeted!(
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
     vessel_proto::automation::DeletePrompt,
+    vessel_proto::JoinFleet,
+    vessel_proto::LeaveFleet,
+    vessel_proto::SyncFleet,
+    vessel_proto::GetFleetStatus,
     vessel_proto::automation::PreviewSchedule,
     vessel_proto::automation::ListSchedules,
     vessel_proto::automation::GetSchedule,
@@ -450,6 +454,10 @@ guarded! {
     run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
     restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
     list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
+    join_fleet: vessel_proto::JoinFleet => vessel_proto::JoinedFleet;
+    leave_fleet: vessel_proto::LeaveFleet => Ack;
+    sync_fleet: vessel_proto::SyncFleet => Ack;
+    fleet_status: vessel_proto::GetFleetStatus => vessel_proto::FleetSyncStatus;
     preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
     list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
     get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
