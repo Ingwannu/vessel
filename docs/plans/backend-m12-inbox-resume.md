@@ -1,5 +1,57 @@
 # Inbox and push: node-only resume
 
+## Current node checkpoint
+
+The three source corrections are committed in `b1487bee`: recursive fleet
+protocol admission, stored archive/read-state inheritance when persistence
+lags publication, and exact attempted-lease cleanup after HTTP 404/410. The
+Models assertion and canary diagnostics were supplied by the shared-test
+owner (`28e49d9b` and `7f87d41c`), consumed as `ddcc5166` and `d2e6e6a8`.
+The canonical corrected-source root gate ran on `5342e173`; later documentation
+updates do not change its 1,642 compiled inputs.
+
+- Root: fmt and full clippy passed; 111 test summaries report 1,835 passed,
+  zero failed and 10 existing ignored tests, with `RUST_TEST_THREADS=3`.
+  All seven changed crates actually recompiled. The canary reached shutdown
+  with a 3.440-second phase sum (Setup 0.537, MakeHome 0.102 seconds).
+- Full web E2E: all 62 passed in 3.4 minutes, including page (10), Models
+  (3) and Links (1). Lint, typecheck, 417 web unit tests and build passed
+  on the identical web source. The feature's earlier TypeScript generator
+  run passed both tests; this correction adds no DTOs and leaves the
+  declaration bytes unchanged.
+- SSD Links comparison: own `5342e173` passed three of three in 19.6
+  seconds. Baseline `9c7a45ca` passed three of three in 18.6
+  seconds (front/back load 14.29/12.61). The earlier canary baseline
+  remains `7f87d41c`; the two comparisons are not relabelled as one run.
+
+Runtime temporary data used private mode-0700 SSD directories; targets,
+logs and bundles stayed on the data disk. Root test front/back one-minute
+load was 22.31/16.15, full E2E 16.60/16.66; all gates kept uptime and memory
+records. Sources and normal binary identities were pinned. Recorded fleet
+processes and local build-prefix executables were gone before clearing their
+own temporary directories. No test deadline, assertion or retry count changed.
+
+The third standalone SSD canary is classified as saturation, not a pass or
+a product defect: its front one-minute load was 33.69. The owner-set rule is
+strict: either endpoint above 32 means saturation; any other timeout is an
+owner defect; only a saturated test/crate may be repeated once below 24.
+The HDD own Setup median is 21.228 seconds, not the slowest 31.449-second
+run; SSD Setup median is 6.322 seconds. MakeHome medians are 5.935/3.742.
+Queue/build/warmup time is separate from phase sums. The successful whole
+gate began before the later fake/vesseld prebuild instruction, remained
+unchanged, and ran the canonical nested builds. Future whole gates prebuild
+`vessel-testkit --bins` and `vessel-node --bin vesseld` in the same environment
+and slot before testing, so those builds do not contend inside test clocks.
+
+The source review closed the three original returns. Final feature and
+combined-line acceptance remain the reviewer's/integrator's decision. The
+Store producer barrier proves durable append/mark ordering, not an
+instrumented actor-persistence schedule. No native screen, folded client
+model, OS notification/sound, live push service/phone or Windows ACL runtime
+is claimed tested. The screen-facing node APIs below are ready for that
+separate work; protocol numbers are assigned at merge (this branch uses 19
+provisionally, minimum 2; inbox schema migration 14 follows search's 13).
+
 ## Scope and commits
 
 The resumed scope is node/wire/store/client/CLI/testkit/generated declarations

@@ -87,7 +87,8 @@ ends at the calls a screen consumes and does not claim those screens exist.
    a window focused on the target
    within 180 seconds suppresses delivery. An idle open socket does not suppress
    push. Revoked/expired subscriptions are not sent. Restart preserves the
-   key/subscription without replay; 404/410 prunes only the matching subscription.
+   key/subscription without replay; 404/410 prunes only the attempted lease.
+   A same-subscription renewal survives a late response from the old attempt.
 4. Private, loopback, mixed-DNS and redirected endpoints are refused; logs
    expose no endpoint token, key or content. File mode/ownership is checked.
 5. A fake push receiver proves encrypted wire and decrypts in the test;
@@ -95,7 +96,8 @@ ends at the calls a screen consumes and does not claim those screens exist.
 
 ## Contract
 
-Protocol version 19 (minimum unchanged), schema's next appended migration.
+Protocol number is assigned at merge; this checkpoint uses provisional 19
+(minimum 2 unchanged), with inbox migration 14 after search's 13.
 Inbox ids bind a session and event sequence, with a global per-node page
 cursor. `inbox.list` is read scoped; `inbox.mark` is read scoped but refuses
 agent callers. `push.key/subscribe/unsubscribe` require a local paired-device
@@ -113,8 +115,9 @@ connect/DNS 5s, at most 16 DNS answers all public and pinned, no response body
 consumed, HTTP/1 at most 32 headers (locked hyper buffer ceiling 417,792 bytes),
 HTTP/2 header list 32 KiB. See ADRs for lifecycle and licences.
 
-The following native contract is reserved for the next slice; it is not
-installed or gated in this node checkpoint.
+The following native proposal is historical, uninstalled and ungated in this
+node checkpoint. App workers own the current model and screens; these draft
+names must not be treated as merged APIs.
 
 `link::inbox` bounds concurrent page/action calls to 4 and a 15-second deadline;
 late results carry a `Ticket`. Unknown acknowledgement/disconnect never
@@ -273,7 +276,7 @@ separating outputs and refreshing unchanged source mtimes, the canonical
 large-form CLI test passed again. Final consuming evidence comes from the
 subsequent whole gate and full E2E, with runtime fixture identity checked.
 
-### Final node acceptance result
+### Historical acceptance result before review correction
 
 The corrected consuming tree passed root fmt, whole clippy (`-D warnings`)
 and whole `cargo test --workspace`: **1,820/0/10**, with
@@ -331,3 +334,50 @@ Targets/logs remain on the data disk; runtime temporary data now uses SSD.
 The corrected node's canonical SSD whole gate, six SSD Links comparisons and
 full E2E remain pending. Shared-test timeouts/assertions/retry counts stay
 unchanged. The resume document carries the exact comparison and limitations.
+
+### Corrected node acceptance and wire handoff
+
+The canonical root gate on `5342e173` passed fmt and full clippy, then
+1,835 tests with zero failed and 10 existing ignored across 111 summaries
+(`RUST_TEST_THREADS=3`). The seven changed crates actually recompiled.
+All 62 full web E2E tests passed, including page 10, Models 3 and Links 1.
+The six separate SSD Links comparisons passed: own `5342e173`, 3/3 in
+19.6 seconds; baseline node head `9c7a45ca`, 3/3 in 18.6 seconds. Baseline
+web sources and Cargo manifests are identical to the earlier canary baseline
+`7f87d41c`; its node changes were built in a separate target.
+
+The final source correction adds no wire fields, schema, scopes or dependencies.
+These are the original seven new calls; their number is assigned at merge.
+
+| Method | Request fields | Response |
+|---|---|---|
+| `inbox.list` | `before?: InboxCursor` | `InboxPage { counts, entries, next? }` |
+| `inbox.get` | `key: InboxKey`, `fetch: Summary` (default) or `LiveRequest` | `InboxEntry` or absence |
+| `inbox.mark` | `key: InboxKey`, `read: Read` or `Unread` | existing `Ack` |
+| `push.key` | no fields | `PushKey { key }` |
+| `push.subscribe` | `subscription: { endpoint, p256dh, auth }` | `PushLease { expires_at }` |
+| `push.unsubscribe` | no fields | existing `Ack` |
+| `push.presence` | `focus`, `activity` | existing `Ack` |
+
+`InboxKey` has `session` and `seq`. Entries have `cursor`, `key`, `title`,
+`project`, `project_name`, `at`, `read` and `item`; counts have `total`,
+`waiting` and `unread`. Items reuse the existing permission request/tool or
+question form, or an explicit `InSession` permission/question id; outcomes
+are `Finished`, `Failed`, `Limit` or future `Unknown`. A permission's `detail`
+is `Complete` or `InSession`. Push focus is `Session { session }`, `Elsewhere`
+or `Background`, and activity is `Active` or `Unchanged`. Full typed DTOs
+live in `vessel-proto::{inbox,push}`; capability values never belong in logs.
+
+The client calls listed above remain the screen seam. Effective scope comes
+from the merged node line's `device.self`, added by its own track; this slice
+does not add that method. Unsupported or unavailable means unknown authority,
+not a guessed grant. While authority is unknown, the app offers the existing
+answer path and displays the node's refusal; known read-only access does not
+get an answer handler. Answers still use the existing session Operate boundary.
+
+The three source-review returns are closed: nested version admission,
+stored-mark inheritance during delayed persistence, and exact attempted-lease
+HTTP cleanup. The resume document records the immutable commits, all new
+evidence, earlier failed runs and their limits. This node result does not
+claim native adoption, OS delivery/sound, a real push service/phone, Windows
+ACL runtime verification or combined-line integration approval.
