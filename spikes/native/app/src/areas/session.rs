@@ -290,7 +290,10 @@ impl Shell {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        if text.trim().is_empty() || self.areas.session.resuming.is_some() {
+        if text.trim().is_empty()
+            || self.areas.session.resuming.is_some()
+            || self.conversation_cannot_resume()
+        {
             return;
         }
         if open.live {
@@ -444,9 +447,16 @@ pub(crate) fn render(
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
             let dock = super::conversation::dock(shell, tokens, window, cx);
+            // An ended session its agent cannot pick up again has no
+            // composer: the banner in the dock says so (Paseo's archived
+            // agent shows only its callout); a send would only try to
+            // start it again.
+            let ended_for_good = shell.conversation_cannot_resume();
             frame
                 .children(dock.map(column))
-                .child(composer(shell, tokens, working, window, cx))
+                .when(!ended_for_good, |frame| {
+                    frame.child(composer(shell, tokens, working, window, cx))
+                })
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot beside the conversation column: the code panel.
@@ -471,12 +481,14 @@ fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     let t = shell.t;
     let view = &shell.areas.session;
     let neutral = tokens.neutral;
+    // That it ended is the dock's banner's to say (track C's ended
+    // banner); this line speaks only while it starts again or failed to.
     let (text, color) = if let Some(why) = &view.resume_error {
         (t.resume_failed(why), neutral.destructive)
     } else if view.resuming.is_some() {
         (t.resuming.to_owned(), tokens.st_building)
     } else {
-        (t.ended.to_owned(), neutral.foreground_muted)
+        return None;
     };
     let mut note = div().w_full().flex().flex_col().gap(px(8.0)).py(px(8.0));
     if let Some(prompt) = &view.resuming {
