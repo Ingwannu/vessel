@@ -14,6 +14,8 @@ use crate::shortcuts::{
     matched, modified_count, overlaps, refusal, remove_key, restore, shortcut_row, shortcut_rows,
 };
 
+mod capture;
+
 type Overrides = BTreeMap<ActionId, Bindings>;
 
 const MAC: Platform = Platform::Mac;

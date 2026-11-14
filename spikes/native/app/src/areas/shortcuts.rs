@@ -10,19 +10,26 @@
 //! key before anything else does (GPUI's keystroke interceptor), so an
 //! action that acts takes the key from the field and the controls (the
 //! page's `preventDefault`); one that does not leaves it to them. While an
-//! input method composes, the system's input method holds the keys and
-//! none reaches the listener.
+//! input method composes in any kit field
+//! ([`vessel_app_kit::TextField::focused_composing`]), the listener stands
+//! down, so a key the input method needs (Enter to commit a syllable) is
+//! never taken for a shortcut.
 //!
-//! Find (track C's find bar keeps its own key for now), the composer's
-//! focus and the two panels have no handler here yet: their keys pass on.
+//! Every app-wide key is here: Find (track C's find bar,
+//! `Shell::conversation_find`), the composer's focus, the sidebar and the
+//! session's right panel (track F's code panel, `Shell::toggle_code`), and
+//! GOAT's two queue keys (track C's `conversation_steer_next` and
+//! `conversation_edit_latest_queued`). Keys a control keeps for itself
+//! while it has focus (a menu's arrows, a dialog's Escape) stay with it.
 
 use std::time::Instant;
 
 use gpui::KeystrokeEvent;
+use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{Context, Subscription, Window};
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::{
-    Action, KeyPress, Matched, Pending, Platform, chord_of, code_of, commanding, matched,
+    Action, Held, KeyPress, Matched, Pending, Platform, chord_of, code_of, commanding, matched,
 };
 use vessel_app_view::sidebar::{Step, step_session};
 
@@ -41,6 +48,8 @@ pub(crate) struct ShortcutListener {
     pub(crate) recording: bool,
     /// The interceptor, kept for as long as the window.
     subscription: Option<Subscription>,
+    /// The chord held down, to tell the system's repeat from a press.
+    held: Held,
 }
 
 impl ShortcutListener {
@@ -50,7 +59,14 @@ impl ShortcutListener {
             since: Instant::now(),
             recording: false,
             subscription: None,
+            held: Held::default(),
         }
+    }
+
+    /// Any key came up (the shell's root hears every key-up): the next
+    /// press of the same chord is a new press, not a repeat.
+    pub(crate) fn released(&mut self) {
+        self.held.release();
     }
 
     /// Milliseconds since the app started.
@@ -92,7 +108,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.shortcuts.recording {
+        if self.areas.shortcuts.recording || TextField::focused_composing(window, cx) {
             return;
         }
         let platform = Platform::native();
@@ -100,6 +116,7 @@ impl Shell {
             return;
         };
         let listener = &mut self.areas.shortcuts;
+        let repeat = listener.held.press(&chord);
         let typing = event
             .context_stack
             .iter()
@@ -119,7 +136,7 @@ impl Shell {
             Matched::Wait(pending) => self.areas.shortcuts.pending = Some(pending),
             Matched::None => {}
             Matched::Run { action, index } => {
-                if self.run_shortcut(action, index, window, cx) {
+                if self.run_shortcut(action, index, repeat, window, cx) {
                     cx.stop_propagation();
                 }
             }
@@ -132,6 +149,7 @@ impl Shell {
         &mut self,
         action: Action,
         index: Option<u8>,
+        repeat: bool,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
@@ -152,11 +170,43 @@ impl Shell {
             Action::NextSession => return self.step_to(Step::Next, window, cx),
             Action::PreviousSession => return self.step_to(Step::Previous, window, cx),
             Action::JumpSession => return self.jump_to(index, window, cx),
-            Action::Find
-            | Action::FocusComposer
-            | Action::ToggleSidebar
-            | Action::ToggleInspector => return false,
+            Action::Find => {
+                if self.route != Route::Session {
+                    return false;
+                }
+                self.conversation_find(window, cx);
+            }
+            Action::FocusComposer => return self.focus_composer(window, cx),
+            Action::ToggleSidebar => self.toggle_sidebar(window, cx),
+            Action::ToggleInspector => {
+                if self.route != Route::Session {
+                    return false;
+                }
+                self.toggle_code(window, cx);
+            }
+            // GOAT: only in a session, never on a draft, and never for
+            // the system's repeat of a held key (one message per press).
+            Action::SteerQueued => {
+                return !repeat && self.route == Route::Session && self.conversation_steer_next();
+            }
+            Action::EditQueued => {
+                return self.route == Route::Session
+                    && self.areas.session.composer.at_start(window, cx)
+                    && self.conversation_edit_latest_queued(window, cx);
+            }
         }
+        true
+    }
+
+    /// Give the composer on screen the keys: the session's, or the new
+    /// chat's; nothing on a page without one.
+    fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
+        let composer = match self.route {
+            Route::Session => &self.areas.session.composer,
+            Route::Draft => &self.areas.draft.composer,
+            Route::Board | Route::Archive | Route::Pair | Route::Settings => return false,
+        };
+        composer.focus(window, cx);
         true
     }
 

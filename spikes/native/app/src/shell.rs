@@ -392,6 +392,8 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .face(vessel_app_kit::Type::Body)
+            // Every key-up, for the shortcuts' repeat check (track S's).
+            .on_key_up(cx.listener(|this, _event, _window, _cx| this.areas.shortcuts.released()))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
