@@ -51,6 +51,7 @@ impl SessionRuntime {
         }
 
         let profile = begin.info.profile.clone();
+        let known = begin.info.spec.harness.known();
         let (route, routed) = watch::channel(Route::Live(input.clone()));
         // One move at a time; a second waits for the first's answer.
         let (control, orders) = mpsc::channel(1);
@@ -82,6 +83,7 @@ impl SessionRuntime {
             control: orders,
             launch,
             profile,
+            known,
             life: parts.life,
             ready: false,
             disconnect: None,
@@ -165,6 +167,8 @@ impl SessionRuntime {
             options: Vec::new(),
         };
         let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
+        // Its modes tagged as Paseo tiers them (ADR 0058), as a session's are.
+        let known = harness.known();
         let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
         if !profile.is_default() {
             spec = spec.with_profile(profile.name().clone());
@@ -176,7 +180,11 @@ impl SessionRuntime {
             ..
         } = self.agent_command(spec, profile, proxy).await?;
         let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
-        Ok(vessel_agent::probe_with(driver, &command, setup).await?)
+        let mut probed = vessel_agent::probe_with(driver, &command, setup).await?;
+        if let Some(kind) = known {
+            vessel_harness::tag_modes(kind, &mut probed.options);
+        }
+        Ok(probed)
     }
 
     /// A page of `harness`'s own conversations (protocol 17's

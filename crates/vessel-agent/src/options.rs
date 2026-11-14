@@ -284,6 +284,8 @@ impl Options {
                         name: mode.name.clone(),
                         description: mode.description.clone(),
                         group: None,
+                        risk: None,
+                        unattended: false,
                     })
                     .collect(),
             },
@@ -327,6 +329,8 @@ fn option(option: &acp::SessionConfigOption) -> Option<SessionOption> {
                     name: value.name.clone(),
                     description: value.description.clone(),
                     group: group.map(ToOwned::to_owned),
+                    risk: None,
+                    unattended: false,
                 })
                 .collect(),
         },

@@ -20,6 +20,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     inherits: Inheritance::Clean {
         names: &["XAI_API_KEY"],
     },
+    modes: &[],
     home: Some(Home {
         variable: None,
         default: &[".grok"],

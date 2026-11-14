@@ -7,8 +7,11 @@
 //! clean environment; the provider keys it reads are listed with its
 //! driver.
 
+use vessel_proto::Risk;
+
 use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
+use crate::modes::ModeTag;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "omp",
@@ -17,6 +20,11 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         needs: "Oh My Pi's own protocol (`omp --mode rpc-ui`)",
     },
     inherits: Inheritance::Clean { names: &[] },
+    modes: &[
+        ModeTag::unattended("full"),
+        ModeTag::asks("write", Risk::Moderate),
+        ModeTag::asks("ask", Risk::Safe),
+    ],
     home: Some(Home {
         variable: None,
         default: &[".omp"],

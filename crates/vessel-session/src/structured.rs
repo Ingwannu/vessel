@@ -4,7 +4,9 @@ use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
-use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionOption, SessionStatus};
+use vessel_proto::{
+    AgentEvent, HarnessKind, ProfileName, SessionEvent, SessionOption, SessionStatus,
+};
 
 use crate::attachments::AttachmentLoader;
 use crate::delivery::Desk;
@@ -36,6 +38,9 @@ pub(crate) struct StructuredActor {
     pub(crate) launch: Launch,
     /// The profile it runs with; `None` is the harness's default.
     pub(crate) profile: Option<ProfileName>,
+    /// Its agent when Vessel knows it: its modes are tagged with Paseo's
+    /// tiers as they arrive (ADR 0058, `vessel_harness::tag_modes`).
+    pub(crate) known: Option<HarnessKind>,
     pub(crate) life: Lifecycle,
     pub(crate) ready: bool,
     pub(crate) disconnect: Option<Disconnect>,
@@ -232,7 +237,10 @@ impl StructuredActor {
         match output {
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
-            AgentOutput::Options(options) => {
+            AgentOutput::Options(mut options) => {
+                if let Some(kind) = self.known {
+                    vessel_harness::tag_modes(kind, &mut options);
+                }
                 // What a wake starts the agent with (protocol 12); an
                 // option change is activity.
                 self.parking.choices = options.iter().filter_map(SessionOption::choice).collect();

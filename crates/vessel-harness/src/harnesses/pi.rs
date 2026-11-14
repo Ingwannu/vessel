@@ -18,6 +18,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         needs: "Pi's own protocol (`pi --mode rpc`)",
     },
     inherits: Inheritance::Clean { names: &[] },
+    modes: &[],
     home: Some(Home {
         variable: Some("PI_CODING_AGENT_DIR"),
         default: &[".pi", "agent"],

@@ -85,6 +85,45 @@ pub struct OptionValue {
     /// values. Values of one group are adjacent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
+    /// How much a mode lets the agent do unasked (protocol 22, ADR 0058):
+    /// Paseo's tiers, for a mode Vessel knows; absent for any other value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<Risk>,
+    /// Whether this mode runs every action without asking (protocol 22, ADR
+    /// 0058): a client names it "Full access" wherever it offers it and
+    /// where a session starts in it. Left out when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub unattended: bool,
+}
+
+/// How much a mode lets an agent do without asking: Paseo's colour tiers
+/// (`AgentModeColorTier`), which a client draws as it draws Paseo's.
+///
+/// [Decision Log]
+/// - Purpose: the owner asked for every agent set up as Paseo sets it up
+///   (ADR 0058), and the coordinator for a mode that runs without asking to
+///   be named for what it is. The agent's own label ("Bypass", "Allow all")
+///   does not say that in one word, and a client cannot tell from an id.
+/// - Choice: the node tags the modes it knows, from each harness's
+///   descriptor (Paseo's manifest), or a direct driver sets them; a value
+///   it does not know carries neither, and a client shows it plain.
+/// - Forward: a tier a newer node adds reads as [`Risk::Unknown`] rather
+///   than failing the whole list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum Risk {
+    /// Asks before acting (Claude Code's `default`, Muse's `onRequest`).
+    Safe,
+    /// Acts on some things unasked (accepting edits, an auto reviewer).
+    Moderate,
+    /// Acts on everything unasked.
+    Dangerous,
+    /// Plans without acting.
+    Planning,
+    /// A tier this build does not know.
+    #[serde(other)]
+    Unknown,
 }
 
 /// What kind of control an option is, and its current state.
@@ -296,12 +335,16 @@ mod tests {
                         name: "Default".to_owned(),
                         description: Some("The agent's choice".to_owned()),
                         group: None,
+                        risk: None,
+                        unattended: false,
                     },
                     OptionValue {
                         id: OptionValueId::new("haiku"),
                         name: "Haiku".to_owned(),
                         description: None,
                         group: Some("Fast".to_owned()),
+                        risk: None,
+                        unattended: false,
                     },
                 ],
             },

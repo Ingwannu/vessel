@@ -12,8 +12,11 @@
 //! sessions get no MCP servers at launch (structured ones still do, over
 //! ACP), and there is no login check or session move yet.
 
+use vessel_proto::Risk;
+
 use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
+use crate::modes::ModeTag;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "opencode",
@@ -23,6 +26,10 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         env: &[],
     },
     inherits: Inheritance::Node,
+    modes: &[
+        ModeTag::asks("build", Risk::Moderate),
+        ModeTag::asks("plan", Risk::Planning),
+    ],
     home: Some(Home {
         variable: None,
         default: &[".config", "opencode"],

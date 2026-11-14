@@ -19,6 +19,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     inherits: Inheritance::Clean {
         names: &["CURSOR_API_KEY"],
     },
+    modes: &[],
     home: None,
     layout: HarnessLayout {
         instructions: None,

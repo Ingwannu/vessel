@@ -36,12 +36,13 @@ use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
 use serde::Serialize;
-use vessel_proto::{HarnessSessionId, McpTransport, ResolvedMcpServers};
+use vessel_proto::{HarnessSessionId, McpTransport, ResolvedMcpServers, Risk};
 
 use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 use crate::mcp::{EncodeProblem, FileForm, McpError, TerminalMcp};
 use crate::memory::{MemoryFilesError, RebaseError};
+use crate::modes::ModeTag;
 use crate::routing::{ModelProxy, Routed, Routing};
 use crate::sessions::{SessionFiles, SessionFilesError, entry};
 
@@ -60,6 +61,13 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         third_party: false,
     },
     inherits: Inheritance::Node,
+    modes: &[
+        ModeTag::asks("plan", Risk::Planning),
+        ModeTag::asks("default", Risk::Safe),
+        ModeTag::asks("acceptEdits", Risk::Moderate),
+        ModeTag::asks("auto", Risk::Moderate),
+        ModeTag::unattended("bypassPermissions"),
+    ],
     home: Some(Home {
         variable: Some("CLAUDE_CONFIG_DIR"),
         default: &[".claude"],

@@ -23,6 +23,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     inherits: Inheritance::Clean {
         names: &["AMP_API_KEY", "AMP_CLI_PATH"],
     },
+    modes: &[],
     home: None,
     layout: HarnessLayout {
         instructions: None,

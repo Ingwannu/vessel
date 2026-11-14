@@ -29,6 +29,7 @@ use crate::layout::HarnessLayout;
 use crate::lookup::Lookup;
 use crate::mcp::{McpError, TerminalMcp};
 use crate::memory::{MemoryFilesError, RebaseError};
+use crate::modes::ModeTag;
 use crate::routing::Routing;
 use crate::sessions::{SessionFiles, SessionFilesError};
 
@@ -44,6 +45,9 @@ pub(crate) struct Descriptor {
     pub(crate) structured: Structured,
     /// What the node's environment gives the harness's processes.
     pub(crate) inherits: Inheritance,
+    /// Its permission modes as Paseo tiers them (`crate::modes`); empty
+    /// when no ids are known yet.
+    pub(crate) modes: &'static [ModeTag],
     /// Where the harness keeps its configuration, logins and sessions;
     /// `None` where its vendor does not document it (nothing is guessed:
     /// no memory, no account homes, no fleet files for it).

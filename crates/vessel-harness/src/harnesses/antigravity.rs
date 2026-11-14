@@ -9,6 +9,7 @@
 
 use super::{Descriptor, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
+use crate::modes::ModeTag;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "agy",
@@ -17,6 +18,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         needs: "Antigravity's stream (`agy --output-format stream-json`)",
     },
     inherits: Inheritance::Clean { names: &[] },
+    modes: &[ModeTag::unattended("full-access")],
     home: None,
     layout: HarnessLayout {
         instructions: None,

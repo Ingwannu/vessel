@@ -21,6 +21,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         env: &[],
     },
     inherits: Inheritance::Node,
+    modes: &[],
     home: Some(Home {
         variable: None,
         default: &[".gemini"],

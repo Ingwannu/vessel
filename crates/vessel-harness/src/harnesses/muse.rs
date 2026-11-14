@@ -7,8 +7,11 @@
 //! not run (Paseo's own wording). No home is named. It gets the clean
 //! environment and `META_API_KEY`, which Muse reads in place of a login.
 
+use vessel_proto::Risk;
+
 use super::{Descriptor, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
+use crate::modes::ModeTag;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "muse",
@@ -20,6 +23,12 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     inherits: Inheritance::Clean {
         names: &["META_API_KEY"],
     },
+    modes: &[
+        ModeTag::asks("onRequest", Risk::Safe),
+        ModeTag::asks("promptUnmatched", Risk::Moderate),
+        ModeTag::asks("denyUnmatched", Risk::Safe),
+        ModeTag::unattended("allowAll"),
+    ],
     home: None,
     layout: HarnessLayout {
         instructions: None,

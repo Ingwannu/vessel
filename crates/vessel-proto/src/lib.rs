@@ -113,7 +113,7 @@ pub use node::{
 };
 pub use options::{
     ChoiceValue, GetHarnessOptions, GetSessionOptions, HarnessOptions, OptionCategory,
-    OptionChoice, OptionKind, OptionValue, SessionOption, SetSessionOption,
+    OptionChoice, OptionKind, OptionValue, Risk, SessionOption, SetSessionOption,
 };
 pub use pairing::{InvalidRoute, LinkError, OfferVersion, PairingLink, PairingOffer, RouteUrl};
 pub use profile::{

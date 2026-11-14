@@ -27,13 +27,14 @@ use std::path::{Path, PathBuf};
 use toml_edit::{Array, InlineTable, Value};
 use vessel_proto::{
     EnvName, HarnessKind, HarnessSessionId, McpServerName, McpTransport, ResolvedMcpServers,
-    ResolvedValue,
+    ResolvedValue, Risk,
 };
 
 use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 use crate::mcp::{EncodeProblem, McpError, TerminalMcp};
 use crate::memory::MemoryFilesError;
+use crate::modes::ModeTag;
 use crate::routing::{ModelProxy, Routed, Routing};
 use crate::sessions::{SessionFiles, SessionFilesError, entry};
 
@@ -51,6 +52,11 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         third_party: false,
     },
     inherits: Inheritance::Node,
+    modes: &[
+        ModeTag::asks("auto", Risk::Moderate),
+        ModeTag::asks("auto-review", Risk::Moderate),
+        ModeTag::unattended("full-access"),
+    ],
     home: Some(Home {
         variable: Some("CODEX_HOME"),
         default: &[".codex"],

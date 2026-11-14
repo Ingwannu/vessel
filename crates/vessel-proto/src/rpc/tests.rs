@@ -807,6 +807,8 @@ fn options_and_renames_reach_older_clients_as_lines() {
                     name: "Haiku".to_owned(),
                     description: None,
                     group: None,
+                    risk: None,
+                    unattended: false,
                 }],
             },
         },

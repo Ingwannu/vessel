@@ -65,6 +65,7 @@ mod login_status;
 mod lookup;
 mod mcp;
 mod memory;
+mod modes;
 mod profile;
 mod routing;
 mod sessions;
@@ -86,6 +87,7 @@ pub use login_status::{LoginStatus, MAX_STATUS_OUTPUT, read_login_status};
 pub use lookup::Lookup;
 pub use mcp::{EncodeProblem, McpError, McpFile, WrittenMcpFile};
 pub use memory::{MemoryFilesError, RebaseError, memory_files, rebase};
+pub use modes::tag_modes;
 pub use profile::{
     Position, Profile, ProfileProblem, Profiles, ProfilesError, parse_profiles,
     parse_profiles_with, same_variable,

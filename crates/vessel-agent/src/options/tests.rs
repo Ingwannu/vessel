@@ -61,6 +61,8 @@ fn the_recorded_claude_options_read_as_they_were_offered() {
             name: "Manual".to_owned(),
             description: Some("Always ask before making changes".to_owned()),
             group: None,
+            risk: None,
+            unattended: false,
         })
     );
 }
