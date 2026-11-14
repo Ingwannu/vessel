@@ -371,6 +371,14 @@ for shape in "context-room usage" "context-low usage 150000" "context-full usage
   start_session laptop "${shape%% *}" "${shape#* }"
   wait_for laptop "$(tail -1 "$root/sessions" | cut -d' ' -f2)" "used"
 done
+# The same on a session that has ended (stopped once its turn said its
+# usage): the meter card's "Compact context" waits, saying why, and the
+# ended banner shows over the composer. Checked through `vessel log`
+# (the turn's chunk, then the stopped session's last status).
+start_session laptop context-ended "usage 120000"
+stopped=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$stopped" "[turn ended"
+cli --node laptop kill "$stopped" > /dev/null
 
 # An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
 # the whole list in each update): created, sent again unchanged, a step

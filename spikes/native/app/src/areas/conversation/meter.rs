@@ -18,7 +18,8 @@
 //!   disabled with its reason while it cannot run.
 //! - Choice: Paseo's ring and card; GOAT's button when the agent offers
 //!   `/compact`, sending it as a prompt (the agent's own command), and
-//!   disabled while a turn runs. The card opens on hover and on a press,
+//!   disabled, saying why, while a turn runs or once the session has
+//!   ended (a prompt to an ended session starts it again). The card opens on hover and on a press,
 //!   so nothing depends on hover (a phone's press opens it, a press
 //!   outside closes it); leaving the ring closes it after 150 ms, time to
 //!   reach the button in it (GOAT's close delay).
@@ -37,6 +38,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, popup};
 use vessel_app_link::Command;
+use vessel_app_view::session::is_live;
 use vessel_app_view::timeline::{Fullness, Meter, meter_of};
 use vessel_proto::Delivery;
 
@@ -250,7 +252,28 @@ fn card(
             .iter()
             .any(|command| command.name.as_str() == "compact")
     });
-    let running = shell.areas.session.conversation.turn_running();
+    // Why `/compact` cannot go now, said under the button (GOAT's
+    // disabled reason): the session has ended (a prompt to it would start
+    // it again, not compact it), or a turn runs. Before the node describes
+    // the session, the session area's word for whether it runs.
+    let ended = shell.areas.conversation.info.as_deref().map_or_else(
+        || {
+            shell
+                .areas
+                .session
+                .open
+                .as_ref()
+                .is_some_and(|open| !open.live)
+        },
+        |info| !is_live(info),
+    );
+    let held = if ended {
+        Some(words.meter_compact_ended())
+    } else if shell.areas.session.conversation.turn_running() {
+        Some(words.meter_compact_busy())
+    } else {
+        None
+    };
     div()
         .id("context-meter-card")
         .flex()
@@ -276,16 +299,14 @@ fn card(
         }))
         .child(summary)
         .when(offers_compact, |card| {
-            card.child(compact(words.meter_compact(), !running, tokens, cx))
-                .when(running, |card| {
-                    card.child(
-                        div()
-                            .pb(px(4.0))
-                            .text_size(px(12.0))
-                            .text_color(neutral.foreground_muted)
-                            .child(words.meter_compact_busy()),
-                    )
-                })
+            card.child(compact(words.meter_compact(), held.is_none(), tokens, cx))
+                .children(held.map(|why| {
+                    div()
+                        .pb(px(4.0))
+                        .text_size(px(12.0))
+                        .text_color(neutral.foreground_muted)
+                        .child(why)
+                }))
         })
         .into_any_element()
 }
