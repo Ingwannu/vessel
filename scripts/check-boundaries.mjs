@@ -30,7 +30,8 @@
 //   `callback` moves a pairing time back in the database with rusqlite).
 // - Names: a path in backticks (`gpui_platform`, `std::fs`) found in the
 //   crate's product code, outside comments and literals, in a file the row
-//   does not allow. A name brought in through a grouped import
+//   does not allow (a file, or a directory written with a trailing `/`,
+//   relative to the crate). A name brought in through a grouped import
 //   (`use std::{fs, io}`) is not seen; review covers that form.
 // - Why `cargo metadata --no-deps`: it reads the manifests only, builds
 //   nothing and needs no network, so the check runs in a second.
@@ -228,7 +229,11 @@ run("boundaries", () => {
       const local = relative(join(root, dir), join(root, path))
         .split(sep)
         .join("/");
-      if (allowed.has(local)) {
+      if (
+        [...allowed].some((entry) =>
+          entry.endsWith("/") ? local.startsWith(entry) : local === entry,
+        )
+      ) {
         continue;
       }
       const text = readFileSync(join(root, path), "utf8");
