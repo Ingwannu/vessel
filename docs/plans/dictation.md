@@ -233,22 +233,40 @@ have one definition shared by validation and error formatting; byte-to-KiB
 conversion also has one definition. The refusal text and accepted inputs
 stay the same. No new dependency or wire method is added.
 
+## TLS configuration extraction
+
+Decision: modify and reuse the existing catalogue TLS construction. The
+endpoint needs the same OS roots, explicit ring provider and ALPN, while
+reqwest's `rustls-no-provider` feature cannot build without an explicit
+provider. Moving only that construction to node `http_tls` avoids copying
+policy or installing a process-global provider. No dependency changes.
+The catalogue retains its URL validation, redirect/proxy policy, timeouts
+and `FetchError::Tls` source. Existing tests and expectations are unchanged.
+
+The existing coverage is the two catalogue reader tests and the loopback
+HTTP tests `the_catalogue_is_fetched_when_asked_and_an_entry_is_added_from_the_copy`
+and `an_unreachable_registry_is_unavailable_and_the_copy_stays`. They cover
+fetch/cache/refusal behaviour, not a real HTTPS handshake or every OS trust
+store. The future endpoint must invoke synchronous root loading on a
+blocking worker; this extraction preserves catalogue initialization timing.
+
 ## Resume point
 
-Done: slice 1, reviewed ADR and contract; slice 2a values-only implementation
-and its typed-version/shared-bound correction. No callable RPC, settings
-field, stream task or provider is available yet.
+Done: 2a and its review corrections passed. 2b1 provider metadata source
+review passed; its whole gate is owed after the shared side-question race
+is fixed and the coordinator names a node head to merge. No retry or waiver
+of that failure. No call or settings field is registered.
 
-This slice (2b1) adds only validated provider metadata and three edge tests:
-language, endpoint model/base, the local model catalogue, and typed decoder
-failures. The URI dependency amendment precedes the code. No method or
-field is added to Call/Reply, so TypeScript output should remain unchanged.
-Its exact-commit gate and report are the next completion conditions.
+This commit extracts only OS roots/ring/ALPN into `http_tls`, preserving
+catalogue behaviour. It needs its own unchanged-test gate and review row.
 
-Half-done: settings persistence, stream service and HTTP provider remain
-unapplied private preparation. None is a completed implementation.
+Half-done: the remaining settings and service code is private preparation.
+The next independent prerequisite is a non-serializable secret lookup using
+the existing store, also a separate behaviour-preserving commit. New call
+registration waits for the shared `required_protocol` accessor and uses an
+unassigned `Option<ProtocolVersion>` under A6; no second mechanism.
 
-Next: gate/report 2b1, then add the settings object and persistence as 2b2;
-follow with audio/endpoint/actor/RPC slices. Each will include its own
-behaviour tests and source-parity notes. Local models and a microphone
-remain deferred. The CLI file client follows the node service.
+Next: gate/report TLS extraction, then the secret lookup extraction; merge
+the node head only when named, close the owed whole gate, and continue the
+settings and stream service. Local engines and the app microphone remain
+deferred. The CLI file client follows the node service.

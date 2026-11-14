@@ -1272,3 +1272,10 @@ The stream actor and endpoint are subsequent implementation slices; no
 method, settings field or provider is available from these values alone.
 No crate edge changes: the node will reuse its existing HTTP and secret
 storage dependencies when the service lands.
+
+The node's `http_tls` module builds the operating-system root, explicit
+ring and ALPN configuration once per client constructor. `catalogue::fetch`
+uses that shared configuration; it retains its own address validation,
+HTTP policy and deadlines. This extraction introduces no destination,
+credential, request or new dependency. Later asynchronous callers must run
+the synchronous root loading on a blocking worker.
