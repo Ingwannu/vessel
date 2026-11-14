@@ -57,7 +57,7 @@ use vessel_app_link::Command;
 use vessel_app_view::{
     Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
 };
-use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
+use vessel_proto::{HarnessRef, OptionChoice, SessionId, SessionOption};
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -125,6 +125,36 @@ pub(crate) struct Draft {
     chosen: bool,
     /// The machine and agent the choices are for: another starts over.
     settled: Option<(String, HarnessRef)>,
+}
+
+/// Whose options the composer's controls show and change.
+///
+/// [Decision Log]
+/// - Purpose: a running session's model, effort and permissions change
+///   from its composer with the draft's pills (Paseo's `AgentControls` on a
+///   running agent; the coordinator's row a).
+/// - Constraint: the pills, their lists, the effort card and the density
+///   measure are the draft's state; the draft and a session are never on
+///   screen together.
+/// - Alternatives: a copy of the controls for the session (two drawings to
+///   keep alike); moving every piece of state into a shared struct first
+///   (a large move for one difference).
+/// - Choice: the same state and drawing; the target, read from the route
+///   (a live structured session on screen), decides where the options come
+///   from and what a choice does.
+/// - Cost: the popovers' state is shared, so a list open on the draft is
+///   closed when the route changes (as it was).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ControlsTarget {
+    /// The draft: its agent's probed options with the person's picks.
+    Draft,
+    /// A running structured session: its reported options; a choice is a
+    /// `session.set_option` act.
+    Session {
+        machine: String,
+        session: SessionId,
+        agent: HarnessRef,
+    },
 }
 
 impl Draft {
@@ -340,8 +370,79 @@ impl Shell {
         self.areas.draft.probes.get(key)
     }
 
-    /// What the controls show for the draft's agent.
+    /// Whose options the composer's controls show and change: the running
+    /// structured session on screen, else the draft.
+    pub(crate) fn controls_target(&self) -> ControlsTarget {
+        let session = (self.route == Route::Session)
+            .then_some(())
+            .and(self.areas.session.open.as_ref())
+            .filter(|open| open.structured && open.live)
+            .and_then(|open| {
+                let agent = self
+                    .fleet
+                    .machines
+                    .iter()
+                    .find(|machine| machine.name == open.machine)?
+                    .sessions
+                    .iter()
+                    .find(|card| card.session == open.session)?
+                    .detail
+                    .harness
+                    .clone()?;
+                Some(ControlsTarget::Session {
+                    machine: open.machine.clone(),
+                    session: open.session,
+                    agent,
+                })
+            });
+        session.unwrap_or(ControlsTarget::Draft)
+    }
+
+    /// The agent the controls are for (the session's, or the draft's).
+    pub(crate) fn controls_agent(&self) -> Option<HarnessRef> {
+        match self.controls_target() {
+            ControlsTarget::Draft => self.areas.draft.agent.clone(),
+            ControlsTarget::Session { agent, .. } => Some(agent),
+        }
+    }
+
+    /// The machine the controls are for (the session's, or the draft's).
+    pub(crate) fn controls_machine(&self) -> Option<String> {
+        match self.controls_target() {
+            ControlsTarget::Draft => self.areas.draft.machine.clone(),
+            ControlsTarget::Session { machine, .. } => Some(machine),
+        }
+    }
+
+    /// Give the keys back to the composer the controls belong to (the
+    /// session's or the draft's) after a list or the card closes.
+    pub(crate) fn focus_controls_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        match self.controls_target() {
+            ControlsTarget::Session { .. } => self.areas.session.composer.focus(window, cx),
+            ControlsTarget::Draft => self.areas.draft.composer.focus(window, cx),
+        }
+    }
+
+    /// The running session's options as it last reported them, laid out
+    /// as the draft's (`None` until the agent reported any).
+    pub(crate) fn session_controls(&self, agent: &HarnessRef) -> Option<Controls> {
+        let options = self.areas.conversation.timeline.options()?;
+        Some(controls_with_effort(
+            options,
+            kind_of(agent),
+            &agent_name(agent),
+            self.t.lang,
+        ))
+    }
+
+    /// What the controls show for the draft's agent, or for the running
+    /// session on screen.
     pub(crate) fn shown(&self) -> Option<Shown> {
+        if let ControlsTarget::Session { agent, .. } = self.controls_target() {
+            return self
+                .session_controls(&agent)
+                .map(|controls| Shown::Ready(Box::new(controls)));
+        }
         let (_, agent) = self.areas.draft.settled.as_ref()?;
         Some(match self.probed() {
             None | Some(Probe::Loading) => Shown::Loading,
@@ -374,8 +475,22 @@ impl Shell {
         self.settle_draft();
     }
 
-    /// One of the agent's options chosen.
+    /// One of the agent's options chosen: on a running session the
+    /// session's own (`session.set_option`; the options it then reports
+    /// come back as its record, a refusal as the act's failure in the
+    /// session's bar), else a pick for the draft's start.
     pub(crate) fn choose_option(&mut self, choice: OptionChoice) {
+        if let ControlsTarget::Session {
+            machine, session, ..
+        } = self.controls_target()
+        {
+            self.command(Command::Act {
+                machine,
+                session,
+                act: vessel_app_link::Act::SetOption(choice),
+            });
+            return;
+        }
         let mut picks = self.effective_picks();
         picks.pick(choice);
         let draft = &mut self.areas.draft;
@@ -629,6 +744,24 @@ pub(crate) fn render(
             window,
             cx,
         ))
+}
+
+/// A running session's controls: the draft's pills on its options (the
+/// session target, `Shell::controls_target`) and what is drawn over them
+/// (the effort card, the tooltip, the open list); `None` until the
+/// session's agent reported options.
+pub(crate) fn running_controls(
+    shell: &Shell,
+    touch: bool,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<(Div, Vec<vessel_app_kit::ui::AnyElement>)> {
+    let shown = shell.shown()?;
+    let row = pickers::controls(shell, Some(&shown), touch, tokens, window, cx);
+    let online: Vec<&Machine> = shell.fleet.online().collect();
+    let over = overlays(shell, &online, Some(&shown), tokens, touch, window, cx);
+    Some((row, over))
 }
 
 /// What is drawn over the new chat: the features sheet, the composer's

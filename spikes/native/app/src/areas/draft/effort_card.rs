@@ -235,7 +235,7 @@ impl Shell {
         if card.open {
             card.slider.focus(window, cx);
         } else {
-            self.areas.draft.composer.focus(window, cx);
+            self.focus_controls_composer(window, cx);
         }
         cx.notify();
     }
@@ -348,7 +348,7 @@ pub(crate) fn card(
             cx.listener(|shell, event: &gpui::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
                     shell.areas.draft.effort.open = false;
-                    shell.areas.draft.composer.focus(window, cx);
+                    shell.focus_controls_composer(window, cx);
                     cx.notify();
                 }
             }),

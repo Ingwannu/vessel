@@ -444,9 +444,15 @@ pub(crate) fn render(
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
             let dock = super::conversation::dock(shell, tokens, window, cx);
+            // The draft's pills on the session's own options (Paseo's
+            // AgentControls on a running agent).
+            let touch = crate::areas::draft::compact(window);
+            let (controls, over) =
+                crate::areas::draft::running_controls(shell, touch, tokens, window, cx).unzip();
             frame
                 .children(dock.map(column))
-                .child(composer(shell, tokens, working, window, cx))
+                .child(composer(shell, tokens, working, controls, window, cx))
+                .children(over.into_iter().flatten())
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot beside the conversation column: the code panel.
@@ -543,6 +549,7 @@ fn composer(
     shell: &Shell,
     tokens: &Tokens,
     working: bool,
+    controls: Option<Div>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -578,14 +585,26 @@ fn composer(
         vessel_app_kit::composer_card(tokens, touch)
             .child(field.element(tokens, touch, cx))
             .child(
+                // The draft's row: the agent's controls on the left (Paseo's
+                // button row bleeds 6 past the card's padding), the meter
+                // and send/stop on the right.
                 div()
+                    .mx(px(-6.0))
                     .flex()
                     .flex_row()
                     .items_center()
-                    .justify_end()
+                    .justify_between()
                     .gap(px(8.0))
-                    .children(super::conversation::meter(shell, tokens, window, cx))
-                    .child(button),
+                    .child(div().flex_1().min_w_0().children(controls))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(8.0))
+                            .children(super::conversation::meter(shell, tokens, window, cx))
+                            .child(button),
+                    ),
             ),
     )
     .pb(px(12.0))
