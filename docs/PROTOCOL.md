@@ -63,16 +63,20 @@ One method; types in `vessel_proto::history`.
   `session.resume` with `conflict` while another live session (parked
   included) is on that conversation under the same profile, or starting
   on it: two agents on one transcript would corrupt it. This is the
-  node's own check, so a client of any version meets it. Another
-  profile's copy (`session.import`, `session copy`) is another file and
-  is not refused. `session move` hard-links the transcript into the
-  target profile's home and stops the old agent before it starts the
-  new one, so a move never runs two agents itself; but the check is by
+  node's own check, so a client of any version meets it. A copy into
+  another profile (`session.export` then `session.import`, which the
+  CLI's `vessel session copy` and `vessel session move` use; the move
+  kills the source after the copy runs) is another file and is not
+  refused. `session.move_profile` instead hard-links the transcript into
+  the target profile's home and stops the old agent before it starts the
+  new one, so it never runs two agents itself; but the check is by
   profile, so it does not catch an import of that conversation under the
   profile the session moved away from (the same file, linked), nor under
   the target profile while the move is between its stop and its
   `profile_changed`. The listing marks such an entry `in_vessel`; a
-  client opens that session rather than import it.
+  client opens that session rather than import it. Track A2 is closing
+  both (a moved session holds its conversation under every profile it
+  was linked into).
 - Errors: `invalid_request` (a relative folder, a cursor no listing gave,
   the agent refusing it), `unsupported` (an agent that does not list or
   load over ACP), `not_found` (a profile or added agent that is not
