@@ -229,6 +229,11 @@ No row of the crate table changes.
 
 ## Resume point
 
+- Corrective store review: the migration runner is restored byte for byte;
+  labels are an ordinary final table entry. A legacy-row/null/idempotence
+  test uses the one provisional schema constant. The prior metadata/wire
+  whole gate passed; this storage correction needs its own Rust gate.
+
 - The unassigned-input tests also assert the refusal reason, so another
   unsupported import or harness cannot masquerade as the feature guard.
 
@@ -253,9 +258,9 @@ No row of the crate table changes.
 - The shared `required_protocol()` accessor is owned by the protocol layer.
   Until its integration, the node ingress guard provides the typed refusal;
   no new registered call or client gating mechanism is introduced here.
-- `LABELS_SCHEMA` derives the provisional append from the head migration count;
-  integration assigns it. Existing rollback cases keep their original names;
-  the label-column rollback is separate and copies no ordinal.
+- The label migration is appended to the existing migration table; its runner
+  stays unchanged. `LABELS_SCHEMA` names the provisional table position for
+  the legacy-row test. Integration assigns it; rollback SQL copies no ordinal.
 - Half-done: list filtering, actor patches/RPC/event, CLI and MCP ingress
   remain protected drafts. They cannot register calls before the shared gate.
 - Verification: both prebuilds, the type/projection tests and RPC protocol
