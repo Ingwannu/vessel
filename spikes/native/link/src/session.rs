@@ -265,8 +265,16 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
                 .map(|()| Acted::Done)
         }
     };
+    // A node's refusal is its own sentence (its code is beside it), not the
+    // client's wrapping of it ("the node returned an error: Conflict: …").
     done.map_err(|error| ActFailed {
         code: error.code(),
-        message: error.to_string(),
+        message: match &error {
+            vessel_client::CallError::Remote(wire) => wire.message.clone(),
+            vessel_client::CallError::Disconnected
+            | vessel_client::CallError::UnexpectedReply(_)
+            | vessel_client::CallError::RequestIdsExhausted
+            | vessel_client::CallError::NotInProtocol { .. } => error.to_string(),
+        },
     })
 }
