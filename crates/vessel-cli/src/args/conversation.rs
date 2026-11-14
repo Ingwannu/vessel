@@ -63,6 +63,8 @@ impl Delivering {
 /// `vessel session ...` on a conversation (protocol 10).
 #[derive(Debug, Subcommand)]
 pub(crate) enum ConversationCommand {
+    /// Start the same input as independent models in separate Git worktrees.
+    Compare(Compare),
     /// Open a side conversation, or ask in one, without changing the
     /// original session. Use this command for each later side question.
     Side {
@@ -390,4 +392,29 @@ mod tests {
             ConversationCommand::Delete { yes: false, .. }
         ));
     }
+}
+
+/// A bounded selection manifest and one immutable common input.
+#[derive(Debug, Args)]
+pub(crate) struct Compare {
+    /// Project id on the destination node.
+    #[arg(long)]
+    pub(crate) project: vessel_proto::ProjectId,
+    /// Explicit Git ref resolved once before creating worktrees.
+    #[arg(long)]
+    pub(crate) base: vessel_proto::workspace::RefName,
+    /// JSON array of one to eight structured agent/profile/model selections.
+    #[arg(long, value_name = "FILE")]
+    pub(crate) targets: PathBuf,
+    /// Optional text, at most 16 KiB; attachments-only input is also valid.
+    pub(crate) prompt: Option<vessel_proto::automation::PromptText>,
+    /// Upload each local file once to a ready source, then copy its stored bytes.
+    #[arg(long = "attach", value_name = "FILE")]
+    pub(crate) attach: Vec<PathBuf>,
+    /// Fleet destination; defaults to the connected node.
+    #[arg(long = "on")]
+    pub(crate) destination: Option<vessel_proto::NodeId>,
+    /// Emit the complete passive recovery report as JSON.
+    #[arg(long)]
+    pub(crate) json: bool,
 }

@@ -6,6 +6,8 @@
 //! the node's typed error, printed as every command prints one.
 
 mod answer;
+pub(crate) mod comparison;
+mod file_input;
 mod queue;
 mod send;
 
@@ -28,6 +30,7 @@ use crate::{io, render};
 pub(crate) async fn command(target: &Target, command: ConversationCommand) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     match command {
+        ConversationCommand::Compare(args) => comparison::run(&client, args).await,
         ConversationCommand::Side { session, question } => {
             let info = session.resolve(&client).await?;
             let side = if info.spec.side_question_of.is_some() {

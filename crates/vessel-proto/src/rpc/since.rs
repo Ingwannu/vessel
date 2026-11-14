@@ -27,8 +27,8 @@ impl Call {
             // method and fields too; an older hop could otherwise drop a
             // newer field before the target sees it (ADR 0044), as a
             // protocol-18 home would drop `session.create`'s
-            // `side_question_of` and start a plain session (ADR 0045; N5
-            // and N3 each added this rule, merged here as one).
+            // `side_question_of` and start a plain session (ADR 0045; N5,
+            // N3 and N2 each added this rule, merged here as one).
             Self::Forward(request) => Some(request.call.since().get()),
             Self::Relay(request) => Some(request.call.since().get()),
             Self::Deliver(request) => Some(request.call.since().get()),
@@ -233,6 +233,7 @@ impl Call {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)

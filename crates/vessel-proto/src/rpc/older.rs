@@ -103,6 +103,15 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
+            Self::GetConversation(conversation) => conversation
+                .usage
+                .as_ref()
+                .and_then(|usage| usage.for_protocol(protocol))
+                .map(|usage| {
+                    let mut conversation = conversation.clone();
+                    conversation.usage = Some(usage);
+                    Self::GetConversation(conversation)
+                }),
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
@@ -170,7 +179,6 @@ impl Reply {
             | Self::SetSessionOption(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
-            | Self::GetConversation(_)
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
             | Self::DeleteSession(_)
@@ -257,6 +265,7 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
@@ -369,6 +378,7 @@ mod tests {
                 at: DateTime::UNIX_EPOCH,
                 event: SessionEvent::UsageChanged {
                     usage: crate::conversation::ContextUsage {
+                        observation: crate::conversation::UsageObservation::Current,
                         used: crate::model::TokenCount::new(1),
                         size: crate::model::TokenCount::new(2),
                         cost: None,

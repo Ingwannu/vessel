@@ -212,7 +212,7 @@ one platform, or a narrower form), `–` does not. AO is agent-orchestrator.
 | Sidebar: group, sort, filter, pin | ● | ● | ● | ◐ by machine | W, A |
 | A notification inbox that survives a reload | ● | ● | ● | – | E |
 | Desktop notification and sound | ● | ● | ● | – | W |
-| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ a record per routed call | F |
+| Usage: tokens, cost, each account's limits | ● | ● | ● | ◐ routed calls and reported ACP usage aggregates; account limits pending | F / N2 |
 | Pull requests page | ● | ● | – | – | B2 |
 
 ### Settings and the rest
@@ -897,9 +897,11 @@ otherwise):
     (the table is corrected). An agent's item that does not parse (a
     command name, a cost unit, a field name) is left out and logged; a
     question whose form names a required field it does not define is
-    declined. An agent's cost restarts at zero when its process does (a
-    start again, a move): the figure is the agent's. A session stored
-    before schema 7 has no recorded abilities, so `session.resume` tries
+    declined. ACP cost is cumulative for the native session, including a
+    load in a new process. Milestone 12 preserves its baseline for the same
+    native session and records identity changes or startup replay as gaps
+    (ADR 0042), rather than inferring a reset from process restart. A session
+    stored before schema 7 has no recorded abilities, so `session.resume` tries
     and the handshake's answer decides.
 
 Rejected, and why:

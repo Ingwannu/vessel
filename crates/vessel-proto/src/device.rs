@@ -208,6 +208,18 @@ pub struct InviteDevice {
     pub scopes: Option<Vec<Scope>>,
 }
 
+/// Why a pairing invitation could not be issued (protocol 20, ADR 0044).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum DeviceInviteError {
+    /// Configure an advertised direct address or relay before inviting.
+    NoRoutes,
+    /// A reason introduced by a newer node; retain its human message.
+    #[serde(other)]
+    Unknown,
+}
+
 /// Reply to `device.invite`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

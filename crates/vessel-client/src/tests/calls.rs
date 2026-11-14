@@ -207,3 +207,83 @@ async fn self_authority_is_refused_locally_on_an_older_direct_or_routed_connecti
         "no query was sent and no authority was guessed"
     );
 }
+
+/// The old hop itself cannot decode a new inner call, even for its own id.
+#[tokio::test]
+async fn usage_direct_and_every_envelope_are_refused_locally_on_an_old_hop() {
+    use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
+    use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall, Request as _};
+    use vessel_rpc::{CallError, UnaryCall};
+    let needed = QueryUsage::METHOD.since();
+    let previous = ProtocolVersion::new(needed.get().checked_sub(1).unwrap());
+    let hop = node();
+    let target = hop.id;
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: previous,
+                    node: hop,
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let query = QueryUsage {
+        scope: UsageScope::Machine,
+        period: UsagePeriod::Day,
+        after: None,
+    };
+    let direct = client.usage(query.clone()).await.unwrap_err();
+    assert!(
+        matches!(direct, CallError::NotInProtocol { method: vessel_proto::Method::QueryUsage, needs, negotiated } if needs == needed && negotiated == previous)
+    );
+    let forwarded = client.call_on(target, query.clone()).await.unwrap_err();
+    assert!(
+        matches!(forwarded, CallError::NotInProtocol { method: vessel_proto::Method::Forward, needs, negotiated } if needs == needed && negotiated == previous)
+    );
+    let origin = Origin {
+        node: target,
+        by: OriginBy::Owner,
+        scopes: vec![],
+    };
+    for call in [
+        Forward {
+            node: target,
+            call: Box::new(query.clone().into_call()),
+        }
+        .into_call(),
+        RelayCall {
+            node: target,
+            call: Box::new(query.clone().into_call()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        Deliver {
+            call: Box::new(query.into_call()),
+            origin,
+        }
+        .into_call(),
+    ] {
+        let method = call.method();
+        let error = client
+            .call_any(UnaryCall::try_from(call).unwrap())
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(error, CallError::NotInProtocol { method: actual, needs, negotiated } if actual == method && needs == needed && negotiated == previous)
+        );
+    }
+    drop(client);
+    assert!(
+        old_node.await.unwrap().is_none(),
+        "no direct or wrapped usage frame was sent"
+    );
+}

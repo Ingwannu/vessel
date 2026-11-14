@@ -41,6 +41,7 @@ mod address;
 pub mod book;
 mod chunks;
 mod client;
+pub mod comparison;
 pub mod compose;
 mod connector;
 mod conversation;
@@ -62,6 +63,7 @@ mod stream;
 mod tests;
 mod token;
 mod url;
+mod usage;
 mod ws;
 
 pub use address::{
