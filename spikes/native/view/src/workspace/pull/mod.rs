@@ -30,7 +30,7 @@ pub mod words;
 #[cfg(test)]
 pub(crate) mod fixtures;
 
-pub use bases::{BaseChoice, base_choices};
+pub use bases::{BaseChoice, base_choices, start_base};
 pub use card::{CardChecks, CardPull};
 pub use entry::{PullEntry, Unavailable, pull_entry};
 pub use facts::{CheckCount, ChecksOutcome, Merge, PullPhase, ReviewPills, Verdict, check_counts};
