@@ -491,3 +491,58 @@ is a new execution record for the changed correction, not an attestation
 for the earlier accounting run. The remaining preexisting test comment
 now describes the common maximum-version rule; its assertions are kept.
 Latest whole-workspace and web verification remain pending.
+
+### Compatibility correction: actual verification
+
+Source commits `09b89440` and `8ab23bda` close the recursive envelope version
+requirement. The selected protocol/client/RPC regressions passed all six
+cases, including ordinary supported envelopes and an inner field requiring a
+later version. The latest full run checked immutable source `8ab23bda`: fmt,
+full workspace/all-target Clippy and two TypeScript declaration freshness
+checks passed. Rust reported 1,808 passed, 1 failed and 10 ignored across 110
+result sections. The one failing test was
+`grants::a_reinstalled_node_grants_again_once_the_home_forgets_it`: its
+whole-test safety net elapsed at `tests/e2e/support.rs:46`. This fixture
+already contains the earlier pre-restart stamp correction. Its remaining
+failure belongs to node integration under the coordinator's assignment; this
+slice changes neither its assertions nor deadlines. It was run once alone
+afterward: 1 passed, 0 failed (16.74 seconds). A standalone pass does not
+erase the full run's recorded failure.
+
+Independent web verification reported lint, type checks, 417 unit tests and
+bundle build passed; all 62 browser tests passed (6.8 minutes). The Rust
+binaries were built after the current web bundle, with the bundle required;
+the browser suite used its own fake fleet and all configured cases. No live
+node, real agent, real vendor credential file or vendor endpoint was
+exercised.
+
+Both new runs retained actual pre/post manifests from the same source commit.
+The full Rust run selected 2312 inputs and matched identity
+`72aebd1f9b0bb5a872f7fb0703ec973629b5f697f19df2a0823fd6b36177502a`; the
+isolated/web run selected 2312 inputs and matched
+`b83f198dd8cde1c32d1e1fcffe897ae4970580cde18c73cece5be2960db08909`. Selection
+covers all tracked files, local build configurations, the embedded bundle and
+installed npm lock; tool versions, chosen build flag hashes, generator and
+gate-script hashes are recorded. External cache/toolchain/OS contents and
+test/build artifacts are excluded. This is selected-input execution
+provenance, not a reconstruction of the old accounting run's missing pin or a
+universal filesystem attestation.
+
+This accounting/compatibility stack is submitted for review with the explicit
+whole-run fixture exception; integration approval is pending. The provisional
+wire additions remain `usage.query` and the optional
+`ContextUsage.observation`; minimum protocol stays 2, current provisional
+version 19 and schema 14 remain integration-owned numbering. A screen uses
+`NodeClient::usage(QueryUsage)` or the checked fleet call, respects
+`cost_visibility`, optional report coverage, `incomplete` and the `next`
+cursor even when redaction leaves an empty page.
+
+Account quota lookup and recovery are still unimplemented in this commit.
+Their next contract is opt-in local saved-sign-in reads, fixed vendor origins
+and typed window/reset facts; no native or page screen is part of this track's
+resumed node scope. Live-account and cross-platform behavior remain
+unverified. No service, live file permission or deployment changed.
+
+The fake UI served the current static JavaScript and favicon byte for byte.
+All five recorded fake-fleet processes were gone after teardown; no virtual
+display was started. Both local Cargo build configurations remain local.
