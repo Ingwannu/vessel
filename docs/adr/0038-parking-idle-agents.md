@@ -46,10 +46,9 @@ The questions:
 - A structured session whose agent can resume (its handshake said
   `loadSession`) and has a harness session id is parked after the node's
   `park_after` (an hour by default, `vesseld --park-after`, 0 never)
-  without activity, when no turn runs, nothing waits on an answer, its
-  queue is empty or held, and nobody follows it live (a page that has it
-  open, `vessel attach`, an agent's `wait_turn`: agent-orchestrator's view
-  lease). `session.park` parks it now, whoever follows it.
+  without activity, when no turn runs, nothing waits on an answer and its
+  queue is empty or held. Whoever follows it does not matter (amended
+  2026-11-14, below). `session.park` parks it now.
 - Its process is stopped as a move stops the old agent, without ACP
   `session/close` (which may delete what resume needs). The session stays
   live and `running`; `SessionInfo.parked` says since when and why; the log
@@ -117,3 +116,32 @@ shows it.
   `session/load` (bounded by the handshake timeout).
 - A parent session is parked while sessions it started work, unlike
   Paseo, which keeps a family awake; a starter's notice wakes it.
+
+## Amendment, 2026-11-14: followers do not keep an agent awake
+
+- Was: nobody following the session live (a page that had it open,
+  `vessel attach`, an agent's `wait_turn`: agent-orchestrator's view
+  lease) was a condition of the idle park.
+- Found staging the node line: sessions an app had shown stayed awake for
+  minutes after the app was gone. Releasing depended on every client's
+  subscriptions ending, and the node's token `/rpc` connections had no
+  keepalive, so a client gone without closing (asleep, its network
+  dropped) held its subscriptions, and the sessions they followed, for
+  good.
+- Paseo, the owner's reference ("the setup exactly as Paseo's"), collects
+  an idle runtime whether or not a client watches it: its eligibility
+  (`AgentManager.runtimeHasNoPendingWork` and the idle-runtime-cleanup
+  module) is the foreground turn, permissions and their answers, queued
+  deliveries, lifecycle operations and running children, plus each
+  provider's veto; client subscriptions are not among them.
+- Decision: the same. A follower loses nothing: the session stays live,
+  its subscription goes on through `parked` and `woken`, and its next
+  prompt wakes the agent. What still holds the agent: a running turn, a
+  permission or question waiting, a moving queue, a move, an agent that
+  cannot resume, and activity within `park_after`.
+- And the node pings `/rpc` connections as it pings `/secure` ones (10 s,
+  dropped after 30 s of silence, `vessel_relay::Liveness`), so a vanished
+  client's subscriptions end within the silence limit.
+- `park_after` is whole minutes on the wire and in the flag
+  (`ParkAfter`), one at least: a test of the idle park below a minute is
+  the session runtime's, not the node's.

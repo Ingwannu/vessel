@@ -13,6 +13,16 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Bounded comparison input or command ownership.
+    #[error(transparent)]
+    ComparisonInput(#[from] vessel_client::comparison::InputError),
+    #[error(transparent)]
+    ComparisonJob(#[from] vessel_client::comparison::JobError),
+    #[error(transparent)]
+    Comparison(#[from] crate::conversation::comparison::CompareError),
+    /// Formatting a usage report failed.
+    #[error("could not format the usage report")]
+    UsageFormat(#[from] std::fmt::Error),
     /// Local lifecycle checks preserve the store's original I/O cause.
     #[error("cannot inspect the node lock")]
     NodeLock(#[source] vessel_node::StoreError),

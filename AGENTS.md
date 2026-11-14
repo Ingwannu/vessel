@@ -166,8 +166,9 @@ the table and the manifests (QUALITY M2).
 - Tests are deterministic: no wall-clock sleeps to wait for something; wait on
   the event.
 - A script a test writes and then runs (a fake program, a git hook) is
-  created by another process (`cp` from a side file: the testing helpers
-  named `executable`), never with `std::fs::write`: a child forked by a test
+  created by another process (`cp` from a side file:
+  `vessel_testkit::write_executable`, the one helper every crate's tests
+  call), never with `std::fs::write`: a child forked by a test
   on another thread holds the write descriptor until it execs, and running
   the script then fails with `ETXTBSY`.
 - A test's safety-net timeout (which only turns a hang into a failure) is

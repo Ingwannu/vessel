@@ -13,6 +13,8 @@ mod automation;
 #[cfg(test)]
 mod canary;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod devices;
@@ -38,6 +40,8 @@ mod terminals;
 mod transfers;
 #[cfg(test)]
 mod ui;
+#[cfg(test)]
+mod usage;
 
 use support::{Fixture, within};
 

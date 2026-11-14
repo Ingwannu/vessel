@@ -177,6 +177,7 @@ targets!(
 // Saved prompts name none either: agents may only read them.
 untargeted!(
     vessel_proto::GetDeviceSelf,
+    vessel_proto::usage::QueryUsage,
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
     // The node's settings: no session's.
@@ -334,6 +335,7 @@ untargeted!(
 );
 
 guarded! {
+    query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
     node_info: GetNode => NodeInfo;
     list_harnesses: ListHarnesses => Vec<Harness>;
     list_sessions: ListSessions => Vec<SessionInfo>;

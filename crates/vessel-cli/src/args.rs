@@ -19,12 +19,13 @@ mod node;
 mod nodes;
 mod search;
 mod terminals;
+mod usage;
 mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
 pub(crate) use control::{Confirmation, Stop, StopPolicy};
-pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
+pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
@@ -32,6 +33,7 @@ pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
+pub(crate) use usage::{Period, UsageCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
@@ -190,6 +192,11 @@ pub(crate) enum Command {
     },
     /// The TCP ports the node's sessions and terminals listen on.
     Ports(Ports),
+    /// Reported tokens and cost, by session, agent or machine.
+    Usage {
+        #[command(subcommand)]
+        command: UsageCommand,
+    },
     /// Schedules: prompts the node sends on its own, at times or every so
     /// often (protocol 11, ADR 0033).
     Schedule {

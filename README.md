@@ -145,8 +145,10 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   restarts and applied at once; `vesseld --park-after` is the value of a
   node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
-  answer, its queue moves, or someone follows it (a page that has it
-  open, `vessel attach`). The next prompt, option change or `vessel
+  answer or its queue moves. Someone following it (a page that has it
+  open, `vessel attach`) does not keep it awake, as in Paseo: the
+  follower sees it parked and its next prompt wakes it. The next prompt,
+  option change or `vessel
   session wake` starts it again on the same conversation; `vessel
   sessions` says `(parked)`. Only an agent whose adapter can load a
   conversation again (ACP `loadSession`) is parked; what it left running
@@ -198,6 +200,35 @@ if their parent disappears, but new questions and resume then fail.
 Vessel records only the visible question as user input. The provider may
 retain the supplied parent context in its own conversation files, which
 can be included in a native session export.
+
+### One prompt to several models
+
+`session compare` makes a separate Git worktree and structured session for
+one to eight selections. Write a JSON array to `targets.json`, for example:
+
+```json
+[{"harness":"claude-code","model":"MODEL_A"},{"harness":"codex","model":"MODEL_B"}]
+```
+
+Use model ids offered by your agent; optional `profile` and `options`
+are the normal structured-session choices. Then run:
+
+```bash
+vessel session compare --project PROJECT_ID --base main --targets targets.json "Check this change" --attach notes.md --json
+```
+
+The base resolves once, and every model receives the same text and stored
+file bytes. Setup must be approved through the normal project commands;
+comparison never approves, skips setup, queues or steers. Partial failures
+keep successful sessions. The final report lists every known branch,
+worktree, session and upload/offset, including effects whose reply was lost.
+A partial run exits nonzero; inspect those resources before an explicit new
+attempt. Reports cannot resume a job across CLI processes. Continue or
+remove the ordinary sessions/worktrees with their existing commands.
+`--on NODE_ID` selects a fleet destination; the project id belongs to it.
+No provider is prompted merely to discover its options. Agent credentials
+cannot use this helper: the existing git.log agent guard refuses its base
+preflight. No new agent tool or authority is added.
 
 ### Another machine, over SSH
 
@@ -377,6 +408,10 @@ vessel node devices
 vessel node devices self                  # this connection's own grant; no Read/Admin needed
 vessel node devices revoke 3fa9       # its open connections close
 ```
+
+Pairing requires an advertised direct address (`--public`) or relay (`--relay`).
+Without one, the node refuses before issuing a link and says what to configure.
+An advertised route must still be reachable from the other device.
 
 - `vessel nodes add --pair` shows the node's key fingerprint; compare it
   with `vessel node status` on the node before confirming. Piped in, the
@@ -1258,6 +1293,22 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+### Reported usage
+
+```bash
+vessel usage machine --period day       # past 24 hours; --period week is past 7 days
+vessel usage agent claude --period week # all profiles; --profile selects one recorded name
+vessel usage session 3f2a               # retained totals and up to 100 reports
+vessel usage session 3f2a --after 100    # the next page; totals are unchanged
+```
+
+Counts and costs are only what the agent reported. Context occupancy is
+separate; missing reports are not zero and costs in different units stay
+separate. Cost replayed while loading a conversation establishes a baseline
+instead of being counted as new spending. Accounting starts with this version, retains at most 90 days
+and 100,000 reports, and follows session deletion. New usage queries need
+read scope; cost in these queries additionally needs operate scope.
 
 A schedule preview is calculated on the target node without saving or
 starting work (`vessel schedule preview --every 30m`, or `--cron` with an
