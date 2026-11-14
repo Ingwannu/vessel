@@ -704,3 +704,24 @@ The corrected stack is submitted for review; no reviewer or integration
 approval is inferred. The ADR remains proposed. Live credentials/vendors,
 platform Keychain, non-Linux runtime behavior, native screens and automatic
 wait/resume/account switching remain unverified or unfinished as stated above.
+
+#### Node review disposition, 2026-11-14
+
+The reviewer passed the exact node source `32b404f8` and results-only
+`eff3fbf0`, including the accounting stack and saved-login limits continuation.
+No blocking source finding remained. Independent checks confirmed the raw
+110 Rust summaries (1,846/0/10), all 2,346 selected inputs against the retained
+identity, all 2,177 tracked hashes against source Git, and the stated web
+outcomes and asset hashes. Retained process cleanup was reviewed without
+claiming a second runtime execution. The new clean changed-tree run closes
+the prior whole-gate hold; adverse historical records remain intact.
+
+This is a node-scope review pass, not a combined integration, native/page UI,
+live-account/vendor/Keychain/non-Linux, automatic recovery, independent
+security/licence or deployment pass. ADR 0042 is accepted for the reviewed
+node implementation. Final protocol/schema assignment and the combined whole
+gate remain with integration. Reconcile current launch-binding/direct-driver
+paths, preserve recursive envelope/replay handling and optional-scope
+semantics, and retain read/operate/admin distinctions described above.
+Account-limit profile None means the current configured default, while
+accounting-query profile None includes historical profiles.

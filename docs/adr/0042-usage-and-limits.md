@@ -1,6 +1,9 @@
 # ADR 0042: Reported usage and account limits
 
-Status: proposed (milestone 12).
+Status: accepted for the reviewed node implementation, 2026-11-14 (milestone 12).
+Native screens, live-provider behavior and automatic recovery are outside this
+acceptance; integration still assigns final compatibility numbers and runs
+the combined gate.
 
 ## Context
 
