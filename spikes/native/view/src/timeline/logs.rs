@@ -92,6 +92,24 @@ impl Logs {
         (index < run.end).then_some(run)
     }
 
+    /// Every log line of the session, joined, as the Session actions'
+    /// "Agent log" shows and copies them (the lines are not drawn in the
+    /// conversation: Paseo's stream has no adapter log).
+    #[must_use]
+    pub fn all(entries: &[Entry]) -> String {
+        entries
+            .iter()
+            .filter_map(|entry| {
+                if let EntryKind::Log { line } = &entry.kind {
+                    Some(line.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// The lines of `run`, joined, as its box shows and copies them.
     #[must_use]
     pub fn text(run: &LogRun, entries: &[Entry]) -> String {

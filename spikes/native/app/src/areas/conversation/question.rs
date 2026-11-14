@@ -34,30 +34,21 @@
 //!   scroll inside the card past 360 (280 on a phone), where Paseo's card
 //!   scrolls with the conversation.
 
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::glyph;
-use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled, Window, div, px,
-};
-use vessel_app_kit::{
-    CardLook, CardState, TextField, Tokens, Type, TypeExt as _, breakpoint, card_button,
-};
+use vessel_app_kit::TextField;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::ActKind;
 use vessel_app_view::timeline::{
-    Draft, Drafts, EntryKind, Problem, Step, answer_of, answerable, refused_field, starting_drafts,
-    step_answered, step_problem, step_ready, steps_of,
+    Draft, Drafts, EntryKind, Pick, Step, answer_of, box_is_other, pick, refused_field,
+    starting_drafts, step_ready, steps_of, text_target, typed,
 };
-use vessel_proto::conversation::{FieldKind, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
 use super::{Answer, ConversationArea, Place, Seat, SessionPlace};
 use crate::shell::Shell;
 
-/// The tallest the option rows stand before they scroll: a phone's, and
-/// any wider window's.
-const OPTIONS_PHONE: f32 = 280.0;
-const OPTIONS: f32 = 360.0;
+mod card;
+
+pub(crate) use card::card;
 
 /// A question being answered: what each field holds and the step shown.
 pub(crate) struct Answering {
@@ -79,13 +70,6 @@ impl std::fmt::Debug for Answering {
             .field("sent", &self.sent)
             .finish_non_exhaustive()
     }
-}
-
-/// One row of a step's options: what it sends, its words.
-struct Choice {
-    value: String,
-    title: String,
-    description: Option<String>,
 }
 
 /// The question waiting first in `area`, if any: the log's, else one the
@@ -117,86 +101,11 @@ fn waiting_at<P: Place>(shell: &Shell) -> Option<Question> {
 
 /// Arrival and refresh share the step's hint without reloading its draft.
 fn field_placeholder(step: Step<'_>, words: vessel_app_view::ConversationWords) -> &'static str {
-    if matches!(
-        step.field.kind,
-        FieldKind::Choice { .. } | FieldKind::Boolean { .. }
-    ) {
+    if box_is_other(step) {
         words.question_other_placeholder()
     } else {
         words.question_answer_placeholder()
     }
-}
-
-/// The field a step's text box writes: Claude's "Other", or a free-text
-/// step's own field.
-fn text_target(step: Step<'_>) -> Option<&QuestionField> {
-    match &step.field.kind {
-        FieldKind::Choice { .. } | FieldKind::Boolean { .. } => step.other,
-        FieldKind::Text { .. } | FieldKind::Number { .. } | FieldKind::Integer { .. } => {
-            Some(step.field)
-        }
-        FieldKind::Unknown => None,
-    }
-}
-
-/// A step's option rows, and whether several may be picked.
-fn choices(step: Step<'_>, (yes, no): (&str, &str)) -> (Vec<Choice>, bool) {
-    match &step.field.kind {
-        FieldKind::Choice {
-            options, multiple, ..
-        } => (
-            options
-                .iter()
-                .map(|option| Choice {
-                    value: option.value.clone(),
-                    title: option.title.clone(),
-                    description: option.description.clone(),
-                })
-                .collect(),
-            *multiple,
-        ),
-        FieldKind::Boolean { .. } => (
-            [("true", yes), ("false", no)]
-                .into_iter()
-                .map(|(value, title)| Choice {
-                    value: value.to_owned(),
-                    title: title.to_owned(),
-                    description: None,
-                })
-                .collect(),
-            false,
-        ),
-        FieldKind::Text { .. }
-        | FieldKind::Number { .. }
-        | FieldKind::Integer { .. }
-        | FieldKind::Unknown => (Vec::new(), false),
-    }
-}
-
-/// Whether `value` is picked in `step`.
-fn picked(step: Step<'_>, drafts: &Drafts, value: &str) -> bool {
-    match drafts.get(&step.field.name) {
-        Some(Draft::Picked(values)) => values.iter().any(|one| one == value),
-        Some(Draft::Boolean(Some(on))) => (value == "true") == *on,
-        Some(Draft::Text(_) | Draft::Boolean(None)) | None => false,
-    }
-}
-
-/// The step's tab label: its header (the field's title), else its name.
-fn header(step: Step<'_>) -> String {
-    step.field
-        .title
-        .clone()
-        .unwrap_or_else(|| step.field.name.as_str().to_owned())
-}
-
-/// The step's question: the field's own words when the form has several
-/// (Claude puts each question's text there), else the question's message.
-fn prompt(question: &Question, step: Step<'_>) -> String {
-    step.field
-        .description
-        .clone()
-        .unwrap_or_else(|| question.message.clone())
 }
 
 impl Shell {
@@ -305,27 +214,7 @@ impl Shell {
         let Some(step) = steps.get(answering.step).copied() else {
             return;
         };
-        let Some(target) = text_target(step) else {
-            return;
-        };
-        let single = matches!(
-            step.field.kind,
-            FieldKind::Choice {
-                multiple: false,
-                ..
-            } | FieldKind::Boolean { .. }
-        );
-        if single && !text.is_empty() {
-            let cleared = if matches!(step.field.kind, FieldKind::Boolean { .. }) {
-                Draft::Boolean(None)
-            } else {
-                Draft::Picked(Vec::new())
-            };
-            let _was = answering.drafts.insert(step.field.name.clone(), cleared);
-        }
-        let _was = answering
-            .drafts
-            .insert(target.name.clone(), Draft::Text(text));
+        typed(step, &mut answering.drafts, text);
         cx.notify();
     }
 
@@ -357,41 +246,10 @@ impl Shell {
         let Some(step) = steps.get(answering.step).copied() else {
             return;
         };
-        let was = picked(step, &answering.drafts, value);
-        let draft = match &step.field.kind {
-            FieldKind::Boolean { .. } => Draft::Boolean((!was).then_some(value == "true")),
-            FieldKind::Choice { multiple: true, .. } => {
-                let mut values = match answering.drafts.get(&step.field.name) {
-                    Some(Draft::Picked(values)) => values.clone(),
-                    Some(Draft::Text(_) | Draft::Boolean(_)) | None => Vec::new(),
-                };
-                if was {
-                    values.retain(|one| one != value);
-                } else {
-                    values.push(value.to_owned());
-                }
-                Draft::Picked(values)
-            }
-            FieldKind::Choice { .. } => Draft::Picked(if was {
-                Vec::new()
-            } else {
-                vec![value.to_owned()]
-            }),
-            FieldKind::Text { .. }
-            | FieldKind::Number { .. }
-            | FieldKind::Integer { .. }
-            | FieldKind::Unknown => return,
-        };
-        let _was = answering.drafts.insert(step.field.name.clone(), draft);
-        let single = !matches!(step.field.kind, FieldKind::Choice { multiple: true, .. });
-        if single
-            && !was
-            && let Some(other) = step.other
-        {
-            let _was = answering
-                .drafts
-                .insert(other.name.clone(), Draft::Text(String::new()));
-            answering.field.set_text("", window, cx);
+        match pick(step, &mut answering.drafts, value) {
+            Pick::Ignored => return,
+            Pick::Picked => {}
+            Pick::OtherCleared => answering.field.set_text("", window, cx),
         }
         cx.notify();
     }
@@ -468,343 +326,6 @@ impl Shell {
         P::answer(self, Answer::Question(id, answer), cx);
         cx.notify();
     }
-}
-
-/// The card for the question waiting first in the conversation at `P`,
-/// when one waits.
-pub(crate) fn card<P: Place>(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let area = (P::SEAT.get)(shell)?;
-    let question = waiting(area);
-    let answering = match (&question, &area.answering) {
-        (None, None) => return None,
-        (Some(question), Some(answering)) if answering.id == question.id => answering,
-        // Made (or dropped) on the next frame: the slot cannot make a box.
-        _ => {
-            cx.defer_in(window, |shell, window, cx| {
-                shell.question_prepare::<P>(window, cx);
-            });
-            return None;
-        }
-    };
-    let question = question?;
-    let steps = steps_of(&question);
-    let step = steps.get(answering.step).copied()?;
-    let words = shell.t.lang.conversation();
-    let neutral = tokens.neutral;
-    let narrow = breakpoint::phone(window);
-    let refused = area
-        .refused
-        .as_ref()
-        .filter(|(kind, _)| *kind == ActKind::Answer)
-        .map(|(_, message)| message.clone());
-    let waiting_on_node = (answering.sent && refused.is_none()) || P::busy(shell);
-    let last = answering.step.saturating_add(1) >= steps.len();
-    let ready = if last {
-        steps
-            .iter()
-            .all(|step| step_ready(*step, &answering.drafts))
-    } else {
-        step_ready(step, &answering.drafts)
-    };
-    let problem = match step_problem(step, &answering.drafts) {
-        Some(problem @ Problem::Wrong(_)) => Some(words.question_problem(&problem)),
-        Some(Problem::ChooseAnAnswer | Problem::Required) | None => None,
-    };
-    let block = answers::<P>(
-        step,
-        answering,
-        words.question_yes_no(),
-        (narrow, waiting_on_node),
-        tokens,
-        cx,
-    );
-    let said = refused
-        .map(|message| words.question_refused(&message))
-        .or(problem)
-        .or_else(|| {
-            (!answerable(&question))
-                .then(|| words.question_wrong(&vessel_app_view::timeline::Wrong::Unanswerable))
-        });
-    Some(
-        div()
-            .flex()
-            .flex_col()
-            .gap(px(12.0))
-            .p(px(12.0))
-            .rounded(px(8.0))
-            .border_1()
-            .border_color(neutral.border)
-            .bg(neutral.surface1)
-            .face(Type::Body)
-            .text_size(px(14.0))
-            .children((steps.len() > 1).then(|| tabs::<P>(&steps, answering, tokens, cx)))
-            .child(
-                div()
-                    .px(px(12.0))
-                    .pb(px(4.0))
-                    .text_color(neutral.foreground)
-                    .child(prompt(&question, step)),
-            )
-            .child(block)
-            .children(said.map(|said| {
-                div()
-                    .px(px(4.0))
-                    .text_size(px(13.0))
-                    .text_color(neutral.destructive)
-                    .child(said)
-            }))
-            .child(actions::<P>(
-                words.question_dismiss(),
-                if last {
-                    words.question_submit()
-                } else {
-                    words.question_next()
-                },
-                (ready && !waiting_on_node, !waiting_on_node),
-                narrow,
-                tokens,
-                cx,
-            ))
-            .into_any_element(),
-    )
-}
-
-/// A step's answers: its option rows (scrolling past a height), then its
-/// text box. `(narrow, busy)`: a phone's width; the answer has gone.
-fn answers<P: Place>(
-    step: Step<'_>,
-    answering: &Answering,
-    yes_no: (&str, &str),
-    (narrow, busy): (bool, bool),
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let (options, multiple) = choices(step, yes_no);
-    let mut block = div().flex().flex_col().gap(px(8.0));
-    if !options.is_empty() {
-        let rows = options.into_iter().enumerate().map(|(index, choice)| {
-            let on = picked(step, &answering.drafts, &choice.value);
-            option_row::<P>(index, choice, on, multiple, busy, tokens, cx)
-        });
-        // Paseo's card scrolls with the conversation; here it stands over
-        // the composer, so a long list scrolls inside it instead of
-        // pushing the conversation out of the window.
-        block = block.child(
-            div()
-                .id("question-options")
-                .flex()
-                .flex_col()
-                .gap(px(4.0))
-                .max_h(px(if narrow { OPTIONS_PHONE } else { OPTIONS }))
-                .overflow_y_scroll()
-                .children(rows),
-        );
-    }
-    if text_target(step).is_some() {
-        block = block.child(answering.field.element(tokens, narrow, cx));
-    }
-    block
-}
-
-/// Paseo's titled tabs, a check on the answered ones.
-fn tabs<P: Place>(
-    steps: &[Step<'_>],
-    answering: &Answering,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let neutral = tokens.neutral;
-    let tabs = steps.iter().enumerate().map(|(index, step)| {
-        let active = index == answering.step;
-        let ink = if active {
-            neutral.foreground
-        } else {
-            neutral.foreground_muted
-        };
-        div()
-            .id(("question-tab", index))
-            .flex()
-            .items_center()
-            .gap(px(4.0))
-            .min_h(px(28.0))
-            .px(px(8.0))
-            .py(px(4.0))
-            .rounded(px(6.0))
-            .border_1()
-            .border_color(if active {
-                neutral.foreground_muted
-            } else {
-                neutral.border
-            })
-            .bg(if active {
-                neutral.surface2
-            } else {
-                neutral.surface1
-            })
-            .hover(move |style| style.bg(neutral.surface2))
-            .cursor_pointer()
-            .text_color(ink)
-            .when(step_answered(*step, &answering.drafts), |tab| {
-                tab.child(glyph(Glyph::Check, 12.0, ink))
-            })
-            .child(div().truncate().child(header(*step)))
-            .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_show::<P>(index, window, cx);
-            }))
-    });
-    div()
-        .flex()
-        .flex_wrap()
-        .items_center()
-        .gap(px(4.0))
-        .px(px(12.0))
-        .children(tabs)
-}
-
-/// One option: Paseo's row, a radio or a checkbox at its left.
-fn option_row<P: Place>(
-    index: usize,
-    choice: Choice,
-    on: bool,
-    multiple: bool,
-    busy: bool,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    let control = div()
-        .mt(px(2.0))
-        .size(px(18.0))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .border_1()
-        .border_color(if on {
-            neutral.accent
-        } else {
-            neutral.foreground_extra_muted
-        })
-        .map(|control| {
-            if multiple {
-                control.rounded(px(4.0))
-            } else {
-                control.rounded_full()
-            }
-        })
-        .when(on && multiple, |control| {
-            control
-                .bg(neutral.accent)
-                .child(glyph(Glyph::Check, 12.0, neutral.accent_foreground))
-        })
-        .when(on && !multiple, |control| {
-            control.child(div().size(px(8.0)).rounded_full().bg(neutral.accent))
-        });
-    let value = choice.value;
-    div()
-        .id(("question-option", index))
-        .flex()
-        .items_start()
-        .gap(px(8.0))
-        .px(px(12.0))
-        .py(px(8.0))
-        .rounded(px(6.0))
-        .when(on, |row| row.bg(neutral.surface2))
-        .hover(move |style| style.bg(neutral.surface2))
-        .cursor_pointer()
-        .when(!busy, |row| {
-            row.on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.question_pick::<P>(&value, window, cx);
-            }))
-        })
-        .child(control)
-        .child(
-            div()
-                .flex_1()
-                .min_w(px(0.0))
-                .flex()
-                .flex_col()
-                .gap(px(4.0))
-                .child(
-                    div()
-                        .line_height(px(22.0))
-                        .text_color(if on {
-                            neutral.foreground
-                        } else {
-                            neutral.foreground_muted
-                        })
-                        .child(choice.title),
-                )
-                .children(choice.description.map(|description| {
-                    div()
-                        .text_size(px(13.0))
-                        .text_color(neutral.foreground_muted)
-                        .child(description)
-                })),
-        )
-}
-
-/// Dismiss, then Next or Submit (the accent): in a row, stacked on a
-/// phone. `(primary, dismiss)`: whether each answers a click.
-fn actions<P: Place>(
-    dismiss_words: &'static str,
-    primary_words: &'static str,
-    (primary, dismiss): (bool, bool),
-    narrow: bool,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let dismiss_button = card_button(
-        "question-dismiss",
-        Glyph::Remove,
-        dismiss_words,
-        CardLook::Muted,
-        if dismiss {
-            CardState::Ready
-        } else {
-            CardState::Waiting
-        },
-        tokens,
-    )
-    .when(dismiss, |button| {
-        button.on_click(cx.listener(|shell, _event, _window, cx| {
-            shell.question_dismiss::<P>(cx);
-        }))
-    });
-    let primary_button = card_button(
-        "question-primary",
-        Glyph::Check,
-        primary_words,
-        CardLook::Accent,
-        if primary {
-            CardState::Ready
-        } else {
-            CardState::Faded
-        },
-        tokens,
-    )
-    .when(primary, |button| {
-        button.on_click(cx.listener(|shell, _event, window, cx| {
-            shell.question_primary::<P>(window, cx);
-        }))
-    });
-    div()
-        .flex()
-        .gap(px(8.0))
-        .map(|row| {
-            if narrow {
-                row.flex_col()
-            } else {
-                row.flex_row().items_center()
-            }
-        })
-        .child(dismiss_button)
-        .child(primary_button)
 }
 
 #[cfg(test)]

@@ -27,6 +27,10 @@ use vessel_proto::workspace::GitStatus;
 
 use crate::shell::Shell;
 
+/// A failure's detail (a hook's output) shows its first lines and no more,
+/// so a long log never pushes the menu past a short window.
+const DETAIL_MOST: f32 = 160.0;
+
 /// Paseo's `git/action-icons.tsx` glyph for an action.
 pub(super) const fn glyph(action: Action) -> Glyph {
     match action {
@@ -230,7 +234,7 @@ pub(crate) fn failure_body(text: &GitFailureText, tokens: &Tokens) -> AnyElement
                 .map(|detail| {
                     div()
                         .mt(px(spacing::S1))
-                        .max_h(px(160.0))
+                        .max_h(px(DETAIL_MOST))
                         .overflow_hidden()
                         .type_(Type::Mono)
                         .text_color(tokens.neutral.foreground)

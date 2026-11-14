@@ -33,6 +33,10 @@ const DROP_ROOM: f32 = 460.0;
 
 /// A sheet's insets around the drop confirmation's body.
 const DROP_INSETS: f32 = 64.0;
+
+/// A stash row's text column never narrows below this, so its name and age
+/// stay readable beside the row's buttons.
+const TEXT_LEAST: f32 = 160.0;
 use crate::shell::Shell;
 
 impl Shell {
@@ -209,7 +213,7 @@ fn row(
                 .flex()
                 .flex_col()
                 .flex_1()
-                .min_w(px(160.0))
+                .min_w(px(TEXT_LEAST))
                 .gap(px(spacing::S0_5))
                 // Every row's text column is as wide as the first's.
                 .when(at == 0, |column| {

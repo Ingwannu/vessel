@@ -272,7 +272,7 @@ fn draw<V: 'static>(
     // Paseo's page: 4 above the first row and below the last, no gap
     // between rows, the rule between groups the full width.
     let mut panel = div()
-        .id(id)
+        .id(id.clone())
         .track_focus(&state.focus)
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
@@ -303,7 +303,13 @@ fn draw<V: 'static>(
                 .position(at)
                 .offset(gpui::point(px(0.0), px(OFFSET)))
                 .snap_to_window_with_margin(px(8.0))
-                .child(panel),
+                // Word 39: the menu arrives as Paseo's does (150 ms,
+                // `menu-overlay.tsx`): the kit's quick length.
+                .child(popup::appear(
+                    ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
+                    panel,
+                    crate::motion::QUICK,
+                )),
         )
         .with_priority(1)
         .into_any_element(),
@@ -346,7 +352,6 @@ fn row<V: 'static>(
         .line_height(px(crate::fonts::ui(ROW_LINE)))
         .text_color(ink)
         .when(item.disabled, |row| row.opacity(0.5))
-        .when(highlighted && !item.disabled, |row| row.bg(wash))
         .child(item.label.clone());
     if !item.disabled {
         element = element
@@ -360,6 +365,18 @@ fn row<V: 'static>(
                 chose(view, index, window, cx);
                 cx.notify();
             }));
+    }
+    if highlighted && !item.disabled {
+        // The keyboard's row fills in as the highlight arrives (word 39).
+        return popup::fill_in(
+            ElementId::NamedInteger(
+                "menu-row-arrive".into(),
+                u64::try_from(index).unwrap_or(u64::MAX),
+            ),
+            element,
+            wash,
+        )
+        .into_any_element();
     }
     element.into_any_element()
 }

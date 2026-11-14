@@ -43,6 +43,10 @@ const FILE_ROW: f32 = 28.0;
 /// empty box that pushed the message out of an 800 by 600 window).
 const FILES_MOST: f32 = 176.0;
 
+/// A file row's corner: six points, between the kit's `R1` and `R2`; the
+/// kit has no radius of this size yet.
+const FILE_ROW_RADIUS: f32 = 6.0;
+
 /// Below this window height the list stops at three rows, so the message
 /// and the actions stay in view without scrolling (the owner's word 40:
 /// nothing is cut at small window sizes).
@@ -361,7 +365,7 @@ fn file_row(
         .gap(px(spacing::S3))
         .px(px(spacing::S2))
         .py(px(spacing::S1))
-        .rounded(px(6.0))
+        .rounded(px(FILE_ROW_RADIUS))
         .child(
             div()
                 .flex_1()

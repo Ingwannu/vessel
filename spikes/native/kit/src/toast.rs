@@ -2,7 +2,7 @@
 //! the window, centred, on `surface0` with a hairline, 16 round, 8 by 12
 //! inside, a medium shadow; its words 14 in the foreground; an error's
 //! hairline `destructive` with Paseo's warning glyph beside the words. It
-//! fades in over 140 ms.
+//! arrives over the kit's surface length (`popup::appear`).
 //!
 //! [Decision Log]
 //! - Purpose: the page says what an action came to in a toast (a kill, a
@@ -25,12 +25,12 @@
 //! - Why: advisory feedback is neither a successful write nor a node failure.
 //! - Cost: one typed variant and exhaustive app mapping; no new toast renderer.
 
-use std::{rc::Rc, time::Duration};
+use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, App, ClickEvent, ElementId, SharedString, Window,
-    anchored, deferred, div, point, px, relative,
+    AnyElement, App, ClickEvent, ElementId, SharedString, Window, anchored, deferred, div, point,
+    px, relative,
 };
 
 use crate::assets::Glyph;
@@ -42,9 +42,6 @@ use crate::widgets::TypeExt as _;
 
 /// Paseo's `TOAST_MAX_WIDTH`.
 const MAX_WIDTH: f32 = 480.0;
-
-/// Paseo's enter fade.
-const FADE: Duration = Duration::from_millis(140);
 
 /// What a toast says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,7 +141,7 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
         .hover(move |style| style.bg(neutral.surface2))
         .on_click(move |event, window, cx| (handlers.dismiss)(event, window, cx))
         .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted));
-    div()
+    let card = div()
         .id(id.clone())
         .flex()
         .flex_row()
@@ -185,9 +182,15 @@ pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Token
                     cx,
                 );
             })
-        })
-        .with_animation(id, Animation::new(FADE), Styled::opacity)
-        .into_any_element()
+        });
+    // Word 39: the kit's surface arrival (Paseo's toast fades in 140 ms;
+    // the tokens give every surface one length).
+    popup::appear(
+        ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
+        card,
+        crate::motion::STANDARD,
+    )
+    .into_any_element()
 }
 
 /// The toasts over the window, oldest first, `top` under its top edge

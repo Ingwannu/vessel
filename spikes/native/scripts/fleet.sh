@@ -426,6 +426,8 @@ waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || 
   exit 1
 }
 
+python3 "$(dirname "$0")/shell-fixtures.py" seed "$root" "$target"
+
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash
 # A pairing link for laptop (single use, ten minutes).

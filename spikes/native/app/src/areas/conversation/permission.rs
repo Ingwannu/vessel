@@ -329,6 +329,12 @@ fn body(
         look: Look::of(tokens),
         find: None,
         seat,
+        entries: &[],
+        agent: None,
+        rewinds: None,
+        forks: None,
+        fleet: &shell.fleet,
+        above: super::origin::Above::Nothing,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

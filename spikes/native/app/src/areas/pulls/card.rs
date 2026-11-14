@@ -48,7 +48,7 @@ pub(crate) fn card_items(card: &Card, words: &Translator, tokens: &Tokens) -> Op
             .flex_row()
             .items_center()
             .gap(px(spacing::S2))
-            .mt(px(6.0))
+            .mt(px(spacing::S1_5))
             .whitespace_nowrap()
             .type_(Type::Tiny)
             .child(

@@ -130,11 +130,13 @@ fn unavailable_of(access: &ForgeAccess) -> Unavailable {
     match access {
         ForgeAccess::NoBranch => Unavailable::NoBranch,
         ForgeAccess::NoRemote => Unavailable::NoRemote,
-        ForgeAccess::NotSupported { host } => Unavailable::NotSupported(host.clone()),
+        ForgeAccess::NotSupported { host, .. } => Unavailable::NotSupported(host.clone()),
         ForgeAccess::SignedOut { host, .. } => Unavailable::SignedOut(host.clone()),
         ForgeAccess::Refused { host, .. } => Unavailable::Refused(host.clone()),
-        ForgeAccess::RateLimited { host, until } => Unavailable::RateLimited(host.clone(), *until),
-        ForgeAccess::Unreachable { host, retry_at } => {
+        ForgeAccess::RateLimited { host, until, .. } => {
+            Unavailable::RateLimited(host.clone(), *until)
+        }
+        ForgeAccess::Unreachable { host, retry_at, .. } => {
             Unavailable::Unreachable(host.clone(), *retry_at)
         }
         ForgeAccess::Limit => Unavailable::Limit,

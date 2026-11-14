@@ -33,6 +33,9 @@ use crate::shell::Shell;
 
 /// Paseo's pill glyphs at 12.
 const PILL_GLYPH: f32 = 12.0;
+
+/// The divider between the facts' groups: one point, the kit's border line.
+const DIVIDER: f32 = 1.0;
 /// The checks' headline glyph (Paseo's ring at 16).
 const HEADLINE_GLYPH: f32 = 16.0;
 
@@ -204,7 +207,7 @@ fn whole(
 
 fn divider(tokens: &Tokens) -> AnyElement {
     div()
-        .h(px(1.0))
+        .h(px(DIVIDER))
         .w_full()
         .bg(tokens.neutral.border)
         .into_any_element()

@@ -233,7 +233,7 @@ impl Shell {
         root: &WorkspaceRoot,
         result: Result<BranchList, Problem>,
     ) {
-        let WorkspaceRoot::Project { project } = root else {
+        let WorkspaceRoot::Project { project, .. } = root else {
             return;
         };
         let read = match result {

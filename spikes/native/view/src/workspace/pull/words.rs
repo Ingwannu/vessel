@@ -69,7 +69,7 @@ pub fn refusal_words<'a>(refusal: &OpenRefusal, catalog: &'a Translator) -> Cow<
         OpenRefusal::NotPushed => Cow::Borrowed(words.not_pushed()),
         OpenRefusal::NoCommits => Cow::Borrowed(words.no_commits()),
         OpenRefusal::Push { .. } => Cow::Borrowed(words.push_refused()),
-        OpenRefusal::Access { access } => Unavailable::of(access).words(catalog),
+        OpenRefusal::Access { access, .. } => Unavailable::of(access).words(catalog),
         // Before one exists the node names no repository: the forge's
         // own message follows this sentence as the alert's detail.
         OpenRefusal::Rejected { .. } => Cow::Borrowed(words.rejected()),

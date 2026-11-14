@@ -1,24 +1,50 @@
 //! The sidebar: the routes (`routes::Route::NAV`), a slot for the
-//! projects ([`projects`], the workspace track's), the machines in the
-//! book with their live sessions (DESIGN.md section 6: rows on the shell,
-//! no edge of its own), adding a machine, and the build's label.
+//! projects ([`projects`], the workspace track's), the sessions listed as
+//! the Display menu says (by machine or by status, `machines`,
+//! `statuses`), adding a machine, and the foot (DESIGN.md section 6: rows
+//! on the shell, no edge of its own).
+//!
+//! [Decision Log]
+//! - Purpose: the page's and Paseo's sidebar: the person chooses how
+//!   sessions are listed (grouping, order, ended ones) from a Display menu
+//!   at the list's heading, and every row says what its session is doing.
+//! - Before: the native sidebar listed each machine's sessions on a board
+//!   lane, in the book's order, whatever the preferences said; the view's
+//!   model of the page (`vessel_app_view::sidebar`) was only used by the
+//!   keys that walk the list (Alt+[ and Alt+]).
+//! - Choice: draw through that model (`Fleet::sidebar_machines`,
+//!   `sidebar_statuses`), so the list on screen and the list the keys walk
+//!   are one; one file per part (the frame here, the groups, a session's
+//!   row, the Display menu, the foot), the quality audit's split.
+//! - Cost: a machine shows its first five sessions and a status group its
+//!   first ten, then "N more", which opens the board (the page's limits:
+//!   the sidebar is a way to switch, not a second board).
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, InteractiveElement as _, IntoElement, ParentElement as _, Stateful,
-    StatefulInteractiveElement as _, Styled as _, div, px,
+    Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Tooltips, Type, TypeExt as _, dot, kicker};
-use vessel_app_view::settings::Section;
-use vessel_app_view::{Card, Machine, Reach};
+use vessel_app_view::prefs::Grouping;
 
-use super::common::card_color;
-use super::session::Open;
+use super::edge::{Panel, PanelEdge};
 use crate::routes::Route;
 use crate::shell::Shell;
+
+mod display;
+mod foot;
+mod machines;
+mod session_row;
+mod statuses;
+
+/// A row's inset from the sidebar's padding (the page's 10, between the
+/// kit's 8 and 12 steps).
+const INSET: f32 = 10.0;
 
 /// The sidebar's own state: its tooltips, and where each unreachable
 /// machine's line is drawn (by machine name).
@@ -28,14 +54,20 @@ pub(crate) struct SidebarState {
     /// The tooltip of the same line drawn on a page (Settings ›
     /// Projects), which draws its own.
     page_tips: Tooltips,
+    /// The Display menu.
+    display: display::DisplayMenu,
+    /// Its right edge, dragged to resize it.
+    pub(crate) edge: PanelEdge,
 }
 
 impl SidebarState {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             tips: Tooltips::new(),
             places: RefCell::new(HashMap::new()),
             page_tips: Tooltips::new(),
+            display: display::DisplayMenu::new(window, cx),
+            edge: PanelEdge::new(),
         }
     }
 
@@ -58,7 +90,7 @@ impl SidebarState {
             .flex()
             .flex_row()
             .items_center()
-            .gap(px(6.0))
+            .gap(px(spacing::S1_5))
             .type_(Type::Body)
             .text_color(tokens.neutral.foreground_muted)
             .child(dot(tokens.danger))
@@ -87,10 +119,11 @@ pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let t = shell.t;
-    let mut nav = div().flex().flex_col().gap(px(2.0));
+    let mut nav = div().flex().flex_col().gap(px(spacing::S0_5));
     for route in Route::NAV {
         nav = nav.child(
             row(
@@ -102,36 +135,40 @@ pub(crate) fn render(
             .on_click(cx.listener(move |this, _event, window, cx| this.go(route, window, cx))),
         );
     }
-    let mut machines = div().flex().flex_col().gap(px(14.0));
-    for machine in &shell.fleet.machines {
-        machines = machines.child(machine_rows(machine, shell, tokens, touch, cx));
-    }
-    if shell.loaded && shell.fleet.machines.is_empty() {
-        machines = machines.child(
+    // Paseo's Search row, after the pages (track S's, `areas::palette`).
+    nav = nav.child(crate::areas::palette::sidebar_row(shell, tokens, touch, cx));
+    let view = shell.prefs.settings.sidebar;
+    let list = if shell.loaded && shell.fleet.machines.is_empty() {
+        div().child(
             div()
-                .px(px(10.0))
+                .px(px(INSET))
                 .type_(Type::Meta)
                 .text_color(tokens.text_tertiary)
                 .child(t.no_machines),
-        );
-    }
+        )
+    } else {
+        match view.group {
+            Grouping::Machine => machines::groups(view, shell, tokens, touch, cx),
+            Grouping::Status => statuses::groups(view, shell, tokens, cx),
+        }
+    };
     div()
-        .w(px(264.0))
-        .h_full()
+        .size_full()
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
-        .px(px(8.0))
-        .pb(px(8.0))
-        .gap(px(12.0))
+        .px(px(spacing::S2))
+        .pb(px(spacing::S2))
+        .gap(px(spacing::S3))
         .child(nav.children(schedules(shell, tokens, touch, cx)))
         .children(projects(shell, tokens, cx))
+        .child(heading(shell, tokens, cx))
         .child(
             div()
                 .id("machines")
                 .flex_1()
                 .overflow_y_scroll()
-                .child(machines),
+                .child(list),
         )
         .child(
             row(
@@ -148,10 +185,80 @@ pub(crate) fn render(
             vessel_app_kit::chrome::system_titlebar()
                 .then(|| crate::chrome::update_status(shell, false, tokens, cx))
                 .flatten()
-                .map(|status| div().px(px(10.0)).child(status)),
+                .map(|status| div().px(px(INSET)).child(status)),
         )
-        .child(foot(shell, tokens, cx))
+        .child(foot::foot(shell, tokens, cx))
         .children(shell.areas.sidebar.tips.render(tokens))
+        .children(display::menu(shell, tokens, window, cx))
+}
+
+/// The list's heading, as Paseo's section header: what the list is
+/// ("Machines", or "Sessions" grouped by status, the page's words) and the
+/// Display menu's trigger at its right.
+fn heading(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let words = shell.t.lang.sidebar();
+    let title = match shell.prefs.settings.sidebar.group {
+        Grouping::Machine => words.machines,
+        Grouping::Status => words.sessions,
+    };
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .pl(px(INSET))
+        // Closer to its list than the sidebar's gap (`spacing::S1` back).
+        .mb(px(-4.0))
+        .child(div().flex_1().child(kicker(title, tokens)))
+        .child(display::trigger(shell, tokens, cx))
+}
+
+/// The row under a list that opens the rest on the board ("N more").
+fn more_row(id: ElementId, count: usize, shell: &Shell, tokens: &Tokens) -> Stateful<Div> {
+    div()
+        .id(id)
+        .px(px(INSET))
+        .py(px(spacing::S1))
+        .rounded(px(radius::R4))
+        .type_(Type::Meta)
+        .text_color(tokens.text_tertiary)
+        .hover(|style| style.bg(tokens.bg_hover).text_color(tokens.text_secondary))
+        .cursor_pointer()
+        .child(shell.t.lang.sidebar().more(count))
+}
+
+/// The sidebar as a resizable panel: dragged at its right edge
+/// (`super::edge`), kept in the layout's `sidebar_width`.
+const PANEL: Panel = Panel {
+    limits: vessel_app_view::panels::SIDEBAR,
+    edge: |shell| &shell.areas.sidebar.edge,
+    kept: |shell| shell.prefs.settings.layout.sidebar_width,
+    keep: |layout, width| layout.sidebar_width = width,
+    side: vessel_app_kit::resize::Edge::Right,
+};
+
+/// What stands in the sidebar's place on a wide window (the workspace
+/// sidebar, or Settings' list: one width for both, so the frame beside
+/// it does not move when Settings opens), at the width dragged to,
+/// measured against the window's width.
+pub(crate) fn frame(
+    shell: &Shell,
+    inner: vessel_app_kit::ui::AnyElement,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    // What it leaves depends on the code panel (`panels::sidebar_leaves`):
+    // the sidebar gives way before the conversation does.
+    let leaves = vessel_app_view::panels::sidebar_leaves(shell.code_placement(window));
+    let room = crate::areas::workspace::frame_row(f32::from(window.viewport_size().width));
+    let width = PANEL.width_leaving(shell, room, leaves);
+    div()
+        .relative()
+        .flex_shrink_0()
+        .h_full()
+        .w(px(width))
+        .child(inner)
+        .children(PANEL.handle("sidebar-edge", shell, tokens, window, cx))
 }
 
 /// The slot for Schedules among the navigation rows, where Paseo's
@@ -187,180 +294,6 @@ fn projects(
     cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
     crate::areas::workspace::sidebar_projects(shell, tokens, cx)
-}
-
-/// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
-/// hairline over one line, its items at the left and Settings, a gear, at
-/// the right end. Here the build and "새로고침" at the left; the gear opens
-/// Settings, the build Settings › About.
-fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    let t = shell.t;
-    div()
-        .mx(px(-8.0))
-        .mb(px(-8.0))
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(6.0))
-        .px(px(8.0))
-        .py(px(6.0))
-        .border_t_1()
-        .border_color(tokens.neutral.border)
-        .type_(Type::Tiny)
-        .text_color(tokens.text_tertiary)
-        .child(
-            // The build, and its updates: Settings › About.
-            div()
-                .id("build")
-                .pl(px(2.0))
-                .cursor_pointer()
-                .hover(|style| style.text_color(tokens.text_secondary))
-                .child(t.build(crate::LABEL))
-                .on_click(cx.listener(|this, _event, window, cx| {
-                    this.open_settings(Some(Section::About), window, cx);
-                })),
-        )
-        .child("·")
-        .child(
-            div()
-                .id("reload")
-                .cursor_pointer()
-                .hover(|style| style.text_color(tokens.text_secondary))
-                .child(t.reload)
-                .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
-        )
-        .child(div().flex_1())
-        .child(
-            vessel_app_kit::pill_parts(
-                "settings",
-                vessel_app_kit::PillParts {
-                    leading: Some(vessel_app_kit::assets::Glyph::Gear),
-                    ..vessel_app_kit::PillParts::default()
-                },
-                shell.route == Route::Settings,
-                false,
-                tokens,
-            )
-            .on_click(cx.listener(|this, _event, window, cx| {
-                this.open_settings(None, window, cx);
-            })),
-        )
-}
-
-/// A machine's name, its state, and its live sessions.
-///
-/// [Decision Log]
-/// - Purpose: a stopped node showed the transport's English text and the
-///   endpoint under the machine's name on a Korean screen (track G2's
-///   find, 2026-11-13).
-/// - Choice: the reason is typed (`Reach::Unreachable`), so the row says
-///   it in the app's words in both languages (the state beside the name,
-///   one line of what to do under it); the transport's text is only the
-///   tooltip on that line, for whoever needs the detail.
-/// - Trade-off: on touch (no tooltips) the transport's text is not on
-///   screen at all; the line says what to check, which is what a phone's
-///   owner can act on.
-fn machine_rows(
-    machine: &Machine,
-    shell: &Shell,
-    tokens: &Tokens,
-    touch: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let t = shell.t;
-    let (state, color) = match &machine.reach {
-        Reach::Online => (t.online, tokens.st_ready),
-        Reach::Unreachable(_) => (t.unreachable, tokens.danger),
-    };
-    let mut rows = div().flex().flex_col().gap(px(2.0)).child(
-        div()
-            .flex()
-            .flex_row()
-            .items_center()
-            .gap(px(6.0))
-            .px(px(10.0))
-            .pb(px(2.0))
-            .child(kicker(machine.name.clone(), tokens))
-            .child(dot(color))
-            .child(
-                div()
-                    .type_(Type::Tiny)
-                    .text_color(tokens.text_tertiary)
-                    .child(state),
-            ),
-    );
-    if let Reach::Unreachable(why) = &machine.reach {
-        let state = &shell.areas.sidebar;
-        let line = div()
-            .id(ElementId::Name(
-                format!("unreachable-{}", machine.name).into(),
-            ))
-            .px(px(10.0))
-            .type_(Type::Tiny)
-            .text_color(tokens.text_tertiary)
-            .child(t.unreachable_hint);
-        rows = rows.child(
-            state
-                .tips
-                .on(line, &state.place(&machine.name), why.clone(), touch),
-        );
-    }
-    for card in machine.sessions.iter().filter(|card| card.lane.is_some()) {
-        rows = rows.child(session_row(card, shell, tokens, cx));
-    }
-    rows
-}
-
-fn session_row(
-    card: &Card,
-    shell: &Shell,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> impl IntoElement {
-    let active = shell.route == Route::Session
-        && shell
-            .areas
-            .session
-            .open
-            .as_ref()
-            .is_some_and(|open| open.session == card.session);
-    let open = Open::of(card);
-    div()
-        .id(ElementId::Name(format!("session-{}", card.session).into()))
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(8.0))
-        .px(px(10.0))
-        .py(px(5.0))
-        .rounded(px(vessel_app_kit::theme::radius::R4))
-        .when(active, |row| row.bg(tokens.bg_active))
-        .hover(|style| style.bg(tokens.bg_hover))
-        .cursor_pointer()
-        .child(crate::agent_mark::mark(
-            card.detail.harness.as_ref(),
-            vessel_app_kit::agent_mark::Size::Fourteen,
-            vessel_app_kit::agent_mark::Space::Compact,
-            tokens,
-        ))
-        .child(dot(card_color(card, tokens)))
-        .child(
-            div()
-                .flex_1()
-                .overflow_hidden()
-                .whitespace_nowrap()
-                .text_ellipsis()
-                .type_(Type::Label)
-                .text_color(if active {
-                    tokens.text_primary
-                } else {
-                    tokens.text_secondary
-                })
-                .child(shell.t.title(&card.title).to_owned()),
-        )
-        .on_click(cx.listener(move |this, _event, window, cx| {
-            this.open_session(open.clone(), window, cx);
-        }))
 }
 
 fn row(
@@ -402,11 +335,11 @@ pub(crate) fn nav_row(
     div()
         .id(id)
         .when(leading.is_some(), |row| {
-            row.flex().flex_row().items_center().gap(px(8.0))
+            row.flex().flex_row().items_center().gap(px(spacing::S2))
         })
-        .px(px(10.0))
-        .py(px(6.0))
-        .rounded(px(vessel_app_kit::theme::radius::R4))
+        .px(px(INSET))
+        .py(px(spacing::S1_5))
+        .rounded(px(radius::R4))
         .type_(Type::Label)
         .text_color(color)
         .when(active, |row| row.bg(tokens.bg_active))
@@ -421,5 +354,3 @@ pub(crate) fn nav_row(
         }))
         .child(label)
 }
-
-use vessel_app_kit::ui::FluentBuilder as _;

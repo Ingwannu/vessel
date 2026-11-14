@@ -30,6 +30,10 @@ const TRIGGER_CHROME: f32 = 25.0;
 /// Before the first measure: the toolbar's insets, the gap and an
 /// icon-only split button.
 const HEAD_ESTIMATE: f32 = 110.0;
+
+/// The head row's least height: the toolbar trigger's, so the row keeps its
+/// height when the trigger gives way to the spinner.
+const HEAD_ROW: f32 = 26.0;
 use crate::shell::Shell;
 
 /// Track F's slot at the head of its Changes tab. The first frame on a
@@ -71,7 +75,7 @@ pub(crate) fn slot(
                 .flex()
                 .items_center()
                 .gap(px(spacing::S2))
-                .min_h(px(26.0))
+                .min_h(px(HEAD_ROW))
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
                 .child(vessel_app_kit::slider::spinner(

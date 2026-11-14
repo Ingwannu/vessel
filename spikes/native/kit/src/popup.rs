@@ -22,7 +22,10 @@
 //!   radius 10 with a 2% edge and a softer shadow, its scrim the ink at
 //!   45%; Paseo's are the values here.
 
-use gpui::{BoxShadow, Hsla, InteractiveElement, Styled, point, px, rgba};
+use gpui::{
+    AnimationElement, AnimationExt as _, BoxShadow, ElementId, Hsla, InteractiveElement,
+    IntoElement, Styled, point, px, rgba,
+};
 
 use crate::theme::{Scheme, Tokens};
 
@@ -110,6 +113,52 @@ pub const SHEET_RADIUS: f32 = 16.0;
 #[must_use]
 pub const fn row_height(narrow: bool) -> f32 {
     if narrow { 44.0 } else { 28.0 }
+}
+
+/// How far a floating surface rises as it appears: Paseo's menu grows
+/// from 0.97 of its size (`menu-overlay.tsx`, `contentEntering`); GPUI
+/// draws no scale on a box, so it rises this far instead.
+const RISE: f32 = 4.0;
+
+/// A floating surface arriving (a menu, a popover's list, a dialog's
+/// card; the owner's word 39): from clear to solid and from [`RISE`]
+/// below its place, over `length` on the kit's curve (`motion`). Paseo's
+/// menus enter in 150 ms and, on the desktop, leave at once (no exiting
+/// animation on the web), so nothing here plays on the way out. While
+/// motion is held (Animations off, reduced motion, a software renderer)
+/// GPUI draws the end at once.
+#[must_use]
+pub fn appear<E>(
+    id: impl Into<ElementId>,
+    element: E,
+    length: std::time::Duration,
+) -> AnimationElement<E>
+where
+    E: IntoElement + Styled + 'static,
+{
+    element.with_animation(id, crate::motion::transition(length), |element, done| {
+        element
+            .opacity(done)
+            .relative()
+            .top(px(done.mul_add(-1.0, 1.0).mul_add(RISE, 0.0)))
+    })
+}
+
+/// A list's keyboard position arriving on a row (word 39's "a selection
+/// moving"): the row's fill comes in over the kit's quick length. The row
+/// that loses it clears at once, so the eye follows the one arriving.
+/// `id` must be new each time the selection arrives on a row (the row's
+/// own id under a name of the list's), so the transition plays again.
+#[must_use]
+pub fn fill_in<E>(id: impl Into<ElementId>, element: E, fill: Hsla) -> AnimationElement<E>
+where
+    E: IntoElement + Styled + 'static,
+{
+    element.with_animation(
+        id,
+        crate::motion::transition(crate::motion::QUICK),
+        move |element, done| element.bg(fill.opacity(done)),
+    )
 }
 
 /// A popover's own layer (a menu, a list, a card over the composer, a

@@ -27,3 +27,15 @@ pub(crate) fn leading(agent: &HarnessRef) -> vessel_app_kit::Leading {
 pub(crate) fn mark(agent: Option<&HarnessRef>, size: Size, space: Space, tokens: &Tokens) -> Div {
     agent_mark::agent_mark(agent.and_then(of), size, space, tokens)
 }
+
+/// The same mark in the muted ink, for the sidebar's session rows (Paseo's
+/// `agent-list.tsx`; the coordinator, 2026-11-14: colour stays in the
+/// pickers and Settings › Agents).
+pub(crate) fn mark_muted(
+    agent: Option<&HarnessRef>,
+    size: Size,
+    space: Space,
+    tokens: &Tokens,
+) -> Div {
+    agent_mark::agent_mark_muted(agent.and_then(of), size, space, tokens)
+}

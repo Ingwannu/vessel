@@ -397,17 +397,16 @@ fn list_body(
         .and_then(ProjectsView::list)
         .map_or(&[][..], |list| list.projects.as_slice())
     {
-        if let ProjectState::CloneFailed { reason, message } = &project.state {
-            body = body.child(banner(
-                format!(
-                    "{}: {} {message}",
-                    project.name,
-                    words.clone_failure(*reason)
-                ),
-                true,
-                None,
-                tokens,
-            ));
+        if let ProjectState::CloneFailed {
+            reason, message, ..
+        } = &project.state
+        {
+            let said = format!(
+                "{}: {} {message}",
+                project.name,
+                words.clone_failure(*reason)
+            );
+            body = body.child(banner(said, true, None, tokens));
         }
     }
     if let Some(failure) = &state.failure {

@@ -355,6 +355,7 @@ fn scope_list(
         back: false,
         search: false,
         empty: SharedString::default(),
+        note: None,
         side: Side::Below,
     };
     let handlers = ComboHandlers {

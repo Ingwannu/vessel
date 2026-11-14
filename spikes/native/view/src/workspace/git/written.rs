@@ -73,8 +73,8 @@ impl From<GitStatus> for Written {
 impl From<CommitOutcome> for Written {
     fn from(outcome: CommitOutcome) -> Self {
         match outcome {
-            CommitOutcome::Committed { commit } => Self::Said(Success::Committed(commit)),
-            CommitOutcome::Refused { refusal } => Self::Refused(refusal),
+            CommitOutcome::Committed { commit, .. } => Self::Said(Success::Committed(commit)),
+            CommitOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -83,7 +83,7 @@ impl From<FetchOutcome> for Written {
     fn from(outcome: FetchOutcome) -> Self {
         match outcome {
             FetchOutcome::Fetched => Self::Said(Success::Fetched),
-            FetchOutcome::Refused { refusal } => Self::Refused(refusal),
+            FetchOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -95,6 +95,7 @@ impl From<PushOutcome> for Written {
                 remote,
                 branch,
                 upstream_set,
+                ..
             } => Self::Said(Success::Pushed {
                 remote,
                 branch,
@@ -104,7 +105,7 @@ impl From<PushOutcome> for Written {
                     UpstreamChange::Kept
                 },
             }),
-            PushOutcome::Refused { refusal } => Self::Refused(refusal),
+            PushOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -112,9 +113,9 @@ impl From<PushOutcome> for Written {
 impl From<PullOutcome> for Written {
     fn from(outcome: PullOutcome) -> Self {
         match outcome {
-            PullOutcome::Pulled { from, to } => Self::Said(Success::Pulled { from, to }),
+            PullOutcome::Pulled { from, to, .. } => Self::Said(Success::Pulled { from, to }),
             PullOutcome::UpToDate => Self::Said(Success::UpToDate),
-            PullOutcome::Refused { refusal } => Self::Refused(refusal),
+            PullOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -122,8 +123,8 @@ impl From<PullOutcome> for Written {
 impl From<SwitchOutcome> for Written {
     fn from(outcome: SwitchOutcome) -> Self {
         match outcome {
-            SwitchOutcome::Switched { branch } => Self::Said(Success::Switched(branch)),
-            SwitchOutcome::Refused { refusal } => Self::Refused(refusal),
+            SwitchOutcome::Switched { branch, .. } => Self::Said(Success::Switched(branch)),
+            SwitchOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -131,8 +132,8 @@ impl From<SwitchOutcome> for Written {
 impl From<RenameOutcome> for Written {
     fn from(outcome: RenameOutcome) -> Self {
         match outcome {
-            RenameOutcome::Renamed { branch } => Self::Said(Success::Renamed(branch)),
-            RenameOutcome::Refused { refusal } => Self::Refused(refusal),
+            RenameOutcome::Renamed { branch, .. } => Self::Said(Success::Renamed(branch)),
+            RenameOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }
@@ -140,8 +141,8 @@ impl From<RenameOutcome> for Written {
 impl From<StashOutcome> for Written {
     fn from(outcome: StashOutcome) -> Self {
         match outcome {
-            StashOutcome::Done { stashes } => Self::Said(Success::Stashed(stashes)),
-            StashOutcome::Refused { refusal } => Self::Refused(refusal),
+            StashOutcome::Done { stashes, .. } => Self::Said(Success::Stashed(stashes)),
+            StashOutcome::Refused { refusal, .. } => Self::Refused(refusal),
         }
     }
 }

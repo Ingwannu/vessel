@@ -45,7 +45,7 @@ use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
-pub(crate) use frame::{code_beside, code_toggle};
+pub(crate) use frame::{code_beside, code_toggle, frame_row};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;
@@ -140,8 +140,10 @@ pub(crate) struct CodePanel {
     target: Option<Target>,
     changes: Changes,
     files: Files,
-    /// Its width beside the conversation (dragged at its left edge).
-    width: vessel_app_kit::ui::Pixels,
+    /// Its left edge, dragged to resize it (`frame::PANEL`).
+    edge: crate::areas::edge::PanelEdge,
+    /// The width of the row of conversation and panel, last frame.
+    row: std::rc::Rc<std::cell::Cell<Option<f32>>>,
     /// Tabs whose content a git write changed while they were not shown:
     /// read again when next shown.
     stale: Stale,
@@ -178,7 +180,8 @@ impl CodePanel {
                 search: search::Search::new(window, cx),
                 actions: actions::Actions::new(cx),
             },
-            width: frame::WIDTH,
+            edge: crate::areas::edge::PanelEdge::new(),
+            row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),
         }
     }
@@ -422,7 +425,12 @@ impl Shell {
     /// how much of the git toolbar's label fits.
     pub(crate) fn code_git_width(&self) -> Option<vessel_app_kit::ui::Pixels> {
         let panel = &self.areas.workspace.code;
-        panel.open.then_some(panel.width)
+        // The width the frame draws (word 29's edge): the dragged or kept
+        // one, held inside the row last measured.
+        let room = panel.row.get().unwrap_or(f32::INFINITY);
+        panel
+            .open
+            .then(|| vessel_app_kit::ui::px(frame::PANEL.width(self, room)))
     }
 
     /// Read the shown tab again if a git write changed it while hidden;

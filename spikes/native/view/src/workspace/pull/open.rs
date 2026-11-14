@@ -156,9 +156,9 @@ pub enum Opened {
 #[must_use]
 pub fn open_outcome(outcome: OpenOutcome) -> Opened {
     match outcome {
-        OpenOutcome::Opened { pull_request } => Opened::Made(pull_request),
-        OpenOutcome::Exists { pull_request } => Opened::Existing(pull_request),
-        OpenOutcome::Refused { refusal } => Opened::Refused(refusal),
+        OpenOutcome::Opened { pull_request, .. } => Opened::Made(pull_request),
+        OpenOutcome::Exists { pull_request, .. } => Opened::Existing(pull_request),
+        OpenOutcome::Refused { refusal, .. } => Opened::Refused(refusal),
         OpenOutcome::Unknown => Opened::Refused(OpenRefusal::Unknown),
     }
 }

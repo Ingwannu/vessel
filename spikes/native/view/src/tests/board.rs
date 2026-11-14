@@ -195,6 +195,7 @@ fn deals_rows_into_lanes_the_waiting_first_then_the_most_recent() {
             sessions,
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -315,6 +316,7 @@ fn reads_a_machines_protocol_only_while_it_is_connected() {
         sessions: Vec::new(),
         agents: Vec::new(),
         protocol,
+        version: None,
     };
     let fleet = Fleet {
         machines: vec![
@@ -340,6 +342,7 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
             sessions: vec![listed, other.clone()],
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -368,6 +371,39 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
         .map(|card| card.session)
         .collect();
     assert_eq!(left, [other.session]);
+}
+
+#[test]
+fn a_fork_is_listed_on_its_machine_at_once_and_only_once() {
+    let listed = card(RUNNING, None);
+    let mut fleet = Fleet {
+        machines: vec![Machine {
+            name: "laptop".to_owned(),
+            reach: Reach::Online,
+            sessions: vec![listed.clone()],
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        }],
+        read_at: None,
+    };
+    let fork = session(RUNNING, None);
+    fleet.add_session("elsewhere", &fork);
+    assert_eq!(fleet.machines[0].sessions.len(), 1, "not its machine");
+    fleet.add_session("laptop", &fork);
+    // The fleet's next read may list it before the answer is taken.
+    fleet.add_session("laptop", &fork);
+    let ids: Vec<_> = fleet.machines[0]
+        .sessions
+        .iter()
+        .map(|card| card.session)
+        .collect();
+    assert_eq!(ids, [listed.session, fork.id]);
+    // Its first line names the source by the title the list holds.
+    fleet.machines[0].sessions[0].title = "plain".to_owned();
+    assert_eq!(fleet.title_of(listed.session), Some("plain"));
+    assert_eq!(fleet.title_of(fork.id), None, "no title yet");
+    assert_eq!(fleet.title_of(SessionId::random()), None);
 }
 
 #[test]

@@ -19,7 +19,7 @@
 use gpui::prelude::*;
 use gpui::{Div, Hsla, div, px, rgb};
 
-use crate::theme::{Scheme, Tokens, spacing};
+use crate::theme::{SUMMARY_LIGHT, Scheme, Tokens, spacing};
 
 const SUMMARY_RADIUS: f32 = 12.0;
 const INSET_RADIUS: f32 = 8.0;
@@ -34,7 +34,7 @@ struct Paint {
 fn summary_paint(scheme: Scheme) -> Paint {
     match scheme {
         Scheme::Light => Paint {
-            fill: rgb(0x00fc_fcfc).into(),
+            fill: rgb(SUMMARY_LIGHT).into(),
             edge: gpui::black().opacity(0.05),
         },
         Scheme::Dark => Paint {

@@ -166,6 +166,26 @@ pub fn agent_mark(artwork: Option<Artwork>, size: Size, space: Space, tokens: &T
         space,
         tokens,
         tokens.neutral.foreground_muted,
+        None,
+    )
+}
+/// The mark in the muted ink, where a list shows many (Paseo's session
+/// list draws its provider icons in `foregroundMuted`); the colours stay
+/// in the pickers and Settings.
+#[must_use]
+pub fn agent_mark_muted(
+    artwork: Option<Artwork>,
+    size: Size,
+    space: Space,
+    tokens: &Tokens,
+) -> Div {
+    render(
+        artwork,
+        size,
+        space,
+        tokens,
+        tokens.neutral.foreground_muted,
+        Some(tokens.neutral.foreground_muted),
     )
 }
 fn render(
@@ -174,6 +194,7 @@ fn render(
     space: Space,
     tokens: &Tokens,
     fallback: gpui::Hsla,
+    tint: Option<gpui::Hsla>,
 ) -> Div {
     if let Some((art, (width, height))) = artwork.and_then(|art| {
         art.dimensions(size, space)
@@ -187,7 +208,7 @@ fn render(
             .flex()
             .items_center()
             .justify_center()
-            .child(raster::exact(art.image(tokens.scheme), image))
+            .child(raster::exact(art.image(tokens.scheme), image, tint))
     } else {
         let fallback_size = match space {
             Space::Row => 16.0,
@@ -245,6 +266,22 @@ mod tests {
             );
         }
     }
+    /// The outline of the first clipped group (Gemini's spark).
+    fn clipped_outline(tree: &resvg::usvg::Tree) -> resvg::usvg::Rect {
+        tree.root()
+            .children()
+            .iter()
+            .find_map(|node| {
+                if let resvg::usvg::Node::Group(group) = node {
+                    group.clip_path()
+                } else {
+                    None
+                }
+            })
+            .map(|clip| clip.root().abs_bounding_box())
+            .expect("a clipped group")
+    }
+
     #[test]
     fn approved_viewports_yield_the_measured_reference_ink() {
         // Width cannot also match when official aspect ratios differ from
@@ -259,7 +296,13 @@ mod tests {
         ] {
             let svg = std::str::from_utf8(art.image(Scheme::Light).bytes).unwrap();
             let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).unwrap();
-            let bounds = tree.root().abs_bounding_box();
+            // Gemini's colour field is an image wider than the spark, cut
+            // by the spark's outline: its ink is the clip's outline.
+            let bounds = if svg == paths::GEMINI {
+                clipped_outline(&tree)
+            } else {
+                tree.root().abs_bounding_box()
+            };
             let factor = f32::from(art.image_size(Size::Sixteen).width)
                 .mul_add(tree.size().width().recip(), 0.0);
             assert!(
@@ -315,24 +358,32 @@ mod tests {
     }
 
     /// Every embedded drawing is a vector that parses, with nothing in it
-    /// that reaches outside: no script, link or embedded raster.
+    /// that reaches outside: no script and no link. The one raster is
+    /// Gemini's colour field, inside Google's file as a `data:` JPEG under
+    /// a vector outline (`paths::GEMINI`); no other drawing has one.
     #[test]
     fn embedded_drawings_are_inert_vectors() {
         for image in images() {
             let svg = std::str::from_utf8(image.bytes).unwrap();
             assert!(svg.starts_with("<svg "), "{}", image.path);
             assert!(!svg.contains("<script"));
-            assert!(!svg.contains("href="));
-            assert!(!svg.contains("<image"));
+            let gemini = svg == paths::GEMINI;
+            let links = svg.matches("href=").count();
+            assert_eq!(links, usize::from(gemini), "{}", image.path);
+            assert_eq!(svg.matches("<image").count(), usize::from(gemini));
+            if gemini {
+                assert_eq!(svg.matches("href=\"data:image/jpeg;base64,").count(), 1);
+            }
             let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).unwrap();
             assert!(!tree.root().children().is_empty());
         }
     }
 
-    /// Gemini keeps Google's gradient: the spark is drawn in its blues,
-    /// not as a one-colour mask.
+    /// Gemini is drawn in Google's four colours, not as a one-colour mask:
+    /// red at the top arm, blue at the right, green at the bottom, yellow
+    /// at the left (the embedded colour field is rendered).
     #[test]
-    fn the_gemini_spark_keeps_its_gradient() {
+    fn the_gemini_spark_keeps_its_four_colours() {
         let svg = std::str::from_utf8(GEMINI.image(Scheme::Dark).bytes).unwrap();
         let tree = resvg::usvg::Tree::from_str(svg, &resvg::usvg::Options::default()).unwrap();
         let mut pixels = resvg::tiny_skia::Pixmap::new(192, 192).unwrap();
@@ -341,11 +392,24 @@ mod tests {
             resvg::tiny_skia::Transform::identity(),
             &mut pixels.as_mut(),
         );
-        let lower_left = pixels.pixel(60, 120).unwrap();
-        let upper_right = pixels.pixel(130, 70).unwrap();
-        assert_eq!((lower_left.alpha(), upper_right.alpha()), (255, 255));
-        assert!(lower_left.blue() > lower_left.red());
-        assert_ne!(lower_left, upper_right, "a gradient, not one colour");
+        let at = |x, y| pixels.pixel(x, y).unwrap().demultiply();
+        let (top, right, bottom, left) = (at(96, 30), at(160, 96), at(96, 160), at(30, 96));
+        for arm in [top, right, bottom, left] {
+            assert_eq!(arm.alpha(), 255);
+        }
+        assert!(top.red() > top.green() && top.red() > top.blue(), "red top");
+        assert!(
+            right.blue() > right.red() && right.blue() > right.green(),
+            "blue right"
+        );
+        assert!(
+            bottom.green() > bottom.red() && bottom.green() > bottom.blue(),
+            "green bottom"
+        );
+        assert!(
+            left.red() > left.blue() && left.green() > left.blue(),
+            "yellow left"
+        );
         assert_eq!(pixels.pixel(4, 4).unwrap().alpha(), 0, "Google's inset");
     }
 }

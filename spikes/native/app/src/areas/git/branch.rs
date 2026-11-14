@@ -98,6 +98,7 @@ pub(super) fn switcher(
         back: false,
         search: true,
         empty: empty.into(),
+        note: None,
         side: Side::Below,
     };
     let handlers = ComboHandlers {

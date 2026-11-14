@@ -23,6 +23,10 @@ use vessel_proto::forge::OpenRefusal;
 use super::{Form, FormIssue};
 use crate::shell::Shell;
 
+/// A forge's words show their first lines and no more, as the git row's
+/// failure detail does, so the dialog keeps its size.
+const OUTPUT_MOST: f32 = 160.0;
+
 impl Shell {
     /// A base was chosen from the select's list.
     fn pulls_base_chosen(&mut self, choice: BaseChoice, cx: &mut Context<'_, Self>) {
@@ -279,7 +283,7 @@ fn issue_alert(shell: &Shell, issue: &FormIssue, tokens: &Tokens) -> AnyElement 
     let lang = shell.t.lang;
     let (title, detail): (String, Option<AnyElement>) = match issue {
         FormIssue::Form(problem) => (problem.words(words).to_owned(), None),
-        FormIssue::Refused(OpenRefusal::Push { refusal }) => {
+        FormIssue::Refused(OpenRefusal::Push { refusal, .. }) => {
             let text = lang.git_issue(&Issue::Refused(refusal.clone()));
             (
                 refusal_words(
@@ -294,7 +298,7 @@ fn issue_alert(shell: &Shell, issue: &FormIssue, tokens: &Tokens) -> AnyElement 
         }
         FormIssue::Refused(refusal) => {
             let message = match refusal {
-                OpenRefusal::Rejected { message } => Some(mono(message, tokens)),
+                OpenRefusal::Rejected { message, .. } => Some(mono(message, tokens)),
                 OpenRefusal::NotPushed
                 | OpenRefusal::NoCommits
                 | OpenRefusal::Push { .. }
@@ -327,7 +331,7 @@ fn issue_alert(shell: &Shell, issue: &FormIssue, tokens: &Tokens) -> AnyElement 
 /// A forge's own words, as the git row shows a hook's output.
 fn mono(text: &str, tokens: &Tokens) -> AnyElement {
     div()
-        .max_h(px(160.0))
+        .max_h(px(OUTPUT_MOST))
         .overflow_hidden()
         .type_(Type::Mono)
         .text_color(tokens.neutral.foreground)

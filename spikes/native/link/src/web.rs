@@ -105,6 +105,11 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 )),
             })),
+            Command::NodeSettings(ask) => self.emit(Event::NodeSettings(ask.refused(
+                vessel_app_view::idle_release::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                ),
+            ))),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);
@@ -140,8 +145,12 @@ impl Link {
                 harness,
                 outcome: Ok(crate::demo::options()),
             }),
-            // The demo's turns end as they start: nothing runs to stop.
-            Command::Stop { .. } | Command::SavePrefs(_) => {}
+            // The demo's turns end as they start: nothing runs to stop; a
+            // browser keeps no files.
+            Command::Stop { .. }
+            | Command::SavePrefs(_)
+            | Command::KeepCommands { .. }
+            | Command::SaveDrafts(_) => {}
             Command::Answer {
                 session,
                 id,
