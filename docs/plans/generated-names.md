@@ -292,3 +292,11 @@ Vessel differences, with their reasons in the ADR. This helper does not
 resolve Git or issue model calls. Current resume point: contract recorded;
 reader implementation and adjacent filesystem/decoder tests come next,
 then its narrow checks and whole gate. No node wiring is claimed.
+
+Project reader implementation checkpoint: the byte-reading policy is now
+shared, and `project_file::metadata` owns typed per-kind styles, raw scalar
+validation, tolerant independent decoding and class-only diagnostics.
+Adjacent tests cover blank and malformed siblings, padding, Unicode, the
+file bound, safe Debug, command independence and the unchanged digest.
+The helper is not called by the node yet. Narrow all-targets Clippy and
+its project-file tests pass; the exact-commit whole gate remains next.
