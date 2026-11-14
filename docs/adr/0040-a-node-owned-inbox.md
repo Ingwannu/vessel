@@ -103,7 +103,12 @@ opening a large request never clones every pending form into one frame.
 The response budget is 15 MiB below the 16 MiB frame limit; an over-limit
 form stays an explicit compact reference, never clipped options. A gone
 actor request returns absence. Ordinary background confirmation uses the
-default summary mode and never expands large content.
+default summary mode and never expands large content. The CLI exposes this
+selected recovery as `inbox show ENTRY`; list pages stay bounded and inspecting
+one form does not mark it read. Tool details are a separate bounded snapshot:
+when an update no longer fits, the prior snapshot is invalidated, not presented
+as current. Omitted tool content can only be inspected if session history still
+retains it; this is not a promise that pruned tool content can be recovered.
 
 `before` is an exclusive, monotonically assigned descending cursor. Reads
 never reorder entries. Deletion may shorten a page; new insertions are newer

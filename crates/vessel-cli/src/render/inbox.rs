@@ -44,7 +44,7 @@ pub(crate) fn inbox_entry(entry: &InboxEntry) -> String {
                 tool_detail(&mut text, tool);
             }
             if *detail == vessel_proto::inbox::InboxDetail::InSession {
-                text.push_str("  Full details are in the session.\n");
+                text.push_str("  Some tool details are omitted here. Open the session to inspect retained history.\n");
             }
             for option in &request.options {
                 let _written = writeln!(text, "  {}: {}", option.id, option.name);
@@ -116,14 +116,8 @@ fn tool_detail(text: &mut String, tool: &vessel_proto::ToolCall) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn question_keeps_its_field_and_option_details_and_inbox_answer_hint() {
-        let question = serde_json::from_str(r#"{
-            "id":"00000000-0000-4000-8000-000000000011", "message":"Choose a route.",
-            "fields":[{"name":"route","title":"Route","description":"Choose the route for this run.","required":true,"kind":"choice","multiple":false,
-            "options":[{"value":"local","title":"Local","description":"Keep the run on this machine."}]}]
-        }"#).unwrap();
-        let entry = InboxEntry {
+    fn entry(item: InboxItem) -> InboxEntry {
+        InboxEntry {
             cursor: vessel_proto::inbox::InboxCursor::new(17),
             key: vessel_proto::inbox::InboxKey {
                 session: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
@@ -134,8 +128,17 @@ mod tests {
             project_name: None,
             at: chrono::DateTime::UNIX_EPOCH,
             read: InboxRead::Unread,
-            item: InboxItem::Question { question },
-        };
+            item,
+        }
+    }
+    #[test]
+    fn question_keeps_its_field_and_option_details_and_inbox_answer_hint() {
+        let question = serde_json::from_str(r#"{
+            "id":"00000000-0000-4000-8000-000000000011", "message":"Choose a route.",
+            "fields":[{"name":"route","title":"Route","description":"Choose the route for this run.","required":true,"kind":"choice","multiple":false,
+            "options":[{"value":"local","title":"Local","description":"Keep the run on this machine."}]}]
+        }"#).unwrap();
+        let entry = entry(InboxItem::Question { question });
         assert_eq!(
             inbox_entry(&entry),
             concat!(
@@ -145,6 +148,32 @@ mod tests {
                 "    Choose the route for this run.\n",
                 "    local: Local\n",
                 "      Keep the run on this machine.\n",
+                "  answer with `vessel inbox answer 17 ...`\n"
+            )
+        );
+    }
+    #[test]
+    fn omitted_details_never_promise_that_pruned_content_can_be_opened() {
+        let request = vessel_proto::PermissionRequest {
+            id: "00000000-0000-4000-8000-000000000012".parse().unwrap(),
+            tool_call: vessel_proto::ToolCallId::new("missing"),
+            options: vec![vessel_proto::PermissionOption {
+                id: vessel_proto::PermissionOptionId::new("allow"),
+                name: "Allow once".to_owned(),
+                kind: vessel_proto::PermissionOptionKind::AllowOnce,
+            }],
+        };
+        let entry = entry(InboxItem::Permission {
+            request,
+            tool: None,
+            detail: vessel_proto::inbox::InboxDetail::InSession,
+        });
+        assert_eq!(
+            inbox_entry(&entry),
+            concat!(
+                "17  unread  approval  1970-01-01 00:00:00 UTC  session=00000000-0000-4000-8000-000000000001  seq=1\n",
+                "  Some tool details are omitted here. Open the session to inspect retained history.\n",
+                "  allow: Allow once\n",
                 "  answer with `vessel inbox answer 17 ...`\n"
             )
         );

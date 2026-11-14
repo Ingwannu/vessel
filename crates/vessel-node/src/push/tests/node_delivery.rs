@@ -113,11 +113,7 @@ impl Fixture {
         let home = temp.path().join("home");
         std::fs::create_dir(&home).unwrap();
         let data = DataDir::new(temp.path().join("data"));
-        let mut config = Config::new(data.clone(), HarnessEnv::new(home));
-        config.bind = Some("127.0.0.1:0".parse().unwrap());
-        config.harness_lookup = Lookup::new([bin]);
-        config.name = Some("inbox push test".to_owned());
-        config.push_test_origin = Some(origin);
+        let mut config = Self::config(temp.path(), origin);
         adjust(&mut config);
         let node = Node::start(config).await.unwrap();
         let url: NodeUrl = format!("ws://{}", node.address().unwrap()).parse().unwrap();
@@ -126,6 +122,17 @@ impl Fixture {
             .await
             .unwrap();
         Self { temp, node, owner }
+    }
+    fn config(root: &std::path::Path, origin: url::Url) -> Config {
+        let mut config = Config::new(
+            DataDir::new(root.join("data")),
+            HarnessEnv::new(root.join("home")),
+        );
+        config.bind = Some("127.0.0.1:0".parse().unwrap());
+        config.harness_lookup = Lookup::new([root.join("bin")]);
+        config.name = Some("inbox push test".to_owned());
+        config.push_test_origin = Some(origin);
+        config
     }
     async fn pair(&self) -> (vessel_proto::DeviceId, NodeClient) {
         let mut offer = self
@@ -340,3 +347,5 @@ async fn private_numeric_and_localhost_endpoints_never_reach_http_preparation() 
 }
 
 mod cancellation;
+
+mod restart;

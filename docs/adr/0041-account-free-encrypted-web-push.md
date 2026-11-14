@@ -71,7 +71,10 @@ coalesces bursts, bounds concurrent HTTP sends and request time, does not
 retry indefinitely, disables redirects and proxies, and permits only public
 HTTPS endpoints (DNS resolved and pinned at delivery). A wire endpoint
 cannot make the node connect to a private service. Tests use an explicitly
-injected loopback transport, never a production endpoint exception.
+injected loopback transport, never a production endpoint exception. A restart
+fixture reopens the same data directory, verifies the VAPID identity and
+subscription survive, and observes the worker's exact newly admitted source:
+old unread outcomes stay in the inbox without being replayed as pushes.
 
 ## What other parties learn
 

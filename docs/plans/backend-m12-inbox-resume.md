@@ -1,130 +1,183 @@
-# Inbox and push: resume
+# Inbox and push: node-only resume
 
-## Resumed node-only scope (2026-11-14)
+## Scope and commits
 
-The current scope is node/wire/store/client/CLI/testkit/generated types and
-documentation. Native link/view/screens belong to the app workers; historical
-native next steps below are superseded by that ownership change.
+The resumed scope is node/wire/store/client/CLI/testkit/generated declarations
+and documentation. Native link/view/screens and desktop delivery belong to
+the app workers; earlier native draft work is not a tested contract.
 
-The node line `b981f5f2` (protocol 18) is merged for validation. Inbox/push
-provisionally use 19, minimum 2; the appended inbox migration is 14, after
-search's 13. Changed-crate all-target type checking, 37 store unit tests,
-and both TypeScript generating tests passed. Web lint/typecheck/unit/build
-passed. The whole root gate passed: 1,814 tests, zero failures, 10 default ignored
-measurements, with `RUST_TEST_THREADS=3`; fmt and clippy passed. Full web E2E
-also passed all 62 tests. The first root run's missing inbox entries in the
-pinned forwardable-method expectation were fixed before this successful run.
+- `47a4bcb1`: original node/push WIP checkpoint, superseded by the following
+  integration and acceptance validation.
+- `146eee00`, `99af7444`: earlier contracts/resume checkpoints.
+- `95a46c6c`: merged node line `b981f5f2` (protocol 18), preserving search,
+  driver, fleet and other node work. This merge passed the whole root gate
+  (1,814 passed, zero failed, 10 ignored; `RUST_TEST_THREADS=3`), both TS
+  generators, web lint/typecheck/unit/build (81 files / 417 tests), and all
+  62 Playwright E2E tests. Its commit body's phrase “10 ignored measurements”
+  is inaccurate: three are measurements, six require the rust-analyzer/toolchain
+  prerequisites, and one is the documented proxy-limit test.
+- The acceptance follow-up adds true concurrent answer validation, exact CLI
+  question answering, selected large-form inspection after pruning, stale tool
+  snapshot invalidation and fresh-worker push restart validation. Its final
+  gate is recorded below. Focused CLI
+  inbox (3), renderer (2), node restart/push (1) and TS generator (2) tests
+  passed; the declarations are unchanged. Fresh web lint/typecheck/build,
+  417 unit tests and all 62 E2E tests also passed. The subsequent root gate
+  passed fmt/clippy, then stopped in the unchanged fleet admission test;
+  the diagnostic below records that prerequisite.
 
-The old theme-paint failure is the upstream race fixed in `59000e29`: the
-page paints the optimistic setting before its bridge write finishes, while
-the old test immediately fetched the served index once. The merged test
-polls for the persisted state. This explanation is grounded in
-`web/src/data/prefs.ts::preferThrough` and that immutable test correction;
-the current E2E theme test passed (1.9 seconds), as did all 62 tests.
+## Previous web failure
 
-Current next work is node acceptance validation: simultaneous answers,
-actual CLI question answering, and the oversized-tool update boundary. These
-are not claims about delivered screens. See the plan's client-call table.
+Upstream `59000e29` fixed the theme-paint race: `preferThrough` displays the
+optimistic theme before its bridge operation finishes. The old test did one
+HTTP read immediately; the merged test polls the served index for persistence.
+The merged full E2E run passed all 62 tests, including that theme case. No web
+page implementation was changed for this issue.
 
-## Previous stop checkpoint (2026-11-13)
+## Screen-facing contract
 
-The current slice is the node inbox and account-free Web Push (ADRs 0040,
-0041). The node checkpoint's exact commit and final gate results are recorded
-below before handoff. Review has not passed; no repository push or deployment
-was made.
+Protocol 19 is provisional; the node integrator renumbers at merge. Minimum
+is still 2. The seven new calls are `inbox.list`, `inbox.get`, `inbox.mark`,
+`push.key`, `push.subscribe`, `push.unsubscribe`, `push.presence`; no fields
+are added to older requests/responses. The inbox migration is 14 after search's
+13. Full DTO fields and limits live in `vessel-proto::{inbox,push}` and ADRs
+0040–0041.
 
-## Committed and reviewed
+- Use `NodeClient::inbox(ListInbox { before })` for bounded pages plus exact
+  whole-node counts; fold by node identity, not by a machine's mutable label.
+- Use `inbox_entry(key)` for cheap source confirmation and
+  `inbox_request(key)` only to expand one selected live form (15 MiB budget).
+  Source pruning never changes that pending form's choices. Omitted tool
+  details may be absent after log retention; never promise their recovery.
+- Use `mark_inbox(key, read)` for shared read state. Read-only devices can mark
+  but cannot answer; agent origins, including delegated/forwarded ones, cannot
+  mark. Revocation removes access without undoing shared read state.
+- Reuse session permission/question answer calls. The actor validates the
+  current request with Operate scope and first-answer-wins semantics. Recheck
+  source/connection/effective scope before sending and await projection removal
+  after ACK. Never automatically retry an uncertain write.
+- Paired Read devices own only their push subscription. `push_key`,
+  `subscribe_push`, `unsubscribe_push` and `report_push_presence` are the
+  client entry points. Report real activity; focus-only changes are Unchanged.
+  Close the connection to remove its presence.
 
-- Node checkpoint: `47a4bcb1` (a WIP checkpoint; not merge-ready).
-- Resume/contracts checkpoint: `146eee00`.
-- Reviewer V1 has interim source findings, not immutable-diff approval.
-- Formatting, whole clippy and both TypeScript generating tests passed before
-  the final test-expectation correction. Final clippy: passed after the correction (whole workspace/all targets).
-- Web lint/typecheck/build passed; 55 unit files / 243 tests passed. Web E2E:
-  35 passed, one unresolved failure at `page.spec.ts:34`: the served-index
-  theme was expected to be `dark` and was `null`. Its cause is not established.
-- The first exact whole test, `RUST_TEST_THREADS=3 cargo test --workspace`,
-  stopped at node E2E: 868 passed, one failed, seven ignored across 37 reached
-  test binaries; node E2E alone was 144 passed / one failed. All 14 new push
-  policy/crypto/delivery/admission tests passed. The failure was the huge-form
-  expected field order: all 32 recovered field payloads/options matched
-  exactly, but ACP uses a lexical BTreeMap. The expected order was corrected.
-  Re-execution after that correction: stopped at the work-window deadline (exit 143); 131 tests passed
-  across 6 completed binaries, with no failure observed in those
-  completed binaries. It did not reach node E2E or the later store binaries. Later test binaries
-  were not reached by the first run; no complete root gate is claimed.
-- No native gate, screenshots or phone-host delivery passed. The web fleet's
-  recorded processes were verified gone after teardown. The final whole-test
-  process tree was stopped by verified PID identities; no live identity or
-  executable from this track's private build directory remained.
-- The Web Push dependency inventory was independently matched against its
-  60 locked transitive packages and their published manifest licences; all
-  28 new lock entries are listed in ADR 0041.
+The CLI lists, shows one selected form, answers, marks read and marks unread.
+It reuses the existing typed question/permission validation.
 
-## Current contracts
+## Privacy and verification limits
 
-Each node owns its inbox and shared read state; clients fold by node identity.
-Read-only devices can read/mark but cannot answer. Agent origins, including
-forwarded agents, cannot mark read. Pending forms above the projection pool
-budget remain exact references; opt-in `inbox.get` live-request mode recovers
-one actor-owned form after history pruning, capped at 15 MiB per reply.
+The node's VAPID key stays in its owner-only data directory/file; no private
+key travels over the wire or enters a diagnostic. The relay sees encrypted
+traffic metadata; a push service learns generic attention timing and ciphertext
+size, never request content. Fake HTTP delivery tests decrypt the exact generic
+payload and verify VAPID. No real service, phone host, Windows ACL runtime,
+OS notification, sound or native screen is claimed tested.
 
-Push uses node-owned VAPID keys and encrypted generic payloads. Its final
-admission reselects a current source in the original burst after encryption
-and DNS, checking the current device, scope, lease and read state. No real
-push-service or phone-host delivery was tested. Windows ACL behavior remains
-unverified. Desktop delivery is per window, a documented difference from
-Paseo's selected-recipient local transport.
+## Review and next work
 
-## Next work
+Send the final gated commits and logs to V1 in one message; V1 forwards what
+passes to the node integrator. Do not message the integrator or lead directly
+unless replying. Follow V1 findings before any further slice. Native workers
+consume the node calls above; they must not treat the old off-tree native drafts
+as a reviewed model or screen. Existing C/S2/E2 integration ownership is with
+those app workers under the resumed scope.
 
-1. Finish any unverified node checks and fix actual failures before calling
-   the node slice complete. Report the immutable checkpoint and logs to V1,
-   then the coordinator/node integrator. Do not treat a WIP checkpoint as a
-   passed slice.
-2. At a clean point, merge the lead's head; preserve both local Cargo target
-   configurations and the supplied font files. Reconcile the appended store
-   migration and additive protocol-12 tables; do not change the minimum.
-3. Native drafts are backed up outside the checkout, separately from later
-   prepared code. They are not a reviewed or compiled API. Restore source
-   with current timestamps and verify that changed crates recompile; never
-   copy preserved old source times or use cargo clean as a workaround.
-4. Complete link/view, then the inbox area. Use C's shared Place
-   answer/busy/tool hooks and request cards; never a second form. Keep large
-   bodies out of shared head-page fanout. Deadlines must start at enqueue,
-   refuse expired queued writes, and settle even while the fleet worker is
-   stalled. Keep completed large responses within the four-call budget until
-   the UI consumes them.
-5. Implement the success-only `inbox_book_edited(&Edit, cx)` hook using
-   `view::machine_book::Edit` / `Name`: rename local state, clear forgotten
-   state and ignore late replies, make-default is a no-op. Consume cached
-   fleet data only from actual Fleet events, so an action reply between a
-   book edit and the next Fleet cannot resurrect an old name.
-6. Finish pure view fixtures for single-form recovery, aliases of one node,
-   failed/uncertain writes, pagination and all translated reasons. Follow
-   GOAT DecisionInbox; use C's renderer and `answer_words`.
-7. Registration remains a separate minimal commit in the lead's area/route
-   files. Report both implementation and registration hashes and validate the
-   final combined head; no intermediate-head build claim.
-8. Run the entire pinned native gate, the real fake fleet, and inspect every
-   required capture in both languages/themes/sizes and empty/loading/failed/
-   read-only/long states. Stop only processes started for these checks.
+All cargo build/check/test commands use cargo-slot, one at a time, with gates
+detached. Testkit builds its own fake binaries under the canonical test command.
+Do not restore the historical native drafts, use a prebuilt-only test mode,
+push, run real coding agents or touch preview processes/ports. The private local
+resume note holds artifact paths and verified process identities.
 
-## Other tracks waiting
+## Earlier consuming-gate failure and resolved prerequisite
 
-- S2 awaits a gated native model/area hash for nav/counts, board waiting,
-  desktop notification and sound; it must not consume the drafts as passed.
-- E2 awaits the success-only book-edit hook hash, called only after durable
-  success. A failed edit calls nothing.
-- C supplied reusable cards and exact-record reveal; its tool hook removes
-  the need for fabricated timeline records. Remove the two reveal dead-code
-  expectations at their first real call.
-- N3 reserved `GetDeviceSelf {}` -> `DeviceSelf {device, scopes}` and
-  `NodeClient::device_self`. Until its reviewed commit is available, one
-  access helper stays Unknown and the UI offers the answer and words the
-  node's typed refusal. Never infer a grant from an unknown scope response.
+The acceptance follow-up root run stopped after 778 passed, one failed and
+seven ignored tests across 35 completed binaries. Node unit tests were
+225 passed / one failed: `fleet::mutation::tests::cancellation_keeps_membership_admission_until_blocking_work_ends`
+received WouldBlock from the membership lock after reacquiring its semaphore.
+The fleet source is identical to the integrated node-line head; later test
+binaries were not reached, so this is not a full root success.
 
-All builds use the shared cargo-slot helper, one cargo command at a time.
-No custom/prebuilt-only test runner, no real coding agents, no preview node,
-no push or release. The precise private artifact paths and process records
-are in the local resume note.
+Disposable probes reproduce the lock mechanism with both an actual fork and
+Rust's `File::try_clone`: closing one descriptor leaves the shared lock held
+while another description reference remains; explicit `File::unlock` removes
+that dependency. This does not identify the particular concurrent fork in the
+failed gate. The fleet owner authorized a separate prerequisite on `9814cb0f`:
+`ce228c10` changes only the reservation module and its tests, explicitly
+unlocks before the file/permit are destroyed, and preserves the original
+cancellation fixture exactly. Its full root gate passed 1,831/0/12 with
+`RUST_TEST_THREADS=3`; the unchanged 1,054-file manifest matched that fixed
+tree. Both lock tests passed. That validation belongs to the fixed node-line
+tree, not this inbox consuming tree. The identical prerequisite is now applied
+here for a separate full gate. No timing retry, deadline extension or weakened
+assertion was added.
+
+The frozen source manifest was unchanged through that run. All recorded root
+and web-fleet process identities were gone after teardown. No live service or
+native application was started. Preserve the failed run separately from the
+next changed-tree gate; do not repeat a full gate on the unchanged tree.
+
+## Effective-scope consumer handoff
+
+N3's reviewed `3d486ff4` defines `NodeClient::device_self()` /
+`GetDeviceSelf {}` -> `DeviceSelf { device: Option<DeviceId>, scopes: Vec<Scope> }`.
+That separate commit is not merged into this checkpoint; consume it only on
+the node integrator's gated, renumbered combined line. A missing or unavailable
+call means unknown authority, never an inferred grant or a device-name lookup.
+Only the direct paired caller receives its id; delegated results expose only
+the effective intersection. The seven inbox/push calls remain Read-scoped;
+that new authenticated self-inspection exception must not widen them.
+
+## Corrected consuming-build isolation
+
+A subsequent consuming run stopped at the new CLI large-form fixture: the
+runtime fake did not contain that scenario. The isolated prerequisite and
+older inbox checkout had shared one local output directory; source mtimes
+made the standalone fake appear fresh after the other tree replaced it.
+Canonical nested builds were used, but that shared artifact location made the
+run invalid as final inbox evidence. Its 62 passing web E2E cases are retained
+as diagnostic evidence, not the final consuming-tree gate.
+
+The output directories are now separate. Refreshing the original source
+mtimes changed no file content and forced canonical recompilation. The actual
+runtime fake then contained the scenario and the focused CLI test passed,
+including every field and option after pruning. The fixture now also refuses
+an unexpected early turn end explicitly; its deadlines and assertions were
+not relaxed. The final whole root gate and complete E2E run passed for this corrected
+consuming build. No prebuilt-only mode, copied executable, skipped test or
+cargo clean was used.
+
+## Final consuming acceptance gate
+
+The corrected consuming tree passed the exact whole root gate: `cargo fmt
+--all`, `cargo clippy --workspace --all-targets -- -D warnings`, and
+`cargo test --workspace`: **1,820 passed, zero failed, 10 default ignored**
+across 110 result sections, with `RUST_TEST_THREADS=3`. The ignored cases are
+three measurements, six language-server/toolchain prerequisites and one
+documented proxy limit. No test or deadline was relaxed. This also corrects
+the inaccurate “10 ignored measurements” wording in the old merge's body.
+
+Both TypeScript generators passed and their declarations stayed unchanged
+for this follow-up. Web lint/typecheck/build and 81 files / 417 unit tests
+passed; the final full Playwright suite passed **62/62** with traces, video
+and screenshots off. The prior theme-paint test also passed. The frozen
+1,636-file source manifest remained unchanged through the final root and
+E2E runs. The runtime fake was verified to contain the required large-form
+scenario before E2E and after the whole CLI run.
+
+The full run includes CLI approval/read/unread, invalid and accepted question
+values, all 2,048 large-form choices after actual log/ring pruning, concurrent
+first-answer-wins across two nodes/devices, actor recovery and backfill,
+stale tool snapshot invalidation, and push privacy/presence/admission/restart
+fixtures. The exact `ce228c10` reservation source is consumed here, with both
+its original cancellation and new duplicate-description tests passing.
+
+All 109 recorded root-process identities and five web-fleet identities were
+gone after teardown; no executable from this track's build directory remained.
+No live node, real coding agent, repository push, native app or virtual display
+was used. No service-account or live file-permission change was made. Unix
+private-key mode tests passed; Windows ACLs and real phone/push-service delivery
+remain outside this evidence.
+
+The implementation and handoff commit hashes are recorded at the end of this
+note after committing. V1's inbox/push review remains pending; its separate
+approval of the fleet prerequisite is not approval of this complete slice.

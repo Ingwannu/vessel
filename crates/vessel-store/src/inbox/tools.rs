@@ -55,10 +55,11 @@ fn put_detail(
         tool.title = tool.title.chars().take(4096).collect();
         detail = InboxDetail::InSession;
     }
-    // An oversized opaque tool id cannot be shortened without changing
-    // identity. Its request remains discoverable as an in-session reference.
+    // An opaque id cannot be shortened. An unretainable replacement must
+    // also invalidate the old snapshot, or a pending approval would present
+    // the superseded title/content as current and complete.
     if encode(&tool)?.len() > 32_768 {
-        return Ok(());
+        return defer_tool(connection, session, &tool.id);
     }
     let tick: i64 = connection.query_row(
         "UPDATE inbox_meta SET tool_clock=tool_clock+1 WHERE singleton=1 RETURNING tool_clock",
@@ -121,4 +122,25 @@ pub(super) fn update(
         tool.raw_input = Some(input.clone());
     }
     put_detail(connection, session, seq, tool, prior)
+}
+
+fn defer_tool(
+    connection: &Connection,
+    session: SessionId,
+    id: &ToolCallId,
+) -> Result<(), StoreError> {
+    let _cached = connection.execute(
+        "DELETE FROM inbox_tools WHERE session=?1 AND id=?2",
+        params![session.to_string(), id.as_str()],
+    )?;
+    // Every replacement shrinks the pool, so this needs no row-by-row
+    // admission. The existing triggers release its exact complete bytes.
+    let _pending = connection.execute(
+        "UPDATE inbox SET item=json_object('kind','in_session','request',
+           json_object('kind','permission','id',json_extract(item,'$.request.id')))
+         WHERE session=?1 AND json_extract(item,'$.kind')='permission'
+           AND json_extract(item,'$.request.tool_call')=?2",
+        params![session.to_string(), id.as_str()],
+    )?;
+    Ok(())
 }

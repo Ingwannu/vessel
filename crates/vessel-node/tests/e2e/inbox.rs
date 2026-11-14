@@ -89,13 +89,21 @@ async fn permission_round_trip(
         1,
         "reading is not an answer"
     );
-    writer.send(session, input.clone()).await.unwrap();
-    assert_eq!(code(owner.send(session, input).await), ErrorCode::Conflict);
+    let (first, second) = tokio::join!(
+        writer.send(session, input.clone()),
+        owner.send(session, input)
+    );
+    assert_ne!(first.is_ok(), second.is_ok(), "exactly one answer wins");
+    let refused = first.err().or_else(|| second.err()).unwrap();
+    assert_eq!(refused.code(), Some(ErrorCode::Conflict));
     read_until(stream, seen, |record| {
         matches!(agent_of(record), Some(AgentEvent::TurnEnded { .. }))
     })
     .await;
     durable(owner, session).await;
+    assert_eq!(seen.iter().filter(|record| matches!(
+        agent_of(record), Some(AgentEvent::PermissionResolved { id, .. }) if *id == request.id
+    )).count(), 1);
     for device in [reader, writer] {
         assert!(
             device

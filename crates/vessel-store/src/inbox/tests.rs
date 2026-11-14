@@ -328,3 +328,5 @@ fn huge_forms_keep_a_pending_reference_instead_of_clipping_choices() {
 mod lifecycle;
 
 mod limits;
+
+mod tool_updates;

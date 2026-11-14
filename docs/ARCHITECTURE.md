@@ -1083,7 +1083,7 @@ rustls, with redirects/proxies off. The relay sees only the existing encrypted
 transport. No phone UI or hosted push account is introduced.
 
 `vessel-client::{inbox,push}` exposes those calls, and `vessel inbox` lists,
-answers and marks selected-node entries. CLI answers reuse
+shows one selected live form, answers and marks selected-node entries. CLI answers reuse
 `conversation::answer`, including the form's own validation. The next native slice uses typed bounded `link` calls and a UI-independent
 `view::inbox` fold, with partial availability and ACK distinct from projection
 confirmation. Its inbox area draws rows; shell navigation/counts, board lane

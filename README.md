@@ -1228,7 +1228,9 @@ also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
 ### Inbox and push
 
 `vessel inbox list` shows the selected machine's waiting approvals/questions
-and finished, failed or limited sessions. Use `vessel inbox answer ENTRY
+and finished, failed or limited sessions. `vessel inbox show ENTRY` fetches one
+current request, including a large question omitted from the list, without
+marking it read or answering it. Use `vessel inbox answer ENTRY
 OPTION` for an approval, or `vessel inbox answer ENTRY field=value ...` for a
 question; `--decline` uses the existing request's decline path. `vessel inbox
 read ENTRY` and `unread ENTRY` share attention with other devices without

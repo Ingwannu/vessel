@@ -58,6 +58,8 @@ ends at the calls a screen consumes and does not claim those screens exist.
 
 1. `vessel inbox list` lists the selected node's entries with stable ids,
    read state and the existing request's title and choices.
+   `vessel inbox show ENTRY` expands one selected live form after its source
+   has been pruned, without marking or answering it.
 2. `vessel inbox answer ENTRY ...` resolves its session/request and reuses
    the existing typed question fill and permission selection code.
 3. `vessel inbox read ENTRY` / `unread ENTRY` changes shared attention.
@@ -154,7 +156,7 @@ markers participate in admission before encoding. Tests use the existing
 `session.read` durability boundary before asserting a live stream's committed
 inbox state; no timing sleeps stand in for the store commit.
 
-## Progress and evidence
+## Historical checkpoint evidence (2026-11-13)
 
 This is a node checkpoint, not a completed or review-approved slice.
 Root formatting and whole clippy passed after the final test-expectation
@@ -200,11 +202,10 @@ backfill excludes outcomes before the latest turn start or rewind.
 The previous theme-paint E2E failure is explained by upstream `59000e29`:
 `preferThrough` displays the optimistic theme before its bridge op finishes,
 so a single HTTP read can precede persistence. The merged test polls the
-served index until the bridge confirms that state. Runtime E2E verification
-and the whole merged gate remain pending until their logs complete.
+served index until the bridge confirms that state. The merged runtime checks below verify that correction.
 
 The merged gate passed: root fmt, whole clippy with `-D warnings`, and
-`cargo test --workspace` (1,814 passed, 10 default ignored measurements,
+`cargo test --workspace` (1,814 passed, 10 default ignored tests,
 `RUST_TEST_THREADS=3`); both TypeScript generating tests; web lint/typecheck,
 81 unit files / 417 tests, build, and full Playwright E2E (62 passed).
 The first merged run found the omitted inbox methods in the pinned
@@ -235,3 +236,57 @@ separately. Answers are never inferred from disappearing off a browsed page.
 
 The next node acceptance work strengthens simultaneous-answer and CLI
 question coverage; no native implementation is part of this merge.
+
+### Node acceptance follow-up
+
+- `inbox show ENTRY` explicitly recovers one pending live form through the
+  existing `inbox.get` live-request mode. It leaves read state and pending
+  counts unchanged. The CLI fixture prunes the source and ring, compares all
+  32 fields and all 64 options in each field, then declines the request.
+- The ordinary CLI question fixture rejects an invalid option without removing
+  the request and verifies the exact accepted values echoed by the fake agent.
+- Two concurrent answers have exactly one successful writer, one conflict and
+  one resolved event. A tool update whose identifier and title no longer fit
+  the snapshot budget invalidates its prior snapshot and compacts matching
+  pending entries while retaining source, cursor and read state.
+- These are node/CLI changes; no native model or page completion is claimed.
+
+The focused acceptance checks passed: CLI inbox (3), CLI renderer (2),
+node restart/push (1) and both TypeScript generators. The generated declarations
+are byte-identical because this follow-up changes no wire shape. The restart
+fixture reopens the same data directory, retains the VAPID identity and lease,
+and proves that only fresh attention is admitted for encrypted HTTP delivery.
+The whole root gate and fresh full web checks are the final acceptance gate.
+
+The fresh acceptance web gate passed (81 files / 417 unit tests, all 62 E2E
+cases). Root fmt and whole clippy passed; the full test stopped in the unchanged
+fleet membership cancellation fixture (225 node unit passes / one failure).
+The resume note records its duplicate-file-description probe and the separately
+validated fleet prerequisite `ce228c10` on `9814cb0f`. That exact one-file fix is
+now consumed here; the prior partial root run remains a failure. The new full
+consuming-tree gate is required before reporting acceptance.
+
+Build isolation follow-up: separate output directories are required even for
+an isolated prerequisite checkout. Sharing one allowed a newer other-tree
+fake to remain in the execution path despite the nested Cargo build. After
+separating outputs and refreshing unchanged source mtimes, the canonical
+large-form CLI test passed again. Final consuming evidence comes from the
+subsequent whole gate and full E2E, with runtime fixture identity checked.
+
+### Final node acceptance result
+
+The corrected consuming tree passed root fmt, whole clippy (`-D warnings`)
+and whole `cargo test --workspace`: **1,820/0/10**, with
+`RUST_TEST_THREADS=3`, across 110 result sections. The default ignored cases
+are three measurements, six LSP/toolchain prerequisites and one documented
+proxy limit. The final full Playwright run passed **62/62**; web lint,
+typecheck, build and 81 files / 417 unit tests passed, as did both TypeScript
+generators. No test/deadline/exclusion was weakened.
+
+The 1,636 source hashes stayed fixed through the successful run. Actual
+original-tree compilation and the runtime fake's large-form scenario were
+verified; the previous shared-output run is not used as final evidence.
+The exact reservation correction from `ce228c10` is consumed, and its original
+and new regression cases both passed. All recorded test/fleet processes were
+confirmed gone. No native/phone/public-push-service/other-OS runtime claim is
+made. V1 review of the complete inbox/push slice is pending.

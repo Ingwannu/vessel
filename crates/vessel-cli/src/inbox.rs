@@ -1,4 +1,8 @@
-//! CLI inbox: page the node's projection, then use the existing answer path.
+//! CLI inbox: page the projection, then use the existing form/answer paths.
+//!
+//! A selected `show` recovers one compact form after retention. Expanding
+//! every list page would fan out large bodies and obscure the bounded list;
+//! explicit inspection keeps the single-form response budget meaningful.
 use crate::args::{InboxCommand, Target};
 use crate::connect::connect;
 use crate::conversation::answer::{Waiting, reply};
@@ -28,6 +32,18 @@ pub(crate) async fn command(target: &Target, command: InboxCommand) -> Result<()
             }
             Ok(())
         }
+        InboxCommand::Show { entry } => {
+            let entry = current_entry(&client, entry).await?;
+            if matches!(entry.item, InboxItem::InSession { .. }) {
+                return Err(CliError::Usage(
+                    "the full request cannot fit in one reply; open its session or use --decline",
+                ));
+            }
+            let node = client.node_info().await?;
+            crate::io::out(format!("Machine: {}\n", node.name).as_bytes()).await?;
+            crate::io::out(crate::render::inbox_entry(&entry).as_bytes()).await?;
+            Ok(())
+        }
         InboxCommand::Read { entry } => mark(&client, entry, InboxRead::Read).await,
         InboxCommand::Unread { entry } => mark(&client, entry, InboxRead::Unread).await,
         InboxCommand::Answer {
@@ -35,13 +51,7 @@ pub(crate) async fn command(target: &Target, command: InboxCommand) -> Result<()
             values,
             decline,
         } => {
-            let entry = find(&client, entry).await?;
-            let entry = client
-                .inbox_request(entry.key)
-                .await?
-                .ok_or(CliError::Usage(
-                    "this inbox entry has moved on; run `vessel inbox list` again",
-                ))?;
+            let entry = current_entry(&client, entry).await?;
             match &entry.item {
                 InboxItem::Permission { request, .. } => {
                     reply(
@@ -78,6 +88,16 @@ pub(crate) async fn command(target: &Target, command: InboxCommand) -> Result<()
         }
     }
 }
+async fn current_entry(client: &NodeClient, cursor: InboxCursor) -> Result<InboxEntry, CliError> {
+    let entry = find(client, cursor).await?;
+    client
+        .inbox_request(entry.key)
+        .await?
+        .ok_or(CliError::Usage(
+            "this inbox entry has moved on; run `vessel inbox list` again",
+        ))
+}
+
 async fn find(client: &NodeClient, cursor: InboxCursor) -> Result<InboxEntry, CliError> {
     let mut page = client.inbox(ListInbox::default()).await?;
     loop {

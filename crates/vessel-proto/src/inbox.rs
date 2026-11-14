@@ -64,7 +64,7 @@ pub enum InboxRead {
 pub enum InboxDetail {
     /// The supplied tool is complete.
     Complete,
-    /// Large content is kept in the conversation; open its source record.
+    /// Some detail is omitted; only retained session history may contain it.
     InSession,
 }
 

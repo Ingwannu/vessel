@@ -6,6 +6,11 @@ use vessel_proto::inbox::InboxCursor;
 pub(crate) enum InboxCommand {
     /// List the selected machine's inbox, newest first (including read entries).
     List,
+    /// Show one entry and its currently available live form.
+    Show {
+        /// Inbox cursor printed by `inbox list`.
+        entry: InboxCursor,
+    },
     /// Answer one entry using its own approval option or question fields.
     Answer {
         /// Inbox cursor printed by `inbox list`.
