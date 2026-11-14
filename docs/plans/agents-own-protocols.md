@@ -85,6 +85,14 @@ the coordinator and the other driver's worker before it is made.
   on Unix (a directory of the writer's, owner-only, not a link, the same
   across the create); Windows relies on the data directory's ACL.
   Codex moves its fork refusal into `codex::launch` in its next slice.
+- **A side question's context** (2026-11-14, with N5's side questions,
+  protocol 19, ADR 0045): `Command::Prompt` carries `context`. A direct
+  driver carries it (first, only to the agent, never kept for a later
+  prompt, the request bounded by `PROMPT_BYTES` before anything is sent,
+  `ContextLimit` past it) or refuses the prompt typed before sending
+  (`InputError::ContextNotTaken`, `unsupported`); it never drops it. The
+  Claude driver carries it; Codex refuses it until A2's next commit
+  carries it.
 - `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
   `VersionFit`, `launch_direct`, `version_check`, `claude_mcp_file`.
 - `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,

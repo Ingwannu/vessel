@@ -28,6 +28,9 @@
 //!   - `garbled`: asks to use a tool in a request that does not read
 //!     (no tool use id), waits for the answer, then for an interrupt;
 //!   - `garbage`: writes a line that is not JSON;
+//!   - `echo`: replies with every text the prompt carried, in order,
+//!     joined by ` | ` (what reached the agent, a side question's context
+//!     included);
 //!   - anything else: a streamed reply, `Hello there`.
 //! - With `FAKE_CLAUDE_NO_TRANSCRIPTS` set, `--resume=<id>` finds no
 //!   conversation: it says so on stderr and exits with code 1 before
@@ -241,15 +244,17 @@ impl Fake {
                 "tools": ["Bash"], "mcp_servers": [], "cwd": "/"}),
             )?;
         }
-        let text = frame
-            .pointer("/message/content")
-            .and_then(Value::as_str)
-            .or_else(|| {
-                frame
-                    .pointer("/message/content/0/text")
-                    .and_then(Value::as_str)
-            })
-            .unwrap_or_default();
+        // Every text the prompt carries, in order; the last is the
+        // person's own words, which pick the scenario.
+        let texts: Vec<&str> = match frame.pointer("/message/content") {
+            Some(Value::String(text)) => vec![text.as_str()],
+            Some(Value::Array(blocks)) => blocks
+                .iter()
+                .filter_map(|block| block.get("text").and_then(Value::as_str))
+                .collect(),
+            _ => Vec::new(),
+        };
+        let text = texts.last().copied().unwrap_or_default();
         let message = format!("m{}", self.turns);
         let call = format!("toolu_{}", self.turns);
         match text.split_whitespace().next().unwrap_or_default() {
@@ -301,6 +306,11 @@ impl Fake {
                 self.waiting = Waiting::Refusal { request };
             }
             "garbage" => said(&mut self.out, "this is not a frame")?,
+            "echo" => {
+                let heard = texts.join(" | ");
+                self.reply(&message, "", &heard)?;
+                self.result(&json!({"input_tokens": 3, "output_tokens": 2}))?;
+            }
             _ => {
                 self.reply(&message, "", "Hello there")?;
                 self.result(&json!({"input_tokens": 3, "output_tokens": 2}))?;

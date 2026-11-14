@@ -81,6 +81,10 @@ pub enum InputError {
     /// A side prompt's context or final provider request exceeded its cap.
     #[error("the side question and context exceed the request limit; ask a shorter question")]
     ContextLimit,
+    /// A side question's context this agent's driver does not carry yet
+    /// (ADR 0057): refused before anything is sent, never dropped.
+    #[error("this agent's driver does not take a side question's context yet")]
+    ContextNotTaken,
     /// The ACP connection has ended.
     #[error("the agent connection has ended")]
     Closed,

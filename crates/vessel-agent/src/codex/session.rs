@@ -571,6 +571,14 @@ impl Session {
 
     async fn command(&mut self, command: Command) {
         match command {
+            // A side question's context is not carried yet (A2 carries it
+            // in its next commit): refused before anything is sent, never
+            // dropped (ADR 0057, N5's integration).
+            Command::Prompt {
+                context: Some(_),
+                reply,
+                ..
+            } => answer(reply, Err(InputError::ContextNotTaken)),
             Command::Prompt { content, reply, .. } => self.prompt(content, reply).await,
             Command::CancelTurn { reply } => {
                 self.cancel().await;

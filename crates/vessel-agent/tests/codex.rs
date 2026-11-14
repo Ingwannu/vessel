@@ -560,3 +560,32 @@ async fn a_cancel_lands_while_the_reply_streams() {
     })
     .await;
 }
+
+/// A side question's context (ADR 0045) is refused, typed, before anything
+/// is sent, until the driver carries it (A2's next commit): never dropped.
+/// The session goes on and its next prompt is a turn of its own.
+#[tokio::test]
+async fn a_side_questions_context_is_refused_not_dropped() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _handshake = ready(&mut outputs).await;
+        let context = vessel_agent::PromptContext::new("Earlier: the plan".to_owned()).unwrap();
+        let refused = input
+            .prompt_context("plain what now?".parse().unwrap(), context)
+            .await;
+        assert!(
+            matches!(refused, Err(InputError::ContextNotTaken)),
+            "{refused:?}"
+        );
+        input.prompt(text("plain hello")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert_eq!(
+            events[0],
+            AgentEvent::TurnStarted {
+                content: text("plain hello")
+            },
+            "no turn started for the refused question"
+        );
+    })
+    .await;
+}

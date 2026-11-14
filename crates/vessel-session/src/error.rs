@@ -253,7 +253,9 @@ impl SessionError {
             | Self::ForkRefused(_)
             | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
-            | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
+            | Self::Input(InputError::CannotSteer | InputError::ContextNotTaken) => {
+                ErrorCode::Unsupported
+            }
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -390,6 +392,7 @@ impl From<InputError> for SessionError {
         match error {
             InputError::Closed => Self::Ended,
             refused @ (InputError::ContextLimit
+            | InputError::ContextNotTaken
             | InputError::TurnInProgress
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)

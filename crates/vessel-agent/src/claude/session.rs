@@ -379,7 +379,12 @@ impl Session {
 
     async fn command(&mut self, command: Command) {
         match command {
-            Command::Prompt { content, reply, .. } => self.prompt(content, reply).await,
+            Command::Prompt {
+                content,
+                context: side,
+                reply,
+                ..
+            } => self.prompt(content, side, reply).await,
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
@@ -405,18 +410,40 @@ impl Session {
         }
     }
 
-    async fn prompt(&mut self, content: Vec<ContentBlock>, reply: Reply) {
+    /// A prompt, with a side question's context (`side`) when the node gives one
+    /// (ADR 0045). The context goes first and only to the agent, as the ACP
+    /// driver sends it: the timeline's `TurnStarted` shows the question
+    /// alone, and nothing of the context is kept for a later prompt. The
+    /// bound is the ACP driver's (`PROMPT_BYTES`), measured on what goes
+    /// to the agent here, the whole stream-json line, before anything is
+    /// sent; past it the prompt is refused (`ContextLimit`) and no turn
+    /// starts.
+    async fn prompt(
+        &mut self,
+        content: Vec<ContentBlock>,
+        side: Option<crate::PromptContext>,
+        reply: Reply,
+    ) {
         if self.turn != Turn::Idle {
             answer(reply, Err(InputError::TurnInProgress));
             return;
         }
-        let blocks = match prompt_blocks(&content) {
+        let mut blocks = match prompt_blocks(&content) {
             Ok(blocks) => blocks,
             Err(error) => {
                 answer(reply, Err(error));
                 return;
             }
         };
+        let bounded = side.is_some();
+        if let Some(side) = side {
+            blocks.insert(
+                0,
+                OutgoingBlock::Text {
+                    text: side.as_str().to_owned(),
+                },
+            );
+        }
         let frame = Outgoing::User {
             message: OutgoingMessage {
                 role: "user",
@@ -425,6 +452,21 @@ impl Session {
             parent_tool_use_id: None,
             session_id: self.conversation.to_string(),
         };
+        if bounded {
+            let fits = serde_json::to_vec(&frame)
+                .map(|line| line.len() <= vessel_proto::side_questions::PROMPT_BYTES);
+            match fits {
+                Ok(true) => {}
+                Ok(false) => {
+                    answer(reply, Err(InputError::ContextLimit));
+                    return;
+                }
+                Err(error) => {
+                    answer(reply, Err(InputError::InvalidContent(error)));
+                    return;
+                }
+            }
+        }
         if !self.out.send(&frame).await {
             answer(reply, Err(InputError::Closed));
             return;

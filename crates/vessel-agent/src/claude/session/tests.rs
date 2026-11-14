@@ -125,12 +125,22 @@ impl Running {
     }
 
     async fn prompt(&self, content: Vec<ContentBlock>) -> Result<(), InputError> {
+        self.prompt_with(content, None).await
+    }
+
+    /// A prompt with a side question's context, as `AgentInput::prompt_context`
+    /// sends it.
+    async fn prompt_with(
+        &self,
+        content: Vec<ContentBlock>,
+        side: Option<crate::PromptContext>,
+    ) -> Result<(), InputError> {
         let (reply, answer) = oneshot::channel();
         self.commands
             .send(Command::Prompt {
                 content,
                 attachments: Attachments::new(),
-                context: None,
+                context: side,
                 reply,
             })
             .await
@@ -306,6 +316,56 @@ async fn a_resume_of_a_conversation_never_written_fails_the_handshake_at_once() 
             started.elapsed() < setup().handshake_timeout,
             "not the handshake's time running out"
         );
+    })
+    .await;
+}
+
+/// A side question's context (ADR 0045) reaches the agent first, the
+/// timeline shows the question alone, and nothing of the context is kept:
+/// the next prompt carries none. Past the request bound the prompt is
+/// refused before anything is sent, no turn starts, and the session goes
+/// on as before.
+#[tokio::test]
+async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
+    within(async {
+        let mut session = start(setup(), &[]);
+        let _ready = session.ready().await;
+        let context = crate::PromptContext::new("Earlier: the plan".to_owned()).unwrap();
+        session
+            .prompt_with(text("echo what now?"), Some(context))
+            .await
+            .unwrap();
+        let events = session.turn().await;
+        assert_eq!(
+            events[0],
+            AgentEvent::TurnStarted {
+                content: text("echo what now?")
+            },
+            "the timeline shows the question alone"
+        );
+        assert_eq!(said(&events, false), "Earlier: the plan | echo what now?");
+
+        session.prompt(text("echo again")).await.unwrap();
+        assert_eq!(said(&session.turn().await, false), "echo again");
+
+        let large =
+            crate::PromptContext::new("x".repeat(vessel_proto::side_questions::SNAPSHOT_BYTES))
+                .unwrap();
+        let long_question = format!("echo {}", "y".repeat(30 * 1024));
+        assert!(matches!(
+            session.prompt_with(text(&long_question), Some(large)).await,
+            Err(InputError::ContextLimit)
+        ));
+        session.prompt(text("echo after")).await.unwrap();
+        let events = session.turn().await;
+        assert_eq!(
+            events[0],
+            AgentEvent::TurnStarted {
+                content: text("echo after")
+            },
+            "no turn started for the refused question"
+        );
+        assert_eq!(said(&events, false), "echo after");
     })
     .await;
 }
