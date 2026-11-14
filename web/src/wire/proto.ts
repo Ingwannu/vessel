@@ -1272,6 +1272,12 @@ workspace_complete: boolean, };
  */
 export type ContextUsage = { 
 /**
+ * Whether the runtime observed this while loading an existing
+ * conversation (protocol 19). Context occupancy remains useful;
+ * a replayed cumulative cost is not new spending.
+ */
+observation?: UsageObservation, 
+/**
  * Tokens in the context now.
  */
 used: TokenCount, 
@@ -8395,6 +8401,11 @@ chunk: number, };
  * the caller that began it may write to it or finish it.
  */
 export type UploadId = string & { readonly __brand: "UploadId" };
+
+/**
+ * The runtime's observation boundary, independent of the vendor's numbers.
+ */
+export type UsageObservation = "current" | "replayed";
 
 /**
  * Rolling periods; a day is 24 hours, a week seven days.

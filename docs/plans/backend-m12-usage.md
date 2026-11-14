@@ -411,3 +411,8 @@ the new profile receives only the subsequently observable increment.
 The fixture now uses the current protocol constant and a flat scenario
 body; latest whole-workspace, generated declarations and full web
 verification are pending before integration approval.
+
+On the replay correction, latest all-target workspace Clippy and both
+TypeScript regeneration tests passed. The generated wire declaration now
+includes optional `observation` and the closed `UsageObservation` enum.
+The correction's whole Rust and web runs are still pending.
