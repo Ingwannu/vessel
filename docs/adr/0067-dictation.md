@@ -212,9 +212,10 @@ Text is at most 64 KiB of UTF-8. More than that from a provider is
 
 These numbers are Paseo's, with the environment overrides removed:
 
-- Audio is committed to the provider every 15 seconds of samples at
-  the provider's rate (16-bit mono, so two bytes a sample). Paseo's
-  default `DEFAULT_DICTATION_AUTO_COMMIT_SECONDS`.
+- Audio is committed after a whole chunk makes the open segment reach
+  15 seconds of samples at the provider's rate (16-bit mono, so two
+  bytes a sample). The threshold is Paseo's default
+  `DEFAULT_DICTATION_AUTO_COMMIT_SECONDS`; a chunk is not split at it.
 - A block whose peak absolute sample is below 300 is treated as
   silence: it is discarded, not committed. Paseo's default
   `PASEO_DICTATION_SILENCE_PEAK_THRESHOLD`.
@@ -250,6 +251,53 @@ Voice mode reads that flag
 69–78 and 180–182). Nothing under `packages/server/src/server/dictation/`
 reads it. Voice mode is out of scope, so this contract does not store the
 threshold and does not request log-probabilities.
+
+### Audio and connection ownership implementation amendment (proposed)
+
+Purpose and intent: carry only typed PCM through the stream and preserve
+Paseo's provider-rate resampling, silence test and whole-chunk commit order
+without floating arithmetic, temporary audio files or transport API changes.
+
+Existing implementation and constraints: the manager appends a complete chunk
+before checking its commit threshold (dictation-stream-manager.ts343–406,
+619–645); the OpenAI provider requires 24 kHz (openai/stt.ts72). The reference
+resampler interpolates with a floating cursor. Vessel requires checked integer
+arithmetic. RPC already has Outbound::closed; its running calls may retain the
+connection context during close grace, so context destruction alone is late.
+
+Alternatives considered: splitting a chunk exactly at the commit boundary would
+change the reference's order. Floating phase would violate the arithmetic rule.
+Retaining a connection lifetime guard in a stream would keep its own connection
+alive. A second closure API or one watcher task per connection is unnecessary.
+
+Choice: integer-phase linear interpolation with one prior sample across chunks;
+a provider-rate input remains unchanged. Audio and WAV payload Debug are redacted.
+WAV is appended directly into the request body. Commit after a whole chunk reaches
+the threshold; an open segment can be just short of 16 seconds, rather than the
+original wording's exact 15 second ceiling. The defensive segment buffer has its
+own bound derived from the threshold and a one-second maximum input chunk.
+
+Why this and not the alternatives: the integer phase has exact count arithmetic
+while preserving chunk-boundary continuity. The limited synthetic source probe
+(six rates, four one-second chunks and a short tail) compared Paseo against a
+separately evaluated integer-phase algorithm: at most one LSB of overlap
+difference and at most one fewer sample in that fixture. The Rust tests must pin
+those counts and a smaller signed-extremes/zero-crossing fixture. This is not
+general bit parity or ASR-quality evidence; threshold-boundary silence
+classification may differ. These tests are owed until the staged implementation
+runs; a reference probe alone does not verify Rust code.
+
+An opaque owner uses Arc identity for equality/hash and a context-drop token.
+Actual connection contexts share the lifetime guard; streams never retain it.
+Preparation and actors also watch existing Outbound::closed and the node stop
+token, so transport closure can stop work before a retained context drops.
+
+Advantages, costs and effects: audio stays bounded and in memory, rate conversion
+has no unchecked cast or floating work, and stream ownership cannot be forged
+from an id string. A staged module is compiled only for tests until the wiring
+commit removes its attribute after the shared accessor/call table refactor.
+These tests establish source behaviour, not an active product path. The wiring
+gate must compile the product configuration and test its connection lifecycle.
 
 ### Provider seam
 
@@ -452,8 +500,8 @@ ends:
    problem, and not written by this node.
 2. The connection, as a request frame. The frame is not copied into
    the session log, a tracing field, or a file.
-3. The stream's task: the reorder hold, the open segment (at most 15
-   seconds, or less if a commit happened), and at most two segment
+3. The stream's task: the reorder hold, the open segment (under 16
+   seconds with whole-chunk threshold checks), and at most two segment
    bodies handed to the provider. The endpoint provider puts one body
    into the HTTPS request and drops it when the response is read or
    the call fails. No temporary file.

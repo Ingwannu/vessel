@@ -1323,6 +1323,16 @@ method, settings field or provider is available from these values alone.
 No crate edge changes: the node will reuse its existing HTTP and secret
 storage dependencies when the service lands.
 
+The unregistered settings values (`settings`, `patch`, `secret_ref`) distinguish
+keep, set and reset, validate provider options against the merged choice, and
+redact reference diagnostics. Their read view reports only key presence. They
+resolve no credential and provide no file codec or callable settings field.
+
+The next staged node helpers own provider PCM conversion, bounded segments,
+in-memory WAV encoding and opaque connection ownership. Their tests are compiled
+under a test-only module until the RPC wiring removes staging; helper tests do
+not establish a live service or the transport-close path.
+
 The node's `http_tls` module builds the operating-system root, explicit
 ring and ALPN configuration once per client constructor. `catalogue::fetch`
 uses that shared configuration; it retains its own address validation,

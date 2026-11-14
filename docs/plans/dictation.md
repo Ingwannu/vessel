@@ -296,33 +296,42 @@ unknown choices, inactive options and secret-reference diagnostics. The later
 persistence slice must test failed writes/refusals leave the whole file and
 runtime unchanged and newly selected references resolve before saving.
 
+## Audio and connection ownership implementation
+
+Decision: new node helpers, reusing DictationPcm, SampleRate and Bytes. The
+node's attachment RIFF signature check detects images, not audio; it cannot
+resample, check silence or encode PCM WAV. No existing node converter or
+connection identity provides this responsibility. Standard checked integer
+arithmetic avoids an audio dependency and keeps the mono PCM contract narrow.
+Opaque Arc identity plus a context-drop token reuses existing cancellation;
+existing Outbound::closed also covers transport closure before context teardown.
+
+Paseo pcm16-resampler.ts owns floating interpolation with a carry sample;
+dictation-stream-manager.ts343–406 and619–645 append a whole chunk before
+checking the threshold. The proposed integer phase retains continuity, with
+explicit fixture-limited rounding differences in ADR0067. Tests will cover
+chunking invariance, source fixture counts/samples, silence, WAV metadata,
+pre-mutation segment overflow, opaque owner identity and lifetime cancellation.
+The actual transport-close test belongs to wiring, not to the identity helper.
+
 ## Resume point
 
-Done: audio values, metadata, TLS and resolved-secret extraction passed review.
-The named node head was merged and the metadata gate closed fully green on
-10fe31df. No call or NodeSettings field is registered.
+Done: audio values, provider metadata, TLS and resolved-secret extraction, and
+unregistered settings values. The named node head was merged; keep/set/reset,
+provider switching, inactive-field refusal and reference privacy are implemented.
+No call, NodeSettings field, file codec, stream or HTTP provider is registered.
 
-The settings contract review returned its file/failure promises. This correction
-requires a lenient file view beside the strict wire patch, documents loss of all
-dictation settings after a pre-dictation writer changes settings, and states the
-check/save deletion race without caching a credential. Every merged patch is
-validated before writing; any refusal leaves file and in-force settings unchanged.
-Wiring owes future-file preservation, legacy-writer, deletion-race and whole-
-provider-patch failure tests named in ADR 0067.
+Settings wiring still owes the four file/race/atomicity tests in ADR0067. Use the
+integrator's common file policy when that head is merged; do not add a parallel
+loader. Preserve unknown fields if the common policy preserves them. The
+selection check is not a secret-store transaction and caches no credential.
 
-The unregistered contract values now have keep/set/reset decoding, pure merged-
-provider validation and redacted secret references. A null provider clears its
-site even when local was already selected, matching Paseo. Targeted TS-enabled
-tests pass, including numeric credential pastes and nullable reset declarations;
-the whole gate on this value-only commit is next. No persistence path,
-NodeSettings field or method is implemented. The corrected document has its
-own fast gate; neither gate proves the later file/race/atomic-write contract.
-
-Next stage audio/owner and endpoint code under the test-only module declaration.
-Those reviews establish staged source behaviour, not a product path. Wiring
-waits for the shared protocol accessor and call-table refactor, removes staging,
-and gets a whole product gate. Existing settings literals gain default completion
-only in the optional-field commit, without changing any old value or assertion.
-Do not split the shared guard; the common plumbing refactor owns its structure.
-Local engines and microphone capture remain deferred. The CLI file client follows
-the node service and still needs its file-format contract amendment.
+Next: stage real audio/owner helpers under the test-only dictation module, with
+tests beside each rule, followed by endpoint and actor slices. These establish
+staged source behaviour, not a product path. Wiring waits for the shared protocol
+accessor and call-table refactor, removes staging, and gets a whole product gate.
+Existing settings literals gain default completion only in the optional-field
+commit, without changing any old value or assertion. Do not split the shared
+guard; the common plumbing refactor owns its structure. Local engines and
+microphone capture remain deferred. The CLI file client follows the node service
+and still needs its file-format contract amendment.
