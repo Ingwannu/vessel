@@ -91,19 +91,19 @@ below that (225–228). Nothing under `server/dictation/` reads
 `isLowConfidence`. Voice mode does (`voice-turn-controller.ts` 69–78
 and 180–182).
 
-Config, `providers/openai/config.ts` 45–82: key from the saved config,
+Config, `providers/openai/config.ts` 34–46: key from the saved config,
 else `OPENAI_STT_API_KEY`, else `OPENAI_API_KEY`. No key means no
 endpoint config. Base URL from the config, else `OPENAI_STT_BASE_URL`,
 else `OPENAI_BASE_URL`. Model: `STT_MODEL` then the saved model.
 
 ### Settings
 
-`packages/server/src/server/speech/speech-config-resolver.ts` 47–48:
+`packages/server/src/server/speech/speech-config-resolver.ts` 48–49:
 dictation on by default, voice mode off by default. Provider default
-`local` (34–37). Enabled flag and provider can be overridden by
+`local` (39–43). Enabled flag and provider can be overridden by
 `PASEO_DICTATION_ENABLED` and `PASEO_DICTATION_STT_PROVIDER` (82–90).
 
-`providers/local/config.ts` 29 and 60: language default `en`; local STT
+`providers/local/config.ts` 39, 47 and 60: language default `en`; local STT
 model default is the catalog entry with `defaultFor: "stt"`.
 
 `providers/local/sherpa/model-catalog.ts` 259–267: that entry is
@@ -207,8 +207,11 @@ It is being rebuilt in responsibility-sized parts:
 
 - 2a: audio wire values and validated decoders only; no callable methods,
   provider, settings, or node behaviour yet.
-- 2b: settings values and persistence, using the existing settings/secret path.
-- 2c: stream actor, endpoint, and the five RPC rows with their refusal paths.
+- 2b1: validated provider metadata and the local-model catalogue; no settings
+  object or I/O yet.
+- 2b2: settings object and persistence, using the existing settings/secret path.
+- 2c onward: bounded audio processing, endpoint, stream actor and the five
+  RPC rows, split at those responsibility boundaries with their refusal tests.
 - 3: the CLI file client, after the node service passes review.
 
 Decision: modify existing serde/base64 infrastructure. Keep separate PCM
@@ -232,21 +235,20 @@ stay the same. No new dependency or wire method is added.
 
 ## Resume point
 
-Done: slice 1, reviewed ADR and contract; slice 2a values in `6a0d3e21`
-and returned-review corrections in `2e3ebbf0` and `3756ae0c`. The final
-correction passed its exact-commit gate and was reported for re-review.
-It still adds no callable RPC, settings field, provider or node task.
+Done: slice 1, reviewed ADR and contract; slice 2a values-only implementation
+and its typed-version/shared-bound correction. No callable RPC, settings
+field, stream task or provider is available yet.
 
-This docs amendment records why the next metadata slice reuses the existing
-workspace URL parser, its licence/source-package size, input restrictions
-and platform limits. No dependency or implementation changes in this commit.
-The existing generic HTTP URL type is shared with MCP and does not parse
-complete URI syntax; changing it would alter unrelated contracts.
+This slice (2b1) adds only validated provider metadata and three edge tests:
+language, endpoint model/base, the local model catalogue, and typed decoder
+failures. The URI dependency amendment precedes the code. No method or
+field is added to Call/Reply, so TypeScript output should remain unchanged.
+Its exact-commit gate and report are the next completion conditions.
 
-Half-done: metadata, settings persistence and service drafts remain private
-preparation, uncompiled and unreviewed. None is finished implementation.
+Half-done: settings persistence, stream service and HTTP provider remain
+unapplied private preparation. None is a completed implementation.
 
-Next: fast-gate this docs commit, add provider metadata and edge tests as
-2b1, then settings/persistence as 2b2. Subsequent audio, endpoint, actor and
-RPC slices include their own parity tests. Local engines and the app's
-microphone remain deferred; the CLI file client follows the node service.
+Next: gate/report 2b1, then add the settings object and persistence as 2b2;
+follow with audio/endpoint/actor/RPC slices. Each will include its own
+behaviour tests and source-parity notes. Local models and a microphone
+remain deferred. The CLI file client follows the node service.

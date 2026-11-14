@@ -1263,8 +1263,11 @@ binaries keep that feature off. No new external crate or schema is needed.
 
 ## Dictation contract (ADR 0067, staged)
 
-`vessel-proto::dictation` owns bounded audio values and their decoders; it
-does not perform I/O. PCM and transcript diagnostics redact their contents.
+`vessel-proto::dictation` owns bounded audio values and their decoders, and
+provider metadata (`settings_values`, `local_model`). It does not perform
+I/O. The metadata retains a parsed endpoint URL, using the existing
+workspace `url` dependency, and a typed catalogue with future IDs retained
+on read. It loads or downloads no model. PCM and transcript diagnostics redact their contents.
 The stream actor and endpoint are subsequent implementation slices; no
 method, settings field or provider is available from these values alone.
 No crate edge changes: the node will reuse its existing HTTP and secret

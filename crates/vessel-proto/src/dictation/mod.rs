@@ -13,6 +13,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::key::serde_via_text;
 
 mod error;
+mod local_model;
+mod settings_values;
+
+pub use local_model::{LocalModelId, UnknownLocalModelId};
+pub use settings_values::{EndpointBase, EndpointModel, Language};
 
 pub use error::DictationDecodeError;
 
@@ -351,3 +356,6 @@ impl serde::de::Visitor<'_> for PcmVisitor {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod metadata_tests;
