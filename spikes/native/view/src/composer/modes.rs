@@ -11,8 +11,16 @@
 //! ACP; the ids Paseo's manifest names are the same strings where the
 //! adapter has the mode (Claude Code's `default`, `acceptEdits`, `plan`,
 //! `bypassPermissions`; Codex's `auto`, `full-access`; `OpenCode`'s `build`,
-//! `plan`). A mode Paseo does not list (Claude Code's `dontAsk`, an added
-//! agent's) has no icon in a row, as in Paseo.
+//! `plan`). A mode Paseo does not list (an added agent's, Codex's
+//! `read-only`) has no icon in a row, as in Paseo.
+//!
+//! One stated difference: Claude Code's `dontAsk` (it refuses, without
+//! asking, whatever its settings have not allowed) is not in Paseo's
+//! manifest, so Paseo never draws it; here it takes `ShieldAlert`, in its
+//! row and in the closed control, so Claude Code's list has a mark on every
+//! row and the closed control never falls back to the agent's mark while
+//! the row shows a shield. (The list keeps the mark column on every row
+//! when any row has one: the kit's list, `Leading` in `picker.rs`.)
 
 use vessel_proto::{HarnessKind, OptionValueId};
 
@@ -29,7 +37,8 @@ pub enum ModeMark {
     ShieldOff,
     /// Plans first (`ShieldEllipsis`).
     ShieldEllipsis,
-    /// Asks before writing (`ShieldAlert`).
+    /// Refuses what it was not allowed, without asking (`ShieldAlert`;
+    /// ours, for Claude Code's `dontAsk`).
     ShieldAlert,
 }
 
@@ -56,6 +65,8 @@ pub fn mark_of(kind: Option<HarnessKind>, id: &OptionValueId) -> Option<ModeMark
             "acceptEdits" => Some(ModeMark::ShieldPlus),
             "auto" => Some(ModeMark::ShieldCheck),
             "bypassPermissions" => Some(ModeMark::ShieldOff),
+            // Not in Paseo's manifest: ours (see the module's note).
+            "dontAsk" => Some(ModeMark::ShieldAlert),
             _unlisted => None,
         },
         HarnessKind::Codex => match id {
@@ -89,7 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn claude_codes_modes_take_paseos_marks_and_an_unlisted_one_none() {
+    fn claude_codes_modes_take_paseos_marks_dont_ask_ours_and_an_unlisted_one_none() {
         let claude = Some(HarnessKind::ClaudeCode);
         for (mode, mark) in [
             ("plan", Some(ModeMark::ShieldEllipsis)),
@@ -97,7 +108,8 @@ mod tests {
             ("acceptEdits", Some(ModeMark::ShieldPlus)),
             ("auto", Some(ModeMark::ShieldCheck)),
             ("bypassPermissions", Some(ModeMark::ShieldOff)),
-            ("dontAsk", None),
+            ("dontAsk", Some(ModeMark::ShieldAlert)),
+            ("someNewMode", None),
         ] {
             assert_eq!(mark_of(claude, &id(mode)), mark, "{mode}");
         }
@@ -137,7 +149,12 @@ mod tests {
             pill_mark_of(claude, &id("plan")),
             PillMark::Mode(ModeMark::ShieldEllipsis)
         );
-        assert_eq!(pill_mark_of(claude, &id("dontAsk")), PillMark::Agent);
+        assert_eq!(
+            pill_mark_of(claude, &id("dontAsk")),
+            PillMark::Mode(ModeMark::ShieldAlert),
+            "the pill shows the row's mark"
+        );
+        assert_eq!(pill_mark_of(claude, &id("someNewMode")), PillMark::Agent);
         assert_eq!(pill_mark_of(None, &id("plan")), PillMark::Agent);
     }
 }
