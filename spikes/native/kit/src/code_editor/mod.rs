@@ -17,7 +17,8 @@
 //! - Choice: the engine's unstyled editor; its colours projected from the
 //!   kit's tokens on every draw (as `field.rs` does), the code face with
 //!   Pretendard behind it (Hangul never falls to boxes or a bitmap face),
-//!   folding off (Paseo's source panel has none), syntax from the caller.
+//!   folding off (Paseo's source panel has none), lines unwrapped unless
+//!   the caller asks (Paseo wraps Markdown only), syntax from the caller.
 //! - Cost: the engine's caret and selection drawing are its own (the
 //!   caret stops blinking while motion is held, the engine's own rule).
 
@@ -34,7 +35,12 @@ use gpui_base::input::{
 
 pub use syntax::{LineSyntax, Runs, SyntaxKind};
 
+use crate::theme::spacing;
 use crate::{Tokens, Type, TypeExt as _};
+
+/// The room before the line numbers: `CodeMirror`'s gutter element's left
+/// padding, which Paseo keeps (not a step of the kit's spacing).
+const GUTTER_LEAD: f32 = 5.0;
 
 /// A file's text in the engine's code editor (a handle: clones share it).
 #[derive(Clone)]
@@ -62,9 +68,21 @@ impl CodeEditor {
         let syntax = Rc::new(syntax);
         let text = text.to_owned();
         let state = cx.new(|cx| {
+            // Code keeps each line on one row (the engine wraps unless
+            // told otherwise); prose asks for wrapping (`set_wrapping`).
             let mut state = EditorState::new(window, cx)
                 .folding(false)
-                .line_number(true);
+                .line_number(true)
+                .soft_wrap(false);
+            // Paseo's `CodeMirror` theme: 16 above and below the text, and
+            // `CodeMirror`'s 5 before the line numbers (without it they
+            // touch the panel's edge once a file has four digits of lines).
+            state.set_editor_paddings(gpui::Edges {
+                top: gpui::px(spacing::S4),
+                right: gpui::px(spacing::S0),
+                bottom: gpui::px(spacing::S4),
+                left: gpui::px(GUTTER_LEAD),
+            });
             let factory: InputHighlighterFactory = Rc::new(move |_language| {
                 let highlighter: Box<dyn InputHighlighter> =
                     Box::new(syntax::LineHighlighter::new(Rc::clone(&syntax)));
@@ -139,6 +157,14 @@ impl CodeEditor {
         });
     }
 
+    /// Wrap long lines at the editor's width (prose), or keep each line on
+    /// one row, scrolled sideways (code, the default: Paseo wraps only
+    /// Markdown).
+    pub fn set_wrapping(&self, wrap: bool, window: &mut Window, cx: &mut App) {
+        self.state
+            .update(cx, |state, cx| state.set_soft_wrap(wrap, window, cx));
+    }
+
     /// Show the text without letting it be changed (a phone's width, a file
     /// over the editable size); selection and copy still work.
     pub fn set_read_only(&self, read_only: bool, cx: &mut App) {
@@ -177,7 +203,7 @@ impl CodeEditor {
 /// The kit's colours on the engine: the foreground's text and caret, the
 /// muted foreground for the line numbers, a selection of the foreground at
 /// a fifth (as the fields), the panel's surface behind the text and the
-/// gutter, the current line on `surface1`, and the theme's code colours for
+/// gutter, no fill on the current line, and the theme's code colours for
 /// the syntax kinds.
 fn project(state: &Entity<EditorState>, tokens: &Tokens, cx: &mut App) {
     let neutral = tokens.neutral;
@@ -188,7 +214,9 @@ fn project(state: &Entity<EditorState>, tokens: &Tokens, cx: &mut App) {
         border: neutral.border,
         caret: neutral.foreground,
         selection: neutral.foreground.opacity(0.2),
-        editor_active_line: Some(neutral.surface1),
+        // Paseo's current line has no fill, only its number in the
+        // foreground.
+        editor_active_line: None,
         editor_gutter_background: Some(neutral.surface0),
         highlight_styles: std::sync::Arc::new(syntax::CodeStyles(crate::CodeTokens::of(
             tokens.scheme,
