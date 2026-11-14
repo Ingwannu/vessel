@@ -30,6 +30,41 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
+
+Nodes speak 2..=18. No method, no event, no record: one field of the
+node's settings. A client sends a change naming it to no older node
+(`Call::since`; `unsupported`, "needs protocol 18"), since an older node
+would ignore it and keep every agent on ACP without saying so.
+
+### Agents over their own protocols (track A2, ADR 0057)
+
+Types in `vessel_proto::settings`.
+
+- `NodeSettings` gains `drivers?: AgentDrivers { claude_code, codex,
+  open_code }`, each an `AgentDriver`: `acp` (the Agent Client Protocol,
+  the agent's own ACP mode or its adapter), `direct` (the agent's own
+  protocol: Codex's app-server, Claude Code's stream-json, `OpenCode`'s
+  server) or `unknown` (a newer node's). Absent when every agent runs
+  over ACP, as from a node older than 18. Gemini and agents added on the
+  node have no protocol of their own and always run over ACP.
+- `node.set_settings { drivers?: SetAgentDrivers { claude_code?, codex?,
+  open_code? } }` changes the agents it names. `unknown` is refused
+  (`invalid_request`); `direct` is refused (`unsupported`) for an agent
+  whose driver this build does not offer yet: none in this version. A
+  change is kept in `settings.json`; a choice a newer build saved runs
+  as ACP here and stays in the file.
+- What a setting changes: the driver of that agent's sessions started
+  after it, chosen at each creation and start again, and used by its
+  probes (`harness.options`) and listings (`agent.history`). A session
+  keeps its driver for its life, across moves, parks and rewinds, since
+  its options are that driver's. The node runs the agent's own protocol
+  only for a version it was checked against (the agent's `--version`);
+  for an older or unreadable one the session runs over ACP and its log
+  says why, and for a newer one it runs and its log says so.
+- Nothing else on the wire changes: a direct driver produces the same
+  events, options, permission requests and questions as ACP.
+
 ## Version 17 (2026-11-14, milestone 11's track A2 slice 4, on milestone 12's node line, ADR 0053)
 
 Nodes speak 2..=17. One method, no event, no record. Track A2 wrote it
@@ -279,7 +314,8 @@ Two methods, one optional field, two records; types in
   cancel do not wake it.
 - The node parks idle sessions on its own after `--park-after` minutes
   (60 by default; 0 never), never one that someone follows live.
-- `node.settings {}` (read) answers `NodeSettings { park_after }` in force;
+- `node.settings {}` (read) answers `NodeSettings { park_after }` in force
+  (and `drivers`, protocol 18);
   `node.set_settings { park_after? }` (admin) changes what it names and
   answers the same. `ParkAfter` (tagged `kind`): `never`, `idle { minutes
   }` (1 to 10,080), `unknown` (a newer node's; refused in a change,

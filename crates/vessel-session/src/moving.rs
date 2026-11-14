@@ -34,7 +34,7 @@ use std::time::Duration;
 
 use tokio::sync::oneshot;
 use tokio::time::Instant;
-use vessel_agent::{AgentError, AgentProcess, AgentSetup, CommandSpec, Disconnect, Signal};
+use vessel_agent::{AgentError, AgentProcess, AgentSetup, CommandSpec, Disconnect, Driver, Signal};
 use vessel_harness::{LinkError, ModelProxy, Profile, SessionFiles, SessionFilesError};
 use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 
@@ -160,6 +160,9 @@ pub(crate) struct MoveOrder {
 pub(crate) struct Launch {
     pub(crate) command: CommandSpec,
     pub(crate) setup: AgentSetup,
+    /// The protocol it speaks, chosen at the session's first launch and
+    /// kept for its life (`runtime::drivers`); `command` is for it.
+    pub(crate) driver: Driver,
 }
 
 impl StructuredActor {
@@ -192,7 +195,13 @@ impl StructuredActor {
         self.move_state.active = true;
         let outcome = self
             .try_move(
-                Launch { command, setup },
+                Launch {
+                    command,
+                    setup,
+                    // The runtime built `command` for the session's own
+                    // driver (`SessionHandle::driver`).
+                    driver: self.launch.driver,
+                },
                 to,
                 (files, from_home, to_home),
                 force,
@@ -357,7 +366,7 @@ impl StructuredActor {
         launch: &Launch,
     ) -> Result<Result<(), Restart>, MoveError> {
         let (agent, input, outputs) =
-            match AgentProcess::spawn(&launch.command, launch.setup.clone()) {
+            match AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone()) {
                 Ok(started) => started,
                 Err(error) => return Ok(Err(Restart::Spawn(error))),
             };

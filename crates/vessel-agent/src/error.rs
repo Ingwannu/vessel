@@ -16,6 +16,9 @@ pub enum AgentError {
     /// The program could not be spawned.
     #[error(transparent)]
     Spawn(#[from] vessel_proc::SpawnError),
+    /// No driver of that protocol is built yet (ADR 0057).
+    #[error("the {0} driver is not built yet")]
+    NoDriver(crate::Driver),
 }
 
 /// Input the agent session cannot accept.

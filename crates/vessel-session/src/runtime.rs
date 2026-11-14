@@ -8,6 +8,7 @@
 
 mod agent;
 mod claims;
+mod drivers;
 mod launch;
 mod parts;
 
@@ -63,6 +64,9 @@ pub struct SessionRuntime {
     park_after: watch::Sender<Option<Duration>>,
     /// Conversations sessions are starting on (protocol 17, `claims`).
     claims: claims::Claims,
+    /// Which protocol drives each agent's new sessions (protocol 18,
+    /// `drivers`).
+    drivers: drivers::Drivers,
 }
 
 /// A session that was just started.
@@ -91,6 +95,7 @@ impl SessionRuntime {
             attachments: None,
             park_after,
             claims: claims::Claims::default(),
+            drivers: drivers::Drivers::default(),
         }
     }
 

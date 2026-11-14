@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
-use vessel_agent::AgentInput;
+use vessel_agent::{AgentInput, Driver};
 use vessel_proto::{
     Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
     SessionTitle, TurnPoint,
@@ -44,6 +44,9 @@ pub(crate) struct Shared {
     pub(crate) kill: CancellationToken,
     /// Orders for the actor (structured sessions: moves).
     pub(crate) control: Option<mpsc::Sender<Control>>,
+    /// The protocol its agent speaks (ADR 0057), for its life: what a move
+    /// builds the new agent's command for. ACP for a terminal session.
+    pub(crate) driver: Driver,
     /// Model calls the node's proxy made for the session, for the actor to
     /// record (protocol 7). Bounded; see [`SessionHandle::model_call`].
     pub(crate) model_calls: mpsc::Sender<ModelCall>,
@@ -124,6 +127,12 @@ impl SessionHandle {
     #[must_use]
     pub fn id(&self) -> SessionId {
         self.0.id
+    }
+
+    /// The protocol its agent speaks (ADR 0057).
+    #[must_use]
+    pub fn driver(&self) -> Driver {
+        self.0.driver
     }
 
     /// The choices the session runs with now (protocol 9): every select's

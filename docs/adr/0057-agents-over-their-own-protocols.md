@@ -6,7 +6,8 @@ where possible"). This ADR records how it is done for each agent, and what
 it costs. It partly supersedes ADR 0003 (every structured agent over ACP)
 and replaces ADR 0055's wait for an adapter change. The research notes
 are summarised below; the plan is `docs/plans/agents-own-protocols.md`.
-No driver code exists yet.
+Slice 0 (the seam made selectable, protocol 18) is built; no direct
+driver is (see "Slice 0, as built").
 
 ## Context
 
@@ -267,3 +268,46 @@ weighed:
   configuration key" sentence stands until verified: a third party reports
   that `codex exec -c daybreak=true` sets the thread's choice, which has
   not been checked here.
+
+## Slice 0, as built (2026-11-14, protocol 18)
+
+Where the build differs from the decision above, this section is what
+holds.
+
+- **The harness table** is `vessel_harness::direct`, beside
+  `Structured::{Native, Adapter}` rather than in it: a harness's ACP
+  launch and its own protocol are both kept, since ACP is the fallback.
+  Each entry names the protocol, the arguments that switch the agent's
+  own program to it (`codex app-server`; `claude -p --input-format
+  stream-json --output-format stream-json --verbose`; `opencode serve
+  --hostname 127.0.0.1 --port 0`), the oldest and newest versions
+  checked, and whether it is offered (`selectable`, false for all three).
+  `launch_direct` builds the command with the account, profile and route
+  of an ACP launch; what a session adds (resume, MCP configuration,
+  permission flags) is the driver's to add from `AgentSetup`.
+- **The seam** is `vessel_agent::Driver` and three entries that take it:
+  `AgentProcess::spawn_with`, `probe_with`, `history_with`. A direct
+  driver is a module (`codex`, `claude`, `opencode`) with the ACP
+  driver's two entry points: `run(stdin, stdout, commands, outputs,
+  setup)` and `history(command, cwd, from, limit)`. A module whose
+  `BUILT` is false is refused before its agent starts
+  (`AgentError::NoDriver`, `unsupported`).
+- **The choice** is the session runtime's (`runtime/drivers`), at a
+  session's first launch, its start again, a probe and a listing: the
+  node's setting, then whether the build offers the driver, then the
+  agent's `--version` (kept per program until the file changes). The
+  session keeps its driver for its life (`Launch::driver`,
+  `SessionHandle::driver`): a move, a park and a rewind restart it with
+  the same one, since its options are that driver's. Below the oldest
+  version or unreadable: ACP and a line in the session's log; above the
+  newest: the driver and a line in the log (each session's, not once a
+  node, so it is seen where it matters).
+- **The setting** is `NodeSettings.drivers` (protocol 18): `acp`,
+  `direct` or `unknown` for Claude Code, Codex and `OpenCode`. `direct` is
+  refused while not offered; a newer build's saved choice runs as ACP and
+  stays in the file. The CLI sets it with `vessel node settings --driver
+  codex=direct`.
+- **Fakes**: `fake-codex-app-server` and `fake-claude-stream` answer
+  `--version` and their protocol's first exchange (`initialize`; a
+  `system` `init` and a `result` frame). `OpenCode`'s fake needs an HTTP
+  server and comes with its first slice.

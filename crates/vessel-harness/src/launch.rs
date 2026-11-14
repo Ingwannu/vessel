@@ -9,6 +9,7 @@ use vessel_proc::CommandSpec;
 use vessel_proto::{McpServerName, ResolvedMcpServers, SessionMode, SessionSpec};
 
 use crate::added::AddedAgent;
+use crate::direct::Direct;
 use crate::env::HarnessEnv;
 use crate::error::HarnessError;
 use crate::harnesses::{Structured, descriptor};
@@ -89,6 +90,51 @@ pub fn launch(
     mcp: &ResolvedMcpServers,
     mcp_dir: Option<&Path>,
 ) -> Result<Launch, HarnessError> {
+    launch_over(lookup, env, spec, profile, proxy, mcp, mcp_dir, None)
+}
+
+/// The command that runs the structured session `spec` over its agent's
+/// own protocol (ADR 0057, [`crate::direct`]): the agent's program with
+/// the protocol's arguments, the account, profile and route as
+/// [`launch`] gives an ACP launch. MCP servers are the driver's to pass.
+///
+/// # Errors
+/// As [`launch`], and [`HarnessError::NoDirect`] for a terminal session or
+/// an agent with no direct driver.
+pub fn launch_direct(
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    spec: &SessionSpec,
+    profile: &Profile,
+    proxy: Option<&ModelProxy>,
+) -> Result<Launch, HarnessError> {
+    let direct = match (&spec.mode, profile.known().and_then(crate::direct)) {
+        (SessionMode::Structured { .. }, Some(direct)) => direct,
+        (SessionMode::Terminal { .. }, _) | (_, None) => {
+            return Err(HarnessError::NoDirect {
+                harness: spec.harness.clone(),
+            });
+        }
+    };
+    let none = ResolvedMcpServers::new();
+    launch_over(lookup, env, spec, profile, proxy, &none, None, Some(direct))
+}
+
+/// [`launch`], over `direct`'s protocol when given.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "launch's arguments and the protocol; a struct for one private call adds nothing"
+)]
+fn launch_over(
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    spec: &SessionSpec,
+    profile: &Profile,
+    proxy: Option<&ModelProxy>,
+    mcp: &ResolvedMcpServers,
+    mcp_dir: Option<&Path>,
+    direct: Option<&Direct>,
+) -> Result<Launch, HarnessError> {
     checked(spec, profile)?;
     let harness = match profile.base() {
         Base::Known(kind) => *kind,
@@ -154,11 +200,14 @@ pub fn launch(
                 .args(routed.args.iter())
                 .args(text.iter().copied())
         }
-        SessionMode::Structured { .. } => match &descriptor.structured {
-            Structured::Native { args } => CommandSpec::new(installed(descriptor.binary)?)
+        SessionMode::Structured { .. } => match (direct, &descriptor.structured) {
+            (Some(direct), _) => CommandSpec::new(installed(descriptor.binary)?)
+                .args(direct.args.iter())
+                .args(routed.args.iter()),
+            (None, Structured::Native { args }) => CommandSpec::new(installed(descriptor.binary)?)
                 .args(args.iter())
                 .args(routed.args.iter()),
-            Structured::Adapter { binary, install } => {
+            (None, Structured::Adapter { binary, install }) => {
                 let program =
                     lookup
                         .find(binary)

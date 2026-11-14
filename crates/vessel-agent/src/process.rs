@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 use vessel_proc::{CommandSpec, Signal, SignalError, Spawned};
 
 use crate::driver;
+use crate::drivers::Driver;
 use crate::error::AgentError;
 use crate::handshake::AgentSetup;
 use crate::input::AgentInput;
@@ -43,6 +44,24 @@ impl AgentProcess {
         command: &CommandSpec,
         setup: AgentSetup,
     ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        Self::spawn_with(Driver::Acp, command, setup)
+    }
+
+    /// [`spawn`](Self::spawn) over the protocol `driver` speaks (ADR 0057):
+    /// `command` must be the one for it (an ACP launch, or
+    /// `vessel_harness::launch_direct`).
+    ///
+    /// # Errors
+    /// As [`spawn`](Self::spawn), and [`AgentError::NoDriver`] for a driver
+    /// this build does not run ([`Driver::built`]), before anything starts.
+    pub fn spawn_with(
+        driver: Driver,
+        command: &CommandSpec,
+        setup: AgentSetup,
+    ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        if !driver.built() {
+            return Err(AgentError::NoDriver(driver));
+        }
         let Spawned {
             child,
             stdin,
@@ -52,14 +71,32 @@ impl AgentProcess {
         let (outputs, receiver) = mpsc::channel::<AgentOutput>(OUTPUTS);
         let (commands, command_receiver) = mpsc::channel(COMMANDS);
         drop(tokio::spawn(stderr::pump(stderr, outputs.clone())));
-        drop(tokio::spawn(driver::run(
-            stdin,
-            stdout,
-            command_receiver,
-            outputs,
-            setup,
-        )));
-        tracing::debug!(pid = child.pid(), program = %command.program.display(), "agent spawned");
+        let commands_in = command_receiver;
+        drop(match driver {
+            Driver::Acp => tokio::spawn(driver::run(stdin, stdout, commands_in, outputs, setup)),
+            Driver::CodexAppServer => tokio::spawn(crate::codex::run(
+                stdin,
+                stdout,
+                commands_in,
+                outputs,
+                setup,
+            )),
+            Driver::ClaudeStream => tokio::spawn(crate::claude::run(
+                stdin,
+                stdout,
+                commands_in,
+                outputs,
+                setup,
+            )),
+            Driver::OpencodeHttp => tokio::spawn(crate::opencode::run(
+                stdin,
+                stdout,
+                commands_in,
+                outputs,
+                setup,
+            )),
+        });
+        tracing::debug!(pid = child.pid(), program = %command.program.display(), %driver, "agent spawned");
         Ok((
             Self { child },
             AgentInput::new(commands),

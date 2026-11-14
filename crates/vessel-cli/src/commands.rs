@@ -6,9 +6,10 @@ use std::path::PathBuf;
 
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
-use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
+use vessel_proto::settings::{AgentDriver, GetNodeSettings, SetAgentDrivers, SetNodeSettings};
 use vessel_proto::{
-    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
+    EventSeq, HarnessKind, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode,
+    SessionSpec,
 };
 
 use vessel_client::book::Resolved;
@@ -123,21 +124,50 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             read_only,
         } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
-        NodeCommand::Settings { park_after } => {
+        NodeCommand::Settings { park_after, driver } => {
             let client = connect(target).await?.client;
-            let settings = match park_after {
-                Some(park_after) => {
-                    client
-                        .call(SetNodeSettings {
-                            park_after: Some(park_after),
-                        })
-                        .await?
-                }
-                None => client.call(GetNodeSettings {}).await?,
+            let drivers = driver_change(&driver)?;
+            let settings = if park_after.is_some() || drivers.is_some() {
+                client
+                    .call(SetNodeSettings {
+                        park_after,
+                        drivers,
+                    })
+                    .await?
+            } else {
+                client.call(GetNodeSettings {}).await?
             };
             Ok(io::out(render::node_settings(settings).as_bytes()).await?)
         }
     }
+}
+
+/// `--driver` values as a change; `None` without any.
+///
+/// # Errors
+/// An agent with no protocol of its own (Gemini).
+fn driver_change(
+    drivers: &[(HarnessKind, AgentDriver)],
+) -> Result<Option<SetAgentDrivers>, CliError> {
+    if drivers.is_empty() {
+        return Ok(None);
+    }
+    let mut change = SetAgentDrivers::default();
+    for (kind, driver) in drivers {
+        let slot = match kind {
+            HarnessKind::ClaudeCode => &mut change.claude_code,
+            HarnessKind::Codex => &mut change.codex,
+            HarnessKind::OpenCode => &mut change.open_code,
+            // `--driver` refuses it already.
+            HarnessKind::Gemini => {
+                return Err(CliError::Usage(
+                    "gemini has no protocol of its own; it always runs over ACP",
+                ));
+            }
+        };
+        *slot = Some(*driver);
+    }
+    Ok(Some(change))
 }
 
 /// `vessel session ...`.

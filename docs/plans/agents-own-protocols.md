@@ -21,21 +21,66 @@ direct driver implements that same seam:
 
 The session actors, the store and the wire do not change.
 
-## Slice 0: the seam made selectable (one worker; first)
+## Slice 0: the seam made selectable (built, protocol 18)
 
-- `vessel-harness`: `Structured` gains the direct protocols beside
-  `Native` and `Adapter`. Each harness names its direct protocol and the
-  agent versions its driver was checked against.
-- `vessel-agent`: `AgentProcess::spawn`, `probe` and `history` dispatch on
-  the driver. Only `acp` exists after this slice.
-- Node setting `drivers { codex, claude, opencode }: acp | direct`, in
-  `settings.json` through `node.settings` (an additive field). Every
-  default is `acp`. `direct` is refused until that agent's driver passes
-  its permissions slice.
-- A helper reads the installed agent's version; a session below a
-  driver's minimum runs on ACP and logs why.
-- The testkit's fake for each protocol is a skeleton.
-- Gate: everything as today, plus the setting's tests.
+- `vessel-harness` (`direct.rs`): the table of each harness's own
+  protocol, its arguments, the versions checked and whether it is
+  offered (`selectable`, false for all three); `launch_direct`;
+  `version_check` (`<binary> --version`).
+- `vessel-agent`: `Driver { Acp, CodexAppServer, ClaudeStream,
+  OpencodeHttp }`; `AgentProcess::spawn_with`, `probe_with`,
+  `history_with` dispatch on it; the modules `codex/`, `claude/`,
+  `opencode/` hold `BUILT = false`, `run` and `history` stubs; a driver
+  not built is `AgentError::NoDriver` before anything starts.
+- `vessel-session` (`runtime/drivers.rs`): the choice at a session's
+  first launch (setting, offered, version), kept for its life in
+  `Launch::driver` and on its handle; the reasons go in the log.
+- Wire (protocol 18): `NodeSettings.drivers` and
+  `SetNodeSettings.drivers` (`AgentDriver`: `acp`, `direct`, `unknown`).
+  `direct` is refused (`unsupported`) while not offered. CLI: `vessel
+  node settings --driver AGENT=acp|direct`.
+- Testkit: `fake-codex-app-server` and `fake-claude-stream` skeletons
+  (`--version`, the first exchange). `OpenCode`'s fake comes with its
+  slice 1 (it needs an HTTP server).
+
+### Frozen by slice 0 (change only by agreement first)
+
+Every driver implements or reads these; a change to one is agreed with
+the coordinator and the other driver's worker before it is made.
+
+- `vessel_agent`: `AgentSetup`; the commands (`input::Command` and
+  `AgentInput`'s methods); `AgentOutput` and `AgentOutputs`;
+  `Disconnect`; `AgentError::NoDriver`; `Driver` and `Driver::built`;
+  the entry signatures `run(ChildStdin, ChildStdout,
+  mpsc::Receiver<Command>, mpsc::Sender<AgentOutput>, AgentSetup)` and
+  `history(&CommandSpec, Option<&Path>, HistoryFrom, Duration) ->
+  Result<HistoryPage, HistoryError>`; `HistoryFrom`, `HistoryPage`,
+  `HistoryError`, `Probed`.
+- `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
+  `VersionFit`, `launch_direct`, `version_check`.
+- `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,
+  `SetAgentDrivers`.
+
+### What each driver's worker changes, and what not
+
+- **Changes**: its own module (`crates/vessel-agent/src/codex/`,
+  `claude/` or `opencode/`), its own fake
+  (`crates/vessel-testkit/src/bin/fake_codex_app_server.rs`,
+  `fake_claude_stream.rs`, later `fake_opencode_server.rs`) and its
+  tests, its own entry in `vessel_harness::direct` (`selectable`, the
+  versions checked) once its permissions slice lands, its section of
+  this plan and of ADR 0057's notes.
+- **Does not touch**: `crates/vessel-agent/src/{process,probe,
+  history,drivers,lib}.rs` (the dispatch already names every module; the
+  one exception is a `pub use` its slice needs, agreed first), the ACP
+  driver (`crates/vessel-agent/src/driver/`), the other drivers' modules
+  and fakes, `vessel-session` (the session actors, `runtime/drivers.rs`),
+  `vessel-node`'s settings, and the wire. A shared session test is run
+  with its fake, not edited for it.
+- **The Claude Code worker** in particular (the node integrator, in
+  parallel with Codex): `crates/vessel-agent/src/claude/`,
+  `fake_claude_stream.rs`, the `CLAUDE` entry in
+  `crates/vessel-harness/src/direct.rs`, and nothing under `codex/`.
 
 ## Codex (first)
 
@@ -139,11 +184,13 @@ checked against `/doc`.
 ## Who can work in parallel
 
 - Slice 0 first, by one worker: it touches the harness descriptor, the
-  driver dispatch and the settings, which every driver needs.
+  driver dispatch and the settings, which every driver needs. Done.
 - After it, Codex (`crates/vessel-agent/src/codex/`,
-  `crates/vessel-testkit/src/bin/fake_codex_app_server*`) and Claude Code
-  (`crates/vessel-agent/src/claude/`, `fake_claude_stream*`) touch no
-  common file. Two workers can take them at once.
+  `crates/vessel-testkit/src/bin/fake_codex_app_server.rs`) and Claude
+  Code (`crates/vessel-agent/src/claude/`, `fake_claude_stream.rs`)
+  touch no common file but one line each in
+  `crates/vessel-harness/src/direct.rs` (their own entry). Two workers
+  can take them at once.
 - The shared session tests are run with each driver's fake, not edited
   by both.
 - OpenCode is third, possibly by the worker that finishes first.
@@ -171,5 +218,16 @@ checked against `/doc`.
 
 ## Progress
 
-Nothing built. ADR 0057 and this plan committed for the coordinator's
-reading.
+- ADR 0057 and this plan: accepted by the coordinator, 2026-11-14.
+- Slice 0: built (protocol 18). Checked: the setting's wire and its
+  version (`a_settings_change_naming_drivers_needs_protocol_eighteen`),
+  its round trip and the agents it names; the node refuses `direct`
+  (`unsupported`) and `unknown` (`invalid_request`), keeps a newer
+  build's choice in the file and runs it as ACP (e2e); the runtime's
+  choice before and after the version (unit, with a driver offered in
+  the test); the version read from the agent's own program (with the
+  fake); `launch_direct` and `version_check` (harness); every driver not
+  built refused before its agent starts, for a session, a probe and a
+  listing; the CLI's `--driver`; the fakes' first exchange.
+- Not reachable yet, so not checked end to end: a session that runs a
+  direct driver. The first driver slice that sets `BUILT` checks it.

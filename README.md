@@ -138,6 +138,12 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   sessions` says `(parked)`. Only an agent whose adapter can load a
   conversation again (ACP `loadSession`) is parked; what it left running
   in the background stops with it.
+- Agents over their own protocols (protocol 18, ADR 0057): `vessel node
+  settings --driver codex=direct` chooses Codex's app-server instead of
+  its ACP adapter for new sessions (likewise `claude` and `opencode`;
+  `acp` goes back). No build offers one yet: the node refuses `direct`
+  until that agent's driver can ask for permissions as ACP does. Every
+  agent runs over ACP until then.
 
 Search what was said in every session (protocol 12): prompts and the
 agents' replies, live, ended or archived, newest first.

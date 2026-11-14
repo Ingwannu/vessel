@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument as _;
+use vessel_agent::Driver;
 use vessel_proto::{EventRecord, EventSeq, ModelCall, SessionInfo};
 
 use super::{Created, SessionRuntime};
@@ -93,7 +94,7 @@ impl SessionRuntime {
         begin: Begin,
         notices: Vec<String>,
         (input, pid): (Input, u32),
-        control: Option<mpsc::Sender<Control>>,
+        control: (Option<mpsc::Sender<Control>>, Driver),
     ) -> Parts {
         let Begin {
             mut info,
@@ -133,7 +134,7 @@ impl SessionRuntime {
         &self,
         info: SessionInfo,
         (input, pid): (Input, u32),
-        control: Option<mpsc::Sender<Control>>,
+        (control, driver): (Option<mpsc::Sender<Control>>, Driver),
         (model_calls, renames, forge): Channels,
         (seen, marks): (Seen, Marks),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
@@ -148,6 +149,7 @@ impl SessionRuntime {
             input,
             kill: kill.clone(),
             control,
+            driver,
             model_calls,
             ended: AtomicBool::new(false),
             renames,

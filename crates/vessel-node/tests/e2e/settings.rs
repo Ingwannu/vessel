@@ -2,13 +2,18 @@
 //! how long an idle agent runs before it is parked, `node.set_settings`
 //! changes it; the change is kept across a restart and wins over the flag,
 //! a choice the node does not know is refused, and an agent (no `admin`)
-//! may read but not change.
+//! may read but not change. Protocol 18's drivers (ADR 0057): every agent
+//! over ACP until a person chooses, `direct` refused while this build
+//! offers no agent's own protocol, and a newer build's saved choice kept
+//! in the file but run as ACP.
 
 use std::time::Duration;
 
 use vessel_proto::ErrorCode;
 use vessel_proto::parking::{IdleMinutes, ParkAfter};
-use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
+use vessel_proto::settings::{
+    AgentDriver, AgentDrivers, GetNodeSettings, SetAgentDrivers, SetNodeSettings,
+};
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::support::{Fixture, within};
@@ -40,6 +45,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
         let changed = owner
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
+                drivers: None,
             })
             .await
             .unwrap();
@@ -53,6 +59,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
                 owner
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Unknown),
+                        drivers: None,
                     })
                     .await
             ),
@@ -80,6 +87,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
         let changed = owner
             .call(SetNodeSettings {
                 park_after: Some(idle(5)),
+                drivers: None,
             })
             .await
             .unwrap();
@@ -109,6 +117,7 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
                 agent
                     .call(SetNodeSettings {
                         park_after: Some(ParkAfter::Never),
+                        drivers: None,
                     })
                     .await
             ),
@@ -118,6 +127,68 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
             owner.call(GetNodeSettings {}).await.unwrap().park_after,
             ParkAfter::DEFAULT,
             "nothing changed"
+        );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A change naming `drivers` only.
+fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
+    SetNodeSettings {
+        park_after: None,
+        drivers: Some(drivers),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn drivers_are_acp_until_an_agents_own_protocol_is_offered() {
+    within(async {
+        let fixture = Fixture::new();
+        // As a newer build would have saved them: Claude Code over its own
+        // protocol, and a choice this build does not know.
+        std::fs::write(
+            fixture.data_dir().settings_path(),
+            r#"{"drivers":{"claude_code":"direct","open_code":"later"}}"#,
+        )
+        .unwrap();
+        let node = fixture.start().await;
+        let owner = fixture.connect(&node).await;
+        let in_force = owner.call(GetNodeSettings {}).await.unwrap();
+        assert_eq!(in_force.drivers, AgentDrivers::default(), "run as ACP");
+
+        // This build offers no agent's own protocol yet: refused, and
+        // nothing changes.
+        let direct = SetAgentDrivers {
+            codex: Some(AgentDriver::Direct),
+            ..SetAgentDrivers::default()
+        };
+        assert_eq!(
+            code(owner.call(drivers(direct)).await),
+            ErrorCode::Unsupported
+        );
+        let unknown = SetAgentDrivers {
+            codex: Some(AgentDriver::Unknown),
+            ..SetAgentDrivers::default()
+        };
+        assert_eq!(
+            code(owner.call(drivers(unknown)).await),
+            ErrorCode::InvalidRequest
+        );
+
+        // ACP is accepted; the newer build's choices stay in the file.
+        let acp = SetAgentDrivers {
+            codex: Some(AgentDriver::Acp),
+            ..SetAgentDrivers::default()
+        };
+        let changed = owner.call(drivers(acp)).await.unwrap();
+        assert_eq!(changed.drivers, AgentDrivers::default());
+        let kept: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(fixture.data_dir().settings_path()).unwrap())
+                .unwrap();
+        assert_eq!(
+            kept["drivers"],
+            serde_json::json!({"claude_code": "direct", "codex": "acp", "open_code": "unknown"})
         );
         node.stop().await.unwrap();
     })

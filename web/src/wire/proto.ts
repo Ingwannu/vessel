@@ -200,6 +200,30 @@ sign_in: SignInHelp, } | { "kind": "added",
 added: AddedAgent, };
 
 /**
+ * Which protocol drives an agent's structured sessions (protocol 18, ADR
+ * 0057).
+ */
+export type AgentDriver = "acp" | "direct" | "unknown";
+
+/**
+ * The driver of each agent that has a protocol of its own (protocol 18).
+ * Other agents run over ACP.
+ */
+export type AgentDrivers = { 
+/**
+ * Claude Code's.
+ */
+claude_code: AgentDriver, 
+/**
+ * Codex's.
+ */
+codex: AgentDriver, 
+/**
+ * `OpenCode`'s.
+ */
+open_code: AgentDriver, };
+
+/**
  * One entry in a structured session's timeline.
  */
 export type AgentEvent = { "event": "ready", 
@@ -4090,7 +4114,12 @@ export type NodeSettings = {
  * How long a structured session may stay idle before its agent is
  * parked.
  */
-park_after: ParkAfter, };
+park_after: ParkAfter, 
+/**
+ * Which protocol drives each agent's new sessions (protocol 18);
+ * absent when every agent runs over ACP.
+ */
+drivers?: AgentDrivers, };
 
 /**
  * Whether a node is taking new work.
@@ -7094,6 +7123,23 @@ worktree?: WorktreeId | null,
 branch?: BranchName | null, };
 
 /**
+ * A change to [`AgentDrivers`]: the agents it names; the others stay.
+ */
+export type SetAgentDrivers = { 
+/**
+ * Claude Code's.
+ */
+claude_code?: AgentDriver | null, 
+/**
+ * Codex's.
+ */
+codex?: AgentDriver | null, 
+/**
+ * `OpenCode`'s.
+ */
+open_code?: AgentDriver | null, };
+
+/**
  * `pr.feedback`: send the pull request's failing checks and reviews to
  * the session, or stop.
  */
@@ -7116,7 +7162,13 @@ export type SetNodeSettings = {
  * How long a structured session may stay idle before its agent is
  * parked; `unknown` is refused.
  */
-park_after?: ParkAfter | null, };
+park_after?: ParkAfter | null, 
+/**
+ * Which protocol drives the agents it names (protocol 18); `unknown`
+ * is refused, and so is `direct` for an agent whose driver this node
+ * does not offer yet.
+ */
+drivers?: SetAgentDrivers | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

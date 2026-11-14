@@ -128,7 +128,23 @@ pub(crate) fn node_settings(settings: vessel_proto::settings::NodeSettings) -> S
         ParkAfter::Idle { minutes } => format!("after {} minutes idle", minutes.get()),
         ParkAfter::Unknown => String::from("a newer node's choice"),
     };
-    format!("park an idle agent: {park_after}\n")
+    let drivers = [
+        vessel_proto::HarnessKind::ClaudeCode,
+        vessel_proto::HarnessKind::Codex,
+        vessel_proto::HarnessKind::OpenCode,
+    ]
+    .into_iter()
+    .filter_map(|kind| {
+        let driver = match settings.drivers.get(kind)? {
+            vessel_proto::settings::AgentDriver::Direct => "its own protocol",
+            vessel_proto::settings::AgentDriver::Acp
+            | vessel_proto::settings::AgentDriver::Unknown => "ACP",
+        };
+        Some(format!("{kind} over {driver}"))
+    })
+    .collect::<Vec<_>>()
+    .join(", ");
+    format!("park an idle agent: {park_after}\nnew sessions: {drivers}\n")
 }
 
 pub(crate) fn node_status(node: &NodeInfo, sessions: &[SessionInfo], client: &str) -> String {

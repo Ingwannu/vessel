@@ -33,6 +33,7 @@ use tokio::io::AsyncBufReadExt as _;
 use vessel_proc::{CommandSpec, Signal};
 use vessel_proto::HarnessSessionId;
 
+use crate::drivers::Driver;
 use crate::error::AgentError;
 use crate::transport::{self, Gate};
 
@@ -175,6 +176,41 @@ enum Unlisted {
 /// [`HistoryError::Refused`], [`HistoryError::Failed`] or
 /// [`HistoryError::TimedOut`].
 pub async fn history(
+    command: &CommandSpec,
+    cwd: Option<&Path>,
+    from: HistoryFrom,
+    limit: Duration,
+) -> Result<HistoryPage, HistoryError> {
+    history_with(Driver::Acp, command, cwd, from, limit).await
+}
+
+/// [`history`] over the protocol `driver` speaks (ADR 0057): the same page
+/// and cursor whichever driver lists.
+///
+/// # Errors
+/// As [`history`]; [`HistoryError::Spawn`] holds
+/// [`AgentError::NoDriver`](crate::AgentError::NoDriver) for a driver this
+/// build does not run.
+pub async fn history_with(
+    driver: Driver,
+    command: &CommandSpec,
+    cwd: Option<&Path>,
+    from: HistoryFrom,
+    limit: Duration,
+) -> Result<HistoryPage, HistoryError> {
+    if !driver.built() {
+        return Err(HistoryError::Spawn(AgentError::NoDriver(driver)));
+    }
+    match driver {
+        Driver::Acp => over_acp(command, cwd, from, limit).await,
+        Driver::CodexAppServer => crate::codex::history(command, cwd, from, limit).await,
+        Driver::ClaudeStream => crate::claude::history(command, cwd, from, limit).await,
+        Driver::OpencodeHttp => crate::opencode::history(command, cwd, from, limit).await,
+    }
+}
+
+/// [`history`] over ACP: `session/list`.
+async fn over_acp(
     command: &CommandSpec,
     cwd: Option<&Path>,
     from: HistoryFrom,
