@@ -201,6 +201,20 @@ async fn write(mut stdin: ChildStdin, mut lines: mpsc::Receiver<Vec<u8>>) {
     }
 }
 
+/// The bytes request `id` takes on the wire, its newline left out: what a
+/// bounded prompt (a side question's context) is measured on before it is
+/// sent, written by the same code that sends it.
+///
+/// # Errors
+/// The message does not serialize.
+pub(super) fn request_len(
+    id: u64,
+    method: &str,
+    params: &impl Serialize,
+) -> serde_json::Result<usize> {
+    serde_json::to_vec(&Request { id, method, params }).map(|bytes| bytes.len())
+}
+
 #[derive(Serialize)]
 struct Request<'a, P> {
     id: u64,

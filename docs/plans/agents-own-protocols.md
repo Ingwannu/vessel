@@ -91,8 +91,8 @@ the coordinator and the other driver's worker before it is made.
   prompt, the request bounded by `PROMPT_BYTES` before anything is sent,
   `ContextLimit` past it) or refuses the prompt typed before sending
   (`InputError::ContextNotTaken`, `unsupported`); it never drops it. The
-  Claude driver carries it; Codex refuses it until A2's next commit
-  carries it.
+  Claude and Codex drivers carry it (Codex as the first text input of
+  its `turn/start`, the bound measured on that whole line).
 - `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
   `VersionFit`, `launch_direct`, `version_check`, `claude_mcp_file`.
 - `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,
@@ -336,6 +336,11 @@ checked against `/doc`.
     comes before `turn/completed` for what an interrupt ends, and whether
     an answer to a request already resolved is harmless; a sub-agent
     thread's approvals.
+  - (side questions) how a real model reads a side question's context
+    sent as the first text input; Codex 0.166's `turn/start` also has
+    `additionalContext` (fragments by source, `untrusted` or
+    `application`), kept out of the user's message: the alternative to
+    try against a real turn.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
     follows 2.1.246): `initialize` answered before any prompt and what
@@ -446,3 +451,12 @@ checked against `/doc`.
   the bookkeeping (offered decisions, the bound, withdrawal, resolution)
   and the mode's choice. The node's setting accepts `direct` for Codex
   (e2e), and the runtime chooses it (unit).
+- Codex side questions (2026-11-14, N5 on the node line): a prompt's
+  context goes as the first text input of its `turn/start`, the question
+  after it; `TurnStarted` holds the question alone and nothing is kept
+  for a later turn. The whole `turn/start` line is measured against
+  `PROMPT_BYTES` before anything is sent (`wire::request_len`, the
+  writer's own serialization), `ContextLimit` past it. Checked against
+  the fake (`echo` says every text input): the context first, the next
+  prompt without it, and a context whose quotes double in JSON refused
+  with no turn started.

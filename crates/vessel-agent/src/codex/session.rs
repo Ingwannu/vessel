@@ -54,9 +54,10 @@ use super::protocol::{
     InitializeCapabilities, InitializeParams, InitializeResponse, ItemNotification,
     PermissionsApproval, PlanNotification, RequestResolved, ThreadOpened, ThreadResumeParams,
     ThreadStartParams, TokenUsageBreakdown, TurnInterruptParams, TurnNotification, TurnStartParams,
-    TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
+    TurnStartResponse, TurnSteerParams, UsageNotification, UserInput, UserInputRequest,
 };
 use super::wire::{self, Ended, Incoming, Outgoing, RpcError};
+use crate::PromptContext;
 use crate::error::{Disconnect, InputError};
 use crate::handshake::{AgentSetup, ForkRefusal};
 use crate::input::{Command, Reply, SteerOutcome, SteerReply};
@@ -797,15 +798,12 @@ impl Session {
 
     async fn command(&mut self, command: Command) {
         match command {
-            // A side question's context is not carried yet (A2 carries it
-            // in its next commit): refused before anything is sent, never
-            // dropped (ADR 0057, N5's integration).
             Command::Prompt {
-                context: Some(_),
+                content,
+                context,
                 reply,
                 ..
-            } => answer(reply, Err(InputError::ContextNotTaken)),
-            Command::Prompt { content, reply, .. } => self.prompt(content, reply).await,
+            } => self.prompt(content, context, reply).await,
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
@@ -862,31 +860,33 @@ impl Session {
         }
     }
 
-    async fn prompt(&mut self, content: Vec<ContentBlock>, reply: Reply) {
+    /// A prompt, with a side question's context (`side`) when the node gives
+    /// one (ADR 0045, the plan's Frozen list). The context goes first and
+    /// only to Codex, as the ACP and Claude Code drivers send it: the
+    /// timeline's `TurnStarted` shows the question alone, and nothing of
+    /// the context is kept for a later turn. The bound is theirs
+    /// (`PROMPT_BYTES`), measured on the whole `turn/start` line before
+    /// anything is sent; past it the prompt is refused (`ContextLimit`) and
+    /// no turn starts.
+    async fn prompt(
+        &mut self,
+        content: Vec<ContentBlock>,
+        side: Option<PromptContext>,
+        reply: Reply,
+    ) {
         if self.turn != TurnState::Idle {
             answer(reply, Err(InputError::TurnInProgress));
             return;
         }
-        let Some(thread) = self.thread.clone() else {
-            answer(reply, Err(InputError::Closed));
-            return;
-        };
-        let input = match mapper::user_input(&content) {
-            Ok(input) => input,
+        let (id, params) = match self.turn_start(&content, side) {
+            Ok(start) => start,
             Err(error) => {
                 answer(reply, Err(error));
                 return;
             }
         };
-        let params = TurnStartParams {
-            thread_id: thread,
-            input,
-            approval_policy: self.mode.approval(),
-            approvals_reviewer: self.mode.reviewer(),
-            sandbox_policy: self.mode.sandbox_policy(),
-        };
         if !self
-            .request("turn/start", &params, Pending::TurnStart)
+            .send_request(id, "turn/start", &params, Pending::TurnStart)
             .await
         {
             answer(reply, Err(InputError::Closed));
@@ -974,6 +974,43 @@ impl Session {
         self.next
     }
 
+    /// The `turn/start` of a prompt, under its request id: the context
+    /// first when there is one, and then the whole line within
+    /// `PROMPT_BYTES`.
+    fn turn_start(
+        &mut self,
+        content: &[ContentBlock],
+        side: Option<PromptContext>,
+    ) -> Result<(u64, TurnStartParams), InputError> {
+        let thread = self.thread.clone().ok_or(InputError::Closed)?;
+        let mut input = mapper::user_input(content)?;
+        let bounded = side.is_some();
+        if let Some(side) = side {
+            input.insert(
+                0,
+                UserInput::Text {
+                    text: side.as_str().to_owned(),
+                },
+            );
+        }
+        let params = TurnStartParams {
+            thread_id: thread,
+            input,
+            approval_policy: self.mode.approval(),
+            approvals_reviewer: self.mode.reviewer(),
+            sandbox_policy: self.mode.sandbox_policy(),
+        };
+        let id = self.next_id();
+        if bounded {
+            let bytes =
+                wire::request_len(id, "turn/start", &params).map_err(InputError::InvalidContent)?;
+            if bytes > vessel_proto::side_questions::PROMPT_BYTES {
+                return Err(InputError::ContextLimit);
+            }
+        }
+        Ok((id, params))
+    }
+
     /// Send a request whose answer `pending` handles; false once the agent
     /// closed its input.
     async fn request(
@@ -983,6 +1020,17 @@ impl Session {
         pending: Pending,
     ) -> bool {
         let id = self.next_id();
+        self.send_request(id, method, params, pending).await
+    }
+
+    /// Send request `id`, its id already taken.
+    async fn send_request(
+        &mut self,
+        id: u64,
+        method: &str,
+        params: &impl serde::Serialize,
+        pending: Pending,
+    ) -> bool {
         let sent = self.out.request(id, method, params).await;
         if sent {
             let _none = self.pending.insert(id, pending);

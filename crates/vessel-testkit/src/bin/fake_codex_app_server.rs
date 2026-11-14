@@ -14,7 +14,9 @@
 //!     opens the id asked for, or fails for an id starting `missing`.
 //!     Either keeps the approval policy, reviewer and sandbox it was given.
 //!   - `turn/start` answers the turn (`inProgress`), says `turn/started`,
-//!     and plays the scenario its first text input names:
+//!     and plays the scenario its last text input names (a side question's
+//!     context goes before it):
+//!     - `echo`: a message of every text input, joined with ` | `;
 //!     - `plain` (or anything else): a message streamed in two deltas, a
 //!       delta of another thread's (which is not this session's), token
 //!       usage, then `completed`;
@@ -326,7 +328,7 @@ impl Server {
     fn turn(&mut self, id: &Value, params: &Value) -> Result<(), Exit> {
         self.turns = self.turns.saturating_add(1);
         let turn = format!("turn-{}", self.turns);
-        let prompt = first_text(params);
+        let prompt = last_text(params);
         self.last_turn = params.clone();
         if prompt.starts_with("badstart") {
             // A turn without its status: the answer does not read, and
@@ -340,6 +342,11 @@ impl Server {
         )?;
         let scenario = prompt.split_whitespace().next().unwrap_or("").to_owned();
         match scenario.as_str() {
+            "echo" => {
+                let said = texts(params).join(" | ");
+                self.message(&turn, &format!("msg-{}", self.turns), &said, true)?;
+                self.completed(&turn, "completed", None)
+            }
             "think" => {
                 self.notify(
                     "item/reasoning/summaryTextDelta",
@@ -648,11 +655,26 @@ fn text(params: &Value, key: &str) -> String {
     params[key].as_str().unwrap_or("").to_owned()
 }
 
-/// The first text input of a turn or a steer.
-fn first_text(params: &Value) -> String {
+/// The text inputs of a turn or a steer, in order.
+fn texts(params: &Value) -> Vec<&str> {
     params["input"]
         .as_array()
-        .and_then(|input| input.iter().find_map(|item| item["text"].as_str()))
-        .unwrap_or("")
-        .to_owned()
+        .map(|input| {
+            input
+                .iter()
+                .filter_map(|item| item["text"].as_str())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The first text input of a turn or a steer.
+fn first_text(params: &Value) -> String {
+    texts(params).first().copied().unwrap_or("").to_owned()
+}
+
+/// The last text input of a turn: the prompt itself, after a side
+/// question's context when there is one.
+fn last_text(params: &Value) -> String {
+    texts(params).last().copied().unwrap_or("").to_owned()
 }
