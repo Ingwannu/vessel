@@ -63,9 +63,11 @@ fn plain(params: &Params, action: char) -> Csi {
         'h' => Csi::Modes(Switch::Set, modes(params, ansi_mode)),
         'l' => Csi::Modes(Switch::Reset, modes(params, ansi_mode)),
         'm' => Csi::Graphic(groups(params)),
-        'n' => match first(params) {
-            5 => Csi::Status(Status::Operating),
-            6 => Csi::Status(Status::Cursor),
+        // Exactly one parameter, as Paseo's daemon asks (`terminal.ts`
+        // 892: `params.length !== 1` is not answered).
+        'n' => match (params.len(), first(params)) {
+            (1, 5) => Csi::Status(Status::Operating),
+            (1, 6) => Csi::Status(Status::Cursor),
             _ => Csi::RefusedQuery,
         },
         // Primary device attributes: no parameter, or 0, and nothing else.
@@ -95,10 +97,16 @@ fn private(params: &Params, action: char) -> Csi {
             3 => Csi::Unsupported,
             code => erase(code, Csi::EraseLine),
         },
-        'n' => match first(params) {
-            6 => Csi::Status(Status::PrivateCursor),
+        'n' => match (params.len(), first(params)) {
+            (1, 6) => Csi::Status(Status::PrivateCursor),
             _ => Csi::RefusedQuery,
         },
+        // The kitty keyboard query: never answered. The input slice
+        // encodes keys as xterm does, never with kitty's flags, so an answer
+        // (even `CSI ? 0 u`) would tell a program the protocol is there.
+        // Its push, pop and set (`CSI > u`, `CSI < u`, `CSI = u`) carry
+        // other markers and are unsupported.
+        'u' => Csi::RefusedQuery,
         _ => Csi::Unsupported,
     }
 }

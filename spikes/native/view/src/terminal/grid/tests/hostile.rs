@@ -71,6 +71,15 @@ fn zero_and_enormous_sizes_are_refused() {
 }
 
 #[test]
+fn each_refusal_names_the_bound_it_checks() {
+    let too_large = TerminalError::TooLarge.to_string();
+    assert!(too_large.contains(&GridSize::MAX_COLS.to_string()));
+    assert!(too_large.contains(&GridSize::MAX_ROWS.to_string()));
+    let scrollback = TerminalError::Scrollback.to_string();
+    assert!(scrollback.contains(&ScrollbackLines::MAX.to_string()));
+}
+
+#[test]
 fn a_one_cell_grid_holds_everything() {
     let mut term = model(1, 1, 3);
     play(

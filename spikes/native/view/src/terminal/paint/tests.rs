@@ -86,6 +86,34 @@ fn inverse_swaps_and_a_default_colour_takes_the_palettes() {
 }
 
 #[test]
+fn inverse_swaps_before_bold_brightens_as_xterm_js_does() {
+    let palette = palette();
+    let bold_inverse = Pen {
+        weight: Weight::Bold,
+        polarity: Polarity::Inverse,
+        ..Pen::PLAIN
+    };
+    // `ESC [ 1 ; 7 ; 31 ; 44 m`: bright blue (12) on red (1).
+    let red_on_blue = Pen {
+        fg: Colour::Indexed(1),
+        bg: Colour::Indexed(4),
+        ..bold_inverse
+    };
+    let drawn = paint(red_on_blue, &palette);
+    assert_eq!((drawn.fg, drawn.bg), (rgb(12, 12, 12), Some(rgb(1, 1, 1))));
+    // `ESC [ 1 ; 7 ; 44 m`: bright blue on the palette's foreground.
+    let default_on_blue = Pen {
+        bg: Colour::Indexed(4),
+        ..bold_inverse
+    };
+    let drawn = paint(default_on_blue, &palette);
+    assert_eq!(
+        (drawn.fg, drawn.bg),
+        (rgb(12, 12, 12), Some(palette.foreground))
+    );
+}
+
+#[test]
 fn faint_is_half_ink_and_concealed_is_none() {
     let palette = palette();
     let faint = Pen {

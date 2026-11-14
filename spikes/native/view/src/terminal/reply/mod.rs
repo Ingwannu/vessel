@@ -17,9 +17,10 @@
 //!   wrap reports the last column), counted from the screen's top as
 //!   Paseo's `cursorY` is, also in origin mode.
 //! - Bound: the longest answer to the shortest query of its kind is DA1's
-//!   11 bytes for `CSI c`'s 3, so one call's replies are under four times
-//!   its bytes, plus one answer (at most 25 bytes) to a query the call
-//!   before began (a test floods each kind).
+//!   11 bytes for `CSI c`'s 3, so one call's replies are under
+//!   [`REPLY_RATIO`] times its bytes, plus one answer (at most
+//!   [`LONGEST_REPLY`] bytes) to a query the call before began (a test
+//!   floods each kind).
 
 #[cfg(test)]
 mod tests;
@@ -27,6 +28,13 @@ mod tests;
 use super::grid::{CursorCell, Rgb};
 use super::paint::Palette;
 use super::parse::{Action, Attributes, ColourSlot, Control, Csi, Dcs, Esc, Osc, Status};
+
+/// One call's replies are under this many times its bytes (DA1: 11 for
+/// 3; an OSC colour: 25 for 7; a cursor report at 1024 × 512: 12 for 4).
+pub const REPLY_RATIO: usize = 4;
+
+/// The longest reply: an OSC colour, `ESC ] 1x ; rgb:rrrr/gggg/bbbb ESC \`.
+pub const LONGEST_REPLY: usize = 25;
 
 /// A query the terminal answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

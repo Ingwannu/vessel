@@ -162,9 +162,13 @@ pub enum TerminalError {
     #[error("a terminal needs at least one column and one row")]
     Empty,
     /// A size above the grid's bounds.
-    #[error("a terminal is at most 1024 columns by 512 rows")]
+    #[error(
+        "a terminal is at most {} columns by {} rows",
+        GridSize::MAX_COLS,
+        GridSize::MAX_ROWS
+    )]
     TooLarge,
     /// Scrollback above [`ScrollbackLines::MAX`].
-    #[error("scrollback is at most 1,000,000 lines")]
+    #[error("scrollback is at most {} lines", ScrollbackLines::MAX)]
     Scrollback,
 }

@@ -3,7 +3,8 @@
 //! the hand-over, and which viewer's duty it is (ADR 0073's named
 //! fixtures).
 
-use crate::terminal::grid::Rgb;
+use super::{LONGEST_REPLY, REPLY_RATIO};
+use crate::terminal::grid::{CursorCell, Rgb, Scroll};
 use crate::terminal::paint::Palette;
 use crate::terminal::{
     Focus, GridSize, Origin, Others, QueryDuty, ScrollbackLines, TerminalModel, Typed, query_duty,
@@ -73,6 +74,10 @@ const REFUSED: &[&[u8]] = &[
     b"\x1b]12\x07",
     b"\x1b[7n",
     b"\x1b[?5n",
+    b"\x1b[6;1n",
+    b"\x1b[5;9n",
+    b"\x1b[?6;1n",
+    b"\x1b[?u",
 ];
 
 #[test]
@@ -210,7 +215,7 @@ fn once_a_viewer_qualifies_only_it_answers() {
 }
 
 #[test]
-fn replies_stay_within_four_times_the_bytes_read() {
+fn replies_stay_within_the_stated_ratio_of_the_bytes_read() {
     let flood = [&b"\x1b]10;?\x07"[..], b"\x1b[c", b"\x1b[?6n"]
         .concat()
         .repeat(2048);
@@ -219,7 +224,25 @@ fn replies_stay_within_four_times_the_bytes_read() {
     while !rest.is_empty() {
         let feed = term.feed(rest);
         assert!(feed.consumed > 0);
-        assert!(feed.replies.len() <= feed.consumed.saturating_mul(4).saturating_add(25));
+        let bound = feed
+            .consumed
+            .saturating_mul(REPLY_RATIO)
+            .saturating_add(LONGEST_REPLY);
+        assert!(feed.replies.len() <= bound);
         rest = rest.get(feed.consumed..).unwrap_or_default();
+    }
+}
+
+#[test]
+fn kittys_keyboard_query_push_pop_and_set_neither_answer_nor_move_the_cursor() {
+    let mut term = model();
+    assert!(term.feed(b"\x1b[3;4H\x1b7\x1b[1;1H").replies.is_empty());
+    for sequence in [&b"\x1b[?u"[..], b"\x1b[>1u", b"\x1b[<u", b"\x1b[=1;1u"] {
+        assert!(term.feed(sequence).replies.is_empty(), "{sequence:?}");
+        // None of them is a restore of the saved cursor (3;4).
+        assert_eq!(
+            term.snapshot(Scroll(0)).cursor,
+            Some(CursorCell { row: 0, col: 0 })
+        );
     }
 }

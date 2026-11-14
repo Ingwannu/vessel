@@ -17,5 +17,6 @@ mod size;
 pub use duty::{Focus, Origin, Others, QueryDuty, Typed, query_duty};
 pub use frame::{Liveness, ResizeRule, TerminalLog};
 pub use model::{Feed, TerminalModel};
+pub use reply::{LONGEST_REPLY, REPLY_RATIO};
 pub use sender::{MAX_PENDING, Outgoing, Taken, TerminalSender};
 pub use size::{GridSize, ScrollbackLines, TerminalError};

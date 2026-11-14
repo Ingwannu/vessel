@@ -7,11 +7,15 @@
 //!   rules live in `view` with tests.
 //! - Choice: xterm.js's defaults, which Paseo keeps (`terminal-emulator-
 //!   runtime.ts` 555–571 sets no `drawBoldTextInBrightColors`, so it is on,
-//!   and `minimumContrastRatio: 1`, so no colour is adjusted): bold text in
-//!   one of the eight ANSI colours is drawn in its bright form; inverse
-//!   swaps the colours after that, a default colour taking the palette's
-//!   foreground or background; faint is half opacity; a concealed glyph is
-//!   not drawn. Colours 16–231 are the 6 × 6 × 6 cube and 232–255 the grey
+//!   and `minimumContrastRatio: 1`, so no colour is adjusted). Inverse
+//!   swaps the two colours first, a default colour taking the palette's
+//!   foreground or background; then bold draws a foreground that is one
+//!   of the eight ANSI colours in its bright form. xterm.js 6.1.0-beta.336
+//!   (the version Paseo pins) does it in that order in both renderers:
+//!   `addon-webgl/src/TextureAtlas.ts` 519–526 swaps, then 355 and 364–366
+//!   brighten; `DomRendererRowFactory.ts` 347–355 swaps, then 437–438
+//!   brighten. So `ESC [ 1 ; 7 ; 31 ; 44 m` is bright blue on red. Faint is
+//!   half opacity; a concealed glyph is not drawn. Colours 16–231 are the 6 × 6 × 6 cube and 232–255 the grey
 //!   ramp, xterm's values; 0–15 and the defaults are the palette's.
 //! - Alternative: the kit resolving colours from its tokens (the rules
 //!   would sit untested in a drawing crate).
@@ -61,8 +65,14 @@ pub struct Painted {
 /// `pen` drawn in `palette`.
 #[must_use]
 pub fn paint(pen: Pen, palette: &Palette) -> Painted {
-    let fg = match pen.fg {
-        Colour::Default => palette.foreground,
+    // Inverse first: the colours trade places, defaults included.
+    let (fg, bg, foreground, background) = match pen.polarity {
+        Polarity::Normal => (pen.fg, pen.bg, palette.foreground, None),
+        Polarity::Inverse => (pen.bg, pen.fg, palette.background, Some(palette.foreground)),
+    };
+    // Then bold brightens the foreground drawn, when it is one of the 8.
+    let fg = match fg {
+        Colour::Default => foreground,
         Colour::Indexed(index) => {
             let bright = match pen.weight {
                 Weight::Bold if index < 8 => index.saturating_add(8),
@@ -72,14 +82,10 @@ pub fn paint(pen: Pen, palette: &Palette) -> Painted {
         }
         Colour::Rgb(rgb) => rgb,
     };
-    let bg = match pen.bg {
-        Colour::Default => None,
+    let bg = match bg {
+        Colour::Default => background,
         Colour::Indexed(index) => Some(indexed(index, palette)),
         Colour::Rgb(rgb) => Some(rgb),
-    };
-    let (fg, bg) = match pen.polarity {
-        Polarity::Normal => (fg, bg),
-        Polarity::Inverse => (bg.unwrap_or(palette.background), Some(fg)),
     };
     let ink = match (pen.concealment, pen.weight) {
         (Concealment::Concealed, _) => Ink::Hidden,
