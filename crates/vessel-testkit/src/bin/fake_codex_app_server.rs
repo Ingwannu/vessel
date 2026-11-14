@@ -12,6 +12,7 @@
 //!     ignored.
 //!   - `thread/start` opens `fake-thread-<process id>`; `thread/resume`
 //!     opens the id asked for, or fails for an id starting `missing`.
+//!     Either keeps the approval policy, reviewer and sandbox it was given.
 //!   - `turn/start` answers the turn (`inProgress`), says `turn/started`,
 //!     and plays the scenario its first text input names:
 //!     - `plain` (or anything else): a message streamed in two deltas, a
@@ -21,9 +22,26 @@
 //!     - `quiet`: a message that arrives whole, without deltas;
 //!     - `tool`: a command run (`echo hi`), then as `plain`;
 //!     - `plan`: a plan of two steps, then as `plain`;
-//!     - `approve`: asks for approval to run a command and waits; the
-//!       answer's decision becomes the command's status and the message
-//!       `decision <decision>`;
+//!     - `approve`: asks for approval to run a command (`cmd-1`, before
+//!       its item starts), offering a decision with a rule among its
+//!       `availableDecisions`, and waits; the item then starts and ends
+//!       (`declined` for `decline` or `cancel`), and the message is
+//!       `decision <the decision as JSON>`; a `cancel` interrupts the turn;
+//!     - `edit`: starts a file change, asks to apply it and waits; as
+//!       `approve`;
+//!     - `permit`: asks for network access (request id 7, a number); the
+//!       message is `granted <scope> <permissions as JSON>`;
+//!     - `ask`: asks two questions (`color`, a choice of `red` or `blue`,
+//!       and `name`, free text); the message is `answers <answers as
+//!       JSON>`;
+//!     - `form`: a tool server asks for a form (`name`, a string); the
+//!       message is `action <action> <content as JSON>`;
+//!     - `secret`: asks a secret question; as `ask`;
+//!     - `resolved`: asks to run a command, says the request is resolved
+//!       (`serverRequest/resolved`), then ends the turn;
+//!     - `policy`: the message is `turn <approval policy> <reviewer>
+//!       <sandbox policy's type> thread <approval policy> <reviewer>
+//!       <sandbox>`: what the turn and the thread were given;
 //!     - `wait`: runs until `turn/interrupt` (then `interrupted`); a
 //!       `turn/steer` meanwhile is taken and said back as a message;
 //!     - `fail`: ends `failed` with the error `fake failure`;
@@ -37,7 +55,9 @@
 //!     - `badstart`: answers `turn/start` with a turn that does not read
 //!       (no status) and says nothing more of it;
 //!     - `exit`: exits mid-turn.
-//!   - Any other request is "method not found" (`-32601`).
+//!   - Any other request is "method not found" (`-32601`). An error
+//!     answering a request of the fake's ends the turn with the message
+//!     `refused <message>`.
 //! - Anything else exits with code 2.
 
 use std::io::{BufRead as _, Write as _};
@@ -51,8 +71,15 @@ use serde_json::{Value, json};
 /// driver's schema was generated from.
 const VERSION: &str = "0.166.0";
 
-/// The id of the one approval request a turn may make.
-const APPROVAL: &str = "approval-1";
+/// What a turn asked, waiting for the client's answer.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Asked {
+    Command,
+    FileChange,
+    Permissions,
+    UserInput,
+    Elicitation,
+}
 
 /// The most deltas the `stream` scenario writes: far more than a cancel
 /// needs to arrive in, so a turn that ends `completed` was not cancelled
@@ -80,8 +107,12 @@ fn main() -> ExitCode {
 
 /// A turn that waits on the client.
 enum Waiting {
-    /// For the answer to the approval request.
-    Approval { turn: String },
+    /// For the answer to a request of the fake's.
+    Answer {
+        id: Value,
+        turn: String,
+        asked: Asked,
+    },
     /// For an interrupt.
     Interrupt { turn: String },
     /// For an interrupt, while a thread streams; set to stop it.
@@ -93,6 +124,10 @@ struct Server {
     thread: Option<String>,
     turns: u32,
     waiting: Option<Waiting>,
+    /// The thread's approval policy, reviewer and sandbox, as given.
+    started: String,
+    /// The last `turn/start`'s parameters.
+    last_turn: Value,
     out: Out,
 }
 
@@ -103,6 +138,8 @@ impl Server {
             thread: None,
             turns: 0,
             waiting: None,
+            started: String::new(),
+            last_turn: Value::Null,
             out: Arc::new(Mutex::new(std::io::stdout())),
         }
     }
@@ -162,7 +199,7 @@ impl Server {
                     }
                     // Its thread ends the turn.
                     Some(Waiting::Streaming { stop }) => stop.store(true, Ordering::SeqCst),
-                    other @ (Some(Waiting::Approval { .. }) | None) => self.waiting = other,
+                    other @ (Some(Waiting::Answer { .. }) | None) => self.waiting = other,
                 }
                 Ok(())
             }
@@ -182,37 +219,96 @@ impl Server {
         }
     }
 
-    /// The client's answer to the approval request.
+    /// The client's answer to a request of the fake's.
     fn answered(&mut self, id: &Value, message: &Value) -> Result<(), Exit> {
-        if id != APPROVAL {
+        let Some(Waiting::Answer {
+            id: asked_id,
+            turn,
+            asked,
+        }) = self.waiting.take()
+        else {
+            return Ok(());
+        };
+        if asked_id != *id {
+            self.waiting = Some(Waiting::Answer {
+                id: asked_id,
+                turn,
+                asked,
+            });
             return Ok(());
         }
-        let Some(Waiting::Approval { turn }) = self.waiting.take() else {
-            return Ok(());
+        if let Some(error) = message.get("error") {
+            let said = format!("refused {}", error["message"].as_str().unwrap_or(""));
+            self.message(&turn, "msg-answer", &said, true)?;
+            return self.completed(&turn, "completed", None);
+        }
+        let result = message.get("result").cloned().unwrap_or(Value::Null);
+        let mut end = "completed";
+        let said = match asked {
+            Asked::Command | Asked::FileChange => {
+                let decision = result.get("decision").cloned().unwrap_or(Value::Null);
+                let refused = decision == "decline" || decision == "cancel";
+                if decision == "cancel" {
+                    end = "interrupted";
+                }
+                let status = if refused { "declined" } else { "completed" };
+                let item = if asked == Asked::Command {
+                    self.notify(
+                        "item/started",
+                        &json!({"threadId": self.thread(), "turnId": turn, "startedAtMs": 1,
+                            "item": command("cmd-1", "inProgress", None)}),
+                    )?;
+                    command("cmd-1", status, None)
+                } else {
+                    file_change(status)
+                };
+                self.notify(
+                    "item/completed",
+                    &json!({"threadId": self.thread(), "turnId": turn, "completedAtMs": 2,
+                        "item": item}),
+                )?;
+                format!("decision {decision}")
+            }
+            Asked::Permissions => {
+                let scope = field(&result, "scope").as_str().unwrap_or("turn");
+                format!("granted {scope} {}", field(&result, "permissions"))
+            }
+            Asked::UserInput => format!("answers {}", field(&result, "answers")),
+            Asked::Elicitation => format!(
+                "action {} {}",
+                field(&result, "action").as_str().unwrap_or(""),
+                result.get("content").cloned().unwrap_or(Value::Null)
+            ),
         };
-        let decision = message
-            .get("result")
-            .and_then(|result| result.get("decision"))
-            .and_then(Value::as_str)
-            .unwrap_or("none")
-            .to_owned();
-        let status = if decision == "decline" {
-            "declined"
-        } else {
-            "completed"
-        };
-        self.notify(
-            "item/completed",
-            &json!({"threadId": self.thread(), "turnId": turn, "completedAtMs": 2,
-                "item": command("cmd-1", status, None)}),
-        )?;
-        let said = format!("decision {decision}");
-        self.message(&turn, "msg-approve", &said, true)?;
-        self.completed(&turn, "completed", None)
+        self.message(&turn, "msg-answer", &said, true)?;
+        self.completed(&turn, end, None)
+    }
+
+    /// Ask the client something on `turn`, and wait for its answer.
+    fn ask(
+        &mut self,
+        id: &Value,
+        turn: &str,
+        asked: Asked,
+        method: &str,
+        params: &Value,
+    ) -> Result<(), Exit> {
+        self.waiting = Some(Waiting::Answer {
+            id: id.clone(),
+            turn: turn.to_owned(),
+            asked,
+        });
+        self.send(&json!({"id": id, "method": method, "params": params}))
     }
 
     fn opened(&mut self, id: &Value, thread: &str, params: &Value) -> Result<(), Exit> {
         self.thread = Some(thread.to_owned());
+        self.started = format!(
+            "{} {} {}",
+            text(params, "approvalPolicy"),
+            text(params, "approvalsReviewer"),
+            text(params, "sandbox")
+        );
         let cwd = params.get("cwd").cloned().unwrap_or(Value::Null);
         self.send(&json!({"id": id, "result": {
             "approvalPolicy": "on-request", "approvalsReviewer": "user", "cwd": cwd,
@@ -231,6 +327,7 @@ impl Server {
         self.turns = self.turns.saturating_add(1);
         let turn = format!("turn-{}", self.turns);
         let prompt = first_text(params);
+        self.last_turn = params.clone();
         if prompt.starts_with("badstart") {
             // A turn without its status: the answer does not read, and
             // nothing more is said of the turn.
@@ -280,19 +377,8 @@ impl Server {
                 )?;
                 self.plain(&turn, &prompt)
             }
-            "approve" => {
-                let started = command("cmd-1", "inProgress", None);
-                self.notify(
-                    "item/started",
-                    &json!({"threadId": self.thread(), "turnId": turn, "startedAtMs": 1,
-                        "item": started}),
-                )?;
-                self.waiting = Some(Waiting::Approval { turn: turn.clone() });
-                self.send(
-                    &json!({"id": APPROVAL, "method": "item/commandExecution/requestApproval",
-                    "params": {"threadId": self.thread(), "turnId": turn, "itemId": "cmd-1",
-                        "command": "echo hi", "cwd": "/fake"}}),
-                )
+            "approve" | "resolved" | "edit" | "permit" | "ask" | "secret" | "form" | "policy" => {
+                self.asking(&scenario, &turn)
             }
             "wait" => {
                 self.waiting = Some(Waiting::Interrupt { turn });
@@ -321,6 +407,94 @@ impl Server {
             }
             "exit" => Err(Exit::Now),
             _ => self.plain(&turn, &prompt),
+        }
+    }
+
+    /// The scenarios that ask the client something (or say what the turn
+    /// and the thread were given).
+    fn asking(&mut self, scenario: &str, turn: &str) -> Result<(), Exit> {
+        let thread = self.thread();
+        match scenario {
+            "approve" | "resolved" => {
+                let rule = json!({"acceptWithExecpolicyAmendment":
+                    {"execpolicy_amendment": ["echo"]}});
+                let params = json!({"threadId": thread, "turnId": turn,
+                    "itemId": "cmd-1", "command": "echo hi", "cwd": "/fake",
+                    "startedAtMs": 1, "availableDecisions": ["accept", "acceptForSession",
+                        rule, "decline", "cancel"]});
+                let id = json!(format!("approval-{}", self.turns));
+                let method = "item/commandExecution/requestApproval";
+                self.ask(&id, turn, Asked::Command, method, &params)?;
+                if scenario == "resolved" {
+                    self.waiting = None;
+                    self.notify(
+                        "serverRequest/resolved",
+                        &json!({"threadId": thread, "requestId": id}),
+                    )?;
+                    return self.completed(turn, "completed", None);
+                }
+                Ok(())
+            }
+            "edit" => {
+                self.notify(
+                    "item/started",
+                    &json!({"threadId": thread, "turnId": turn, "startedAtMs": 1,
+                        "item": file_change("inProgress")}),
+                )?;
+                let params = json!({"threadId": thread, "turnId": turn,
+                    "itemId": "edit-1", "reason": "Write notes.md", "startedAtMs": 1});
+                let method = "item/fileChange/requestApproval";
+                self.ask(&json!("edit-ask"), turn, Asked::FileChange, method, &params)
+            }
+            "permit" => {
+                let params = json!({"threadId": thread, "turnId": turn,
+                    "itemId": "perm-1", "cwd": "/fake", "startedAtMs": 1,
+                    "reason": "Fetch the docs", "permissions": {"network": {"enabled": true}}});
+                let method = "item/permissions/requestApproval";
+                self.ask(&json!(7), turn, Asked::Permissions, method, &params)
+            }
+            "ask" | "secret" => {
+                let questions = if scenario == "secret" {
+                    json!([{"id": "token", "header": "Token", "question": "Your token?",
+                        "isOther": false, "isSecret": true, "options": null}])
+                } else {
+                    json!([
+                        {"id": "color", "header": "Color", "question": "Which color?",
+                            "isOther": false, "isSecret": false, "options": [
+                                {"label": "red", "description": "Warm"},
+                                {"label": "blue", "description": "Cool"}]},
+                        {"id": "name", "header": "Name", "question": "Your name?",
+                            "isOther": false, "isSecret": false, "options": null}
+                    ])
+                };
+                let params = json!({"threadId": thread, "turnId": turn,
+                    "itemId": "ask-1", "isBlocking": true, "questions": questions});
+                let method = "item/tool/requestUserInput";
+                self.ask(&json!("ask-1"), turn, Asked::UserInput, method, &params)
+            }
+            "form" => {
+                let params = json!({"threadId": thread, "turnId": turn,
+                    "serverName": "fake-server", "mode": "form", "message": "Who?",
+                    "requestedSchema": {"type": "object", "properties": {
+                        "name": {"type": "string", "title": "Name"}}, "required": ["name"]}});
+                let method = "mcpServer/elicitation/request";
+                self.ask(&json!("form-1"), turn, Asked::Elicitation, method, &params)
+            }
+            "policy" => {
+                let given = &self.last_turn;
+                let said = format!(
+                    "turn {} {} {} thread {}",
+                    text(given, "approvalPolicy"),
+                    text(given, "approvalsReviewer"),
+                    field(field(given, "sandboxPolicy"), "type")
+                        .as_str()
+                        .unwrap_or(""),
+                    self.started
+                );
+                self.message(turn, "msg-policy", &said, true)?;
+                self.completed(turn, "completed", None)
+            }
+            _ => self.plain(turn, scenario),
         }
     }
 
@@ -455,9 +629,19 @@ fn command(id: &str, status: &str, output: Option<&str>) -> Value {
         "exitCode": output.map(|_| 0)})
 }
 
+fn file_change(status: &str) -> Value {
+    json!({"type": "fileChange", "id": "edit-1", "status": status, "changes": [
+        {"path": "/fake/notes.md", "kind": {"type": "add"}, "diff": "+notes\n"}]})
+}
+
 fn usage(total: u32) -> Value {
     json!({"inputTokens": total, "cachedInputTokens": 0, "outputTokens": 0,
         "reasoningOutputTokens": 0, "totalTokens": total})
+}
+
+/// `value`'s `key`, or null.
+fn field<'v>(value: &'v Value, key: &str) -> &'v Value {
+    value.get(key).unwrap_or(&Value::Null)
 }
 
 fn text(params: &Value, key: &str) -> String {

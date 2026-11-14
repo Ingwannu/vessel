@@ -1,4 +1,4 @@
-//! The Codex app-server driver (ADR 0057, Codex slice 1) against
+//! The Codex app-server driver (ADR 0057, Codex slices 1 and 2) against
 //! `fake-codex-app-server`, whose messages follow Codex 0.166.0's schema.
 //!
 //! Tests wait on outputs, never on time; the timeout only turns a hang into
@@ -7,12 +7,16 @@
 use vessel_agent::{
     AgentOutput, Disconnect, Driver, ForkFrom, ForkRefusal, InputError, SteerOutcome,
 };
+use vessel_proto::conversation::{AnswerValue, FieldKind};
 use vessel_proto::{
-    AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, PlanStatus, StopReason, TokenCount,
-    ToolCallContent, ToolCallId, ToolCallStatus, ToolKind,
+    AgentEvent, ChoiceValue, ContentBlock, ContextUsage, HarnessSessionId, OptionChoice, OptionId,
+    OptionKind, OptionValueId, PermissionOptionId, PermissionOutcome, PlanStatus, QuestionAnswer,
+    SessionOption, StopReason, TokenCount, ToolCallContent, ToolCallId, ToolCallStatus, ToolKind,
 };
 
-use support::{command, events, ready, said, setup, spawn, text, turn, until, within};
+use support::{
+    asked, command, events, mode, question, ready, said, setup, spawn, text, turn, until, within,
+};
 
 #[cfg(test)]
 mod support {
@@ -22,7 +26,10 @@ mod support {
     use vessel_agent::{
         AgentInput, AgentOutput, AgentOutputs, AgentProcess, AgentSetup, CommandSpec, Driver,
     };
-    use vessel_proto::{AgentEvent, ContentBlock, HarnessSessionId};
+    use vessel_proto::{
+        AgentEvent, ChoiceValue, ContentBlock, HarnessSessionId, OptionChoice, OptionId,
+        OptionValueId, PermissionRequest, Question,
+    };
     use vessel_testkit::Fake;
 
     const SAFETY_NET: Duration = Duration::from_secs(30);
@@ -129,9 +136,61 @@ mod support {
         })
         .await
     }
+
+    /// The events through the next permission request, and the request.
+    pub(super) async fn asked(outputs: &mut AgentOutputs) -> (Vec<AgentEvent>, PermissionRequest) {
+        let mut seen = events(
+            until(outputs, |output| {
+                matches!(
+                    output,
+                    AgentOutput::Event(AgentEvent::PermissionRequested(_))
+                )
+            })
+            .await,
+        );
+        let Some(AgentEvent::PermissionRequested(request)) = seen.pop() else {
+            panic!("no permission request");
+        };
+        (seen, request)
+    }
+
+    /// The next question asked.
+    pub(super) async fn question(outputs: &mut AgentOutputs) -> Question {
+        let seen = until(outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::QuestionAsked(_)))
+        })
+        .await;
+        let Some(AgentOutput::Event(AgentEvent::QuestionAsked(question))) = seen.last() else {
+            panic!("no question: {seen:?}");
+        };
+        question.clone()
+    }
+
+    /// A choice of the mode.
+    pub(super) fn mode(value: &str) -> OptionChoice {
+        OptionChoice {
+            id: OptionId::new("mode"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new(value),
+            },
+        }
+    }
 }
 
-/// The handshake says who the agent is, its (no) options, then ready on a
+/// The current value of the one option, the mode, in `options`.
+fn current(options: &[SessionOption]) -> Option<&str> {
+    match options {
+        [
+            SessionOption {
+                kind: OptionKind::Select { current, .. },
+                ..
+            },
+        ] => Some(current.as_str()),
+        _ => None,
+    }
+}
+
+/// The handshake says who the agent is, its options (the mode), then ready on a
 /// new thread; a prompt sent before it is ready waits for it; the reply
 /// streams in deltas (another thread's delta is not this session's), then
 /// usage and the turn's end with its tokens.
@@ -148,7 +207,10 @@ async fn a_thread_starts_and_a_turn_streams_its_reply() {
             introduction.version.as_ref().map(ToString::to_string),
             Some("0.166.0".to_owned())
         );
-        assert_eq!(handshake[1], AgentOutput::Options(Vec::new()));
+        let AgentOutput::Options(options) = &handshake[1] else {
+            panic!("options second: {handshake:?}");
+        };
+        assert_eq!(current(options), Some("agent"));
         let AgentOutput::Event(AgentEvent::Ready {
             harness_session,
             abilities,
@@ -262,27 +324,313 @@ async fn items_plans_and_reasoning_become_events() {
     .await;
 }
 
-/// Until the permissions slice, an approval is declined: the command ends
-/// failed, and the session's log says why.
+/// An approval is asked with Codex's own choices, on its tool call
+/// (announced from the request, then updated by the item); the answer goes
+/// back as the decision chosen, a rule and all, and only once.
 #[tokio::test]
-async fn an_approval_is_declined_and_the_log_says_why() {
+async fn an_approval_is_asked_with_codexs_choices_and_answered() {
     within(async {
         let (_agent, input, mut outputs) = spawn(setup(None));
         let _ready = ready(&mut outputs).await;
         input.prompt(text("approve")).await.unwrap();
-        let events = turn(&mut outputs).await;
+        let (before, request) = asked(&mut outputs).await;
         assert!(
-            events.iter().any(|event| matches!(
+            before.iter().any(|event| matches!(
                 event,
-                AgentEvent::HarnessLog { line } if line.contains("declined Codex's request to run a command")
+                AgentEvent::ToolCall(call) if call.id == ToolCallId::new("cmd-1")
+                    && call.kind == ToolKind::Execute
+                    && call.status == ToolCallStatus::Pending
             )),
-            "{events:?}"
+            "{before:?}"
         );
+        assert_eq!(request.tool_call, ToolCallId::new("cmd-1"));
+        let offered: Vec<&str> = request
+            .options
+            .iter()
+            .map(|option| option.id.as_str())
+            .collect();
+        assert_eq!(
+            offered,
+            [
+                "accept",
+                "acceptForSession",
+                "acceptWithExecpolicyAmendment",
+                "decline",
+                "cancel"
+            ]
+        );
+        let outcome = PermissionOutcome::Selected {
+            option: PermissionOptionId::new("acceptWithExecpolicyAmendment"),
+        };
+        input.answer(request.id, outcome.clone()).await.unwrap();
+        assert!(matches!(
+            input.answer(request.id, outcome.clone()).await,
+            Err(InputError::PermissionSettled(_))
+        ));
+        let events = turn(&mut outputs).await;
+        assert!(events.contains(&AgentEvent::PermissionResolved {
+            id: request.id,
+            outcome
+        }));
+        let announced = events
+            .iter()
+            .filter(|event| matches!(event, AgentEvent::ToolCall(_)))
+            .count();
+        assert_eq!(announced, 0, "announced twice: {events:?}");
+        assert!(events.iter().any(|event| matches!(
+            event,
+            AgentEvent::ToolCallUpdate(update) if update.status == Some(ToolCallStatus::InProgress)
+        )));
+        assert_eq!(
+            said(&events),
+            r#"decision {"acceptWithExecpolicyAmendment":{"execpolicy_amendment":["echo"]}}"#
+        );
+    })
+    .await;
+}
+
+/// A cancel withdraws the open approval (Codex hears `cancel`) and ends
+/// the turn cancelled; Codex resolving a request settles it too.
+#[tokio::test]
+async fn a_cancel_or_codex_withdraws_an_open_approval() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("approve")).await.unwrap();
+        let (_before, request) = asked(&mut outputs).await;
+        input.cancel_turn().await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(events.contains(&AgentEvent::PermissionResolved {
+            id: request.id,
+            outcome: PermissionOutcome::Cancelled
+        }));
+        assert_eq!(said(&events), r#"decision "cancel""#);
+        assert!(matches!(
+            events.last(),
+            Some(AgentEvent::TurnEnded {
+                reason: StopReason::Cancelled,
+                ..
+            })
+        ));
+
+        input.prompt(text("resolved")).await.unwrap();
+        let (_before, request) = asked(&mut outputs).await;
+        let events = turn(&mut outputs).await;
+        assert_eq!(
+            events.first(),
+            Some(&AgentEvent::PermissionResolved {
+                id: request.id,
+                outcome: PermissionOutcome::Cancelled
+            })
+        );
+        assert!(matches!(
+            input.answer(request.id, PermissionOutcome::Cancelled).await,
+            Err(InputError::PermissionSettled(_))
+        ));
+    })
+    .await;
+}
+
+/// A file change offers its four decisions on its item's tool call; more
+/// permissions are granted as asked, for the turn or the session.
+#[tokio::test]
+async fn a_file_change_and_more_permissions_are_asked() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("edit")).await.unwrap();
+        let (_before, request) = asked(&mut outputs).await;
+        assert_eq!(request.tool_call, ToolCallId::new("edit-1"));
+        assert_eq!(request.options.len(), 4);
+        let decline = PermissionOutcome::Selected {
+            option: PermissionOptionId::new("decline"),
+        };
+        input.answer(request.id, decline).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert_eq!(said(&events), r#"decision "decline""#);
         assert!(events.iter().any(|event| matches!(
             event,
             AgentEvent::ToolCallUpdate(update) if update.status == Some(ToolCallStatus::Failed)
         )));
-        assert_eq!(said(&events), "decision decline");
+
+        input.prompt(text("permit")).await.unwrap();
+        let (before, request) = asked(&mut outputs).await;
+        assert!(before.iter().any(|event| matches!(
+            event,
+            AgentEvent::ToolCall(call) if call.id == ToolCallId::new("perm-1")
+                && call.title == "Fetch the docs"
+        )));
+        let session = PermissionOutcome::Selected {
+            option: PermissionOptionId::new("session"),
+        };
+        input.answer(request.id, session).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert_eq!(
+            said(&events),
+            r#"granted session {"network":{"enabled":true}}"#
+        );
+    })
+    .await;
+}
+
+/// With someone watching, Codex's questions and a tool server's form are
+/// asked, checked and answered; a secret is never asked.
+#[tokio::test]
+async fn questions_are_asked_when_someone_watches() {
+    within(async {
+        let mut watched = setup(None);
+        watched.questions = true;
+        let (_agent, input, mut outputs) = spawn(watched);
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("ask")).await.unwrap();
+        let asked = question(&mut outputs).await;
+        let kinds: Vec<bool> = asked
+            .fields
+            .iter()
+            .map(|field| matches!(field.kind, FieldKind::Choice { .. }))
+            .collect();
+        assert_eq!(kinds, [true, false]);
+        let wrong = [(
+            "color".parse().unwrap(),
+            AnswerValue::Choice("green".to_owned()),
+        )]
+        .into();
+        assert!(matches!(
+            input
+                .answer_question(asked.id, QuestionAnswer::Accept { values: wrong })
+                .await,
+            Err(InputError::InvalidAnswer { .. })
+        ));
+        let values = [
+            (
+                "color".parse().unwrap(),
+                AnswerValue::Choice("blue".to_owned()),
+            ),
+            ("name".parse().unwrap(), AnswerValue::Text("Ann".to_owned())),
+        ]
+        .into();
+        input
+            .answer_question(asked.id, QuestionAnswer::Accept { values })
+            .await
+            .unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(events.iter().any(|event| matches!(
+            event,
+            AgentEvent::QuestionResolved { id, .. } if *id == asked.id
+        )));
+        assert_eq!(
+            said(&events),
+            r#"answers {"color":{"answers":["blue"]},"name":{"answers":["Ann"]}}"#
+        );
+
+        input.prompt(text("form")).await.unwrap();
+        let asked = question(&mut outputs).await;
+        assert_eq!(asked.message, "Who?");
+        let values = [("name".parse().unwrap(), AnswerValue::Text("Ann".to_owned()))].into();
+        input
+            .answer_question(asked.id, QuestionAnswer::Accept { values })
+            .await
+            .unwrap();
+        assert_eq!(
+            said(&turn(&mut outputs).await),
+            r#"action accept {"name":"Ann"}"#
+        );
+
+        input.prompt(text("secret")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(
+            events.iter().any(|event| matches!(
+                event,
+                AgentEvent::HarnessLog { line } if line.contains("secret")
+            )),
+            "{events:?}"
+        );
+        assert!(
+            !events
+                .iter()
+                .any(|event| matches!(event, AgentEvent::QuestionAsked(_)))
+        );
+        assert_eq!(said(&events), "answers {}");
+    })
+    .await;
+}
+
+/// With nobody watching, a question is answered empty and a form declined
+/// at once, each with a line in the log.
+#[tokio::test]
+async fn with_nobody_watching_questions_are_not_asked() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("ask")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(events.iter().any(|event| matches!(
+            event,
+            AgentEvent::HarnessLog { line } if line.contains("nobody watches")
+        )));
+        assert_eq!(said(&events), "answers {}");
+        input.prompt(text("form")).await.unwrap();
+        assert_eq!(said(&turn(&mut outputs).await), "action decline null");
+    })
+    .await;
+}
+
+/// The mode chosen goes with the thread's start and with every turn; a
+/// change goes with the next turn and is reported; another option is
+/// refused. By default Codex's reviewer looks first (`agent`).
+#[tokio::test]
+async fn the_mode_goes_with_the_thread_and_each_turn() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("policy")).await.unwrap();
+        assert_eq!(
+            said(&turn(&mut outputs).await),
+            "turn on-request auto_review workspaceWrite thread on-request auto_review \
+             workspace-write"
+        );
+
+        let mut reading = setup(None);
+        reading.options = vec![mode("read-only")];
+        let (_agent, input, mut outputs) = spawn(reading);
+        let handshake = ready(&mut outputs).await;
+        assert!(
+            matches!(&handshake[1], AgentOutput::Options(options) if current(options) == Some("read-only"))
+        );
+        input.prompt(text("policy")).await.unwrap();
+        assert_eq!(
+            said(&turn(&mut outputs).await),
+            "turn on-request user readOnly thread on-request user read-only"
+        );
+        let options = input.set_option(mode("agent-full-access")).await.unwrap();
+        assert_eq!(current(&options), Some("agent-full-access"));
+        assert_eq!(current(&input.options().await.unwrap()), Some("agent-full-access"));
+        let refused = OptionChoice {
+            id: OptionId::new("model"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("o"),
+            },
+        };
+        assert!(matches!(
+            input.set_option(refused).await,
+            Err(InputError::Option(_))
+        ));
+        input.prompt(text("policy")).await.unwrap();
+        let events = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::TurnEnded { .. }))
+        })
+        .await;
+        assert!(
+            events.iter().any(|output| matches!(
+                output,
+                AgentOutput::Options(options) if current(options) == Some("agent-full-access")
+            )),
+            "{events:?}"
+        );
+        assert_eq!(
+            said(&support::events(events)),
+            "turn never user dangerFullAccess thread on-request user read-only"
+        );
     })
     .await;
 }
@@ -416,14 +764,15 @@ async fn a_thread_is_resumed_and_what_cannot_open_fails_the_handshake() {
     .await;
 }
 
-/// A probe reads the agent's introduction and abilities and stops it.
+/// A probe reads the agent's introduction, abilities and options (the
+/// mode, for a new-session form) and stops it.
 #[tokio::test]
 async fn a_probe_reads_the_introduction() {
     within(async {
         let probed = vessel_agent::probe_with(Driver::CodexAppServer, &command(), setup(None))
             .await
             .unwrap();
-        assert!(probed.options.is_empty());
+        assert_eq!(current(&probed.options), Some("agent"));
         assert!(probed.abilities.steer);
         assert_eq!(
             probed
@@ -474,17 +823,17 @@ async fn only_the_running_turns_completion_ends_it() {
     .await;
 }
 
-/// Until the options slice, a session asked for a choice is not started
-/// without it: the handshake fails as for an option an agent does not
-/// offer. Tool servers are said to be left out.
+/// Until the options slice, a session asked for a choice other than the
+/// mode is not started without it: the handshake fails as for an option
+/// an agent does not offer. Tool servers are said to be left out.
 #[tokio::test]
-async fn choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
+async fn other_choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
     within(async {
         let mut choosing = setup(None);
-        choosing.options = vec![vessel_proto::OptionChoice {
-            id: vessel_proto::OptionId::new("mode"),
-            value: vessel_proto::ChoiceValue::Select {
-                value: vessel_proto::OptionValueId::new("read-only"),
+        choosing.options = vec![OptionChoice {
+            id: OptionId::new("effort"),
+            value: ChoiceValue::Select {
+                value: OptionValueId::new("high"),
             },
         }];
         let (_agent, _input, mut outputs) = spawn(choosing);
@@ -496,7 +845,7 @@ async fn choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
             matches!(
                 refused.last(),
                 Some(AgentOutput::Disconnected(Disconnect::Handshake { message, .. }))
-                    if message.contains("mode")
+                    if message.contains("effort")
             ),
             "{refused:?}"
         );

@@ -296,20 +296,25 @@ mod tests {
     }
 
     /// A driver this build does not offer yet, set anyway (a file from a
-    /// newer build): ACP, with the reason in the log. ACP, `unknown`, a
-    /// terminal session and an added agent: ACP, nothing said.
+    /// newer build): ACP, with the reason in the log. One it offers
+    /// (Codex's, from its slice 2): that driver, the version to decide.
+    /// ACP, `unknown`, a terminal session and an added agent: ACP, nothing
+    /// said.
     #[test]
     fn the_setting_and_the_build_decide_before_the_version() {
         let direct = AgentDrivers {
             codex: AgentDriver::Direct,
-            open_code: AgentDriver::Unknown,
-            ..AgentDrivers::default()
+            open_code: AgentDriver::Direct,
+            claude_code: AgentDriver::Unknown,
         };
-        let Gate::Refused(line) = gate(&structured(HarnessKind::Codex), direct) else {
-            panic!("no driver is offered in slice 0");
+        let Gate::Refused(line) = gate(&structured(HarnessKind::OpenCode), direct) else {
+            panic!("OpenCode's own protocol is not offered yet");
         };
         assert!(line.contains("runs over ACP"), "{line}");
-        assert_eq!(gate(&structured(HarnessKind::OpenCode), direct), Gate::Acp);
+        assert!(matches!(
+            gate(&structured(HarnessKind::Codex), direct),
+            Gate::Direct(chosen) if chosen.protocol == DirectProtocol::CodexAppServer
+        ));
         assert_eq!(
             gate(&structured(HarnessKind::ClaudeCode), direct),
             Gate::Acp

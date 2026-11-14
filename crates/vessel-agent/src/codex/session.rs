@@ -1,6 +1,6 @@
 //! One session over Codex's app-server: the handshake, turns, steering and
-//! cancelling, and what the agent asks (slice 1 of the plan's Codex
-//! section).
+//! cancelling, the mode, and what the agent asks (slices 1 and 2 of the
+//! plan's Codex section).
 //!
 //! [Decision Log]
 //! - Purpose: the session actors see what the ACP driver gives them, in
@@ -17,11 +17,21 @@
 //!   the same thread. A cancel before the answer is remembered and sent
 //!   once the id is known. A completion of the running turn that does not
 //!   read ends it failed, never leaving the session busy for good.
-//! - Approvals: declined, each with a line in the session's log, until the
-//!   permissions slice turns them into permission requests. That is why
-//!   the node cannot select this driver yet (`vessel_harness::direct`).
-//!   Requests the driver does not serve are answered with an error, never
-//!   left waiting.
+//! - What Codex asks (slice 2): approvals become permission requests on
+//!   the item's tool call (announced from the request when Codex has not
+//!   announced the item), its questions and its tool servers' forms become
+//!   questions (`asks`). A cancel withdraws what is open before it
+//!   interrupts, and what Codex asks until the turn ends is withdrawn at
+//!   once, as the ACP driver does; the turn's end and the connection's
+//!   withdraw the rest, and Codex's `serverRequest/resolved` settles one
+//!   it no longer waits on. With questions off (nobody watches the
+//!   session) a question is answered empty or declined at once, with a
+//!   line in the log. Requests the driver does not serve are answered with
+//!   an error, never left waiting.
+//! - Approvals of another thread (a sub-agent's) are asked too: unasked,
+//!   Codex would wait on them for good, and nothing is allowed unasked.
+//! - The mode (`mode`): set with the thread's start or resume, and a change
+//!   goes with the next `turn/start`, as codex-acp applies it.
 //! - Other threads' notifications (Codex's sub-agents run threads of their
 //!   own) are not this session's and are ignored here.
 
@@ -32,23 +42,25 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::agents::AgentVersion;
 use vessel_proto::{
-    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, OptionChoice,
+    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, PermissionOutcome,
+    QuestionOutcome, ToolCallUpdate, ToolKind,
 };
 
+use super::asks::{self, Approvals, Asking, Questions, Settled};
 use super::mapper;
+use super::mode::Mode;
 use super::protocol::{
-    AskForApproval, ClientInfo, Declined, DeltaNotification, ElicitationDeclined,
-    ErrorNotification, InitializeCapabilities, InitializeParams, InitializeResponse,
-    ItemNotification, NoPermissions, PlanNotification, SandboxMode, ThreadOpened,
-    ThreadResumeParams, ThreadStartParams, TokenUsageBreakdown, TurnInterruptParams,
-    TurnNotification, TurnStartParams, TurnStartResponse, TurnSteerParams, UsageNotification,
+    ClientInfo, CommandApproval, DeltaNotification, ErrorNotification, FileChangeApproval,
+    InitializeCapabilities, InitializeParams, InitializeResponse, ItemNotification,
+    PermissionsApproval, PlanNotification, RequestResolved, ThreadOpened, ThreadResumeParams,
+    ThreadStartParams, TokenUsageBreakdown, TurnInterruptParams, TurnNotification, TurnStartParams,
+    TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
 };
 use super::wire::{self, Ended, Incoming, Outgoing, RpcError};
 use crate::error::{Disconnect, InputError};
 use crate::handshake::{AgentSetup, ForkRefusal};
 use crate::input::{Command, Reply, SteerOutcome, SteerReply};
 use crate::introduction::Introduction;
-use crate::options::OptionError;
 use crate::output::AgentOutput;
 
 /// Lines read ahead of the loop.
@@ -56,6 +68,9 @@ const INBOUND: usize = 64;
 
 /// JSON-RPC's "method not found".
 const METHOD_NOT_FOUND: i64 = -32601;
+
+/// JSON-RPC's "invalid params".
+const INVALID_PARAMS: i64 = -32602;
 
 /// What the driver says of itself in `initialize`.
 const CLIENT: ClientInfo = ClientInfo {
@@ -124,6 +139,16 @@ struct Session {
     before: TokenUsageBreakdown,
     /// The context's fullness as last reported to the session.
     context: Option<ContextUsage>,
+    /// The mode the next turn runs in.
+    mode: Mode,
+    /// What waits on a person.
+    approvals: Approvals,
+    questions: Questions,
+    /// Tool calls announced this turn, by their item or an approval.
+    announced: HashSet<String>,
+    /// The running turn was cancelled: what Codex asks until it ends is
+    /// withdrawn at once.
+    cancelling: bool,
 }
 
 impl Session {
@@ -140,6 +165,11 @@ impl Session {
             total: TokenUsageBreakdown::default(),
             before: TokenUsageBreakdown::default(),
             context: None,
+            mode: Mode::DEFAULT,
+            approvals: Approvals::default(),
+            questions: Questions::default(),
+            announced: HashSet::new(),
+            cancelling: false,
         }
     }
 
@@ -216,6 +246,7 @@ impl Session {
 
     /// Settle what is open, then say why the connection ended.
     async fn close(&mut self, disconnect: Disconnect) {
+        self.withdraw().await;
         if self.turn != TurnState::Idle {
             self.turn = TurnState::Idle;
             self.emit(AgentEvent::TurnFailed {
@@ -243,7 +274,7 @@ impl Session {
                 None
             }
             Incoming::Request { id, method, params } => {
-                self.asked(&id, &method, &params).await;
+                self.asked(id, &method, params).await;
                 None
             }
         }
@@ -296,11 +327,14 @@ impl Session {
         if !self.out.notify("initialized", &serde_json::json!({})).await {
             return Some(Disconnect::Closed);
         }
-        // Until the options slice the driver offers no option: a choice
-        // asked for fails the handshake, as an ACP agent's unknown option
+        // The mode is the one option until the options slice: another
+        // choice fails the handshake, as an ACP agent's unknown option
         // does, rather than run without it unannounced.
-        if let Some(choice) = self.setup.options.first() {
-            return Some(handshake_failed(unknown(choice.clone()).to_string()));
+        for choice in &self.setup.options {
+            match Mode::chosen(choice) {
+                Ok(mode) => self.mode = mode,
+                Err(error) => return Some(handshake_failed(error.to_string())),
+            }
         }
         if self.setup.fork.is_some() {
             // Forking a thread is the history slice's (`thread/fork`).
@@ -317,8 +351,9 @@ impl Session {
                 thread_id: thread.to_string(),
                 cwd,
                 model,
-                approval_policy: AskForApproval::OnRequest,
-                sandbox: SandboxMode::WorkspaceWrite,
+                approval_policy: self.mode.approval(),
+                approvals_reviewer: self.mode.reviewer(),
+                sandbox: self.mode.sandbox(),
                 exclude_turns: true,
             };
             self.request("thread/resume", &params, Pending::Thread)
@@ -327,8 +362,9 @@ impl Session {
             let params = ThreadStartParams {
                 cwd,
                 model,
-                approval_policy: AskForApproval::OnRequest,
-                sandbox: SandboxMode::WorkspaceWrite,
+                approval_policy: self.mode.approval(),
+                approvals_reviewer: self.mode.reviewer(),
+                sandbox: self.mode.sandbox(),
             };
             self.request("thread/start", &params, Pending::Thread).await
         };
@@ -350,8 +386,9 @@ impl Session {
             fork: false,
         };
         self.thread = Some(opened.thread.id.clone());
-        // No options yet: they are slice 3's (`model/list`).
-        self.output(AgentOutput::Options(Vec::new())).await;
+        // The mode alone until slice 3 (`model/list`).
+        self.output(AgentOutput::Options(vec![self.mode.option()]))
+            .await;
         self.emit(AgentEvent::Ready {
             harness_session: HarnessSessionId::new(opened.thread.id),
             abilities: Some(abilities),
@@ -387,6 +424,7 @@ impl Session {
         };
         if self.turn != TurnState::Idle {
             self.turn = TurnState::Idle;
+            self.withdraw().await;
             self.emit(AgentEvent::TurnFailed { message }).await;
         }
     }
@@ -410,6 +448,12 @@ impl Session {
         let ours = |of: &str| of == thread;
         match method {
             "turn/completed" => self.completed(&thread, params).await,
+            // Any thread's: what is asked is asked whichever thread asks.
+            "serverRequest/resolved" => {
+                if let Some(resolved) = read::<RequestResolved>(method, params) {
+                    self.resolved(&resolved.request_id).await;
+                }
+            }
             "item/started" | "item/completed" => {
                 if let Some(item) = read::<ItemNotification>(method, params)
                     .filter(|notification| ours(&notification.thread_id))
@@ -476,7 +520,22 @@ impl Session {
         let item = notification.item;
         if started {
             if let Some(call) = mapper::tool_call(&item) {
-                self.emit(AgentEvent::ToolCall(call)).await;
+                if self.announced.insert(call.id.as_str().to_owned()) {
+                    self.emit(AgentEvent::ToolCall(call)).await;
+                } else {
+                    // Announced from its approval: the item says the rest.
+                    let update = ToolCallUpdate {
+                        id: call.id,
+                        title: Some(call.title),
+                        kind: Some(call.kind),
+                        status: Some(call.status),
+                        content: None,
+                        locations: Some(call.locations),
+                        raw_input: call.raw_input,
+                        raw_output: None,
+                    };
+                    self.emit(AgentEvent::ToolCallUpdate(update)).await;
+                }
             }
             return;
         }
@@ -512,61 +571,228 @@ impl Session {
         };
         self.turn = TurnState::Idle;
         self.streamed.clear();
+        self.withdraw().await;
         self.emit(failed).await;
     }
 
-    /// A request of the agent's: approvals are declined; nothing else is
-    /// served yet.
-    async fn asked(&mut self, id: &Value, method: &str, _params: &Value) {
-        let what = match method {
+    /// A request of the agent's: an approval or a question is held for a
+    /// person; anything else is refused.
+    async fn asked(&mut self, id: Value, method: &str, params: Value) {
+        match method {
             "item/commandExecution/requestApproval" => {
-                let _sent = self
-                    .out
-                    .answer(
-                        id,
-                        &Declined {
-                            decision: "decline",
-                        },
-                    )
-                    .await;
-                "to run a command"
+                let Some(asked) = self.readable::<CommandApproval>(&id, method, params).await
+                else {
+                    return;
+                };
+                let title = asked
+                    .command
+                    .clone()
+                    .unwrap_or_else(|| "Run a command".to_owned());
+                let input = serde_json::json!({ "command": asked.command, "cwd": asked.cwd });
+                let call = asks::tool_call(&asked.item_id, title, ToolKind::Execute, Some(&input));
+                self.approval(id, call, Asking::command(&asked)).await;
             }
             "item/fileChange/requestApproval" => {
-                let _sent = self
-                    .out
-                    .answer(
-                        id,
-                        &Declined {
-                            decision: "decline",
-                        },
-                    )
-                    .await;
-                "to change files"
+                let Some(asked) = self
+                    .readable::<FileChangeApproval>(&id, method, params)
+                    .await
+                else {
+                    return;
+                };
+                let title = asked.reason.unwrap_or_else(|| "Edit files".to_owned());
+                let call = asks::tool_call(&asked.item_id, title, ToolKind::Edit, None);
+                self.approval(id, call, Asking::file_change()).await;
             }
             "item/permissions/requestApproval" => {
-                let none = NoPermissions {
-                    permissions: serde_json::Map::new(),
+                let Some(asked) = self
+                    .readable::<PermissionsApproval>(&id, method, params)
+                    .await
+                else {
+                    return;
                 };
-                let _sent = self.out.answer(id, &none).await;
-                "for more permissions"
+                let title = asked
+                    .reason
+                    .clone()
+                    .unwrap_or_else(|| "More permissions".to_owned());
+                let call = asks::tool_call(
+                    &asked.item_id,
+                    title,
+                    ToolKind::Other,
+                    Some(&asked.permissions),
+                );
+                self.approval(id, call, Asking::permissions(&asked)).await;
             }
-            "mcpServer/elicitation/request" => {
-                let declined = ElicitationDeclined { action: "decline" };
-                let _sent = self.out.answer(id, &declined).await;
-                "for a tool server's input"
-            }
+            "item/tool/requestUserInput" => self.user_input(id, method, params).await,
+            "mcpServer/elicitation/request" => self.elicitation(id, &params).await,
             _ => {
-                let message = format!("Vessel does not serve {method} yet");
-                let _sent = self.out.refuse(id, METHOD_NOT_FOUND, &message).await;
+                let message = format!("Vessel does not serve {method}");
+                let _sent = self.out.refuse(&id, METHOD_NOT_FOUND, &message).await;
                 tracing::info!(method, "a Codex request Vessel does not serve, refused");
-                return;
             }
+        }
+    }
+
+    /// A request's parameters as `T`; one that does not read is refused,
+    /// with a line in the log, so Codex never waits on it.
+    async fn readable<T: serde::de::DeserializeOwned>(
+        &self,
+        id: &Value,
+        method: &str,
+        params: Value,
+    ) -> Option<T> {
+        match serde_json::from_value(params) {
+            Ok(read) => Some(read),
+            Err(error) => {
+                let message = format!("Vessel could not read {method}: {error}");
+                let _sent = self.out.refuse(id, INVALID_PARAMS, &message).await;
+                self.emit(AgentEvent::HarnessLog {
+                    line: format!("vessel: {message}; refused"),
+                })
+                .await;
+                None
+            }
+        }
+    }
+
+    /// Hold an approval on `call`, announcing the call if Codex has not.
+    async fn approval(&mut self, request: Value, call: vessel_proto::ToolCall, asking: Asking) {
+        let tool_call = call.id.clone();
+        if self.announced.insert(call.id.as_str().to_owned()) {
+            self.emit(AgentEvent::ToolCall(call)).await;
+        }
+        let (asked, displaced) = self.approvals.open(request, tool_call, asking);
+        if let Some((oldest, settled)) = displaced {
+            self.settle(&settled).await;
+            self.emit(AgentEvent::PermissionResolved {
+                id: oldest,
+                outcome: PermissionOutcome::Cancelled,
+            })
+            .await;
+        }
+        self.emit(AgentEvent::PermissionRequested(asked)).await;
+        if self.cancelling {
+            // Asked before Codex saw the cancel: withdrawn, as the ACP
+            // driver withdraws one; the log shows it asked and withdrawn.
+            self.withdraw().await;
+        }
+    }
+
+    /// Codex's own questions.
+    async fn user_input(&mut self, id: Value, method: &str, params: Value) {
+        if !self.setup.questions {
+            let _sent = self.out.answer(&id, &asks::no_answers()).await;
+            self.log(
+                "Codex asked a question; nobody watches this session, so it was left unanswered",
+            )
+            .await;
+            return;
+        }
+        let Some(asked) = self.readable::<UserInputRequest>(&id, method, params).await else {
+            return;
         };
-        let line = format!(
-            "Vessel declined Codex's request {what}: this driver does not ask for permissions yet"
-        );
-        tracing::info!(method, "Codex's approval request declined");
-        self.emit(AgentEvent::HarnessLog { line }).await;
+        match self.questions.user_input(id.clone(), &asked) {
+            Ok(opened) => self.question(opened).await,
+            Err(why) => {
+                let _sent = self.out.answer(&id, &asks::no_answers()).await;
+                self.log(&format!(
+                    "Codex asked a question Vessel cannot show ({why}); left unanswered"
+                ))
+                .await;
+            }
+        }
+    }
+
+    /// A tool server's form.
+    async fn elicitation(&mut self, id: Value, params: &Value) {
+        let declined = asks::elicitation_response(&QuestionOutcome::Declined);
+        if !self.setup.questions {
+            let _sent = self.out.answer(&id, &declined).await;
+            self.log(
+                "a tool server asked a question; nobody watches this session, so it was declined",
+            )
+            .await;
+            return;
+        }
+        let thread = self.thread.clone().unwrap_or_default();
+        match self.questions.elicitation(id.clone(), &thread, params) {
+            Ok(opened) => self.question(opened).await,
+            Err(why) => {
+                let _sent = self.out.answer(&id, &declined).await;
+                self.log(&format!(
+                    "a tool server asked a question Vessel cannot show ({why}); declined"
+                ))
+                .await;
+            }
+        }
+    }
+
+    /// Publish a question held, after the one it displaced.
+    async fn question(&mut self, (question, displaced): asks::Opened) {
+        if let Some((oldest, settled)) = displaced {
+            self.settle(&settled).await;
+            self.emit(AgentEvent::QuestionResolved {
+                id: oldest,
+                outcome: QuestionOutcome::Cancelled,
+            })
+            .await;
+        }
+        self.emit(AgentEvent::QuestionAsked(question)).await;
+        if self.cancelling {
+            self.withdraw().await;
+        }
+    }
+
+    /// Codex no longer waits on request `request`.
+    async fn resolved(&mut self, request: &Value) {
+        if let Some(id) = self.approvals.resolved(request) {
+            self.emit(AgentEvent::PermissionResolved {
+                id,
+                outcome: PermissionOutcome::Cancelled,
+            })
+            .await;
+        }
+        if let Some(id) = self.questions.resolved(request) {
+            self.emit(AgentEvent::QuestionResolved {
+                id,
+                outcome: QuestionOutcome::Cancelled,
+            })
+            .await;
+        }
+    }
+
+    /// Withdraw what waits on a person, telling Codex and the session.
+    async fn withdraw(&mut self) {
+        for (id, settled) in self.approvals.withdraw_all() {
+            self.settle(&settled).await;
+            self.emit(AgentEvent::PermissionResolved {
+                id,
+                outcome: PermissionOutcome::Cancelled,
+            })
+            .await;
+        }
+        for (id, settled) in self.questions.withdraw_all() {
+            self.settle(&settled).await;
+            self.emit(AgentEvent::QuestionResolved {
+                id,
+                outcome: QuestionOutcome::Cancelled,
+            })
+            .await;
+        }
+    }
+
+    /// Answer Codex's request as settled.
+    async fn settle(&self, settled: &Settled) {
+        if !self.out.answer(&settled.request, &settled.response).await {
+            tracing::debug!("an answer to Codex not sent: its input is closed");
+        }
+    }
+
+    async fn log(&self, what: &str) {
+        tracing::info!(what, "a Codex question not asked");
+        self.emit(AgentEvent::HarnessLog {
+            line: format!("vessel: {what}"),
+        })
+        .await;
     }
 
     async fn command(&mut self, command: Command) {
@@ -577,20 +803,53 @@ impl Session {
                 answer(reply, Ok(()));
             }
             Command::Steer { content, reply, .. } => self.steer(content, reply).await,
-            Command::Answer { id, reply, .. } => {
-                answer(reply, Err(InputError::PermissionNotFound(id)));
+            Command::Answer { id, outcome, reply } => {
+                let result = match self.approvals.answer(id, &outcome) {
+                    Ok(settled) => {
+                        self.settle(&settled).await;
+                        self.emit(AgentEvent::PermissionResolved { id, outcome })
+                            .await;
+                        Ok(())
+                    }
+                    Err(error) => Err(error),
+                };
+                answer(reply, result);
             }
-            Command::AnswerQuestion { id, reply, .. } => {
-                answer(reply, Err(InputError::QuestionNotFound(id)));
+            Command::AnswerQuestion {
+                id,
+                answer: given,
+                reply,
+            } => {
+                let result = match self.questions.answer(id, given) {
+                    Ok((outcome, settled)) => {
+                        self.settle(&settled).await;
+                        self.emit(AgentEvent::QuestionResolved { id, outcome })
+                            .await;
+                        Ok(())
+                    }
+                    Err(error) => Err(error),
+                };
+                answer(reply, result);
             }
             Command::TurnRunning { reply } => {
                 let _gone = reply.send(self.turn != TurnState::Idle);
             }
             Command::Options { reply } => {
-                let _gone = reply.send(Vec::new());
+                let _gone = reply.send(vec![self.mode.option()]);
             }
             Command::SetOption { choice, reply } => {
-                let _gone = reply.send(Err(InputError::Option(unknown(choice))));
+                // Kept here, sent with the next `turn/start`.
+                let result = match Mode::chosen(&choice) {
+                    Ok(mode) => {
+                        if mode != self.mode {
+                            self.mode = mode;
+                            self.output(AgentOutput::Options(vec![mode.option()])).await;
+                        }
+                        Ok(vec![mode.option()])
+                    }
+                    Err(error) => Err(InputError::Option(error)),
+                };
+                let _gone = reply.send(result);
             }
         }
     }
@@ -614,6 +873,9 @@ impl Session {
         let params = TurnStartParams {
             thread_id: thread,
             input,
+            approval_policy: self.mode.approval(),
+            approvals_reviewer: self.mode.reviewer(),
+            sandbox_policy: self.mode.sandbox_policy(),
         };
         if !self
             .request("turn/start", &params, Pending::TurnStart)
@@ -624,12 +886,21 @@ impl Session {
         }
         self.turn = TurnState::Starting { cancel: false };
         self.streamed.clear();
+        self.announced.clear();
+        self.cancelling = false;
         self.before = self.total;
         self.emit(AgentEvent::TurnStarted { content }).await;
         answer(reply, Ok(()));
     }
 
+    /// Cancel the turn: what waits on a person is withdrawn first (a
+    /// command's `cancel` stops the turn too), then the turn interrupted.
     async fn cancel(&mut self) {
+        if self.turn == TurnState::Idle {
+            return;
+        }
+        self.cancelling = true;
+        self.withdraw().await;
         match &mut self.turn {
             TurnState::Idle => {}
             TurnState::Starting { cancel } => *cancel = true,
@@ -747,13 +1018,6 @@ fn version_of(user_agent: &str) -> Option<AgentVersion> {
     let first = user_agent.split_whitespace().next()?;
     let version = first.split_once('/').map_or(first, |(_, version)| version);
     version.parse().ok()
-}
-
-fn unknown(choice: OptionChoice) -> OptionError {
-    OptionError::Unknown {
-        id: choice.id,
-        offered: Vec::new(),
-    }
 }
 
 fn answer(reply: Reply, result: Result<(), InputError>) {
