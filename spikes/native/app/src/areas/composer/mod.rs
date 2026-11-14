@@ -8,6 +8,7 @@
 //! The rules are `vessel_app_view::composer`'s; this only wires them to
 //! the shell, the link and the toasts.
 
+pub(crate) mod modes;
 pub(crate) mod running;
 
 pub(crate) use running::ControlsTarget;

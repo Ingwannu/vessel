@@ -8,4 +8,5 @@
 //! here, with no UI toolkit in them, so the page, the desktop and the phone
 //! decide the same way (ADR 0036).
 
+pub mod modes;
 pub mod running;

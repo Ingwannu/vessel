@@ -316,7 +316,10 @@ pub(super) fn controls(
             "pick-mode",
             &lists.mode,
             PillParts {
-                leading: Some(Glyph::Shield),
+                leading: Some(crate::areas::composer::modes::pill_glyph(
+                    shell.controls_agent().as_ref().and_then(super::kind_of),
+                    &mode.current,
+                )),
                 label: density
                     .mode_label()
                     .then(|| mode.current_name().to_owned().into()),
@@ -870,6 +873,7 @@ fn option_rows(shell: &Shell, which: Picker, query: &str, built: &mut Built) {
         Picker::Mode => {
             if let Some(mode) = &controls.permissions {
                 built.header.search = mode.values.len() > SEARCH_PAST;
+                let first = built.rows.len();
                 value_rows(
                     mode,
                     query,
@@ -877,6 +881,20 @@ fn option_rows(shell: &Shell, which: Picker, query: &str, built: &mut Built) {
                     &|choice| Meaning::Choose(choice, true),
                     built,
                 );
+                // Paseo's `ModeComboboxOption`: the mode's mark and its
+                // name, no description (track P, after the coordinator's
+                // review of the session's menu).
+                let kind = shell.controls_agent().as_ref().and_then(super::kind_of);
+                let rows = built.rows.iter_mut().skip(first);
+                for (row, meaning) in rows.zip(built.meanings.iter().skip(first)) {
+                    row.detail = None;
+                    if let Meaning::Choose(choice, _) = meaning
+                        && let vessel_proto::ChoiceValue::Select { value } = &choice.value
+                    {
+                        row.leading = crate::areas::composer::modes::row_glyph(kind, value)
+                            .map(Leading::Mark);
+                    }
+                }
             }
         }
         Picker::Features
