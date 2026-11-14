@@ -13,7 +13,9 @@ mod file_terminals;
 mod files;
 mod git;
 mod path;
+mod port_range;
 mod project;
+mod service_port;
 mod support;
 mod text;
 mod url;
@@ -38,11 +40,13 @@ pub use git::{
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
 pub use path::{InvalidRelPath, RelPath, is_git_dir};
+pub use port_range::{InvalidPortRange, PortRange};
 pub use project::{
     AddProject, ApproveCommands, CloneFailure, CloneProject, CloneStage, GetProject,
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
     ProjectState, RemoveProject,
 };
+pub use service_port::{InvalidServicePort, ServicePort};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,

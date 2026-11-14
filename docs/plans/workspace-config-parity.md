@@ -171,7 +171,14 @@ shown and a partial comparison cannot claim the commands are unchanged.
   stopgap; display/comparison lands together with the native card's work.
   The native lead owns its card and exhaustive adapter. This track owns
   the web refusal now and its later terminal display/comparison.
-- Then: add the port contract in 2b, followed by runtime with approval and
-  lifecycle tests. Returned review findings take priority.
+- In progress: 2b begins with validated `ServicePort` and `PortRange`
+  values. They are not yet fields of a request, reply or project file;
+  parsing, digests and execution are unchanged. The existing serde
+  conversion pattern is reused; the observed-listener DTO is a separate
+  fact, not a declared or allocated service port.
+- Then: add the executable path and nonempty allocation block, followed by
+  the file parser, digest, approval snapshots and exhaustive clients in
+  separate small changes. Runtime follows with approval and lifecycle
+  tests. Returned review findings take priority.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
