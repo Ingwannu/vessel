@@ -58,6 +58,7 @@ use vessel_app_view::{
 };
 use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
 
+use crate::areas::composer::{draft_menu, draft_text};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -535,7 +536,9 @@ pub(crate) fn render(
     let typed = !draft.composer.text(cx).trim().is_empty();
     let can_send = typed && draft.agent.is_some();
     let card = composer_card(tokens, touch)
-        .child(draft.composer.element(tokens, touch, cx))
+        .relative()
+        .children(draft_menu(shell, tokens, window, cx))
+        .child(draft_text(shell, tokens, touch, cx))
         .child(
             // Paseo's button row bleeds 6 past the card's padding.
             div()
