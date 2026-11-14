@@ -128,6 +128,28 @@ motion, a software renderer) GPUI draws both at their end at once. The
 working footer's elapsed time is drawn again once a second while a turn
 runs, and not otherwise.
 
+## Module layout (2026-11-14, the owner's word 44)
+
+`app/src/areas/conversation/` after the split (no behaviour change;
+every file under 460 lines). Rules with tests live in `view`; `app`
+draws and wires.
+
+| File | Holds |
+| --- | --- |
+| `mod.rs` | the module's Decision Logs, its file list and re-exports |
+| `area.rs` | `ConversationArea` (the state), opening, clearing, revealing, the rows |
+| `intake.rs` | an act's answer and a batch of records, applied only for the session shown |
+| `place.rs` | `Seat` and `Place`: where a conversation's state is kept, how a card's answer is sent |
+| `actions.rs` | the Session actions menu, its confirms, the agent's log, the acts sent |
+| `follow.rs` | what the shell tells the conversation (opened, records, answers, lost, machine book) |
+| `entries.rs` / `bubbles.rs` | an entry drawn by kind / the message exchange (the two bubbles, the circle) |
+| `question.rs` / `question/card.rs` | the answer's state and controls / the card's drawing; the step's rules are `view::timeline::question_step` |
+| `queue.rs` / `queue/rows.rs` | the queue's edit and acts / its rows, grip and buttons |
+| `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
+
+Moved to `view` with tests: `question_step` (choices, pick, typed,
+header, prompt, text target), `start_at`, `first_reply`.
+
 ## Captures
 
 In a local folder, not committed, each beside the GOAT or
