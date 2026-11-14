@@ -125,7 +125,7 @@ mod tests;
 
 /// Write the composers' drafts on the blocking pool; a failure is logged
 /// (never their text).
-pub(crate) fn save_in_background(drafts: vessel_app_view::composer::drafts::Drafts) {
+pub(crate) fn save_in_background(drafts: Drafts) {
     drop(tokio::task::spawn_blocking(move || {
         if let Err(error) = save(&drafts) {
             tracing::warn!(%error, "the drafts could not be kept");

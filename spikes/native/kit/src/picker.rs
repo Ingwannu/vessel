@@ -38,7 +38,7 @@ use gpui::prelude::*;
 use gpui::{
     Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent,
     MouseButton, Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point,
-    px, rgb, rgba, svg,
+    px, rgba, svg,
 };
 
 use crate::assets::Glyph;
@@ -47,6 +47,9 @@ use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+
+mod send;
+pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are
 /// touch-sized (`constants/layout.ts`).
@@ -268,51 +271,6 @@ pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
     .left_0()
     .size_full()
     .into_any_element()
-}
-
-/// What the round button beside the composer does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SendKind {
-    /// Send the text (an arrow up, on the accent).
-    Send,
-    /// Stop the running turn (a square, on red).
-    Stop,
-}
-
-/// Paseo's send button: a circle 28 across (44 on touch), the accent with
-/// a white arrow, half-faded while there is nothing to send; while a turn
-/// runs and nothing is typed, a red circle with a white square.
-#[must_use]
-pub fn send_button(
-    id: impl Into<ElementId>,
-    kind: SendKind,
-    enabled: bool,
-    touch: bool,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    // Paseo's stop is `palette.red[600]`, the same in both themes.
-    let (fill, mark) = match kind {
-        SendKind::Send => (neutral.accent, Glyph::ArrowUp),
-        SendKind::Stop => (rgb(0x00dc_2626).into(), Glyph::Stop),
-    };
-    let size = if touch { 44.0 } else { 28.0 };
-    div()
-        .id(id)
-        .flex()
-        .items_center()
-        .justify_center()
-        .flex_shrink_0()
-        .size(px(size))
-        .rounded_full()
-        .bg(fill)
-        .when(!enabled, |button| button.opacity(0.5))
-        .when(enabled, Styled::cursor_pointer)
-        .child(glyph(
-            mark,
-            if touch { 20.0 } else { 16.0 },
-            neutral.accent_foreground,
-        ))
 }
 
 /// What leads a row.
@@ -630,6 +588,7 @@ pub fn combobox<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    let list_id: ElementId = id.into();
     if !state.open {
         return None;
     }
@@ -644,7 +603,7 @@ pub fn combobox<V: 'static>(
     });
 
     let mut panel = div()
-        .id(id.into())
+        .id(list_id.clone())
         .track_focus(&state.focus)
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
@@ -694,27 +653,60 @@ pub fn combobox<V: 'static>(
         header, rows, state, handlers, compact, tokens, cx,
     ));
 
-    let element = if compact {
+    // Word 39: the list arrives as Paseo's popover does (opacity and a
+    // small rise, `popup::appear`); a phone's sheet over the surface
+    // length. It leaves at once, as Paseo's desktop popovers do.
+    let panel = popup::appear(
+        ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
+        panel,
+        if compact {
+            crate::motion::STANDARD
+        } else {
+            crate::motion::QUICK
+        },
+    );
+    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
+    // from a row of the features sheet.
+    Some(deferred(element).with_priority(3).into_any_element())
+}
+
+/// Where the list is drawn: below the compact width a sheet from the
+/// bottom over the dimmed page (a press on the dim closes it); wider, at
+/// its trigger on the caller's side.
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    compact: bool,
+    side: Side,
+    anchor: Option<Bounds<Pixels>>,
+    get: fn(&mut V) -> &mut ComboboxState,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
-        let size = window.viewport_size();
+        let viewport = window.viewport_size();
         let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
             get(view).close();
             cx.notify();
         });
-        anchored().position(point(px(0.0), px(0.0))).child(
-            div()
-                .w(size.width)
-                .h(size.height)
-                .flex()
-                .flex_col()
-                .justify_end()
-                .bg(rgba(0x0000_0073))
-                .on_mouse_down(MouseButton::Left, on_scrim)
-                .child(panel),
-        )
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(
+                div()
+                    .w(viewport.width)
+                    .h(viewport.height)
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .bg(rgba(0x0000_0073))
+                    .on_mouse_down(MouseButton::Left, on_scrim)
+                    .child(panel),
+            )
+            .into_any_element()
     } else {
         // Paseo's `offset(5)` from the trigger, on the caller's side.
-        let (at, corner, offset) = match (header.side, anchor) {
+        let (at, corner, offset) = match (side, anchor) {
             // Not drawn yet (the first frame): near the window's middle.
             (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
             (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
@@ -726,10 +718,8 @@ pub fn combobox<V: 'static>(
             .anchor(corner)
             .snap_to_window_with_margin(px(EDGE))
             .child(panel)
-    };
-    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
-    // from a row of the features sheet.
-    Some(deferred(element).with_priority(3).into_any_element())
+            .into_any_element()
+    }
 }
 
 fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {

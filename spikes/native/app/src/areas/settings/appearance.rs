@@ -99,6 +99,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
+        .child(super::motion::section(shell, tokens, compact, cx))
         .when(sizes, |page| {
             page.child(settings::section(words.typography, typography, tokens))
         })

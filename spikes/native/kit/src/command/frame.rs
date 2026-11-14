@@ -6,6 +6,7 @@ use crate::fonts::Type;
 use crate::popup;
 use crate::sheet::snap::listener::{OnRelease, listener};
 use crate::sheet::snap::{Origin, Release, Stop};
+use crate::theme::COMMAND_SCRIM;
 use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
@@ -168,10 +169,7 @@ fn draw<V: 'static>(
                 .map_or(1.0, |g| g.backdrop),
         ))
     } else {
-        scrim
-            .justify_start()
-            .pt(px(TOP))
-            .bg(rgba(crate::theme::COMMAND_SCRIM))
+        scrim.justify_start().pt(px(TOP)).bg(rgba(COMMAND_SCRIM))
     };
     let scrim = scrim.when(!frame.compact, |scrim| {
         scrim.opacity(animation.map_or(1.0, |a| a.motion.opacity))

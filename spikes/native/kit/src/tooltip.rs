@@ -122,6 +122,16 @@ impl Tooltips {
             .line_height(px(crate::fonts::ui(LINE)))
             .text_color(neutral.foreground)
             .children(lines(&tip.text, neutral.foreground));
+        // Word 39: a tooltip arrives quickly (keyed by its words, so the
+        // next trigger's plays again) and goes at once.
+        let card = popup::appear(
+            gpui::ElementId::NamedChild(
+                std::sync::Arc::new(gpui::ElementId::Name(tip.text.clone())),
+                "tip".into(),
+            ),
+            card,
+            crate::motion::QUICK,
+        );
         Some(
             deferred(
                 anchored()

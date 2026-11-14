@@ -271,7 +271,7 @@ mod tests;
 /// from the kept one; a write that fails is logged (the list is a cache).
 pub(crate) async fn keep_answer(
     store: std::sync::Arc<std::sync::Mutex<Store>>,
-    node: vessel_proto::NodeId,
+    node: NodeId,
     harness: HarnessRef,
     said: Said,
     at: DateTime<Utc>,

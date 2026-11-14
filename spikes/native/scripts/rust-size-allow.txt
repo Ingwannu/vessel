@@ -11,12 +11,11 @@ spikes/native/app/src/areas/draft/effort_card.rs 806
 spikes/native/app/src/areas/draft/mod.rs 641
 spikes/native/app/src/areas/draft/pickers.rs 1190
 spikes/native/app/src/areas/session.rs 722
-spikes/native/app/src/areas/settings/mod.rs 518
 spikes/native/app/src/areas/workspace/detail.rs 718
 spikes/native/app/src/areas/workspace/projects.rs 614
 spikes/native/kit/src/assets.rs 653
 spikes/native/kit/src/field.rs 694
-spikes/native/kit/src/picker.rs 1147
+spikes/native/kit/src/picker.rs 1137
 spikes/native/kit/src/slider.rs 719
 spikes/native/link/src/demo.rs 591
 spikes/native/link/src/lib.rs 1086

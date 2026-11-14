@@ -137,8 +137,9 @@ fn energy(displacement: f32, velocity: f32) -> f32 {
         .mul_add(500.0, velocity.mul_add(velocity, 0.0).mul_add(1.5, 0.0))
 }
 
-/// RNW's `ModalAnimation` entering duration.
-pub(crate) const FADE: Duration = Duration::from_millis(250);
+/// The desktop palette's entering fade: the kit's surface length (word
+/// 39's tokens; RNW's `ModalAnimation` was 250 ms).
+pub(crate) const FADE: Duration = crate::motion::STANDARD;
 
 /// Command Center mounts a visible Modal and unmounts it at close, so
 /// only the entering curve runs there (command-center.tsx945–949).
@@ -149,37 +150,5 @@ pub(crate) fn fade_in(elapsed: Duration, reduced: bool) -> f32 {
     let progress = elapsed
         .as_secs_f32()
         .mul_add(FADE.as_secs_f32().recip(), 0.0);
-    bezier(progress, (0.215, 0.61), (0.355, 1.0))
-}
-
-/// Invert the curve's time axis before evaluating opacity. Using a
-/// polynomial's parameter as time would not match a CSS cubic-bezier.
-fn bezier(time: f32, first: (f32, f32), second: (f32, f32)) -> f32 {
-    if time <= 0.0 {
-        return 0.0;
-    }
-    if time >= 1.0 {
-        return 1.0;
-    }
-    // De Casteljau interpolation avoids an expanded polynomial and
-    // keeps every intermediate within the control points' unit interval.
-    let lerp =
-        |from: f32, to: f32, at: f32| to.mul_add(at, from.mul_add(at.mul_add(-1.0, 0.0), from));
-    let coordinate = |at: f32, one: f32, two: f32| {
-        let a = one.mul_add(at, 0.0);
-        let b = lerp(one, two, at);
-        let c = lerp(two, 1.0, at);
-        lerp(lerp(a, b, at), lerp(b, c, at), at)
-    };
-    let mut lower = 0.0;
-    let mut upper = 1.0;
-    for _ in 0..20 {
-        let at = f32::midpoint(lower, upper);
-        if coordinate(at, first.0, second.0) < time {
-            lower = at;
-        } else {
-            upper = at;
-        }
-    }
-    coordinate(f32::midpoint(lower, upper), first.1, second.1)
+    crate::motion::ease(progress)
 }

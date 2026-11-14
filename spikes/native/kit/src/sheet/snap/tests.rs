@@ -317,10 +317,11 @@ fn spring_values_match_samples_from_the_actual_reanimated_helper() {
 }
 
 #[test]
-fn entering_fade_has_reference_endpoints_curve_and_reduced_completion() {
-    assert_eq!(fade_in(Duration::ZERO, false).to_bits(), 0.0_f32.to_bits());
+fn entering_fade_runs_the_motion_tokens_and_completes_when_held() {
+    // Word 39's tokens: the surface length on the kit's curve.
+    assert!(fade_in(Duration::ZERO, false).abs() < 1e-4);
     assert_eq!(
-        fade_in(Duration::from_millis(250), false).to_bits(),
+        fade_in(crate::motion::STANDARD, false).to_bits(),
         1.0_f32.to_bits()
     );
     assert_eq!(fade_in(Duration::ZERO, true).to_bits(), 1.0_f32.to_bits());

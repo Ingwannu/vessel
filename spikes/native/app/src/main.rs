@@ -69,6 +69,8 @@ fn main() {
                 return;
             }
             motion::follow(cx);
+            // The kept Animations setting, before the first frame.
+            motion::animations(prefs.settings.appearance.animations.on(), cx);
             let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
             let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
             let opened = cx.open_window(options, |window, cx| {
