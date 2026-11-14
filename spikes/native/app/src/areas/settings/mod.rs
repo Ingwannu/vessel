@@ -433,6 +433,7 @@ pub(crate) const fn drawn(section: Section) -> bool {
         section,
         Section::General
             | Section::Appearance
+            | Section::Shortcuts
             | Section::About
             | Section::Projects
             | Section::Agents
@@ -478,9 +479,12 @@ fn content(
         Section::Projects => Some(crate::areas::workspace::projects_content(
             shell, tokens, phone, cx,
         )),
-        // Shortcuts and Notifications are track S's; the per-machine
-        // sections are this track's next slice.
-        Section::Shortcuts | Section::Notifications | Section::Models | Section::Machines => None,
+        Section::Shortcuts => Some(crate::areas::shortcuts::page::render(
+            shell, tokens, phone, window, cx,
+        )),
+        // Notifications is track S's; the per-machine sections are this
+        // track's next slice.
+        Section::Notifications | Section::Models | Section::Machines => None,
     }
 }
 

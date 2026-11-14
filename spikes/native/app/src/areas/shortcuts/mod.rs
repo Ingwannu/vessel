@@ -26,12 +26,14 @@ use std::time::Instant;
 
 use gpui::KeystrokeEvent;
 use vessel_app_kit::TextField;
-use vessel_app_kit::ui::{Context, Subscription, Window};
+use vessel_app_kit::ui::{App, Context, Subscription, Window};
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::{
     Action, Held, KeyPress, Matched, Pending, Platform, chord_of, code_of, commanding, matched,
 };
 use vessel_app_view::sidebar::{Step, step_session};
+
+pub(crate) mod page;
 
 use super::session::Open;
 use crate::routes::Route;
@@ -43,9 +45,9 @@ pub(crate) struct ShortcutListener {
     pending: Option<Pending>,
     /// When the app started: a press's time is counted from it.
     since: Instant,
-    /// Settings › Shortcuts is recording a key: nothing fires. Its
-    /// recorder sets and clears it.
-    pub(crate) recording: bool,
+    /// Settings › Shortcuts (its recorder: while a row records, nothing
+    /// fires and the key goes to the row).
+    pub(crate) page: page::ShortcutsPage,
     /// The interceptor, kept for as long as the window.
     subscription: Option<Subscription>,
     /// The chord held down, to tell the system's repeat from a press.
@@ -53,11 +55,11 @@ pub(crate) struct ShortcutListener {
 }
 
 impl ShortcutListener {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(cx: &mut App) -> Self {
         Self {
             pending: None,
             since: Instant::now(),
-            recording: false,
+            page: page::ShortcutsPage::new(cx),
             subscription: None,
             held: Held::default(),
         }
@@ -108,13 +110,23 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.shortcuts.recording || TextField::focused_composing(window, cx) {
+        if TextField::focused_composing(window, cx) {
             return;
         }
         let platform = Platform::native();
         let Some(chord) = chord_of(&press_of(event), platform) else {
             return;
         };
+        if self.areas.shortcuts.page.recording() {
+            // A recording ends when its page is left (Paseo's
+            // `useIsFocused`); until then every key is the row's.
+            if self.route == Route::Settings && self.areas.settings.section == Section::Shortcuts {
+                self.shortcut_recorded(chord, cx);
+                cx.stop_propagation();
+                return;
+            }
+            self.areas.shortcuts.page.capture = None;
+        }
         let listener = &mut self.areas.shortcuts;
         let repeat = listener.held.press(&chord);
         let typing = event

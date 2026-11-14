@@ -56,7 +56,7 @@ impl Areas {
             workspace: workspace::Workspace::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
-            shortcuts: shortcuts::ShortcutListener::new(),
+            shortcuts: shortcuts::ShortcutListener::new(cx),
             sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
         }
