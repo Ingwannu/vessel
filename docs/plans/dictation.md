@@ -200,23 +200,37 @@ Each one is in ADR 0067 with its reason. Short list:
   observe is not in the contract.
 - Voice mode, TTS, and model download are not in these slices.
 
+## Implementation slices
+
+The original implementation draft was too large to review as one change.
+It is being rebuilt in responsibility-sized parts:
+
+- 2a: audio wire values and validated decoders only; no callable methods,
+  provider, settings, or node behaviour yet.
+- 2b: settings values and persistence, using the existing settings/secret path.
+- 2c: stream actor, endpoint, and the five RPC rows with their refusal paths.
+- 3: the CLI file client, after the node service passes review.
+
+Decision: modify existing serde/base64 infrastructure. Keep separate PCM
+and transcript types because terminal bytes and user speech have different
+limits and privacy requirements. The existing base64 decoder has no size
+cap; PCM therefore checks its encoded length before allocating decoded
+bytes. No dependency is added. Decoder failures are typed and never contain
+user audio or transcript text. Debug output is redacted. PCM MIME parameters
+are decoded once; duplicates are refused rather than taking the last value.
+The API retains any u32 sequence so the stream can return `TooLong`, while
+finish-budget decoding refuses values over five minutes.
+
 ## Resume point
 
-Done: Paseo read as cited above. Vessel's RPC, settings, secrets,
-forwarding and agent refusal read. ADR 0067 written, then corrected:
-confidence stays with voice mode, a chunk is one second (one shorter
-tail) and `seq` 0..=1_799 refuses as `TooLong`, `format` is fixed at
-`start`, the id is a log-safe token, and the protocol number is
-`dictation::SINCE` at merge. No code.
+Done: slice 1, reviewed ADR and contract. Slice 2a adds bounded audio wire
+values with edge tests. These values are not connected to `Call`/`Reply`
+yet, so existing peer bytes and generated TypeScript remain unchanged.
+`PROTOCOL_VERSION` stays unchanged; the merge assigns `dictation::SINCE`.
 
-Half-done: nothing.
+Half-done: the previous implementation draft is preserved outside the
+repository for comparison. Its settings, service, endpoint and actor have
+not passed a gate and are not claimed as implemented.
 
-Next: slice 2, on this branch, after this docs commit is reported.
-Do not change `PROTOCOL_VERSION`. Gate the new methods on
-`dictation::SINCE`. Do not add `sherpa-onnx`. Do not open a
-microphone.
-
-Gate: run on the docs commit before it is reported. The numbers and
-the log paths are in that report. They are not copied back into this
-file, because a second commit only to record them would need the gate
-again.
+Next: gate and report 2a, then build 2b and 2c. Do not link local models or
+open a microphone. The CLI file client follows those parts.

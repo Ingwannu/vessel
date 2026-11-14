@@ -1260,3 +1260,12 @@ projection, with the CLI branching before Admin-only listing.
 `vessel-testkit` optionally depends on proto for `authority-fixtures`, enabled
 only by node tests, to share concrete `DeviceSelf` fixtures. Ordinary fake
 binaries keep that feature off. No new external crate or schema is needed.
+
+## Dictation contract (ADR 0067, staged)
+
+`vessel-proto::dictation` owns bounded audio values and their decoders; it
+does not perform I/O. PCM and transcript diagnostics redact their contents.
+The stream actor and endpoint are subsequent implementation slices; no
+method, settings field or provider is available from these values alone.
+No crate edge changes: the node will reuse its existing HTTP and secret
+storage dependencies when the service lands.
