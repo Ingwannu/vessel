@@ -14,6 +14,10 @@ use crate::provision::{Provisioner, Source};
 use crate::release::Releases;
 use crate::ssh::Ssh;
 
+/// Each test's safety net, counted once the fakes are built
+/// (`vessel_testkit::within`): `machine.ssh()` finds `fake-ssh`, whose
+/// first use in a process builds the fakes, which on a cold target took
+/// the whole minute (2026-11-14, a fresh worktree's first gate).
 const LIMIT: Duration = Duration::from_secs(60);
 
 fn client_info() -> ClientInfo {
@@ -73,7 +77,7 @@ impl Drop for Machine {
 async fn a_fresh_machine_gets_vesseld_and_a_node_on_first_contact() {
     let vesseld = vessel_testkit::vesseld().unwrap();
     let machine = Machine::new();
-    tokio::time::timeout(LIMIT, async {
+    vessel_testkit::within(LIMIT, async {
         let provisioner = Provisioner::new(Source::Local(vesseld.clone()), "0.0.0");
         let binary = provisioner.expected_binary().await;
         assert!(binary.contains("-dev-"), "{binary}");
@@ -96,7 +100,7 @@ async fn a_fresh_machine_gets_vesseld_and_a_node_on_first_contact() {
 #[tokio::test]
 async fn without_a_provisioner_a_missing_binary_says_how_to_install() {
     let machine = Machine::new();
-    tokio::time::timeout(LIMIT, async {
+    vessel_testkit::within(LIMIT, async {
         let connector = SshConnector::new(machine.ssh(), Remote::data_dir(), "vesseld-9.9.9");
         let error = connector.connect(client_info()).await.unwrap_err();
         assert!(
@@ -113,7 +117,7 @@ async fn without_a_provisioner_a_missing_binary_says_how_to_install() {
 #[tokio::test]
 async fn ssh_failures_are_transient_and_keep_their_stderr() {
     let machine = Machine::new();
-    tokio::time::timeout(LIMIT, async {
+    vessel_testkit::within(LIMIT, async {
         // fake-ssh exits 255 when it cannot enter the "remote" home.
         let ssh = machine.ssh().with_env("FAKE_SSH_HOME", "/nonexistent/home");
         let connector = SshConnector::new(ssh, Remote::data_dir(), "vesseld-0.0.0");
@@ -130,7 +134,7 @@ async fn ssh_failures_are_transient_and_keep_their_stderr() {
 #[tokio::test]
 async fn auto_without_a_local_build_falls_back_to_the_release() {
     let machine = Machine::new();
-    tokio::time::timeout(LIMIT, async {
+    vessel_testkit::within(LIMIT, async {
         let gh = machine.remote.local().join("gh");
         executable(&gh, "#!/bin/sh\necho 'release not found' >&2\nexit 1\n");
         let provisioner = Provisioner::new(
