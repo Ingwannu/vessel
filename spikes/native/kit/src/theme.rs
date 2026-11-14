@@ -7,8 +7,10 @@
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
+mod palette;
 pub mod spacing;
 mod status;
+pub use palette::ThemeId;
 pub use status::{Signal, Status};
 
 use gpui::{Hsla, rgb, rgba};
@@ -189,13 +191,20 @@ impl Tokens {
         Status::of(self.scheme)
     }
 
-    /// The tokens of `scheme`.
+    /// The tokens of `scheme` (Light or Dark only).
     #[must_use]
     pub fn of(scheme: Scheme) -> Self {
         match scheme {
             Scheme::Light => Self::light(),
             Scheme::Dark => Self::dark(),
         }
+    }
+
+    /// The tokens of one palette. Light and Dark are the two that already
+    /// ship; the other five are Paseo's dark tints (ADR 0070).
+    #[must_use]
+    pub fn of_theme(id: ThemeId) -> Self {
+        palette::tokens(id)
     }
 
     /// Light (the design). Alpha bytes: 4% = 0x0a, 7% = 0x12, 8% = 0x14,

@@ -96,11 +96,15 @@ Do not start a second theme type in the app.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code. The contrast
-  floors in the ADR are the unrounded ratios truncated to two
-  decimals, not the rounded table, so the later test can pass on
-  Paseo's own bytes.
-- Half-done: nothing.
-- Next: slice 2, the kit palettes and the contrast test, behind the
-  token names ADR 0070 maps. Do not repaint Light or Dark. Do not
-  add a token the ADR lists as absent.
+- Done: slice 1, ADR 0070 and this plan (review passed on 25ea4f6d).
+  Paseo's green `#20744A` is the mark's colour on Light, Dark and
+  Pure black. Interface range, code range, content width and the
+  syntax themes are routed, not decided here.
+- Done, pending the native gate: slice 2, `ThemeId` and the five
+  dark palettes in `kit/src/theme/palette.rs`. Light and Dark are
+  the existing functions. The contrast test is beside them.
+- Half-done: nothing in the preference (slice 3).
+- Next: after the gate, slice 3. The theme id, content size 10–21
+  default 15, and the two font families in `view::prefs`, applied
+  in the same turn. Do not widen the shipped interface or code
+  ranges; those are routed.

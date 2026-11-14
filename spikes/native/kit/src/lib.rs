@@ -78,7 +78,7 @@ pub use picker::{
 };
 pub use screen_header::{compact_header, screen_header};
 pub use sheet::{Edge, sheet};
-pub use theme::{Scheme, Tokens};
+pub use theme::{Scheme, ThemeId, Tokens};
 pub use toast::{ToastLook, toast, toasts};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
