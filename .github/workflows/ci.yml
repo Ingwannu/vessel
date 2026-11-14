@@ -45,6 +45,15 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
+      # The file budget and the crate map (docs/QUALITY.md M3, M2): they
+      # read the sources and `cargo metadata --no-deps`, build nothing, and
+      # answer the same on every OS, so Linux runs them, before the compile.
+      - if: runner.os == 'Linux'
+        name: rust-size
+        run: node scripts/check-rust-size.mjs
+      - if: runner.os == 'Linux'
+        name: boundaries
+        run: node scripts/check-boundaries.mjs
       - run: cargo clippy --workspace --all-targets -- -D warnings
       # The web UI's TypeScript declarations (ADR 0017): the `ts` features of
       # vessel-proto (the wire) and vessel-web (the bridge's frames), linted,

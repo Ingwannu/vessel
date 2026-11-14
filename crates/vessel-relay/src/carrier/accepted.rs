@@ -10,10 +10,7 @@ use bytes::Bytes;
 use futures_util::{Sink, SinkExt as _, Stream, StreamExt as _};
 use vessel_proto::NodeClose;
 
-use super::{
-    CLOSE_TIMEOUT, Idle, Keepalive, NodeCarrier, Pinger, closed, ping_before_write, poll_ping,
-    text_message,
-};
+use super::{CLOSE_TIMEOUT, Keepalive, Liveness, NodeCarrier, closed, text_message};
 
 /// A websocket a node accepted, carrying records as binary messages.
 ///
@@ -22,19 +19,13 @@ use super::{
 /// its header before it is read.
 pub struct AxumCarrier {
     socket: WebSocket,
-    idle: Option<Idle>,
-    pinger: Option<Pinger>,
-    /// The writing side is waiting on the socket (its last `poll_ready` or
-    /// `poll_flush` was pending): the reading side must not take the
-    /// socket's write waker from it.
-    writer_waiting: bool,
+    liveness: Liveness,
 }
 
 impl fmt::Debug for AxumCarrier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("AxumCarrier")
-            .field("idle", &self.idle.as_ref().map(|idle| idle.after))
-            .field("ping", &self.pinger.as_ref().map(|pinger| pinger.every))
+            .field("liveness", &self.liveness)
             .finish_non_exhaustive()
     }
 }
@@ -48,21 +39,17 @@ impl AxumCarrier {
     pub fn new(socket: WebSocket, keepalive: Option<Keepalive>) -> Self {
         Self {
             socket,
-            idle: Idle::new(keepalive.map(|keepalive| keepalive.silence)),
-            pinger: Pinger::new(keepalive.map(|keepalive| keepalive.ping)),
-            writer_waiting: false,
+            liveness: Liveness::new(keepalive),
         }
-    }
-
-    /// Note how a writing-side call on the socket ended.
-    fn wrote<T>(&mut self, polled: Poll<T>) -> Poll<T> {
-        self.writer_waiting = polled.is_pending();
-        polled
     }
 }
 
 fn io_error(error: axum::Error) -> io::Error {
     io::Error::other(error)
+}
+
+fn ping() -> Message {
+    Message::Ping(Bytes::new())
 }
 
 impl Stream for AxumCarrier {
@@ -76,20 +63,13 @@ impl Stream for AxumCarrier {
                 Poll::Ready(Some(Err(error))) => return Poll::Ready(Some(Err(io_error(error)))),
                 Poll::Ready(None) => return Poll::Ready(None),
                 Poll::Pending => {
-                    let pinged = poll_ping(
-                        &mut this.pinger,
-                        Pin::new(&mut this.socket),
-                        || Message::Ping(Bytes::new()),
-                        this.writer_waiting,
-                        cx,
-                    );
-                    if let Err(error) = pinged {
-                        return Poll::Ready(Some(Err(io_error(error))));
-                    }
-                    return Idle::poll_expired(&mut this.idle, cx);
+                    return this
+                        .liveness
+                        .quiet(Pin::new(&mut this.socket), ping, io_error, cx)
+                        .map(|over| Some(Err(over)));
                 }
             };
-            Idle::heard(&mut this.idle);
+            this.liveness.heard();
             match message {
                 Message::Binary(record) => return Poll::Ready(Some(Ok(record))),
                 Message::Close(frame) => {
@@ -107,20 +87,9 @@ impl Sink<Bytes> for AxumCarrier {
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
-        loop {
-            let ready = Pin::new(&mut this.socket).poll_ready(cx).map_err(io_error);
-            match this.wrote(ready) {
-                Poll::Ready(Ok(())) => {}
-                other @ (Poll::Ready(Err(_)) | Poll::Pending) => return other,
-            }
-            let ping = || Message::Ping(Bytes::new());
-            // An owed ping goes first; then the socket must be ready again.
-            if !ping_before_write(&mut this.pinger, Pin::new(&mut this.socket), ping)
-                .map_err(io_error)?
-            {
-                return Poll::Ready(Ok(()));
-            }
-        }
+        this.liveness
+            .poll_ready(Pin::new(&mut this.socket), ping, cx)
+            .map_err(io_error)
     }
 
     fn start_send(self: Pin<&mut Self>, record: Bytes) -> io::Result<()> {
@@ -132,16 +101,13 @@ impl Sink<Bytes> for AxumCarrier {
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
         let flushed = Pin::new(&mut this.socket).poll_flush(cx).map_err(io_error);
-        if let (Poll::Ready(Ok(())), Some(pinger)) = (&flushed, &mut this.pinger) {
-            pinger.unflushed = false;
-        }
-        this.wrote(flushed)
+        this.liveness.flushed(flushed)
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
         let closed = Pin::new(&mut this.socket).poll_close(cx).map_err(io_error);
-        this.wrote(closed)
+        this.liveness.wrote(closed)
     }
 }
 
