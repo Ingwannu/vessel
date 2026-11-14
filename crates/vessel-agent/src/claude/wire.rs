@@ -22,9 +22,17 @@
 //! - Values the agent gives as arbitrary JSON (a tool's input, a tool
 //!   result's structured output) stay `serde_json::Value`: their shape is
 //!   the tool's, not the protocol's.
+//! - Layout: this file is what the driver reads; `written` what it writes
+//!   (re-exported here).
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
+
+mod written;
+
+pub(crate) use written::{
+    HostAnswer, HostRequest, Outgoing, OutgoingBlock, OutgoingMessage, Permission,
+};
 
 /// One line of the agent's stdout.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -413,109 +421,6 @@ pub(crate) enum Answer {
 pub(crate) struct ControlCancel {
     /// The request withdrawn.
     pub(crate) request_id: String,
-}
-
-/// One line the host writes to the agent's stdin.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum Outgoing {
-    /// A prompt.
-    User {
-        /// The message.
-        message: OutgoingMessage,
-        /// Always `null`: a prompt to the main conversation.
-        parent_tool_use_id: Option<String>,
-        /// The conversation, once known.
-        session_id: String,
-    },
-    /// A request of the host's.
-    ControlRequest {
-        /// Chosen by the host, unique among its requests in flight.
-        request_id: String,
-        /// What it asks.
-        request: HostRequest,
-    },
-    /// The host's answer to a request of the agent's.
-    ControlResponse {
-        /// The answer.
-        response: HostAnswer,
-    },
-}
-
-/// A prompt's message.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub(crate) struct OutgoingMessage {
-    /// Always `user`.
-    pub(crate) role: &'static str,
-    /// Its content blocks.
-    pub(crate) content: Vec<OutgoingBlock>,
-}
-
-/// A prompt's content block.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub(crate) enum OutgoingBlock {
-    /// Text.
-    Text {
-        /// The text.
-        text: String,
-    },
-}
-
-/// What the host asks the agent.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "subtype", rename_all = "snake_case")]
-pub(crate) enum HostRequest {
-    /// Open the control protocol: the first request, before any prompt.
-    /// The driver registers no hooks, MCP servers of its own or prompts
-    /// here, so it sends none of the SDK's optional fields.
-    Initialize {},
-    /// Stop the running turn.
-    Interrupt {},
-}
-
-/// The host's answer.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "subtype", rename_all = "snake_case")]
-pub(crate) enum HostAnswer {
-    /// Handled, with the payload the request's kind defines.
-    Success {
-        /// The request answered.
-        request_id: String,
-        /// The payload.
-        response: Value,
-    },
-    /// Refused.
-    Error {
-        /// The request answered.
-        request_id: String,
-        /// Why.
-        error: String,
-    },
-}
-
-/// A tool's permission, as `can_use_tool`'s answer carries it.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "behavior", rename_all = "snake_case")]
-pub(crate) enum Permission {
-    /// It may run, with its input as given.
-    #[expect(dead_code, reason = "the permissions slice (2) answers with it")]
-    Allow {
-        /// The input it runs with.
-        #[serde(rename = "updatedInput")]
-        updated_input: Value,
-        /// The call answered.
-        #[serde(rename = "toolUseID")]
-        tool_use_id: String,
-    },
-    /// It may not run.
-    Deny {
-        /// Why, for the agent.
-        message: String,
-        /// The call answered.
-        #[serde(rename = "toolUseID")]
-        tool_use_id: String,
-    },
 }
 
 #[cfg(test)]
