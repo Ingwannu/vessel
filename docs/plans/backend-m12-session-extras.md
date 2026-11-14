@@ -869,3 +869,46 @@ tests. This is a node.settings feature, not an app screen.
 Delivered files/HTML (row 4, ADR 0047) remains pending after that newly
 prioritized contract. App screens, page work, conversation/composer
 registration and the old native WIP are outside this session's scope.
+
+
+### Side reset: publish completion after store hand-over
+
+A reset could consume the only end notification while find still returned
+Live, then exhaust its unchanged ten-second wait despite a committed log.
+The existing wait already subscribes before checking and rechecks after
+every notification or lag. Its predicate and deadline remain unchanged.
+The cause was hand_over announcing the end before removing the runtime
+handle and durability entry. Announcement now follows both removals.
+
+This reuses the bounded end broadcast; a second watch or a longer deadline
+would add machinery or hide the lost wake. Agent/model credentials still
+retire first, and no wire, scope, schema, retry or dependency changes.
+
+The regression uses a synchronous receiver wake to inspect visibility inside
+the actual broadcast.send. A real fake provider ends and persist::run commits
+its log before hand_over. No sleep, product hook or probabilistic race is
+needed. On base a365d295 the unchanged product fails in 3.15 seconds:
+Visible { runtime: Present, durability: Present } instead of both Absent.
+The corrected tree's complete Linux root gate passed: fmt, the Rust file
+budget (766 files, 31 existing exceptions), crate boundaries (22 crates,
+ten owned external dependencies), all-target workspace Clippy with warnings
+denied, and workspace tests including doc-tests (1,964 passed, zero failed,
+12 existing ignored across 112 result sections). Both this regression and
+the reported forwarded side-reset case passed. No deadline, assertion or
+ignore was changed, and no passed check was rerun on an unchanged tree.
+
+The gate prebuilt fake binaries and vesseld under the same environment,
+used SSD temporary data and one inherited build slot, and recorded load
+20.90 before tests and 14.66 at completion. The 1,715 selected source/build
+inputs matched before/after the gate: manifest SHA-256
+91ca7a122c51b6577b32fbc62039a34a9b78d6ef2d32996887be6d5dc1967015.
+This source selection excludes docs, native assets, ignored local settings
+and dependency/build folders; it is not a full environment attestation.
+Evidence logs are handover-final-gate.log and handover-final-<stage>.log.
+
+No source from startup recovery is in this standalone correction. No wire,
+page, native, driver or dependency changes require an additional gate here.
+No real agent, preview service, permission change or push was used. Commands
+and changed files retain the ordinary checkout account's UID/GID; the owned
+binary scan was empty after the gate. Implementation review and node-head
+integration remain separate from these author-run checks.
