@@ -41,6 +41,7 @@ mod address;
 pub mod book;
 mod chunks;
 mod client;
+pub mod comparison;
 pub mod compose;
 mod connector;
 mod conversation;

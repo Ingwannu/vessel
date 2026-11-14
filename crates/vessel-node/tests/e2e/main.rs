@@ -23,6 +23,8 @@ mod callback;
 #[cfg(test)]
 mod catalogue;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod crowd;

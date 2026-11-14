@@ -2,7 +2,11 @@
 
 use super::*;
 
-async fn device(owner: &NodeClient, node: &vessel_node::Node, scopes: Vec<Scope>) -> NodeClient {
+pub(crate) async fn device(
+    owner: &NodeClient,
+    node: &vessel_node::Node,
+    scopes: Vec<Scope>,
+) -> NodeClient {
     let mut offer = owner
         .invite_with_scopes(Some("side access test".to_owned()), 600, scopes)
         .await

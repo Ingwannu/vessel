@@ -22,7 +22,7 @@ mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
-pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
+pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
