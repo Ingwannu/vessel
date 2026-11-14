@@ -852,6 +852,47 @@ below an 800x600 window.
   unreachable, at its watch limit, session ended) each have their own
   sentence in Paseo's voice, where Paseo has one "isn't connected".
 
+### Resume (2026-11-14 22:47 UTC, paused by the coordinator for the account windows)
+
+- Committed on this branch: the merge of the lead's 0.0.0.0.17 line
+  (`e60165f3`, no conflicts), then three commits on top of the slice 3
+  WIP:
+  - The pattern rules: wire refusals and outcomes take `..`, and
+    `merge_methods` takes the pull request apart whole, because a merge
+    is a person's consent.
+  - Paseo's `aheadCount > 0` for a merge, when the node knows the
+    worktree's base.
+  - The form's base: `start_base`. The node measures a project against
+    `origin/main` and sends `pr.open`'s base as written, so the form
+    showed, and would have sent, a base no forge has.
+  - The facts title follows Paseo's pane: the body step, with the number
+    muted in the same run of text.
+- Found on the fake forge fleet (ADR 0060, the node line's
+  `vessel-forge-fixture`):
+  - The board's PR lines (#301–#308: passed, failed, running, Draft).
+  - The link at the head of Changes.
+  - The menu: Create PR on the `empty` case; View PR and the three merge
+    rows on `ready`.
+  - The facts dialog.
+- A whole gate runs detached on the head `b3767e6c`; it is not read yet.
+- Next, on waking:
+  1. Read the gate.
+  2. Capture the form again, with `Default branch` as its base.
+  3. Capture the form's refusals: a blank title, a title too long, an
+     existing PR, no access, rate-limited, and read-only (the node
+     answers Forbidden).
+  4. Capture `pr.open` on `empty`, the facts in every case, and the
+     merge rows and refusals: merge-refused, draft, conflicting and
+     read-only.
+  5. Capture the feedback switch.
+  6. Run the matrix: both themes, en and ko, 1280x800, 1024x700, 800x600
+     and 390, and glyphs at 1, 1.25, 1.5 and 2.
+  7. Split the WIP by responsibility, gate again, and hand the slices to
+     the lead.
+- Seen, not mine: from the sidebar, "All projects (14)" opens
+  build-server's Projects page, which says "No projects yet" (the
+  projects are on laptop).
+
 ### Resume (2026-11-14 15:50 UTC, paused by the coordinator for the account windows)
 
 - Slice 3 (merge and feedback) is a WIP commit on this branch, after the
