@@ -37,6 +37,9 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "device.list",
             "device.revoke",
             "profile.reload",
+            "fleet.join",
+            "fleet.leave",
+            "fleet.sync",
             "fleet.members",
             "fleet.forget",
             "memory.export",
@@ -88,10 +91,21 @@ fn every_method_knows_its_first_version() {
         Method::ReportApplied,
         Method::ListMembers,
     ];
+    let added_fleet = [
+        Method::JoinFleet,
+        Method::LeaveFleet,
+        Method::SyncFleet,
+        Method::GetFleetStatus,
+    ];
+    // N3's fleet controls are 15 on the node line: preview's 13 and the
+    // fork's 14 were published before them (`PROTOCOL_FIFTEEN` below).
+    for method in added_fleet {
+        assert_eq!(method.since(), ProtocolVersion::new(15));
+    }
     for method in Method::ALL {
         assert!(method.since() <= crate::PROTOCOL_VERSION, "{method:?}");
         let name = method.as_str();
-        let fleet = name.starts_with("fleet.");
+        let fleet = name.starts_with("fleet.") && !added_fleet.contains(method);
         let profile = name.starts_with("profile.") || *method == Method::MoveProfile;
         let v6 = (fleet && !v5_fleet.contains(method))
             || ["session.export", "session.import"].contains(&name)
@@ -256,6 +270,25 @@ fn protocol_fourteen_methods_know_their_version_and_scope() {
     assert_eq!(fourteen, PROTOCOL_FOURTEEN);
 }
 
+/// Protocol 15's methods (milestone 12's track N3, ADR 0044): fleet
+/// membership over the wire, numbered after the versions already published.
+const PROTOCOL_FIFTEEN: &[(&str, Scope)] = &[
+    ("fleet.join", Scope::Admin),
+    ("fleet.leave", Scope::Admin),
+    ("fleet.sync", Scope::Admin),
+    ("fleet.status", Scope::Read),
+];
+
+#[test]
+fn protocol_fifteen_methods_know_their_version_and_scope() {
+    let fifteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(15))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(fifteen, PROTOCOL_FIFTEEN);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -297,6 +330,7 @@ const FORWARDABLE: &[&str] = &[
     "session.read",
     "profile.list",
     "session.move_profile",
+    "fleet.status",
     "session.export",
     "session.import",
     "memory.export",

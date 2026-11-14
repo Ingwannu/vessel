@@ -241,6 +241,7 @@ impl Member {
     fn follow(&self, connector: MemoryConnector) {
         let pacing = Pacing {
             pull_every: Duration::from_secs(3600),
+            manual: Arc::default(),
             backoff: Backoff {
                 first: Duration::from_millis(20),
                 max: Duration::from_millis(200),
@@ -308,6 +309,7 @@ async fn a_cancelled_connection_starts_no_pull_and_drops_the_cached_home() {
         Arc::clone(&member.links),
         Pacing {
             pull_every: Duration::from_secs(3600),
+            manual: Arc::default(),
             backoff: Backoff::default(),
         },
         member.stop.clone(),

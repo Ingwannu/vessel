@@ -30,6 +30,32 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 15 (2026-11-13, milestone 12, N3 row 2)
+
+Nodes speak 2..=15. Track N3 built its fleet controls as part of its
+protocol 12 and asked for them to share the preview's 13; on the node line
+13 and 14 were already published without these calls, so they are 15:
+a client refuses them locally on an older node (`unsupported`, "needs
+protocol 15") rather than sending a method that node cannot decode. No
+event and no record; `ErrorDetail::FleetControl` is a new kind that a
+13 or 14 client reads as `unknown`, and an older one skips with `detail`.
+
+`fleet.join { link, grant }` (Admin) redeems one single-use invitation and
+returns `JoinedFleet { home }` only after persisting the selected machine's
+membership. `fleet.leave {}` (Admin) removes membership and its credential,
+keeping materialized files; already left succeeds. `fleet.sync {}` (Admin)
+returns Ack when accepted by the existing loop, not when applied. These
+mutations cannot be forwarded or used by an agent. A disconnected join may
+have redeemed its invitation; clients never automatically retry it.
+`fleet.status {}` (Read) returns `FleetSyncStatus { role, local, members? }`.
+`role` is standalone, home or member (home id and join time). `local` is last
+applied generation/time, home contact time, relative conflict paths and typed
+problem categories; history can predate the current join. Only the home's
+own authenticated owner/paired Admin sees per-member device reports.
+Read-only and delegated reads omit `members`; they never receive credentials,
+secret names, absolute destination paths or arbitrary local error text.
+Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
+
 ## Version 14 (2026-11-13, milestone 11's track A2, on milestone 12's node line)
 
 Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
@@ -88,6 +114,9 @@ are `invalid_request` with optional typed `detail: { kind: schedule_preview,
 reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
 or `unavailable` for the bounded worker pool. Existing errors omit detail;
 future unknown detail kinds decode as unknown. Clients never parse messages.
+The optional error `detail` is additive and is not stripped from older
+connections: older error decoders ignore unknown fields. The error code and
+message remain sufficient for those peers.
 
 ## Version 12 (2026-11-13, milestone 11, wave 2's second half)
 

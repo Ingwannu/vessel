@@ -1120,3 +1120,53 @@ The member loop treats cancellation after a grant or state write as shutdown,
 clears its cached home connection, and checks again before each new pull.
 This prevents timer/watch readiness from admitting fresh disk work after
 shutdown; an apply already started retains its normal completion semantics.
+
+N3's fleet controls reuse the offline join/leave implementation in
+`fleet/joining`; `fleet/mutation` takes a separate non-waiting OS membership
+lock shared with init. Only blocking preflight and commit hold that OS lock;
+network pairing holds the node-wide Tokio mutation permit. Commit rechecks
+the role and never replaces a racing CLI's committed membership; failures
+after redemption are explicitly uncertain, without automatic retry. The
+permit remains owned through blocking disk work after RPC cancellation. Pairing never holds the apply
+lock and no single-use invitation is automatically retried. The authenticated
+service refuses agents and forwarding for Admin join/leave/sync. Accepted
+sync requests coalesce in `Home`'s notifications; supervisor and member keep
+their serial apply engines. Leaving wakes the supervisor and reconciles the
+previous home's device even after a partial leave before returning its error.
+The supervisor cancels and joins a removed/replaced member loop before
+reconciliation waits for its grant lock, and before a successor starts. This
+prevents leave waiting for the grant it has not cancelled, or an old loop's
+apply/cache cleanup finishing after the successor. The silent-route leave
+regression retains the existing five-second cancellation budget.
+Membership writes rotate a cancellation token held by `Home`: a grant is
+cancelled even if the supervisor is already waiting on its lock. A tick
+snapshots that token before reading disk, so a loop created from an old
+snapshot is cancelled too. All such tokens remain children of node shutdown.
+Restart can retain an unused owner-only credential, removed by a later leave.
+Existing admitted apply can
+finish; leave does not roll it back or remove materialized files.
+
+`fleet/projection` reads role and local apply history without resolving
+secrets, reading source text or sending arbitrary filesystem error messages.
+Four read permits bound concurrent disk work. File-byte and item bounds
+precede decoding/cloning: state 1 MiB, membership 64 KiB, local conflicts 256,
+total conflicts 512, members from an indexed 128-device window. Its `more`
+flag causes a typed whole-result refusal, never a truncated complete list.
+The status path inspects only those reports under the same lock before
+copying. A nonallocating serialization sink caps payload below 1 MiB with
+space for the RPC envelope; the permit survives that blocking work too.
+The bounded store read retains its caller's generic admission guard inside
+the blocking closure, returning it with the window; cancellation cannot free
+the node's permit while database work is still queued or running. Storage
+does not depend on node types. A one-thread blocking-pool regression checks
+that lifetime without sleeps.
+Read-only and delegated clients receive
+relative conflict paths and typed issue classes. Only the home's own owner
+or paired Admin also receives existing member-device reports. Status is last
+apply history with no current-home association: bare generations must not be
+compared with the current home to claim up to date. CLI `--node fleet
+join/leave/status` uses those same calls; the unselected offline form stays
+available, and `fleet sync` always addresses the selected node (ADR 0044).
+The CLI's existing test-only `serde_json` dependency is now a normal one:
+encoding the already-confirmed invitation uses the protocol's formatter and
+retains its concrete error source rather than inventing a string error.

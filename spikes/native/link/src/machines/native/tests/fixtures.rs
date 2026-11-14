@@ -49,6 +49,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             workspace: crate::workspace::Hub::default(),
             agents: crate::agents::Hub::default(),
             device_calls: crate::devices::Hub::default(),
+            sync_calls: crate::sync::Hub::default(),
         },
         receiving,
     )

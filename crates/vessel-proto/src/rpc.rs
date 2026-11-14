@@ -147,6 +147,14 @@ rpc_methods! {
     WatchFleet / watch_fleet / "fleet.watch" [Sync, 5]: WatchFleet => Generation;
     /// Report an applied generation (protocol 5).
     ReportApplied / report_applied / "fleet.report" [Sync, 5]: ReportApplied => Ack;
+    /// Join this machine to an invited fleet home (protocol 15).
+    JoinFleet / join_fleet / "fleet.join" [Admin, 15]: crate::JoinFleet => crate::JoinedFleet;
+    /// Leave this machine's fleet, keeping materialized files (protocol 15).
+    LeaveFleet / leave_fleet / "fleet.leave" [Admin, 15]: crate::LeaveFleet => Ack;
+    /// Accept a manual sync on this machine (protocol 15).
+    SyncFleet / sync_fleet / "fleet.sync" [Admin, 15]: crate::SyncFleet => Ack;
+    /// Read safe local apply history and permitted member reports (protocol 15).
+    GetFleetStatus / fleet_status / "fleet.status" [Read, 15]: crate::GetFleetStatus => crate::FleetSyncStatus;
     /// List fleet members (protocol 5).
     ListMembers / list_members / "fleet.members" [Admin, 5]: ListMembers => Vec<FleetMember>;
     /// Run a call on another node of the fleet (protocol 6).

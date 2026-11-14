@@ -31,11 +31,10 @@ struct Supervisor {
     config: FleetConfig,
     user_home: Option<PathBuf>,
     tasks: TaskTracker,
-    stop: CancellationToken,
     /// The home's last stamp and when it last bundled.
     stamp: Option<(Stamp, Instant)>,
     /// The member loop running, for which membership.
-    member: Option<(Membership, CancellationToken)>,
+    member: Option<Following>,
     /// The last error logged, so a lasting one is logged once.
     logged: Option<String>,
     /// The SHA-256 of `secrets.toml` last used, to tell a change.
@@ -45,6 +44,12 @@ struct Supervisor {
     in_fleet: bool,
     /// Whether the saved manifest's MCP servers were taken up after start.
     started: bool,
+}
+
+struct Following {
+    membership: Membership,
+    stop: CancellationToken,
+    task: tokio::task::JoinHandle<()>,
 }
 
 /// Run the fleet loop until `stop`.
@@ -57,6 +62,7 @@ pub(crate) async fn run(
     tasks: TaskTracker,
     stop: CancellationToken,
 ) {
+    let requested = Arc::clone(&home);
     let mut supervisor = Supervisor {
         local,
         home,
@@ -64,7 +70,6 @@ pub(crate) async fn run(
         config,
         user_home,
         tasks,
-        stop: stop.clone(),
         stamp: None,
         member: None,
         logged: None,
@@ -72,20 +77,26 @@ pub(crate) async fn run(
         in_fleet: false,
         started: false,
     };
+    let mut manual = false;
     loop {
-        supervisor.tick().await;
-        tokio::select! {
-            () = tokio::time::sleep(supervisor.config.poll) => {}
-            () = stop.cancelled() => break,
+        // A manual wake and shutdown can be ready together. Neither the
+        // timer nor that wake admits a fresh tick after cancellation.
+        if stop.is_cancelled() {
+            break;
         }
+        supervisor.tick(manual).await;
+        manual = tokio::select! {
+            () = requested.sync_requested() => true,
+            () = tokio::time::sleep(supervisor.config.poll) => false,
+            () = stop.cancelled() => break,
+        };
     }
-    if let Some((_membership, member_stop)) = supervisor.member.take() {
-        member_stop.cancel();
-    }
+    supervisor.stop_member().await;
 }
 
 impl Supervisor {
-    async fn tick(&mut self) {
+    async fn tick(&mut self, manual: bool) {
+        let epoch = self.home.membership_epoch();
         let files = self.local.files.clone();
         let user_home = self.user_home.clone();
         let started = self.started;
@@ -109,7 +120,25 @@ impl Supervisor {
         let Ok((sources, membership, requested, secrets, saved)) = read else {
             return;
         };
+        if epoch.is_cancelled() {
+            return;
+        }
         self.use_secrets(secrets).await;
+        // Cancel a replaced/removed membership before reconcile waits for
+        // its grant lock. Otherwise leave can wait on the very grant whose
+        // cancellation it needs. Join the old loop before admitting a new
+        // one: an old apply/cache cleanup must not overwrite its successor.
+        let stale = self.member.as_ref().is_some_and(|following| {
+            matches!(sources, Ok(Some(_)))
+                || match &membership {
+                    Ok(Some(current)) => *current != following.membership,
+                    Ok(None) => true,
+                    Err(_) => false,
+                }
+        });
+        if stale {
+            self.stop_member().await;
+        }
         // A grant to a home this node no longer follows is revoked.
         self.links.reconcile().await;
         let in_fleet = matches!(sources, Ok(Some(_))) || matches!(membership, Ok(Some(_)));
@@ -126,8 +155,8 @@ impl Supervisor {
         self.in_fleet = in_fleet;
         match sources {
             Ok(Some((text, sources))) => {
-                self.stop_member();
-                self.publish(&text, &sources, requested).await;
+                self.stop_member().await;
+                self.publish(&text, &sources, requested || manual).await;
                 return;
             }
             Ok(None) => {
@@ -145,12 +174,12 @@ impl Supervisor {
         }
         match membership {
             Ok(Some(membership)) => {
-                self.follow(membership).await;
+                self.follow(membership, &epoch).await;
                 if requested {
                     self.apply_stored().await;
                 }
             }
-            Ok(None) => self.stop_member(),
+            Ok(None) => self.stop_member().await,
             Err(error) => self.note(format!("member.json: {error}")).await,
         }
     }
@@ -209,15 +238,15 @@ impl Supervisor {
 
     /// The member: run the pull loop for `membership`, restarting it if
     /// the membership changed.
-    async fn follow(&mut self, membership: Membership) {
-        if self
-            .member
-            .as_ref()
-            .is_some_and(|(current, _stop)| *current == membership)
-        {
+    async fn follow(&mut self, membership: Membership, epoch: &CancellationToken) {
+        if self.member.as_ref().is_some_and(|following| {
+            following.membership == membership
+                && !following.stop.is_cancelled()
+                && !following.task.is_finished()
+        }) {
             return;
         }
-        self.stop_member();
+        self.stop_member().await;
         let made = {
             let files = self.local.files.clone();
             let membership = membership.clone();
@@ -235,26 +264,39 @@ impl Supervisor {
             }
         };
         tracing::info!(home = %membership.home, "following the fleet's home");
-        let member_stop = self.stop.child_token();
+        let member_stop = epoch.child_token();
         let pacing = Pacing {
             pull_every: self.config.pull_every,
             backoff: Backoff::default(),
+            manual: self.home.member_sync(),
         };
-        drop(self.tasks.spawn(member::run(
+        let task = self.tasks.spawn(member::run(
             connector,
             membership.clone(),
             Arc::clone(&self.local),
             Arc::clone(&self.links),
             pacing,
             member_stop.clone(),
-        )));
-        self.member = Some((membership, member_stop));
+        ));
+        self.member = Some(Following {
+            membership,
+            stop: member_stop,
+            task,
+        });
     }
 
-    fn stop_member(&mut self) {
-        if let Some((membership, member_stop)) = self.member.take() {
-            tracing::info!(home = %membership.home, "no longer following the fleet's home");
-            member_stop.cancel();
+    async fn stop_member(&mut self) {
+        if let Some(following) = self.member.take() {
+            tracing::info!(home = %following.membership.home, "no longer following the fleet's home");
+            following.stop.cancel();
+            if let Err(error) = following.task.await {
+                tracing::warn!(
+                    cancelled = error.is_cancelled(),
+                    panicked = error.is_panic(),
+                    "fleet member task did not finish normally"
+                );
+            }
+            self.links.lost_home();
         }
     }
 

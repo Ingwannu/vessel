@@ -56,6 +56,7 @@ mod permission;
 mod plan;
 mod question;
 mod queue;
+mod read;
 mod rename;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
@@ -301,6 +302,8 @@ pub(crate) struct ConversationArea {
     pub(crate) answering: Option<question::Answering>,
     /// The context meter left of the send button, and its card.
     pub(crate) meter: meter::MeterState,
+    /// Marking the session read while it is in front.
+    read: read::ReadMarks,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -352,6 +355,7 @@ impl ConversationArea {
             queue_edit: None,
             answering: None,
             meter: meter::MeterState::default(),
+            read: read::ReadMarks::default(),
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),
@@ -379,7 +383,7 @@ impl ConversationArea {
         let for_shown = self.shown.as_ref().is_some_and(|shown| {
             shown.machine == answer.machine && shown.session == answer.session
         });
-        if !for_shown {
+        if !for_shown || self.read_answered(&answer) {
             return Followup::None;
         }
         match answer.result {
@@ -427,6 +431,7 @@ impl ConversationArea {
     fn clear(&mut self) {
         self.shown = None;
         self.lost = None;
+        self.read = read::ReadMarks::default();
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -795,6 +800,9 @@ impl Shell {
             MenuAction::Mark(MarkAction::Delete) => Some(Confirm::Delete),
             MenuAction::Kill => Some(Confirm::Kill),
             MenuAction::Mark(mark) => {
+                if mark == MarkAction::MarkUnread {
+                    self.areas.conversation.read_held();
+                }
                 self.mark(mark);
                 None
             }

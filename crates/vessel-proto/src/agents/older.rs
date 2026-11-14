@@ -240,6 +240,10 @@ impl Reply {
             // method, which a node refuses on an older connection before it
             // runs (the client does not send it either), so an older peer
             // is never handed one. A run names its session by id.
+            | Self::JoinFleet(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
