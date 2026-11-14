@@ -139,6 +139,7 @@ impl Shell {
         {
             self.rewind_answered(&answer);
             self.fork_answered(&answer);
+            self.empty_fork_removed(&answer);
         }
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);

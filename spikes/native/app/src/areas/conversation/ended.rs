@@ -41,14 +41,15 @@
 //!   does.
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _, Stateful,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, button_with_kind,
 };
-use vessel_app_link::Act;
+use vessel_app_link::{Act, ActKind};
 use vessel_app_view::session::{MarkAction, can_start_again, is_archived, is_live};
+use vessel_app_view::timeline::empty_fork;
 use vessel_proto::SessionMode;
 
 use crate::shell::Shell;
@@ -68,7 +69,41 @@ pub(super) fn banner(
         return None;
     }
     let words = shell.t.lang.conversation();
-    let neutral = tokens.neutral;
+    let narrow = breakpoint::phone(window);
+    // A fork that never held a conversation (F2): why, and Remove. Its
+    // records say so before the node's description is read again.
+    let status = area.timeline.status().unwrap_or(&info.status);
+    if let Some(why) = empty_fork(status) {
+        let going = area.forking.removing();
+        let remove = button_with_kind(
+            "empty-fork-remove",
+            words.remove_fork(),
+            ButtonKind::Secondary,
+            if going {
+                ButtonState::Disabled
+            } else {
+                ButtonState::Enabled
+            },
+            tokens,
+        )
+        .flex_none()
+        .when(!going, |button| {
+            button.on_click(cx.listener(|shell, _event, _window, cx| shell.empty_fork_remove(cx)))
+        });
+        let callout = callout(
+            (words.empty_fork_heading(), words.empty_fork_line(&why)),
+            Some(remove),
+            tokens,
+            narrow,
+        );
+        // A refused Remove (the node's words), under it.
+        let refused = area
+            .refused
+            .as_ref()
+            .filter(|(kind, _)| *kind == ActKind::Delete)
+            .map(|(_, message)| message.clone());
+        return Some(with_refusal(callout, refused, tokens));
+    }
     // Slice M (the owner, 2026-11-14: as in Paseo, the next message
     // starts an ended agent again): a session that ended and can go on has
     // no card; the person sends and the message shows at once. An archived
@@ -88,7 +123,6 @@ pub(super) fn banner(
         words.ended_line(can).to_owned(),
         can,
     );
-    let narrow = breakpoint::phone(window);
     let state = if area.restarting {
         ButtonState::Disabled
     } else {
@@ -109,6 +143,41 @@ pub(super) fn banner(
             }))
         })
     });
+    let callout = callout((heading, line), button, tokens, narrow);
+    let refused = area
+        .again_refused
+        .as_ref()
+        .map(|(code, message)| shell.t.lang.board().again_refused(*code, message));
+    Some(with_refusal(callout, refused, tokens))
+}
+
+/// A callout with the node's refusal of its button's act under it, in the
+/// danger colour.
+fn with_refusal(callout: Div, refused: Option<String>, tokens: &Tokens) -> AnyElement {
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(8.0))
+        .child(callout)
+        .children(refused.map(|refused| {
+            div()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.destructive)
+                .text_center()
+                .child(refused)
+        }))
+        .into_any_element()
+}
+
+/// Paseo's callout: a heading and a line at the left, a button at the
+/// right when there is one.
+fn callout(
+    (heading, line): (&'static str, String),
+    button: Option<Stateful<Div>>,
+    tokens: &Tokens,
+    narrow: bool,
+) -> Div {
+    let neutral = tokens.neutral;
     let text = div()
         .flex_1()
         .min_w(px(0.0))
@@ -127,7 +196,7 @@ pub(super) fn banner(
                 .text_color(neutral.foreground_muted)
                 .child(line),
         );
-    let callout = div()
+    div()
         .flex()
         .flex_row()
         .items_center()
@@ -139,23 +208,7 @@ pub(super) fn banner(
         .border_color(neutral.border_accent)
         .bg(neutral.surface1)
         .child(text)
-        .children(button);
-    let refused = area.again_refused.as_ref().map(|(code, message)| {
-        div()
-            .type_(Type::Body)
-            .text_color(neutral.destructive)
-            .text_center()
-            .child(shell.t.lang.board().again_refused(*code, message))
-    });
-    Some(
-        div()
-            .flex()
-            .flex_col()
-            .gap(px(8.0))
-            .child(callout)
-            .children(refused)
-            .into_any_element(),
-    )
+        .children(button)
 }
 
 impl Shell {
@@ -165,11 +218,13 @@ impl Shell {
     /// start it again. `false` while it runs, can be started again, or is
     /// not yet described.
     pub(crate) fn conversation_cannot_resume(&self) -> bool {
-        self.areas
-            .conversation
-            .info
-            .as_deref()
-            .is_some_and(|info| !is_live(info) && !can_start_again(info))
+        let area = &self.areas.conversation;
+        // An empty fork's records say so before its description does.
+        area.empty_fork()
+            || area
+                .info
+                .as_deref()
+                .is_some_and(|info| !is_live(info) && !can_start_again(info))
     }
 
     /// Start the session shown again (the banner's button, the menu's

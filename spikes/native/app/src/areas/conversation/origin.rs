@@ -35,7 +35,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
-use vessel_app_view::timeline::{Folds, Logs, Until, origin_of};
+use vessel_app_view::timeline::{Folds, Logs, Until, empty_fork, origin_of};
 use vessel_proto::{ErrorCode, EventRecord, SessionId};
 
 use super::entries::Paint;
@@ -151,16 +151,35 @@ impl ConversationArea {
         }
     }
 
+    /// Whether the session is a fork that never held a conversation, as
+    /// its records last said (F2).
+    pub(super) fn empty_fork(&self) -> bool {
+        self.timeline
+            .status()
+            .is_some_and(|status| empty_fork(status).is_some())
+    }
+
     /// Entries from `from` came in: a `forked` line among them makes the
-    /// origin wanted (once).
+    /// origin wanted (once), unless the fork never held a conversation.
     pub(super) fn origin_seen(&mut self, from: usize) {
-        if !matches!(self.origin, Origin::None) {
+        if !matches!(self.origin, Origin::None) || self.empty_fork() {
             return;
         }
         let entries = self.timeline.entries();
         if let Some((from, until)) = entries.get(from..).and_then(origin_of) {
             self.origin = Origin::Wanted { from, until };
         }
+    }
+
+    /// A fork found to have never held a conversation shows no origin:
+    /// what was read of it leaves the list.
+    pub(super) fn origin_dropped(&mut self) {
+        if matches!(self.origin, Origin::None) || !self.empty_fork() {
+            return;
+        }
+        let head = self.head();
+        self.origin = Origin::None;
+        self.list.splice(0..head, 0);
     }
 
     /// The session shown was opened again: an origin that could not be
@@ -227,6 +246,11 @@ impl Shell {
         let Some(asked) = asked.filter(|_| answer.kind == ActKind::Log && on_machine) else {
             return;
         };
+        // The fork failed while its origin was read: nothing to show.
+        if area.empty_fork() {
+            area.origin = Origin::None;
+            return;
+        }
         match &answer.result {
             Ok(Acted::Log(records)) => {
                 let read = asked.elapsed();
