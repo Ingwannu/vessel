@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::{
-    Creator, DisplayStatus, HarnessRef, KanbanColumn, SessionInfo, SessionMarks, SessionMode,
-    SessionStatus,
+    Creator, DisplayStatus, EventSeq, HarnessRef, KanbanColumn, SessionInfo, SessionMarks,
+    SessionMode, SessionStatus,
 };
 
 use super::{Attention, Card, Lane, Phrase, agent_name};
@@ -52,6 +52,12 @@ pub struct CardDetail {
     /// When it last did something, by the node's clock where it says, else
     /// its end, else its start (the sidebar's "Last activity").
     pub active_at: DateTime<Utc>,
+    /// The record its log will give next (the node's `next_seq`): what the
+    /// sidebar's "Mark as read" marks read through, the person saying they
+    /// have seen it all without opening it. `None` on a card kept before
+    /// this was (the menu then offers no "Mark as read").
+    #[serde(default)]
+    pub next_seq: Option<EventSeq>,
 }
 
 impl Card {
@@ -128,6 +134,7 @@ impl Card {
             },
             process: phrase_of_status(&session.status),
             pull_request: session.pull_request.clone(),
+            next_seq: Some(session.next_seq),
             created_at: session.created_at,
             active_at: session
                 .board

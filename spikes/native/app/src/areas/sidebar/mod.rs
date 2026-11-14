@@ -39,6 +39,7 @@ use crate::shell::Shell;
 mod display;
 mod foot;
 mod machines;
+mod row_menu;
 mod session_row;
 mod statuses;
 
@@ -56,6 +57,8 @@ pub(crate) struct SidebarState {
     page_tips: Tooltips,
     /// The Display menu.
     display: display::DisplayMenu,
+    /// A session row's menu.
+    rows: row_menu::RowMenu,
     /// Its right edge, dragged to resize it.
     pub(crate) edge: PanelEdge,
 }
@@ -67,6 +70,7 @@ impl SidebarState {
             places: RefCell::new(HashMap::new()),
             page_tips: Tooltips::new(),
             display: display::DisplayMenu::new(window, cx),
+            rows: row_menu::RowMenu::new(cx),
             edge: PanelEdge::new(),
         }
     }
@@ -149,7 +153,7 @@ pub(crate) fn render(
     } else {
         match view.group {
             Grouping::Machine => machines::groups(view, shell, tokens, touch, cx),
-            Grouping::Status => statuses::groups(view, shell, tokens, cx),
+            Grouping::Status => statuses::groups(view, shell, tokens, touch, cx),
         }
     };
     div()
@@ -190,6 +194,7 @@ pub(crate) fn render(
         .child(foot::foot(shell, tokens, cx))
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))
+        .children(row_menu::render(shell, tokens, touch, window, cx))
 }
 
 /// The list's heading, as Paseo's section header: what the list is
