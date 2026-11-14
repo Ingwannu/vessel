@@ -32,7 +32,7 @@ entry). The pane passes it into the emulator
 **Output coalescing.** The daemon flushes PTY output on a 5 ms leading
 edge, then a trailing timer of the same delay
 (`packages/server/src/terminal/terminal-output-coalescer.ts`,
-`DEFAULT_FLUSH_DELAY_MS` at line 18). There is no byte ceiling in that
+`DEFAULT_FLUSH_DELAY_MS` at line 19). There is no byte ceiling in that
 coalescer.
 
 **Resize.** The pane debounces 100 ms
@@ -80,8 +80,56 @@ is quoted, and on a non-Windows path the characters
 
 **Keys.** The DOM names Paseo treats as keys are Enter, Tab, Backspace,
 Escape, the arrows, Home, End, Insert, Delete, Page Up/Down and F1–F12
-(`packages/app/src/utils/terminal-keys.ts` lines 20–47, read). The
-bytes those names become on the PTY were not read in that file.
+(`packages/app/src/utils/terminal-keys.ts` lines 20–47). The bytes are
+its encoder's (`packages/protocol/src/terminal-key-input.ts`, read on
+take-over; the table is in ADR 0073). Copy is Ctrl+C with a selection
+(else the key goes to the program as an interrupt), paste Ctrl+V; on a
+Mac, Cmd+V (`terminal-emulator-runtime.ts` 460–468).
+
+**Attach and queries.** The client asks for a serialized snapshot of
+the daemon's own screen (`terminal-restore-options.ts` 19–21) and
+replays it in 64 KiB chunks (`server/src/terminal/terminal-replay.ts`
+24). The client's xterm never answers a query (641–660) and writes a
+replay with input suppressed (941).
+
+**The pane.** A shell is a workspace tab (`panels/terminal-panel.tsx`):
+its label is the terminal's title, else its name, else "Terminal"
+(66–68, `en.ts` 634), its icon lucide's `Terminal` (75). New is
+Cmd/Ctrl+Shift+T (`keyboard-shortcuts.ts` 844, 854); new terminals go
+last (`utils/terminal-list.ts` 22). Rename is "Rename terminal"
+(`en.ts` 660). Closing asks "Close terminal?" / "Any running process in
+this terminal will be stopped immediately." (`en.ts` 712–713), then
+kills it (`workspace-screen.tsx` 1909, 1928). Script runs are listed
+apart from shells (`screens/workspace/terminals/state.ts` 75–77). The
+pane is `surface0` with the output on `background`
+(`terminal-pane.tsx` 1267, 1273), no padding around the grid
+(`terminal-emulator.tsx` 60–63), a scrollbar 8 wide
+(`terminal-emulator-runtime.ts` 570–572).
+
+**The look.** Font: Paseo's own stack starts with JetBrains Mono
+(`terminal-font.ts` 3–21) at the code font size (12 by default,
+`storage.ts` 71), line height 1.0 (`terminal-emulator-runtime.ts` 564).
+Cursor: a blinking bar (560–561) in the foreground colour. Palette:
+`styles/theme.ts`, light 242–256 (foreground `#1a1a1e`, selection
+`rgba(0,0,0,0.15)`), dark 373–386 (foreground `#fafafa`, selection
+`rgba(255,255,255,0.2)`), the cursor the foreground.
+
+**Find.** Cmd/Ctrl+F; Paseo's pane find bar at the output's right edge,
+at the top, or the bottom when it would cover the selection
+(`terminal/find/index.tsx` 110–136, `terminal-emulator-runtime.ts` 511),
+340 wide (`pane-find/index.tsx` 360); Enter next, Shift+Enter previous,
+Escape closes; its words "No matches", "{current} of {total}",
+"{total} matches" (`en.ts` 20–22; Korean `ko.ts` 24–26), a `+` after
+the total when limited (`terminal/find/index.tsx` 100). Matches are
+outlined in the palette's yellow, the current one in its blue
+(`terminal-emulator-runtime.ts` 279, 281). Next and previous wrap (the
+xterm add-on's engine, `SearchEngine.ts`).
+
+**Scrollback setting row.** A number field 112 wide, right-aligned,
+digits only, kept on blur or submit (`screens/settings/terminal/terminal-section.tsx`
+16, 44–65), "Terminal scrollback" / "Lines kept in the built-in terminal
+buffer" (`en.ts` 2561; Korean "터미널 스크롤백" / "내장 터미널 버퍼에
+보관되는 줄 수", `ko.ts` 2449), under Settings › Terminal.
 
 ## What Vessel already does
 
@@ -91,6 +139,18 @@ bytes those names become on the PTY were not read in that file.
 - The bytes on the wire: `TerminalBytes` (base64), `TerminalInput::{Data,
   Resize}`, `TerminalSize` default 80×24, in
   `crates/vessel-proto/src/terminal.rs`. Shells use the same input.
+- The shell calls (protocol 11, `crates/vessel-proto/src/rpc.rs`
+  340–356): `terminal.create` (a place: beside a session or in a
+  project; an optional size and title), `terminal.list`, `terminal.get`
+  (waits up to 30 s for a change), `terminal.read` (pages of at most 512
+  records), `terminal.subscribe`, `terminal.send` (at most 64 KiB, the
+  node refuses more), `terminal.rename`, `terminal.kill` (ends it, keeps
+  its output) and `terminal.close` (ends it and forgets it). Script runs
+  and services are terminals without input. The preview node speaks
+  protocols 2 through 21.
+- A session that is a terminal keeps its bytes in its log, stored whole;
+  only a shell's ring is bounded (4,096 records, 1 MiB). No call turns a
+  conversation into a terminal or back.
 - The page: xterm.js, scrollback hardcoded to 5,000, size sent only
   after focus and a key (`web/src/features/session/terminal-view.tsx`).
 - The app, already: `view/src/terminal/frame.rs` (`ResizeRule`,
@@ -156,18 +216,21 @@ according to the mode the program set. `snapshot()` is a plain value
 (columns, rows, visible cells, cursor, selection, a generation that
 changes when the grid does). `find` / `find_next` / `find_previous` /
 `clear_find`: literal, case-insensitive, at most 20,000 highlights,
-`limited` when the count is past that. Next and previous stop at the
-ends (whether Paseo's search wraps was not read).
+`limited` at that count. Next and previous wrap at the ends (Paseo's
+search engine wraps, ADR 0073).
 
 **Replies and unknown sequences.** A sequence the fixtures do not name
 is ignored. The bytes after it are still applied. A query a local
 terminal answers is a reply, not a draw. The bytes are Paseo's, read
 at `terminal.ts` 883–922 and the map at 45–49: `ESC [ ? 62 ; 4 ; 22 c`,
 `ESC [ 0 n`, `ESC [ row ; col R`, `ESC [ ? row ; col R` (rows and
-columns 1-based), and `OSC 10` / `11` / `12` as
-`rgb:e6e6/e6e6/e6e6`, `rgb:0b0b/0b0b/0b0b`, `rgb:e6e6/e6e6/e6e6`. The
-link sends replies as `TerminalInput::Data`, through the existing
-sender, so they stay in order with keys. When `query_duty` is `Silent`
+columns 1-based), and `OSC 10` / `11` / `12` with the colours the grid is drawn in
+(foreground, background, cursor of the scheme shown, given to the model
+as values; Paseo's fixed `rgb:e6e6/e6e6/e6e6`, `rgb:0b0b/0b0b/0b0b`,
+`rgb:e6e6/e6e6/e6e6` are dark whatever its theme, a stated difference).
+The link sends replies as `TerminalInput::Data`, through the existing
+sender, so they stay in order with keys; every send is at most 64 KiB,
+split at a character boundary. When `query_duty` is `Silent`
 on every viewer, nothing is sent and the program waits. The app shows
 no error. A query that already passed is not answered later.
 
@@ -181,7 +244,7 @@ read). Windows: no refusal of those characters (Paseo does not delete
 them there); a space is wrapped in `"` and any other path is unchanged
 (`escapeWindowsPath`, lines 22–27, read).
 
-**What the fixtures pin** (slice 2, beside the model): a coloured run,
+**What the fixtures pin** (T1 and T2, beside the model): a coloured run,
 `한` as width 2 plus a continuation, the same syllable split across two
 feeds, the alternate screen and back, bracketed paste on and off, an
 arrow in normal and application mode, a live cursor-position query
@@ -191,22 +254,42 @@ answered with no bytes, `the_opener_answers_before_anyone_qualifies`
 colour queries, from the creating view, before anyone has typed and
 with focus lost), and
 `nobody_answers_a_live_query_when_no_viewer_may` (the same queries on
-an attach with nobody qualified, no reply bytes).
+an attach with nobody qualified, no reply bytes),
+`records_buffered_during_load_are_not_answered`,
+`a_query_split_across_the_handover_is_not_answered`, and each refused
+query of ADR 0073's closed set fed through `feed` with an empty reply.
 
-**Link (slice 3).** A shell's follow is `follow_terminal` on the testkit's
-fake, never a real shell. Input, replies and resizes go through one
-`TerminalSender` per view. Create, rename and kill call the methods ADR 0031 already records.
+**Untrusted input.** The parser eats the program's bytes, so every
+buffer has a stated bound and no input reaches a panic. The model is
+taken from the inherited draft in slices of a few hundred lines, each
+reviewed (V2) and gated: the parser's state machine around `vte`; the
+grid and scrollback; attributes and colours; wide and combining cells;
+the answered-query set. Each slice's tests include hostile input
+(unterminated sequences, huge parameters and counts, overlong OSC and
+DCS strings, scroll regions outside the grid, zero and enormous sizes)
+and a fuzz-style test over random bytes with a fixed seed. T1's screen
+comes after the parser and grid slices pass.
+
+**Link (T1–T3).** A session that is a terminal is read with
+`session.read` pages for its history and followed for live records; a
+shell's is `terminal.read` and `follow_terminal`, on the testkit's fake,
+never a real shell. Input, replies and resizes go through one
+`TerminalSender` per view, each send at most 64 KiB. Create, list,
+rename, Stop (kill) and close call the methods ADR 0031 already records.
 This track adds no call, so no number is given at merge. A script or a
 service does not take input
 (`TerminalKind::takes_input`). Resize is still `ResizeRule`: focused and
 typed. No claim token is added to the wire.
 
-**Kit (slice 4).** A control draws the snapshot's cells. It is given a
-new snapshot only when `generation` changed. The terminal palette is
-tokens, taken from the page's `--term-bg`, `--term-fg`, `--term-cursor`,
-`--term-selection` and the ANSI colours beside them. The session area
-and the shell's tab strip are other work: the tab is not mounted until
-the coordinator names the line. Frames are measured (time for a changed
+**Kit (T1).** A control draws the snapshot's visible cells (an element
+of its own: runs shaped once per row and placed on the cell grid, rows
+that did not change kept, ADR 0073). It is given a new snapshot only
+when `generation` changed. The terminal palette is tokens, taken from
+Paseo's terminal palette (`styles/theme.ts`, light and dark, the 16
+ANSI colours, foreground, cursor, selection); the grid's 256 colours
+past the 16 are the standard cube and grey ramp. The grid lives in a
+view of its own (`app/src/region.rs`'s rule): its bytes notify only it.
+The shell's tab strip is T3. Frames are measured (time for a changed
 grid, and that an unchanged generation draws nothing), not described.
 
 ## Stated differences
@@ -229,6 +312,19 @@ grid, and that an unchanged generation draws nothing), not described.
   call for it. The coordinator assigns one, or the paste does not grow
   a protocol field in this work.
 
+## Slices (the coordinator's order, 2026-11-14)
+
+Each a few hundred lines with tests, captures (1280×800, 1024×700,
+800×600, 390 wide; both themes; en and ko) and the gate.
+
+| Slice | What | Reads |
+| --- | --- | --- |
+| T1 | A session that is a terminal opens as a read-only grid: its log read by pages and replayed off the UI thread, then live records; cells, the palette's colours, wide and combining characters, Korean, the cursor, scrollback drawn only where visible. Measured: idle CPU with the terminal shown, the time of a full 200×50 repaint (release build, the renderer named). | `session.read`, `session.subscribe` |
+| T2 | Typing, paste (text, a path), resize and the replies to queries, by `query_duty` and `ResizeRule`; never from `replay`. | `session.send` |
+| T3 | Shells beside a session: open, list, rename, Stop, close, the tab strip as Paseo's; script runs and services listed without input. | `terminal.*` |
+| T4 | Find in the terminal, and the scrollback setting's row (with E3). | none |
+| T5 | Switching one session between conversation and terminal: no call does it, so not offered. | none |
+
 ## Resume point
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
@@ -239,10 +335,20 @@ grid, and that an unchanged generation draws nothing), not described.
   and the program waits. The two grid tests are named above. `vte` is
   reserved to `vessel-app-view`. No settings key on the node, no new
   call, no number at merge.
-- Half-done: nothing in the commits. A draft of `types.rs` and `grid.rs`
-  may sit uncommitted in the worktree; it is not part of a commit until
-  the parser, keys, paste, find and tests build with it. That draft
-  still answers from every `feed`. The duty rule is not in it yet.
-- Next: finish that grid, including `query_duty` and the two tests
-  named above, then the native gate once, in one slot. Do not start
-  `link` or `kit` in that commit.
+- Taken over by track C on 2026-11-14 (the first author's quota ran
+  out). The first author's uncommitted draft (`view/src/terminal/`:
+  `types`, `grid/` with parse, edit, reflow and find, `keys`, `paste`,
+  `duty`, `tests`; about 2,500 lines, in `/home/dev/vessel-gk-terminal`)
+  builds and its 20 tests pass (short lane, 2026-11-14). It was never
+  reviewed and the parser eats untrusted bytes, so it is suspect, not a
+  head start (the coordinator): it is taken in the reviewed slices of
+  "Untrusted input" above, each against this contract (find wraps;
+  replies only from the closed set, in the drawn colours; the hand-over
+  is `replay`; sends split at 64 KiB with the paste rules).
+- Next: the parser slice, then grid and scrollback, attributes and
+  colours, wide and combining cells, the answered set; then T1's
+  screen with the kit control (agreed with the lead: a control-only
+  commit, the palette in `kit/src/theme/terminal.rs` as
+  `tokens.terminal`, the grid view reading only its own frame, the
+  cursor blinking at 500 ms and still under reduced motion, measured
+  by `VESSEL_APP_FRAME_LOG`'s draw lines and the process's CPU).

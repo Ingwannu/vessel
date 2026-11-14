@@ -20,7 +20,7 @@
 //! - Cost: an agent that names no points (an older one, a turn that ended
 //!   on a tool call) offers no fork; no fork from a running turn.
 
-use vessel_proto::EventSeq;
+use vessel_proto::{EventSeq, SessionStatus};
 
 use super::entry::EntryKind;
 use super::fold::Timeline;
@@ -39,4 +39,39 @@ pub fn fork_point(timeline: &Timeline, index: usize) -> Option<EventSeq> {
     } else {
         None
     }
+}
+
+/// Why a fork never held a conversation (protocol 14: a `failed` status
+/// with `empty_fork`, ADR 0052's addendum), in the person's terms. Nothing
+/// can be resumed; the screen offers to remove it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EmptyFork {
+    /// The agent did not fork at the turn chosen (it ignored the point).
+    NotAtPoint,
+    /// The agent cannot fork a conversation.
+    CannotFork,
+    /// It did not start for another reason: the node's words.
+    Other(String),
+}
+
+/// The node's sentences for a refused fork (`vessel-session`'s
+/// `fork_refusal`), read as the person's words above.
+const NOT_AT_POINT: &str = "the agent did not fork at the chosen point";
+const CANNOT_FORK: &str = "the agent cannot fork a conversation";
+
+/// Whether `status` is an empty fork's, and why.
+#[must_use]
+pub fn empty_fork(status: &SessionStatus) -> Option<EmptyFork> {
+    let SessionStatus::Failed {
+        message,
+        empty_fork: true,
+    } = status
+    else {
+        return None;
+    };
+    Some(match message.trim() {
+        NOT_AT_POINT => EmptyFork::NotAtPoint,
+        CANNOT_FORK => EmptyFork::CannotFork,
+        other => EmptyFork::Other(other.to_owned()),
+    })
 }

@@ -237,6 +237,8 @@ impl ConversationArea {
             .as_ref()
             .is_some_and(|shown| shown.machine == machine && shown.session == session)
         {
+            // A fork's origin that could not be read is asked for again.
+            self.origin_again();
             return;
         }
         self.clear();
