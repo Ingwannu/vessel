@@ -77,15 +77,46 @@ current-target selection. No new startup flag or environment override.
 Settings are read once before opening/recovering the store, then the same
 validated snapshot is attached to the runtime. An unreadable settings file
 uses the existing diagnostic/fallback policy, whose recovery default is
-off. A failed settings-file write changes neither effective policy nor
-intent. Once an off value has been durably saved, it immediately invalidates
-this boot's remaining recovery dispatches and consumes pending intents
-before acknowledging the change. If that post-save store operation fails,
-off remains saved/in force and the call reports Internal, explicitly saying
-that recovery is off but intent cleanup failed; it must not claim nothing
-changed. A later on change first finishes that cleanup, or is refused.
-Re-enabling does not reconstruct an invalidated boot batch. Editing the
-prompt affects subsequent admitted attempts, never an already admitted
+off.
+
+Extend the existing Settings engine with one bounded node-owned operation
+lane: one active change and at most eight queued changes, admitted in FIFO
+order. Keep the existing saved-settings serialization, merge, validation,
+file writer and runtime setters inside that operation; do not build another
+settings engine or independently spawn a second file write. A full/closed
+lane refuses before admission or any mutation. Once admitted, the node's
+tracked operation owns write -> saved/effective apply -> generation
+invalidation -> intent cleanup, including its lock/slot and completion
+report. The RPC handler only awaits its reply. Dropping/cancelling that
+reply future, disconnecting, or `crates/vessel-rpc/src/server/calls.rs`
+aborting the handler cannot abort the operation or release its ordering
+slot. An abandoned response
+does not turn an admitted change into an unsent one or allow a retry.
+
+This closes an existing cancellation gap: spawn_blocking(write_settings)
+can outlive the handler that was supposed to update saved/runtime state.
+The same operation must await that write's actual outcome and apply a
+successful save even with no RPC recipient. Memory/admission are bounded;
+there is no claim that a blocking filesystem write can be cancelled by an
+RPC deadline. Neither a caller timeout nor node shutdown abandons an
+unknown write and admits a later On ahead of it. Shutdown closes admission
+and drains tracked settings operations while the runtime/store they use
+remain available. Invalid input fails before writing; a failed write
+changes neither effective policy nor intent.
+
+For an Off save, a provisional recovery-admission barrier prevents new auto
+launch/prompt admission while that write is unresolved. It is not a policy
+or intent change: write failure removes the barrier with the old policy
+and intents intact. After a successful save, that same owned operation
+applies effective Off and advances the boot generation under the recovery
+admission arbiter before releasing the barrier, then consumes pending
+intents before replying. No later queued change can pass this operation.
+If post-save cleanup fails, Off remains saved/in force and the call reports
+Internal, explicitly saying recovery is off but intent cleanup failed; it
+must not claim nothing changed. Retain that cleanup obligation even when
+the reply is lost. A later On must complete it before its own save or be
+refused. Re-enabling never reconstructs an invalidated boot batch. Editing
+the prompt affects subsequent admitted attempts, never an already admitted
 provider request. Off does not terminate a turn already sent.
 
 ### Eligibility, durable intent and deliberate exclusions
@@ -112,18 +143,49 @@ no missing origin grant is replaced with Owner. Locally imported sessions
 can qualify after a new local turn, under their local creator's authority.
 
 The original local creator is Owner or a local Device. Re-read the device's
-current nonrevoked grant, as the existing schedule runner does, and require
-the ordinary ResumeSession and PromptSession permissions. Mint a fresh
-agent credential bounded by that principal; never reuse an ended agent
-secret or elevate a device to Owner. Use the normal profile/route and
-conversation ownership checks. A removed/revoked creator, missing folder,
-changed route, unsupported conversation resume or unavailable provider
-settles that attempt as failed, with no replacement conversation.
+current nonrevoked grant through Devices, as the existing schedule runner
+does, and require the ordinary ResumeSession and PromptSession permissions.
+The initial claim/preflight lookup is not authorization for a later effect:
+Guard::permit sees a cached Principal, and a synthetic startup context has
+no authenticated device socket for revocation to close.
+
+At each new launch admission, and independently at prompt admission after
+load/ready or any other await, obtain a fresh stored grant and validate its
+current revision/revocation epoch. Grant mutation/revocation and these
+admissions share an internal device fence: a check followed by an unlocked
+await and reuse of the old Principal is insufficient. Releasing that fence
+to wait invalidates the authorization permit; acquire/check again before
+the next effect. This is an internal extension of Devices' current-grant
+path, not a new grant, scope, authenticated socket or permission RPC.
+
+Within the same final admission decision, check that the policy is still
+On, there is no pending-Off barrier, the boot and person-stop generations
+still match, and this attempt still owns the session/run. Serialize those
+checks and the mutation's enqueue/admission with Off/manual-stop
+invalidation. Do not hold that arbiter across provider load/ready waits.
+Any intervening await before enqueue requires fresh checks. Once that
+atomic admission succeeds the particular effect is in flight and may
+finish despite a later revoke/Off; it grants no permission for another
+launch or the subsequent prompt. Construct a principal only from this
+fresh grant, for this one admission, never from a cached phase or Owner
+fallback. Mint a fresh agent credential bounded by that principal; never
+reuse an ended agent secret. Keep normal profile/route and conversation
+ownership checks.
+
+If revocation/reduction, Off or a manual stop wins during load/ready, do
+not send the subsequent prompt. A pending attempt's diagnostic/cleanup is
+also fenced by its run ownership: stop a process it launched only while
+that exact attempt still owns it, and never kill or append into a manually
+taken-over run. No fresh replacement is made after a denied phase. A
+removed/revoked creator, missing folder, changed route, unsupported resume
+or unavailable provider settles that attempt with its ordinary reason,
+with no replacement conversation.
 
 The store owns a bounded-size projection per session: active turn identity
 and its start timestamp, parked state, recovery eligibility, stop/admission
-generation and optional pending/consumed intent. Projection updates accompany normal log appends;
-retention of raw tool events cannot erase an active turn's identity. Delete
+generation and optional pending/consumed intent. Projection updates
+accompany normal log appends; retention of raw tool events cannot erase
+an active turn's identity. Delete
 cascades remove its projection. Do not parse message text to reconstruct it.
 
 A person stopping a turn/session must persist a suppression checkpoint
@@ -164,7 +226,8 @@ The listener becomes usable without waiting for the entire recovery batch.
 Each attempt atomically claims and consumes its pending intent before any
 launch, while sharing the existing per-session resume claim and an input
 admission lease. Recheck policy, generation, archive/delete/retention state,
-creator grant, profile and folder at that boundary. A manual resume that
+creator grant, profile and folder at that boundary; launch and later prompt
+still require the independent fresh admissions above. A manual resume that
 claims an as-yet queued candidate consumes the pending auto intent and
 takes over; the worker skips it. Manual normal input waits for an admitted
 auto attempt to settle, then follows its existing delivery mode. Manual
@@ -221,6 +284,13 @@ archived/private/owned/archived-workspace exclusions mapped above. Add:
 - Default off; custom prompt saved while off and retained across toggles;
   disable then enable never revives consumed work; multibyte 16 KiB/control
   and nonblank bounds; save failure and post-save cleanup failure semantics.
+- Gate a real settings write, cancel/drop/disconnect its RPC reply while
+  blocked, then release the write: the one node-owned operation still
+  applies saved/effective Off, invalidates generation and finishes cleanup.
+  Repeat with cancellation during post-save cleanup, failed cleanup and a
+  later queued On; no ordering slot is released early, old pending intent
+  never fires, and later On succeeds only after cleanup or reports refusal.
+  Include queue-full refusal before mutation and shutdown draining a change.
 - Active turn vs idle/starting/parked/queued-only/archived/deleted; projection
   survives a tool-heavy retained tail; legacy migration stays inactive.
 - Stop/cancel/archive before crash, including crash before final status;
@@ -232,6 +302,13 @@ archived/private/owned/archived-workspace exclusions mapped above. Add:
 - Local Owner and currently authorized Device; revoked/reduced device,
   agent/side/unattended/remote exclusion; missing provider/folder/route and
   unsupported resume; independent success remains intact after failure.
+- Use actual fake-provider load/ready gates on a real node: after initial
+  authorization and launch, revoke the device or reduce its stored grant,
+  or admit Off/manual stop, then release readiness. There is no subsequent
+  resume prompt. Check fresh permission before launch too, and the race at
+  the final atomic prompt-admission fence. A previously admitted request is
+  reported as in flight, not fabricated as unsent. Cleanup may stop only
+  its own launched run; a manual takeover survives stale worker completion.
 - Manual resume takeover, manual prompt during recovery, stop/off during
   load and during prompt, lost prompt acknowledgement, shutdown/restart
   between intent consumption and dispatch. No automatic mutation replay.

@@ -947,3 +947,39 @@ compatibility, authority, lifecycle and evidence boundaries. Startup
 recovery code has not started; the next action is to resolve that contract
 review, then implement its accepted form. No additional gate was run for
 the documentation-only handoff.
+
+### ADR 0059 contract return and revision
+
+V1 returned d732de44's contract for two boundaries before any recovery code.
+The defaults/reference, consume-before-dispatch and bounded ownership
+direction were retained. This revision makes both obligations explicit:
+
+1. Reuse Settings' existing merge/write/apply engine inside one bounded,
+   tracked node-owned lane (one active change, eight queued). Once admitted,
+   an operation owns its saved-settings ordering through the actual file
+   write, effective Off/generation invalidation and intent cleanup. RPC
+   cancellation, dropped replies and disconnects cannot abandon it. A
+   provisional admission barrier covers an unresolved Off save; file failure
+   leaves old policy/intent intact, while post-save cleanup failure retains
+   effective/saved Off and a cleanup obligation. A queued On cannot overtake
+   it or revive the old batch. Shutdown drains admitted settings operations.
+2. An initial creator lookup does not authorize a prompt after loading.
+   Read current device grants and check their revision/revocation epoch at
+   every new launch and subsequent prompt admission after waits. Serialize
+   the final grant/policy/Off/stop-generation/ownership checks and enqueue
+   with invalidations. Cached Guard principals and synthetic socket contexts
+   are not fresh authorization. Already admitted effects retain their
+   explicit in-flight boundary; a denied later phase sends no prompt, with
+   cleanup fenced to the exact run the attempt still owns.
+
+Required regressions now include RPC cancellation/drop during a gated real
+settings write and post-save cleanup, cleanup failure with queued On and
+shutdown/queue capacity; and real fake-provider load/ready gates followed
+by revoke, grant reduction, Off or manual stop. Releasing readiness must
+not send another prompt or kill a manually taken-over run. The final
+admission race is tested separately from effects already in flight.
+
+Only the contract/plan are revised. V1 contract re-review is required before
+implementation; neither this revision nor row 2's existing PASS asserts
+these new behaviours exist. No production source, runtime settings, grant,
+service or permission was changed, and no unchanged af6d166d gate was rerun.
