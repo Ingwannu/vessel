@@ -254,6 +254,10 @@ impl Glyph {
             Self::Undo2 => {
                 line_glyph!(r#"<path d="M9 5.5 4.5 10 9 14.5M5 10h8a6 6 0 0 1 6 6v3"/>"#)
             }
+            // Lucide's `split`, Paseo's fork mark.
+            Self::Split => line_glyph!(
+                r#"<path d="M16 3h5v5M8 3H3v5M12 21v-8.3a4 4 0 0 0-1.17-2.88L3.5 3.5M15 9l5.5-5.5"/>"#
+            ),
             Self::Pin => line_glyph!(
                 r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),

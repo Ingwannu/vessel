@@ -178,6 +178,9 @@ pub enum Glyph {
     Download,
     /// Undo a file change: a returning arrow, separate from Reset.
     Undo2,
+    /// Fork a conversation: one way parting in two (Paseo's `Split`, its
+    /// fork menu).
+    Split,
     /// Pinned.
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
@@ -211,7 +214,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 83] = [
+const ALL: [Glyph; 84] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -281,6 +284,7 @@ const ALL: [Glyph; 83] = [
     Glyph::Upload,
     Glyph::Download,
     Glyph::Undo2,
+    Glyph::Split,
     Glyph::Pin,
     Glyph::Spinner,
     Glyph::Board,
@@ -375,6 +379,7 @@ impl Glyph {
             Self::Upload => "kit/upload.svg",
             Self::Download => "kit/download.svg",
             Self::Undo2 => "kit/undo-2.svg",
+            Self::Split => "kit/split.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
             Self::Board => "kit/board.svg",
@@ -461,6 +466,7 @@ mod tests {
             Glyph::GitBranchPlus,
             Glyph::Commit,
             Glyph::Undo2,
+            Glyph::Split,
         ] {
             assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
             let bytes = Assets.load(glyph.path()).unwrap().unwrap();
