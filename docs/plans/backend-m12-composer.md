@@ -11,7 +11,7 @@ named below with its reason.
 | --- | --- | --- |
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
-| b | `/` the agent's commands | kit hooks (`5f2fda69`) and list (`46932bc9`) in; view and screen next |
+| b | `/` the agent's commands | built (a running session's composer) |
 | c | Attach images and files | not started |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | not started |
@@ -115,6 +115,68 @@ unreachable in the app. That was the test's setup, not the link: a book
 paired through the CLI names its credential under `~`, and the app ran with
 another `HOME`. With the fleet's `HOME` it connects; the read-only refusal
 toast is checked by the view's tests.
+
+## Slice b: the agent's `/` commands
+
+Followed: Paseo `hooks/use-agent-autocomplete.ts`,
+`utils/agent-command-autocomplete.ts` (`findActiveSlashCommand`,
+`filterAndRankCommandAutocompleteEntries`,
+`applySlashCommandReplacement`), `hooks/use-autocomplete.ts`,
+`components/ui/autocomplete.tsx` and `autocomplete-popover.tsx`,
+`packages/protocol/src/search/text-match.ts` (`compareMatchScores`).
+
+What Paseo does, and so the app (`view::composer::{slash, matching}`,
+`app/src/areas/composer/slash.rs`, the kit's `autocomplete`):
+
+- The menu shows while the prompt starts with `/` and the caret is in the
+  command's name (no space, quote or second `/` before it).
+- Every command in the agent's order for a bare `/`; otherwise the
+  commands whose name matches every word typed, by tier (whole name, whole
+  word, start, a word's start, anywhere, in order), then where the match
+  starts, then name. Descriptions are not searched.
+- The best row is drawn last, nearest the text, and is chosen when the
+  menu opens or what is typed changes; Up and Down move the choice and
+  wrap; Enter and Tab write `/name ` over what was typed; Escape closes the
+  menu and empties a prompt it opened at the start; a click writes the
+  row's command. With no row, every key is the text's (Enter sends what
+  is typed).
+- The chosen command's card above the list: its name, what it does and
+  the input it takes; the empty line "No commands found".
+
+The commands are the session's own report (`commands_changed`); until it
+arrives, its agent's last session's report, kept in the store and on the
+device with the agent's options (`offers`: a session's report wins over a
+kept copy and is kept when it differs).
+
+Deliberate differences:
+
+- **Only a running structured session's composer** has the menu: the node
+  sends no commands for a chat not started (`harness.options` carries
+  none). The kept copy could serve the new chat; not done (the draft's
+  composer is the lead's), proposed.
+- **At the prompt's start only.** Paseo also completes a skill's `/name`
+  in the middle of a prompt; ACP does not say which commands are skills.
+- **Motion** (the owner's word 39; Paseo's popover appears at once): the
+  menu rises 4 points into place and fades in over the slider's glide
+  (`SLIDE`, 0.15 s), fades out with its last rows, and the chosen row's
+  fill comes in when the choice moves; at once under reduced motion, with
+  the app's animations off, and on a software renderer
+  (`composer::reveal`; frames are asked only while it moves).
+
+Checked: the fake fleet's Claude Code session (`compact` with a hint,
+`review`) at 1280 and 390, both themes and languages, open, filtered, the
+choice moved, no match, closed; the kit's example scenes in both themes
+(long names and descriptions, no rows, thirty rows past 220 high, the
+choice kept in view). Captures outside the repository. Idle cost, debug
+build on the software renderer, composer focused: 440 to 460 ms of CPU per
+second with the menu closed, 517 to 525 with it open. The window redraws
+twice a second for the caret's blink (the lead's known cost); the open
+menu adds drawing to those frames, not frames of its own.
+
+Found while capturing, fixed: GPUI keeps a chosen row in view from the
+last frame's layout, so a list nothing else redraws stayed at its top on
+its first frame; the kit's list now asks for one more frame until the row
+has been laid out.
 
 ## An agent's lists, kept and refreshed (owner word 28)
 

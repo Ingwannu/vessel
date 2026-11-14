@@ -257,6 +257,8 @@ failed states as one muted line; at most 220 high, scrolling, the chosen
 row kept in view. `cargo run -p vessel-app-kit --example autocomplete`
 with `VESSEL_AUTOCOMPLETE_SCENE` (`commands`, `long`, `files`, `empty`,
 `loading`, `failed`, `scroll`) and `VESSEL_APP_THEME` draws each state.
+The list takes a `Motion` (an easing and a length) from the screen, which
+reads the app's one set of motion tokens; the kit has none of its own.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.

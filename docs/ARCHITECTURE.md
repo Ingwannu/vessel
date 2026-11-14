@@ -1101,7 +1101,8 @@ A failed edit does not refresh or mutate the existing clients or session follow.
 ## Native agents' option lists (milestone 12, track P)
 
 What each agent on each machine offers (`harness.options`: models, efforts,
-permissions modes, on/off options) is one store, `view::offers`, held by the
+permissions modes, on/off options; and the `/` commands a session of it last
+reported) is one store, `view::offers`, held by the
 app's composer area and read by every control that draws those lists. It
 decides what is shown (the list there is, however old; loading or the error
 only when there is none), when to ask again (on open, at connect, when a
