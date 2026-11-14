@@ -229,6 +229,60 @@ mod tests {
             .is_err()
         );
     }
+
+    fn envelopes(call: crate::Call) -> [crate::Call; 4] {
+        let node = crate::NodeId::random();
+        let origin = crate::Origin {
+            node,
+            by: crate::OriginBy::Owner,
+            scopes: vec![Scope::Read],
+        };
+        [
+            call.clone(),
+            crate::Forward {
+                node,
+                call: Box::new(call.clone()),
+            }
+            .into_call(),
+            crate::RelayCall {
+                node,
+                call: Box::new(call.clone()),
+                origin: origin.clone(),
+            }
+            .into_call(),
+            crate::Deliver {
+                call: Box::new(call),
+                origin,
+            }
+            .into_call(),
+        ]
+    }
+
+    #[test]
+    fn usage_envelopes_require_the_inner_method_and_fields_while_old_calls_stay_supported() {
+        let query = QueryUsage {
+            scope: UsageScope::Machine,
+            period: UsagePeriod::Day,
+            after: None,
+        };
+        assert_eq!(
+            envelopes(query.into_call()).map(|call| call.since()),
+            [QueryUsage::METHOD.since(); 4]
+        );
+        let six = ProtocolVersion::new(6);
+        assert_eq!(
+            envelopes(crate::GetNode.into_call()).map(|call| call.since()),
+            [crate::GetNode::METHOD.since(), six, six, six]
+        );
+        let fields = crate::settings::SetNodeSettings {
+            drivers: Some(crate::settings::SetAgentDrivers::default()),
+            ..Default::default()
+        };
+        assert_eq!(
+            envelopes(fields.into_call()).map(|call| call.since()),
+            [ProtocolVersion::new(18); 4]
+        );
+    }
 }
 
 /// Coverage of optional fields, independent of whether a turn supplied

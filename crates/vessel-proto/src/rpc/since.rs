@@ -23,6 +23,11 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            // Every hop decodes the typed inner call, including its newer
+            // fields. Keep the common envelope rule on the call itself.
+            Self::Forward(request) => Some(request.call.since().get()),
+            Self::Relay(request) => Some(request.call.since().get()),
+            Self::Deliver(request) => Some(request.call.since().get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
@@ -99,11 +104,6 @@ impl Call {
             | Self::WatchFleet(_)
             | Self::ReportApplied(_)
             | Self::ListMembers(_)
-            // The inner call of an envelope is checked against the target's
-            // protocol where it is delivered, not against this connection.
-            | Self::Forward(_)
-            | Self::Relay(_)
-            | Self::Deliver(_)
             | Self::GrantHome(_)
             | Self::GetCallback(_)
             | Self::ForgetNode(_)

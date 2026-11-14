@@ -462,3 +462,23 @@ are still pending. No pre-run attestation is being reconstructed, and the
 unchanged gate is not rerun to conceal this missing record. The next
 genuinely changed slice will capture its selected inputs and identities
 before and after execution.
+
+### Compatibility review correction
+
+Review returned the stack for one common seam: fleet envelopes still
+reported only their own protocol-6 requirement, concealing a protocol-19
+usage call. The correction reuses the common recursive `Call::since`
+semantics: maximum envelope and inner method/field version, for all three
+wrappers. The usage arm remains unchanged. Client tests include direct,
+call-on-self, forward, relay and deliver refusal without a sent frame. Raw
+server tests force each wrapper targeting the welcomed node and verify
+refusal before handler dispatch, while supported envelopes reach the
+handler. A field-only version requirement is covered too.
+
+The correction's new gate will capture selected project inputs and git
+identity before and after execution. Selection includes all tracked files,
+the local build configurations and the embedded web bundle; dependency
+lockfiles and tool versions are recorded. External dependency-cache and OS
+contents, build outputs and test artifacts are outside that selection.
+This does not reconstruct the preceding run's missing attestation. Review
+and new verification are pending. No quota implementation is included.

@@ -155,3 +155,14 @@ vendor responses and the process-level testkit only. No real credential
 file or vendor endpoint may be read during this work. Live-account lookup,
 including actual reset and recovery, remains explicitly unverified until
 an operator checks it separately.
+
+### Envelope version compatibility
+
+An intermediate peer must understand the typed inner method and its fields.
+The common `Call::since` rule therefore takes the maximum of the envelope's
+version and the inner call's full requirement for forward, relay and deliver.
+Checking only the target would let a forced self-forward execute a new
+usage call on an older negotiated connection. The same central calculation
+guards client sending and server dispatch; no second version checker is
+introduced in the node or renderer. Regression tests cover local refusal,
+raw forced requests before dispatch and supported older envelopes.

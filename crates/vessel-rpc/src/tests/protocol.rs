@@ -7,6 +7,11 @@ use super::*;
 
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
+    let (client, served, _) = raw_client_with_node(version).await;
+    (client, served)
+}
+
+async fn raw_client_with_node(version: u32) -> (MemoryTransport, Served, NodeId) {
     let (mut client_end, server_end) = pair();
     let served = serve(server_end);
     let version = ProtocolVersion::new(version);
@@ -26,7 +31,7 @@ async fn raw_client(version: u32) -> (MemoryTransport, Served) {
         panic!("expected a welcome, got {welcome}");
     };
     assert_eq!(welcome.protocol, version);
-    (client_end, served)
+    (client_end, served, welcome.node.id)
 }
 
 /// Send one call and return the text of the next frame.
@@ -159,15 +164,43 @@ async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
 async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
     use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
     let previous = QueryUsage::METHOD.since().get().saturating_sub(1);
-    let (mut client, mut served) = raw_client(previous).await;
+    let (mut client, mut served, target) = raw_client_with_node(previous).await;
     let call = QueryUsage {
         scope: UsageScope::Machine,
         period: UsagePeriod::Day,
         after: None,
     }
     .into_call();
-    let error = refusal(&call_raw(&mut client, 1, call).await);
-    assert_eq!(error.code, ErrorCode::Unsupported);
+    for wrapped in usage_envelopes(call, target) {
+        let expected = WireError::new(
+            ErrorCode::Unsupported,
+            format!(
+                "`{}` as sent needs protocol {}; this connection speaks {}",
+                wrapped.method().as_str(),
+                QueryUsage::METHOD.since(),
+                previous
+            ),
+        );
+        assert_eq!(refusal(&call_raw(&mut client, 1, wrapped).await), expected);
+        assert!(
+            served.seen.try_recv().is_err(),
+            "no unsupported envelope reached dispatch"
+        );
+    }
+    // Supported envelopes reach the handler unchanged on the same older
+    // connection. This fake deliberately refuses their payloads, recording
+    // them first; a version refusal must never substitute for that dispatch.
+    for supported in usage_envelopes(GetNode.into_call(), target)
+        .into_iter()
+        .skip(1)
+    {
+        let actual = refusal(&call_raw(&mut client, 1, supported.clone()).await);
+        assert_eq!(
+            actual,
+            WireError::new(ErrorCode::Unsupported, "not in this fake")
+        );
+        assert_eq!(served.seen.recv().await.unwrap(), supported);
+    }
     let response = call_raw(&mut client, 2, GetNode.into_call()).await;
     assert!(matches!(
         serde_json::from_str::<ServerFrame>(&response).unwrap(),
@@ -181,4 +214,31 @@ async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
         served.seen.try_recv().is_err(),
         "usage never reached the handler"
     );
+}
+
+fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
+    let origin = vessel_proto::Origin {
+        node,
+        by: vessel_proto::OriginBy::Owner,
+        scopes: vec![],
+    };
+    [
+        call.clone(),
+        vessel_proto::Forward {
+            node,
+            call: Box::new(call.clone()),
+        }
+        .into_call(),
+        vessel_proto::RelayCall {
+            node,
+            call: Box::new(call.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        vessel_proto::Deliver {
+            call: Box::new(call),
+            origin,
+        }
+        .into_call(),
+    ]
 }

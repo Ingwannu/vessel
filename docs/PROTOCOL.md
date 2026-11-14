@@ -1644,3 +1644,9 @@ uses exact decimal inputs and integer accumulation. Final sums or increments
 that cannot survive the finite wire number's decimal spelling are omitted.
 For an omitted unit sum, `unaccounted_costs` counts every contributing cost
 sample, rather than silently presenting a rounded subtotal.
+
+The negotiated version requirement for a typed fleet envelope includes its
+inner call's method and fields, recursively, for forward, relay and deliver.
+An older intermediate peer refuses `usage.query` before sending or dispatch,
+even when a forced envelope targets that peer itself. Older supported
+envelopes retain their existing requirement and dispatch behavior.
