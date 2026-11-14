@@ -232,8 +232,11 @@ impl Shell {
         card.set_open(!card.open);
         if card.open {
             card.slider.focus(window, cx);
+            // The card shows the agent's kept lists; opening it asks the
+            // node for fresh ones, as every other option control does.
+            self.probe(true);
         } else {
-            self.areas.draft.composer.focus(window, cx);
+            self.focus_controls_composer(window, cx);
         }
         cx.notify();
     }
@@ -454,7 +457,7 @@ pub(crate) fn card(
             cx.listener(|shell, event: &gpui::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
                     shell.areas.draft.effort.set_open(false);
-                    shell.areas.draft.composer.focus(window, cx);
+                    shell.focus_controls_composer(window, cx);
                     cx.notify();
                 }
             }),

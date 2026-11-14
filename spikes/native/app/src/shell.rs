@@ -212,7 +212,8 @@ impl Shell {
                     }
                     return;
                 }
-                self.fleet = fleet;
+                let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;
                     // With no machine there is nothing to type to: pairing
@@ -234,7 +235,11 @@ impl Shell {
                 request,
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
-            Event::Records { session, records } => self.records(&session, &records, cx),
+            Event::Records { session, records } => {
+                self.records(&session, &records, cx);
+                // Track P: a session's reported `/` commands kept for its agent.
+                self.offers_commands_seen();
+            }
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
@@ -242,7 +247,10 @@ impl Shell {
             Event::BookUnreadable(fault) => self.book_unreadable(&fault),
             Event::SessionLost { session, why } => self.session_lost(session, why),
             Event::Acted(answer) => {
-                if let Some(answer) = self.board_acted(answer, cx) {
+                if let Some(answer) = self
+                    .board_acted(answer, cx)
+                    .and_then(|answer| self.option_acted(answer, cx))
+                {
                     self.acted(answer, cx);
                 }
             }
@@ -253,6 +261,7 @@ impl Shell {
                 harness,
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
+            Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

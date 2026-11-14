@@ -1,7 +1,7 @@
 //! `ProviderRow` and `StatusIndicator` from Paseo's providers-section.tsx.
 //! The shared row owns insets/borders; this area supplies only its contents.
 use super::{page, ready};
-use crate::{areas::draft::Probe, shell::Shell};
+use crate::shell::Shell;
 use vessel_app_kit::agent_mark::{self, SettingsRowEdge, settings_mark};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
@@ -149,17 +149,7 @@ fn presentation(agent: &HarnessRef, inventory: &Inventory, shell: &Shell) -> row
         .agents
         .machine
         .as_ref()
-        .and_then(|machine| {
-            match shell
-                .areas
-                .draft
-                .probes
-                .get(&(machine.as_str().to_owned(), agent.clone()))
-            {
-                Some(Probe::Ready(options)) => Some(options.as_slice()),
-                Some(Probe::Loading | Probe::Failed(_)) | None => None,
-            }
-        });
+        .and_then(|machine| shell.offer_options(machine.as_str(), agent));
     row::row(
         shell.t.lang,
         row::Facts {
