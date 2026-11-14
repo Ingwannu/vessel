@@ -224,7 +224,15 @@ checked against `/doc`.
   - `thread/revert` on a real thread;
   - steering;
   - the user's `codex` (0.156.1 here) against the schema of 0.166.0
-    (codex-acp's bundled CLI).
+    (codex-acp's bundled CLI). Below 0.166.0 the node runs Codex over
+    ACP (the version gate), and the contract test that regenerates the
+    schema skips; both run once a Codex of at least 0.166.0 is installed;
+  - (slice 1) a thread started with `approvalPolicy: on-request` and
+    `sandbox: workspace-write`, and resumed with `excludeTurns`; which
+    items a real turn sends with deltas and which whole; the order of
+    `turn/start`'s answer and `turn/started`; the token usage a real turn
+    reports (`modelContextWindow` above all); `userAgent`'s form, which the
+    introduced version is read from.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
     follows 2.1.246);
@@ -250,3 +258,27 @@ checked against `/doc`.
   listing; the CLI's `--driver`; the fakes' first exchange.
 - Not reachable yet, so not checked end to end: a session that runs a
   direct driver. The first driver slice that sets `BUILT` checks it.
+- Codex slice 1 (start, prompt, stream): built, `BUILT` true, not offered
+  (`selectable` false until slice 2). `crates/vessel-agent/src/codex/`:
+  `wire` (JSON-RPC lines without `jsonrpc`, at most 64 MiB a line, a
+  writer task), `protocol` (the subset as types, read leniently),
+  `mapper` (items, deltas, plans, tokens, turn ends; prompts as text and
+  mentions), `session` (the loop: `initialize`, `initialized`,
+  `thread/start` or `thread/resume` with `excludeTurns`, then `Options`
+  empty and `Ready`; turns with `turn/start`, `turn/steer`,
+  `turn/interrupt`; every approval declined with a line in the log;
+  other threads' notifications ignored), `contract` (the fields and
+  values used are in `schema/app-server.json`, the 43 definitions of
+  0.166.0's schema the driver follows; regenerated from an installed
+  Codex of at least 0.166.0 and compared). A fork is refused at the
+  handshake (`CannotFork`) and a listing answers `CannotList` until slice
+  4; options are empty until slice 3; MCP servers are not passed until
+  slice 3 (`config`), so a direct Codex session has no Vessel tools yet.
+  The thread runs `on-request` in a `workspace-write` sandbox, Paseo's
+  default; slice 2 maps the session's mode instead. Checked against
+  `fake-codex-app-server` (its scenarios in its file): the handshake's
+  order and a prompt sent before it, a streamed reply (another thread's
+  delta left out), usage and the turn's tokens, reasoning, a command, a
+  plan, a message without deltas, a declined approval and its log line,
+  a steer and a cancel, a failed turn, an agent that exits mid-turn, a
+  resume, a missing thread and a fork refused at the handshake, a probe.

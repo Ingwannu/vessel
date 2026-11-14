@@ -100,17 +100,13 @@ mod tests {
         }
     }
 
-    /// Slice 0 builds no direct driver: each is refused before its agent
-    /// starts (the program here does not exist, and is never looked for),
+    /// A driver not built yet (Claude Code's, `OpenCode`'s) is refused
+    /// before its agent starts (the program here does not exist, and is never looked for),
     /// for a session, a probe and a listing alike.
     #[tokio::test]
     async fn a_driver_not_built_is_refused_before_anything_starts() {
         let missing = CommandSpec::new("vessel-no-such-agent");
-        for driver in [
-            Driver::CodexAppServer,
-            Driver::ClaudeStream,
-            Driver::OpencodeHttp,
-        ] {
+        for driver in [Driver::ClaudeStream, Driver::OpencodeHttp] {
             assert!(!driver.built(), "{driver}");
             let Err(AgentError::NoDriver(refused)) =
                 AgentProcess::spawn_with(driver, &missing, setup())
@@ -135,5 +131,6 @@ mod tests {
             ));
         }
         assert!(Driver::Acp.built());
+        assert!(Driver::CodexAppServer.built(), "since Codex's slice 1");
     }
 }

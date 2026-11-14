@@ -197,7 +197,7 @@ fn the_direct_fakes_answer_their_version_and_first_exchange() {
             "\n",
             r#"{"method":"initialized"}"#,
             "\n",
-            r#"{"id":2,"method":"thread/start","params":{}}"#,
+            r#"{"id":2,"method":"model/list","params":{}}"#,
             "\n",
         ),
     );
