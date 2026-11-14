@@ -23,7 +23,7 @@ use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 
 use super::density::Density;
 use super::features::feature_name;
-use super::{Probe, Shown, pill_with};
+use super::{ControlsTarget, Probe, Shown, pill_with};
 use crate::areas::workspace::{PlacePick, PlaceRows};
 use crate::shell::Shell;
 use vessel_app_view::extras::{Extra, extra_of};
@@ -97,13 +97,25 @@ pub(super) const ALL: [Picker; 8] = [
 
 /// The machine the draft is on, when online.
 fn machine<'a>(shell: &'a Shell, online: &[&'a Machine]) -> Option<&'a Machine> {
-    let name = shell.areas.draft.machine.as_deref()?;
+    let name = shell.controls_machine()?;
     online.iter().find(|machine| machine.name == name).copied()
 }
 
 /// What a machine's agent offers, laid out, with the draft's choices on
 /// it when it is the draft's agent.
 fn controls_for(shell: &Shell, machine: &str, agent: &HarnessRef) -> Option<Controls> {
+    // A running session's controls are its own reported options, and no
+    // other agent is a choice there (the session's agent is fixed).
+    if let ControlsTarget::Session {
+        machine: on,
+        agent: of,
+        ..
+    } = shell.controls_target()
+    {
+        return (on == machine && of == *agent)
+            .then(|| shell.session_controls(agent))
+            .flatten();
+    }
     let key = (machine.to_owned(), agent.clone());
     let Some(Probe::Ready(options)) = shell.areas.draft.probes.get(&key) else {
         return None;
@@ -141,7 +153,14 @@ impl Shell {
             return;
         }
         let words = self.t.lang.options();
+        let session = match self.controls_target() {
+            ControlsTarget::Session { agent, .. } => Some(agent),
+            ControlsTarget::Draft => None,
+        };
         let search = match which {
+            // A running session's list is its agent's models: nothing to
+            // probe, no other agent to browse.
+            Picker::Model if session.is_some() => Some(words.search_models),
             Picker::Model => {
                 let online: Vec<&Machine> = self.fleet.online().collect();
                 let agents: Vec<HarnessRef> = machine(self, &online)
@@ -194,10 +213,9 @@ impl Shell {
         };
         let leading = (which == Picker::Model)
             .then(|| {
-                self.areas
-                    .draft
-                    .browsing
+                session
                     .as_ref()
+                    .or(self.areas.draft.browsing.as_ref())
                     .map(crate::agent_mark::leading)
             })
             .flatten();
@@ -208,7 +226,7 @@ impl Shell {
 
     fn close_picker(&mut self, which: Picker, window: &mut Window, cx: &mut Context<'_, Self>) {
         list_of(self, which).close();
-        self.areas.draft.composer.focus(window, cx);
+        self.focus_controls_composer(window, cx);
         cx.notify();
     }
 }
@@ -268,7 +286,10 @@ pub(super) fn controls(
         density.effort_label(),
     );
     if !words.fast {
-        parts.agent_mark = draft.agent.as_ref().and_then(crate::agent_mark::of);
+        parts.agent_mark = shell
+            .controls_agent()
+            .as_ref()
+            .and_then(crate::agent_mark::of);
     }
     let open = lists.model.is_open() || draft.effort.open;
     let pill = vessel_app_kit::pill_parts("pick-model", parts, open, touch, tokens)
@@ -325,7 +346,7 @@ fn model_words(shell: &Shell, shown: Option<&Shown>) -> (String, Option<String>)
     let words = t.lang.options();
     let online: Vec<&Machine> = shell.fleet.online().collect();
     let several = machine(shell, &online).is_some_and(|machine| machine.agents.len() > 1);
-    match (&shell.areas.draft.agent, shown) {
+    match (&shell.controls_agent(), shown) {
         (None, _) => (t.agent.to_owned(), None),
         (Some(_), Some(Shown::Loading) | None) => (words.loading.to_owned(), None),
         (Some(agent), Some(Shown::Failed(_))) => (agent_name(agent), None),
@@ -582,6 +603,20 @@ fn value_rows(
     }
 }
 
+/// The agent in use, the agent whose models the list shows, and whether
+/// the controls are a running session's: there the list is its agent's
+/// models (it cannot change agent); on the draft, the agent browsed.
+fn browsed(shell: &Shell) -> (Option<HarnessRef>, Option<HarnessRef>, bool) {
+    let in_use = shell.controls_agent();
+    let session = matches!(shell.controls_target(), ControlsTarget::Session { .. });
+    let browsing = if session {
+        in_use.clone()
+    } else {
+        shell.areas.draft.browsing.clone()
+    };
+    (in_use, browsing, session)
+}
+
 fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built) {
     let words = shell.t.lang.options();
     built.width = MODEL_WIDTH;
@@ -592,12 +627,10 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
     };
     // The draft agent's other options first, while not searching and not
     // browsing another agent's models.
-    let browsing_other = shell
-        .areas
-        .draft
-        .browsing
+    let (in_use, browsing, session) = browsed(shell);
+    let browsing_other = browsing
         .as_ref()
-        .is_some_and(|browsing| shell.areas.draft.agent.as_ref() != Some(browsing));
+        .is_some_and(|browsing| in_use.as_ref() != Some(browsing));
     let on_top = if query.is_empty() && !browsing_other {
         option_rows_on_top(shell, built)
     } else {
@@ -605,12 +638,19 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
     };
     let first_model = built.rows.len();
     let single = here.agents.len() == 1;
-    if let Some(agent) = shell.areas.draft.browsing.clone() {
+    if let Some(agent) = browsing {
         // One agent's models (Paseo's provider view).
         built.header.title = Some(agent_name(&agent).into());
-        built.header.back = !single;
+        built.header.back = !single && !session;
         let key = (here.name.clone(), agent.clone());
-        match shell.areas.draft.probes.get(&key) {
+        // The session's options are its own report, not a probe.
+        let ready = Probe::Ready(Vec::new());
+        let probe = if session {
+            Some(&ready)
+        } else {
+            shell.areas.draft.probes.get(&key)
+        };
+        match probe {
             None | Some(Probe::Loading) => built.header.empty = words.loading.into(),
             Some(Probe::Failed(why)) => {
                 built.header.empty = format!("{} — {why}", words.error).into();
@@ -629,13 +669,13 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
                     );
                     // Paseo checks a model only under the agent in use: the
                     // other agents' own defaults are not a choice made here.
-                    let in_use = shell.areas.draft.agent.as_ref() == Some(&agent);
+                    let in_use = in_use.as_ref() == Some(&agent);
                     for row in &mut built.rows {
                         row.checked = row.checked && in_use;
                     }
                 } else {
                     let mut row = ComboRow::new(words.default_model);
-                    row.checked = shell.areas.draft.agent.as_ref() == Some(&agent);
+                    row.checked = in_use.as_ref() == Some(&agent);
                     built.rows.push(row);
                     built.meanings.push(Meaning::Agent(agent.clone(), None));
                 }
@@ -668,8 +708,7 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
                 for row in &mut rows.rows {
                     row.heading = None;
                     row.leading = Some(crate::agent_mark::leading(&agent.harness));
-                    row.checked =
-                        row.checked && shell.areas.draft.agent.as_ref() == Some(&agent.harness);
+                    row.checked = row.checked && in_use.as_ref() == Some(&agent.harness);
                 }
                 built.rows.extend(rows.rows);
                 built.meanings.extend(rows.meanings);
@@ -711,7 +750,7 @@ fn option_rows_on_top(shell: &Shell, built: &mut Built) -> usize {
     let Some(Shown::Ready(controls)) = shell.shown() else {
         return 0;
     };
-    let kind = shell.areas.draft.agent.as_ref().and_then(super::kind_of);
+    let kind = shell.controls_agent().as_ref().and_then(super::kind_of);
     let words = shell.t.lang.options();
     let before = built.rows.len();
     for select in &controls.selects {
@@ -777,7 +816,7 @@ fn agent_row(shell: &Shell, machine: &str, agent: &Agent) -> ComboRow {
     let words = shell.t.lang.options();
     let mut row = ComboRow::new(agent.name.clone());
     row.leading = Some(crate::agent_mark::leading(&agent.harness));
-    row.checked = shell.areas.draft.agent.as_ref() == Some(&agent.harness);
+    row.checked = shell.controls_agent().as_ref() == Some(&agent.harness);
     if agent.unavailable.is_some() {
         // The app's own short words, not the node's sentence (which a
         // narrow list cuts, in English in a Korean list).
@@ -876,7 +915,7 @@ fn feature_list(shell: &Shell, controls: &Controls, id: &OptionId, query: &str, 
                 .push(Meaning::Choose(toggle.choose(on), true));
         }
     } else if let Some(select) = controls.selects.iter().find(|select| &select.id == id) {
-        let kind = shell.areas.draft.agent.as_ref().and_then(super::kind_of);
+        let kind = shell.controls_agent().as_ref().and_then(super::kind_of);
         let title = match extra_of(kind, &select.id) {
             Some(Extra::AnsweringAgent) => words.answering_agent.to_owned(),
             Some(Extra::PlanMode) => words.plan_mode.to_owned(),
@@ -1004,7 +1043,9 @@ fn chose(
             list_of(shell, which).reset_query(words.search_models, window, cx);
         }
         Meaning::Agent(agent, choice) => {
-            if shell.areas.draft.agent.as_ref() != Some(&agent) {
+            // A running session keeps its agent; only its option changes.
+            let draft = matches!(shell.controls_target(), ControlsTarget::Draft);
+            if draft && shell.areas.draft.agent.as_ref() != Some(&agent) {
                 shell.choose_agent(agent);
             }
             if let Some(choice) = choice {
