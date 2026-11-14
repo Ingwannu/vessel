@@ -138,6 +138,37 @@ pub fn primary(status: &Reading<GitStatus>) -> Option<Action> {
     }
 }
 
+/// The split button's primary half as it is drawn now.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PrimaryControl {
+    /// Its action; none when nothing is needed (the half is the menu's
+    /// glyph and opens the menu, Paseo's menu-only trigger).
+    pub action: Option<Action>,
+    /// Its action is the write out now: the spinner replaces it. Another
+    /// write out does not dim it; choosing it then says why it waits
+    /// (Paseo's runner keeps the button live and explains).
+    pub running: bool,
+    /// The panel has room for its words beside its glyph.
+    pub labelled: bool,
+}
+
+/// The primary half from the shown facts, the write out and the panel's width.
+#[must_use]
+pub fn primary_control(
+    status: &Reading<GitStatus>,
+    writing: &Writing,
+    width: PanelWidth,
+) -> PrimaryControl {
+    let action = primary(status);
+    let running =
+        action.is_some() && writing.intent().and_then(super::WriteIntent::action) == action;
+    PrimaryControl {
+        action,
+        running,
+        labelled: action.is_some() && width.density() == ControlDensity::Labelled,
+    }
+}
+
 /// The page's action order, with no primary action hidden from its menu.
 #[must_use]
 pub fn rows(status: &Reading<GitStatus>, writing: &Writing) -> Vec<ActionRow> {

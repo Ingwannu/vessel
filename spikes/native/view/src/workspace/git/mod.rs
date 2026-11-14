@@ -15,6 +15,7 @@
 
 mod branch;
 mod branch_picker;
+mod commit_row;
 mod destination;
 mod dialog;
 mod discard;
@@ -30,7 +31,9 @@ mod repository;
 mod scopes;
 mod stash;
 mod state;
+mod step;
 mod submit;
+mod switch_stash;
 mod written;
 
 pub use branch::{BranchMode, BranchRequest, SwitchProblem, branch_request, switch_request};
@@ -38,6 +41,7 @@ pub use branch_picker::{
     BranchChoice, BranchChoices, BranchSelection, PickerVisibility, branch_choices, branch_failure,
     branch_selection,
 };
+pub use commit_row::committed_state;
 pub use destination::CommitDestination;
 pub use dialog::Dialog;
 pub use discard::{DiscardDecision, DiscardEffect};
@@ -53,15 +57,17 @@ pub use header::{
 pub use intent::WriteIntent;
 pub use issue::Issue;
 pub use menu::{
-    Action, ActionRow, ControlDensity, PanelWidth, StashScope, Unavailable, availability,
-    filter_branches, primary, rows,
+    Action, ActionRow, ControlDensity, PanelWidth, PrimaryControl, StashScope, Unavailable,
+    availability, filter_branches, primary, primary_control, rows,
 };
 pub use poll::{PanelVisibility, REFRESH_EVERY, should_refresh};
 pub use repository::{Repository, matching_repository};
 pub use scopes::{CommitScope, commit_scopes};
 pub use stash::{StashChoice, stash_request};
 pub use state::{KeysExhausted, Reading, RequestKey, RequestKeys};
+pub use step::{DirectWrite, Step, step};
 pub use submit::{can_branch, can_commit};
+pub use switch_stash::{offers_stash, saved, stash_for};
 pub use written::{SUCCESS_DISPLAY, Success, SuccessReceipt, UpstreamChange, Writing, Written};
 
 #[cfg(test)]

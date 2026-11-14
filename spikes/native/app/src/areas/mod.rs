@@ -14,6 +14,7 @@ pub(crate) mod board;
 pub(crate) mod common;
 pub(crate) mod conversation;
 pub(crate) mod draft;
+pub(crate) mod git;
 pub(crate) mod pair;
 pub(crate) mod session;
 pub(crate) mod settings;
@@ -34,6 +35,7 @@ pub(crate) struct Areas {
     pub(crate) conversation: conversation::ConversationArea,
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
+    pub(crate) git: git::GitArea,
     pub(crate) board: board::BoardArea,
     pub(crate) sidebar: sidebar::SidebarState,
     /// The toasts on screen.
@@ -50,6 +52,7 @@ impl Areas {
             conversation: conversation::ConversationArea::new(cx),
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
+            git: git::GitArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),

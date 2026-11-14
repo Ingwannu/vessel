@@ -145,7 +145,10 @@ impl Shell {
                 self.setup_started(machine, worktree, result);
             }
             Answer::Removed { ask, result } => self.worktree_removed(machine, &ask, result),
-            Answer::Branches { root, result } => self.branches_read(machine, &root, result),
+            Answer::Branches { root, result } => {
+                self.git_branches_read(machine, &root, &result);
+                self.branches_read(machine, &root, result);
+            }
             Answer::Start { key, step } => self.start_step(key, step),
             Answer::StartEnded { key, ended } => self.start_ended(key, ended, cx),
             Answer::Session { session, result } => self.code_session_read(session, result),
@@ -156,13 +159,12 @@ impl Shell {
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { result, .. } => self.files_grepped(result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
-            // Track G1's and the later slices' answers: nothing of this
-            // track asks them yet.
-            Answer::Status { .. }
-            | Answer::Log { .. }
-            | Answer::Stashes { .. }
-            | Answer::Git { .. }
-            | Answer::Saved { .. } => {}
+            // Track G1's: the git toolbar's reads and writes.
+            Answer::Status { root, result } => self.git_status_read(machine, &root, result),
+            Answer::Stashes { root, result } => self.git_stashes_read(machine, &root, result),
+            Answer::Git { write, result } => self.git_written(machine, &write, result, cx),
+            // Nothing of the app asks these yet.
+            Answer::Log { .. } | Answer::Saved { .. } => {}
         }
         cx.notify();
     }

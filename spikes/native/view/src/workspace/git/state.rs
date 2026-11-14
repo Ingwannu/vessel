@@ -82,6 +82,17 @@ impl<T> Reading<T> {
         true
     }
 
+    /// The outstanding request's key, when one is out. The node's workspace
+    /// answers echo the root they were asked about, not an app key: the
+    /// caller matches that root first, then accepts with this key.
+    #[must_use]
+    pub const fn outstanding(&self) -> Option<RequestKey> {
+        match self {
+            Self::Loading { key, .. } => Some(*key),
+            Self::Empty | Self::Ready(_) | Self::Failed(_) => None,
+        }
+    }
+
     /// Content that is safe to use for a new action; refreshing or failed
     /// status never authorizes a write from stale facts.
     #[must_use]
@@ -146,6 +157,18 @@ mod tests {
         reopened.start(keys.issue().unwrap());
         assert!(!reopened.accept(old, Ok("old incarnation")));
         assert_eq!(reopened.ready(), None);
+    }
+
+    #[test]
+    fn only_a_read_in_flight_has_an_outstanding_key() {
+        let mut keys = RequestKeys::default();
+        let key = keys.issue().unwrap();
+        let mut read: Reading<&str> = Reading::default();
+        assert_eq!(read.outstanding(), None);
+        read.start(key);
+        assert_eq!(read.outstanding(), Some(key));
+        assert!(read.accept(key, Ok("answered")));
+        assert_eq!(read.outstanding(), None);
     }
 
     #[test]

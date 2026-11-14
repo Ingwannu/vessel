@@ -29,19 +29,17 @@ use crate::shell::Shell;
 use vessel_app_link::workspace::{Ask, GitAsk};
 
 /// Track G1's slot at the head of the Changes tab: the session's git
-/// actions (commit, push, pull, sync, branch, stash, discard). G1 replaces
-/// this body with one call into its area, `crate::areas::git`; `None`
-/// draws nothing.
-#[expect(clippy::missing_const_for_fn, reason = "a slot another track fills")]
+/// actions (commit, push, pull, sync, branch, stash, discard), drawn by
+/// its area, `crate::areas::git`; `None` draws nothing.
 pub(crate) fn git_head(
-    _shell: &Shell,
-    _machine: &str,
-    _root: &WorkspaceRoot,
-    _tokens: &Tokens,
-    _window: &mut Window,
-    _cx: &mut Context<'_, Shell>,
+    shell: &Shell,
+    machine: &str,
+    root: &WorkspaceRoot,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    None
+    crate::areas::git::slot(shell, machine, root, tokens, window, cx)
 }
 
 impl Shell {

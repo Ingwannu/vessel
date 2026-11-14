@@ -186,3 +186,61 @@ fn an_unborn_repository_names_the_first_commit_needed_before_sync_or_stash() {
         None
     );
 }
+
+#[test]
+fn the_primary_half_names_its_action_only_with_room_and_spins_only_for_its_own_write() {
+    let status = Reading::Ready(changed());
+    let idle = Writing::default();
+    assert_eq!(
+        primary_control(&status, &idle, PanelWidth(640.0)),
+        PrimaryControl {
+            action: Some(Action::Quick(GitAction::Commit)),
+            running: false,
+            labelled: true,
+        }
+    );
+    assert_eq!(
+        primary_control(&status, &idle, PanelWidth(440.0)),
+        PrimaryControl {
+            action: Some(Action::Quick(GitAction::Commit)),
+            running: false,
+            labelled: false,
+        }
+    );
+    let mut keys = RequestKeys::default();
+    let mut committing = Writing::default();
+    assert!(committing.begin_action(
+        keys.issue().unwrap(),
+        super::WriteIntent::Quick(GitAction::Commit)
+    ));
+    assert!(primary_control(&status, &committing, PanelWidth(640.0)).running);
+    let mut fetching = Writing::default();
+    assert!(fetching.begin_action(
+        keys.issue().unwrap(),
+        super::WriteIntent::Quick(GitAction::Fetch)
+    ));
+    assert!(!primary_control(&status, &fetching, PanelWidth(640.0)).running);
+}
+
+#[test]
+fn nothing_needed_leaves_the_primary_half_to_open_the_menu() {
+    let mut clean = fixtures::status(vec![]);
+    clean.head = Some("1111111111111111111111111111111111111111".parse().unwrap());
+    clean.upstream = Some(vessel_proto::workspace::Distance {
+        name: "origin/feature".parse().unwrap(),
+        ahead: 0,
+        behind: 0,
+    });
+    assert_eq!(
+        primary_control(
+            &Reading::Ready(clean),
+            &Writing::default(),
+            PanelWidth(640.0)
+        ),
+        PrimaryControl {
+            action: None,
+            running: false,
+            labelled: false,
+        }
+    );
+}

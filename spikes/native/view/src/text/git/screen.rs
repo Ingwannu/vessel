@@ -6,6 +6,13 @@ use vessel_proto::workspace::CommitStage;
 /// Fixed git screen words in one complete language table.
 #[derive(Debug)]
 pub struct GitLabels {
+    /// Title of the confirmation when a branch switch would overwrite
+    /// local changes (Paseo's `uncommittedTitle`).
+    pub switch_dirty_title: &'static str,
+    /// Its whole question, under the title (Paseo's `uncommittedMessage`).
+    pub switch_dirty_message: &'static str,
+    /// Its confirming button: stash, then switch (short).
+    pub stash_and_switch: &'static str,
     /// Short label before the commit summary’s branch name.
     pub commit_branch: &'static str,
     /// Short label above the commit summary’s path list.
@@ -130,6 +137,9 @@ pub struct GitLabels {
 }
 
 const EN: GitLabels = GitLabels {
+    switch_dirty_title: "Uncommitted changes",
+    switch_dirty_message: "You have uncommitted changes. Stash them before switching branches?",
+    stash_and_switch: "Stash & Switch",
     commit_branch: "Branch",
     commit_files: "Files",
     commit_files_none: "none",
@@ -193,6 +203,9 @@ const EN: GitLabels = GitLabels {
 };
 
 const KO: GitLabels = GitLabels {
+    switch_dirty_title: "커밋하지 않은 변경",
+    switch_dirty_message: "커밋하지 않은 변경이 있습니다. 브랜치를 전환하기 전에 임시 보관할까요?",
+    stash_and_switch: "임시 보관하고 전환",
     commit_branch: "브랜치",
     commit_files: "파일",
     commit_files_none: "없음",

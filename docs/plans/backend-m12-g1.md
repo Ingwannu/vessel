@@ -659,3 +659,96 @@ At 20:55:07 UTC all own fake nodes/harnesses/probes and the verified virtual
 display were stopped by PID; no build remained running. The isolated failed-read
 index was restored to 0644. Execution used UID/GID 1000, with no production owner
 or mode change. No push, release or preview-node operation was performed.
+
+## G1b, slice 1: the git toolbar on screen (2026-11-14)
+
+Track G1 was taken over by G1b. The previous worker's unregistered
+prototype (`app/src/areas/git/`, `link/src/git.rs`, `scripts/git-fleet.sh`)
+did not compile against the current base and depended on kit menu
+controls not yet on the lead's line; it was set aside outside the
+repository, read, and not reused. The committed view models were reused.
+
+### What is drawn, and from which reference file
+
+| Part | Reference followed | Where |
+|---|---|---|
+| The repository row: branch leading, actions trailing | Paseo `git/diff-pane.tsx` `ChangesRepositoryToolbar` | `app/src/areas/git/head.rs` |
+| Branch label trigger, its tooltip, the list | Paseo `components/branch-switcher.tsx`, `hooks/use-branch-switcher.ts`, `components/ui/toolbar-label-trigger.tsx` | `head.rs`, `branch.rs` |
+| Split button: primary half, caret, menu | Paseo `git/actions-split-button.tsx`, `git/action-icons.tsx`, `git/use-actions.tsx` (`useGitActionRunner`) | `head.rs`, `menu.rs` |
+| Commit form | GOAT `components/GitActionsControl.tsx` 1898–2072 | `commit.rs` |
+| New branch / rename form | the page's `features/workspace/branch-dialog.tsx` (Paseo has none) | `branch.rs` |
+| Saved entries, drop confirmation | the page's `stash-dialog.tsx`; Paseo's confirm dialog shape for the drop | `stashes.rs` |
+
+### Rules added to `view`, with tests
+
+- `git::step` (`step.rs`, `step_tests.rs`): what choosing an action does,
+  decided again at the moment of choice. An unavailable action is
+  explained in an Info toast and nothing is sent (Paseo's
+  `useGitActionRunner`); forms open; Push sets the upstream when the
+  branch has none (the page's `git-bar.tsx`); stash saves with or without
+  new files.
+- `git::primary_control`: the primary half's action (none when nothing is
+  needed: the half is the git glyph and opens the menu, Paseo's
+  menu-only trigger), whether it is the write running (spinner), and
+  whether the panel has room for its words.
+- `git::committed_state`: the one change a commit form's row names (the
+  index side for staged-only commits, else the working tree's).
+- `git::switch_stash` (`offers_stash`, `stash_for`, `saved`): Paseo's
+  Stash & Switch, offered only for a branch switch refused for local
+  changes; the switch is sent only after the save succeeded.
+- `Reading::outstanding`: the key of the read in flight, for answers that
+  echo a root rather than an app key.
+- Git call failures gained the lead's `Problem::Unsent` ("Could not send."
+  / "Try again."), with a test per language.
+
+### How answers are matched
+
+The node's workspace answers echo the root (reads) or the exact write; they
+carry no app key. A read is taken when its root is the repository followed
+and a read of it is out; a write when it equals the one write in flight.
+A keyed link channel was rejected: it adds a command, an event and arms in
+the shell's router and the unsent settler (shared files) for a protection
+the root and the single write slot already give. The one cost: a read of
+the same repository from before a leave-and-return is taken for the newer
+one, and is read again five seconds later.
+
+### Seams in track F's files (each one line or one getter)
+
+- `workspace/code/changes.rs` `git_head`: its body calls
+  `crate::areas::git::slot` (the slot F reserved).
+- `workspace/code/mod.rs`: `Shell::code_git_context` (machine and root
+  while the panel is out on Changes) and `Shell::code_git_width` (the
+  panel's width, for the label's room), both read only, as agreed.
+- `workspace/mod.rs` `workspace_answer`: `Status`, `Stashes` and `Git`
+  answers go to the git area; `Branches` goes to both (F's start card
+  reads branches too).
+- `areas/mod.rs`: the area's `mod` line and field.
+
+### Differences from the references, each with its reason
+
+- **Menu rows have no leading glyph, muted look, spinner or success
+  check** yet: G2's kit menu controls are on the lead's merge list. The
+  behaviour is Paseo's already (an unavailable row is chosen and explains
+  itself; a running row says so in its words; every row waits while a
+  write is out). Swapped when the lead's hash arrives.
+- **Failures stay beside their control** (under the toolbar, or inside the
+  form that asked) instead of Paseo's error toast: the app's rule, and it
+  keeps git's own output under the explanation.
+- **A detached head still shows the trigger** ("Detached at abc1234") and
+  opens the list; Paseo hides its switcher without a branch name.
+- **Commit form**: the node commits by scope, so the scope is a select
+  where GOAT has per-file checkboxes; rows name the change in one word
+  where GOAT shows line counts (the status carries none); no "Commit on
+  new branch" (no single node act; New branch… then Commit); the message
+  is required.
+- **New branch, rename, stash and the saved-entry list** are the page's,
+  since the node offers them and Paseo has no screen for them.
+- **Stash & Switch** is Paseo's (`hooks/use-branch-switcher.ts`): a switch
+  refused because it would overwrite local changes asks "Uncommitted
+  changes", and on yes saves the tracked changes, then switches
+  (`view::workspace::git::switch_stash`). Paseo recognises the case from
+  git's message text; the node types it (`GitRefusal::WouldOverwrite`).
+  Paseo's later offer to restore an entry saved for the branch switched
+  back to is not built: the node's saved entries carry no branch of their
+  own (Paseo tags its own entries), so which entry belongs to a branch
+  could only be guessed from its message.

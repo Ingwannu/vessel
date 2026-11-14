@@ -186,7 +186,9 @@ impl Lang {
         }
     }
 
-    const fn git_file_word(self, state: FileState) -> &'static str {
+    /// One side's change in one word: a commit form row's state (short).
+    #[must_use]
+    pub const fn git_file_word(self, state: FileState) -> &'static str {
         match (self, state) {
             (Self::En, FileState::Unmodified) => "unchanged",
             (Self::Ko, FileState::Unmodified) => "변경 없음",

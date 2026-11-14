@@ -656,6 +656,20 @@ Branch choices distinguish local identity from a remote-tracking ref even when
 their printable names match. Only the current local branch is a no-op; remote
 choices always pass the existing remote-prefix and local-name validation.
 
+The git toolbar (`app/src/areas/git/`) sits in track F's Changes-tab slot
+and follows the repository F shows (`Shell::code_git_context`, read only).
+It uses the workspace channel the code panel already has: a read is taken
+when its echoed root is the one followed and a read of it is out; a write
+when it equals the one write in flight. What choosing an action does is
+`view::workspace::git::step` (explain in an Info toast and send nothing,
+open a form, or send one prepared write). Its shapes on a running fleet:
+`bash scripts/git-fixtures.sh ROOT TARGET` adds one project and session
+per state (commit, push, pull, no upstream, in step, push refused by the
+remote, no commits, detached), bare remotes under `ROOT/remotes`, and a
+device paired as a person pairs one in `ROOT/person-config`; the fleet's
+`ROOT/readonly-config` shows what a read-only device sees. Run the app
+with `HOME=ROOT` for either book: they name their credentials from it.
+
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.
