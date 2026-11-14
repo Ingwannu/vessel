@@ -172,7 +172,14 @@ pub fn autocomplete<V: 'static>(
         // pinned to the text's end when it opens (its first choice is the
         // last row).
         state.scroll.scroll_to_item(index);
-        state.revealed.set(Some((index, rows.len())));
+        if state.scroll.bounds_for_item(index).is_some() {
+            state.revealed.set(Some((index, rows.len())));
+        } else {
+            // GPUI places the row from the last frame's layout: on the
+            // list's first frame there is none, so one more frame (a list
+            // nothing else redraws stayed at its top).
+            cx.notify();
+        }
     }
     let card = chosen
         .and_then(|index| rows.get(index))
