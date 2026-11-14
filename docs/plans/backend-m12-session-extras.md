@@ -875,13 +875,68 @@ registration and the old native WIP are outside this session's scope.
 Implementation and local gate: af6d166df9fb0ce12caae54002497ceafea27aa4.
 V1 received its immutable implementation review request, including the
 reference paths, full logs, source pin, earlier failures and exact retries,
-authority boundaries and screen API handoff. V1 implementation PASS and
-node integration are still pending; do not infer them from the local gate.
-No additional source changes or unchanged-tree gate rerun are needed while
-awaiting that review. The intentionally untracked web dependency/bundle
+authority boundaries and screen API handoff. V1 subsequently accepted af6d166d's client/CLI implementation, independently
+checking the selected source manifest, immutable diff and complete logs.
+Node integration, native/UI work and whole vertical-feature parity remain
+separate. No unchanged-tree gate rerun was requested or performed. The intentionally untracked web dependency/bundle
 links and both ignored Cargo build configurations must remain uncommitted.
 
 Next after review: ADR 0059 startup recovery contract and reference defaults,
 then its node/settings/CLI/fake-agent slice; delivered files/HTML ADR 0047
 remains later. No app screen or other branch merge has been started.
 No owned build, fake fleet or display remains running at this checkpoint.
+
+
+## Startup recovery: contract first (ADR 0059)
+
+Row 2 client/CLI implementation af6d166d received V1 PASS; the review does
+not pass this new contract or app work. The continuation now starts with
+startup recovery, using allocated ADR 0059. No new production source,
+settings value, service or agent runtime has been changed for it.
+
+The reference sources read whole are Paseo's
+packages/server/src/server/agent/restart-recovery/index.ts and index.test.ts,
+and packages/app/src/screens/settings/restart-recovery-card.tsx. Their
+bootstrap integration, config defaults/reloadable fields and lifecycle doc
+were also checked. What a person does in that reference:
+
+1. Connect to a host and open Settings, that host's Agents section.
+2. Turn on Resume agents after restart. It starts off by default.
+3. Optionally choose Edit, change Resume prompt, and Save. The exact nonblank
+   text is saved; Cancel leaves the old text. The default is Resume working.
+4. Leave an agent actually working in a turn, then stop/restart the daemon
+   or encounter a crash. Startup selects that saved running agent before
+   normalizing statuses and reopens its existing provider conversation.
+5. The daemon sends the configured prompt. Each agent progresses separately;
+   a broken or stuck provider does not block a working one. Failures are
+   logged, with no automatic recovery retry loop or exactly-once promise.
+6. Turning the switch off consumes pending intent. Turning it on later does
+   not revive those old agents. Idle/initializing, archived, private helpers,
+   owned executions and archived-workspace agents are excluded.
+
+[Modification/reuse decision] Existing node settings, the serial store
+writer and per-session durable log lane, normal resume claims, launcher,
+current device-grant lookup and Start-only delivery are the reusable assets.
+A standalone scheduler/Owner launch path would duplicate lifecycle and risk
+reviving a person's stopped work. No external API/package is needed. The
+missing part is a durable active-turn/stop-generation projection, including
+parked state, plus bounded startup coordination. Raw process Running or a
+retained event tail is insufficient. ADR 0059 records the typed settings,
+protocol/schema additions (including an explicit read flag so an older
+forwarding hop cannot hide recovery settings), authority, phase ownership, stop barriers,
+partial settings failure, manual takeover, deadlines, reporting and tests.
+
+Necessary reference differences are explicit: at most two active attempts;
+finite attempt admission; bounded prompt; current creator grant revalidation;
+no startup action for a forwarded origin whose remote authority is not
+recoverable, helper/agent/unattended work, or legacy rows with no active-turn
+projection. Session marks are the available archive boundary on this node
+line. This is a proposed node contract, with no implementation result.
+
+Next: submit this immutable docs revision to V1 before coding. No unchanged
+row 2 gate is rerun for these docs. After accepted contract, implement only
+wire/node/store/session/client/CLI/testkit/generated types and run changed-
+tree gates using detached commands and build slots. Report screen calls to
+the app owners through the normal review path; do not draw or register a
+screen. Files/HTML ADR 0047 stays after this new priority. No owned build,
+fake fleet or virtual display remains running at this checkpoint.

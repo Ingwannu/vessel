@@ -1,6 +1,6 @@
 # 0046: One prompt to several independent sessions
 
-Date: 2026-11-14. Status: implemented; local whole gate passed; V1 implementation review pending.
+Date: 2026-11-14. Status: V1 accepted the client/CLI implementation at af6d166d; node integration and app work remain separate.
 
 ## Context and reference
 
@@ -358,3 +358,7 @@ Rust binaries and all 62 Playwright E2E tests against isolated fake agents.
 The full source manifest matched before and after generation and testing.
 Earlier timeout failures and their isolated passes remain separate in the
 track plan. These are local results, not V1 implementation or app approval.
+
+V1 subsequently accepted af6d166d's client/CLI implementation after its
+independent source-manifest, diff, reference and log review. Node integration,
+native/UI and draft-restoration behaviour remain outside that verdict.
