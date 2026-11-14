@@ -2,10 +2,10 @@
 
 Status: proposed, 2026-11-14 (milestone 12, the project-file track).
 Amends ADR 0027's file and ADR 0031's digest. No crate edge changes.
-Nothing on the wire changes in this decision. ADR 0062 already marks
-provisional protocol 21 for generated names, so this decision does not
-claim 21. The fields it names take the next free number the integrator
-assigns.
+Nothing on the wire changes in this decision. When the fields it names
+land, the code gates them on one constant of this track and leaves
+`PROTOCOL_VERSION` at the base. The protocol number is given at merge.
+This decision does not name one, and it does not use a sibling's.
 
 ## Context
 
@@ -113,11 +113,11 @@ Ignored: kept by Paseo, not a command, not approved, not implemented.
 | `scripts.<name>.type` | The string `service` marks a supervised long-running process. Anything else, including a missing type, is a one-shot script. | The table: `[scripts.<name>]` or `[services.<name>]` (ADR 0031) | Renamed. The kind is where the name is written, not a field. |
 | `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Not parsed yet. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores it; a person who wrote it meant it. |
 | `scripts.<name>` other keys | Kept (`passthrough`) and not read by the runner. | Unknown keys inside an entry stay ignored, and stay out of the digest, while they start nothing. | Ignored. `dir` is Vessel's own (ADR 0031); Paseo has no `dir`. |
-| `metadataGeneration.title.instructions` | Replaces the default wording of a generated workspace title. | `[metadata.title] instructions` | Renamed. ADR 0062. Not a command, so outside this digest. This track does not parse it. |
-| `metadataGeneration.branchName.instructions` | The same, for a generated branch name. | `[metadata.branch] instructions` | Renamed, ADR 0062, as above |
-| `metadataGeneration.commitMessage.instructions` | The same, for a generated commit message. | `[metadata.commit] instructions` | Renamed, ADR 0062, as above |
-| `metadataGeneration.pullRequest.instructions` | The same, for a generated pull-request title and body. | `[metadata.pull] instructions` | Renamed, ADR 0062, as above |
-| `metadataGeneration` other keys, including a legacy `agentTitle` | Kept so old files still parse. | None in ADR 0062 | Ignored. Not a command, and outside this digest. |
+| `metadataGeneration.title.instructions` | Replaces the default wording of a generated workspace title (`paseo-config-schema.ts` 48-70; `public-docs/metadata-generation.md`, the per-project example). | `[metadata.title] instructions` | ADR 0062, added at merge. Not a command, so outside this digest. This track does not parse it. |
+| `metadataGeneration.branchName.instructions` | The same, for a generated branch name. | `[metadata.branch] instructions` | ADR 0062, added at merge, as above |
+| `metadataGeneration.commitMessage.instructions` | The same, for a generated commit message. | `[metadata.commit] instructions` | ADR 0062, added at merge, as above |
+| `metadataGeneration.pullRequest.instructions` | The same, for a generated pull-request title and body. | `[metadata.pull] instructions` | ADR 0062, added at merge, as above |
+| `metadataGeneration` other keys, including a legacy `agentTitle` | The schema keeps them (`paseo-config-schema.ts` 48-58, the `agentTitle` comment). | Not named in the part of ADR 0062 read (its settings section) | Not a command, and outside this digest. The rest of ADR 0062 was not read for further keys. |
 | Any other top-level key | Kept. | Ignored, not approved | Ignored |
 
 Not keys of `paseo.json`, so they are not rows and they get no
@@ -249,6 +249,33 @@ outside the repository; the approval still shows the path and still does
 not cover its content. The cost is stated so it is not a new kind of
 trust, and so it is not hidden.
 
+What those processes can reach. A terminal opened from the file and a
+`port_script` are processes of the node's user. A relative `port_script`
+stays inside the project root; an absolute one is any executable path
+the approval showed, so it can be anywhere that user can execute. Neither
+is a shell line, so the file cannot name a pipeline. The terminal's
+command is a shell line, typed into the shell ADR 0031 already starts,
+so it can reach what that shell can reach. Neither receives a Vessel
+credential or a forge token: the same variables ADR 0031's amendment
+strips from setup, teardown, terminals, scripts and services
+(`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
+`VESSEL_NODE_SOCKET`, `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`,
+`GITHUB_ENTERPRISE_TOKEN`). What refuses them: a file that does not
+parse, including a port-script path the rules reject and two services
+whose names collide, runs nothing; an unapproved digest runs nothing; a
+port script that exceeds ten seconds, prints anything but one port, or
+returns a reserved port does not start the service. A test supplies the
+range scan's start offset and, when it needs a port script, a program
+built the way the workspace's other test programs are. No fake answers
+in a release build.
+
+On Windows neither path uses a signal, systemd or launchd. `port_script`
+is the executable itself, not `cmd.exe`, with the same four arguments,
+placed in a job object so the timeout ends it and the children it
+starts, as ADR 0031 already does for a script. The terminal is that
+ADR's Windows shell (`pwsh.exe`, then `powershell.exe`, then
+`cmd.exe`). A failure to start is a typed error, not a skipped entry.
+
 ### Setup progress, and why it is not a slice
 
 Paseo, after a worktree exists, emits `workspace_setup_progress` with
@@ -302,15 +329,15 @@ while that key was ignored does not cover the command it starts.
 Wire, when the code lands. Additive fields, with a default of absent:
 `CommandSet` gains the terminals and the port block; `ScriptEntry` gains
 an optional port; terminal info gains an optional health. No new call.
-The protocol number is the next free one the integrator assigns. ADR
-0062 has already marked provisional 21, and this decision does not take
-it. A peer older than the assigned version is shown a version 3 set as
-invalid, as ADR 0031 shows a script-bearing set to a protocol 10 peer,
-so it cannot approve a digest of commands it cannot display. A newer
-peer reading an older node treats the missing fields as absent. An older
-peer reading a newer node ignores the unknown fields and still sees
-setup, teardown and scripts; it must not be the peer that records the
-approval of a version 3 digest.
+No new `node.settings` key: this track does not add one. The protocol
+number is given at merge. The code gates the fields on one named
+constant and leaves `PROTOCOL_VERSION` at the base. A peer older than
+that constant is shown a version 3 set as invalid, as ADR 0031 shows a
+script-bearing set to a protocol 10 peer, so it cannot approve a digest
+of commands it cannot display. A newer peer reading an older node treats
+the missing fields as absent. An older peer reading a newer node ignores
+the unknown fields and still sees setup, teardown and scripts; it must
+not be the peer that records the approval of a version 3 digest.
 
 `metadataGeneration` stays out of this digest. It is not a command. A
 later track that sends those strings to a model does not inherit this

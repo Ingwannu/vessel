@@ -90,8 +90,9 @@ crates while writing ADR 0066.
 
 1. **Done as a decision.** ADR 0066: the key table, the refusal to read
    `paseo.json`, and the contract for the missing keys (version 3
-   digest). The wire number is the next free one; ADR 0062 already
-   marks provisional 21. No code.
+   digest). The wire number is given at merge. The code, when it lands,
+   gates the fields on one constant and does not change
+   `PROTOCOL_VERSION` until that merge. No code yet.
 2. **Next.** Parse the missing keys, put them in the version 3 digest,
    open the terminals after a successful setup, allocate a service port,
    report health. Tests beside those rules. A file with none of the new
@@ -117,15 +118,15 @@ Adding a second push is not one of this track's slices.
 
 ## Resume point
 
-- Done: ADR 0066 and this plan, then the review's document fixes (status
-  proposed, env-name collision, setup progress, `port_script`'s cost,
-  terminal order and title, pointers from ADR 0027 and ADR 0031, ADR
-  0062's metadata tables). No code. Digest versions 1 and 2 are
-  unchanged. `paseo.json` is not read. Protocol 21 stays with ADR 0062.
+- Done: ADR 0066 and this plan, then the review's document fixes, then
+  the shared-rule pass (no protocol number in the document, metadata
+  tables cited as ADR 0062 and added at merge, reach and credentials of
+  `port_script` and the opened terminals, Windows without signals). No
+  code. Digest versions 1 and 2 are unchanged. `paseo.json` is not read.
 - Half-done: nothing. The contract is written and not parsed.
-- Next: after this fix is reported, slice 2, in `project_file` and the
-  node that runs setup and starts a service. Do not start slice 3 or 4
-  in that change. Do not bump a protocol number until the fields exist,
-  and do not reuse 21.
+- Next: slice 2, in `project_file` and the node that runs setup and
+  starts a service. Do not start slice 3 or 4 in that change. Gate new
+  fields on one constant. Do not write a protocol number, and do not
+  change `PROTOCOL_VERSION`.
 - The slice report names the commit the gate was run on. This file does
   not copy that log.
