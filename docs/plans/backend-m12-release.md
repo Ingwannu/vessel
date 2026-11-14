@@ -784,12 +784,21 @@ never rebuilt.
 - **0.0.0.0.12**:
   - Built from `509ef7f`: the desktop lead's `280927b0` (protocol 15)
     merged into this branch. Only `docs/` differs from `280927b0`.
-  - The set went into place at 00:35 UTC on 2026-11-14. It is not
-    published yet.
+  - The set went into place at 00:35 UTC on 2026-11-14.
   - Sizes, with the change against 0.0.0.0.11: setup 12,680,258
     (+87,443), exe 46,038,528 (+415,232), zip 18,683,359 (+143,497),
     linux 82,481,888 (+381,568), tar.gz 28,808,401 (+137,151).
   - No new crates and no new assets. The usual checks passed.
+  - **Built and withheld; the label is skipped.** The coordinator's
+    check on the real node found the new Settings › Sync page telling an
+    admin device that it has no permission and should use an admin
+    device. That sentence is wrong for a refusal from a standalone
+    protocol 11 node. Everything else in that check passed.
+  - The folder stays where it is. It is never published, and the label
+    is never rebuilt. The feed keeps serving 0.0.0.0.11.
+  - The next build is 0.0.0.0.13, from a later commit of the desktop
+    lead. That commit carries this fix and the owner's fixes to the
+    marks and the slider.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 
