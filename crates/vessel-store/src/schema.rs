@@ -297,6 +297,60 @@ CREATE TABLE hook_keys (
 ) STRICT, WITHOUT ROWID;
 ";
 
+/// The inbox (schema 16): durable attention projected in the same
+/// transaction as its source event.
+/// A source survives event-log pruning; deleting a session deletes its inbox.
+const INBOX: &str = "
+CREATE TABLE inbox_meta (
+    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+    pending_bytes INTEGER NOT NULL DEFAULT 0,
+    tool_clock INTEGER NOT NULL DEFAULT 0
+) STRICT;
+INSERT INTO inbox_meta(singleton) VALUES(1);
+CREATE TABLE inbox (
+    cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+    session TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    request TEXT,
+    waiting INTEGER NOT NULL,
+    item TEXT NOT NULL,
+    seen INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(session, seq)
+) STRICT;
+CREATE INDEX inbox_session ON inbox(session, request);
+CREATE INDEX inbox_outcomes ON inbox(waiting, cursor);
+CREATE INDEX inbox_unread ON inbox(seen);
+CREATE TRIGGER inbox_payload_added AFTER INSERT ON inbox
+WHEN json_extract(new.item,'$.kind') IN ('permission','question') BEGIN
+    UPDATE inbox_meta SET pending_bytes=pending_bytes+length(CAST(new.item AS BLOB));
+END;
+CREATE TRIGGER inbox_payload_removed AFTER DELETE ON inbox
+WHEN json_extract(old.item,'$.kind') IN ('permission','question') BEGIN
+    UPDATE inbox_meta SET pending_bytes=pending_bytes-length(CAST(old.item AS BLOB));
+END;
+CREATE TRIGGER inbox_payload_changed AFTER UPDATE OF item ON inbox BEGIN
+    UPDATE inbox_meta SET pending_bytes=pending_bytes
+      -CASE WHEN json_extract(old.item,'$.kind') IN ('permission','question') THEN length(CAST(old.item AS BLOB)) ELSE 0 END
+      +CASE WHEN json_extract(new.item,'$.kind') IN ('permission','question') THEN length(CAST(new.item AS BLOB)) ELSE 0 END;
+END;
+
+CREATE TABLE push_subscriptions (
+    device TEXT NOT NULL PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
+    subscription TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+) STRICT;
+CREATE TABLE inbox_tools (
+    session TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    tick INTEGER NOT NULL,
+    tool TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    PRIMARY KEY(session, id)
+) STRICT, WITHOUT ROWID;
+";
+
 /// Version 13 (milestone 11, protocol 12, track A2): the index of what was
 /// said in every session (ADR 0037; see `search`).
 ///
@@ -415,6 +469,7 @@ const MIGRATIONS: &[&str] = &[
     V13,
     SIDE_CONTEXT,
     USAGE_LEDGER,
+    INBOX,
 ];
 
 /// Bring the database to the newest schema.
@@ -432,6 +487,9 @@ pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
     let transaction = connection.transaction()?;
     for migration in pending {
         transaction.execute_batch(migration)?;
+    }
+    if pending.contains(&INBOX) {
+        crate::inbox::backfill(&transaction)?;
     }
     transaction.pragma_update(None, "user_version", supported)?;
     transaction.commit()?;

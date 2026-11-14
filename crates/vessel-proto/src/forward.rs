@@ -409,6 +409,9 @@ impl Method {
             | Self::CreatePrompt
             | Self::UpdatePrompt
             | Self::DeletePrompt
+            | Self::ListInbox
+            | Self::GetInboxEntry
+            | Self::MarkInbox
             // Protocol 12: a search reads, as `session.read` does.
             | Self::SearchMessages
             // Parking acts on a session as a prompt does.
@@ -422,7 +425,11 @@ impl Method {
             | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
-            Self::AddAgent
+            Self::GetPushKey
+            | Self::SubscribePush
+            | Self::UnsubscribePush
+            | Self::ReportPushPresence
+            | Self::AddAgent
             | Self::GetCatalogue
             | Self::InstallAgent
             | Self::ReadInstall

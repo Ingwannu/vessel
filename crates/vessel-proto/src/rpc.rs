@@ -388,6 +388,20 @@ rpc_methods! {
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     /// Reported tokens and permitted costs (protocol 21, ADR 0042).
     QueryUsage / query_usage / "usage.query" [Read, 21]: crate::usage::QueryUsage => crate::usage::UsageReport;
+    /// Device-scoped push.key (protocol 22, ADR 0041).
+    GetPushKey / get_push_key / "push.key" [Read, 22]: crate::push::GetPushKey => crate::push::PushKey;
+    /// Device-scoped push.subscribe (protocol 22, ADR 0041).
+    SubscribePush / subscribe_push / "push.subscribe" [Read, 22]: crate::push::SubscribePush => crate::push::PushLease;
+    /// Device-scoped push.unsubscribe (protocol 22, ADR 0041).
+    UnsubscribePush / unsubscribe_push / "push.unsubscribe" [Read, 22]: crate::push::UnsubscribePush => Ack;
+    /// Device-scoped push.presence (protocol 22, ADR 0041).
+    ReportPushPresence / report_push_presence / "push.presence" [Read, 22]: crate::push::ReportPushPresence => Ack;
+    /// A bounded page of this node's durable attention (protocol 22).
+    ListInbox / list_inbox / "inbox.list" [Read, 22]: crate::inbox::ListInbox => crate::inbox::InboxPage;
+    /// Recheck exactly one inbox source after a delayed answer (protocol 22).
+    GetInboxEntry / get_inbox_entry / "inbox.get" [Read, 22]: crate::inbox::GetInboxEntry => Option<crate::inbox::InboxEntry>;
+    /// Mark current attention read or unread without answering it (protocol 22).
+    MarkInbox / mark_inbox / "inbox.mark" [Read, 22]: crate::inbox::MarkInbox => Ack;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;

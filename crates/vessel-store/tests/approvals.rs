@@ -16,10 +16,11 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
-/// Undoes schemas 15 to 10: the usage ledger, side plans, search,
+/// Undoes schemas 16 to 10: the inbox and push subscriptions, the usage
+/// ledger, side plans, search,
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
 /// request feedback.
-const UNDO_SCHEMAS_10_TO_15: &str = "DROP TABLE usage_samples;
+const UNDO_SCHEMAS_10_TO_16: &str = "DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
      ALTER TABLE sessions DROP COLUMN latest_plan;
@@ -31,6 +32,10 @@ const UNDO_SCHEMAS_10_TO_15: &str = "DROP TABLE usage_samples;
      DROP INDEX sessions_search_behind;
      ALTER TABLE sessions DROP COLUMN search_open;
      ALTER TABLE sessions DROP COLUMN search_seq;
+DROP TABLE inbox_tools;
+     DROP TABLE inbox;
+     DROP TABLE inbox_meta;
+     DROP TABLE push_subscriptions;
      DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
@@ -78,7 +83,7 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_TO_15).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_10_TO_16).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",

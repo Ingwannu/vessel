@@ -14,6 +14,7 @@ mod conversation;
 mod fleet;
 mod forge;
 mod history;
+mod inbox;
 mod node;
 mod nodes;
 mod search;
@@ -27,6 +28,7 @@ pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
+pub(crate) use inbox::InboxCommand;
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
@@ -72,6 +74,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// List and answer attention across sessions on the selected node.
+    Inbox {
+        #[command(subcommand)]
+        command: InboxCommand,
+    },
     /// Run a node in the foreground, or install one on another machine.
     Node {
         #[command(subcommand)]

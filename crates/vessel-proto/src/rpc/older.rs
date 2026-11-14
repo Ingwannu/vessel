@@ -270,6 +270,13 @@ impl Reply {
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::ParkSession(_)

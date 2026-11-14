@@ -63,8 +63,10 @@ mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.
 mod followed;
+mod inbox;
 mod notices;
 mod prompts;
+mod push;
 mod schedule_preview;
 mod scheduled;
 mod schedules;
@@ -146,6 +148,7 @@ pub(crate) struct NodeService {
     notices: Arc<Notices>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
+    push: Arc<crate::push::Push>,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -174,6 +177,7 @@ pub(crate) struct Parts {
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
     pub(crate) settings: Arc<crate::settings::Settings>,
+    pub(crate) push: Arc<crate::push::Push>,
 }
 
 impl NodeService {
@@ -203,6 +207,7 @@ impl NodeService {
             catalogue,
             schedules,
             settings,
+            push,
         } = parts;
         let store = sessions.store().clone();
         Self {
@@ -241,6 +246,7 @@ impl NodeService {
             settings,
             notices: Arc::default(),
             side_opening: Arc::default(),
+            push,
         }
     }
 
@@ -285,6 +291,7 @@ pub(crate) struct Connection {
     protocol: ProtocolVersion,
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
+    presence_id: crate::push::PresenceId,
 }
 
 impl Connection {
@@ -300,6 +307,7 @@ impl Connection {
             principal,
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
+            presence_id: crate::push::PresenceId::new(),
         }
     }
 
@@ -326,6 +334,7 @@ impl Connection {
             principal,
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
+            presence_id: self.presence_id,
         }
     }
 }

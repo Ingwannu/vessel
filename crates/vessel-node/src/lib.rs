@@ -86,6 +86,7 @@ mod persist;
 mod principal;
 mod probes;
 mod profiles;
+mod push;
 mod readiness;
 mod relays;
 mod secret_copy;

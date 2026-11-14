@@ -222,6 +222,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence
         // Protocol 12: searching every session's messages.
         | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
