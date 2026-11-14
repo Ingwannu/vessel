@@ -9,7 +9,8 @@ named below with its reason.
 
 | Slice | Row | State |
 | --- | --- | --- |
-| a | Change the model, effort or permissions of a running session | built |
+| a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
+| — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
 | b | `/` the agent's commands | kit hooks (`5f2fda69`) and list (`46932bc9`) in; view and screen next |
 | c | Attach images and files | not started |
 | d | `@` a file of the project | not started (track F's seam) |
@@ -65,6 +66,23 @@ Deliberate differences:
   after a model change can be wrong in that race (the next new chat's pill
   shows it before anything is sent).
 
+The permissions list and its closed control draw each mode's mark, as
+Paseo's `ModeComboboxOption` and `getAgentModeIcon` do: the marks are
+Paseo's manifest's (`packages/protocol/src/provider-manifest.ts`), by the
+agent's mode id (`view::composer::modes`), drawn in the foreground beside
+the mode's name, with no description cut beside it; a mode without a mark
+in a row has none, and the closed control falls back to the agent's mark.
+Two stated differences, both for rows Paseo never shows:
+
+- **Claude Code's `dontAsk`** is not in Paseo's manifest; here it takes
+  `ShieldAlert`, in its row and in the closed control, so Claude Code's
+  list is marked on every row and the pill never shows the agent's mark
+  while its row shows a shield.
+- **A list in which any row has a mark keeps the mark's column on every
+  row** (the kit's list), so labels share one left edge: Codex's
+  `read-only` has no mark beside its marked modes. Paseo's manifest marks
+  every mode it lists, so it never meets the case.
+
 Seams in others' files (the owners agreed):
 
 - `app/src/shell.rs` (the lead's): the act answers go through
@@ -74,8 +92,9 @@ Seams in others' files (the owners agreed):
   `1c05f689` (the controls on a running session) merged; its target type
   and the target's helpers moved to `areas/composer/running.rs`;
   `choose_option` calls `change_running_option` on a session.
-- `app/src/areas/draft/pickers.rs`, `effort_card.rs` and `session.rs`: the
-  lead's `wip` lines as they are; no further line of P's.
+- `app/src/areas/draft/pickers.rs`: the permissions rows' and pill's
+  marks (`areas::composer::modes`); `effort_card.rs` and `session.rs`: the
+  lead's `wip` lines as they are.
 
 Not done in this slice:
 
@@ -91,7 +110,78 @@ three prompts queued, the effort card, the permissions list (a sheet on the
 phone), a change shown once the agent reported it, and a refusal mid-turn
 (Codex's fake refuses `locked`). Captures outside the repository.
 
-Found, not this track's: the fleet's read-only device book
-(`ROOT/readonly-config`) shows its machine unreachable in the app while the
-CLI with the same book lists its sessions; the read-only refusal toast is
-therefore checked by the view's tests only.
+A read-only device's book (`ROOT/readonly-config`) first showed its machine
+unreachable in the app. That was the test's setup, not the link: a book
+paired through the CLI names its credential under `~`, and the app ran with
+another `HOME`. With the fleet's `HOME` it connects; the read-only refusal
+toast is checked by the view's tests.
+
+## An agent's lists, kept and refreshed (owner word 28)
+
+The owner: keep the lists, refresh them in the background, update when
+they changed, and show them the moment a control is clicked. One store for
+what an agent on a machine offers (its models, efforts, permissions modes
+and on/off options), read by the draft's controls, the model list's agent
+rows and a running session's list.
+
+Followed: Paseo's provider snapshot. `data/provider-snapshot-cache.ts`
+keeps the last snapshot per host on the device (format version 2, 4 MiB,
+oldest dropped first); `hooks/use-providers-snapshot.ts` hands it to the
+query as its first data and refetches when a selector opens
+(`selectorOpenRefetchDecision`: always when the selected provider has no
+entry, else when stale); `provider-selection/provider-selection.ts`
+(`buildEntryModelSelection`) shows models whenever any exist, the loading
+state or the error only when none; a remembered choice no longer offered
+falls back to what is shown (`resolveEffectiveComposerModeId`; here the
+agent's own value, `with_picks`).
+
+How it behaves (`view::offers`, tests in `view/src/offers/tests.rs`):
+
+- A control opens on the list there is, in the same frame, however old;
+  the first time (no list) it is Paseo's loading state, and a first
+  failure is Paseo's error with its words.
+- A refresh is asked when a control opens or the draft settles on an
+  agent, when a machine connects (its kept lists, each asked again), and
+  when a machine's agents change. At most one request per agent is in
+  flight; an open does not ask again within 30 s of a good answer or 10 s
+  of a failed one; a request unanswered for 60 s no longer holds the next
+  back. Ten opens are one request.
+- An answer that arrives while one of the draft's lists is open is laid
+  over the shown list (`arrange`): what stays keeps its place, what is new
+  goes after it (a new value after its group's last value, so a group is
+  drawn once), what is gone leaves; names, descriptions and the value in
+  effect are the answer's. A closed list takes the agent's order.
+- A failed refresh keeps the list and says once, quietly, above the rows,
+  that it may be out of date (`composer-offers-stale`).
+
+Kept on the device (`link/src/offers.rs`): one JSON file in the app's state
+folder (`$XDG_STATE_HOME/vessel/agent-options.json`; `%LOCALAPPDATA%\Vessel`
+on Windows; `~/Library/Application Support/Vessel` on macOS), owner-only
+(0600 in a 0700 folder, checked by a test), versioned (another version, or
+a file that does not read, is dropped and rebuilt), at most 64 lists and
+1 MiB, oldest first. Entries are keyed by the node's id from its welcome,
+the agent and its profile, never by a book's name, so two machines or two
+books never see each other's lists. It holds the agents' option ids, names,
+descriptions and values, nothing of a node's address, token or credential.
+It is written only when an answer differs, and handed to the app when a
+machine connects (`Event::OptionsKept`, before the fleet that shows the
+machine online).
+
+Deliberate differences:
+
+- **Order while a list is open.** Paseo replaces the data and its list
+  keys rows by id; the kit's list highlights by index, so a row added
+  above would move the highlight and the row under the pointer. A value
+  removed above the pointer still moves the rows under it by one.
+- **The not-fresh line.** Paseo says nothing when a refetch fails with data
+  present; the owner asked for it to be said once, quietly.
+- **No timer.** Paseo's snapshot also updates by a pushed event from its
+  daemon; Vessel's node has none for an agent's options, so the refresh
+  moments are the ones above.
+
+Seams in others' files: `app/src/areas/draft/mod.rs` and `pickers.rs` (the
+lead's) read and ask the store in place of their own answers (`Probe` is
+gone); `app/src/shell.rs` takes the kept lists and tells the store of a
+fleet whose agents changed; the kit's `ComboHeader` has a `note` (filled
+with `None` at each other list); `link/src/prefs.rs` lends its owner-only
+file helpers.

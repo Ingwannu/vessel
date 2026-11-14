@@ -233,6 +233,21 @@ draws one in the foreground with `Leading::Mark` (Paseo's mode rows);
 `Leading::Glyph` stays muted. `cargo run -p vessel-app-kit --example
 shield_marks` with `GPUI_X11_SCALE_FACTOR` draws them beside `Shield` at
 14, 16 and 20 points, off the pixel grid, for the scale check.
+A list in which any row leads with a mark keeps the mark's column on every
+row (an empty one where a row has none), so labels share one left edge;
+agent lists, whose marks are the agents' own widths, are left as they are.
+`ComboHeader::note` is a muted line above a list's rows: the composer's
+lists say there that the list shown could not be refreshed.
+
+What each agent on each machine offers (its models, efforts, modes, on/off
+options) is one store, `view::offers`: shown at once when a control opens,
+refreshed behind it (on open, at connect, when a machine's agents change;
+one request per agent in flight), laid over an open list without moving
+it. The link keeps the last lists on the device between runs
+(`link/src/offers.rs`: `agent-options.json` in the app's state folder,
+owner-only, versioned, bounded, keyed by the node's id) and hands them over
+when a machine connects. `docs/plans/backend-m12-composer.md` has the
+rules and what was followed from Paseo.
 
 `kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
 list): rows drawn best last (nearest the text), the chosen one on
