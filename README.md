@@ -1169,11 +1169,13 @@ where the code stands against them, and
 
 ```bash
 cargo fmt --all
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+node scripts/gate.mjs
 ```
 
-CI runs exactly those three on Linux, Windows and macOS. Lints are strict
+The runner prebuilds the test harnesses and product node before the test
+clocks, then checks both the default workspace and the forge fixture feature.
+CI runs the same Rust checks on Linux, Windows and macOS, with the fast source
+checks on Linux. Lints are strict
 (no `unwrap`, no panics, no indexing, no raw arithmetic); see the workspace
 `Cargo.toml`. Changes to `web/` also need its checks ("Web UI" above),
 which CI runs on Linux.
@@ -1181,7 +1183,10 @@ which CI runs on Linux.
 For account-free pull-request fixtures, build the separate
 `vessel-forge-fixture` executable with `--features vessel-node/forge-fixture`.
 It loads a bounded, typed JSON seed into the existing in-memory forge;
-product `vesseld` has no fake-forge selector. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
+product `vesseld` has no fake-forge selector. Workspace checks alone skip
+required-feature binaries, so the gate and CI explicitly enable `forge-fixture`
+for Clippy and its launcher tests. Normal product/release builds never enable
+that feature. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
 and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
 
 ## License
