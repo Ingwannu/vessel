@@ -668,3 +668,39 @@ records load/memory before and after, and prebuilds both testkit binaries and
 `vesseld` in the same environment and enclosing build slot before tests.
 It retains contemporary selected-source pre/post identities. The whole gate
 and review are pending; no integration-ready pass is claimed.
+
+#### Immutable corrected whole run, 2026-11-14
+
+Executed source: `32b404f8e6a5664f201cd0a4801d9f10c8613945`. Both prescribed
+prebuilds, fmt/check, workspace all-target Clippy, two TypeScript declaration
+checks and the complete workspace test command passed. The Rust log contains
+110 result sections: **1,846 passed, zero failed, ten ignored**. The corrected
+move/rewind and forwardable-list cases, current-provider refusal before login
+access, both remote cases and the previously named grant cases passed in this
+whole run. No assertion, deadline or test selection was relaxed.
+
+Web lint, types, all 417 unit tests in 81 files, bundle, post-bundle Rust binary
+build and all 62 headless browser tests passed (3.3 minutes; the large timeline
+case took 24.6 seconds). The binary build actually recompiled `vessel-web`,
+and six served asset hashes matched the new bundle on the isolated fake
+fleet. This proves that regression suite, not a new Usage screen or native UI.
+
+The gate held one build slot throughout and prebuilt testkit binaries and
+`vesseld` with the same environment before tests. Test data used owned mode-0700
+SSD temporary storage, with two Rust test threads. One-minute load before/after
+was 24.67/11.75; memory records were retained. Build outputs and logs remained
+on the build disk. All five independently recorded browser-fleet process
+identities were gone afterwards; the owned test directory was emptied.
+
+Contemporary pre/post selection covered 2,346 inputs: every tracked file, both
+local Cargo configs, the bundle link and its files, the installed npm lock,
+tool versions, gate/generator identities and recorded environment flags. Both
+identities were
+`7c5e8ab56876e9142beb30c5defbd2b9b207f6c35104d1b135c1f38e9de67009`,
+with no changed selected path. This is evidence for this immutable run only;
+it does not retrospectively pin or erase any earlier failed/unpinned run.
+
+The corrected stack is submitted for review; no reviewer or integration
+approval is inferred. The ADR remains proposed. Live credentials/vendors,
+platform Keychain, non-Linux runtime behavior, native screens and automatic
+wait/resume/account switching remain unverified or unfinished as stated above.

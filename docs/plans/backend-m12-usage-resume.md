@@ -19,15 +19,25 @@ tests passed. Both earlier remote startup failures passed once alone on SSD
 with unchanged assertions/deadlines (35.83 s, 16.27 s). This is scoped evidence,
 not a whole-gate waiver.
 
-A final compatibility cleanup names the shared usage method/replay boundary
-for integration renumbering; the final number is assigned at merge. It and
-the whole correction await a new immutable whole run: SSD temporary data,
-load/memory records, one enclosing build slot, both prescribed testkit and
-vesseld prebuilds before tests, then fmt/Clippy/whole Rust/TypeScript and all
-web checks including the complete headless suite. Preserve contemporaneous
-selected-input pins, actual changed-crate compilation, bundle freshness and
-own fake-process cleanup. Submit the actual immutable result packet to V1;
-do not infer integration approval from this checkpoint.
+Executed source is `32b404f8e6a5664f201cd0a4801d9f10c8613945`. The final
+compatibility cleanup names the shared usage method/replay boundary; its
+number is assigned at merge. The immutable corrected whole gate PASSED:
+both prescribed prebuilds, fmt/check, workspace all-target Clippy, two
+TypeScript checks, 110 Rust sections (1,846 passed/zero failed/ten ignored),
+web lint/types, 417 unit tests, bundle, fresh post-bundle Rust binaries and
+all 62 headless browser tests. No deadlines/assertions or selections changed.
+
+The gate used one enclosing slot and owned mode-0700 SSD test data with two
+Rust test threads. Before/after one-minute load was 24.67/11.75. Contemporary
+selected-input pre/post identities matched for 2,346 inputs, with changed
+crates actually compiled. Six served assets matched the bundle; all five
+recorded fake-fleet processes ended and the test directory was emptied.
+The track plan preserves full counts, selection and identity. Earlier failed
+or unpinned runs remain disclosed; this new pass is not a retrospective waiver.
+
+Next step: V1 reviews this immutable corrected node stack and forwards any
+pass to the node integrator. No integration or UI approval is claimed. Keep
+the ADR proposed until review passes. Do not rerun unchanged successful gates.
 
 Consumers call usage.query for retained totals; usage.limits for cached or
 explicitly refreshed sanitized account facts; usage.lookup with admin scope
