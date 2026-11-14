@@ -178,6 +178,22 @@ was used. No service-account or live file-permission change was made. Unix
 private-key mode tests passed; Windows ACLs and real phone/push-service delivery
 remain outside this evidence.
 
-The implementation and handoff commit hashes are recorded at the end of this
-note after committing. V1's inbox/push review remains pending; its separate
+The implementation commit is `34986852`; the final handoff record below fixes
+its exact hash and gate evidence. V1's inbox/push review remains pending; its separate
 approval of the fleet prerequisite is not approval of this complete slice.
+
+## Immutable handoff
+
+- Inbox/push acceptance implementation: `34986852e42a344bc10a949d6da0028ea6cbc861`
+  on `95a46c6cbce8c060cf83f4a23600a42da01e75fd`.
+- Separately reviewed fleet prerequisite: `ce228c10be0466a5487415ecf70cea13cae95e2b`
+  on `9814cb0f696fd619d1fa58157b88570d2182d8cf`. Its exact source is consumed
+  in the inbox acceptance commit; no wholesale node-line merge was made during
+  that slice.
+- The final consuming source, not the earlier mixed-output run, passed
+  1,820/0/10 with `RUST_TEST_THREADS=3`, both generators, web 417 and full
+  E2E 62. The following handoff documentation changes no compiled source.
+- Complete slice review goes to V1; V1 forwards accepted work to the node
+  integrator. The prerequisite's independent PASS does not substitute for
+  review of the inbox/push implementation. No further native work is assigned
+  to this track in the resumed scope.

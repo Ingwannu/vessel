@@ -290,3 +290,8 @@ The exact reservation correction from `ce228c10` is consumed, and its original
 and new regression cases both passed. All recorded test/fleet processes were
 confirmed gone. No native/phone/public-push-service/other-OS runtime claim is
 made. V1 review of the complete inbox/push slice is pending.
+
+Immutable acceptance implementation: `34986852e42a344bc10a949d6da0028ea6cbc861`.
+The subsequent handoff note changes documentation only; compiled inputs remain
+identical to the final successful consuming source manifest. Complete-slice
+review is with V1 before node integration.
