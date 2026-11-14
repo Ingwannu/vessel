@@ -35,8 +35,9 @@ an entry neither generated file declares any more.
 Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
 protocol 12; on the node line N3's schedule preview had taken 13 first,
 and a client built at 13 has no variant for the two new records, so they
-and the two calls are 14 here. A client sends neither call to an older
-node (`Call::since`); a node refuses them on an older connection
+and the two calls are 14 here; `agent.history` (track A2's slice 4)
+joined them at 14. A client sends none of these calls to an older node
+(`Call::since`); a node refuses them on an older connection
 (`unsupported`, "needs protocol 14").
 
 ### Forking and rewinding (track A2, ADR 0052)
@@ -95,6 +96,38 @@ and `vessel_proto::agent`.
   between `after` and it are no longer the conversation (they stay in the
   log), the agent's conversation from now on, and how many tool calls left
   behind edited, deleted or moved files (not put back).
+
+### Importing from an agent's own history (track A2, ADR 0053)
+
+One method; types in `vessel_proto::history`.
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
+  forwardable, refused to agents) answers `AgentHistoryPage {
+  conversations: [HistoryEntry], next? }`: the conversations the agent
+  keeps under that profile, newest first, as it lists them over ACP
+  (`session/list`; the node starts the agent as for `harness.options`,
+  and no session is created or loaded). `cwd` (absolute) keeps those
+  held in that folder; `cursor` is a page's `next` as it was given (at
+  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
+  `next` after the node has asked past several empty pages of the agent's.
+- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
+  }`: the agent's id, its folder (absolute), its title cut as a prompt's
+  title is, when it was last active, and the newest session on this node
+  (live or kept) on that conversation.
+- Importing is `session.create` with `mode: structured { resume:
+  harness_session }`, the entry's `cwd`, the `profile` it was listed
+  under and, for a title, its `title`; the agent's replay is the new
+  session's log.
+- Since 14, `session.create` with `resume` and `session.resume` are
+  refused `conflict` while another live session (parked included) is on
+  that conversation under the same profile, or starting on it: two agents
+  on one transcript would corrupt it. Another profile's copy is another
+  file (`session move` resumes the copy before it stops the source).
+- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
+  the agent refusing it), `unsupported` (an agent that does not list or
+  load over ACP), `not_found` (a profile or added agent that is not
+  there), `spawn_failed` (the agent did not start or answer within its
+  handshake), `unavailable` (two listings already run on the node).
 
 ## Version 13 (2026-11-13, milestone 12, N3)
 

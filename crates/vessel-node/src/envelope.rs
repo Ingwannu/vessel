@@ -659,6 +659,9 @@ async fn run_here(
         Call::RewindSession(request) => {
             Reply::RewindSession(guard.rewind_session(connection, request).await?)
         }
+        Call::GetAgentHistory(request) => {
+            Reply::GetAgentHistory(guard.agent_history(connection, request).await?)
+        }
         Call::StopNode(_)
         | Call::GetNodeSettings(_)
         | Call::SetNodeSettings(_)

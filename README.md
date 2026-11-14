@@ -101,6 +101,8 @@ vessel session resume 3f2a                   # an ended session's agent picks th
 vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
 vessel session fork 3f2a --after 120         # a new session continuing the conversation from that turn's end
 vessel session rewind 3f2a --after 120       # take this session back to that turn's end
+vessel history claude --cwd ~/app            # the agent's own conversations in that folder, to import one
+vessel run claude --structured --resume 4c1e… --cwd ~/app --title "the parser"   # import it: its history is the log
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```

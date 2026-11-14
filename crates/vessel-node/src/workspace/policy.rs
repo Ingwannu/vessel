@@ -63,6 +63,9 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     ) {
         "a repository's scripts run where a person approved them and a person asked; an agent \
          runs commands with its own tools"
+    } else if matches!(method, Method::GetAgentHistory) {
+        "an agent's own history holds a person's conversations outside Vessel; an agent works \
+         with the node's sessions"
     } else if matches!(
         method,
         Method::ForgeStatus
@@ -139,7 +142,10 @@ const fn refused(method: Method) -> bool {
         // A repository's scripts (protocol 11): a person's.
         | Method::ListScripts
         | Method::RunScript
-        | Method::RestartScript => true,
+        | Method::RestartScript
+        // An agent's own history (protocol 14, ADR 0053): an account's
+        // other conversations are a person's, not the fleet's sessions.
+        | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects

@@ -9142,3 +9142,139 @@ integrator raised two points; the coordinator decided them:
    at the agent, both cases delete the fork (`fake-acp` says `deleted
    <id>` on stderr); end to end, the refused fork's status, `empty_fork`,
    the deletion line in its log and no conversation on it.
+### 4. Import from the agent's history: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against
+Vessel's code, both installed adapters and the three references. The
+contract's central claim held: a new session that resumes a conversation
+publishes its load's replay as its log (only a restarted agent's replay
+is dropped), and `session.import` already relies on it. Two blockers,
+eight should-fix, some minor points. What changed; where this section and
+the contract disagree, this one holds:
+
+1. **Blocker: 200 entries a page lost conversations**: Claude's adapter
+   answers pages of 1,000 behind an `offset:N` cursor, so keeping 200 and
+   passing its cursor on skipped 800. A listing now gives the agent's
+   page whole up to 1,000 (`AgentHistoryPage::MAX_ENTRIES`) behind a
+   cursor the node mints (`HistoryFrom`: the agent's cursor and how many
+   of its page were given), so a larger page comes in parts and nothing
+   is skipped.
+2. **Blocker: `read` was too weak**: titles are usually a conversation's
+   first prompt, from every folder the account worked in, which a
+   read-only device does not otherwise see; the list's only use is an
+   import, which needs `operate`. `agent.history` needs `operate`.
+3. **Two agents on one conversation**: nothing stopped a second
+   `session.create` with the same `resume` (a double click, a stale
+   `in_vessel`, a conversation a moved session still holds). The session
+   runtime now claims a conversation for a start that resumes one
+   (`session.create`, an import, `session.resume`) and refuses
+   `conflict` while another live session (parked included) is on it or
+   starting on it (`runtime::claims`; Paseo refuses an active duplicate
+   the same way). An ended session holds nothing. Per profile (found by
+   the gate: `session move` resumes a copy under the target profile
+   before it stops the source, and a copy in another home is another
+   file); a move's linked files leave the profile it left holding the
+   same transcript, which an import there is not checked against.
+   `fake-acp`'s conversation ids are now its process's own
+   (`fake-session-<n>-<tag>`): two fakes both saying `fake-session-1` made
+   the page's "start again" a conflict, which real agents' ids never
+   cause.
+4. **The import needs the profile**: the conversation is in the listed
+   profile's files. The entry's docs, the CLI's import line and the
+   protocol say so; the client has the profile it asked with.
+5. **The replay inside the 60 s handshake**: measured, not assumed: an
+   import of a conversation of 10,000 replayed messages (each a durable
+   record) reaches `running` in 2.3 s on a debug build
+   (`a_long_conversation_imports_within_the_handshake`). The budget is
+   kept; a replay that outlasts it ends the session `failed` with the
+   records replayed so far, as any handshake that times out.
+6. **Codex filters the folder after paging**, so a page can hold nothing
+   and still have a next: the listing asks the agent's next pages on the
+   same connection while they hold nothing (up to 10), as Paseo does;
+   the protocol says an empty page with `next` is not the end.
+7. **A routed profile's model token** is minted for the listing and
+   retired after, as for a probe.
+8. **An imported session's title**: an import resumes with the entry's
+   title in `spec.title` (`vessel run --title`, new); the entry's title
+   is a `SessionTitle`, cut as a prompt's title is.
+9. **`updated_at` typed**: `DateTime<Utc>`, parsed when the page is read,
+   left out when the agent's text is not RFC 3339.
+10. **Forwardable**: with `operate` it is forwarded as `session.create`
+    is (the caller's scopes intersected), so a phone paired with the
+    home imports on a member.
+
+**Minor, taken**: `in_vessel` is one scan of the node's sessions (live
+and kept) a page, matched on (harness, conversation), never the profile
+(a move keeps the id); a rewound session is on its new conversation, so
+the one it left lists unmarked, and importing it is a way back; a node
+canonicalizes the folder asked (Claude matches it exactly); two listings
+at once node-wide, `unavailable` beyond (as searches), instead of a queue
+per profile; refusing agents is a person's view, not a boundary (an agent
+reads its harness's files with its own tools). **Minor, said only**:
+imported history has no fork points until its first turn in Vessel (the
+replay carries no `turn_ended`); conversations with nothing in them are
+listed (Paseo drops them by loading each); Codex leaves `codex exec` and
+sub-agent threads out of its list, Claude its sub-agent transcripts;
+Claude's offset cursor drifts as conversations change; whether a probe
+leaves a conversation an agent lists is not checked against real
+adapters (no real agent tonight). **Search** is a client's filter over
+the pages it loaded (Paseo matches title and folder over up to 500
+scanned entries).
+
+### 4. Import from the agent's own history (built 2026-11-13)
+
+Protocol 14 (as forking and rewinding, on the node line), no schema
+change, ADR 0053. The design is
+the contract as its review amended it (above).
+
+- **Wire**: `agent.history` (operate, `since 14`, forwardable, refused to
+  agents), `GetAgentHistory { harness, profile?, cwd?, cursor? }`,
+  `AgentHistoryPage { conversations, next? }`, `HistoryEntry {
+  harness_session, cwd, title?, updated_at?, in_vessel? }`.
+- **Agent** (`vessel-agent::history`): the agent started as a probe is,
+  `initialize`, nothing unless it advertises `sessionCapabilities.list`
+  and `loadSession`, then `session/list`, pages without entries skipped
+  on the same connection, entries in a relative folder left out; the
+  node's cursor `HistoryFrom` (`<skip>~` or `<skip>:<agent cursor>`); an
+  agent's `invalid_params` is `HistoryError::Refused` (`invalid_request`),
+  "method not found" is `CannotList` (`unsupported`).
+- **Session runtime**: `SessionRuntime::history` (the probe's launch);
+  `runtime::claims`, one agent per conversation, held by
+  `create_with` for a `resume` and by `start_again`
+  (`SessionError::ConversationTaken`, `conflict`).
+- **Node**: `service/history` (the folder made absolute and canonical,
+  the cursor parsed, two at once, the model token, `in_vessel` from the
+  sessions).
+- **CLI**: `vessel history AGENT [--profile P] [--cwd DIR] [--more
+  CURSOR]` prints one line a conversation (id, time, folder, title, `in
+  vessel <id>`), `more: --more <cursor>` and the import line; `vessel run
+  --title`.
+- **`fake-acp`**: `session/list` over two pages with a relative entry
+  (`FAKE_ACP_NO_LIST` turns it off), `FAKE_ACP_REPLAY=<n>` for a long
+  conversation's load.
+
+**Checked**: the cursor's text both ways and what is not one; the CLI's
+lines; end to end with the fake agent: two pages, the relative entry
+left out, titles and times typed; an import resumed with the entry's
+folder and title replays the conversation into the new session's log;
+listed again, the entry names the session; a second import of it is
+`conflict`; a cursor no listing gave and a relative folder are
+`invalid_request`; an agent that does not list is `unsupported`; an
+agent's credential is `forbidden`; a 10,000-message conversation imports
+within the handshake (2.3 s).
+
+**Not built, and why**: previews (Paseo loads every listed conversation
+for its first and last prompts; a client can load one a person expands
+later); search over the agent's list (a client's filter); dropping
+conversations with nothing in them (it needs a load each).
+
+**For the conversation track** (C): Paseo's import is
+`packages/app/src/components/import-session-sheet.tsx` (one query per
+provider, a search box, already-imported entries counted), its server
+`packages/server/src/server/agent/import-sessions.ts`. Vessel: the sheet
+calls `agent.history { harness, profile, cwd? }` per agent (`more` with
+`next`; an empty page with `next` asks on), shows title, folder and time,
+opens `in_vessel` instead of importing (`session.resume` for an ended
+one), and imports with `session.create { harness, profile, cwd: entry.cwd,
+title: entry.title, mode: structured { resume: entry.harness_session } }`;
+`conflict` means another session runs it.

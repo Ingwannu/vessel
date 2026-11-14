@@ -238,12 +238,13 @@ fn protocol_twelve_methods_know_their_version_and_scope() {
     assert_eq!(twelve, PROTOCOL_TWELVE);
 }
 
-/// Protocol 14's methods (milestone 11's track A2, ADR 0052), pinned as
+/// Protocol 14's methods (milestone 11's track A2, ADRs 0052 and 0053), pinned as
 /// the other versions' are. Protocol 13 (N3's preview) is pinned in
 /// `automation::preview`'s own test.
 const PROTOCOL_FOURTEEN: &[(&str, Scope)] = &[
     ("session.fork", Scope::Operate),
     ("session.rewind", Scope::Operate),
+    ("agent.history", Scope::Operate),
 ];
 
 #[test]
@@ -409,6 +410,7 @@ const FORWARDABLE: &[&str] = &[
     "session.wake",
     "session.fork",
     "session.rewind",
+    "agent.history",
 ];
 
 #[test]

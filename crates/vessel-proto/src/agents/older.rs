@@ -116,6 +116,7 @@ impl Reply {
             | Self::NodeInfo(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
+            | Self::GetAgentHistory(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::ReadEvents(_)

@@ -103,10 +103,19 @@ pub enum SessionError {
     /// not offer `session/fork`, or it did not fork at the point.
     #[error("{}", fork_refusal(*.0))]
     ForkRefused(vessel_agent::ForkRefusal),
+    /// An agent's own conversations could not be listed
+    /// (`SessionRuntime::history`, protocol 14).
+    #[error(transparent)]
+    History(#[from] vessel_agent::HistoryError),
     /// The rewound agent did not start; the session goes on with its old
     /// conversation.
     #[error("the agent did not start at the point: {0}")]
     RewindFailed(String),
+    /// Another live session is on the agent's conversation this one would
+    /// start on, or starting on it (protocol 14, ADR 0053): two agents on
+    /// one transcript would corrupt it.
+    #[error("session {0} is already on that conversation; open it, or end it first")]
+    ConversationTaken(SessionId),
     /// An ended session cannot start again (protocol 10's
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
@@ -217,6 +226,7 @@ impl SessionError {
             | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
             | Self::NotRewound(RewindRefusal::Terminal)
             | Self::ForkRefused(_)
+            | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
@@ -236,6 +246,7 @@ impl SessionError {
                 | InputError::InvalidAnswer { .. }
                 | InputError::AttachmentNotTaken { .. },
             )
+            | Self::History(vessel_agent::HistoryError::Refused(_))
             | Self::Attachment(
                 AttachmentError::TooMany { .. }
                 | AttachmentError::TooLarge { .. }
@@ -247,6 +258,11 @@ impl SessionError {
             | Self::StartAgent(_)
             | Self::McpFile(_)
             | Self::Probe(_)
+            | Self::History(
+                vessel_agent::HistoryError::Spawn(_)
+                | vessel_agent::HistoryError::Failed { .. }
+                | vessel_agent::HistoryError::TimedOut { .. },
+            )
             | Self::WakeFailed(_)
             | Self::RewindFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
@@ -259,6 +275,7 @@ impl SessionError {
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })
             | Self::Moving
+            | Self::ConversationTaken(_)
             // Nothing waits on a parked session: an answer has no request.
             | Self::Parked
             | Self::NotParked(

@@ -23,6 +23,7 @@ pub mod forge;
 pub mod forking;
 mod forward;
 mod harness;
+pub mod history;
 mod id;
 mod key;
 pub mod lsp;

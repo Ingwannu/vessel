@@ -36,8 +36,9 @@
 //!   Any other extension method is "method not found".
 //! - Right after answering `session/new` or `session/load`, an
 //!   `available_commands_update`: `compact` (with a hint) and `review`.
-//! - `session/new`: session `fake-session-<n>`, with the options
-//!   `FAKE_ACP_OPTIONS` picks (`options` module): by default config
+//! - `session/new`: session `fake-session-<n>-<tag>` (`<tag>` this
+//!   process's own, so no two fakes share an id, as no two real agents
+//!   do), with the options `FAKE_ACP_OPTIONS` picks (`options` module): by default config
 //!   options `mode`, `model` (`fake-small`, the default, or `fake-large`),
 //!   `effort` and `fast`. With `FAKE_ACP_STARTUP_LOG` set it first writes
 //!   a real adapter's start-up log to stderr (`shapes::startup_log`).
@@ -48,8 +49,13 @@
 //!   agent that ignores the anchor. Options as `session/new`.
 //! - `session/delete` (offered): says `fake-acp: deleted <id>` on stderr,
 //!   so a test sees a refused fork deleted.
+//! - `session/list` (protocol 14; offered unless `FAKE_ACP_NO_LIST` is
+//!   set, "method not found" then): three earlier conversations over two
+//!   pages (`history` module); no session is started by it.
 //! - `session/load`: replays the conversation as a user message chunk
-//!   `earlier question` and an agent message chunk `replayed <id>` whose
+//!   `earlier question` (then, with `FAKE_ACP_REPLAY` set to a number,
+//!   that many agent message chunks `replayed line <n>`, a long
+//!   conversation) and an agent message chunk `replayed <id>` whose
 //!   message id is where a fork was made (`<at>`, `head-last` for `head`,
 //!   `replayed-last` for any other session), then
 //!   answers with the same options as `session/new`, as they stand. With
@@ -140,15 +146,16 @@ use agent_client_protocol::v1::schema::{
     AgentCapabilities, AuthMethod, AuthMethodAgent, AvailableCommand, AvailableCommandInput,
     AvailableCommandsUpdate, CancelNotification, Content, ContentBlock, ContentChunk, Cost,
     DeleteSessionRequest, DeleteSessionResponse, ElicitationCapabilities, ForkSessionRequest,
-    ForkSessionResponse, Implementation, InitializeRequest, InitializeResponse, LoadSessionRequest,
-    LoadSessionResponse, McpCapabilities, McpServer, MessageId, NewSessionRequest,
-    NewSessionResponse, PermissionOption, PermissionOptionKind, Plan, PlanEntry, PlanEntryPriority,
-    PlanEntryStatus, PromptCapabilities, PromptRequest, PromptResponse, RequestPermissionOutcome,
-    RequestPermissionRequest, SessionCapabilities, SessionDeleteCapabilities,
-    SessionForkCapabilities, SessionId, SessionNotification, SessionUpdate,
-    SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, SetSessionModeRequest,
-    SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
-    ToolCallUpdate, ToolCallUpdateFields, ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
+    ForkSessionResponse, Implementation, InitializeRequest, InitializeResponse,
+    ListSessionsRequest, LoadSessionRequest, LoadSessionResponse, McpCapabilities, McpServer,
+    MessageId, NewSessionRequest, NewSessionResponse, PermissionOption, PermissionOptionKind, Plan,
+    PlanEntry, PlanEntryPriority, PlanEntryStatus, PromptCapabilities, PromptRequest,
+    PromptResponse, RequestPermissionOutcome, RequestPermissionRequest, SessionCapabilities,
+    SessionDeleteCapabilities, SessionForkCapabilities, SessionId, SessionListCapabilities,
+    SessionNotification, SessionUpdate, SetSessionConfigOptionRequest,
+    SetSessionConfigOptionResponse, SetSessionModeRequest, SetSessionModeResponse, StopReason,
+    TextContent, ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
+    ToolKind, UnstructuredCommandInput, Usage, UsageUpdate,
 };
 use agent_client_protocol::{Agent, ByteStreams, Error, UntypedMessage};
 use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
@@ -158,6 +165,8 @@ use tokio_util::sync::CancellationToken;
 mod ask;
 #[path = "fake_acp/describe.rs"]
 mod describe;
+#[path = "fake_acp/history.rs"]
+mod history;
 #[path = "fake_acp/options.rs"]
 mod options;
 #[path = "fake_acp/real.rs"]
@@ -347,6 +356,11 @@ async fn serve() -> ExitCode {
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
     let ignores_point = std::env::var_os("FAKE_ACP_FORK_IGNORES_POINT").is_some();
+    let lists = std::env::var_os("FAKE_ACP_NO_LIST").is_none();
+    let replay: u32 = std::env::var("FAKE_ACP_REPLAY")
+        .ok()
+        .and_then(|lines| lines.parse().ok())
+        .unwrap_or(0);
     let state: Shared = Arc::new(Mutex::new(State::new()));
     let transport = ByteStreams::new(
         tokio::io::stdout().compat_write(),
@@ -385,7 +399,8 @@ async fn serve() -> ExitCode {
                                 .session_capabilities(
                                     SessionCapabilities::new()
                                         .fork(forks.then(SessionForkCapabilities::new))
-                                        .delete(SessionDeleteCapabilities::new()),
+                                        .delete(SessionDeleteCapabilities::new())
+                                        .list(lists.then(SessionListCapabilities::new)),
                                 ),
                         )
                         .agent_info(Implementation::new("fake-acp", env!("CARGO_PKG_VERSION")));
@@ -420,7 +435,7 @@ async fn serve() -> ExitCode {
                         state.mcp_servers = request.mcp_servers;
                         state.cwd = Some(request.cwd);
                         state.sessions = state.sessions.saturating_add(1);
-                        let id = format!("fake-session-{}", state.sessions);
+                        let id = format!("fake-session-{}-{}", state.sessions, process_tag());
                         let mut response = NewSessionResponse::new(id);
                         response.config_options = state.options.config();
                         response.modes = state.options.modes();
@@ -443,6 +458,19 @@ async fn serve() -> ExitCode {
                 // Said on stderr, so a test sees it in the session's log.
                 complain(&format!("fake-acp: deleted {}", request.session_id.0));
                 responder.respond(DeleteSessionResponse::new())
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: ListSessionsRequest, responder, _cx| {
+                if !lists {
+                    return responder.respond_with_error(Error::method_not_found());
+                }
+                complain("fake-acp: listing its conversations");
+                match history::page(request.cwd, request.cursor.as_deref()) {
+                    Ok(page) => responder.respond(page),
+                    Err(error) => responder.respond_with_error(error),
+                }
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -491,6 +519,13 @@ async fn serve() -> ExitCode {
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
                         "earlier question",
                     ))))?;
+                    // A long conversation (`FAKE_ACP_REPLAY`): what an
+                    // import of one costs.
+                    for line in 1..=replay {
+                        say(SessionUpdate::AgentMessageChunk(ContentChunk::new(text(
+                            &format!("replayed line {line}\n"),
+                        ))))?;
+                    }
                     // A fork's replay ends where it was forked (protocol
                     // 14): its id says so.
                     let mut replayed =
@@ -718,6 +753,20 @@ async fn serve() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// What makes this process's session ids its own: real agents mint ids
+/// no other process repeats (UUIDs), and a node refuses two live sessions
+/// on one conversation (protocol 14), so two fakes must not both say
+/// `fake-session-1`. Its process id and start time, in hex.
+fn process_tag() -> &'static str {
+    static TAG: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    TAG.get_or_init(|| {
+        let started = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.subsec_nanos());
+        format!("{:x}{started:x}", std::process::id())
+    })
 }
 
 /// A message id, new each time: `msg-<n>` (protocol 14's points).

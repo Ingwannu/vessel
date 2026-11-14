@@ -250,7 +250,8 @@ impl Reply {
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
-            | Self::RewindSession(_) => None,
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         }
     }
 }

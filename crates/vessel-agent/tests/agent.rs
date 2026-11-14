@@ -202,23 +202,33 @@ const fn turn_over(event: &AgentEvent) -> bool {
     )
 }
 
-#[tokio::test]
-async fn a_full_turn_with_a_permission_round_trip() {
-    within(async {
-        let mut agent = Agent::start(setup(Some("fake-large")));
-        assert_eq!(
-            agent.until(ready).await,
+/// The fake's `ready`: its first conversation (an id of its own,
+/// `fake-session-1-<tag>`) and what it can do.
+async fn first_ready(agent: &mut Agent) {
+    let event = agent.until(ready).await;
+    assert!(
+        matches!(
+            &event,
             AgentEvent::Ready {
-                harness_session: HarnessSessionId::new("fake-session-1"),
+                harness_session,
                 abilities: Some(vessel_proto::AgentAbilities {
                     steer: true,
                     resume: true,
                     image: true,
                     audio: false,
                     fork: true,
-                })
-            }
-        );
+                }),
+            } if harness_session.as_str().starts_with("fake-session-1-")
+        ),
+        "{event:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_full_turn_with_a_permission_round_trip() {
+    within(async {
+        let mut agent = Agent::start(setup(Some("fake-large")));
+        first_ready(&mut agent).await;
 
         agent.input.prompt(text("hello")).await.unwrap();
         let AgentEvent::PermissionRequested(request) = agent
