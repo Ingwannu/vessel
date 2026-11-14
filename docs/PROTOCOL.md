@@ -70,8 +70,9 @@ One method; types in `vessel_proto::history`.
   not start). A session started again holds the profiles of the moves
   its log still records. The default profile is one profile whether it
   is named or not. This is the node's own check, so a client of any
-  version meets it. Another profile's copy (`session.import`, and the
-  CLI's `session copy` and `session move`, which export and import) is
+  version meets it. A copy into another profile (`session.export` then
+  `session.import`, which the CLI's `vessel session copy` and `vessel
+  session move` use; the move kills the source after the copy runs) is
   another file and is not refused. The listing marks such an entry
   `in_vessel`; a client opens that session rather than import it.
 - Errors: `invalid_request` (a relative folder, a cursor no listing gave,
