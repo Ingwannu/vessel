@@ -20,7 +20,10 @@
 //!   command's description on the label's line, 12 and muted, cut at one
 //!   line; a file's 14-point icon in an 18-wide column 4 before its path;
 //!   at most 220 high, scrolling, the chosen row kept in view; the loading,
-//!   empty and failed states as one muted line 12 inside.
+//!   empty and failed states as one muted line 12 inside. A screen may give
+//!   it less room (a `max_h` on its parent column, as Paseo's popover caps
+//!   it to the room above the composer): the rows' frame shrinks to one row
+//!   at least and the chosen command's card keeps its height.
 //! - Cost: a second list look beside the combobox's, as Paseo has.
 //!
 //! Motion (the owner's word 39; Paseo's list has none): the chosen row's
@@ -353,7 +356,10 @@ fn detail_card(row: &AutocompleteRow, description: &SharedString, tokens: &Token
     div()
         .flex()
         .flex_col()
-        .min_h_0()
+        // A screen that gives the list less room than it wants (the room
+        // above its composer) gets a shorter, scrolling list: the card
+        // keeps its height, its words are never cut.
+        .flex_none()
         .overflow_hidden()
         .bg(surfaces.surface1)
         .border_1()

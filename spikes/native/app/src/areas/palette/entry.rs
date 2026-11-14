@@ -21,6 +21,7 @@
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, div, px, svg,
@@ -36,8 +37,8 @@ pub(crate) fn title_trigger(
 ) -> AnyElement {
     div()
         .id("title-palette")
-        .w(px(32.0))
-        .h(px(28.0))
+        .w(px(spacing::S8))
+        .h(px(spacing::S7))
         .flex()
         .items_center()
         .justify_center()
@@ -52,7 +53,7 @@ pub(crate) fn title_trigger(
         .child(
             svg()
                 .path(Glyph::Search.path())
-                .size(px(14.0))
+                .size(px(spacing::S3_5))
                 .text_color(tokens.text_secondary),
         )
         .on_click(cx.listener(|shell, _event, window, cx| shell.open_palette(window, cx)))

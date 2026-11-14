@@ -179,16 +179,26 @@ impl AgentsWords {
             (Lang::Ko, InstallState::Running) => "설치 중…".to_owned(),
             (Lang::En, InstallState::Succeeded) => "Installation finished.".to_owned(),
             (Lang::Ko, InstallState::Succeeded) => "설치가 완료되었습니다.".to_owned(),
-            (Lang::En, InstallState::Failed { code: Some(code) }) => {
+            (
+                Lang::En,
+                InstallState::Failed {
+                    code: Some(code), ..
+                },
+            ) => {
                 format!("Installation failed with exit code {code}.")
             }
-            (Lang::Ko, InstallState::Failed { code: Some(code) }) => {
+            (
+                Lang::Ko,
+                InstallState::Failed {
+                    code: Some(code), ..
+                },
+            ) => {
                 format!("설치에 실패했습니다. 종료 코드: {code}.")
             }
-            (Lang::En, InstallState::Failed { code: None }) => {
+            (Lang::En, InstallState::Failed { code: None, .. }) => {
                 "Installation failed or was stopped.".to_owned()
             }
-            (Lang::Ko, InstallState::Failed { code: None }) => {
+            (Lang::Ko, InstallState::Failed { code: None, .. }) => {
                 "설치에 실패했거나 중지되었습니다.".to_owned()
             }
             (Lang::En, InstallState::TimedOut) => {

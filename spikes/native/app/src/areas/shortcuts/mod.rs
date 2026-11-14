@@ -176,7 +176,7 @@ impl Shell {
             }
             Action::Settings => self.open_settings(None, window, cx),
             Action::GoBoard => self.go(Route::Board, window, cx),
-            Action::GoMachines => self.open_settings(Some(Section::Machines), window, cx),
+            Action::GoMachines => self.open_settings(Some(Section::Overview), window, cx),
             Action::GoSync => self.open_settings(Some(Section::Sync), window, cx),
             Action::GoDevices => self.open_settings(Some(Section::Devices), window, cx),
             Action::NextSession => return self.step_to(Step::Next, window, cx),

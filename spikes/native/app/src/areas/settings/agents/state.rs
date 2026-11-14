@@ -54,7 +54,7 @@ impl Shell {
     // Its control must never redirect an install or a check to the new one.
     pub(super) fn agent_context(&self, shown: Option<&MachineKey>) -> bool {
         self.route == crate::routes::Route::Settings
-            && self.areas.settings.section == vessel_app_view::settings::Section::Agents
+            && self.areas.settings.section == vessel_app_view::settings::Section::Providers
             && shown.is_some()
             && self.areas.settings.agents.machine.as_ref() == shown
     }
@@ -70,7 +70,7 @@ impl Shell {
     }
 
     pub(crate) fn agent_load(&mut self, again: bool, cx: &mut Context<'_, Self>) {
-        if self.areas.settings.section != vessel_app_view::settings::Section::Agents {
+        if self.areas.settings.section != vessel_app_view::settings::Section::Providers {
             self.areas.settings.agents.defaults.close();
             self.areas.settings.agents.tips = vessel_app_kit::tooltip::Tooltips::new();
             return;

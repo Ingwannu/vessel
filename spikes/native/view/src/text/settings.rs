@@ -29,7 +29,6 @@ pub struct SettingsText {
     pub machine: &'static str,
     pub no_machines: &'static str,
     pub switch_machine: &'static str,
-    pub elsewhere: &'static str,
     // General.
     pub general_lead: &'static str,
     pub composer: &'static str,
@@ -83,7 +82,6 @@ const EN: SettingsText = SettingsText {
     machine: "Machine",
     no_machines: "No machines yet.",
     switch_machine: "Switch machine",
-    elsewhere: "This section is drawn by another part of the app; it comes in a later build.",
     general_lead: "How the composer sends, and where Vessel keeps what you choose.",
     composer: "Composer",
     send_shortcut: "Send shortcut",
@@ -134,7 +132,6 @@ const KO: SettingsText = SettingsText {
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
     switch_machine: "머신 바꾸기",
-    elsewhere: "이 섹션은 앱의 다른 부분이 그립니다. 다음 빌드에서 들어옵니다.",
     general_lead: "작성창이 보내는 방식과, 고른 설정을 Vessel이 보관하는 곳.",
     composer: "작성창",
     send_shortcut: "보내기 단축키",
@@ -179,47 +176,85 @@ const KO: SettingsText = SettingsText {
 };
 
 impl SettingsText {
-    /// A section's name in the list.
+    /// A section's name in the list and its page's title: Paseo's
+    /// (`en.ts` `settings.sections`, `settings.hostSections`, and
+    /// `openProject.tiles.pairDevice.title` for "Pair device"; `ko.ts` the
+    /// same keys). Models and Sync are Vessel's own. Short: one line of
+    /// the list. Korean "터미널" names both Terminal (the app's) and
+    /// Terminals (the machine's), as Paseo's Korean does; they are under
+    /// different headings.
     #[must_use]
     pub const fn section(&self, section: Section) -> &'static str {
         match (self.lang, section) {
             (Lang::En, Section::General) => "General",
             (Lang::En, Section::Appearance) => "Appearance",
+            (Lang::En, Section::Sidebar) => "Sidebar",
+            (Lang::En, Section::Chat) => "Chat",
+            (Lang::En, Section::Terminal) => "Terminal",
+            (Lang::En, Section::Browser) => "Browser",
+            (Lang::En, Section::Editor) => "Editor",
+            (Lang::En, Section::Files) => "Files",
             (Lang::En, Section::Shortcuts) => "Shortcuts",
+            (Lang::En, Section::Integrations) => "Integrations",
             (Lang::En, Section::Notifications) => "Notifications",
-            (Lang::En, Section::Agents) => "Agents",
-            (Lang::En, Section::Models) => "Models",
-            (Lang::En, Section::Machines) => "Machines",
-            (Lang::En, Section::Projects) => "Projects",
-            (Lang::En, Section::Devices) => "Devices",
-            (Lang::En, Section::Sync) => "Sync",
+            (Lang::En, Section::Permissions) => "Permissions",
+            (Lang::En, Section::Diagnostics) => "Diagnostics",
             (Lang::En, Section::About) => "About",
+            (Lang::En, Section::Overview) => "Overview",
+            (Lang::En, Section::Projects) => "Projects",
+            (Lang::En, Section::Connections) => "Connections",
+            (Lang::En, Section::Devices) => "Pair device",
+            (Lang::En, Section::Agents) => "Agents",
+            (Lang::En, Section::Metadata) => "Metadata",
+            (Lang::En, Section::Voice) => "Voice",
+            (Lang::En, Section::Workspaces) => "Workspaces",
+            (Lang::En, Section::Providers) => "Providers",
+            (Lang::En, Section::Usage) => "Usage",
+            (Lang::En, Section::Terminals) => "Terminals",
+            (Lang::En, Section::Plugins) => "Plugins",
+            (Lang::En, Section::Models) => "Models",
+            (Lang::En, Section::Sync) => "Sync",
             (Lang::Ko, Section::General) => "일반",
             (Lang::Ko, Section::Appearance) => "모양",
+            (Lang::Ko, Section::Sidebar) => "사이드바",
+            (Lang::Ko, Section::Chat) => "채팅",
+            (Lang::Ko, Section::Browser) => "브라우저",
+            (Lang::Ko, Section::Editor) => "편집기",
+            (Lang::Ko, Section::Files) => "파일",
             (Lang::Ko, Section::Shortcuts) => "단축키",
+            (Lang::Ko, Section::Integrations) => "통합",
             (Lang::Ko, Section::Notifications) => "알림",
-            (Lang::Ko, Section::Agents) => "에이전트",
-            (Lang::Ko, Section::Models) => "모델",
-            (Lang::Ko, Section::Machines) => "머신",
-            (Lang::Ko, Section::Projects) => "프로젝트",
-            (Lang::Ko, Section::Devices) => "기기",
-            (Lang::Ko, Section::Sync) => "동기화",
+            (Lang::Ko, Section::Permissions) => "권한",
+            (Lang::Ko, Section::Diagnostics) => "진단",
             (Lang::Ko, Section::About) => "정보",
+            (Lang::Ko, Section::Overview) => "개요",
+            (Lang::Ko, Section::Projects) => "프로젝트",
+            (Lang::Ko, Section::Connections) => "연결",
+            (Lang::Ko, Section::Devices) => "기기 페어링",
+            (Lang::Ko, Section::Agents) => "에이전트",
+            (Lang::Ko, Section::Metadata) => "메타데이터",
+            (Lang::Ko, Section::Voice) => "음성",
+            (Lang::Ko, Section::Workspaces) => "워크스페이스",
+            (Lang::Ko, Section::Providers) => "프로바이더",
+            (Lang::Ko, Section::Usage) => "사용량",
+            // Paseo's Korean names both "터미널" (under different headings).
+            (Lang::Ko, Section::Terminal | Section::Terminals) => "터미널",
+            (Lang::Ko, Section::Plugins) => "플러그인",
+            (Lang::Ko, Section::Models) => "모델",
+            (Lang::Ko, Section::Sync) => "동기화",
         }
     }
 
-    /// A group's heading.
+    /// A group's heading (Paseo's `settings.groups`). The machine group is
+    /// Paseo's "Host" named with Vessel's word for a host, as the rest of
+    /// the app names it ("Add a machine", "Switch machine"). Short.
     #[must_use]
     pub const fn group(&self, group: Group) -> &'static str {
         match (self.lang, group) {
             (Lang::En, Group::App) => "App",
-            (Lang::En, Group::Agents) => "Agents",
-            (Lang::En, Group::Machines) => "Machines",
-            (Lang::En, Group::About) => "About",
+            (Lang::En, Group::Machine) => "Machine",
             (Lang::Ko, Group::App) => "앱",
-            (Lang::Ko, Group::Agents) => "에이전트",
-            (Lang::Ko, Group::Machines) => "머신",
-            (Lang::Ko, Group::About) => "정보",
+            (Lang::Ko, Group::Machine) => "머신",
         }
     }
 
@@ -248,19 +283,19 @@ impl SettingsText {
     pub const fn delivery_note(&self, delivery: TurnDelivery) -> &'static str {
         match (self.lang, delivery) {
             (Lang::En, TurnDelivery::Queue) => {
-                "A message sent while the agent works waits, and goes when its turn ends."
+                "A message sent while the agent works waits, and goes when its turn ends; while a permission request waits, it stops the turn instead."
             }
             (Lang::En, TurnDelivery::Steer) => {
-                "A message sent while the agent works joins its turn, where the agent can take one; it waits otherwise."
+                "A message sent while the agent works joins its turn, where the agent can take one; otherwise it stops the turn and starts the next."
             }
             (Lang::En, TurnDelivery::Interrupt) => {
                 "A message sent while the agent works stops its turn and starts the next."
             }
             (Lang::Ko, TurnDelivery::Queue) => {
-                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다."
+                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다. 권한 요청이 기다리는 동안에는 지금 차례를 멈추고 갑니다."
             }
             (Lang::Ko, TurnDelivery::Steer) => {
-                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 기다립니다."
+                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 지금 차례를 멈추고 다음 차례를 시작합니다."
             }
             (Lang::Ko, TurnDelivery::Interrupt) => {
                 "에이전트가 일하는 동안 보낸 메시지는 지금 차례를 멈추고 다음 차례를 시작합니다."

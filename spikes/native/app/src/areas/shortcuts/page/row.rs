@@ -14,6 +14,9 @@ use vessel_app_view::shortcuts::{
 
 use crate::shell::Shell;
 
+/// The widest a refused key's reason is drawn beside the keys, points.
+const WHY_MOST: f32 = 260.0;
+
 /// Paseo's `menuSlot` and `menuButton`: 32 by 32.
 const SLOT: f32 = 32.0;
 
@@ -190,7 +193,7 @@ fn capturing_keys(shell: &Shell, capture: &Capture, verdict: Verdict, tokens: &T
         .child(shown)
         .children(why.map(|why| {
             div()
-                .max_w(px(260.0))
+                .max_w(px(WHY_MOST))
                 .type_(Type::Meta)
                 .text_color(neutral.destructive)
                 .child(why)

@@ -171,7 +171,8 @@ speed, and what did not help.
 - The daemon is the product; clients are thin.
 - Harnesses are wrapped, never re-implemented (ADR 0003).
 - Wire types exist once, in `vessel-proto`.
-- No panics, no unbounded queues, no untyped JSON (see `AGENTS.md`).
+- No panics, no unbounded queues, no untyped JSON (see `AGENTS.md`; each
+  strict rule, its check and where the code stands: `docs/QUALITY.md`).
 
 ## State (2026-11-06)
 
@@ -1116,6 +1117,15 @@ answer differs; a machine that connects gets its kept lists
 (`Event::OptionsKept`) before the fleet shows it online. No new wire method.
 The rules, bounds and what was followed from Paseo's provider snapshot are in
 `docs/plans/backend-m12-composer.md`.
+
+What was typed in a composer and not sent is a draft per session and one
+for the new chat (`view::composer::drafts`, held by the composer area): put
+back when its composer comes back, written a second after the last edit by
+`link::drafts` to `drafts.json` beside the agents' lists (owner-only,
+versioned, bounded as the web bridge bounds the page's; a file that does
+not read is set aside, never overwritten). Up and Down in an empty session
+composer walk the messages sent in it (`view::composer::recall`, Paseo's
+`ComposerRecall`); a recalled message is not a draft until it is edited.
 
 ## Protocol 13: schedule preview (N3)
 

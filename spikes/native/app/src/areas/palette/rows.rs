@@ -63,16 +63,34 @@ const fn action_of(target: &Target) -> Option<Action> {
         PaletteTarget::Board => Some(Action::GoBoard),
         PaletteTarget::Settings(section) => match section {
             Section::General => Some(Action::Settings),
-            Section::Machines => Some(Action::GoMachines),
+            Section::Overview => Some(Action::GoMachines),
             Section::Sync => Some(Action::GoSync),
             Section::Devices => Some(Action::GoDevices),
+            // The rest have no shortcut of their own.
             Section::Appearance
+            | Section::Sidebar
+            | Section::Chat
+            | Section::Terminal
+            | Section::Browser
+            | Section::Editor
+            | Section::Files
             | Section::Shortcuts
+            | Section::Integrations
             | Section::Notifications
-            | Section::Agents
-            | Section::Models
+            | Section::Permissions
+            | Section::Diagnostics
+            | Section::About
             | Section::Projects
-            | Section::About => None,
+            | Section::Connections
+            | Section::Agents
+            | Section::Metadata
+            | Section::Voice
+            | Section::Workspaces
+            | Section::Providers
+            | Section::Usage
+            | Section::Terminals
+            | Section::Plugins
+            | Section::Models => None,
         },
         PaletteTarget::AddMachine
         | PaletteTarget::Machine(_)

@@ -32,6 +32,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Tooltips, Type, TypeExt as _, dot, kicker};
 use vessel_app_view::prefs::Grouping;
 
+use super::edge::{Panel, PanelEdge};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -44,8 +45,6 @@ mod statuses;
 /// A row's inset from the sidebar's padding (the page's 10, between the
 /// kit's 8 and 12 steps).
 const INSET: f32 = 10.0;
-/// The sidebar's width.
-const WIDTH: f32 = 264.0;
 
 /// The sidebar's own state: its tooltips, and where each unreachable
 /// machine's line is drawn (by machine name).
@@ -57,6 +56,8 @@ pub(crate) struct SidebarState {
     page_tips: Tooltips,
     /// The Display menu.
     display: display::DisplayMenu,
+    /// Its right edge, dragged to resize it.
+    pub(crate) edge: PanelEdge,
 }
 
 impl SidebarState {
@@ -66,6 +67,7 @@ impl SidebarState {
             places: RefCell::new(HashMap::new()),
             page_tips: Tooltips::new(),
             display: display::DisplayMenu::new(window, cx),
+            edge: PanelEdge::new(),
         }
     }
 
@@ -151,8 +153,7 @@ pub(crate) fn render(
         }
     };
     div()
-        .w(px(WIDTH))
-        .h_full()
+        .size_full()
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
@@ -223,6 +224,37 @@ fn more_row(id: ElementId, count: usize, shell: &Shell, tokens: &Tokens) -> Stat
         .hover(|style| style.bg(tokens.bg_hover).text_color(tokens.text_secondary))
         .cursor_pointer()
         .child(shell.t.lang.sidebar().more(count))
+}
+
+/// The sidebar as a resizable panel: dragged at its right edge
+/// (`super::edge`), kept in the layout's `sidebar_width`.
+const PANEL: Panel = Panel {
+    limits: vessel_app_view::panels::SIDEBAR,
+    edge: |shell| &shell.areas.sidebar.edge,
+    kept: |shell| shell.prefs.settings.layout.sidebar_width,
+    keep: |layout, width| layout.sidebar_width = width,
+    side: vessel_app_kit::resize::Edge::Right,
+};
+
+/// What stands in the sidebar's place on a wide window (the workspace
+/// sidebar, or Settings' list: one width for both, so the frame beside
+/// it does not move when Settings opens), at the width dragged to,
+/// measured against the window's width.
+pub(crate) fn frame(
+    shell: &Shell,
+    inner: vessel_app_kit::ui::AnyElement,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let width = PANEL.width(shell, f32::from(window.viewport_size().width));
+    div()
+        .relative()
+        .flex_shrink_0()
+        .h_full()
+        .w(px(width))
+        .child(inner)
+        .children(PANEL.handle("sidebar-edge", shell, tokens, window, cx))
 }
 
 /// The slot for Schedules among the navigation rows, where Paseo's

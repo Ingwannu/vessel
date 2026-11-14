@@ -9,8 +9,10 @@
 //! so the panel starts wider.
 //!
 //! [Decision Log]
-//! - Purpose: the panel is resized at its left edge, and the conversation
-//!   beside it keeps a readable width (480) however wide the sidebar is.
+//! - Purpose: the panel is resized at its left edge (the owner, 2026-11-14,
+//!   word 29: the same control as the sidebar's, `areas::edge`), and the
+//!   conversation beside it keeps a readable width (480) however wide the
+//!   sidebar is.
 //! - Constraint: the panel's own bounds do not say where the conversation
 //!   starts (the sidebar's width is the lead's), and a window made
 //!   narrower must not push the panel's Close out of sight.
@@ -19,44 +21,37 @@
 //!   the sidebar's width read from the lead's layout (couples to its
 //!   paddings and borders).
 //! - Choice: the row of conversation and panel is drawn here
-//!   (`code_beside`, the lead's slot); the drag measures the row. In the
-//!   row the conversation grows from 480 and the panel, with a far
-//!   larger shrink, gives up its width first, down to 320, when the
-//!   window narrows.
+//!   (`code_beside`, the lead's slot) and measured each frame; the panel's
+//!   width is clamped against it (`panels::CODE_PANEL`). In the row the
+//!   conversation grows from 480 and the panel, with a far larger shrink,
+//!   gives up its width first, down to 320, when the window narrows (the
+//!   frame before the row is measured again).
 //! - Cost: the slot hands this track the whole row, not only the panel.
 
-use gpui::AppContext as _;
+use std::rc::Rc;
+
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::tabs::{tab, tab_head};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, DragMoveEvent, InteractiveElement as _, IntoElement,
-    ParentElement as _, Pixels, Render, StatefulInteractiveElement as _, Styled as _, Window, div,
-    px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, canvas, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
+use vessel_app_view::panels::CODE_PANEL;
 
 use super::{Place, Tab};
+use crate::areas::edge::Panel;
 use crate::shell::Shell;
 
-/// The panel's width beside the conversation, until dragged.
-pub(super) const WIDTH: Pixels = px(440.0);
-
-/// The narrowest it is dragged to (Paseo's Explorer: 240; a diff needs
-/// more) and the conversation's least width beside it.
-const MIN_WIDTH: Pixels = px(320.0);
-const MIN_CONVERSATION: Pixels = px(480.0);
-
-/// What is dragged at the panel's left edge.
-struct Edge;
-
-/// The drag's picture: nothing (the panel itself moves).
-struct NoGhost;
-
-impl Render for NoGhost {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
-        div()
-    }
-}
+/// The panel as a resizable panel: dragged at its left edge, kept in the
+/// layout's `panel_width`.
+pub(super) const PANEL: Panel = Panel {
+    limits: CODE_PANEL,
+    edge: |shell| &shell.areas.workspace.code.edge,
+    kept: |shell| shell.prefs.settings.layout.panel_width,
+    keep: |layout, width| layout.panel_width = width,
+    side: vessel_app_kit::resize::Edge::Left,
+};
 
 /// The session bar's toggle (track C's bar, its right actions): Paseo's
 /// panel glyph, filled while the panel is out. `None` without an open
@@ -121,33 +116,29 @@ pub(crate) fn code_beside(
     let Some(panel) = code_panel(shell, tokens, window, cx) else {
         return screen;
     };
+    let row = Rc::clone(&shell.areas.workspace.code.row);
     div()
         .size_full()
         .relative()
         .flex()
         .flex_row()
+        .child(
+            canvas(
+                move |bounds, _window, _cx| row.set(Some(f32::from(bounds.size.width))),
+                |_, (), _, _| {},
+            )
+            .absolute()
+            .size_full(),
+        )
         // The conversation grows from its least width and gives it up only
         // when the panel is down to its own.
-        .child(screen.flex_1().flex_basis(MIN_CONVERSATION).min_w(px(0.0)))
-        .child(panel)
-        .on_drag_move(
-            cx.listener(|this, event: &DragMoveEvent<Edge>, _window, cx| {
-                // The row's bounds: the panel ends at its right; the
-                // conversation keeps `MIN_CONVERSATION` of its width. In
-                // plain numbers through `mul_add`: the lints deny
-                // operators on floats and on pixels.
-                let right = f32::from(event.bounds.right());
-                let row = f32::from(event.bounds.size.width);
-                let pointer = f32::from(event.event.position.x);
-                let most = f32::from(MIN_CONVERSATION).mul_add(-1.0, row);
-                let width = pointer
-                    .mul_add(-1.0, right)
-                    .min(most)
-                    .max(f32::from(MIN_WIDTH));
-                this.areas.workspace.code.width = px(width);
-                cx.notify();
-            }),
+        .child(
+            screen
+                .flex_1()
+                .flex_basis(px(CODE_PANEL.beside))
+                .min_w(px(0.0)),
         )
+        .child(panel)
 }
 
 /// The panel beside the conversation column, when it is out on an open
@@ -232,35 +223,27 @@ fn code_panel(
     Some(if phone {
         frame.absolute().inset_0().size_full().into_any_element()
     } else {
-        beside(frame, panel.width, tokens).into_any_element()
+        // Before the row is first measured, no room limit: the row's flex
+        // keeps the conversation's least width for that frame.
+        let room = panel.row.get().unwrap_or(f32::INFINITY);
+        beside(frame, PANEL.width(shell, room), tokens)
+            .children(PANEL.handle("code-edge", shell, tokens, window, cx))
+            .into_any_element()
     })
 }
 
-/// The panel beside the conversation: its hairline, its width, and a
-/// 6-wide strip over the hairline that resizes it (Paseo's Explorer is
-/// resized at its edge; the row measures the drag, `code_beside`). Its
-/// shrink outweighs the conversation's a thousandfold, so a narrower
-/// window takes the panel's width first, down to [`MIN_WIDTH`].
-fn beside(frame: Div, width: Pixels, tokens: &Tokens) -> vessel_app_kit::ui::Stateful<Div> {
+/// The panel beside the conversation: its hairline and its width (the
+/// handle on the hairline is `PANEL`'s). Its shrink outweighs the
+/// conversation's a thousandfold, so a narrower window takes the panel's
+/// width first, down to `CODE_PANEL.least`.
+fn beside(frame: Div, width: f32, tokens: &Tokens) -> Div {
     frame
-        .id("code-panel")
         .relative()
-        .w(width)
+        .w(px(width))
         .flex_shrink(1000.0)
-        .min_w(MIN_WIDTH)
+        .min_w(px(CODE_PANEL.least))
         .border_l_1()
         .border_color(tokens.neutral.border)
-        .child(
-            div()
-                .id("code-edge")
-                .absolute()
-                .top_0()
-                .bottom_0()
-                .left(px(-3.0))
-                .w(px(6.0))
-                .cursor_col_resize()
-                .on_drag(Edge, |_edge, _at, _window, cx| cx.new(|_| NoGhost)),
-        )
 }
 
 /// A line where the panel has nothing else to show.

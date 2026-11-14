@@ -269,9 +269,11 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn refusal<'a>(&self, refusal: &'a GitRefusal) -> RefusalWords<'a> {
         let (title, next) = self.refusal_lines(refusal);
         let (paths, output): (&[RelPath], Option<&str>) = match refusal {
-            GitRefusal::WouldOverwrite { paths } | GitRefusal::Conflicts { paths } => (paths, None),
-            GitRefusal::HookFailed { output } => (&[], Some(output)),
-            GitRefusal::RemoteFailed { message } => (&[], Some(message)),
+            GitRefusal::WouldOverwrite { paths, .. } | GitRefusal::Conflicts { paths, .. } => {
+                (paths, None)
+            }
+            GitRefusal::HookFailed { output, .. } => (&[], Some(output)),
+            GitRefusal::RemoteFailed { message, .. } => (&[], Some(message)),
             GitRefusal::NeedsCredential
             | GitRefusal::TimedOut
             | GitRefusal::NonFastForward
@@ -296,6 +298,12 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
             output,
         }
     }
+}
+
+/// A refusal's title and what to do, from anything that becomes a string
+/// (both tables' refusal arms).
+fn lines(title: impl Into<String>, next: impl Into<String>) -> (String, String) {
+    (title.into(), next.into())
 }
 
 #[cfg(test)]

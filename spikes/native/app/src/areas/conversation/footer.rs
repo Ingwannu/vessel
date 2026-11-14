@@ -33,15 +33,11 @@ use vessel_app_view::timeline::{Entry, EntryKind};
 use vessel_proto::StopReason;
 
 use super::entries::{Paint, id};
+use super::look::BUBBLE_COLUMN;
 use crate::shell::Shell;
 
 /// Paseo's `STREAM_METADATA_FONT_SIZE`.
 const METADATA: f32 = 12.0;
-
-/// Where the reply bubbles start: `look::AVATAR` (24, worker B's circle)
-/// and `look::AVATAR_GAP` (8), kept equal to their sum by hand (no float
-/// arithmetic here); the footers line up under the bubbles.
-const BUBBLE_COLUMN: f32 = 32.0;
 
 /// The footer of the turn that ended at entry `index` (its `turn_ended`).
 pub(super) fn completed(

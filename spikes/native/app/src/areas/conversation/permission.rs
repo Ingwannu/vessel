@@ -331,6 +331,7 @@ fn body(
         seat,
         entries: &[],
         agent: None,
+        rewinds: None,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

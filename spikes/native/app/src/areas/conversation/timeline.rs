@@ -32,6 +32,10 @@ pub(crate) fn timeline(
 ) -> AnyElement {
     super::read::check(shell, window, cx);
     super::tail::sync(shell, window, cx);
+    // A rewound message back into the composer, on a frame with a window.
+    if shell.areas.conversation.rewinding.has_restore() {
+        cx.defer_in(window, Shell::rewind_restore);
+    }
     let list = rows(shell, Seat::SESSION, tokens, window, cx);
     if shell.areas.conversation.timeline.entries().is_empty() {
         return list;
@@ -113,7 +117,17 @@ fn paint<'a>(
         seat,
         entries: area.timeline.entries(),
         agent: area.info.as_deref().map(|info| &info.spec.harness),
+        rewinds: rewinds(shell, area).then_some(&area.timeline),
     }
+}
+
+/// Whether a rewind may be asked of `area`'s session now: the session
+/// area's own conversation (not a side question's), live, between turns
+/// (the node rewinds only then).
+fn rewinds(shell: &Shell, area: &ConversationArea) -> bool {
+    std::ptr::eq(area, &raw const shell.areas.conversation)
+        && area.info.as_deref().is_some_and(is_live)
+        && !shell.areas.session.conversation.turn_running()
 }
 
 /// Row `row`: its entry, in the lane; a folded run's lead with the run's
@@ -135,7 +149,7 @@ fn row_element(
             TailRow::Pending(text) => {
                 let index = area.timeline.entries().len();
                 area.pending_drawn();
-                let row = entries::pending(&paint, index, &text);
+                let row = super::bubbles::pending(&paint, index, &text);
                 if area.pending_fresh() {
                     super::motion::settle(
                         ElementId::NamedInteger("pending-arrive".into(), id(index)),
@@ -156,8 +170,9 @@ fn row_element(
     };
     // Lifecycle and accounting lines are not drawn: Paseo's stream holds
     // messages, thoughts, tools, plans and questions; the session's state
-    // is the header's, its usage the context meter's (slice M).
-    if quiet(&entry.kind) {
+    // is the header's, its usage the context meter's (slice M). What a
+    // rewind left behind is no longer the conversation (slice R1).
+    if quiet(&entry.kind) || area.timeline.rewound(index) {
         return div().into_any_element();
     }
     let run = area
@@ -179,6 +194,28 @@ fn row_element(
     }
     if run.is_none() || run_open {
         let drawn = entries::entry(&paint, index, entry, open(area, index), window, cx);
+        // A person's message carries Paseo's trailing row: its time,
+        // rewind where it can go, copy (`rewind`).
+        let said = if let EntryKind::Prompt(prompt) = &entry.kind {
+            Some(prompt.text.as_str())
+        } else if let EntryKind::Steer { text, .. } = &entry.kind {
+            Some(text.as_str())
+        } else {
+            None
+        };
+        let drawn = if let Some(text) = said {
+            super::rewind::with_row(
+                &paint,
+                index,
+                (drawn, text, entry.at),
+                &area.rewinding,
+                breakpoint::phone(window),
+                window,
+                cx,
+            )
+        } else {
+            drawn
+        };
         // A reply that just came grows in (`motion`).
         let arriving = matches!(entry.kind, EntryKind::Message { .. })
             && area
@@ -279,6 +316,16 @@ pub(crate) fn overlays(
     let words = shell.t.lang.conversation();
     let mut floating = Vec::new();
     floating.extend(super::search::example(shell, tokens, window, cx));
+    // The rewind menu under a person's message (`rewind`).
+    floating.extend(menu(
+        "rewind-menu",
+        &area.rewinding.menu,
+        &super::rewind::menu_items(shell),
+        &Shell::rewind_menu_handlers(),
+        tokens,
+        narrow,
+        cx,
+    ));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(
         "session-actions",

@@ -19,7 +19,6 @@
 use chrono::{DateTime, Utc};
 use gpui::FontWeight;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::fonts::MONO;
 use vessel_app_kit::slider::spinner;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
@@ -27,7 +26,7 @@ use vessel_app_kit::ui::{
     IntoElement as _, MouseButton, ParentElement as _, Stateful, StatefulInteractiveElement as _,
     Styled, div, px, rgb,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, alert, glyph, popup};
+use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, alert, fonts::MONO, glyph, popup};
 use vessel_app_view::Card;
 use vessel_app_view::board::{CardActions, Origin, Row, Tone};
 
@@ -80,7 +79,8 @@ pub(crate) fn card(
         .py(px(10.0))
         .children(origin(shell, row, tokens, cx))
         .child(title_row(shell, card, place, tokens, cx))
-        .children(lines(card, tokens));
+        .children(lines(card, tokens))
+        .children(crate::areas::pulls::card_items(card, shell.words, tokens));
     let foot = foot(shell, card, place, tone, tokens);
     // A failed session's error is a failure on screen: the kit's alert.
     let error = card.detail.failure.clone().map(|failure| {

@@ -201,7 +201,7 @@ impl Shell {
         };
         viewer.text = match result {
             Ok(read) => match read.content {
-                FileContent::Text { text, next } => {
+                FileContent::Text { text, next, .. } => {
                     let lines: Vec<String> = text.lines().map(str::to_owned).collect();
                     let language = language_of(ask.path.as_str());
                     let states = line_states(lines.iter().map(String::as_str), language);

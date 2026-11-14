@@ -165,7 +165,7 @@ impl Shell {
             Theme::ALL,
             self.t.lang,
         );
-        if !settings::drawn(Section::Machines) {
+        if !settings::drawn(Section::Overview) {
             all.retain(|entry| !matches!(entry.target, PaletteTarget::Machine(_)));
         }
         all
@@ -220,7 +220,7 @@ impl Shell {
             PaletteTarget::Board => self.go(Route::Board, window, cx),
             PaletteTarget::Settings(section) => self.open_settings(Some(section), window, cx),
             PaletteTarget::Machine(_) => {
-                self.open_settings(Some(Section::Machines), window, cx);
+                self.open_settings(Some(Section::Overview), window, cx);
             }
             PaletteTarget::Session {
                 machine, session, ..

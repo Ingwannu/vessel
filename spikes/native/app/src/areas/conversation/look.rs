@@ -35,6 +35,11 @@ pub(super) const CORNER: f32 = 4.0;
 pub(super) const AVATAR: f32 = 24.0;
 pub(super) const AVATAR_GAP: f32 = 8.0;
 
+/// Where the reply bubbles start: [`AVATAR`] and [`AVATAR_GAP`], kept
+/// equal to their sum by hand (no float arithmetic here). The turn's
+/// footer and a failed turn's line start there too.
+pub(super) const BUBBLE_COLUMN: f32 = 32.0;
+
 /// The work log's text: 12.5 points on a 1.625 line (GOAT's
 /// `--text-work-log`).
 pub(super) const WORK_SIZE: f32 = 12.5;

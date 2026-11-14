@@ -23,7 +23,7 @@
 use gpui::AnimationExt as _;
 use vessel_app_kit::motion::{STANDARD, transition};
 use vessel_app_kit::ui::{
-    AnyElement, ElementId, IntoElement, ParentElement as _, SharedString, Styled as _, div, px,
+    AnyElement, ElementId, IntoElement, ParentElement as _, SharedString, Styled as _, div,
 };
 
 use super::Shell;
@@ -33,7 +33,7 @@ use crate::routes::Route;
 pub(super) fn arriving(shell: &Shell, frame: AnyElement) -> impl IntoElement {
     div()
         .flex_1()
-        .min_h(px(0.0))
+        .min_h_0()
         .flex()
         .flex_col()
         .child(frame)

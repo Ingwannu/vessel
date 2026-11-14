@@ -170,7 +170,7 @@ pub fn settled(options: &[PermissionOption], outcome: Option<&PermissionOutcome>
     match outcome {
         None => Settled::Pending,
         Some(PermissionOutcome::Cancelled) => Settled::Cancelled,
-        Some(PermissionOutcome::Selected { option }) => {
+        Some(PermissionOutcome::Selected { option, .. }) => {
             match options.iter().find(|offered| offered.id == *option) {
                 None => Settled::Allowed(option.to_string()),
                 Some(chosen) if allows(chosen.kind) => Settled::Allowed(chosen.name.clone()),

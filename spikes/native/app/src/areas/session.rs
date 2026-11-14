@@ -22,7 +22,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
-use vessel_app_view::prefs::TurnDelivery;
+use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
 use vessel_app_view::{Card, Conversation};
 use vessel_proto::{Delivery, EventRecord, SessionId};
 
@@ -108,6 +108,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Track P: the session composer swaps the draft it holds.
+        self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
         let takes_prompts = open.structured;
         self.areas.session.pending = None;
@@ -298,10 +300,10 @@ impl Shell {
         }
         if open.live {
             let delivery = self.delivery();
-            // A send that starts a turn shows in the conversation at once
-            // (Paseo's pending message; track C's tail). One into a running
-            // turn waits in the queue or joins the turn instead.
-            if !self.areas.session.conversation.turn_running() {
+            // A send shows in the conversation at once (Paseo's pending
+            // message; track C's tail), unless it waits in the queue,
+            // whose rows show it.
+            if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
                 self.conversation_sending(&text, cx);
             }
             let Some(open) = &self.areas.session.open else {
@@ -334,20 +336,18 @@ impl Shell {
         cx.notify();
     }
 
-    /// What a plain send does: with no turn running, start one (or wait
-    /// behind prompts already queued); while one runs, what Settings'
-    /// default send says (wait in the queue, join the turn, or stop it and
-    /// start), joining only for an agent that takes it (`abilities.steer`;
-    /// otherwise the queue).
+    /// What a plain send does: Settings' default send by Paseo's rules
+    /// (`view::session::send_delivery`), given whether a turn runs, whether
+    /// the agent takes a message into it, and whether a permission waits.
     fn delivery(&self) -> Delivery {
-        if !self.areas.session.conversation.turn_running() {
-            return Delivery::Queue;
-        }
-        match self.prefs.settings.composer.delivery {
-            TurnDelivery::Steer if self.steers() => Delivery::Steer,
-            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
-            TurnDelivery::Interrupt => Delivery::Interrupt,
-        }
+        send_delivery(
+            self.prefs.settings.composer.delivery,
+            SendFacts {
+                turn_running: self.areas.session.conversation.turn_running(),
+                steers: self.steers(),
+                permission_waits: self.areas.conversation.permission_waits(),
+            },
+        )
     }
 
     /// Whether the open session's agent takes a message into a running
@@ -435,7 +435,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        super::conversation::timeline(shell, tokens, window, cx)
+        crate::region::timeline(shell, tokens, window, cx)
     } else {
         div()
             .flex_1()

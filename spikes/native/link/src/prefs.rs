@@ -107,7 +107,7 @@ const MAX_CHOICE_BYTES: usize = 64;
 fn fits(choice: &OptionChoice) -> bool {
     choice.id.as_str().len() <= MAX_CHOICE_BYTES
         && match &choice.value {
-            ChoiceValue::Select { value } => value.as_str().len() <= MAX_CHOICE_BYTES,
+            ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_BYTES,
             ChoiceValue::Toggle { .. } => true,
         }
 }

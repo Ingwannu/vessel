@@ -100,6 +100,16 @@ Kept in the timeline: messages, thoughts, tool rows, plans, questions,
 permissions, a turn that failed (its words: the person must see them),
 a profile change (the person's own act).
 
+A failed turn (the coordinator's finding on 0.0.0.0.15, after Paseo's
+`formatTurnFailedMessage` and its Claude provider's `withheldErrorReply`)
+is one sentence in the kit's error alert under the replies: the agent's
+own words without the JSON-RPC wrapper ("Internal error: ") or its data
+as JSON (`view::timeline::turn_failure`). A usage limit (`errorKind`
+`rate_limit`, or the limit's sentence) is its sentence alone; any other
+failure reads "Turn failed · <sentence>". The reply Claude writes with
+the same words just before the failure is not drawn, so it is said
+once. The full text stays in the session's log (`vessel log`).
+
 The reply: the owner's bubble (Paseo's reply has none): Paseo's user
 bubble mirrored (16 inside, radius 16 with the corner toward the agent
 at 4) on `surface1` edged with a hairline. It hugs its words as the
@@ -127,6 +137,81 @@ draws nothing for it; while motion is held (Animations off, reduced
 motion, a software renderer) GPUI draws both at their end at once. The
 working footer's elapsed time is drawn again once a second while a turn
 runs, and not otherwise.
+
+## Send while a turn runs: Paseo's rules (2026-11-14, the owner's word 45)
+
+`view::session::send_delivery` decides how a plain send goes, from
+Settings' Default send and three facts (a turn runs, the agent takes a
+message mid-turn, a permission waits). Paseo's rules, its cases as the
+tests in `view/src/tests/delivery.rs`:
+
+| Default send | No turn running | Turn running | Permission waiting |
+| --- | --- | --- | --- |
+| Steer (the default now, Paseo's `storage.ts`) | starts a turn | joins the turn; replaces it when the agent cannot steer (Paseo's server, `steerOrReplaceActiveTurn`) | joins the turn |
+| Queue | starts a turn | waits in the queue | interrupts (Paseo's `resolveActiveSendBehavior`: a queued message would be stranded behind the request) |
+| Interrupt | starts a turn | stops the turn, starts the next | stops the turn, starts the next |
+
+Differences from before: the default was Queue, and a Steer the agent
+could not take waited in the queue. A send that does not wait in the
+queue shows in the conversation at once (the tail; a steered message
+settles on its steer record). Settings' notes under Default send say
+the new rules; the setting's page is track E3's. An install that saved
+"queue" before keeps it (the preferences store every field, so a saved
+default cannot be told from a choice).
+
+## Rewind and fork (protocol 14, ADR 0052; started 2026-11-14)
+
+Plan: Paseo's controls on our node's calls. Paseo puts **rewind** in
+the trailing row under the person's message (its time, an undo mark,
+copy; `components/message.tsx` `UserMessage`, `rewind/rewind-menu.tsx`):
+a menu headed "This action cannot be undone" with one row per mode the
+agent supports, and the rewound message goes back into the composer
+(`rewind/composer-restore.tsx`). It puts **fork** in the reply's turn
+footer between copy and "Worked for" (`assistant-fork-menu.tsx`). Our
+node rewinds and forks only at a turn's end the agent named (a point,
+`TurnPoint`), rewinds the conversation only (files are not put back;
+the record says how many tool calls changed them), and forks into a new
+session (no tabs or workspaces).
+
+| Slice | What | Reference |
+| --- | --- | --- |
+| R1 | the person's message's trailing row (time, rewind, copy); rewind to the turn end before it (`session.rewind`), the rewound message back in the composer; the entries rewound away drawn no more (they stay in the fold and the log: entries are never removed) | Paseo `UserMessage`, `RewindMenu` (conversation mode) |
+| F1 | the turn footer's fork menu; `session.fork` at that turn's end; the new session opened; its first line says where it came from | Paseo `AssistantForkMenu` (one target: a new session) |
+| F2 | a fork that never had a conversation (`empty_fork`): its reason and Remove | ADR 0052 addendum (track A2) |
+
+Each slice: rules in `view` with tests, captures at 1280, 390 and
+800 × 600, the gate, a report.
+
+R1 done (2026-11-14; 9b8eadfb, 92ef3ed9, ba96e64a): on the fake fleet a
+rewind to the first turn's end left the second turn behind (no longer
+drawn, nor on the outline rail, nor found), the node logged "rewound to
+record 21", and the message went back into the empty composer.
+Differences from Paseo, kept: one mode (the conversation); no tooltip on
+the undo mark yet; the row's height is kept while it is hidden (Paseo's
+trailing row also keeps its place). The fake agent names a point only
+for its `plain` reply, so the fleet's other sessions offer no rewind.
+
+## Module layout (2026-11-14, the owner's word 44)
+
+`app/src/areas/conversation/` after the split (no behaviour change;
+every file under 460 lines). Rules with tests live in `view`; `app`
+draws and wires.
+
+| File | Holds |
+| --- | --- |
+| `mod.rs` | the module's Decision Logs, its file list and re-exports |
+| `area.rs` | `ConversationArea` (the state), opening, clearing, revealing, the rows |
+| `intake.rs` | an act's answer and a batch of records, applied only for the session shown |
+| `place.rs` | `Seat` and `Place`: where a conversation's state is kept, how a card's answer is sent |
+| `actions.rs` | the Session actions menu, its confirms, the agent's log, the acts sent |
+| `follow.rs` | what the shell tells the conversation (opened, records, answers, lost, machine book) |
+| `entries.rs` / `bubbles.rs` | an entry drawn by kind / the message exchange (the two bubbles, the circle) |
+| `question.rs` / `question/card.rs` | the answer's state and controls / the card's drawing; the step's rules are `view::timeline::question_step` |
+| `queue.rs` / `queue/rows.rs` | the queue's edit and acts / its rows, grip and buttons |
+| `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
+
+Moved to `view` with tests: `question_step` (choices, pick, typed,
+header, prompt, text target), `start_at`, `first_reply`.
 
 ## Captures
 

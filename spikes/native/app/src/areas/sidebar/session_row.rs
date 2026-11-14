@@ -75,7 +75,7 @@ pub(super) fn session_row(
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
-        .child(crate::agent_mark::mark(
+        .child(crate::agent_mark::mark_muted(
             card.detail.harness.as_ref(),
             vessel_app_kit::agent_mark::Size::Fourteen,
             vessel_app_kit::agent_mark::Space::Compact,
