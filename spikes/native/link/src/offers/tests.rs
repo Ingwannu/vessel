@@ -173,8 +173,9 @@ fn at_most_max_entries_are_kept_the_oldest_going_first() {
 #[test]
 fn the_file_stays_within_max_bytes() {
     let mut store = Store::load(None);
-    // About 100 KiB a list: eleven of them are over the bound.
-    let many: Vec<String> = (0..1_000)
+    // About 190 KiB a list (2,000 values of about 95 bytes): six of them
+    // are over the bound, eleven far over it.
+    let many: Vec<String> = (0..2_000)
         .map(|index| format!("model-{index:04}"))
         .collect();
     let ids: Vec<&str> = many.iter().map(String::as_str).collect();
@@ -184,8 +185,9 @@ fn the_file_stays_within_max_bytes() {
     }
     let bytes = store.encoded().unwrap().len();
     assert!(bytes <= MAX_BYTES, "{bytes} bytes");
+    assert!(store.entries.len() < nodes.len(), "some went");
     assert!(store.for_node(&nodes[0]).is_empty(), "the oldest went");
-    assert_eq!(store.for_node(&nodes[10]).len(), 1);
+    assert_eq!(store.for_node(&nodes[10]).len(), 1, "the newest stayed");
 }
 
 #[test]
