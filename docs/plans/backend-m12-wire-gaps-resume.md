@@ -270,8 +270,7 @@ consumer waits and unimplemented rows 3-7 listed above remain unchanged.
 
 ## Current row 3 handoff (supersedes earlier checkpoints)
 
-Contract-first commit: `5cff884e`. Implementation is the commit containing
-this checkpoint; its hash is added in the following documentation checkpoint.
+Contract-first commit: `5cff884e`. Gated implementation: `3d486ff4`.
 The node baseline is `b981f5f2`; rows 1 and 2 are integrated upstream at 13
 and 15, with fleet.published at 16. The upstream PR-without-session feature
 already exists at 13: verify its contract when reaching row 5, do not duplicate

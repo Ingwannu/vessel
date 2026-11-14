@@ -302,7 +302,7 @@ already-pinned workspace `vessel-proto`, only with `authority-fixtures`
 hand-written wire strings, while ordinary fake binary builds keep their
 existing dependency cost. It creates no cycle or external dependency.
 
-## Row 3 implementation and verification
+## Row 3 implementation and verification (`3d486ff4`)
 
 New request `GetDeviceSelf {}` (`device.self`) returns `DeviceSelf { device?,
 scopes }`; `NodeClient::device_self()` and `vessel node devices self` use it.
