@@ -137,10 +137,17 @@ enums. A continuation is not a second character. Selection and find
 skip it.
 
 **Model.** `TerminalModel::new(size, scrollback)`. `replay(&[u8]) -> Feed` applies at most one budget and returns no
-replies. History, attach and every viewer that `ResizeRule` does not
-let send use only `replay`. `feed(&[u8]) -> Feed` is the same parse and
-may return reply bytes; the link calls it only for the one viewer that
-has focus and has typed. The caller keeps the tail of either. `resize(GridSize)` reflows the primary screen's soft-wrapped
+replies. History, a fold of the ring, and every viewer that must not
+answer use only `replay`. `feed(&[u8]) -> Feed` is the same parse and
+may return reply bytes. `query_duty(origin, focus, typed, other)` says
+which call the link makes, with no `bool`: `Opened` or `Attached`,
+`Held` or `Lost`, `Never` or `Once`, and whether some other viewer
+already qualifies. It returns `Answer` for a viewer that has focus and
+has typed, and for the view that created the terminal while nobody
+qualifies (even with focus lost and nothing typed). It returns `Silent`
+for every other viewer, and for an attach, or a creating view that has
+gone, when nobody qualifies. `Silent` is `replay`. The caller keeps the
+tail of either. `resize(GridSize)` reflows the primary screen's soft-wrapped
 lines and resizes the alternate screen without merging it into
 scrollback. `paste(text)` encodes bracketed paste when the program has
 turned that mode on, and returns the bytes; it does not send them.
@@ -154,9 +161,15 @@ ends (whether Paseo's search wraps was not read).
 
 **Replies and unknown sequences.** A sequence the fixtures do not name
 is ignored. The bytes after it are still applied. A query a local
-terminal answers is a reply, not a draw. The link sends replies as
-`TerminalInput::Data`, through the existing sender, so they stay in
-order with keys.
+terminal answers is a reply, not a draw. The bytes are Paseo's, read
+at `terminal.ts` 883–922 and the map at 45–49: `ESC [ ? 62 ; 4 ; 22 c`,
+`ESC [ 0 n`, `ESC [ row ; col R`, `ESC [ ? row ; col R` (rows and
+columns 1-based), and `OSC 10` / `11` / `12` as
+`rgb:e6e6/e6e6/e6e6`, `rgb:0b0b/0b0b/0b0b`, `rgb:e6e6/e6e6/e6e6`. The
+link sends replies as `TerminalInput::Data`, through the existing
+sender, so they stay in order with keys. When `query_duty` is `Silent`
+on every viewer, nothing is sent and the program waits. The app shows
+no error. A query that already passed is not answered later.
 
 **Path paste.** `quote_path(path, platform)` takes the node's platform.
 POSIX: a path containing `` ` $ | & > ~ # ! ^ * ; < `` is
@@ -172,8 +185,13 @@ them there); a space is wrapped in `"` and any other path is unchanged
 `한` as width 2 plus a continuation, the same syllable split across two
 feeds, the alternate screen and back, bracketed paste on and off, an
 arrow in normal and application mode, a live cursor-position query
-answered with the cursor's cell, and the same query through `replay`
-answered with no bytes.
+answered with the cursor's cell, the same query through `replay`
+answered with no bytes, `the_opener_answers_before_anyone_qualifies`
+(device attributes, status, cursor, private cursor and the three OSC
+colour queries, from the creating view, before anyone has typed and
+with focus lost), and
+`nobody_answers_a_live_query_when_no_viewer_may` (the same queries on
+an attach with nobody qualified, no reply bytes).
 
 **Link (slice 3).** A shell's follow is `follow_terminal` on the testkit's
 fake, never a real shell. Input, replies and resizes go through one
@@ -198,6 +216,12 @@ grid, and that an unchanged generation draws nothing), not described.
   the screen debounces resize by 100 ms.
 - Scalar width, not Paseo's grapheme clusters. Hangul matches; emoji
   clusters and Indic conjuncts do not.
+- A live query is answered by the view that created the terminal until
+  some viewer has focus and has typed, then only by that viewer.
+  Paseo's daemon always answers, with no viewer in the decision
+  (`terminal.ts` 883–922, read). An attach, or a creating view that
+  has closed, with nobody qualified, is answered by nobody, and the
+  program waits. The app shows no error of its own.
 - A dangerous path is refused, not stripped.
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
@@ -207,13 +231,18 @@ grid, and that an unchanged generation draws nothing), not described.
 
 ## Resume point
 
-- Done: ADR 0073 (status proposed) and this contract, including the
-  returned slice's three rules: `replay` never answers, path quoting for
-  both node platforms, scrollback on `view::prefs::Preferences`. `vte`
-  is reserved to `vessel-app-view`. No settings key on the node, no new
+- Done: ADR 0073 (status proposed) and this contract. `replay` never
+  answers. Path quoting is stated for both node platforms. Scrollback
+  is a field of `view::prefs::Preferences`. The view that created a
+  terminal answers a live query until a viewer qualifies under
+  `ResizeRule`; with no such view and nobody qualified, nobody answers
+  and the program waits. The two grid tests are named above. `vte` is
+  reserved to `vessel-app-view`. No settings key on the node, no new
   call, no number at merge.
 - Half-done: nothing in the commits. A draft of `types.rs` and `grid.rs`
   may sit uncommitted in the worktree; it is not part of a commit until
-  the parser, keys, paste, find and tests build with it.
-- Next: finish that grid, then the native gate once, in one slot. Do not
-  start `link` or `kit` in that commit.
+  the parser, keys, paste, find and tests build with it. That draft
+  still answers from every `feed`. The duty rule is not in it yet.
+- Next: finish that grid, including `query_duty` and the two tests
+  named above, then the native gate once, in one slot. Do not start
+  `link` or `kit` in that commit.

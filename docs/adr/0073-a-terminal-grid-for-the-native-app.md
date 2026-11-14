@@ -161,22 +161,51 @@ screen, bracketed paste, and a UTF-8 sequence split across two feeds.
 An unknown sequence is ignored and the rest of the feed is kept (that
 is the parser's rule, not a dropped command).
 
-Who answers a query is a difference from Paseo. Paseo's daemon answers
-cursor reports and replays the screen from its own buffer, once, for
-every viewer (`packages/app/src/terminal/character-widths.ts` lines 3–5,
-read). Vessel's node does not parse, so it cannot answer. The app does
-not take that job for history, and not every viewer answers a live
-query:
+Who answers a query is a difference from Paseo. Paseo's daemon writes
+the reply itself, and no viewer is part of that decision
+(`packages/server/src/terminal/terminal.ts` lines 883–922, read). A
+primary-device query (`CSI c` or `CSI 0 c`) becomes
+`ESC [ ? 62 ; 4 ; 22 c`. A status query (`CSI 5 n`) becomes
+`ESC [ 0 n`. A cursor query (`CSI 6 n`) becomes the cursor's cell,
+1-based, `ESC [ row ; col R`, and the private form (`CSI ? 6 n`)
+becomes `ESC [ ? row ; col R`. An OSC colour query (`OSC 10`, `11` or
+`12` with `?`) becomes the three fixed `rgb:` replies in the map at
+lines 45–49 of the same file (read). The app's note says the same
+thing: the daemon answers cursor reports from its own buffer
+(`packages/app/src/terminal/character-widths.ts` lines 3–5, read). A
+program that asked and got nothing waits; Paseo's helper then writes
+`DA_TIMEOUT` or `DSR_TIMEOUT` and exits 2
+(`packages/server/src/terminal/terminal.posix.test.ts` lines 135–163,
+read). Vessel's node does not parse, so it cannot answer. The app
+answers a live query from one viewer, or from none, and the reply
+bytes are those above:
 
 - `replay` applies bytes and returns no replies. Attach, resume and any
   fold of the ring use only `replay`. A cursor-position query in that
   history moves the grid and types nothing. The grid's tests feed
   `ESC [ 6 n` through `replay` and assert the reply is empty.
-- `feed` may return reply bytes (cursor position, primary device
-  attributes). The link sends those bytes only for the one viewer
-  `ResizeRule` already allows to send: it has focus and the person has
-  typed. Every other viewer, including a second window, applies the
-  same live bytes with `replay`.
+- `feed` may return those reply bytes. The link sends them from one
+  viewer. Once any viewer qualifies under `ResizeRule` (it has focus
+  and the person has typed), that viewer is the one. Every other
+  viewer applies the same live bytes with `replay`.
+- Until any viewer qualifies, the first viewer of a terminal this app
+  created is the one that answers. It answers before anyone has typed,
+  and it answers while its window is not focused, so a shell that asks
+  for device attributes as it starts, and a TUI that asks where the
+  cursor is before it draws, do not sit there. A second window does
+  not answer: only the view that created the terminal is that first
+  viewer. The grid's slice tests this as
+  `the_opener_answers_before_anyone_qualifies`.
+- When no viewer qualifies and there is no such first viewer, nobody
+  answers. That is an attach to a terminal this app did not create, or
+  the view that created it has closed. Every viewer uses `replay`. The
+  program that asked waits. Paseo's helper calls that wait a timeout:
+  the shell sits on the device-attributes read, the TUI on the cursor
+  report, until the program gives up or a later query arrives after a
+  viewer has focus and the person has typed. The missed query is not
+  answered late. The app does not invent a reply and does not show an
+  error of its own. The grid's slice tests this as
+  `nobody_answers_a_live_query_when_no_viewer_may`.
 - The page's xterm.js also answers. This track does not change the
   page, so a page that is open beside the answering native viewer can
   still answer the same live query. That remaining double answer is
@@ -211,6 +240,15 @@ is not smuggled in as a copy.
   to 2 s) are not copied. They paper over a layout that has not measured
   yet. GPUI measures; the 100 ms debounce is the one wait, and it is a
   debounce.
+- A live query with nobody entitled to answer is not answered.
+  Paseo's daemon always writes the reply (the handlers above). Until a
+  viewer has focus and has typed, the view that created the terminal
+  answers, including while that window is unfocused, so a new shell
+  does not sit on its first query. An attach, or a creating view that
+  has closed, with nobody qualified, leaves the program waiting. The
+  app adds no error of its own. The reply that is sent is Paseo's
+  bytes, including the three OSC colour replies; it goes out as
+  `TerminalInput` on the terminal that viewer already follows.
 - Cluster width differs from Paseo. Paseo gives one cell of width 2 to
   an emoji cluster (VS16, a skin tone, a flag, a ZWJ sequence) and one
   column to an Indic conjunct (`docs/terminal-rendering.md` in Paseo).
