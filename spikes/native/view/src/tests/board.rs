@@ -383,6 +383,7 @@ fn a_fork_is_listed_on_its_machine_at_once_and_only_once() {
             sessions: vec![listed.clone()],
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
