@@ -36,15 +36,9 @@ pub enum InvalidLabel {
     /// A control character, including C1. The text is not echoed.
     Control,
     /// More than [`LabelKey::MAX_CHARS`] scalars, after trimming.
-    KeyTooLong {
-        /// How many it has.
-        chars: usize,
-    },
+    KeyTooLong,
     /// More than [`LabelValue::MAX_CHARS`] scalars.
-    ValueTooLong {
-        /// How many it has.
-        chars: usize,
-    },
+    ValueTooLong,
     /// The key contains `=`.
     Equals {
         /// The key, which is safe to print.
@@ -56,10 +50,7 @@ pub enum InvalidLabel {
         key: String,
     },
     /// The session would have more than [`SessionLabels::MAX`] labels.
-    TooMany {
-        /// How many it would have.
-        count: usize,
-    },
+    TooMany,
     /// A patch names no key.
     Empty,
     /// A command-line label is not `key=value`.
@@ -86,7 +77,7 @@ impl LabelKey {
         }
         let chars = text.chars().count();
         if chars > Self::MAX_CHARS {
-            return Err(InvalidLabel::KeyTooLong { chars });
+            return Err(InvalidLabel::KeyTooLong);
         }
         if text.contains('=') {
             return Err(InvalidLabel::Equals {
@@ -118,7 +109,7 @@ impl LabelValue {
         }
         let chars = raw.chars().count();
         if chars > Self::MAX_CHARS {
-            return Err(InvalidLabel::ValueTooLong { chars });
+            return Err(InvalidLabel::ValueTooLong);
         }
         Ok(Self(Arc::from(raw)))
     }
@@ -159,23 +150,11 @@ impl fmt::Display for InvalidLabel {
         match self {
             Self::EmptyKey => f.write_str("a label key is empty"),
             Self::Control => f.write_str("a label cannot contain a control character"),
-            Self::KeyTooLong { chars } => write!(
-                f,
-                "a label key is {chars} scalars; the maximum is {}",
-                LabelKey::MAX_CHARS
-            ),
-            Self::ValueTooLong { chars } => write!(
-                f,
-                "a label value is {chars} scalars; the maximum is {}",
-                LabelValue::MAX_CHARS
-            ),
+            Self::KeyTooLong => f.write_str("a label key exceeds 64 Unicode scalars"),
+            Self::ValueTooLong => f.write_str("a label value exceeds 256 Unicode scalars"),
             Self::Equals { key } => write!(f, "label key '{key}' cannot contain '='"),
             Self::Reserved { key } => write!(f, "label key '{key}' is reserved"),
-            Self::TooMany { count } => write!(
-                f,
-                "a session has {count} labels; the maximum is {}",
-                SessionLabels::MAX
-            ),
+            Self::TooMany => f.write_str("a session cannot hold more than 32 labels"),
             Self::Empty => f.write_str("nothing to update"),
             Self::NotAPair => f.write_str("a label is `key=value`"),
         }
@@ -208,12 +187,6 @@ impl SessionLabels {
         self.0.is_empty()
     }
 
-    /// How many it holds.
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     /// Drop every label. An older peer is shown a session with none.
     pub fn clear(&mut self) {
         self.0.clear();
@@ -226,10 +199,7 @@ impl SessionLabels {
     /// [`InvalidLabel::TooMany`] when the map is already full.
     pub fn insert(&mut self, key: LabelKey, value: LabelValue) -> Result<(), InvalidLabel> {
         if !self.0.contains_key(&key) && self.0.len() == Self::MAX {
-            return Err(InvalidLabel::TooMany {
-                // Only the diagnostic count saturates; the map never grows past MAX.
-                count: self.0.len().saturating_add(1),
-            });
+            return Err(InvalidLabel::TooMany);
         }
         let _replaced = self.0.insert(key, value);
         Ok(())
@@ -344,12 +314,12 @@ mod tests {
         assert!("한".repeat(64).parse::<LabelKey>().is_ok());
         assert!(matches!(
             "a".repeat(65).parse::<LabelKey>(),
-            Err(InvalidLabel::KeyTooLong { chars: 65 })
+            Err(InvalidLabel::KeyTooLong)
         ));
         assert!("값".repeat(256).parse::<LabelValue>().is_ok());
         assert!(matches!(
             "v".repeat(257).parse::<LabelValue>(),
-            Err(InvalidLabel::ValueTooLong { chars: 257 })
+            Err(InvalidLabel::ValueTooLong)
         ));
         assert!(matches!(
             "a=b".parse::<LabelKey>(),
@@ -380,14 +350,14 @@ mod tests {
             )
             .unwrap();
         }
-        assert_eq!(full.len(), 32);
+        assert_eq!(full.0.len(), 32);
         let before = full.clone();
         let err = full.apply(&labels(&[("new", "x")])).unwrap_err();
-        assert!(matches!(err, InvalidLabel::TooMany { count: 33 }));
+        assert!(matches!(err, InvalidLabel::TooMany));
         assert_eq!(full, before);
         full.insert("k00".parse().unwrap(), "z".parse().unwrap())
             .unwrap();
-        assert_eq!(full.len(), 32);
+        assert_eq!(full.0.len(), 32);
     }
 
     #[test]
