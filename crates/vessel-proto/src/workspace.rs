@@ -9,6 +9,7 @@
 
 mod approval;
 mod diff;
+mod file_terminals;
 mod files;
 mod git;
 mod path;
@@ -23,6 +24,7 @@ pub use diff::{
     ChangeStatus, DiffContent, DiffLine, DiffScope, DiffSummary, FileChange, FileDiff, GetChanges,
     GetFileDiff, Hunk, LineKind, ModeChange,
 };
+pub use file_terminals::{FileTerminal, PROJECT_FILE_KEYS};
 pub use files::{
     CreateDir, DeletePath, DirEntry, DirListing, EntryKind, FileContent, FileRead, FileVersion,
     FindFiles, FoundFile, FoundFiles, GrepCase, GrepMatch, GrepMode, GrepResult, ListDir, ReadFile,
