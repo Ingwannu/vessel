@@ -38,6 +38,9 @@ mod fleet_published;
 mod forge;
 #[cfg(test)]
 mod forge_rules;
+// A half-open TCP path, for the keepalive tests.
+#[cfg(test)]
+mod freezer;
 #[cfg(test)]
 mod grants;
 #[cfg(test)]

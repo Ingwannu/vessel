@@ -938,7 +938,10 @@ In the crate table's order.
   expires. `NodeLink` keeps a node registered (jittered backoff,
   `LinkState` on a watch), with the token or tickets it is handed, again
   at once with each newer one. One `Keepalive` (a ping every 10 s, a drop after
-  30 s of silence) covers relayed and direct connections. `respond` runs
+  30 s of silence) covers relayed and direct connections, and `Liveness`
+  keeps it from inside a socket's adapter: the node's `/secure` carrier
+  and, since 2026-11-14, its token `/rpc` transport (ADR 0038's
+  amendment). `respond` runs
   the node's handshake on a websocket and closes with `4401` when it
   fails. `vesseld relay` runs it (README, "Running a relay").
 - `vessel-fleet`: `bundle` turns the home's sources into a `Manifest` and
