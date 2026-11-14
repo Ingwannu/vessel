@@ -547,5 +547,8 @@ fn a_kept_pick_the_agent_stopped_offering_falls_back_to_the_agents_value() {
     let options = offers.options(&key()).unwrap_or_default();
     let shown = crate::with_picks(options, &picks);
     assert_eq!(current_of(&shown, "model").as_deref(), Some("a"));
-    assert!(crate::choices_for(options, &picks).is_empty(), "nothing sent for it");
+    assert!(
+        crate::choices_for(options, &picks).is_empty(),
+        "nothing sent for it"
+    );
 }
