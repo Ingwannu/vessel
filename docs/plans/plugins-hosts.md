@@ -44,19 +44,24 @@ installed plugins (`runtime.ts` forks a Node worker; the message
 union is `PluginProcessRequest`). Built-ins are the same messages
 without the fork (`InternalPluginChild`).
 
-**Security.** A process boundary is not a sandbox. The child runs
-as the same user, with whatever filesystem and network the account
-has, which is Paseo's trust model and the document says so in the
-install warning. Vessel can refuse to start that child until a
-person turns a switch on, as Paseo does with `pluginsEnabled`
-defaulting to false. The node must not put a secret on the child's
-command line or in an environment it adds; Paseo's preparation
-step copies the daemon environment (`preparation.ts` lines 4 to
-16), and that is a behaviour Vessel should not copy without saying
-so. A protocol the node decodes into types, and rejects on failure,
-matches how Vessel already treats harness output. The child can
-still do anything the account can. Calling that safe would be
-false.
+**Security.** A process boundary is not a sandbox. What the child
+can reach: the filesystem and the network of the account the node
+runs as. Whose credentials: that account's, and no others. Paseo's
+install warning says the same trust model. Vessel refuses to start
+the child while the enable key is absent. That key is one
+top-level `node.settings` field, named in the ADR of the slice
+that adds it, not in this note. Absent means off. The node does
+not put a secret on the child's command line or into an
+environment it adds. Paseo's preparation copies `process.env`
+(`preparation.ts` lines 4 to 16). Vessel does not, because a
+secret the daemon already holds must not be handed over for that
+reason alone. A bad id or a bad path is a typed refusal before
+the spawn. The child is started through `vessel-proc` (a process
+group on Unix, a kill-on-close job object on Windows,
+`docs/ARCHITECTURE.md`), not by a signal, systemd, or launchd.
+Slice 1 starts no child. A fake child answers only in a test
+build. The child can still do anything that account can. Calling
+that a sandbox would be false.
 
 **Compatibility with existing Paseo plugins.** None, until a child
 exists that evaluates Paseo's server bundle. That child is Node,
@@ -70,13 +75,13 @@ need the same adapter. A plugin that patches daemon config through
 decision to expose it; handing the child the node's full client
 would let it call whatever the node lets that credential call.
 
-**Cost.** The protocol is types and a framed stdio codec Vessel
-already knows how to test with a fake child (the testkit's fakes,
-no real Node, no network). No new crate from outside. The Node
-adapter, if it is ever built, is a maintained JavaScript program
-and a Node install on the machine, which the node does not have
-today. Versioning is the rule Vessel already uses: additive
-messages, an unknown variant, both directions tested.
+**Cost.** The protocol is types and a framed stdio codec. A fake
+child in tests is test-only and does not answer in a release
+build. No real Node and no network in those tests. No new crate
+from outside in the first slice. The Node adapter, if it is ever
+built, is a maintained JavaScript program and a Node install on
+the machine, which the node does not have today. A wire call
+takes the number given at merge. It is not chosen here.
 
 **What the app can draw.** Only a contribution that arrived as
 data: a screen id and a title, a command name, a slash command, a

@@ -103,8 +103,12 @@ all.
 
 **Slice 1, the contract.** An in-process registry. No child, no
 JavaScript, no install, no UI, no new wire method, no new
-`ErrorCode`, no new external crate, no change to `PROTOCOL_VERSION`
-(it stays 20). An empty registry leaves `session.create` as it is.
+`ErrorCode`, no new external crate. This slice takes no protocol
+number. `PROTOCOL_VERSION` stays at the base this branch was cut
+from; this record does not set it. A later slice that adds a call
+or a field takes the number given at merge, and gates that call on
+one named constant of this track so the integrator changes one
+line. An empty registry leaves `session.create` as it is.
 
 The registry knows all fourteen hook names and the wait bit from
 Paseo's table, so a fifteenth name does not compile and a match
@@ -119,11 +123,13 @@ Not called in this slice, though the names exist: the workspace
 hooks, both worktree hooks, `agent.open.before`, close, archive,
 turn and permission. Import, a schedule's run, a fork, a rewind
 and a side question do not go through `create_session`, so they
-do not fire these two. Paseo already skips create-after on import
-and resume. Skipping schedules and side questions is narrower than
-"every create"; it is stated, and a later slice decides each one
-after reading that call site. It is not verified here whether
-Paseo's scheduler fires `agent.create.before`.
+do not fire these two. Paseo's hook document says import and
+resume do not fire `agent.create.after`
+(`public-docs/plugins/hooks.md` line 252). The scheduler's and
+the side-agent's call sites were not read, so this record does
+not say whether they fire `agent.create.before`. Skipping them
+here is narrower than "every create", and the reason is that
+those paths were not read.
 
 `agent.create.before` receives a snapshot of the spec the caller
 sent, after nothing else has been reserved: no session id yet
@@ -133,30 +139,32 @@ token. The handler may replace `title` and `harness`. `cwd`,
 one is a refusal, and later handlers of this hook do not run.
 Returning nothing keeps the request. There is no deep merge.
 
-The replaced spec is then the spec `create` already accepts, so
-the install check, the place, the grant and the credential run on
-what the hook returned. Slice 1 adds no second authorization. A
-hook cannot grant a harness the create path would refuse, and it
-cannot take one the path would allow: the caller could have passed
-that harness. Fields Paseo can change and this request does not
+The replaced spec is what `create` receives. `create_starting`
+calls `refuse_installing` on `spec.harness`
+(`crates/vessel-node/src/service/sessions.rs` line 125, read).
+The body of `agents.reserve` was not read, so this record does
+not say the grant inspects the harness. Slice 1 adds no second
+authorization. Fields Paseo can change and this request does not
 have (model, saved environment, MCP servers, system prompt, tool
 policy, provider options) are absent from the type, not dropped
 on the floor. Adding one later adds a field.
 
 Order is the plugin id's UTF-8 bytes, then registration order.
-Paseo sorts with `localeCompare` (`runtime.ts` lines 569 to 571),
-which follows the process locale. Plugin ids are
-`^[a-z][a-z0-9-]*$` (`packages/protocol/src/plugin-config.ts` line
-3). On that alphabet, byte order and code-point order agree, and
-they agree with `localeCompare` for those characters. Vessel uses
-the bytes so the order does not depend on a locale. Stated, and
-compatible for every id the schema accepts.
+Paseo sorts with `localeCompare` and no locale argument
+(`runtime.ts` lines 569 to 571). That call follows the process
+locale. Plugin ids match `^[a-z][a-z0-9-]*$`
+(`packages/protocol/src/plugin-config.ts` line 3). Vessel uses
+bytes so the order does not follow a locale. Whether those bytes
+sort as `localeCompare` does for every id the schema accepts was
+not measured. The difference is the stable order, not a claim
+that the two orders match.
 
 A waiting hook has 30 seconds, counted by the node around the
 call, not by the registry sleeping. The deadline is the same
 number as `REQUEST_TIMEOUT_MS` (`runtime.ts` line 41). On a
-timeout the signal is cancelled, the operation fails, and later
-handlers do not run. A handler error fails the same way. The wire
+timeout the handler's cancellation token is cancelled, the
+operation fails, and later handlers do not run. That token is
+not a POSIX signal. A handler error fails the same way. The wire
 error is the existing `ErrorCode::Conflict` and a message that
 names the plugin id and the hook. It does not include the spec's
 directory, an environment value, or a credential. No new
@@ -166,10 +174,13 @@ message is for a person.
 `agent.create.after` runs only after the session exists. It is not
 awaited by the RPC. Its error is logged with the plugin id and the
 hook, and the session stays. The log line does not include the
-spec. The test waits on a signal the handler sends, not on a
-sleep. A handler still running at shutdown is cancelled.
+spec. The test waits on a notification the handler completes,
+not on a sleep. A handler still running at shutdown is cancelled through
+the same token. Slice 1 starts no process, so shutdown does not
+send a signal.
 
-Handlers in this slice are Rust functions in the test. There is no
+Handlers in this slice exist only under `cfg(test)`. A release
+build's registry is empty and answers nothing. There is no
 dynamic plugin, so the registry is generic over the handler rather
 than a trait object. The open extension point is the later process
 boundary, and the comment that says so lands with that code, not
@@ -184,6 +195,36 @@ external crate. `vessel-node` is the only caller. The
 commit that adds the manifest, not part of this record: a row
 without a crate would fail the boundary check. No other crate
 gains a dependency.
+
+## Outside the node
+
+Slice 1 reaches nothing outside the node. It starts no child, opens
+no socket, and runs no script.
+
+The helper a later slice may start is design A. What it can reach,
+once that slice exists: the filesystem and the network of the
+account the node runs as. A process boundary is not a sandbox.
+Whose credentials: that same account. The node does not put a
+token, a pairing link, a harness home, or any other secret on the
+child's command line or into an environment the node adds.
+Paseo's preparation copies `process.env` (`preparation.ts` lines
+4 to 16). Vessel does not. That is a stated difference, and the
+reason is that a secret must not ride along because the daemon
+had it. What refuses the child: slice 1, by not having a spawn.
+A later slice that does spawn refuses before the spawn when the
+id or the path fails validation, and when the one settings key
+that slice's own ADR names is absent. Absent means off. This
+record adds no `node.settings` key and lists no other track's
+key.
+
+The helper, when it exists, is a child through `vessel-proc`: a
+process group on Unix, a kill-on-close job object on Windows
+(`docs/ARCHITECTURE.md`, the `vessel-proc` row). No signal, no
+systemd unit, and no launchd job. Slice 1 has neither, on either
+platform.
+
+A fake child in a later test is a test-only feature a release
+build cannot enable. It does not answer in a product build.
 
 ## Why this and not the others
 

@@ -42,12 +42,16 @@ The contract is the "Slice 1" section of ADR 0068. Short form:
   plugin and the hook, and later handlers do not run.
 - After is not awaited. Its failure is logged and the session
   stays.
-- Empty registry: create is unchanged, no new wire, protocol stays
-  20.
-- Tests beside the rules, fakes only, no sleep. The node test that
-  proves the deadline uses the paused clock.
+- Empty registry: create is unchanged. No new wire method, so no
+  protocol number. A later call takes the number given at merge
+  and is gated on one named constant.
+- Tests beside the rules, under `cfg(test)` only, no sleep. A
+  release build's registry is empty. The node test that proves
+  the deadline uses the paused clock.
 
-No install command, no settings switch, no provider, no UI.
+No install command, no provider, no UI. No `node.settings` key in
+this record. A later enable switch is one top-level key, named in
+that slice's ADR, absent meaning off.
 
 ## Later slices, not started
 
@@ -60,10 +64,9 @@ Each waits on the review of the one before it.
    already exists, with the path refusal Paseo makes.
 3. Turn and permission notifications, wired to the session events
    that already exist, not awaited.
-4. The helper process and its framed protocol, a fake child in the
-   testkit, still no JavaScript. Wire changes, if a client must
-   see a plugin, take the next free protocol number at that time
-   and say it is provisional.
+4. The helper process and its framed protocol, a fake child only
+   behind a test-only feature, still no JavaScript. A wire call, if
+   a client must see a plugin, takes the number given at merge.
 5. Anything the app draws, as data the kit can render, in a native
    track. React components are out of scope until a record says
    otherwise.
@@ -74,12 +77,13 @@ are separate decisions. They are not implied by slice 4.
 ## Resume point
 
 - Done: the inventory, the host comparison, ADR 0068, this plan.
-  No code. No crate. No protocol number. This slice is documents
-  only, so the gate is the fast checks (format, file size, crate
-  boundaries) and not clippy or the tests.
+  Corrected in place: no protocol number is taken (a later call
+  gets the number given at merge), no settings key is listed, the
+  helper's reach and the Windows path are written, test handlers
+  are `cfg(test)` only. No code. No crate.
 - Half-done: nothing in code. The ADR is proposed.
-- Next: wait for the review of ADR 0068. Do not start slice 1's
-  crate on a hunch. A returned document is fixed before any code.
+- Next: wait for the review of ADR 0068. Do not start the crate.
+  A returned document is fixed before any code.
 - Not verified: Paseo's scheduler and side-agent paths against
   `agent.create.before`; the field-by-field provider schemas; the
   app's client-bundle loader; whether `localeCompare` and byte
