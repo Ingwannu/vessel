@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
-    ActionId, AgentDefaults, AgentKind, Alerts, Bindings, Choices, CodeSize, ContentWidth,
-    ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS, MAX_MACHINES,
-    MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany, TurnDelivery,
+    ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
+    ContentWidth, ConversationDisplay, Grouping, InterfaceSize, MAX_ACTIONS, MAX_EDITS,
+    MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme, TooMany,
+    TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -28,6 +29,8 @@ pub enum PreferenceChange {
     ContentWidth(ContentWidth),
     /// How a conversation shows tool calls.
     Conversation(ConversationDisplay),
+    /// Whether the app moves.
+    Animations(Animations),
     /// Whether the sidebar shows.
     SidebarPanel(Panel),
     /// Whether the inspector shows.
@@ -174,6 +177,7 @@ impl Preferences {
             PreferenceChange::CodeSize(size) => self.appearance.code_size = *size,
             PreferenceChange::ContentWidth(width) => self.appearance.content_width = *width,
             PreferenceChange::Conversation(display) => self.appearance.conversation = *display,
+            PreferenceChange::Animations(animations) => self.appearance.animations = *animations,
             PreferenceChange::SidebarPanel(panel) => self.layout.sidebar = *panel,
             PreferenceChange::InspectorPanel(panel) => self.layout.inspector = *panel,
             PreferenceChange::Send(send) => self.composer.send = *send,

@@ -24,6 +24,7 @@ pub mod localization;
 mod machine_book;
 mod machines;
 mod marks;
+mod motion;
 mod notices;
 mod options;
 mod palette;

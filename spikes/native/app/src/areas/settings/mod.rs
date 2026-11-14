@@ -30,6 +30,7 @@ mod choices;
 mod devices;
 mod general;
 mod language;
+mod motion;
 mod nav;
 pub(crate) mod page;
 mod sync;
@@ -76,6 +77,8 @@ pub(crate) struct SettingsState {
     pub(crate) devices: devices::Devices,
     language: language::State,
     pub(crate) sync: sync::SyncState,
+    /// The Animations switch's changes (its thumb slides on each).
+    pub(crate) animations_turns: u64,
 }
 
 impl SettingsState {
@@ -94,6 +97,7 @@ impl SettingsState {
             devices: devices::Devices::new(window, cx),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
+            animations_turns: 0,
         }
     }
 
@@ -226,6 +230,10 @@ impl Shell {
                     }
                     PreferenceChange::Conversation(display) => {
                         self.conversation_display(*display);
+                    }
+                    PreferenceChange::Animations(animations) => {
+                        crate::motion::animations(animations.on(), cx);
+                        window.refresh();
                     }
                     // Read where they are drawn, on the next frame.
                     PreferenceChange::SidebarPanel(_)
