@@ -781,6 +781,16 @@ never rebuilt.
   - The usual checks passed. The shipped Linux build made its log
     folder 0700 and `vessel.log` 0600 (`02d8fe0b`).
 
+- **0.0.0.0.12**:
+  - Built from `509ef7f`: the desktop lead's `280927b0` (protocol 15)
+    merged into this branch. Only `docs/` differs from `280927b0`.
+  - The set went into place at 00:35 UTC on 2026-11-14. It is not
+    published yet.
+  - Sizes, with the change against 0.0.0.0.11: setup 12,680,258
+    (+87,443), exe 46,038,528 (+415,232), zip 18,683,359 (+143,497),
+    linux 82,481,888 (+381,568), tar.gz 28,808,401 (+137,151).
+  - No new crates and no new assets. The usual checks passed.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
