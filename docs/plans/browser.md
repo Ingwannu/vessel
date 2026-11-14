@@ -16,20 +16,22 @@ to 399). This plan follows the source.
 ## Resume point
 
 - **Done:** the inventory below, the three designs, ADR 0069
-  (proposed). Provisional protocol 21. No code, no crate, no
-  dependency, no `ARCHITECTURE.md` row (a row without a manifest fails
-  the boundary check).
-- **Half-done:** nothing. The real engine's CDP call sequence inside
-  `packages/desktop/src/features/browser-automation/service.ts` (1,659
-  lines) and the pane's render in
-  `packages/app/src/desktop/browser/pane/index.electron.tsx` (1,856
-  lines) were not read line by line. What is cited below was read.
-  The element-selector body and the keyboard guest preload were not
-  read past their types and the attach site.
+  (proposed). The protocol number is the number given at merge
+  (`BROWSER_PROTOCOL`). This plan does not choose one. No code, no
+  crate, no dependency, no `ARCHITECTURE.md` row (a row without a
+  manifest fails the boundary check). The returned review and the
+  shared-document rules are in the ADR: who a page can reach, where a
+  credential lives, a test double that is not in the product, WebView2
+  apart from WebKit, `Scheme` and `NoHistory`, the 15 second deadline,
+  and the tool list fixed at session start.
+- **Not read, so not asserted:** the CDP sequence in `service.ts` past
+  the lines this plan cites; the pane render past the presets (lines
+  131 to 146), the shortcut function (lines 413 to 421) and the toolbar
+  labels; the element-selector body; the keyboard guest preload body;
+  snapshot fingerprint fields; the WebView2, WKWebView and WebKitGTK
+  headers.
 - **Next:** wait for review of ADR 0069. Do not start slice 2 before
-  that. If protocol 21 is taken by another track, the integrator's
-  number replaces it in the ADR and here, in one docs commit, before
-  any code.
+  that. Merge sets `BROWSER_PROTOCOL`.
 
 ## Existing asset check
 
@@ -37,15 +39,16 @@ to 399). This plan follows the source.
 | --- | --- | --- |
 | `vessel-mcp` tools | One protocol call per tool, through the agent principal (ADR 0013). | Extend with `browser_*` tools that call `browser.call`. Do not put a browser engine here: the crate may depend only on `proto` and `client`. |
 | `vessel-web` | The control page (ADR 0017). | Not a page an agent drives. Do not extend it into the workspace browser. |
-| `vessel-proto` settings | One object, fields optional, older peers ignore unknown fields (`settings.rs`). | Extend with `browser_tools`, default off. |
-| `vessel-proc` | Spawning and process groups. | Not used in slice 2. A later engine spawns through it; the crate must not learn browser commands. |
+| `vessel-proto` settings | One object. This ADR adds one key, `browser_tools`, absent meaning off. Another track's key is that track's ADR, added at merge, and is not listed here. | Extend with that one key. |
+| `vessel-proc` | Spawning in a process group, and on Windows a kill-on-close job object (`docs/ARCHITECTURE.md`, read). | Not used in slice 2. A later engine spawns through it. No signal, systemd unit or launchd job. |
 | Native `view` / `link` / `kit` / `app` | The app is a client. `view` does no I/O (ADR 0035). | The panel, when it exists, is a later slice: meaning in `view`, the call in `link`, controls from `kit`, screen in `app`. Not slice 2. |
 | `chromiumoxide`, `headless_chrome`, `fantoccini`, `wry` | Clients or a system-webview host. Sizes and licences in ADR 0069. | Not adopted. The standard library cannot speak CDP or paint HTML. A dependency waits for the engine slice and its own ADR paragraph. |
 
 Nothing in the tree is a browser. A new crate `vessel-browser` is
 required for the engine because `vessel-node` already owns policy and
 must not also own CDP, and `vessel-proto` cannot do I/O. Slice 2 adds
-the crate with the fake only.
+the crate with the product engine absent. The in-memory double is
+`cfg(test)` only, or a feature a release build cannot enable.
 
 ## What Paseo does
 
@@ -286,12 +289,13 @@ partition. Agents call `browser.call` with no app open. The app, in
 a later slice, subscribes to frames or asks for a screenshot of the
 same tabs and sends input back through `browser.call`.
 
-Security: the page can open http(s) connections from the node
-(SSRF). It cannot be given the node token, a device credential, or
-harness environment. Cookies sit in the profile directory; clearing
-them is an admin action later, with the same storage classes Paseo
-clears. `browser_evaluate` can read the page's origin, including
-that origin's cookies. The setting stays off by default.
+Security is the ADR's destination table and credential section, not
+a scheme check. The proxy refuses anything `is_public` refuses. The
+browser is not given the node token, a device credential or a harness
+secret. Cookies sit in `browser/` under the data directory (`0700` /
+`0600`), one profile for every session on the node. The setting stays
+off by default. With no real engine the product answers `NoEngine`
+and does not advertise the tools.
 
 Cannot: sit inside a GPUI element; match Electron's input-method and
 file-drag behaviour until a view is designed; ship inside the Rust
@@ -301,14 +305,14 @@ crate (the zip sizes are in the ADR). DevTools, extensions and
 ### System webview beside GPUI
 
 `wry` on WebView2, WKWebView and WebKitGTK. The person gets a live
-page. The tools do not port: `DOM.setFileInputFiles`,
-`Page.captureScreenshot` and `Input.dispatchMouseEvent` are Chrome
-CDP. Three engines would be three behaviours. WebKitGTK is LGPL-2.1
-as a system library. The window would be a native child beside GPUI,
-which `kit` does not own and `view` must not drive.
+page. WebView2 can be asked Chrome's CDP methods (the SDK header was
+not opened). WKWebView and WebKitGTK cannot (their headers were not
+opened either), so Linux and macOS would not match Paseo. WebKitGTK
+is LGPL-2.1 as a system library. The window would be a native child
+beside GPUI, which `kit` does not own and `view` must not drive.
 
-Cannot: one implementation of the twenty-two tools; share a cookie
-jar with a Chromium the node runs.
+Cannot: one implementation of the twenty-two tools on Linux and
+macOS; share a cookie jar with a Chromium the node runs.
 
 ### Both
 
@@ -329,13 +333,14 @@ scope until the ADR is accepted.
 
 ### Slice 2 (first code, after acceptance)
 
-The contract in ADR 0069: provisional protocol 21 `browser.call`,
-`browser_tools` default off, `vessel-browser` with an in-memory fake,
-the node checking workspace and setting, the twenty-two MCP tools,
-tests on the fake. No binary, no network, no app screen. Update ADR
-0001, `docs/ARCHITECTURE.md` and `docs/PROTOCOL.md` in that slice,
-when the edges exist. Regenerate `web/src/wire/` because the wire
-changes.
+The contract in ADR 0069: `browser.call` gated on
+`BROWSER_PROTOCOL` (the number given at merge), one settings key
+`browser_tools` default off, a product engine that is absent, the
+twenty-two names decided at session start, and tests on a `cfg(test)`
+double plus a product test that expects `NoEngine`. No binary, no
+network, no app screen. Update ADR 0001, `docs/ARCHITECTURE.md` and
+`docs/PROTOCOL.md` in that slice, when the edges exist. Regenerate
+`web/src/wire/` because the wire changes.
 
 ### Later, not scheduled here
 
@@ -350,5 +355,6 @@ out until their own slice, because they are not `browser_*` tools.
 - Do not copy `aria-snapshot-script.ts` or Playwright's injector.
 - Do not log a URL's userinfo, a cookie, or `result_json` at info.
 - Upload checks the path before any engine sees it.
-- The fake's evaluate fixture must be obviously not an execution, so
-  nobody "fixes" a test by running the string.
+- The test double's evaluate fixture must be obviously not an
+  execution, so nobody "fixes" a test by running the string. That
+  double is not in the product binary.

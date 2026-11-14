@@ -15,7 +15,8 @@ names what was wrong.
 
 The native app is GPUI. It cannot host the Electron webview Paseo uses.
 This ADR chooses where the one browser lives, and stops before any
-engine, so the tool contract can be reviewed on a fake.
+engine. The double that tests the contract is not part of a product
+build.
 
 ## Existing implementation and constraints
 
@@ -63,8 +64,12 @@ This branch speaks protocol 20 (`PROTOCOL_VERSION` in
 2. **A system webview beside the GPUI window, per platform.** `wry`
    0.57.2 (Apache-2.0 OR MIT, crate archive 222,390 bytes on crates.io,
    2026-11-14) draws WebView2, WKWebView or WebKitGTK. The person sees
-   a live page. The agent tools would have to be implemented three
-   times, because those engines do not share Chrome's CDP.
+   a live page. WebView2 is Chromium; the review names
+   `CoreWebView2.CallDevToolsProtocolMethodAsync`, and that header was
+   not opened here. WKWebView and WebKitGTK headers were not opened
+   here either. The tools would still be two implementations, and the
+   WebKit ones would not match Paseo. That conclusion is not a line of
+   Paseo.
 3. **Both engines.** Chromium for agents, a system webview for the
    person.
 
@@ -77,38 +82,47 @@ HTML.
 
 Option 1. One browser, owned by the node, spoken to over CDP when a
 real engine exists. The app is a view of those tabs, not a second
-browser. The first code slice (the plan's slice 2) is the tool surface
-and an in-memory fake. No Chromium, no webview, no new crate dependency
-until a later ADR names the binary.
+browser. The first code slice (the plan's slice 2) is the tool surface.
+Until a real engine exists, a product build answers `NoEngine` for
+every command and does not advertise the tools. The in-memory double
+lives in test code only. No Chromium, no webview, no new crate
+dependency until a later ADR names the binary.
 
-Protocol **21 is provisional**. It is the next number after this
-branch's 20. Another track may take it. The node integrator assigns
-the final number before the code slice merges.
+The method's protocol number is the number given at merge. This
+document does not choose one. The base this branch speaks is 20
+(`crates/vessel-proto/src/node.rs`, `PROTOCOL_VERSION`). The code will
+gate the new method and the new settings field on one constant,
+`BROWSER_PROTOCOL`, and leave `PROTOCOL_VERSION` at the base until
+merge changes that one constant.
 
 ## Why this and not the others
 
 Paseo's fact that matters is that the person and the agent share one
-profile. Option 3 breaks it: Chromium and WebKit do not share a cookie
-jar, so a sign-in in the panel would not be a sign-in for the tools, or
-the reverse. That is the opposite of the settings sentence Paseo shows.
+profile. Option 3 breaks it. A shared cookie file between Chromium and WebKit
+was not read in a vendor tree; nothing in Paseo shows one, and Paseo's
+own copy says one partition (`browser-profile.ts` line 1, and the
+settings sentence in `en.ts` near the `browserData` block). Two
+engines would be two profiles. That is the opposite of that sentence.
 
-Option 2 cannot implement the twenty-two tools once. File upload is
-`DOM.setFileInputFiles`, screenshots are `Page.captureScreenshot`,
-clicks are `Input.dispatchMouseEvent`, and the snapshot is script
-injected into the page. WebKitGTK (LGPL-2.1, the system library, not
-part of `wry`) and WKWebView do not offer that surface. Per-OS
-behaviour would be a standing difference from Paseo, which this version
-does not accept. A webview beside GPUI is also a separate native
-window, not a kit control, and `view` must not do I/O.
+Option 2 cannot implement the twenty-two tools once on every platform
+Vessel ships. File upload is `DOM.setFileInputFiles`, screenshots are
+`Page.captureScreenshot`, clicks are `Input.dispatchMouseEvent`, and
+the snapshot is script injected into the page. Whether WebView2
+accepts those methods was not read in its header. WKWebView and
+WebKitGTK headers were not opened; they are not Chrome, so macOS and
+Linux would be a standing difference from Paseo unless a later note
+shows otherwise. WebKitGTK is LGPL-2.1, the system library, not part
+of `wry`. A webview beside GPUI is also a
+separate native window, not a kit control, and `view` must not do I/O.
 
 Option 1 keeps one profile and one command set. It differs from Paseo
 in where the process lives, which is forced: Vessel has no Electron.
 The differences are listed below, each with why.
 
-The fake comes before the engine because the contract (ids, limits,
-refusals, the setting's default) is the part review can settle without
-a 100 MB binary, and because a real browser in the first slice would
-make the tests depend on a download.
+The contract is settled before the engine because a real browser in
+the first code slice would make the tests depend on a download. The
+double that answers those tests is not a product engine: a node whose
+setting is on must not tell an agent that a fixture is a page.
 
 ## Advantages, costs and effects
 
@@ -120,32 +134,137 @@ the node already knows how to keep private. The app stays a client.
 slices. A later view is pixels or a remote surface, not a native
 webview, so input methods and dragging a file in from the desktop are
 weaker than Paseo's until that view is designed. The node becomes able
-to run a browser that can reach the network (SSRF) and hold cookies.
-That is why the setting defaults off, why navigation stays http(s), and
-why the browser's environment must not receive the node's token, device
-credentials or harness secrets.
+to run a browser that holds cookies and opens connections from the
+node's machine. A scheme rule does not limit where those connections
+go. The setting defaults off, the browser's environment must not
+receive the node's token, device credentials or harness secrets, and
+every connection is held to the destination table below.
 
-**Effects.** A new crate `vessel-browser` (no I/O in slice 2 beyond the
-fake's memory; `vessel-proc` only when a real process is spawned).
-Edges, recorded in ADR 0001 and `docs/ARCHITECTURE.md` in the commit
-that adds them, not before: `vessel-browser -> proto`, and later
-`-> proc`; `vessel-node -> vessel-browser`. `vessel-mcp` stays
-`-> proto, client` and gains no browser crate. CDP, if it is ever a
-Rust crate, has one owner: `vessel-browser`. No row is added now,
-because the boundary check fails a table row with no manifest.
+**Effects.** A new crate `vessel-browser`. Slice 2 has no process and
+no product double: its product engine is the absence, and every
+command on it is `NoEngine`. `vessel-proc` is an edge only when a real
+process is spawned. Edges, recorded in ADR 0001 and
+`docs/ARCHITECTURE.md` in the commit that adds them, not before:
+`vessel-browser -> proto`, and later `-> proc`; `vessel-node ->
+vessel-browser`. The destination check calls
+`vessel_relay::reach::is_public` (the ranges already written there).
+That is an edge `vessel-browser -> relay`, or those two functions
+moved to a lower crate, decided in the engine slice so the range list
+is not copied. `vessel-mcp` stays `-> proto, client` and gains no
+browser crate. CDP, if it is ever a Rust crate, has one owner:
+`vessel-browser`. No row is added now, because the boundary check
+fails a table row with no manifest.
+
+## What a page can reach
+
+Paseo's webview may open any `http` or `https` URL, including loopback
+on the person's machine (`isAllowedBrowserWebviewUrl` is a scheme
+check). That machine is the one the person is sitting at. Option 1
+runs the browser on the node, which is often a server. A page's script
+can then try the node's own listeners, other loopback services, private
+ranges, and link-local addresses such as cloud metadata, including by a
+name that resolves there after it was checked (rebinding). An `http`
+scheme does not stop any of that.
+
+The real engine therefore does not let Chromium dial. It is started
+with a proxy the node owns and with no bypass. The proxy allows only
+`http` and `https`, resolves the host, and connects only to an address
+`vessel_relay::reach::is_public` accepts, and only to the address it
+just checked. Anything else is `Forbidden` with
+`BrowserFailure::Destination`. The classification already refuses
+loopback, private ranges, CGNAT, link-local (including
+169.254.169.254), unique-local, site-local, multicast, reserved, and
+the IPv4 forms embedded in IPv6. A numeric host that is not a canonical
+address is refused the same way `numeric_host` refuses one. Chromium's
+own private-network preflight is not the control: it was not verified
+in the headless shell, and a literal address would not depend on it.
+
+| Class | Option 1 | How |
+| --- | --- | --- |
+| Loopback (`127.0.0.0/8`, `::1`) | Refused | The proxy, via `is_public`. |
+| The node's own ports | Refused while they sit on loopback, which is the default (`127.0.0.1:7077`, the model proxy, `vessel ui`) | The same refusal. A node bound to a public address is a public destination; the listeners below still have to authenticate. |
+| Private, CGNAT, unique-local | Refused | `is_public`. |
+| Link-local and metadata | Refused | `is_public` (169.254.0.0/16, `fe80::/10`). |
+| Public | Allowed | `http` and `https` only. |
+
+An agent's shell is a different door. It exists only where both
+profiles set `agent_terminals`, which is off by default (ADR 0031),
+and when it exists it is a process on the node: loopback, private,
+link-local and public are all in reach. Turning browser tools on does
+not turn that shell on, and the browser does not inherit the shell's
+reach. An agent that has both can still use the shell to open what the
+browser refuses. The proxy is not a substitute for leaving the shell
+off.
+
+What those listeners do with a page's `Origin`, read in this tree:
+
+- `vesseld` (`crates/vessel-node/src/server.rs`) serves `GET /health`
+  with no token and no `Origin` check. `GET /rpc` requires
+  `Authorization: Bearer` before any frame (`auth.rs`). This server
+  sends no CORS header, so a page script cannot attach that header or
+  read the response. `GET /secure` takes no token; the device proves
+  itself inside the channel. No `Origin` check was found on this
+  upgrade.
+- The model proxy refuses a request that carries any `Origin` before
+  it looks at the token (`crates/vessel-node/src/models/proxy.rs`,
+  `admit`: "requests from web pages are refused"). `Host` must be
+  `127.0.0.1` or `localhost` at the proxy's own port.
+- `vessel ui` (`crates/vessel-web/src/guard.rs`) answers only a
+  loopback name with its port, else 421. An `Origin` that is present
+  must be that server's own origin. A websocket with no `Origin` is
+  refused. No CORS header is sent.
+
+The proxy is what keeps the page from connecting. The listeners are
+the second line if a launch ever skipped the proxy, which the engine
+slice must not allow.
+
+## Where a credential lives
+
+A password is typed in the app, or sent by an agent as `browser_type`,
+`browser_fill` or `browser_keypress`. Those bytes are fields of
+`browser.call`. On a paired connection, including one that goes through
+a relay, the frame is inside the Noise channel (ADR 0009): the relay
+forwards ciphertext and does not see the field. On the node's local
+socket the field stays on that machine. The node then hands the text
+to the page (CDP insert or a fill) and drops its copy.
+
+The node never writes that text, an evaluate function, `result_json`,
+or a screenshot's bytes to a log, to a session's history, or to a file
+of its own. A screenshot returned to the caller can still show a
+password the page painted; what the agent then puts in its conversation
+is the agent's message, not a second copy kept by the node. The page
+and the profile may hold what was typed. That is the profile, and it
+is the only copy that remains.
+
+The profile is one directory, `browser/` under the node's data
+directory. The directory is mode `0700` and the files `0600`, the same
+rule as the data directory (`crates/vessel-store/src/files.rs`): the
+owner is the user the node runs as. On Windows there are no mode bits;
+the directory inherits the data directory's ACL and Vessel sets no
+extra ACL, as it does for the rest of that directory.
+
+Who shares it is a stated difference. Paseo's partition is one desktop
+app, used by the person at that machine. Vessel's profile is the
+node's: every workspace, every session, and every device or agent that
+can make `browser.call` (a grant that includes `operate`, and a session
+that was shown the tools) shares the cookies. A device with only
+`read` cannot call the method. An agent's grant is its creator's,
+shrunk to at most `read` and `operate`, never `admin`
+(`crates/vessel-node/src/agents/mod.rs`).
 
 ## Contract of the first code slice
 
 Slice 2, after this ADR is accepted. Not built here.
 
-### Wire (provisional protocol 21)
+### Wire (number given at merge)
 
 One method, not twenty-two. The command is a closed enum, matched
 exhaustively. Paseo already has one execute request; a method per tool
 would restate the list (QUALITY M5).
 
-- `browser.call` / `browser.call` / `"browser.call"` `[Operate, 21]`:
-  `BrowserCall` => `BrowserResult`.
+- `browser.call` / `browser.call` / `"browser.call"` `[Operate, since
+  = BROWSER_PROTOCOL]`: `BrowserCall` => `BrowserResult`. The constant
+  is the number given at merge, not a number chosen here.
 - `NodeSettings.browser_tools`: a two-variant enum `Off` (default) and
   `On`. `#[serde(default)]`, omitted on the wire when `Off`, so a node
   of protocol 20 and a saved `settings.json` from protocol 20 both read
@@ -154,17 +273,29 @@ would restate the list (QUALITY M5).
   Needs `admin`, as every other setting change does. `node.settings`
   stays `read`.
 
-**Older and newer, both ways.**
+**Deadline.** Every command has the broker's deadline: 15 seconds
+(`BrowserToolsBroker`, default). `browser_wait` is the exception Paseo
+already makes: when the caller sets `timeoutMs`, the deadline is that
+value plus one second, and `timeoutMs` is at most 30 seconds, so the
+deadline is at most 31 seconds. Past the deadline the answer is
+`TimedOut`. The test does not sleep; it passes a deadline the test
+chooses and a double that never answers.
 
-- A client on 20 never sends `browser.call` (`Call::since`). A node on
-  21 asked by that client does not run it. A node on 20 has no method;
-  the client refuses before sending.
-- A client on 20 decoding `node.settings` from a node on 21 ignores the
-  new field (serde's default: unknown fields are not an error on this
-  struct). It cannot turn the tools on, and the tools stay off unless
-  a newer client set them.
-- A client on 21 reading a node on 20 sees the field absent and treats
-  it as off. It does not send `browser.call`.
+**Older and newer, both ways.** The comparison is with a peer whose
+protocol is below `BROWSER_PROTOCOL`, whatever number merge assigns.
+This ADR adds one settings key, `browser_tools`. It does not list any
+other key. `drivers` is already in `settings.rs`; a key another track
+adds is that track's ADR, added at merge, and is not classified here.
+
+- A client below `BROWSER_PROTOCOL` never sends `browser.call`
+  (`Call::since`). A node at that constant, asked by such a client,
+  does not run it. A node below the constant has no method; the client
+  refuses before sending.
+- A client below the constant decoding `node.settings` from a newer
+  node ignores `browser_tools` (serde's default on this struct: an
+  unknown field is not an error). It cannot turn the tools on.
+- A client at the constant reading an older node sees the field absent
+  and treats it as off. It does not send `browser.call`.
 
 No new `ErrorCode`. Browser failures use the codes below, plus
 `ErrorDetail::Browser { reason: BrowserFailure }` so a client can match
@@ -177,13 +308,16 @@ contains a cookie, a token, a page's HTML, or an evaluated result.
 | --- | --- | --- | --- |
 | `browser_disabled` | `Unsupported` | `Disabled` | The setting is off. |
 | `browser_denied` | `Forbidden` | `NoWorkspace` | `list` or `new` without a workspace. |
-| `browser_no_host` | `Unavailable` | `NoEngine` | Slice 2 has an engine (the fake), so this is reserved for a later real engine that is not running. The fake does not return it. |
+| `browser_denied` | `Forbidden` | `Scheme` | `navigate` to a URL that is not `http` or `https`. Paseo answers this inside the host (`service.ts` `executeNavigate`, "Browser navigation only supports http and https URLs."). The wire type already makes that URL unrepresentable, so the edge answer is `Invalid`; `Scheme` is what the engine answers if a navigation still reaches it, including one the page itself starts. Paseo's `will-navigate` guard drops those with no tool error; Vessel answers `Scheme` instead of dropping one. |
+| `browser_denied` | `Forbidden` | `NoHistory` | `back` or `forward` when that stack is empty (`service.ts`, "There is nothing to go back to." / "There is nothing to go forward to."). |
+| `browser_denied` | `Forbidden` | `Destination` | The proxy refused the address (the table above). Paseo has no such refusal. Stated difference. |
+| `browser_no_host` | `Unavailable` | `NoEngine` | The setting is on and this build has no real engine. Every command, not a fixture. |
 | `browser_tab_not_found` | `NotFound` | `UnknownTab` | No such tab in this workspace. |
 | `browser_tab_closed` | `Conflict` | `Closed` | The tab was closed. |
 | `browser_stale_ref` | `Conflict` | `StaleRef` | The ref is not from the tab's latest snapshot. |
-| `browser_timeout` | `Unavailable` | `TimedOut` | The fake does not time out. Reserved. |
-| `browser_unsupported` | `Unsupported` | `Unsupported` | A command the fake refuses. Slice 2's fake implements every command, so tests that want this use a second fake that advertises a subset. |
-| `screenshot_no_frame` | `Unavailable` | `NoFrame` | The fake's screenshot is a fixture, so this is reserved. |
+| `browser_timeout` | `Unavailable` | `TimedOut` | The deadline above. |
+| `browser_unsupported` | `Unsupported` | `Unsupported` | A command this engine does not implement. The test double can be built with a subset; the product absence answers `NoEngine`, not this. |
+| `screenshot_no_frame` | `Unavailable` | `NoFrame` | The real engine, when the tab has not painted. The test double may return it. A product build with no engine does not pretend to paint. |
 | `browser_unknown_error` | `Internal` | `Internal` | A bug. Not used for a bad argument. |
 | (validation) | `InvalidRequest` | `Invalid` | A bad id, URL, ref, size, wait or path. |
 
@@ -196,7 +330,9 @@ heading.
 Parsed once at the MCP and RPC edge.
 
 - `BrowserId`: Paseo's two shapes, UUID version 4 or
-  `<13 or more digits>-<hex>`. The fake mints a UUID version 4.
+  `<13 or more digits>-<hex>` (`rpc-schemas.ts` lines 14 to 16). The
+  test double mints a UUID version 4. The product absence mints
+  nothing.
 - `ElementRef`: `@e` and a decimal, as Paseo (`^@e\d+$`).
 - `HttpUrl`: `http` or `https` only. A tool URL with no scheme and no
   whitespace becomes `http://` plus the text, as
@@ -220,24 +356,49 @@ Parsed once at the MCP and RPC edge.
   and records the 79,000 figure as Paseo's so a later engine can match
   it if review wants the same cut.
 - Screenshot bytes: at most 8 MiB decoded. Paseo has no cap; stated
-  difference. The fake returns a fixed 1×1 PNG fixture, well under it.
+  difference, so a page cannot make the node hold an unbounded image.
+  The test double may return a fixed 1×1 PNG. A product build must not.
 
 `browser_evaluate`'s result is a string the node does not parse
-(`result_json`), never a `serde_json::Value`. The fake does not execute
-the function. It returns a deterministic JSON string that echoes the
-function's length and whether a ref was passed, with `truncated: false`.
+(`result_json`), never a `serde_json::Value`. The test double does not
+execute the function. It returns a deterministic JSON string that
+echoes the function's length and whether a ref was passed, with
+`truncated: false`. A product build with no engine returns `NoEngine`
+instead, and a test asserts that it does.
 
-### Tools
+### Tools, and when the list is decided
 
 The MCP names are Paseo's. Arguments match the plan's table. Each tool
-is one `browser.call` on the session's own node. Hidden while
-`browser_tools` is off (Paseo does not register them); a call that
-arrives anyway is `Disabled`, not a dropped success. When on, the tools
-are marked open-world. `browser_evaluate`, `browser_navigate`,
-`browser_new_tab`, `browser_upload` and `browser_click` are also marked
-destructive: they change a page or run its script. Paseo does not set
-those MCP flags; stated difference, so a client that heeds the flag
-asks before running them.
+is one `browser.call` on the session's own node. Paseo registers them
+only when the agent starts and the setting is on (`paseo-tools.ts`
+lines 1358 to 1359, read). ADR 0065 (added at merge) filters Vessel's
+catalogue at that same moment: a tool left out is absent from
+`list_tools`, and a call to it is a refusal that names the tool, not a
+success and not a silent skip. Browser tools are outside ADR 0065's
+catalogue until this ADR's code lands; they are not a denylist entry
+before they exist.
+
+At session start the twenty-two names are included only when all three
+hold: `browser_tools` is `On`, the product engine is a real one, and
+the principal's grant includes `operate`. Otherwise they are absent.
+
+- Started while the setting was off: the names stay absent for that
+  session even if an admin turns the setting on later. A `browser.call`
+  is `Disabled`.
+- Started while they were included, and the setting is turned off
+  later: the list the agent already holds is not rebuilt (Paseo does
+  not rebuild it either; the registration is in the start path, and no
+  second registration was read). The call is `Disabled`.
+- Setting on, no real engine: the names are absent. A call is
+  `NoEngine`, unless the setting is off, which wins and is `Disabled`.
+- No `operate`: the existing scope guard answers `Forbidden` before
+  the browser runs. The names are not shown.
+
+When the names are shown, the tools are marked open-world.
+`browser_evaluate`, `browser_navigate`, `browser_new_tab`,
+`browser_upload` and `browser_click` are also marked destructive.
+Paseo does not set those MCP flags; stated difference, so a client
+that heeds the flag asks before running them.
 
 `list` and `new` require the session's workspace, else `NoWorkspace`.
 Every other command requires a tab of that same workspace, else
@@ -245,53 +406,101 @@ Every other command requires a tab of that same workspace, else
 node token and a device with `operate` may name a workspace; without
 one, `list` and `new` are `NoWorkspace` too. Tabs are not global.
 
-The fake keeps tabs in memory per workspace: url, title, history for
-back and forward, the last snapshot's refs, a viewport, console and
-network rings of the requested limit, and closed versus open. It does
-not open a socket, read a cookie, or touch the disk except the upload
-check, which resolves the paths against the session's workspace root
-and refuses one that escapes (`Invalid`), without reading the file.
-`new` does not change which tab the fake calls active (Paseo opens in
-the background). Omitted URL is `https://example.com`.
+The test double, and only the test double, keeps tabs in memory per
+workspace: url, title, history for back and forward, the last
+snapshot's refs, a viewport, console and network rings of the
+requested limit, and closed versus open. It does not open a socket,
+read a cookie, or touch the disk except the upload check, which
+resolves the paths against the session's workspace root and refuses
+one that escapes (`Invalid`), without reading the file. `new` does
+not change which tab it calls active (Paseo opens with intent
+`background`, `handler.ts` lines 361 to 364, read). Omitted URL is
+`https://example.com` (`handler.ts` line 349, read). `back` on a new
+tab and `forward` with an empty stack are `NoHistory`. A navigation
+the double is given that is not `http` or `https` is `Scheme`.
+
+It is compiled only under `cfg(test)`, or under a feature the release
+build cannot enable. The product engine in slice 2 is the absence.
 
 ### What slice 2 tests
 
-The rules beside the code, on the fake only: the setting's default and
-both directions of protocol 21, each command's happy path and the
-refusals in the table, a ref that survives until the next snapshot and
-dies after it, an upload path outside the workspace, a non-http URL, a
-viewport of 0 and of 8,193, a wait with both text and url, and the MCP
-list empty while the setting is off. No sleep. No real browser. No
-network.
+On the product engine, with the setting on: the twenty-two names are
+absent from `list_tools`, and every `browser.call` is `NoEngine`, not
+a fixture page, not a 1×1 image, and not an evaluate echo. With the
+setting off: the names are absent and the call is `Disabled`. A
+session started while off stays `Disabled` after the setting is turned
+on. A session started while on, with a test engine injected, gets
+`Disabled` after the setting is turned off.
+
+On the test double only: each command's happy path, `NoHistory`,
+`Scheme`, a ref that survives until the next snapshot and dies after
+it, an upload path outside the workspace, a viewport of 0 and of
+8,193, a wait with both text and url, and a double that never answers,
+which is `TimedOut` at the deadline the test passes. `Destination` is
+tested with the proxy, in the engine slice, not by pretending the
+product answered it. No sleep. No real browser. No network. The
+settings field round-trips as absent when off, against a peer below
+`BROWSER_PROTOCOL`, with the constant set to a number in that test
+only.
 
 ## Stated differences from Paseo
 
 1. **The browser process lives on the node, not in the desktop app.**
-   GPUI cannot host Paseo's webview, and a system webview cannot
-   implement the tools once. Consequence: tools work with no app
-   connected. Paseo returns `browser_no_host` in that case. Vessel has
-   no such host. `NoEngine` is only for a real engine that failed to
-   start, which slice 2 does not have.
-2. **Tools stay in the MCP catalogue's implementation but are not
-   advertised while the setting is off,** and a direct `browser.call`
-   is still refused with `Disabled`. Paseo only does the first half.
-   The refusal is so a caller that guesses the method cannot succeed
-   unseen.
+   GPUI cannot host Paseo's webview, and WKWebView and WebKitGTK cannot
+   implement the tools. Consequence, once a real engine exists: tools
+   work with no app connected. Paseo returns `browser_no_host` in that
+   case (`broker.ts` `noBrowserHostFailure`, read). Vessel has no such
+   host. Until the engine exists the product answer is `NoEngine`, not
+   a page.
+2. **The tool list is fixed at session start, and a later call is still
+   refused.** Paseo only omits the registration when the agent starts
+   (`paseo-tools.ts` 1358 to 1359). Vessel also answers `Disabled` if
+   the setting is off at the call, including after it was on at start,
+   so a guessed call cannot succeed unseen. Reason: a typed refusal
+   rather than a silent success.
 3. **`retryable` is not a field.** `Unavailable` means retry; the other
-   codes do not.
+   codes do not. Reason: the wire already has that class (`ErrorCode`),
+   and a second boolean would not say more than the code.
 4. **`bool` arguments on the wire are enums** (`ClickCount`,
    `ShotExtent`). The MCP edge accepts Paseo's booleans and converts
-   them once.
+   them once. Reason: a bare `bool` does not say which meaning it has
+   (T9).
 5. **Viewport sides above 8,192, and screenshots above 8 MiB, are
-   refused.** Paseo accepts any positive size and any PNG string.
-6. **The fake does not execute JavaScript or paint.** Its evaluate and
-   screenshot results are fixtures. A real engine must not keep the
-   fixtures.
-7. **Destructive and open-world flags** on the tools named above. Paseo
-   does not set them.
-8. **The aria snapshot will be written for Vessel, not copied** from
-   Paseo or from Playwright. The observable contract (YAML, the caps in
-   the plan, refs `@eN`, stale after a navigation) is what must match.
+   refused.** Paseo accepts any positive size (`resident-webviews.ts`
+   `rememberBrowserWebviewSize`, read: round to at least 1, no maximum)
+   and any PNG string (`rpc-schemas.ts` `dataBase64` is `min(1)` only,
+   read). Reason: the node must not hold an unbounded image or
+   viewport.
+6. **Non-public destinations are refused** by the proxy
+   (`Destination`). Paseo's scheme check allows them. Reason: the
+   browser runs on the node, not on the person's desktop. The table is
+   above.
+7. **One profile for the whole node**, not for one desktop the person
+   is sitting at. Reason: there is no Electron session. Owner, mode and
+   who shares it are above.
+8. **The test double does not execute JavaScript or paint, and it is
+   not in the product build.** A product build with no engine answers
+   `NoEngine`. Reason: a fixture must not be reported as a page.
+9. **Destructive and open-world flags** on the tools named above. Paseo
+   does not set them (not read as annotations on those registrations;
+   the registrations in `tools.ts` that were read set title,
+   description and `inputSchema` only). Reason: a client that heeds the
+   flag can ask before a tool changes a page.
+10. **The aria snapshot will be written for Vessel, not copied** from
+    Paseo or from Playwright. The observable contract (YAML, the caps in
+    the plan, refs `@eN`, stale after a navigation) is what must match.
+    Reason: the script in Paseo's tree is adapted from Playwright and
+    is under that licence; Vessel does not copy it.
+11. **`Scheme` is answered, not dropped,** when a navigation that is not
+    `http` or `https` reaches the engine. Paseo's `will-navigate` guard
+    calls `preventDefault` and returns no tool error
+    (`browser-webviews/index.ts` `preventUnsafeBrowserWebviewNavigation`,
+    read). Reason: a typed refusal rather than a silent drop.
+12. **The process is not signalled.** When the engine exists it is a
+    child through `vessel-proc`: a process group on Unix, a
+    kill-on-close job object on Windows (the `vessel-proc` row of
+    `docs/ARCHITECTURE.md`, read). No systemd unit and no launchd job.
+    Windows is that job object, not a refusal.
 
 ## What this does not decide
 
