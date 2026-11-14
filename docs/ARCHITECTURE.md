@@ -1117,6 +1117,15 @@ answer differs; a machine that connects gets its kept lists
 The rules, bounds and what was followed from Paseo's provider snapshot are in
 `docs/plans/backend-m12-composer.md`.
 
+What was typed in a composer and not sent is a draft per session and one
+for the new chat (`view::composer::drafts`, held by the composer area): put
+back when its composer comes back, written a second after the last edit by
+`link::drafts` to `drafts.json` beside the agents' lists (owner-only,
+versioned, bounded as the web bridge bounds the page's; a file that does
+not read is set aside, never overwritten). Up and Down in an empty session
+composer walk the messages sent in it (`view::composer::recall`, Paseo's
+`ComposerRecall`); a recalled message is not a draft until it is edited.
+
 ## Protocol 13: schedule preview (N3)
 
 `NodeInfo.timezone` carries the startup-detected system IANA name; unknown

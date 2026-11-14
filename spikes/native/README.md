@@ -66,6 +66,9 @@ app/src/
                    features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
+    composer/      what the composers share: an agent's lists kept and refreshed
+                   (offers.rs), a running session's controls (running.rs, modes.rs),
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
@@ -249,6 +252,13 @@ follows its row). The link keeps the last lists on the device between runs
 owner-only, versioned, bounded, keyed by the node's id) and hands them over
 when a machine connects. `docs/plans/backend-m12-composer.md` has the
 rules and what was followed from Paseo.
+
+A composer's text that was not sent is its draft (per session, and the
+new chat's): put back when the composer comes back and kept on the device
+(`link/src/drafts.rs`: `drafts.json` beside the agents' lists, owner-only,
+versioned, bounded; a file that does not read is set aside as
+`drafts.json.unread`). Up and Down in an empty session composer recall
+the messages sent in it, newest first.
 
 `kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
 list): rows drawn best last (nearest the text), the chosen one on
