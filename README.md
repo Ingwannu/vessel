@@ -1297,6 +1297,13 @@ instead of being counted as new spending. Accounting starts with this version, r
 and 100,000 reports, and follows session deletion. New usage queries need
 read scope; cost in these queries additionally needs operate scope.
 
+The web client also shows machine accounting in **Settings → Usage**.
+Choose a machine and the past 24 hours or seven days, then Refresh for a
+new observation. Reasoning and cache counts keep their reported-turn
+coverage, and cost stays separated by unit or explicitly hidden by access.
+Offline machines and failed reads show guidance instead of zero totals.
+This page does not yet show account limits or individual session reports.
+
 A schedule preview is calculated on the target node without saving or
 starting work (`vessel schedule preview --every 30m`, or `--cron` with an
 optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;

@@ -151,6 +151,20 @@ describe("reported accounting facts", () => {
     });
   });
 
+  it("does not print rounded coverage counters as exact turn counts", () => {
+    const report = usageReport();
+    report.totals.reported = Number.MAX_SAFE_INTEGER;
+    report.totals.unreported = 1;
+    report.totals.unaccounted_costs = Number("18446744073709551615");
+    const facts = usageFacts(report, "en");
+    expect(facts[0]?.detail).toBe(
+      "Turn coverage is not exactly representable in this browser.",
+    );
+    expect(facts.at(-1)?.value).toBe(
+      "Not exactly representable in this browser",
+    );
+  });
+
   it("formats quantities in the viewer locale without pretending unsafe integers are exact", () => {
     expect(usageCount(1_200_000, "en")).toBe("1.2M");
     expect(usageCount(1_200_000, "ko")).toBe("120만");

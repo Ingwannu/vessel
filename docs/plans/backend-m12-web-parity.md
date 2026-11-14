@@ -539,3 +539,40 @@ merged implementation gate is still owed, including test-binary prebuilds
 and all Rust/web steps. A known shared side-question forwarded test race
 is outside the page implementation; any actual failure must be retained
 and its one instructed exact rerun reported separately, never erased.
+
+
+## A1 implementation and verification boundary
+
+Modification/reuse: the existing bridge call, Outcome guidance, Store,
+Settings frame, machine picker, row list, value, select and button controls
+are reused. New `data/usage` modules isolate this query's single-flight
+lifetime and its coverage/unit formatting; a long-poll reader would add
+background work to an explicitly refreshed ledger. Native Intl replaces
+no library and adds no dependency. Existing English page labels remain;
+number/date formatting follows the viewer locale. This is a deliberate
+incremental difference from Paseo's translated account-window cards:
+only the assigned machine-accounting contract is currently available.
+
+Production code is split along call, request-lifetime, pure facts and
+rendering responsibilities (each below the page file budget). The first
+estimate of 250–350 lines proved too small for explicit optional coverage,
+redaction, unsafe-browser-integer handling and identity-safe reads; this
+bounded slice retains those behaviors rather than dropping them to fit
+an estimate. The session/profile extension remains separate.
+
+The real-node browser case uses the existing ACP fake's usage-reasoning
+response, compares displayed values with the sanitized actual query reply,
+changes day/week, adds a real second turn and refreshes the ledger. Pure
+cases cover zero/missing, per-field partial reports, separate units and
+tiny costs, overflow/retention gaps, redaction, locale and selection races.
+Intentional screenshots use only isolated synthetic content, in both
+system themes and four viewport sizes; Korean locale formats numbers and
+dates but does not translate the page's English labels.
+
+Resume: A1 source is prepared for its immutable merged-tree gate. Earlier
+focused type/unit runs passed; lint exposed ordinary test/style issues
+which were corrected without exemptions. Whole Rust/web, real-node e2e,
+served assets and rendered captures are still unverified at this source
+checkpoint. No limits/inbox/new wire/native change or live service action
+is included. The next step is the whole gate and recording its actual
+results, including any shared-test failure and the instructed exact rerun.

@@ -35,9 +35,12 @@ export class UsageReader {
 
   /** Refresh, or select another machine/interval; intermediate queued choices are replaced. */
   request(selection: UsageSelection): void {
-    this.#selected = selection;
-    this.#next = selection;
-    this.store.set({ kind: "loading", selection });
+    // Every invocation gets a private identity, including callers that reuse
+    // one selection object after stop or while refreshing the same scope.
+    const request = { ...selection };
+    this.#selected = request;
+    this.#next = request;
+    this.store.set({ kind: "loading", selection: request });
     if (!this.#reading) {
       this.#reading = true;
       void this.#drain();
@@ -68,5 +71,23 @@ export class UsageReader {
     } finally {
       this.#reading = false;
     }
+  }
+}
+
+/** Render selection changes as loading before their effect can start the next read. */
+export function usageFor(
+  read: UsageRead,
+  selection: UsageSelection,
+): UsageRead {
+  switch (read.kind) {
+    case "idle":
+      return read;
+    case "loading":
+    case "ready":
+    case "failed":
+      return read.selection.node === selection.node &&
+        read.selection.period === selection.period
+        ? read
+        : { kind: "loading", selection };
   }
 }

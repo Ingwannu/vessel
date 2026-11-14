@@ -4,7 +4,7 @@ import { fixtureId } from "../../testing/ids";
 import type { UsageReport } from "../../wire/proto";
 import { usageReport } from "../fixtures/usage";
 import type { Outcome } from "../outcome";
-import { UsageReader, type UsageSelection } from "./reader";
+import { UsageReader, usageFor, type UsageSelection } from "./reader";
 
 function deferred() {
   let complete: (value: Outcome<UsageReport>) => void = () => {
@@ -42,6 +42,21 @@ function ready(reader: UsageReader): Promise<void> {
 }
 
 describe("one visible usage query at a time", () => {
+  it("hides the previous selection before a render effect starts its read", () => {
+    const read = {
+      kind: "ready",
+      selection: first,
+      report: usageReport(),
+    } as const;
+    expect(usageFor(read, { ...first })).toBe(read);
+    expect(usageFor(read, second)).toEqual({
+      kind: "loading",
+      selection: second,
+    });
+    const week = { ...first, period: "week" } as const;
+    expect(usageFor(read, week)).toEqual({ kind: "loading", selection: week });
+  });
+
   it("replaces intermediate selections and never publishes a stale machine", async () => {
     const held = deferred();
     const calls: UsageSelection[] = [];
@@ -82,6 +97,33 @@ describe("one visible usage query at a time", () => {
     await held.promise;
     expect(calls).toEqual([first]);
     expect(reader.store.get()).toEqual({ kind: "idle" });
+  });
+
+  it("does not revive a stopped lifetime when the caller reuses its selection object", async () => {
+    const held = deferred();
+    const report = usageReport();
+    const published: UsageReport[] = [];
+    let calls = 0;
+    const reader = new UsageReader(() => {
+      calls += 1;
+      return calls === 1
+        ? held.promise
+        : Promise.resolve({ ok: true, value: report });
+    });
+    reader.store.subscribe(() => {
+      const read = reader.store.get();
+      if (read.kind === "ready") published.push(read.report);
+    });
+    reader.request(first);
+    reader.stop();
+    reader.request(first);
+    const done = ready(reader);
+    const stale = usageReport();
+    stale.totals.reported = 99;
+    held.complete({ ok: true, value: stale });
+    await done;
+    expect(calls).toBe(2);
+    expect(published).toEqual([report]);
   });
 
   it("keeps a typed failure and refreshes after it without fabricating zeros", async () => {

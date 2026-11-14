@@ -31,10 +31,10 @@ export const SETTINGS_SECTIONS = [
   "notifications",
   "agents",
   "models",
-  "usage",
   "machines",
   "projects",
   "devices",
+  "usage",
   "sync",
   "about",
 ] as const;
@@ -97,11 +97,11 @@ export function settingsGroupOf(section: SettingsSection): SettingsGroup {
       return "app";
     case "agents":
     case "models":
-    case "usage":
       return "agents";
     case "machines":
     case "projects":
     case "devices":
+    case "usage":
     case "sync":
       return "machines";
     case "about":
