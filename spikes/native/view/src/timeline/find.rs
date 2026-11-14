@@ -59,6 +59,7 @@ pub fn searchable(entry: &Entry) -> Option<&str> {
         | EntryKind::TurnFailed { .. }
         | EntryKind::Log { .. }
         | EntryKind::Status { .. }
+        | EntryKind::Parking(_)
         | EntryKind::Profile { .. }
         | EntryKind::Model(_) => None,
     }
@@ -348,6 +349,7 @@ impl FindCache {
                 | EntryKind::TurnFailed { .. }
                 | EntryKind::Log { .. }
                 | EntryKind::Status { .. }
+                | EntryKind::Parking(_)
                 | EntryKind::Profile { .. }
                 | EntryKind::Model(_) => fold(text),
             });
