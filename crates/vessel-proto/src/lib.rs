@@ -28,6 +28,7 @@ mod harness;
 pub mod history;
 mod id;
 mod key;
+pub mod limits;
 pub mod lsp;
 mod model;
 mod name;

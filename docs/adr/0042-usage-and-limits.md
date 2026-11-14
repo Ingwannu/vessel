@@ -169,8 +169,9 @@ raw forced requests before dispatch and supported older envelopes.
 
 ### Saved-sign-in lookup contract (node-only continuation)
 
-This section defines the next implementation contract. Its calls and behavior
-are pending; it is not a claim that quota lookup is implemented.
+This section defines the saved-sign-in implementation contract. Its node,
+client and CLI implementation is under verification; source presence is not
+a gate, integration, native-screen or live-account approval.
 
 `usage.limits` selects one configured account binding or the selected profile
 of one session. An omitted account profile selects the configured default; it
@@ -281,3 +282,10 @@ selected. Harness-specific decoding and endpoint choice stay in
 vessel-harness; the node owns authorization and lifetime, and vessel-store
 owns atomic policy persistence. This avoids teaching the client a vendor
 format or moving credentials across a fleet link.
+
+Launch bindings share immutable nonsecret configuration through `Arc`. This
+avoids copying path/account-selection strings through each launch future and
+cache lookup; it also keeps existing launch futures within their stack-size
+bound without weakening tests. Equality compares the captured values rather
+than allocation identity. The tradeoff is one allocation per resolved binding;
+credential contents remain ephemeral and outside that allocation.

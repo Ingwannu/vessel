@@ -121,6 +121,8 @@ mod waiting;
 mod workspace;
 
 #[cfg(test)]
+mod limits;
+#[cfg(test)]
 mod usage;
 
 #[cfg(test)]

@@ -556,3 +556,73 @@ cooldown and cancellation-safe ownership of every blocking phase. No new
 wire or executable implementation is included in this contract commit.
 The next implementation must prove these boundaries against synthetic
 vendor-shaped testkit data; live credentials and endpoints remain excluded.
+
+### Opt-in limits continuation: implementation and acceptance boundary
+
+The continuation implements the ADR's saved-sign-in contract in
+`vessel-proto::limits`, `vessel-harness::limits`, `vessel-session::limits`,
+`vessel-store::usage_lookup`, `vessel-node::limits` / `service::limits`,
+`vessel-client::usage`, and the CLI's `usage::limits` / `limits_render`.
+The testkit exports the shared synthetic Claude/ChatGPT response shapes from
+`vessel-testkit::limits`; parser and real-node tests use those same bytes.
+No native renderer, control or page is included.
+
+Additional source references read for this continuation are Paseo
+`plugins/claude-usage-source/server/{usage,stores}.ts` and its usage/keychain
+fixtures, `plugins/codex-usage-source/server/{usage,stores}.ts` and fixtures,
+plus `packages/server/src/server/plugins/usage-sources/index.test.ts` for
+identity, stale observation and refresh coalescing. The already listed GOAT
+recovery banner remains a reference, not a claim that recovery shipped.
+
+Visible node/CLI acceptance implemented, subject to the results below:
+
+1. Start off; retained usage remains available. The CLI explains exactly
+   which saved access token/account identifier a refresh reads here and
+   which fixed vendor receives it. An admin can save on/off; cancellation
+   of the requesting RPC does not abandon the independent owner's choice.
+2. Select a configured harness/profile, request a refresh, then read it
+   from cache without credential/vendor I/O. Independent periods and scopes,
+   unknown/missing/zero values, paid use and credits remain distinct.
+3. Read the actual live session binding even after profile reload; preserve
+   it through park/wake and replace it only after a successful move. A stored
+   session after node restart refuses to guess a current login.
+4. A read-only paired device can see cached sanitized facts but no balance,
+   cannot refresh and cannot change opt-in. An agent can request only its
+   own local session. Fleet delivery applies the existing destination and
+   origin scope intersection. Pre-19 direct and wrapped calls are refused
+   before sending/dispatch.
+5. A failed refresh labels the previous observation as stale only for the
+   same observed login. Missing/changed login clears it. Retry-After applies
+   across aliases of the same token and Codex/OpenCode. Queued/running
+   blocking work retains bounded admission after cancellation.
+6. Full general windows produce factual notice identities and an optional
+   latest known future reset. Paid-use eligibility suppresses a false stop
+   notice. A screen can draw these facts in the viewer's language. A failed
+   turn's cause, durable wait-and-resume and switching accounts are NOT
+   implemented by this slice; original acceptance for those remains open.
+
+Wire additions beyond the accounting stack are `usage.limits` and
+`usage.lookup`, both provisional protocol 19. No additional event or database
+schema change. A screen enumerates profiles with the existing call, requests
+`GetUsageLimits` cached/refresh, toggles `SetUsageLookup` with admin authority,
+uses the returned source for disclosure, and formats the returned timestamps
+locally. It must not interpret a full bar as proof of a stopped turn or offer
+a non-working automatic continuation action.
+
+Live vendor accounts, real credential stores, macOS Keychain execution,
+Windows/macOS runtime behavior and every native screen remain unverified.
+Automated checks use temporary synthetic logins, recorded vendor shapes and
+fake agents only. No live permission, service or deployment change.
+
+#### Limits verification checkpoint
+
+The relevant nine crates' all-target Clippy check passed. The focused `limit`
+run passed 43 tests with no failures or ignored cases, including real-node
+profile reload/wake/move/restart and fleet grant tests, parser/source admission
+and cancellation cases, both new methods' old-peer refusal and full CLI output.
+Both TypeScript generation checks passed. The fixture policy file's mode/bound
+regression and an added rewind-association assertion await the whole run.
+This checkpoint does not claim a clean whole gate or integration readiness.
+The earlier accounting stack still has its disclosed grant fixture gate hold;
+a standalone pass did not erase that whole-run failure. No vendor, real-login,
+macOS runtime or native screen check was performed.

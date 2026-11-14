@@ -45,6 +45,12 @@ pub(crate) enum Slot {
 }
 
 impl Publisher {
+    /// Updated only once a new agent successfully starts; publish the
+    /// profile event afterward so its readers see the matching binding.
+    pub(crate) fn set_limit_association(&self, association: crate::LimitAssociation) {
+        let _previous = self.shared.limits.send_replace(association);
+    }
+
     /// `activity` must be the tracker `info`'s first board came from, so
     /// the board changes only with what the session publishes. The first
     /// record is numbered `info`'s `next_seq`: zero for a new session, the

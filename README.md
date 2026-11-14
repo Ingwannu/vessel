@@ -1240,3 +1240,33 @@ if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
 reproducible preview; `--count` is 1–10. API callers reuse the returned
 cadence when saving so an interval keeps its preview anchor. `vessel status`
 also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
+
+### Account limits (explicit local opt-in)
+
+```bash
+vessel usage limits codex                  # cached facts only
+vessel usage lookup on                     # administrator: enable on this machine
+vessel usage limits codex --refresh        # operate: read the saved login's limits
+vessel usage limits claude --profile work --refresh
+vessel usage session-limits 3f2a --refresh # actual live launch's saved-login binding
+vessel usage lookup off                    # disable and clear external observations
+```
+
+The default is off. Retained `usage machine|agent|session` reports still show
+what the agent itself reported. An explicitly requested limit refresh reads
+the configured agent's local saved access token (and Codex account identifier,
+when present), and sends it only to Anthropic or ChatGPT's fixed limits
+endpoint. Supported saved stores are Claude Code, Codex, and OpenCode's OpenAI
+OAuth login. Vessel does not sign in, refresh tokens, scrape pages, send these
+credentials through a fleet link, or store them in usage history. Read-only
+devices may read sanitized cached facts but cannot refresh, change policy or
+see credit balances.
+
+Observed saved-login limits can differ from a running agent's remembered
+login. The CLI preserves unknown values, distinct windows and paid-use flags;
+full subscription usage alone does not prove the session cannot continue.
+Reset times are human durations. Snapshots stay only in bounded node memory
+and are cleared at restart or opt-out. No automatic wait/continue or account
+switch is implemented by these commands. Actual vendor-account and macOS
+Keychain behavior require a separate operator check; automated tests use only
+offline synthetic fixtures.

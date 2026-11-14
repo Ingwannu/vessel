@@ -3498,22 +3498,30 @@ dependencies = [
 name = "vessel-harness"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dirs",
  "futures-util",
  "getrandom 0.4.3",
+ "reqwest",
+ "rustls",
+ "rustls-native-certs",
  "same-file",
  "serde",
  "serde_json",
+ "sha2 0.11.1",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-util",
  "toml_edit",
  "tracing",
+ "unicode-normalization",
  "vessel-harness",
  "vessel-proc",
  "vessel-proto",
  "vessel-testkit",
  "which",
+ "zeroize",
 ]
 
 [[package]]

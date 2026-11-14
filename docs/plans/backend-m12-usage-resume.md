@@ -1,30 +1,35 @@
 # Usage: node continuation
 
-Accounting and its review corrections are committed through `8ab23bda`:
-`cb267035`, `7032f3cd`, replay origin `57ebcb3c` with declarations `c7063c08`,
-and common envelope compatibility `09b89440` / `8ab23bda`. The latest actual
-results and selected-input provenance are in `backend-m12-usage.md`.
+Accounting is committed through 8ab23bda with results fe11c7dd and contract
+68dd9bb8. V1 resolved the source findings, including recursive envelope version
+checks, but the stack remains WIP/GATE HOLD: the actual whole run had 1,808
+passes, one grant reinstall safety-net failure and ten ignored tests. Its
+standalone pass is not a waiver. Only the coordinator/integrator can decide
+that unresolved outcome. Old missing source provenance remains disclosed.
 
-The full Rust run has one explicit integration-owned fixture exception:
-1,808 passed, 1 failed, 10 ignored. The exact failing fleet test passed once
-alone. All 417 web unit tests and 62 browser tests passed, as did fmt,
-Clippy, TypeScript freshness, lint, types, bundle and required binaries.
-Both new runs retained matching selected-input pre/post identities. This
-does not replace the older run's missing provenance record. Whole-run
-failure remains recorded; review and integration approval are pending V1.
+This checkpoint implements opt-in saved-login limits in proto, harness,
+session launch association, node, store policy, client, CLI and testkit. The
+new calls are usage.limits and usage.lookup, provisionally protocol19, with
+no new event/database schema. Off is the default. Credentials stay local to
+the running machine; no real credential or vendor endpoint was read in checks.
 
-Next: finish the ADR 0042 quota contract, then implement opt-in lookup and
-notice facts across wire, harness, node, client, CLI and the testkit. The
-external lookup is off by default. There is no quota implementation in
-this commit and no live-account verification. A launch-pinned nonsecret
-session binding must prevent profile reload from choosing another account;
-Retry-After must apply across aliases of the same token; cancellation must
-retain admission through every blocking read and certificate setup.
-Prepared drafts still need those corrections, compilation and all gates.
+Focused all-target Clippy passed for the nine relevant crates. Forty-three
+focused tests and both TypeScript generation checks passed. The full workspace,
+web lint/types/unit/bundle and all headless browser tests are pending at this
+checkpoint. A rewind continuity assertion added after focus and the policy
+file's mode/bound test still need that whole run. Do not infer approval from
+source presence or focused checks. The track plan records the acceptance and
+consumer contract. Full-gate results must identify the exact frozen commit
+and contemporary selected-input pre/post records, with changed crates rebuilt.
 
-Screen work is outside this continuation. Consumers can use `usage.query`
-with its coverage, cost visibility and pagination; account-limit calls are
-still pending. No native Usage control, page or view model was delivered.
-The provisional protocol/schema numbers and shared scope integration stay
-with node integration. No push, deployment or live permission change.
-All recorded fake-fleet processes were stopped; no display was started.
+Consumers call usage.query for retained totals, usage.limits for sanitized
+cached or explicitly refreshed account facts, and usage.lookup with admin
+permission for the credential-use policy. Refresh needs operate; a read-only
+viewer cannot see balances. Session selection uses its actual live launch
+binding; stored sessions refuse to guess. Snapshots stay bounded in memory.
+
+Automatic wait/resume and account switching remain unfinished acceptance.
+Native screens, controls and page work belong to other tracks. Actual vendor
+accounts, real credential stores and platform Keychain behavior are unverified.
+No deployment, live service/permission change or repository push. Provisional
+version/schema collisions and shared scope integration remain integrator-owned.

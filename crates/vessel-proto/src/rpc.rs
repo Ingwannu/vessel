@@ -378,6 +378,10 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Latest saved-sign-in limits; explicit refresh additionally needs operate.
+    GetUsageLimits / get_usage_limits / "usage.limits" [Read, 19]: crate::limits::GetUsageLimits => crate::limits::UsageLimits;
+    /// Persist this machine's credential-use policy; administrator only.
+    SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, 19]: crate::limits::SetUsageLookup => crate::limits::ExternalLookup;
     /// Reported tokens and permitted costs (protocol 19, ADR 0042).
     QueryUsage / query_usage / "usage.query" [Read, 19]: crate::usage::QueryUsage => crate::usage::UsageReport;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.

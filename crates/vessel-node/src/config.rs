@@ -112,6 +112,10 @@ pub struct Config {
     /// 0032): its published index. https only, or plain http to this
     /// machine (what a test serves).
     pub registry_url: String,
+    /// Explicit quota backend; the library default accesses no saved sign-in.
+    pub limits: vessel_harness::LimitProbe,
+    /// Nonsecret inherited route facts captured only by the binaries.
+    pub limit_environment: vessel_harness::LimitEnvironment,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -180,6 +184,8 @@ impl Config {
             forge: crate::ForgeSetup::default(),
             terminals: crate::TerminalsConfig::default(),
             registry_url: crate::catalogue::REGISTRY_URL.to_owned(),
+            limits: vessel_harness::LimitProbe::Disabled,
+            limit_environment: vessel_harness::LimitEnvironment::new(),
         }
     }
 }

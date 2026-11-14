@@ -256,6 +256,8 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)

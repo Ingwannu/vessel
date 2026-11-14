@@ -174,6 +174,7 @@ mod support {
         pub(super) fn request(&self, from: &Profile, to: &Profile, force: bool) -> ProfileMove {
             std::fs::create_dir_all(self.home_of(to)).unwrap();
             ProfileMove {
+                limits: vessel_session::LimitAssociation::Unavailable,
                 profile: to.clone(),
                 from_home: self.home_of(from),
                 to_home: self.home_of(to),
@@ -707,6 +708,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             id: DeviceId::random(),
         };
         let options = LaunchOptions {
+            limits: vessel_session::LimitAssociation::Unavailable,
             profile: Some(alt.clone()),
             mcp_servers: servers(),
             mcp_dir: None,

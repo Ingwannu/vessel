@@ -1194,3 +1194,47 @@ available, and `fleet sync` always addresses the selected node (ADR 0044).
 The CLI's existing test-only `serde_json` dependency is now a normal one:
 encoding the already-confirmed invitation uses the protocol's formatter and
 retains its concrete error source rather than inventing a string error.
+
+## Opt-in saved-sign-in limits (milestone 12, ADR 0042)
+
+`vessel-harness::limits` owns the supported agents' saved-login formats,
+fixed vendor origins, bounded response decoding and per-node request context.
+`LimitBinding` captures only launch configuration and a canonical profile
+label. Session actors retain that binding through park/wake and rewind;
+successful profile moves replace it with their actual target's binding, and
+failed moves preserve it. A profile reload cannot silently retarget a running
+session's quota lookup. After a node restart a stored session has no live
+binding: it reports unassociated rather than choosing today's profile.
+Bindings do not prove which sign-in a running agent has kept in memory.
+
+`vessel-node::limits` owns a 32-command mailbox, at most two concurrent probes,
+and at most 256 RAM-only account/binding observations. Its independent owner
+saves and applies policy even after an RPC is cancelled. Turning lookup off
+cancels the generation and clears observations; old jobs cannot publish into
+a later opt-in generation. Blocking credential/response/certificate work
+retains a shared two-slot admission permit until the closure actually exits,
+including when its awaiting task was cancelled. Shutdown drains this work.
+A bounded vendor/token cooldown is shared across aliases and Codex/OpenCode;
+policy toggles do not bypass it. There is no background polling.
+
+`vessel-store::usage_lookup` persists only the off/on decision in an atomic,
+owner-only file. It is separate from SQLite usage history and sync; malformed
+policy fails off. Library configuration disables all local probes. Binaries
+capture only nonsecret routing/path facts and select the local backend; the
+administrator's persisted policy still defaults off. Fake-enabled builds
+refuse that backend. Tests use only synthetic temporary sign-ins and recorded
+vendor response shapes, never the operator's files or vendor network.
+
+`service::limits` enforces destination read for cached facts, operate for an
+explicit refresh, and admin for the machine policy. Agents may read only their
+own local session. Read-only viewers cannot see credit balances. Remote
+forwarding uses the existing origin/destination scope intersection; no login,
+private path or endpoint is accepted from or returned to a client. It forwards
+sanitized facts or the admin policy choice, never credentials.
+
+`vessel-client::usage` and the CLI expose the same typed calls. A full-window
+notice is a fact about the observed saved login, with independent window ids
+and an optional latest known future reset. Paid-use permission suppresses that
+notice. It neither diagnoses why a turn stopped nor implements automatic
+continuation. Native screens and persistent wait/switch recovery remain outside
+this node slice.

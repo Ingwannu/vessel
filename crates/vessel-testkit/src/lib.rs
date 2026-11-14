@@ -395,3 +395,6 @@ mod tests {
         assert!(charged.is_err(), "{charged:?}");
     }
 }
+
+/// Offline saved-sign-in limit response shapes shared by parsers and node fixtures.
+pub mod limits;

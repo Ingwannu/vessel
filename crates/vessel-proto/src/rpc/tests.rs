@@ -53,6 +53,7 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "agent.remove",
             "agent.install",
             "agent.install_output",
+            "usage.lookup",
             "node.set_settings"
         ]
     );
@@ -971,5 +972,47 @@ fn where_a_session_came_from_is_optional_and_tagged() {
     assert_eq!(
         serde_json::from_str::<SessionInfo>(&imported).unwrap(),
         info
+    );
+}
+
+#[test]
+fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
+    use crate::limits::*;
+    for (call, json) in [
+        (
+            GetUsageLimits {
+                scope: LimitsScope::Account {
+                    account: LimitAccount {
+                        harness: HarnessKind::Codex.into(),
+                        profile: None,
+                    },
+                },
+                refresh: LimitRefresh::Refresh,
+            }
+            .into_call(),
+            r#"{"method":"usage.limits","params":{"scope":{"kind":"account","account":{"harness":"codex","profile":null}},"refresh":"refresh"}}"#,
+        ),
+        (
+            SetUsageLookup {
+                policy: ExternalLookup::On,
+            }
+            .into_call(),
+            r#"{"method":"usage.lookup","params":{"policy":"on"}}"#,
+        ),
+    ] {
+        assert_eq!(serde_json::to_string(&call).unwrap(), json);
+        assert_eq!(serde_json::from_str::<Call>(json).unwrap(), call);
+        assert_eq!(call.since(), ProtocolVersion::new(19));
+    }
+    let json = r#"{"policy":"on","account":{"harness":"codex","profile":null},"source":"codex","state":{"state":"failed","reason":"rate_limited","retained":null,"retry_at":"2026-06-01T12:00:00Z"},"cost_visibility":"withheld","notice":null}"#;
+    let report: UsageLimits = serde_json::from_str(json).unwrap();
+    assert_eq!(serde_json::to_string(&report).unwrap(), json);
+    assert_eq!(
+        report.state,
+        AccountLimitState::Failed {
+            reason: LimitFailure::RateLimited,
+            retained: None,
+            retry_at: Some("2026-06-01T12:00:00Z".parse().unwrap())
+        }
     );
 }
