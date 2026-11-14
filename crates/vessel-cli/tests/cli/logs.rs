@@ -1,6 +1,6 @@
 //! Tail selection through the real CLI after a fake terminal's final record.
 
-use crate::support::{Fixture, within};
+use crate::support::{Captured, Fixture, within};
 use vessel_client::NodeClient;
 use vessel_proto::{
     AgentEvent, ContentBlock, EventRecord, EventSeq, HarnessKind, SessionEvent, SessionId,
@@ -43,6 +43,15 @@ async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_i
         fixture.stop().await;
     })
     .await;
+}
+
+/// A failed assertion must not leave the following CLI alive.
+struct Following(tokio::process::Child);
+
+impl Drop for Following {
+    fn drop(&mut self) {
+        let _already_ended = self.0.start_kill();
+    }
 }
 
 async fn create(fixture: &Fixture, owner: &NodeClient) -> SessionId {
@@ -130,6 +139,38 @@ async fn log_selects_time_kind_and_tail_without_reporting_filtered_records_as_pr
         assert!(zero.ok, "{}", zero.stderr);
         assert!(zero.stdout.is_empty() && zero.stderr.is_empty());
         owner.kill(session).await.unwrap();
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let session = create(&fixture, &owner).await;
+        turn(&owner, session, "plain").await;
+        let id = session.to_string();
+        let mut child = Following(fixture.spawn_vessel_at(
+            &fixture.node_address(),
+            &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
+        ));
+        drop(child.0.stdin.take());
+        let mut stdout = Captured::start(child.0.stdout.take().unwrap());
+        let stderr = Captured::start(child.0.stderr.take().unwrap());
+        stdout.wait_for("echo: plain", 1).await;
+        // This can arrive between history and subscription: the saved cursor must catch it.
+        turn(&owner, session, "loaded").await;
+        stdout.wait_for("loaded none", 1).await;
+        owner.kill(session).await.unwrap();
+        assert!(child.0.wait().await.unwrap().success(), "{}", stderr.text());
+        stdout.wait_for("loaded none\n", 1).await;
+        let text = stdout.text();
+        assert_eq!(text.matches("echo: plain").count(), 1, "{text}");
+        assert_eq!(text.matches("loaded none").count(), 1, "{text}");
+        assert!(text.contains("echo: plain\n> loaded"), "{text}");
+        assert!(!stderr.text().contains("pruned"), "{}", stderr.text());
         fixture.stop().await;
     })
     .await;

@@ -1,13 +1,16 @@
 //! Log inputs are typed before a node or credential file is opened.
 
-use clap::Args;
+use clap::{
+    Args,
+    builder::{BoolishValueParser, TypedValueParser as _},
+};
 use vessel_proto::EventSeq;
 
-use crate::log::select::{Filter, Selection, Since};
+use crate::log::select::{Filter, Mode, Selection, Since};
 use crate::log::tail::Tail;
 use crate::selector::SessionSelector;
 
-/// Snapshot selection with all inputs parsed before connection work.
+/// History selection followed optionally by the existing live stream.
 #[derive(Debug, Args)]
 pub(crate) struct Log {
     /// Session id, or a unique prefix of one.
@@ -15,8 +18,12 @@ pub(crate) struct Log {
     /// First record considered, before time, kind and tail selection.
     #[arg(long, default_value = "0", value_parser = super::parse_seq)]
     pub(crate) from: EventSeq,
-    /// Last N matching history records; zero prints no history.
-    #[arg(long)]
+    /// Continue with future matching records until the session ends or Ctrl-C.
+    #[arg(long = "follow", short = 'f', action = clap::ArgAction::SetTrue,
+        value_parser = BoolishValueParser::new().map(|enabled| if enabled { Mode::Follow } else { Mode::Once }))]
+    pub(crate) mode: Mode,
+    /// Last N matching history records; zero prints no history. Follow uses its default history window.
+    #[arg(long, help = format!("Last N matching history records; zero prints no history. Follow defaults to {}.", Tail::FOLLOW_DEFAULT))]
     pub(crate) tail: Option<Tail>,
     /// Keep only one of the named event kinds.
     #[arg(long, value_enum, ignore_case = true)]
@@ -33,6 +40,14 @@ impl Log {
             since: self.since,
             filter: self.filter,
         }
+    }
+
+    /// Only an omitted follow limit inherits the shared default.
+    pub(crate) fn history_tail(&self) -> Option<Tail> {
+        self.tail.or(match self.mode {
+            Mode::Once => None,
+            Mode::Follow => Some(Tail::FOLLOW_DEFAULT),
+        })
     }
 }
 
@@ -53,6 +68,26 @@ mod tests {
             panic!("expected log")
         };
         log
+    }
+
+    #[test]
+    fn plain_history_has_no_tail_and_follow_uses_its_single_default() {
+        let once = parse(&[]);
+        assert_eq!(once.mode, Mode::Once);
+        assert_eq!(once.history_tail(), None);
+        for flag in ["-f", "--follow"] {
+            let following = parse(&[flag]);
+            assert_eq!(following.mode, Mode::Follow);
+            assert_eq!(following.history_tail(), Some(Tail::FOLLOW_DEFAULT));
+        }
+        assert_eq!(
+            parse(&["--follow", "--tail", "0"]).history_tail(),
+            Some(Tail::ZERO)
+        );
+        assert_eq!(
+            parse(&["--tail", "2"]).history_tail(),
+            Some("2".parse().unwrap())
+        );
     }
 
     #[test]

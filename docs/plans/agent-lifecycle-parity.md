@@ -292,8 +292,13 @@ No row of the crate table changes.
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests have not run yet. Existing render expectations
-  stay unchanged. Follow and its transition test remain a protected draft for
-  slice 5c, which must reuse these predicates and the raw history cursor.
+  stay unchanged.
+- Implementation slice 5c, verification pending: follow reuses these predicates,
+  the tail window and the raw history cursor. Its omitted history count has
+  one constant, also used by the CLI help. EOF, interruption and stream notices
+  finish an open text line; terminal bytes stay untouched. The event-driven
+  history-to-live test and follow parser tests have not run yet. All three
+  implementation slices still owe compilation and their separate whole gates.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.

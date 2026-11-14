@@ -92,6 +92,11 @@ Selection applies sequence, then time, then kind, then tail. Unknown filters
 and incomplete timestamps fail before connecting. Terminal bytes have none
 of the four structured kinds.
 
+`-f` / `--follow` uses its default history window when tail is omitted and
+then matching live records through the current run's end or Ctrl-C. Its
+help shows the default count. Interrupting the command keeps the session
+running; a later resumed run can be followed with another invocation.
+
 ### A conversation: the queue, files, questions, marks
 
 A structured session's next message can go in while its agent still
