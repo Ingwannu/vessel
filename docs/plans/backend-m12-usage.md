@@ -364,3 +364,24 @@ usage fixture also passed. The changed crates were compiled in this run.
 The full web gate is still pending. This Rust baseline is not integration
 approval: the replay-observation accounting boundary described above
 remains to be fixed, and external limits lookup remains unimplemented.
+
+### Complete merged baseline gate
+
+Web lint and typecheck passed; all 417 unit tests in 81 files passed, and
+the production bundle built successfully. With that bundle embedded in a
+fresh Rust binary, all 62 Playwright tests passed, including the 20,000-entry
+timeline case (31.7 seconds). No case was skipped or excluded.
+
+The first browser attempt used an older bundle: the verification script
+built Rust binaries before rebuilding the page, while `vessel-web` embeds
+its assets at compile time. That invalid attempt was stopped, its own
+fleet shut down, and it is not counted as a page regression. The corrected
+order is: build the bundle, build Rust with `VESSEL_WEB_REQUIRE_BUNDLE=1`,
+then run the complete browser suite. Served static JavaScript and favicon
+bytes matched the current bundle. The HTML itself is painted per request
+and must not be compared byte-for-byte to the unpainted build artifact.
+
+The merge baseline now has a complete passing gate. Runtime replay origin
+remains the next accounting correction before an integration-ready report;
+limits lookup and recovery are still unimplemented. No native UI work or
+live-account verification is included.
