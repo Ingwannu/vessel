@@ -668,3 +668,42 @@ The stop budget's default and minimum are named beside `StopTimeout`.
 Clap renders the default from that type, validation errors render its
 minimum, and an expiry error carries the same parsed budget used by the
 check. Focused waiter/handshake test budgets are named constants, too.
+
+
+### Kernel lock observation before escalation
+
+[Decision Log]
+- Purpose and intent: keep process authority at the existing `NodeLock`
+  boundary, and distinguish a kernel writer from a PID in a writable record.
+- Existing implementation and constraints: `NodeLock::holder` probes the OS
+  lock and returns an optional owner record. It deliberately has no process
+  authority claim. Its behavior and record format stay unchanged. Paseo
+  `packages/server/src/server/daemon-instance.ts` 197–214 checks reserved and
+  self PIDs, instance replacement and exit in a timed loop.
+- Alternatives considered: another CLI parser (duplicate lock knowledge),
+  trusting the owner PID (insufficient authority), or interpreting no procfs
+  row as a free lock (incorrect for every namespace/filesystem).
+- Choice: an additive `NodeLock::kernel_holder` yields `KernelProbe::Found`
+  with a typed PID and opaque device/inode snapshot, `NotVisible`, or
+  `Unsupported`. Linux reads bounded `/proc/locks` data and accepts only an
+  exclusive advisory flock writer for that file. Checks and errors use the
+  single `LockTable::MAX_BYTES`; numeric errors keep their source. This
+  operation acquires no lock, writes no record and sends no signal. Reads
+  use the invoking OS account, load no credential or environment, and a
+  permission failure remains a typed I/O refusal.
+- Why this choice: the library already owns the lock format and lifetime.
+  A positive observation can refuse a damaged held owner without the CLI's
+  second acquisition probe. An absent row is never proof of availability:
+  Linux filters procfs locks by PID namespace, and network filesystems can
+  emulate flock with other lock types. The existing OS availability fallback
+  remains. See [proc_locks(5)](https://man7.org/linux/man-pages/man5/proc_locks.5.html)
+  and [flock(2)](https://man7.org/linux/man-pages/man2/flock.2.html).
+- Benefits, costs and effects: one process-authority decoder for later force
+  and restart; no dependency, crate edge, wire field or schema change. A
+  snapshot is not a lease: later actions must revalidate it. `NotVisible`
+  never authorizes a signal. macOS and Windows return `Unsupported` and keep
+  their existing OS availability probe. The fallback and completion waiter
+  still have the short acquisition/startup race stated above; this does not
+  promise atomic stop/start. An unreadable kernel table is a typed refusal,
+  not an assumption that a held directory is free. Only Linux local locks
+  are exercised here; namespace, NFS/SMB and other OS runtime are not verified.

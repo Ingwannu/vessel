@@ -31,11 +31,10 @@ async fn graceful_stop_closes_the_connection_and_releases_the_lock() {
         );
         owner.closed().await;
         let lock = std::fs::File::open(DataDir::new(fixture.data()).lock_path()).unwrap();
-        fixture.stop().await;
-        // Retain the inode across fixture cleanup, so deletion of its path
-        // cannot accidentally make this assertion pass.
+        // Check the CLI's postcondition before fixture cleanup can release it.
         lock.try_lock().unwrap();
         lock.unlock().unwrap();
+        fixture.stop().await;
     })
     .await;
 }

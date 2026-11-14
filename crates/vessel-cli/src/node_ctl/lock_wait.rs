@@ -81,17 +81,14 @@ mod tests {
         let lock = NodeLock::acquire(&dir, &owner).unwrap();
         let before = std::fs::read(dir.owner_path()).unwrap();
         let mut event = Released::subscribe(&dir).unwrap();
-        {
-            let waiting = event.wait();
-            tokio::pin!(waiting);
-            // The immediate branch observes pending state without a timed
-            // delay. Dropping this borrow cancels only this wait, not the event.
-            tokio::select! {
-                biased;
-                result = &mut waiting => panic!("lock was still held: {result:?}"),
-                () = std::future::ready(()) => {},
-            }
-        }
+        // This is the command's cancellation deadline, not synchronization
+        // by sleep: the parent deliberately retains the lock throughout it.
+        assert!(
+            tokio::time::timeout(WAITER_TEST_BUDGET, event.wait())
+                .await
+                .is_err(),
+            "waiter completed during its {WAITER_TEST_BUDGET:?} cancellation budget while the lock was held"
+        );
         drop(lock);
         within_budget(event.wait()).await.unwrap();
         assert!(NodeLock::holder(&dir).unwrap().is_none());

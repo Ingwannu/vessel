@@ -7,7 +7,7 @@ mod observe;
 
 use vessel_client::book::Resolved;
 use vessel_client::{CallError, NodeClient};
-use vessel_node::NodeLock;
+use vessel_node::{KernelProbe, NodeLock};
 use vessel_proto::{ErrorCode, SessionInfo, StopWhen};
 
 use crate::args::{Confirmation, Stop, StopPolicy, Target};
@@ -54,6 +54,12 @@ fn require_running(dir: &vessel_node::DataDir) -> Result<(), CliError> {
     if NodeLock::holder(dir).map_err(CliError::NodeLock)?.is_some() {
         return Ok(());
     }
+    match NodeLock::kernel_holder(dir).map_err(CliError::NodeLock)? {
+        KernelProbe::Found(_) => return Err(CliError::NodeOwnerUnavailable),
+        KernelProbe::NotVisible | KernelProbe::Unsupported => {}
+    }
+    // Absence from procfs is not proof of availability (namespaces and
+    // filesystem emulation). Preserve the actual OS test as the fallback.
     let file = match std::fs::File::open(dir.lock_path()) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {

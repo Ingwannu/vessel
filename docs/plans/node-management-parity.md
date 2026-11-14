@@ -6,14 +6,15 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: slices 1, 2a (launchd) and 2b (graceful stop). Slice 2c adds
-  authenticated local-directory binding and OS-lock completion; focused
-  checks precede its commit and the whole gate runs on that commit.
-- Half-done: force, matching-service finalization and restart remain
-  separate slices. Connection closure alone is still the observation for
-  an endpoint whose token file belongs to another local directory.
-- Next: gate and report 2c, then force, service finalization and restart,
-  followed by slices 3 and 4. No real agent or service manager is verified.
+- Done: slices 1, 2a (launchd), 2b (graceful stop).
+- Source committed: 2c (`337f92b8`) adds authenticated directory binding
+  and OS-lock completion. Its whole gate had one shared side-question
+  lifecycle failure; the authorized isolated retry passed and review passed.
+  No full-green claim is made for that first run.
+- In progress: 2d adds a bounded kernel observation at `NodeLock`; it sends no
+  signal. Force, matching-service finalization and restart remain separate.
+- Next: run and report the whole gate for 2d, followed by service and
+  force/restart and slices 3/4. Real agents/managers remain unverified.
 
 ## Existing asset check
 
@@ -304,8 +305,35 @@ an explicit endpoint does not wait on another still-running local node.
 The whole gate runs once after committing and prints HEAD/status first.
 No wire, TypeScript, dependency or crate-edge change.
 
-A7: the stop default/minimum, waiter test budget and handshake test budget
+Bounds: the stop default/minimum, waiter test budget and handshake test budget
 are each named once beside the relevant type or fixture. Checks and
 expiry/error output use those values, and boundary tests derive from the
 constants. The default is rendered by clap rather than duplicated in a
 help comment. No fixed budget is copied into an expectation string.
+
+
+## Slice 2d: one kernel observation boundary
+
+`[modify]`: extend store `NodeLock`, which already owns lock/owner formats;
+standard `MetadataExt` and bounded file reads need no new dependency or
+unsafe call. The CLI must reuse this edge for later force/restart instead
+of keeping a second decoder. `NodeLock::holder` and existing tests remain
+unchanged; the observation is additive and does not claim to hold a lease.
+
+Paseo `packages/server/src/server/daemon-instance.ts` 197–214 was read:
+it refuses reserved/self PIDs and detects instance replacement while
+waiting. The stated Rust difference is kernel agreement before process
+control, as ADR 0064 already requires. This slice sends no signal. Linux
+`/proc/locks` absence is `NotVisible`, never a free-lock result; namespace
+filtering and filesystem emulation are documented in the primary manuals
+linked in the ADR. The OS fallback remains and its startup race is still
+stated. A positive writer lets a damaged owner be refused without another
+acquisition attempt. macOS/Windows return `Unsupported`, retaining the
+existing graceful RPC and OS fallback.
+
+Tests beside the rule cover real held/free/stale and damaged records,
+missing paths without file creation, writer decoding, reserved PID, bounded
+allocation/error text and duplicate writers. Existing CLI stop tests cover
+the preflight's held/unreadable and stale owner refusals. Bounds are
+named beside `NodeProcess` and `LockTable`; boundary tests derive from them.
+No new call, field, protocol number, schema migration or crate edge.
