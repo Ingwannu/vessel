@@ -22,6 +22,7 @@ mod chrome;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;
+mod region;
 mod routes;
 mod shell;
 mod unsent;

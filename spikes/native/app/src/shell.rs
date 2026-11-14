@@ -388,6 +388,7 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let started = crate::region::begin(self, cx);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
@@ -438,7 +439,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone && self.sidebar_shown(), |row| {
-                        row.child(routes::sidebar(self.route, self, &tokens, window, cx))
+                        row.child(routes::sidebar(self, &tokens, window, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width
@@ -488,7 +489,8 @@ impl Render for Shell {
                     .children(sheet),
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::palette::render(self, &tokens, window, cx));
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

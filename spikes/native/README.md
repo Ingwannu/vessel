@@ -462,6 +462,15 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   screen never showed. A permission request and an install offer are
   read by field access, which no added field breaks; giving them the
   same guard is an open item.
+- The sidebar and the conversation's timeline are drawn as regions
+  (`app/src/region.rs`): GPUI views of their own, cached between frames,
+  drawn again whenever the shell changes. A field's caret blink (or any
+  view's own notify) outside a region then draws the window without it.
+  What a region shows must come from the shell or from views drawn
+  inside it: a model entity read there and notified on its own would
+  leave the region showing old content. Measured on 2026-11-14 (release,
+  composer focused on an open session, the caret blinking): the app's
+  own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
 
 ### The brand's drawing (ADR 0059)
 
@@ -582,6 +591,11 @@ Environment:
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.
+- `VESSEL_APP_FRAME_LOG=<file>`: a line per frame a moving control draws
+  and, for every window frame, `draw <time> <took>`: the microseconds
+  from the root's render to the end of its paint, the app's own CPU per
+  frame before the renderer rasterises (on a software renderer the
+  process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
