@@ -226,6 +226,7 @@ async fn a_thread_starts_and_a_turn_streams_its_reply() {
         })
         .await;
         assert!(outputs_of_turn.contains(&AgentOutput::Usage(ContextUsage {
+            observation: vessel_proto::conversation::UsageObservation::Current,
             used: TokenCount::new(100),
             size: TokenCount::new(1000),
             cost: None,
