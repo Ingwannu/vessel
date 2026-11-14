@@ -1,8 +1,10 @@
 # ADR 0070: Paseo's themes as the kit's palettes
 
-Status: accepted for implementation, 2026-11-14. The catalogue below is
-the contract for the palettes, the theme id and the appearance
-preference. It does not draw Settings › Appearance.
+Status: proposed, 2026-11-14. The catalogue below is the contract for
+the palettes, the theme id and the appearance preference. It does not
+draw Settings › Appearance. No wire number: nothing here is a protocol
+call, so there is nothing to number at merge. No `node.settings` key:
+appearance is a preference on the client, not a node setting.
 
 Paseo 0.15.4 is the source of the values. Paths below are that app's
 (`packages/app/src/...`) unless a Vessel path is named.
@@ -93,11 +95,16 @@ as `auto` (`storage.ts:220`, `.catch`). Plugin themes
 version: there is no plugin host. A stored plugin id falls through the
 existing lenient read to System.
 
-`auto` turns adaptive themes on (`provider.tsx:50-52`,
-`styles/unistyles.ts:14`). Adaptive mode selects the registered themes
-named `light` and `dark` from the operating system's colour scheme. It
-does not select a variant. A named theme turns adaptive mode off and
-sets that theme (`provider.tsx:55-56`).
+`auto` calls `setAdaptiveThemes(true)` and returns without `setTheme`
+(`provider.tsx:50-52`). The registry is configured with
+`adaptiveThemes: true` (`styles/unistyles.ts:14`). A named theme calls
+`setAdaptiveThemes(false)` and `setTheme` with that option's
+`unistylesName` (`provider.tsx:55-56`); `light` and `dark` are the
+names on the light and default-dark options (`theme.ts:783-800`).
+Which theme name the Unistyles library itself picks while adaptive
+mode is on was not read in that library. What this app does is the
+part that was read: System resolves only to the Light or Dark palette,
+never to a variant, using the window appearance (`scheme_of`).
 
 ### Each theme's tint
 
@@ -458,8 +465,10 @@ of that variable still means System, as the entry point already does.
 Empty interface and code families mean the embedded stack, not
 Paseo's. Paseo's empty family becomes `DEFAULT_UI_FONT_STACK` and
 `DEFAULT_MONO_FONT_STACK` (`theme.ts:637-648`, applied in
-`appearance/apply.ts`): on the desktop those are `system-ui` and a
-mono stack that ends in `Courier New`. Both are refused here. The
+`appearance/apply.ts`). The `web` branch of that `Platform.select`,
+which `isWeb` names for a browser or Electron (`platform.ts:22-23`),
+is `system-ui` and a mono stack that ends in `Courier New`. The
+`default` branch is `normal` and `monospace`. Neither is used here. Both are refused here. The
 order is the chosen family if there is one, then Geist (Geist Mono
 for code), then Pretendard. Pretendard is always last. No generic
 family name is ever added.
@@ -518,6 +527,16 @@ without those arms does not compile, and a `_` arm is not allowed.
 The arms are the existing picture helper and the existing name
 function, plus the words. That is not a new screen. Settings ›
 Appearance itself stays the screen it is.
+
+## What this does not reach
+
+No browser, no HTTP listener, no helper process, no script at start.
+The faces are already embedded in the kit; a chosen family is a name
+checked before it is drawn, not a file fetched. Nothing here uses a
+signal, systemd or launchd, so Windows is the same path as the other
+desktops: the palette is data and the window appearance is the one
+GPUI already reports. The contrast test is `cfg(test)` beside the
+palette; it is not in a product build.
 
 ## Why this and not the others
 
