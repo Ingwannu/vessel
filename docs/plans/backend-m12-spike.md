@@ -600,7 +600,7 @@ right, are resized by dragging their inner edge, after Paseo's
 - Below the phone's width the sidebar is a sheet and the code panel the
   whole screen, as before: no handle.
 
-### A narrow window with both panels (0.0.0.0.17, planned)
+### A narrow window with both panels (0.0.0.0.17)
 
 The 0.0.0.0.16 smoke test: at 800 × 600 with the code panel open, the
 sidebar at its default 264 left the conversation about 190 points, and
@@ -641,9 +641,17 @@ The change:
 3. Stored widths are not rewritten: they apply again when the window
    grows.
 
-Evidence: captures at 800 × 600 and 1024 × 700 with both panels at their
-widest stored width (sidebar 600, code panel 1600), and the rule's unit
-tests in `view::panels`.
+Done in `e60165f3` (`view::panels::code_placement`, `sidebar_leaves`,
+`over_width`, `Limits::width_leaving`; the sidebar's frame and the code
+panel's frame in the app). Evidence: the rule's unit test
+(`a_narrow_window_keeps_the_conversation_s_least`, with the smoke test's
+numbers) and captures with both panels stored at their widest (sidebar
+600, code panel 1600), both themes:
+
+- 800 × 600: the panel over the conversation, the sidebar down to 308
+  (before: the conversation about 70 points wide between them).
+- 1024 × 700: both beside the conversation, the sidebar at 212, the
+  conversation at its 480, the panel at its least 320.
 
 ## Packages installed on the machine
 
