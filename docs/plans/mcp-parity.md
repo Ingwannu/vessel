@@ -5,19 +5,24 @@ a restart reads. Nothing here widens an agent principal past ADR 0013.
 
 ## Resume point
 
-- Done: ADR 0065 and this plan. Docs only. The first reading left the
-  consumer, the upgrade default, the reload class, `permit` with no
-  request id, and the status line open; this commit answers those.
-  No protocol number is registered. `PROTOCOL_VERSION` stays 20.
-  `MCP_PARITY` is the constant the integrator sets, and it is not in
-  code yet. Status of the ADR is proposed.
-- This commit: the settings key is the one field `mcp`, class
-  reloadable. The three sub-fields are not key-enum variants, and
-  this ADR does not name a `config set` path under them.
-- Next: slice 2, the missing tools. A tool name is decoded once into
-  an enum. Do not match the client's text again, and do not return
-  `serde_json::Value` from a new function. Do not start slice 3
-  until slice 2 is gated.
+- Done: ADR 0065 and this plan. Docs only, through the one field
+  `mcp` (class reloadable). No protocol number is registered.
+  `PROTOCOL_VERSION` stays 20. `MCP_PARITY` is set at merge. The ADR
+  stays proposed until acceptance is recorded.
+- This commit: a tool name is decoded once, in
+  `crates/vessel-mcp/src/tools/id.rs`. `call` matches that enum. The
+  modules that already matched a name still receive it as text, so
+  this commit adds no tool and changes no test expectation. A
+  `vessel_lsp_` name that is not one of the ten still reaches the
+  LSP module.
+- Half-done, not compiled in: `crates/vessel-mcp/src/tools/driving.rs`
+  and `crates/vessel-mcp/src/tools/offer.rs`. They still match a
+  tool's name as text and return `serde_json::Value`, and they are
+  not modules. Rewrite both onto the enum, with typed returns, before
+  wiring them. Still to add the same way: `get_schedule` and
+  `update_schedule`.
+- Next: that rewrite, then this slice's one gate. Do not start slice
+  3 until it is green.
 
 ## What Paseo does
 
