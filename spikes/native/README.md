@@ -297,10 +297,14 @@ such as the "no machine yet" note, counts with the pickers), the session's
 screen gives `shell.brand.session_body(viewport)` and its composer's column
 `shell.brand.session_column()`, the row waiting for the reply gives
 `shell.brand.reply_head()` (its first child is the avatar's slot, where the
-star lands), `shell.brand.sent()` starts the journey, and `brand::avatar(…)`
-draws an agent message's avatar. The
-journey steps once per presented frame while it runs; held motion (reduced,
-off, a software renderer) shows its end at once.
+star lands), the empty board's message block gives
+`shell.brand.board_empty()` (the star above it, the V's bottom turn under
+it), `shell.brand.sent()` starts the journey, and `brand::avatar(…)` draws
+an agent message's avatar. The journey steps once per presented frame
+while it runs; held motion (reduced, off, a software renderer) shows its
+end at once. `view::brand::layout::card_screen` places the same figure
+round a card standing where the composer does (the first run's pairing
+card), for the onboarding screens to use.
 
 `kit::window_glyph` draws the title bar's minimise, maximise, restore and
 close glyphs in the mark's line language (one line, round ends, corners on

@@ -110,6 +110,30 @@ measured ratios.
   sketch draws 18–20° ending in the margin. The lean is capped at 20°
   (1920 × 1080 stays at its margin's 19°).
 
+## The first run and the empty states (second study, 2026-11-14)
+
+Drawn over captures of an empty fake node and an empty book (1280, 800 and
+390 wide, both themes): the empty board in three treatments, the first run
+in two (the pairing card as the screen, and the same inside the V), an
+empty list's one line with a small star or two short lines. Chosen by the
+coordinator: the empty board gets the star above its message and the V's
+bottom turn under it (`view::brand::layout::empty_board`, `app::brand`'s
+`board_empty()` listener, mounted by the board's owner); an empty list's
+one line stays text only (a mark on every line is noise, and outside what
+the owner asked).
+
+For the onboarding track (ADR 0071, the first-run guide: theme, machine,
+agent, project): the first run keeps today's screen here, and the figure
+for a card standing where the composer does is ready as
+`view::brand::layout::card_screen(&CardScreen { content, card })`. Wide (the
+arms start beside the card) it draws the V with its arms passing behind
+the opaque card and the star above it; narrow (the card fills the width)
+the star above the card and the V's bottom under it. An onboarding screen
+mounts it as the empty board does: an `on_children_prepainted` listener on
+the element holding the card reports the card's box to `app::brand` (a
+`Seen` case and a listener to add there, about fifteen lines), and the
+shell's backdrop draws it behind the card.
+
 ## Open
 
 - The session's listeners and the avatar are worker C's to mount (the
@@ -128,3 +152,5 @@ measured ratios.
   is in, a capture checks that it and the outer line do not read as one.
 - Whether the arms should fade while they cross the conversation during
   the move is the owner's to judge from the frame strip.
+- The empty board's listener waits for the board's owner (S3 or the lead)
+  to mount it on the empty block in `areas/board/mod.rs`.

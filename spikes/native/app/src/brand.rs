@@ -16,7 +16,8 @@
 //!   (`on_children_prepainted`, the prepaint phase); the backdrop, painted
 //!   after the whole window's prepaint, makes the figure from those boxes
 //!   in the same frame. A screen that reported nothing this frame draws
-//!   nothing (the board, settings). The journey is a start time and the
+//!   nothing (settings, a board with sessions); the empty board reports
+//!   its message and gets the star and the V's bottom turn. The journey is a start time and the
 //!   figure it starts from; it asks for the next presented frame while it
 //!   runs (the display's own rate, the owner's word 42) and stops asking
 //!   when it ends; under held motion (reduced, off, a software renderer)
@@ -36,7 +37,7 @@ use std::time::Instant;
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{App, Bounds, Hsla, IntoElement, Pixels, Window};
 use vessel_app_kit::vector::{self, Drawing};
-use vessel_app_view::brand::layout::{NewSession, Session};
+use vessel_app_view::brand::layout::{EmptyBoard, NewSession, Session};
 use vessel_app_view::brand::motion;
 use vessel_app_view::brand::{self as view, Area, Figure, Pt, Star};
 
@@ -69,6 +70,8 @@ enum Seen {
     },
     /// The conversation's area and its column.
     Session(Session),
+    /// The empty board's message block.
+    Board { message: Area },
 }
 
 /// The first message's journey while it runs.
@@ -139,6 +142,24 @@ impl Brand {
                     composer,
                     pickers: boxes.fold(pickers, Area::union),
                 }));
+            }
+        }
+    }
+
+    /// For the empty board's message block (`on_children_prepainted`): its
+    /// children (the title, the line under it, the button) are one box the
+    /// drawing keeps clear of.
+    #[expect(
+        dead_code,
+        reason = "the board's owner gives it to the empty board's block; this expectation goes with that line"
+    )]
+    pub(crate) fn board_empty(
+        &self,
+    ) -> impl Fn(Vec<Bounds<Pixels>>, &mut Window, &mut App) + 'static {
+        let shared = Rc::clone(&self.shared);
+        move |children, _window, _cx| {
+            if let Some(message) = children.into_iter().map(area).reduce(Area::union) {
+                shared.seen.set(Some(Seen::Board { message }));
             }
         }
     }
@@ -245,6 +266,13 @@ fn figure(shared: &Shared, panel: Area, still: bool) -> Option<Figure> {
             shared.last_new.set(Some(figure));
             shared.journey.set(None);
             Some(figure)
+        }
+        Seen::Board { message } => {
+            shared.journey.set(None);
+            Some(vessel_app_view::brand::layout::empty_board(&EmptyBoard {
+                content: panel,
+                message,
+            }))
         }
         Seen::Session(screen) => {
             let to = vessel_app_view::brand::layout::session(&screen);

@@ -74,6 +74,12 @@ frame and the window controls, where traces and pads are at home.
   many loops a side as its margin holds after the air beside the column
   (four, three, two), none below two, its arms leaning in as far as the
   margin allows and at most 20° (the owner's sketch of the open session).
+- The empty board (chosen from a second study, 2026-11-14): the star above
+  its message and the V's bottom turn under it. An empty list's one line
+  (the archive, "no projects yet") stays text only: a mark on every such
+  line would be noise. The first run keeps its screen (the onboarding
+  track's, ADR 0071); the geometry of a card in the composer's place is
+  ready in `view::brand::layout::card_screen` for that screen to mount.
 - Motion: one bounded transition on the first message (the move 300 ms,
   star to circle 150 ms, the agent's mark 150 ms, the Codex app's curve,
   all read from one place); one step per presented frame at the display's

@@ -6,7 +6,9 @@
     reason = "tests measure distances between points"
 )]
 
-use super::layout::{NewSession, Session, new_session, session};
+use super::layout::{
+    CardScreen, EmptyBoard, NewSession, Session, card_screen, empty_board, new_session, session,
+};
 use super::motion::{Journey, between, ended, journey};
 use super::{Area, Figure, Pt, Star, geometry, ratios, shapes};
 
@@ -270,4 +272,75 @@ fn a_union_holds_both_boxes() {
     let pickers = area(377.0, 516.0, 586.0, 529.0);
     let note = area(358.0, 541.0, 640.0, 556.0);
     assert_eq!(pickers.union(note), area(358.0, 516.0, 640.0, 556.0));
+}
+
+/// The empty board's message block as measured at each size (the title,
+/// the line under it, the button), in its content panel.
+fn boards() -> [EmptyBoard; 3] {
+    [
+        EmptyBoard {
+            content: area(265.0, 37.0, 1271.0, 791.0),
+            message: area(615.0, 369.0, 919.0, 461.0),
+        },
+        EmptyBoard {
+            content: area(265.0, 37.0, 791.0, 591.0),
+            message: area(375.0, 269.0, 679.0, 361.0),
+        },
+        EmptyBoard {
+            content: area(9.0, 37.0, 381.0, 835.0),
+            message: area(43.0, 391.0, 347.0, 483.0),
+        },
+    ]
+}
+
+#[test]
+fn the_empty_board_has_the_star_above_and_the_turn_below() {
+    for board in boards() {
+        let figure = empty_board(&board);
+        let star = figure.star.expect("room for the star");
+        assert!(star.centre.y + star.span / 2.0 <= board.message.y - ratios::CLEARANCE);
+        let v = figure.v.expect("room for the turn");
+        assert_eq!(v.loops, 3);
+        assert!(v.arms.apex.y > board.message.bottom());
+        assert!(
+            clearance(&figure, board.message) >= ratios::CLEARANCE - 0.5,
+            "never under the message"
+        );
+        assert!(v.arms.apex.y + ratios::half_band(3, v.pitch) <= board.content.bottom());
+    }
+}
+
+#[test]
+fn a_short_board_drops_what_has_no_room() {
+    let short = EmptyBoard {
+        content: area(0.0, 0.0, 400.0, 280.0),
+        message: area(50.0, 60.0, 350.0, 190.0),
+    };
+    let figure = empty_board(&short);
+    assert_eq!(figure.star, None);
+    assert_eq!(figure.v, None);
+}
+
+#[test]
+fn a_card_in_the_composers_place_gets_the_new_sessions_figure() {
+    // 1280: the pairing card (517 x 294) centred in the panel; the arms
+    // start beside it and pass behind it, the star above it
+    let wide = card_screen(&CardScreen {
+        content: area(265.0, 37.0, 1271.0, 791.0),
+        card: area(509.0, 282.0, 1026.0, 576.0),
+    });
+    let v = wide.v.expect("the V");
+    assert_eq!(v.loops, 4);
+    assert!(v.arms.left.x < 509.0 && v.arms.apex.y > 576.0);
+    let star = wide.star.expect("the star");
+    assert!(star.centre.y + star.span / 2.0 < 282.0 - ratios::CLEARANCE);
+    // 800: the card fills the panel's width; the narrow figure
+    let narrow = card_screen(&CardScreen {
+        content: area(265.0, 37.0, 791.0, 591.0),
+        card: area(270.0, 160.0, 787.0, 454.0),
+    });
+    let v = narrow.v.expect("the V's bottom");
+    assert_eq!(v.loops, 3);
+    assert!(v.arms.left.y > 454.0);
+    assert!(narrow.star.is_some_and(|star| star.centre.y < 160.0));
 }

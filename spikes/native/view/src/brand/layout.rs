@@ -14,6 +14,12 @@
 //!   far as the margin allows and no further than
 //!   [`ratios::FRAME_LEAN_DEGREES`], so on a wide window they end in the
 //!   margin as in the owner's sketch, not at the composer's corners.
+//! - The empty board: the star above its message and the V's bottom turn
+//!   under it (the new session's narrow figure at a message's size; the
+//!   coordinator's pick from the study of 2026-11-14).
+//! - A card in the composer's place (the first run's pairing card, for the
+//!   onboarding screens to mount): the new session's figure, the card as
+//!   its composer and no text beside it.
 #![expect(
     clippy::float_arithmetic,
     reason = "placing lines against measured boxes is float geometry; each formula mirrors the study's drawing"
@@ -232,4 +238,140 @@ pub fn session(screen: &Session) -> Figure {
         }),
         star: None,
     }
+}
+
+/// What the empty board measured.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EmptyBoard {
+    /// The area the drawing may fill (the content panel).
+    pub content: Area,
+    /// The message block: its title, the line under it and the button.
+    pub message: Area,
+}
+
+/// The star's span on the empty board: a little over a twentieth of the
+/// content's width, between the sizes the study drew (44 and 56 points).
+fn board_star(content_w: f32) -> f32 {
+    (0.055 * content_w).clamp(44.0, 56.0)
+}
+
+/// The empty board's drawing: the star above the message and the V's
+/// bottom turn (three loops) under it; each only where its room allows.
+#[must_use]
+pub fn empty_board(screen: &EmptyBoard) -> Figure {
+    let EmptyBoard { content, message } = *screen;
+    let centre = message.x + message.w / 2.0;
+    let span = board_star(content.w);
+    let star_y = message.y - 28.0 - span / 2.0;
+    let star = (star_y - span / 2.0 >= content.y + MARGIN).then_some(Star {
+        centre: Pt {
+            x: centre,
+            y: star_y,
+        },
+        span,
+    });
+    let loops = 3;
+    let pitch = ratios::pitch_for(content.w);
+    let half = ratios::half_band(loops, pitch);
+    let top = message.bottom() + ratios::CLEARANCE + half;
+    let drop = (content.bottom() - 24.0 - half - top).min(150.0);
+    let v = (drop >= 40.0).then(|| {
+        let reach = drop / tan_arm();
+        Loops {
+            arms: Arms {
+                left: Pt {
+                    x: centre - reach,
+                    y: top,
+                },
+                apex: Pt {
+                    x: centre,
+                    y: top + drop,
+                },
+                right: Pt {
+                    x: centre + reach,
+                    y: top,
+                },
+            },
+            pitch,
+            loops,
+            outer: 1.0,
+            alpha: 1.0,
+        }
+    });
+    Figure { v, star }
+}
+
+/// What a screen with one card in the composer's place measured.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CardScreen {
+    /// The area the drawing may fill.
+    pub content: Area,
+    /// The card (opaque: the V passes behind it).
+    pub card: Area,
+}
+
+/// The new session's figure around a card that stands where the composer
+/// does, with no heading above it and no pickers under it. Wide (the V's
+/// arms start beside the card): the arms pass behind the card (it is
+/// opaque and nothing beside it is text), the star above it. Narrow: the
+/// star above the card and the V's bottom under it, as the new session's
+/// narrow figure.
+#[must_use]
+pub fn card_screen(screen: &CardScreen) -> Figure {
+    let CardScreen { content, card } = *screen;
+    card_wide(screen).unwrap_or_else(|| {
+        narrow(&NewSession {
+            content,
+            composer: card,
+            heading: card,
+            pickers: card,
+        })
+    })
+}
+
+fn card_wide(screen: &CardScreen) -> Option<Figure> {
+    let CardScreen { content, card } = *screen;
+    let loops = 4;
+    let pitch = ratios::pitch_for(content.w);
+    let half = ratios::half_band(loops, pitch);
+    let centre = card.x + card.w / 2.0;
+    let apex_y = (content.bottom() - 24.0 - half)
+        .min(0.55_f32.mul_add(content.bottom() - card.bottom(), card.bottom()));
+    let top_y = content.y + 22.0 + half;
+    let top_x = (content.x + MARGIN + half).max(centre - (apex_y - top_y) / tan_arm());
+    // the arms must start beside the card, or only their ends would show
+    if top_x + half >= card.x || apex_y <= card.bottom() + half {
+        return None;
+    }
+    let top_y = apex_y - (centre - top_x) * tan_arm();
+    let outer = 2.0 * (centre - top_x + half / sin_arm());
+    let span = (ratios::STAR_OF_WIDTH * outer).min(0.45 * (card.y - content.y));
+    let star_y = card.y - ratios::CLEARANCE - 18.0 - span / 2.0;
+    let star = (star_y - span / 2.0 >= content.y + MARGIN).then_some(Star {
+        centre: Pt {
+            x: centre,
+            y: star_y,
+        },
+        span,
+    });
+    Some(Figure {
+        v: Some(Loops {
+            arms: Arms {
+                left: Pt { x: top_x, y: top_y },
+                apex: Pt {
+                    x: centre,
+                    y: apex_y,
+                },
+                right: Pt {
+                    x: 2.0 * centre - top_x,
+                    y: top_y,
+                },
+            },
+            pitch,
+            loops,
+            outer: 1.0,
+            alpha: 1.0,
+        }),
+        star,
+    })
 }
