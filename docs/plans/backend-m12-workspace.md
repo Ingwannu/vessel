@@ -231,3 +231,9 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   of this track passes.
 - `ProjectId` and `WorktreeId` are `Copy` UUIDs (not the opaque string ids
   the page's fixtures suggest): the tests use fixed UUIDs.
+
+## Where this track stands (2026-11-14 04:40 UTC)
+
+- Done: the landing 232717df (in 0.0.0.0.13); P's seams 46ed5a7f (`FileReference`, `code_find_files` with the `found_elsewhere` slot); the editor's model 91d79ec6 (Paseo's `FileEditorModel` as a state machine, its test cases); the lead's 9461f149 merged as 2509461f, whole gate green (fmt, clippy, 623 tests).
+- Half-done: nothing in the tree. Before the next captures: the capture script takes a display of its own with its own authority file (checked free), and the fake fleet's book is filled by `pair.sh | vessel nodes add NAME --pair --yes` (never the node's owner token, never a link typed into a UI); the owner's words 26 and 27 (fills clipped to rounded shapes, the pointer's cursor over popovers) are still to be checked in this panel at scale 1.25 and 1.5.
+- Next: the kit's code editor over the engine's editor kind (a control-only commit, agreed with the lead first), then the Files tab's editor (800 ms autosave, guarded save, the conflict bar and toolbar; read-only above 1 MiB and at a phone's width), open by name from anywhere (the shortcut through S3's registry), reading past a file's first page.
