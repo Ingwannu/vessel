@@ -280,7 +280,10 @@ method is added.
 
 Decision: extend the existing dictation values, reuse SecretName and its
 central validator, and add a change type because Option alone loses the
-keep/reset distinction. No dependency is added. Paseo speech-settings.ts
+keep/reset distinction. The strict incoming patch has a separate lenient file
+decoding view; unknown nested fields cannot make the whole file fall back to
+defaults. Unknown file options may be forgotten on write, but known settings
+and the secret reference survive. No dependency is added. Paseo speech-settings.ts
 149–175 clears null fields and resets site options on provider changes;
 persisted-config.ts 99–115 makes provider fields strict. The contract now
 records those behaviours before implementation. Read views expose only key
@@ -295,22 +298,26 @@ runtime unchanged and newly selected references resolve before saving.
 ## Resume point
 
 Done: audio values, metadata, TLS and resolved-secret extraction passed review.
-The named node head was merged and the owed metadata gate closed fully green
-on 10fe31df: Rust1971/0/12 ignored, TS2, web unit417/e2e62. The architecture
-merge retained the head verbatim and appended dictation. Boundary fixtures
-now derive from their constants. No call or settings field is registered.
+The named node head was merged and the metadata gate closed fully green on
+10fe31df. No call or NodeSettings field is registered.
 
-This docs commit extends the settings contract for typed keep/set/reset,
-provider changes, strict fields and safe secret references. Next apply the
-unregistered contract values, gate them, then stage the audio/owner and
-endpoint service modules against synthetic/loopback tests.
+The settings contract review returned its file/failure promises. This correction
+requires a lenient file view beside the strict wire patch, documents loss of all
+dictation settings after a pre-dictation writer changes settings, and states the
+check/save deletion race without caching a credential. Every merged patch is
+validated before writing; any refusal leaves file and in-force settings unchanged.
+Wiring owes future-file preservation, legacy-writer, deletion-race and whole-
+provider-patch failure tests named in ADR 0067.
 
-Node service staging is test-only until wiring; its review does not establish
-a product path. Wiring waits for the shared protocol accessor and call-table
-refactor, removes the staging attribute, and gets a whole product gate.
-Existing complete settings literals gain default completion only with the
-new optional field, preserving every old value and assertion. Do not split
-the shared guard: the common plumbing refactor owns its structure.
+Half-done: unregistered contract values are in development. Keep/set/reset,
+provider changes and reference privacy have targeted tests; no persistence path
+is implemented yet. Finish the returned docs first, then the value-only gate.
 
-Local engines and microphone capture remain deferred. The CLI file client
-follows the node service; its file-format contract still needs an amendment.
+Next stage audio/owner and endpoint code under the test-only module declaration.
+Those reviews establish staged source behaviour, not a product path. Wiring
+waits for the shared protocol accessor and call-table refactor, removes staging,
+and gets a whole product gate. Existing settings literals gain default completion
+only in the optional-field commit, without changing any old value or assertion.
+Do not split the shared guard; the common plumbing refactor owns its structure.
+Local engines and microphone capture remain deferred. The CLI file client follows
+the node service and still needs its file-format contract amendment.

@@ -362,8 +362,11 @@ controls.
 
 The credential value is never stored in settings.json. The setting selects a
 `SecretName` the admin already stored with `secret.set`. A new selection must
-resolve to a nonempty value before it is saved; a later deletion is reported
-as absent. Null clears the reference without deleting the independent secret. `node.settings`
+resolve to a nonempty value before it is saved. This check and the save are
+not a transaction with the secret store: deleting the secret between them
+leaves a reference that reads `key: absent` and refuses `start` with `KeyAbsent`,
+just as a later deletion does. No credential value is cached at selection time.
+Null clears the reference without deleting the independent secret. `node.settings`
 (`read`) reports `key: present` or `key: absent`, never the name and
 never the value: a read-only device learns whether dictation can
 authenticate, not which secret it uses. The name is visible to
@@ -387,7 +390,8 @@ Existing implementation and constraints: speech-settings.ts 149–175 removes
 null or blank fields and clears site options when the provider changes.
 persisted-config.ts 99–115 rejects options belonging to another provider.
 Vessel already has validated metadata, fixed defaults without environment
-overrides, and a separate node secret store. Its file reuses the patch type.
+overrides, and a separate node secret store. The incoming wire patch is strict;
+the settings file needs a separate, lenient decoding view of the known values.
 
 Alternatives considered: plain `Option<T>` would swallow a present null as
 an unchanged field; an untagged trial decoder would discard the value
@@ -398,7 +402,12 @@ Choice: optional `DictationChange<T>` fields represent keep/set/reset. A
 manual option visitor preserves value diagnostics and a present null reset.
 Applying a patch normalizes resets out of saved overrides. A provider change
 retains the switch, clears language/model/base/key overrides, then applies
-the new fields. The merged provider refuses inactive options. SecretReference
+the new fields in an in-memory candidate. The whole patch, including a provider
+change, is validated against that merged candidate before anything is written.
+Any refusal (unknown choice, inactive option, missing or empty newly selected
+secret, or failed write) leaves both the file and the settings in force unchanged.
+The node writes first and applies after, under the existing single settings lock.
+SecretReference
 wraps the existing name rule, redacts Debug and submitted text in failures,
 and exposes the name only for the existing secret lookup. Readers get only
 key presence; no credential value is part of these types.
@@ -411,12 +420,28 @@ restrictions already stated above. No dependency is introduced.
 
 Advantages, costs and effects: provider changes cannot carry old authentication
 or model options into a new site. Clearing a reference leaves secret deletion
-with its existing owner. Known patch fields reject unknown nested fields;
-future choices remain readable but cannot be newly applied. Because the file
-uses the patch type, an unknown nested field can cause an older build to refuse
-that settings file and use its existing fallback to flags. This slice adds
-contract values only: no node.settings field, persistence path or call is
-registered yet. Their wiring has its own compatibility and atomic-write tests.
+with its existing owner. Incoming patch fields reject unknown nested fields;
+future choices remain readable but cannot be newly applied. The file codec uses
+a lenient file view beside that strict wire patch: unknown nested dictation
+fields are ignored on read and may disappear on the next write, while all known
+parking, driver and dictation values, including the key reference, are preserved.
+One unrecognized field must not refuse the entire file, fall back to defaults,
+and subsequently erase unrelated settings. Existing validation of known values
+remains in force. No second closed list of settings fields is introduced.
+
+A downgrade to a pre-dictation build has a different limitation: that build
+ignores the whole dictation key and forgets its settings on any later settings
+write. The named secret itself stays in the independent secret store. This
+limitation is documented rather than claimed to preserve the new feature.
+
+This slice adds contract values only: no node.settings field, persistence path
+or call is registered yet. Wiring owes tests for a later-version file with an
+unknown nested field retaining the known parking/drivers/dictation values after
+a write; a pre-dictation writer forgetting dictation while leaving the secret;
+a secret deleted between selection check and save reading absent and refusing
+start without a cached value; and a provider change with one bad field (plus
+missing/empty secret and failed-write cases) leaving the whole file and settings
+in force unchanged.
 
 ### Privacy: where the audio goes
 
