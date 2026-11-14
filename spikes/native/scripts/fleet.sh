@@ -12,8 +12,13 @@
 #   scripts/fleet.sh start ROOT TARGET   # TARGET: the main workspace's
 #                                        # build dir with debug binaries
 #   scripts/fleet.sh stop ROOT
-# Then run the app with VESSEL_CONFIG_DIR=ROOT/config. `laptop` also
-# serves pairing (`--public`), so `ROOT/pair.sh` prints a pairing link.
+# Then run the app with VESSEL_CONFIG_DIR=ROOT/config. Every node serves
+# pairing (`--public`), and the book holds what a person's pairing grants
+# (read, operate, admin), never a node's owner token: each node is paired
+# as a person pairs, its single-use link going from `vessel node pair` to
+# `vessel nodes add NAME --pair --yes` through a pipe, never printed,
+# logged or kept (the app track's rule of 2026-11-14). `ROOT/pair.sh`
+# prints a link for laptop, for trying the pairing dialog by hand.
 #
 # Build the binaries first, in the repository root:
 #   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
@@ -62,10 +67,9 @@ for name in laptop build-server; do
   agent_fixture_bin "$root" "$target" "$name"
   agent_fixture_config "$data"
   node_path="$root/$name-bin:/usr/bin:/bin"
-  extra=()
-  if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
   env -i PATH="$node_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
-    "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
+    "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" \
+    --public "127.0.0.1:$port" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
   # The token is written before the node listens: wait for both.
@@ -74,8 +78,12 @@ for name in laptop build-server; do
     sleep 0.1
   done
   echo "$name 127.0.0.1:$port" >> "$root/nodes"
-  env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
-    "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
+  # The node's own token makes the link (on the node's side, as its owner
+  # would); the book only ever receives the paired device's credentials.
+  env -i PATH="$base_path" HOME="$home" \
+    "$target/vessel" --data-dir "$data" --node "127.0.0.1:$port" node pair --label fleet-app \
+    | env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
+      "$target/vessel" nodes add "$name" --pair --yes > /dev/null
 done
 
 python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
