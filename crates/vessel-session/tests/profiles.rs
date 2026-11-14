@@ -100,6 +100,7 @@ mod support {
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
                     park_after: None,
+                    private_dir: None,
                 },
                 CancellationToken::new(),
             );
@@ -392,7 +393,9 @@ mod support {
                 | SessionEvent::CommandsChanged { .. }
                 | SessionEvent::UsageChanged { .. }
                 | SessionEvent::Parked { .. }
-                | SessionEvent::Woken => {}
+                | SessionEvent::Woken
+                | SessionEvent::Forked { .. }
+                | SessionEvent::Rewound { .. } => {}
             }
             Some(record)
         }
@@ -725,6 +728,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             model_proxy: None,
             // The runtime follows the node's choice, whoever created it.
             questions: false,
+            fork: None,
         };
         let created = fixture
             .create(structured(None), options.clone())

@@ -1,4 +1,4 @@
-//! Side conversations (protocol 13, ADR 0045). Their parent link never
+//! Side conversations (protocol 19, ADR 0045). Their parent link never
 //! means resuming the parent's native conversation or writing into it.
 
 use serde::{Deserialize, Serialize};

@@ -155,3 +155,81 @@ fn kill(pid: u32) -> std::io::Result<std::process::ExitStatus> {
         .args(["/F", "/PID", &pid.to_string()])
         .status()
 }
+
+/// The direct drivers' skeletons (ADR 0057): the version line Vessel reads,
+/// and the first exchange of each protocol.
+#[test]
+fn the_direct_fakes_answer_their_version_and_first_exchange() {
+    // `program` with `args`, `input` written and stdin closed: its stdout
+    // lines as JSON.
+    let exchange = |program: &str, args: &[&str], input: &str| -> Vec<serde_json::Value> {
+        let mut child = Command::new(program)
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(input.as_bytes())
+            .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect()
+    };
+    let codex = env!("CARGO_BIN_EXE_fake-codex-app-server");
+    let version = Command::new(codex).arg("--version").output().unwrap();
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap(),
+        "codex-cli 0.166.0\n"
+    );
+    let replies = exchange(
+        codex,
+        &["app-server"],
+        concat!(
+            r#"{"id":1,"method":"initialize","params":{"clientInfo":{"name":"t","version":"0"}}}"#,
+            "\n",
+            r#"{"method":"initialized"}"#,
+            "\n",
+            r#"{"id":2,"method":"thread/start","params":{}}"#,
+            "\n",
+        ),
+    );
+    assert_eq!(replies.len(), 2, "{replies:?}");
+    assert_eq!(replies[0]["id"], 1);
+    assert!(replies[0]["result"]["userAgent"].is_string());
+    assert_eq!(replies[1]["error"]["code"], -32601);
+
+    let claude = env!("CARGO_BIN_EXE_fake-claude-stream");
+    let version = Command::new(claude).arg("--version").output().unwrap();
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap(),
+        "2.1.246 (Claude Code)\n"
+    );
+    let frames = exchange(
+        claude,
+        &[
+            "-p",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+        ],
+        concat!(
+            r#"{"type":"user","message":{"role":"user","content":"hi"}}"#,
+            "\n"
+        ),
+    );
+    let kinds: Vec<_> = frames
+        .iter()
+        .map(|frame| frame["type"].as_str().unwrap())
+        .collect();
+    assert_eq!(kinds, ["system", "result"]);
+    assert_eq!(frames[0]["session_id"], frames[1]["session_id"]);
+}

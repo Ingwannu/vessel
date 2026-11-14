@@ -77,6 +77,7 @@ impl Fixture {
                 durable_capacity: DEFAULT_DURABLE_CAPACITY,
                 agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
                 park_after: after,
+                private_dir: None,
             },
             CancellationToken::new(),
         );
@@ -204,7 +205,8 @@ impl Log {
                 SessionEvent::Agent {
                     event: AgentEvent::TurnEnded {
                         reason: StopReason::EndTurn | StopReason::Cancelled,
-                        usage: None
+                        usage: None,
+                        ..
                     }
                 }
             )

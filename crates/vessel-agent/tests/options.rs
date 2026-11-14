@@ -49,6 +49,8 @@ mod support {
             mcp_servers: ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions: false,
+            fork: None,
+            private_dir: None,
         }
     }
 
@@ -353,7 +355,8 @@ async fn the_agents_own_change_is_reported() {
                 seen,
                 Seen::Event(AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
-                    usage: None
+                    usage: None,
+                    ..
                 })
             ))
             .await

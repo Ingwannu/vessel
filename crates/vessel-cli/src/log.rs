@@ -107,7 +107,9 @@ fn render(
             | SessionEvent::CommandsChanged { .. }
             | SessionEvent::UsageChanged { .. }
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {
                 push(Stream::Note, conversation.show(record).as_bytes());
             }
             SessionEvent::Agent { .. } => push(Stream::Out, conversation.show(record).as_bytes()),

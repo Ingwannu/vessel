@@ -9,6 +9,7 @@ mod patch;
 mod redact;
 mod refusal;
 mod repo;
+mod repository_lock;
 mod run;
 mod search;
 mod status;
@@ -36,6 +37,9 @@ pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
 pub struct Git {
     runner: run::Runner,
     version: GitVersion,
+    /// Shared by every clone: the runs that change a repository's
+    /// worktrees take turns per repository (`repository_lock`).
+    worktrees: std::sync::Arc<repository_lock::RepositoryLocks>,
 }
 
 /// What looking for git found.
@@ -104,7 +108,11 @@ impl Git {
             }
             Some(version) => Found {
                 support: GitSupport::Found { version },
-                git: Some(Self { runner, version }),
+                git: Some(Self {
+                    runner,
+                    version,
+                    worktrees: std::sync::Arc::default(),
+                }),
             },
         }
     }

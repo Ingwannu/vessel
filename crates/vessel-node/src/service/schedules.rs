@@ -30,6 +30,10 @@ pub(super) fn asker(principal: &Principal) -> Asker {
     }
 }
 
+/// A session's spec kept with a schedule or a saved prompt, encoded, at
+/// most: the bound of the prompt kept beside it.
+const SPEC_MAX: usize = 16 * 1024;
+
 fn invalid(message: &str) -> WireError {
     WireError::new(ErrorCode::InvalidRequest, message)
 }
@@ -172,6 +176,16 @@ impl NodeService {
     ) -> Result<(), WireError> {
         if spec.side_question_of.is_some() {
             return Err(crate::side_questions::SideError::Template.wire());
+        }
+        // Kept with a schedule or a saved prompt and sent in every list:
+        // bounded as the prompt is, so 256 of them stay far under a frame
+        // (a spec's folder, model and options are not bounded on their
+        // own; the join's code review, finding 5).
+        let size = serde_json::to_vec(spec).map_or(usize::MAX, |encoded| encoded.len());
+        if size > SPEC_MAX {
+            return Err(invalid(
+                "a session's spec kept for later is at most 16 KiB encoded",
+            ));
         }
         match &spec.mode {
             SessionMode::Terminal { .. } => {

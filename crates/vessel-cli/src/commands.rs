@@ -6,8 +6,10 @@ use std::path::PathBuf;
 
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
+use vessel_proto::settings::{AgentDriver, GetNodeSettings, SetAgentDrivers, SetNodeSettings};
 use vessel_proto::{
-    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
+    EventSeq, HarnessKind, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode,
+    SessionSpec,
 };
 
 use vessel_client::book::Resolved;
@@ -76,6 +78,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Send(send) => conversation::send(target, send).await,
         Command::Log { session, from } => log(target, &session, from).await,
         Command::Search(search) => crate::search::search(target, search).await,
+        Command::History(history) => crate::history::history(target, history).await,
         Command::Kill { session } => {
             let client = connect(target).await?.client;
             let info = session.resolve(&client).await?;
@@ -115,9 +118,56 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             let text = render::node_status(&node, &sessions, env!("CARGO_PKG_VERSION"));
             Ok(io::out(text.as_bytes()).await?)
         }
-        NodeCommand::Pair { label, ttl } => devices::pair(target, label, ttl).await,
+        NodeCommand::Pair {
+            label,
+            ttl,
+            read_only,
+        } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
+        NodeCommand::Settings { park_after, driver } => {
+            let client = connect(target).await?.client;
+            let drivers = driver_change(&driver)?;
+            let settings = if park_after.is_some() || drivers.is_some() {
+                client
+                    .call(SetNodeSettings {
+                        park_after,
+                        drivers,
+                    })
+                    .await?
+            } else {
+                client.call(GetNodeSettings {}).await?
+            };
+            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+        }
     }
+}
+
+/// `--driver` values as a change; `None` without any.
+///
+/// # Errors
+/// An agent with no protocol of its own (Gemini).
+fn driver_change(
+    drivers: &[(HarnessKind, AgentDriver)],
+) -> Result<Option<SetAgentDrivers>, CliError> {
+    if drivers.is_empty() {
+        return Ok(None);
+    }
+    let mut change = SetAgentDrivers::default();
+    for (kind, driver) in drivers {
+        let slot = match kind {
+            HarnessKind::ClaudeCode => &mut change.claude_code,
+            HarnessKind::Codex => &mut change.codex,
+            HarnessKind::OpenCode => &mut change.open_code,
+            // `--driver` refuses it already.
+            HarnessKind::Gemini => {
+                return Err(CliError::Usage(
+                    "gemini has no protocol of its own; it always runs over ACP",
+                ));
+            }
+        };
+        *slot = Some(*driver);
+    }
+    Ok(Some(change))
 }
 
 /// `vessel session ...`.
@@ -272,6 +322,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     let mut spec = SessionSpec::new(run.harness, mode);
     spec.cwd = run.cwd.map(|cwd| node_cwd(&resolved, cwd)).transpose()?;
     spec.profile = run.profile;
+    spec.title = run.title;
     let connected = connect_to(target, &resolved, &book).await?;
     // A place (protocol 10): the node fills `cwd` with its folder.
     spec.place = workspace::place(
@@ -301,7 +352,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
 /// here with an error saying so, instead of being sent and failing there
 /// with a less helpful one. "This machine" is a loopback websocket node, as
 /// for the token file (`connect`); an SSH node is another machine.
-fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
+pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
     if cwd.is_absolute() {
         return Ok(cwd);
     }

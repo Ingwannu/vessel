@@ -31,7 +31,6 @@ pub mod prefs;
 pub mod session;
 pub mod settings;
 pub mod shortcuts;
-pub mod side_question;
 pub mod sidebar;
 pub mod sync;
 pub mod terminal;
@@ -54,6 +53,6 @@ pub use options::{
 pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, NoticeWords, OptionsText,
-    PairingWords, PaletteWords, SettingsText, ShortcutWords, SideWords, SidebarWords, Text,
-    UpdateText, grouped, meter_tokens, short_tokens,
+    PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
+    grouped, meter_tokens, short_tokens,
 };

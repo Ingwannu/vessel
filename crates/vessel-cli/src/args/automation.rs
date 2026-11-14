@@ -6,13 +6,31 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use clap::{Args, Subcommand};
-use vessel_proto::{HarnessKind, ProfileName};
+use vessel_proto::{HarnessRef, ProfileName};
 
 /// `vessel schedule …`.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ScheduleCommand {
     /// List the node's schedules, newest first.
     List,
+    /// Compute upcoming runs on the node without saving a schedule.
+    Preview {
+        /// Five-field cron expression.
+        #[arg(long, conflicts_with = "every", required_unless_present = "every")]
+        cron: Option<String>,
+        /// Elapsed interval (for example 30m).
+        #[arg(long)]
+        every: Option<String>,
+        /// IANA zone; defaults to this CLI machine's zone, as create does.
+        #[arg(long, requires = "cron")]
+        tz: Option<String>,
+        /// Start strictly after this RFC 3339 instant; defaults to node time.
+        #[arg(long)]
+        after: Option<DateTime<Utc>>,
+        /// Number of upcoming runs, from 1 to 10.
+        #[arg(long, default_value_t = 5)]
+        count: u32,
+    },
     /// Show one schedule and its last run.
     Show {
         /// The schedule.
@@ -78,24 +96,29 @@ pub(crate) struct ScheduleArgs {
     /// Prompt this session (through its queue) each run.
     #[arg(long, conflicts_with_all = ["harness", "profile", "project", "worktree", "model", "keep"])]
     pub(crate) session: Option<String>,
-    /// Start a new session of this harness each run.
+    /// Start a new session of this agent each run: one of the four, or
+    /// one added on the node (`vessel agents`).
     #[arg(long)]
-    pub(crate) harness: Option<HarnessKind>,
-    /// With `--harness`: under this profile (`vessel profiles`).
-    #[arg(long, requires = "harness")]
+    pub(crate) harness: Option<HarnessRef>,
+    /// With `--harness` (or `edit` of a schedule of new sessions): under
+    /// this profile (`vessel profiles`).
+    #[arg(long)]
     pub(crate) profile: Option<ProfileName>,
-    /// With `--harness`: in this project's folder (`vessel project list`).
-    #[arg(long, requires = "harness", conflicts_with = "worktree")]
+    /// With `--harness` (or `edit`): in this project's folder (`vessel
+    /// project list`).
+    #[arg(long, conflicts_with = "worktree")]
     pub(crate) project: Option<String>,
-    /// With `--harness`: in this worktree (`vessel worktree list`).
-    #[arg(long, requires = "harness")]
+    /// With `--harness` (or `edit`): in this worktree (`vessel worktree
+    /// list`).
+    #[arg(long)]
     pub(crate) worktree: Option<String>,
-    /// With `--harness`: the model to ask for.
-    #[arg(long, requires = "harness")]
+    /// With `--harness` (or `edit`): the model to ask for.
+    #[arg(long)]
     pub(crate) model: Option<String>,
-    /// With `--harness`: keep each run's session after its first turn
-    /// (by default it is archived, unless something waits in its queue).
-    #[arg(long, requires = "harness")]
+    /// With `--harness` (or `edit`): keep each run's session after its
+    /// first turn (by default it is archived, unless something waits in
+    /// its queue).
+    #[arg(long)]
     pub(crate) keep: bool,
     /// The prompt each run sends.
     #[arg(long, conflicts_with = "prompt_file")]

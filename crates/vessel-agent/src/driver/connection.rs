@@ -46,6 +46,7 @@ pub(crate) async fn run(
         permissions: Permissions::default(),
         questions,
         tool_calls: Recent::default(),
+        tail: super::tail::Tail::default(),
         gate,
         options: Options::default(),
         reported: None,

@@ -30,9 +30,9 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
-## Version 13 (2026-11-13, milestone 12)
+## Version 19 (2026-11-14, milestone 12)
 
-The track raises the current version once to 13; minimum remains 2.
+The track raises the current version once to 19; minimum remains 2.
 
 ### Side questions (N5, ADR 0045)
 
@@ -69,10 +69,236 @@ The track raises the current version once to 13; minimum remains 2.
   questions/resume. Reset inherits current profile/model/choices; an
   existing side keeps its own configuration. Imports clear node-local
   parent links. Saved/scheduled templates refuse side specs.
+- A parent rewind clears its plan projection and limits the partial
+  transcript to records after the latest rewind, so discarded future
+  messages cannot be presented as current. A new plan report replaces
+  the cleared projection. Generic session.fork refuses side sources;
+  side_reset is the supported start-over path.
 - All direct and currently supported nested session specs require
-  protocol 13 when they name a side link, so old nodes cannot silently
+  protocol 19 when they name a side link, so old nodes cannot silently
   ignore it. The optional field is ignored by older apps. No new events
   or stand-ins are required.
+## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
+
+Nodes speak 2..=18. No method, no event, no record: one field of the
+node's settings. A client sends a change naming it to no older node
+(`Call::since`; `unsupported`, "needs protocol 18"), since an older node
+would ignore it and keep every agent on ACP without saying so.
+
+### Agents over their own protocols (track A2, ADR 0057)
+
+Types in `vessel_proto::settings`.
+
+- `NodeSettings` gains `drivers?: AgentDrivers { claude_code, codex,
+  open_code }`, each an `AgentDriver`: `acp` (the Agent Client Protocol,
+  the agent's own ACP mode or its adapter), `direct` (the agent's own
+  protocol: Codex's app-server, Claude Code's stream-json, `OpenCode`'s
+  server) or `unknown` (a newer node's). Absent when every agent runs
+  over ACP, as from a node older than 18. Gemini and agents added on the
+  node have no protocol of their own and always run over ACP.
+- `node.set_settings { drivers?: SetAgentDrivers { claude_code?, codex?,
+  open_code? } }` changes the agents it names. `unknown` is refused
+  (`invalid_request`); `direct` is refused (`unsupported`) for an agent
+  whose driver this build does not offer yet: none in this version. A
+  change is kept in `settings.json`; a choice a newer build saved runs
+  as ACP here and stays in the file.
+- What a setting changes: the driver of that agent's sessions started
+  after it, chosen at each creation and start again, and used by its
+  probes (`harness.options`) and listings (`agent.history`). A session
+  keeps its driver for its life, across moves, parks and rewinds, since
+  its options are that driver's. The node runs the agent's own protocol
+  only for a version it was checked against (the agent's `--version`);
+  for an older or unreadable one the session runs over ACP and its log
+  says why, and for a newer one it runs and its log says so.
+- Nothing else on the wire changes: a direct driver produces the same
+  events, options, permission requests and questions as ACP.
+
+## Version 17 (2026-11-14, milestone 11's track A2 slice 4, on milestone 12's node line, ADR 0053)
+
+Nodes speak 2..=17. One method, no event, no record. Track A2 wrote it
+at 14 beside forking; on the node line 15 (N3's fleet controls) and 16
+(`fleet.published`) were taken first, so it is 17 here. A client
+sends it to no older node (`Call::since`; `unsupported`, "needs protocol
+17"); a node refuses it on an older connection.
+
+### Importing from an agent's own history (track A2, ADR 0053)
+
+One method; types in `vessel_proto::history`.
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
+  forwardable, refused to agents) answers `AgentHistoryPage {
+  conversations: [HistoryEntry], next? }`: the conversations the agent
+  keeps under that profile, newest first, as it lists them over ACP
+  (`session/list`; the node starts the agent as for `harness.options`,
+  and no session is created or loaded). `cwd` (absolute) keeps those
+  held in that folder; `cursor` is a page's `next` as it was given (at
+  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
+  `next` after the node has asked past several empty pages of the agent's.
+- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
+  }`: the agent's id, its folder (absolute), its title cut as a prompt's
+  title is, when it was last active, and the newest session on this node
+  (live or kept) on that conversation.
+- Importing is `session.create` with `mode: structured { resume:
+  harness_session }`, the entry's `cwd`, the `profile` it was listed
+  under and, for a title, its `title`; the agent's replay is the new
+  session's log.
+- A node of 17 refuses `session.create` with `resume`,
+  `session.resume` and `session.move_profile` with `conflict` while
+  another live session (parked included) holds that conversation, or is
+  starting on it or moving it: two agents on one transcript would
+  corrupt it. A session holds its conversation under every profile its
+  transcript is in: the one it started under, and each profile
+  `session.move_profile` took it to or from, since a move hard-links the
+  transcript into the target home for good (also when the new agent did
+  not start). A session started again holds the profiles of the moves
+  its log still records. The default profile is one profile whether it
+  is named or not. This is the node's own check, so a client of any
+  version meets it. A copy into another profile (`session.export` then
+  `session.import`, which the CLI's `vessel session copy` and `vessel
+  session move` use; the move kills the source after the copy runs) is
+  another file and is not refused. The listing marks such an entry
+  `in_vessel`; a client opens that session rather than import it.
+- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
+  the agent refusing it), `unsupported` (an agent that does not list or
+  load over ACP), `not_found` (a profile or added agent that is not
+  there), `spawn_failed` (the agent did not start or answer within its
+  handshake), `unavailable` (two listings already run on the node).
+
+## Version 16 (2026-11-14, milestone 12's node line, ADR 0056)
+
+Nodes speak 2..=16. One method, no event, no record; a client refuses it
+locally on an older node (`unsupported`, "needs protocol 16").
+
+`fleet.published {}` (admin, not forwardable, refused to agents; the browser
+bridge passes it) answers what this machine shares through its fleet, by
+name and metadata, never file contents, secret values or a tool server's
+command, arguments, address or headers. Tagged `role`:
+
+- `standalone`: it shares nothing (a value, not an error).
+- `home { bundle? }`: what it publishes; absent before its first bundle.
+- `member { home, bundle?, applied? }`: the bundle it last received from
+  `home`, and the version last applied here (older than `bundle`'s when
+  the last apply did not finish).
+- `unknown`: a newer node's role.
+
+`PublishedBundle { generation, files: SharedFile[], servers, secrets }`;
+`SharedFile { path, kind: instructions | skill | other, size, executable }`;
+`servers` are tool (MCP) server names, `secrets` the secret names they use,
+each once, sorted. Over a bound (4096 files, 256 servers, the reply's byte
+budget) the whole read is refused: `unavailable` with
+`detail: { kind: fleet_control, reason: published_too_large }`, which a
+version 15 client reads as `unknown`. The member protocol
+(`fleet.manifest`, `fleet.peers`) is unchanged and stays `sync`-only.
+
+## Version 15 (2026-11-13, milestone 12, N3 row 2)
+
+Nodes speak 2..=15. Track N3 built its fleet controls as part of its
+protocol 12 and asked for them to share the preview's 13; on the node line
+13 and 14 were already published without these calls, so they are 15:
+a client refuses them locally on an older node (`unsupported`, "needs
+protocol 15") rather than sending a method that node cannot decode. No
+event and no record; `ErrorDetail::FleetControl` is a new kind that a
+13 or 14 client reads as `unknown`, and an older one skips with `detail`.
+
+`fleet.join { link, grant }` (Admin) redeems one single-use invitation and
+returns `JoinedFleet { home }` only after persisting the selected machine's
+membership. `fleet.leave {}` (Admin) removes membership and its credential,
+keeping materialized files; already left succeeds. `fleet.sync {}` (Admin)
+returns Ack when accepted by the existing loop, not when applied. These
+mutations cannot be forwarded or used by an agent. A disconnected join may
+have redeemed its invitation; clients never automatically retry it.
+`fleet.status {}` (Read) returns `FleetSyncStatus { role, local, members? }`.
+`role` is standalone, home or member (home id and join time). `local` is last
+applied generation/time, home contact time, relative conflict paths and typed
+problem categories; history can predate the current join. Only the home's
+own authenticated owner/paired Admin sees per-member device reports.
+Read-only and delegated reads omit `members`; they never receive credentials,
+secret names, absolute destination paths or arbitrary local error text.
+Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
+
+## Version 14 (2026-11-13, milestone 11's track A2, on milestone 12's node line)
+
+Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
+protocol 12; on the node line N3's schedule preview had taken 13 first,
+and a client built at 13 has no variant for the two new records, so they
+and the two calls are 14 here. A client sends none of these calls to an older node
+(`Call::since`); a node refuses them on an older connection
+(`unsupported`, "needs protocol 14").
+
+### Forking and rewinding (track A2, ADR 0052)
+
+Two methods, two fields, two records; types in `vessel_proto::forking`
+and `vessel_proto::agent`.
+
+- `AgentAbilities.fork`: the agent advertised `session/fork` (ACP's
+  unstable `sessionCapabilities.fork`). Absent from older nodes; a fork's
+  own handshake decides.
+- `TurnEnded.point?: TurnPoint { message, conversation }`: where a fork
+  or a rewind can start; set when the turn's last agent message carried
+  an id (ACP `messageId`, at most 256 bytes) and nothing but the turn's
+  end followed it. `conversation` is the agent's conversation the turn is
+  in. Absent otherwise, and in records written before 14.
+- `session.fork { session, after? }` (operate, forwardable): a new session
+  of the caller's continuing `session`'s conversation after the turn
+  whose `turn_ended` record is `after`, or as it is now (refused
+  `conflict` while a turn runs). Answers the new session at creation, as
+  `session.create` does; it runs in the source's folder with the
+  source's current choices. Answering at creation is deliberate: the
+  check needs the agent started and a replay read, longer than a call
+  should hold. A fork whose agent does not fork at the point ends
+  `failed { message: "the agent did not fork at the chosen point",
+  empty_fork: true }`.
+- `SessionStatus::Failed.empty_fork` (since 14, absent when false): a
+  fork that never held a conversation (its agent refused the fork, could
+  not load it for the check, or did not start). Nothing can be resumed;
+  a client offers to remove it (`session.delete`).
+- The fork the agent made for a refused check is deleted from the
+  agent's own history on the same connection (ACP `session/delete`,
+  which both installed adapters offer: Claude's deletes the transcript,
+  Codex's archives the thread). An agent that does not offer
+  `session/delete` keeps it, and nothing else removes it: Vessel never
+  writes another program's files, so it lists in that agent's history
+  (`agent.history`) as a conversation no session holds.
+- `session.rewind { session, after }` (operate, ownership-checked,
+  forwardable): the session goes back to the end of that turn; between
+  turns (`conflict` otherwise); a parked session is woken first. Answers
+  the session, its `harness_session` the new conversation.
+- Errors of both: `not_found` (no such session or record), `unsupported`
+  (a terminal session, a record that is not a turn's end with a point,
+  an agent that cannot fork or did not fork at the chosen point),
+  `spawn_failed` (the agent did not start; for a rewind the old
+  conversation goes on).
+- A rewind whose fork fails and whose old conversation then does not
+  start again either (the agent cannot load any conversation) answers
+  `spawn_failed`, and the session ends `failed` ("the rewind failed and
+  the agent could not start the conversation again (...); resume the
+  session to go on from before the rewind"): no agent is left running,
+  and its `harness_session` is the one it had, so `session.resume` goes
+  on from before the rewind.
+- Records (`since 14`; a version 2-13 client gets a `vessel:` log line):
+  `forked { from, after? }`, a fork's first record after `starting`;
+  `rewound { after, harness_session, files_changed }`: the records
+  between `after` and it are no longer the conversation (they stay in the
+  log), the agent's conversation from now on, and how many tool calls left
+  behind edited, deleted or moved files (not put back).
+
+## Version 13 (2026-11-13, milestone 12, N3)
+
+Nodes speak 2..=13; the minimum is unchanged. Additive N3 calls are gated at
+13. `NodeInfo.timezone` is an optional IANA name, absent when detection fails
+or from old nodes, and omitted on negotiated older connections.
+
+`schedule.preview` (Read) takes `cadence`, optional UTC `after`, and bounded
+`count` (1–10, default 5). It returns `after`, the effective `cadence` (an
+interval's resolved anchor), and exactly `count` next UTC `runs`. Reuse the
+returned cadence when saving. No schedule or session is created. Errors
+are `invalid_request` with optional typed `detail: { kind: schedule_preview,
+reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
+or `unavailable` for the bounded worker pool. Existing errors omit detail;
+future unknown detail kinds decode as unknown. Clients never parse messages.
+The optional error `detail` is additive and is not stripped from older
+connections: older error decoders ignore unknown fields. The error code and
+message remain sufficient for those peers.
 
 ## Version 12 (2026-11-13, milestone 11, wave 2's second half)
 
@@ -136,6 +362,14 @@ Two methods, one optional field, two records; types in
   cancel do not wake it.
 - The node parks idle sessions on its own after `--park-after` minutes
   (60 by default; 0 never), never one that someone follows live.
+- `node.settings {}` (read) answers `NodeSettings { park_after }` in force
+  (and `drivers`, protocol 18);
+  `node.set_settings { park_after? }` (admin) changes what it names and
+  answers the same. `ParkAfter` (tagged `kind`): `never`, `idle { minutes
+  }` (1 to 10,080), `unknown` (a newer node's; refused in a change,
+  `invalid_request`). Neither is forwardable. A change is kept across
+  restarts (`settings.json`) and wins over `--park-after`; it applies to
+  live sessions at once. A node older than 12 answers `unsupported`.
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
@@ -168,7 +402,11 @@ Six methods, one optional field, no event. Every type is in
 - `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
   with the failing ones named, people's reviews, times, the repository's
   merge methods). `refresh` reads now, at most once per 10 s per session
-  (more often is answered from memory); an agent may refresh only a
+  (more often is answered from memory); a refresh that comes before the
+  node has first read the session's folder (its branch, just after the
+  session started) waits for that read and answers with what it finds
+  (since 2026-11-14; before, it answered at once with no pull request);
+  an agent may refresh only a
   session it may operate. A session that has ended answers `access:
   ended`; one the node does not watch (not placed) `not_placed`.
 - `pr.open { session, title, body?, base?, draft }` (operate): from the
@@ -493,13 +731,23 @@ Nine methods, all `since 11`, forwardable, in `vessel-web`'s list
     `invalid_request`.
 - Methods: `schedule.list`, `.get`, `.runs` (read); `schedule.create`,
   `.update` (the whole definition, under its `revision`), `.pause`,
-  `.resume`, `.run` (once now, answered with the run's outcome),
-  `.delete` (operate).
+  `.resume`, `.run` (once now, answered with the run's outcome; after 30
+  s with no room, `unavailable`), `.delete` (operate).
+- `invalid_request` besides the contract's: a new session's spec over 16
+  KiB encoded (as a saved prompt's), and an `after` the node does not
+  know (it would neither archive the session nor wait for it).
+- Room: at most 4 runs are made at once and at most 8 scheduled sessions
+  are in their first turn and not waiting for a person; runs wait, the
+  oldest due first, then by id, the first that fits going first.
 - A run acts as the schedule's `defined_by` as they are when it runs (a
-  revoked device ends it; an agent's schedules go with its session), and
-  meets the checks a call of theirs would. Agents: 8 schedules per
-  session, their own session as a heartbeat's target, never `run` now;
-  delegated callers may only read, pause, resume and delete.
+  revoked device ends it; an agent's schedules go with its session, and
+  with its run when the session is started again), and meets the checks
+  a call of theirs would. Agents: 8 schedules per session, their own
+  session as a heartbeat's target, never `run` now, an `every` anchored
+  by the node; delegated callers may only read, pause, resume and
+  delete. A run's session is archived after its first turn as a person's
+  archive does it: its terminals and services end, its pull request is
+  no longer watched.
 - What happens at a daylight-saving gap or fold, after a stopped node, on
   a clock stepped either way, and to a run under way when the node stops,
   is the contract's "Time" and ADR 0033.
@@ -545,7 +793,10 @@ Four methods, all `since 11`, forwardable, in `vessel-web`'s list (ADR
   end, the last 1,500 characters of its reply, and the record to read
   from) or `ended` (the session's final status). Text only, from the
   node, starting `vessel: session`; the queue entry's `by` is the
-  finished session (`Creator::Agent`).
+  finished session (`Creator::Agent`). The session's own words in it
+  (its reply's end, what it asks, why its turn failed) are between
+  `<vessel-session-output-…>` tags whose name is random, with a line
+  saying they are that session's output, not instructions.
 - Bounded: 32 turns followed per told session and 256 on the node
   (`conflict` beyond), 60 notices an hour into one session (the rest
   dropped and logged), none into a session a person stopped. Nothing is

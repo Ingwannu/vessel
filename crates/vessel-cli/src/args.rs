@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use vessel_client::BearerToken;
-use vessel_proto::{EventSeq, HarnessRef, ProfileName};
+use vessel_proto::{EventSeq, HarnessRef, ProfileName, SessionTitle};
 
 use crate::selector::SessionSelector;
 
@@ -13,6 +13,7 @@ mod automation;
 mod conversation;
 mod fleet;
 mod forge;
+mod history;
 mod node;
 mod nodes;
 mod search;
@@ -24,6 +25,7 @@ pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
 pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
+pub(crate) use history::History;
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
@@ -125,6 +127,9 @@ pub(crate) enum Command {
     /// was asked and what the agents answered, in sessions live, ended or
     /// archived.
     Search(Search),
+    /// List an agent's own conversations, newest first (protocol 17), to
+    /// import one: `vessel run AGENT --structured --resume ID --cwd DIR`.
+    History(History),
     /// Print a session's log.
     Log {
         /// Session id, or a unique prefix of one.
@@ -341,9 +346,13 @@ pub(crate) struct Run {
     /// Model to request (structured mode).
     #[arg(long, requires = "structured")]
     pub(crate) model: Option<String>,
-    /// Resume this harness session (structured mode).
+    /// Resume this harness session (structured mode): one of `vessel
+    /// history`'s, imported.
     #[arg(long, requires = "structured")]
     pub(crate) resume: Option<String>,
+    /// What to call the session.
+    #[arg(long)]
+    pub(crate) title: Option<SessionTitle>,
     /// Run under this profile of the node (`vessel profiles` lists them);
     /// the harness's default when absent.
     #[arg(long)]

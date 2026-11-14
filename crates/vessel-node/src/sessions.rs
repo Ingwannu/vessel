@@ -450,6 +450,21 @@ impl Sessions {
             .await?)
     }
 
+    /// A page of `harness`'s own conversations (`SessionRuntime::history`).
+    pub(crate) async fn history(
+        &self,
+        harness: HarnessRef,
+        launch: (Option<Profile>, Option<ModelProxy>),
+        dir: PathBuf,
+        folder: Option<&std::path::Path>,
+        from: vessel_agent::HistoryFrom,
+    ) -> Result<vessel_agent::HistoryPage, ServiceError> {
+        Ok(self
+            .runtime
+            .history(harness, launch, dir, folder, from)
+            .await?)
+    }
+
     /// Stop a session. Killing one that already ended is a no-op.
     pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
         match self.find(id).await? {

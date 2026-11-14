@@ -115,12 +115,12 @@ rpc_methods! {
     GetSession / get_session / "session.get" [Read, 2]: GetSession => SessionInfo;
     /// Start a session.
     CreateSession / create_session / "session.create" [Operate, 2]: CreateSession => SessionInfo;
-    /// Open or reuse a separate side conversation (protocol 13).
-    OpenSideQuestion / open_side_question / "session.side_open" [Operate, 13]: crate::side_questions::OpenSideQuestion => SessionInfo;
-    /// Ask a side question with refreshed parent context (protocol 13).
-    PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 13]: crate::side_questions::PromptSideQuestion => Delivered;
-    /// Replace the expected side conversation (protocol 13).
-    ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 13]: crate::side_questions::ResetSideQuestion => SessionInfo;
+    /// Open or reuse a separate side conversation (protocol 19).
+    OpenSideQuestion / open_side_question / "session.side_open" [Operate, 19]: crate::side_questions::OpenSideQuestion => SessionInfo;
+    /// Ask a side question with refreshed parent context (protocol 19).
+    PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 19]: crate::side_questions::PromptSideQuestion => Delivered;
+    /// Replace the expected side conversation (protocol 19).
+    ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 19]: crate::side_questions::ResetSideQuestion => SessionInfo;
     /// Send input to a session.
     SendInput / send_input / "session.send" [Operate, 2]: SendInput => Ack;
     /// Kill a session.
@@ -153,6 +153,16 @@ rpc_methods! {
     WatchFleet / watch_fleet / "fleet.watch" [Sync, 5]: WatchFleet => Generation;
     /// Report an applied generation (protocol 5).
     ReportApplied / report_applied / "fleet.report" [Sync, 5]: ReportApplied => Ack;
+    /// Join this machine to an invited fleet home (protocol 15).
+    JoinFleet / join_fleet / "fleet.join" [Admin, 15]: crate::JoinFleet => crate::JoinedFleet;
+    /// Leave this machine's fleet, keeping materialized files (protocol 15).
+    LeaveFleet / leave_fleet / "fleet.leave" [Admin, 15]: crate::LeaveFleet => Ack;
+    /// Accept a manual sync on this machine (protocol 15).
+    SyncFleet / sync_fleet / "fleet.sync" [Admin, 15]: crate::SyncFleet => Ack;
+    /// Read safe local apply history and permitted member reports (protocol 15).
+    GetFleetStatus / fleet_status / "fleet.status" [Read, 15]: crate::GetFleetStatus => crate::FleetSyncStatus;
+    /// What this machine shares through its fleet, by name (protocol 16, ADR 0056).
+    GetPublished / fleet_published / "fleet.published" [Admin, 16]: crate::GetPublished => crate::FleetPublished;
     /// List fleet members (protocol 5).
     ListMembers / list_members / "fleet.members" [Admin, 5]: ListMembers => Vec<FleetMember>;
     /// Run a call on another node of the fleet (protocol 6).
@@ -375,6 +385,8 @@ rpc_methods! {
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
+    /// Compute a bounded schedule preview without saving or starting work.
+    PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;
     /// Every schedule on the node (protocol 11).
     ListSchedules / list_schedules / "schedule.list" [Read, 11]: crate::automation::ListSchedules => crate::automation::ScheduleList;
     /// One schedule (protocol 11).
@@ -408,6 +420,16 @@ rpc_methods! {
     ParkSession / park_session / "session.park" [Operate, 12]: crate::parking::ParkSession => SessionInfo;
     /// Start a parked session's agent again (protocol 12).
     WakeSession / wake_session / "session.wake" [Operate, 12]: crate::parking::WakeSession => SessionInfo;
+    /// The node's settings in force (protocol 12, ADR 0038).
+    GetNodeSettings / node_settings / "node.settings" [Read, 12]: crate::settings::GetNodeSettings => crate::settings::NodeSettings;
+    /// Change the node's settings; kept across restarts (protocol 12).
+    SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12]: crate::settings::SetNodeSettings => crate::settings::NodeSettings;
+    /// A new session continuing another's conversation from a turn's end (protocol 14, ADR 0052).
+    ForkSession / fork_session / "session.fork" [Operate, 14]: crate::forking::ForkSession => SessionInfo;
+    /// Take a session back to a turn's end (protocol 14, ADR 0052).
+    RewindSession / rewind_session / "session.rewind" [Operate, 14]: crate::forking::RewindSession => SessionInfo;
+    /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
+    GetAgentHistory / agent_history / "agent.history" [Operate, 17]: crate::history::GetAgentHistory => crate::history::AgentHistoryPage;
 }
 
 /// Result of a call.

@@ -37,6 +37,10 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "device.list",
             "device.revoke",
             "profile.reload",
+            "fleet.join",
+            "fleet.leave",
+            "fleet.sync",
+            "fleet.published",
             "fleet.members",
             "fleet.forget",
             "memory.export",
@@ -48,7 +52,8 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "agent.add",
             "agent.remove",
             "agent.install",
-            "agent.install_output"
+            "agent.install_output",
+            "node.set_settings"
         ]
     );
     assert_eq!(Method::SendInput.scope(), Scope::Operate);
@@ -87,10 +92,24 @@ fn every_method_knows_its_first_version() {
         Method::ReportApplied,
         Method::ListMembers,
     ];
+    let added_fleet = [
+        Method::JoinFleet,
+        Method::LeaveFleet,
+        Method::SyncFleet,
+        Method::GetFleetStatus,
+    ];
+    // N3's fleet controls are 15 on the node line: preview's 13 and the
+    // fork's 14 were published before them (`PROTOCOL_FIFTEEN` below).
+    for method in added_fleet {
+        assert_eq!(method.since(), ProtocolVersion::new(15));
+    }
+    assert_eq!(Method::GetPublished.since(), ProtocolVersion::new(16));
     for method in Method::ALL {
         assert!(method.since() <= crate::PROTOCOL_VERSION, "{method:?}");
         let name = method.as_str();
-        let fleet = name.starts_with("fleet.");
+        let fleet = name.starts_with("fleet.")
+            && !added_fleet.contains(method)
+            && *method != Method::GetPublished;
         let profile = name.starts_with("profile.") || *method == Method::MoveProfile;
         let v6 = (fleet && !v5_fleet.contains(method))
             || ["session.export", "session.import"].contains(&name)
@@ -223,6 +242,8 @@ const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
     ("session.search", Scope::Read),
     ("session.park", Scope::Operate),
     ("session.wake", Scope::Operate),
+    ("node.settings", Scope::Read),
+    ("node.set_settings", Scope::Admin),
 ];
 
 #[test]
@@ -233,6 +254,70 @@ fn protocol_twelve_methods_know_their_version_and_scope() {
         .map(|method| (method.as_str(), method.scope()))
         .collect();
     assert_eq!(twelve, PROTOCOL_TWELVE);
+}
+
+/// Protocol 14's methods (milestone 11's track A2, ADR 0052), pinned as
+/// the other versions' are. Protocol 13 (N3's preview) is pinned in
+/// `automation::preview`'s own test.
+const PROTOCOL_FOURTEEN: &[(&str, Scope)] = &[
+    ("session.fork", Scope::Operate),
+    ("session.rewind", Scope::Operate),
+];
+
+#[test]
+fn protocol_fourteen_methods_know_their_version_and_scope() {
+    let fourteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(14))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(fourteen, PROTOCOL_FOURTEEN);
+}
+
+/// Protocol 15's methods (milestone 12's track N3, ADR 0044): fleet
+/// membership over the wire, numbered after the versions already published.
+const PROTOCOL_FIFTEEN: &[(&str, Scope)] = &[
+    ("fleet.join", Scope::Admin),
+    ("fleet.leave", Scope::Admin),
+    ("fleet.sync", Scope::Admin),
+    ("fleet.status", Scope::Read),
+];
+
+#[test]
+fn protocol_fifteen_methods_know_their_version_and_scope() {
+    let fifteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(15))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(fifteen, PROTOCOL_FIFTEEN);
+}
+
+/// Protocol 16's method (ADR 0056): what a machine shares, for a person.
+const PROTOCOL_SIXTEEN: &[(&str, Scope)] = &[("fleet.published", Scope::Admin)];
+
+#[test]
+fn protocol_sixteen_methods_know_their_version_and_scope() {
+    let sixteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(16))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(sixteen, PROTOCOL_SIXTEEN);
+}
+
+/// Protocol 17's method (track A2's slice 4, ADR 0053): an agent's own
+/// history, written at 14 and numbered after 15 and 16 on the node line.
+const PROTOCOL_SEVENTEEN: &[(&str, Scope)] = &[("agent.history", Scope::Operate)];
+
+#[test]
+fn protocol_seventeen_methods_know_their_version_and_scope() {
+    let seventeen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(17))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(seventeen, PROTOCOL_SEVENTEEN);
 }
 
 #[test]
@@ -279,6 +364,7 @@ const FORWARDABLE: &[&str] = &[
     "session.read",
     "profile.list",
     "session.move_profile",
+    "fleet.status",
     "session.export",
     "session.import",
     "memory.export",
@@ -372,6 +458,7 @@ const FORWARDABLE: &[&str] = &[
     "port.list",
     "agent.list",
     "agent.status",
+    "schedule.preview",
     "schedule.list",
     "schedule.get",
     "schedule.create",
@@ -388,6 +475,9 @@ const FORWARDABLE: &[&str] = &[
     "session.search",
     "session.park",
     "session.wake",
+    "session.fork",
+    "session.rewind",
+    "agent.history",
 ];
 
 #[test]
@@ -428,6 +518,27 @@ fn a_forwarded_call_nests_its_inner_call() {
     // where it is delivered.
     assert_eq!(call.since(), V6);
     assert_eq!(inner.since(), V6);
+}
+
+/// Protocol 18's drivers (ADR 0057): a settings change naming them needs
+/// 18, where an older node would ignore them and keep the agents on ACP;
+/// one that does not, 12.
+#[test]
+fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
+    use crate::settings::{AgentDriver, SetAgentDrivers, SetNodeSettings};
+    let parking = SetNodeSettings {
+        park_after: Some(crate::parking::ParkAfter::Never),
+        drivers: None,
+    };
+    assert_eq!(parking.into_call().since(), ProtocolVersion::new(12));
+    let drivers = SetNodeSettings {
+        park_after: None,
+        drivers: Some(SetAgentDrivers {
+            codex: Some(AgentDriver::Acp),
+            ..SetAgentDrivers::default()
+        }),
+    };
+    assert_eq!(drivers.into_call().since(), ProtocolVersion::new(18));
 }
 
 /// Protocol 11's write guard (the join of wave 2's first half): a write

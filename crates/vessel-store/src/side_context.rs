@@ -45,7 +45,7 @@ impl LatestPlan {
 /// a newer message. A single event uses the existing store page allowance.
 #[derive(Debug)]
 pub struct SideContext {
-    /// None until a plan has been recorded on this schema version.
+    /// None until recorded on this schema version, or after a rewind.
     pub plan: Option<LatestPlan>,
     /// At most 128 events, bounded also by the store's page byte budget.
     pub records: Vec<EventRecord>,
@@ -98,6 +98,13 @@ impl Reader {
             while bytes < self.page_bytes() {
                 let Some(row) = rows.next()? else { break };
                 let (record, size) = record_from_row(session, row)?;
+                // A rewind leaves old records as audit history, including
+                // turns no longer in the provider's active conversation.
+                // A bounded tail cannot rebuild an arbitrary rewind chain;
+                // use only newer messages and disclose the partial scope.
+                if matches!(record.event, vessel_proto::SessionEvent::Rewound { .. }) {
+                    break;
+                }
                 bytes = bytes.saturating_add(size);
                 records.push(record);
             }

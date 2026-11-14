@@ -38,6 +38,7 @@ fn ended(reason: StopReason) -> SessionEvent {
     agent(AgentEvent::TurnEnded {
         reason,
         usage: None,
+        point: None,
     })
 }
 
@@ -193,9 +194,7 @@ fn a_terminal_is_active_on_output_and_idle_when_quiet() {
 fn every_end_is_exited_in_building() {
     for end in [
         SessionStatus::Exited { code: Some(0) },
-        SessionStatus::Failed {
-            message: "no".to_owned(),
-        },
+        SessionStatus::failed("no"),
         SessionStatus::Interrupted,
     ] {
         let id = PermissionId::random();

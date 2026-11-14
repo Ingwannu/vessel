@@ -29,6 +29,8 @@ pub(crate) enum SideError {
     PromptOnly,
     #[error("this side changed while the action was pending; open the side conversation again")]
     Changed,
+    #[error("a side conversation cannot be forked; start over with session.side_reset instead")]
+    Fork,
     #[error("side questions cannot be used as scheduled or saved session templates")]
     Template,
     #[error("the side question and its context exceed the prompt limit; ask a shorter question")]
@@ -45,7 +47,7 @@ impl SideError {
     pub(crate) const fn code(&self) -> ErrorCode {
         match self {
             Self::Agent | Self::ReadScope => ErrorCode::Forbidden,
-            Self::Terminal | Self::Nested | Self::PromptOnly | Self::Slash => {
+            Self::Terminal | Self::Nested | Self::PromptOnly | Self::Slash | Self::Fork => {
                 ErrorCode::Unsupported
             }
             Self::Changed => ErrorCode::Conflict,

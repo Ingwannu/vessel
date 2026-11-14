@@ -312,7 +312,9 @@ async fn calls(client: &NodeClient, id: SessionId) -> Vec<ModelCall> {
             | SessionEvent::CommandsChanged { .. }
             | SessionEvent::UsageChanged { .. }
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => None,
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => None,
         })
         .collect()
 }

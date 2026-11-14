@@ -1,8 +1,11 @@
 # Milestone 12: session extras (N5)
 
-Status: row 1 backend checkpointed as WIP, 2026-11-13. Root gate passed; wire/web verification and implementation review are separate. Native work is preparation only.
-This track takes each row through node, wire, CLI, tests, link, view and
-screen before starting the next. Node and app slices are reviewed separately.
+Status: row 1 node implementation and integration gates passed, 2026-11-14;
+implementation review is pending. The results under resumed integration
+below supersede the old checkpoint's unverified wire/web status.
+This session owns node, wire, client, CLI, testkit and contracts only.
+Native preparation below remains historical WIP for the app owners; no
+native screen or page work is undertaken by this session.
 
 ## Reference acceptance lists
 
@@ -119,12 +122,12 @@ tool-heavy conversations do not lose their plan outside the transcript tail.
   absent normally. A side is always a new structured harness conversation,
   never a resume of the parent's native session id. No nested sides.
 - `session.side_open { session: SessionId } -> SessionInfo` (`operate`,
-  protocol 13): open/reuse the newest unarchived side (including an ended or interrupted one) of this parent.
+  protocol 19): open/reuse the newest unarchived side (including an ended or interrupted one) of this parent.
   Creation is serialized so concurrent clients do not launch duplicates.
   Inherit current profile, model, choices, place and cwd. Never change the
   parent or interrupt its turn. An ended structured parent is allowed.
 - `session.side_reset { session: SessionId, side: SessionId } -> SessionInfo`
-  (`operate` plus read, protocol 13): under the same creation gate, verify
+  (`operate` plus read, protocol 19): under the same creation gate, verify
   the expected side belongs to the parent and is still the selected side;
   stop/delete it, then open a replacement. A stale expected side is
   conflict, so a late reset never deletes a newer side. Failed deletion
@@ -132,7 +135,7 @@ tool-heavy conversations do not lose their plan outside the transcript tail.
   old side was deleted and replacement creation fails, the old side stays
   deleted and side_open retries creation; no rollback is promised.
 - `session.side_prompt { session: SessionId, question: PromptText } -> Delivered`
-  (`operate`, protocol 13): the named session must be a side. Read its
+  (`operate`, protocol 19): the named session must be a side. Read its
   parent's latest state and at most 128 trailing records, keep at most
   12 message fragments of 1,200 characters and 9,000 characters total.
   Independently read current status, attention and the latest projected
@@ -150,7 +153,7 @@ tool-heavy conversations do not lose their plan outside the transcript tail.
   Caller-supplied harness/profile/mode/resume/choices cannot override it.
   It cannot manufacture a link to a terminal or another side. Schedules
   and saved prompt templates refuse side specs; imports clear the local
-  parent link. All calls accepting a nested side spec require protocol 13.
+  parent link. All calls accepting a nested side spec require protocol 19.
 - General session.send Prompt, session.prompt (including tracked/told
   prompts and scheduled targets), and queue changes are refused for sides
   with a typed unsupported error naming session.side_prompt. This check
@@ -168,12 +171,12 @@ tool-heavy conversations do not lose their plan outside the transcript tail.
 - Fleet forwarding is allowed through the usual scope guard and encrypted
   relay. Parent snapshots and side replies are application data only;
   the relay gains no interpretation or new authority.
-- One bump from protocol 12 to 13 for this entire track; minimum version
+- One bump from protocol 18 to 19 for this entire track; minimum version
   unchanged. Older apps ignore the optional spec field and can still open
   a side as a normal conversation for reading, cancellation and approval;
   ordinary prompts are refused with instructions to update or use the CLI.
   Older nodes reject the new calls;
-  a call using the spec field also requires protocol 13.
+  a call using the spec field also requires protocol 19.
 - CLI: `vessel session side SESSION [QUESTION]` opens/reuses a side and
   optionally asks; prints its id for `attach`, `kill`, or delete. Use this
   same side command with the side id for every later question, not send.
@@ -185,8 +188,11 @@ tool-heavy conversations do not lose their plan outside the transcript tail.
 
 ## Necessary differences and limits
 
-Vessel's base has no completed-turn fork call yet. Like GOAT's fallback,
-row 1 starts a fresh native conversation and seeds a bounded live snapshot.
+Row 1 uses GOAT's fresh-thread fallback and seeds a bounded live snapshot.
+The integrated base now has session.fork, but registers a failed provider
+fork as a session before its result is known. Transparent fallback would
+need a second lifecycle transaction with retention/delete/concurrent open;
+ADR 0045 records why this slice keeps fresh-start semantics explicit.
 It must say it has recent context, not claim a complete history fork.
 The transcript is a partial tail, labelled as such. Current plan, status
 and attention are independent projections, never guessed from that tail.
@@ -304,11 +310,11 @@ inside their 1,200-character allowance; a remainder too small for that
 mark is skipped. Large events are read under the store's existing page
 allowance and clipped without walking their complete text.
 
-Call::since also requires protocol 13 for fleet.forward/relay/deliver
+Call::since also requires protocol 19 for fleet.forward/relay/deliver
 carrying these calls, including side-linked session.create and templates.
 Otherwise an older intermediary could discard the optional parent link
 before a newer target saw it. Direct and wrapped forms share version tests;
-old-hop routing for existing pre-13 calls stays unchanged.
+old-hop routing for existing pre-19 calls stays unchanged.
 
 ## Row 1: app integration still pending
 
@@ -489,3 +495,135 @@ The preview node, services, permissions and account configuration were not
 changed. No repository push or release build was performed. Local web/dist
 and web/node_modules are untracked artifact symlinks and must not be added;
 keep both local cargo configurations and the supplied fonts uncommitted.
+
+
+## Node-only resumption (2026-11-14)
+
+The resumed assignment supersedes the earlier cleanup stop and the native
+integration next steps above. Integrate the protocol-18 node line first;
+side methods and side-linked specs move together to provisional protocol 19.
+MIN_PROTOCOL_VERSION remains 2; the plan projection remains schema 14.
+There are three new calls (side_open, side_prompt, side_reset), one optional
+SessionSpec field (side_question_of), no new public events or scopes, and
+no provider-native history rewrite. New scopes elsewhere on the merged line
+are outside this feature. All older hops must preserve this version gate.
+
+Merge compatibility keeps the creation lease alive across the same shared
+fork-capable launch path. Saved-template byte limits and side-spec refusals
+both apply. New fake replay message ids coexist with the context-replay
+fixture. The new test-script rule uses Sandbox::executable; this slice's
+side fixtures write data/configuration only, not executable scripts.
+
+A parent rewind clears the latest-plan projection in the same append and
+bounds transcript selection to messages after that rewind. Valid earlier
+turns are also omitted; the snapshot explicitly claims partial context.
+Generic fork of a side is unsupported: use side_reset to start over.
+Regressions exercise the actual fake provider request and real SQLite,
+including a plan replacement in the same append as a rewind.
+
+The native app work belongs to the app workers now. A screen needs to call
+side_open with the parent's id, then read/follow that returned id and send
+every question through side_prompt (Start only; no queue/steer/auto-resume).
+An ended side needs explicit session.resume. Reset calls side_reset with
+parent and expected side id, and replaces its local target only on success.
+Read/operate refusals and provider failures must remain visible. Native
+export/import can contain provider-stored context; Vessel's user-event log
+contains only the question. The unregistered transport/view WIP is reference
+material, not a compiled or approved dependency for those screens.
+
+Integration verification will be recorded separately from the old checkpoint.
+The first targeted run stopped at compilation: its new store regression used
+FromStr for HarnessSessionId, an opaque provider id constructed with new.
+That test fixture is corrected; no production identifier parser changed.
+The repository's existing Playwright pairing-dialog regression is explicitly
+permitted for its own isolated headless browser. It is run unchanged, with
+trace, screenshots and video disabled; synthetic keyboard input into a shared
+display remains forbidden. Installing web dependencies replaced the local
+node_modules symlink; its contents were moved to the build volume with the
+operator's compare-before-removal helper, then the symlink restored. No
+service account, mode or runtime configuration was changed.
+
+The unverified native preparation from e9645adf and c709a82d is removed from
+the resumed node delivery tree, without deleting those historical commits.
+App owners can recover or consult those exact checkpoints independently;
+they are not approved dependencies. This removes only N5's prepared status
+control and unregistered side transport/view/text, not the lead's integrated
+conversation or machine-book changes. No new native control or screen is
+implemented or gated in this node-only session.
+The dependency cache must retain the final directory name node_modules:
+Node resolves package dependencies by that name, even behind the checkout's
+symlink. An initial renamed leaf caused a module-resolution preflight error;
+putting it under a private install directory with the canonical leaf fixed
+resolution. A full-browser existence preflight initially missed the already
+cached headless browser. A redundant full-browser download timed out; its
+own verified installer process was stopped after the exact pinned headless
+browser was found and successfully launched. E2E uses that existing matching
+browser unchanged, with no alternate executable or test configuration.
+
+The first node rewind regression then failed on its fixture's missing turn
+anchor: the fake's permission-tool turn intentionally has no message id.
+It now uses the existing plain completed-message fixture used by the fork
+suite; the whole provider-request assertion and production checks remain.
+The store's two targeted tests passed and are not repeated unchanged.
+The corrected real-node rewind regression passed: one passed, zero failed,
+184 filtered out. Together with the two passing real-SQLite regressions it
+confirms the exact provider request omits discarded history and plans,
+while a generic side fork is refused without changing side discovery.
+These are targeted results, not the whole integration gate.
+
+### Resumed integration: root gate
+
+On the fixed protocol-18 integration snapshot plus this feature's provisional
+19: root fmt --all --check passed; whole-workspace clippy --all-targets with
+-D warnings passed (2m 52s compilation); cargo test --workspace passed cleanly.
+The whole run completed 111 test/doc-test sections: 1,797 passed, zero failed,
+ten existing ignored. No test was ignored or timeout raised by this slice.
+Node unit tests were 216/216, node E2E 185/185, CLI integration 39/39.
+The cold test compilation took 9m 49s. Nested fake-node builds ran before
+those fixtures' own deadlines; no timeout-only rerun was needed in this run.
+The 1,052-file root source manifest remained identical through the gate.
+TypeScript generation and the remaining web/bundled-binary/E2E stages are
+reported separately below; root success alone is not their approval.
+
+TypeScript declaration generation passed both tests (proto and web).
+Against those generated files, web lint and typecheck passed, all 417 tests
+in 81 files passed (two workers), and the local web bundle build passed.
+The next verification uses VESSEL_WEB_REQUIRE_BUNDLE=1 to build fresh debug
+CLI/node/testkit binaries, then runs the unchanged whole Playwright E2E
+suite against its own fake fleet. This is not a release or deployment.
+
+
+### Resumed integration: complete gate and review handoff
+
+The required-bundle debug build passed, recompiling vessel-web with the
+newly verified bundle. The unchanged whole Playwright E2E suite passed:
+62 passed in 3.3 minutes, against its isolated fake fleet. Traces, automatic
+screenshots and video were disabled. All integration-gate stages passed.
+No unchanged-tree gate rerun was performed. The root source pin stayed
+unchanged through declaration generation, web checks and binary/E2E stages.
+The earlier targeted fixture failures above remain distinct from this
+clean whole run. Generated declarations retain canonical generator output.
+
+This is a node slice for V1's implementation review, not native/UI approval
+or full GOAT parity. Fresh isolated sessions with labelled bounded context
+remain a deliberate alternative to GOAT's preferred completed-turn fork;
+ADR 0045 records the asynchronous-fork fallback lifecycle tradeoff on the
+new base. Slash questions remain explicitly unsupported. Rewinds use the
+post-rewind partial tail and invalidate the plan until another report.
+Provider-native exports can still carry generated context; no opaque file
+is rewritten. A future direct driver must preserve atomic context placement
+and byte checks or refuse the command, never silently drop its context.
+
+The next node contract is row 2 (ADR 0046), then delivered files/HTML
+(row 4, ADR 0047) under the resumed three-feature assignment. Row 3's terminal
+surface and rows 5/6 are outside this resumed session's assigned work.
+The app owners implement the screen using the call guide above; no native
+screen, control or page implementation was added here. The old native WIP
+checkpoints remain recoverable, but are absent from this delivery tree.
+
+Cleanup after verification found no remaining build/test/fake processes for
+this worktree or target directory. No owned fleet or virtual display remains.
+No preview node/unit/port, real-provider prompt, service permission, account
+configuration, push or release operation was used. All local commands ran
+as the checkout's ordinary user, preserving existing ownership and modes.
+Implementation review and any resulting fixes are still owed before merge.

@@ -110,3 +110,85 @@ async fn latest_plan_survives_a_tool_heavy_tail_retention_and_restart() {
     );
     store.close().await;
 }
+
+#[tokio::test]
+async fn a_rewind_clears_the_plan_and_a_later_plan_replaces_it_in_the_same_append() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = SessionInfo::new(
+        SessionId::random(),
+        SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        ),
+        DateTime::UNIX_EPOCH,
+    );
+    store.create_session(info.clone()).await.unwrap();
+    let entries = vec![PlanEntry {
+        content: "obsolete plan".to_owned(),
+        priority: PlanPriority::High,
+        status: PlanStatus::InProgress,
+    }];
+    store
+        .append(
+            info.id,
+            vec![record(
+                0,
+                AgentEvent::Plan {
+                    entries: entries.clone(),
+                },
+            )],
+        )
+        .await
+        .unwrap();
+    let rewind = |seq| {
+        Arc::new(EventRecord {
+            seq: EventSeq::new(seq),
+            at: DateTime::UNIX_EPOCH,
+            event: SessionEvent::Rewound {
+                after: EventSeq::ZERO,
+                files_changed: 0,
+                harness_session: vessel_proto::HarnessSessionId::new("rewound-conversation"),
+            },
+        })
+    };
+    store.append(info.id, vec![rewind(1)]).await.unwrap();
+    let context = store.side_context(info.id, EventSeq::new(2)).await.unwrap();
+    assert_eq!(context.plan, None);
+    assert!(context.records.is_empty());
+    store
+        .append(
+            info.id,
+            vec![
+                rewind(2),
+                record(
+                    3,
+                    AgentEvent::Plan {
+                        entries: entries.clone(),
+                    },
+                ),
+            ],
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        store
+            .side_context(info.id, EventSeq::new(4))
+            .await
+            .unwrap()
+            .plan
+            .unwrap()
+            .entries,
+        entries
+    );
+    store.close().await;
+}

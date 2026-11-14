@@ -47,6 +47,10 @@ impl Reply {
         match self {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
+            Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
+                Self::JoinFleet(crate::JoinedFleet { home })
+            }),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
             Self::ListDevices(devices) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
@@ -116,7 +120,6 @@ impl Reply {
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
             Self::PromptSideQuestion(_)
-            | Self::NodeInfo(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)
@@ -232,6 +235,11 @@ impl Reply {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
@@ -246,9 +254,14 @@ impl Reply {
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
-            // Protocol 12's: asked only by peers that read them.
+            // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::ParkSession(_)
-            | Self::WakeSession(_) => None,
+            | Self::WakeSession(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_)
+            | Self::ForkSession(_)
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         }
     }
 }

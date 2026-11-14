@@ -99,6 +99,10 @@ vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, 
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
 vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
+vessel session fork 3f2a --after 120         # a new session continuing the conversation from that turn's end
+vessel session rewind 3f2a --after 120       # take this session back to that turn's end
+vessel history claude --cwd ~/app            # the agent's own conversations in that folder, to import one
+vessel run claude --structured --resume 4c1e… --cwd ~/app --title "the parser"   # import it: its history is the log
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
@@ -117,8 +121,16 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - `vessel sessions` shows each session's marks. `archive` stops a live
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
+- Forking and rewinding (protocol 14) start at a turn's end: `vessel log`
+  shows the number on its `turn ended` line. Only agents that can fork
+  their conversation (Claude Code and Codex through their ACP adapters
+  do); Vessel checks that the fork ends where it asked and refuses it
+  otherwise. A rewind keeps what came after in the log, and does not put
+  files back (it says how many changes it left).
 - An idle agent is parked (protocol 12): after an hour without activity
-  (`vesseld --park-after MINUTES`, 0 never) its process is stopped while
+  (`vessel node settings --park-after MINUTES|never`, kept across
+  restarts and applied at once; `vesseld --park-after` is the value of a
+  node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
   answer, its queue moves, or someone follows it (a page that has it
   open, `vessel attach`). The next prompt, option change or `vessel
@@ -126,6 +138,12 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   sessions` says `(parked)`. Only an agent whose adapter can load a
   conversation again (ACP `loadSession`) is parked; what it left running
   in the background stops with it.
+- Agents over their own protocols (protocol 18, ADR 0057): `vessel node
+  settings --driver codex=direct` chooses Codex's app-server instead of
+  its ACP adapter for new sessions (likewise `claude` and `opencode`;
+  `acp` goes back). No build offers one yet: the node refuses `direct`
+  until that agent's driver can ask for permissions as ACP does. Every
+  agent runs over ACP until then.
 
 Search what was said in every session (protocol 12): prompts and the
 agents' replies, live, ended or archived, newest first.
@@ -522,9 +540,11 @@ vessel schedule create --name nightly --cron "0 9 * * 1-5" --tz Asia/Seoul \
   --harness claude --project app --prompt "Look at last night's failures"
 vessel schedule create --every 30m --session 3f2a --prompt-file check.md
 vessel schedule list
+vessel schedule preview --cron "0 9 * * 1-5" --tz Asia/Seoul --count 5
 vessel schedule runs nightly                # what each run came to
 vessel schedule run nightly                 # once now
 vessel schedule edit nightly --cron "0 8 * * 1-5"
+vessel schedule edit nightly --keep         # the rest of its session as it was
 vessel schedule pause nightly
 vessel prompt save review --project app --text "Review the open pull requests"
 vessel prompt run review --session 3f2a     # into its queue
@@ -533,8 +553,15 @@ vessel prompt run review --session 3f2a     # into its queue
 - A run acts as whoever last made or changed the schedule, as they are
   when it runs: a revoked device's schedules end, an agent's end with its
   session. A new session's run is archived after its first turn unless
-  `--keep`; nobody is asked questions in it, and a permission it asks
+  `--keep` (its terminals and services end with it, as when a person
+  archives); nobody is asked questions in it, and a permission it asks
   makes the run wait (the next due times are skipped meanwhile).
+- `--harness` names one of the four or an agent added on the node
+  (`vessel agents`). A schedule or a saved prompt is named by its whole
+  id, or by its name or the start of its id when only one matches.
+- At most four runs are made at once and eight scheduled sessions are in
+  their first turn; the rest wait, the oldest due first. `schedule run`
+  answers `unavailable` after 30 s without room.
 - A time the clocks skip runs once at the jump; a time they repeat runs
   once. Due times missed while the node was stopped give one run (the
   latest, if less than a day old; `--catch-up skip` for none).
@@ -657,6 +684,7 @@ vessel init --service --join
 vessel fleet status                           # what it applied, and the files it left alone
 # on the home
 vessel fleet members
+vessel fleet published                        # what it shares, by name (needs admin)
 ```
 
 - Edit the sources on the home; members follow within seconds.
@@ -1211,3 +1239,11 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+A schedule preview is calculated on the target node without saving or
+starting work (`vessel schedule preview --every 30m`, or `--cron` with an
+optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;
+if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
+reproducible preview; `--count` is 1–10. API callers reuse the returned
+cadence when saving so an interval keeps its preview anchor. `vessel status`
+also reports the node's time zone. ADR 0033 defines the daylight-saving rules.

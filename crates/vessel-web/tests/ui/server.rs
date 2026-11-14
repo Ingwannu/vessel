@@ -192,8 +192,14 @@ async fn a_websocket_must_present_the_token_first_and_in_time() {
         .await
         .unwrap();
     assert_eq!(closed_with(&mut other).await, Some(CLOSE_UNAUTHORIZED));
-    // Nothing at all, past the deadline.
-    let mut silent = socket(&ui, Some(&origin)).await.unwrap();
+    // Nothing at all, past the deadline: a UI of its own with a short one,
+    // so the wait is short and nothing else here depends on it (a socket
+    // that says nothing is closed however late its deadline is noticed).
+    let short = Ui::configured(Source::default(), |config| {
+        config.hello_deadline = std::time::Duration::from_millis(300);
+    })
+    .await;
+    let mut silent = socket(&short, Some(&short.origin())).await.unwrap();
     assert_eq!(closed_with(&mut silent).await, Some(CLOSE_UNAUTHORIZED));
     // The new handshake proves both peers (the helper verifies the HMAC).
     let _tab = ui.tab().await;

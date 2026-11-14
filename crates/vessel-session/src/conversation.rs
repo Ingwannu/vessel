@@ -83,7 +83,9 @@ impl Seen {
             | SessionEvent::OptionsChanged { .. }
             | SessionEvent::Renamed { .. }
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => false,
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => false,
         }
     }
 
@@ -112,7 +114,9 @@ impl Seen {
             | SessionEvent::OptionsChanged { .. }
             | SessionEvent::Renamed { .. }
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {}
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
 
@@ -218,6 +222,7 @@ mod tests {
         seen.observe(&agent(AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
+            point: None,
         }));
         assert!(seen.conversation().permissions.is_empty());
     }

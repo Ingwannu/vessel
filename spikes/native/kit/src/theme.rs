@@ -7,9 +7,7 @@
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
-mod inline_status;
 pub mod spacing;
-pub use inline_status::{DotSignal, InlineStatus};
 mod status;
 pub use status::{Signal, Status};
 

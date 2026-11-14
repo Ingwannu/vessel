@@ -114,7 +114,7 @@ fn state(body: &mut Budget, info: &SessionInfo, conversation: &Conversation) {
 
 fn plan(body: &mut Budget, context: &SideContext) {
     let Some(plan) = &context.plan else {
-        body.push("Plan: none recorded since the context projection was enabled.\n");
+        body.push("Plan: unavailable until recorded after the last rewind or context upgrade.\n");
         return;
     };
     // Leave room for recent conversation even when every plan step is long.

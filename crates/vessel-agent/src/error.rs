@@ -16,6 +16,9 @@ pub enum AgentError {
     /// The program could not be spawned.
     #[error(transparent)]
     Spawn(#[from] vessel_proc::SpawnError),
+    /// No driver of that protocol is built yet (ADR 0057).
+    #[error("the {0} driver is not built yet")]
+    NoDriver(crate::Driver),
 }
 
 /// Input the agent session cannot accept.
@@ -125,6 +128,9 @@ pub enum Disconnect {
         message: String,
         /// Why, when Vessel can tell (protocol 11's `agent.status`).
         refused: Option<Box<Refused>>,
+        /// A fork the agent cannot make (protocol 14, ADR 0052): the
+        /// caller answers `unsupported`, not a failure to start.
+        fork_refused: Option<crate::handshake::ForkRefusal>,
     },
     /// The connection failed (a protocol or transport error).
     Protocol {

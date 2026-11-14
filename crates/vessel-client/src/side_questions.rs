@@ -1,4 +1,4 @@
-//! Typed side-question calls (protocol 13, ADR 0045). They do not inject
+//! Typed side-question calls (protocol 19, ADR 0045). They do not inject
 //! anything into the original conversation.
 
 use vessel_proto::automation::PromptText;

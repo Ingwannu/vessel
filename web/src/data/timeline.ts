@@ -170,6 +170,12 @@ class Work {
         // the status stays running; `SessionInfo.parked` carries the state
         // for whoever shows it.
         return;
+      case "forked":
+      case "rewound":
+        // Protocol 14 (ADR 0052): where a fork's conversation comes from,
+        // and a rewind's turn. Drawing them (the source's history above a
+        // fork, the left-behind turns folded) is the conversation track's.
+        return;
     }
   }
 

@@ -108,7 +108,7 @@ pub struct SessionSpec {
     /// sessions have no place.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub place: Option<Box<SessionPlace>>,
-    /// A separate side conversation of this node-local parent (protocol 13).
+    /// A separate side conversation of this node-local parent (protocol 19).
     /// Never a shared native conversation id. Defaults absent for older peers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub side_question_of: Option<SessionId>,
@@ -180,10 +180,17 @@ pub enum SessionStatus {
         /// Exit code, if the OS reported one (none when killed by a signal).
         code: Option<i32>,
     },
-    /// The process could not be started or the handshake failed.
+    /// The process could not be started or the handshake failed, or (a
+    /// rewind, protocol 14) its conversation could not be started again.
     Failed {
         /// Human-readable reason.
         message: String,
+        /// A fork that never held a conversation (protocol 14, ADR 0052):
+        /// its agent refused the fork or did not start. Nothing can be
+        /// resumed; a client offers to remove it (`session.delete`).
+        /// Absent (false) for every other failure and from older nodes.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        empty_fork: bool,
     },
     /// The node stopped while the session was live. The log is intact; a
     /// structured session can be resumed through its `harness_session`.
@@ -191,6 +198,15 @@ pub enum SessionStatus {
 }
 
 impl SessionStatus {
+    /// Failed, saying why (not an empty fork).
+    #[must_use]
+    pub fn failed(message: impl Into<String>) -> Self {
+        Self::Failed {
+            message: message.into(),
+            empty_fork: false,
+        }
+    }
+
     /// Whether the session can still accept input.
     #[must_use]
     pub const fn is_live(&self) -> bool {

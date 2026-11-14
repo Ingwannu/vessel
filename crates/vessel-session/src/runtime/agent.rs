@@ -3,9 +3,10 @@
 //! probed before any session of it exists, and moved to another profile.
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
-use vessel_agent::{AgentProcess, AgentSetup, CommandSpec};
+use vessel_agent::{AgentProcess, AgentSetup, CommandSpec, Driver};
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
     HarnessRef, ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionSpec,
@@ -15,7 +16,7 @@ use super::parts::{ActorStart, Begin};
 use super::{Created, SessionRuntime};
 use crate::error::SessionError;
 use crate::handle::Input;
-use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove};
+use crate::moving::{Control, Launch, MoveError, MoveOrder, ProfileMove, Restart};
 use crate::parking::{Parking, Route};
 use crate::structured::{MoveState, StructuredActor};
 
@@ -23,6 +24,10 @@ use crate::structured::{MoveState, StructuredActor};
 pub(crate) struct AgentCommand {
     pub(crate) command: CommandSpec,
     pub(crate) cwd: PathBuf,
+    /// The protocol `command` speaks (`drivers`).
+    pub(crate) driver: Driver,
+    /// Why it is not the one the node's setting asks for, for the log.
+    pub(crate) notices: Vec<String>,
 }
 
 impl SessionRuntime {
@@ -36,8 +41,9 @@ impl SessionRuntime {
         actor: ActorStart,
     ) -> Result<Created, SessionError> {
         // `fork`/`exec` on this thread, as `tokio::process` does.
-        let (agent, input, outputs) = AgentProcess::spawn(&launch.command, launch.setup.clone())
-            .map_err(SessionError::StartAgent)?;
+        let (agent, input, outputs) =
+            AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
+                .map_err(SessionError::StartAgent)?;
         if self.shutdown.is_cancelled() {
             // Dropping the agent kills its process group.
             drop(agent);
@@ -53,15 +59,17 @@ impl SessionRuntime {
             begin,
             notices,
             (Input::Structured(routed), pid),
-            Some(control),
+            (Some(control), launch.driver),
         );
         let ActorStart {
             desk,
             replaying,
             gate,
+            opening,
         } = actor;
+        let park_setting = self.park_setting();
         let parking = Parking::new(
-            self.config.park_after,
+            *park_setting.borrow(),
             launch.setup.options.clone(),
             launch.setup.resume.clone(),
         );
@@ -86,6 +94,9 @@ impl SessionRuntime {
             gate,
             loader: self.attachments.clone(),
             parking,
+            park_setting,
+            opening,
+            unrecoverable: None,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
@@ -98,22 +109,14 @@ impl SessionRuntime {
         profile: Profile,
         proxy: Option<ModelProxy>,
     ) -> Result<AgentCommand, SessionError> {
+        let chosen = self.choose_driver(&spec, &profile).await;
+        let driver = chosen.driver();
+        let notices = chosen.notices;
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
         // Lookup and directory checks block.
         tokio::task::spawn_blocking(move || {
-            // Structured sessions get their MCP servers over ACP, not here.
-            let none = ResolvedMcpServers::new();
-            let command = vessel_harness::launch(
-                &lookup,
-                &env,
-                &spec,
-                &profile,
-                proxy.as_ref(),
-                &none,
-                None,
-            )?
-            .command;
+            let command = launch_for(driver, &lookup, &env, &spec, &profile, proxy.as_ref())?;
             // ACP needs an explicit directory; the launch defaults it to
             // the home directory, and the node's own is the last resort.
             let cwd = command
@@ -121,7 +124,12 @@ impl SessionRuntime {
                 .clone()
                 .or_else(|| std::env::current_dir().ok())
                 .ok_or(SessionError::NoWorkingDirectory)?;
-            Ok::<_, SessionError>(AgentCommand { command, cwd })
+            Ok::<_, SessionError>(AgentCommand {
+                command,
+                cwd,
+                driver,
+                notices,
+            })
         })
         .await
         .map_err(SessionError::Internal)?
@@ -161,17 +169,53 @@ impl SessionRuntime {
         if !profile.is_default() {
             spec = spec.with_profile(profile.name().clone());
         }
-        let AgentCommand { command, cwd } = self.agent_command(spec, profile, proxy).await?;
-        let setup = AgentSetup {
+        let AgentCommand {
+            command,
             cwd,
+            driver,
+            ..
+        } = self.agent_command(spec, profile, proxy).await?;
+        let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
+        Ok(vessel_agent::probe_with(driver, &command, setup).await?)
+    }
+
+    /// A page of `harness`'s own conversations (protocol 17's
+    /// `agent.history`, `vessel_agent::history`), those in `folder` or all
+    /// of them, from `from`: the agent started as [`probe`](Self::probe)
+    /// starts it (under `profile`, `proxy`, in `cwd`), asked
+    /// `session/list`, and stopped. No session is started or loaded.
+    /// Bounded by the handshake timeout.
+    ///
+    /// # Errors
+    /// [`SessionError::Launch`] as for a probe, [`SessionError::History`]
+    /// when the agent does not list or did not answer,
+    /// [`SessionError::ShuttingDown`] after shutdown began.
+    pub async fn history(
+        &self,
+        harness: HarnessRef,
+        (profile, proxy): (Option<Profile>, Option<ModelProxy>),
+        cwd: PathBuf,
+        folder: Option<&std::path::Path>,
+        from: vessel_agent::HistoryFrom,
+    ) -> Result<vessel_agent::HistoryPage, SessionError> {
+        if self.shutdown.is_cancelled() {
+            return Err(SessionError::ShuttingDown);
+        }
+        let mode = SessionMode::Structured {
             model: None,
             resume: None,
             options: Vec::new(),
-            mcp_servers: ResolvedMcpServers::new(),
-            handshake_timeout: self.config.agent_handshake_timeout,
-            questions: false,
         };
-        Ok(vessel_agent::probe(&command, setup).await?)
+        let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
+        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+        if !profile.is_default() {
+            spec = spec.with_profile(profile.name().clone());
+        }
+        let AgentCommand {
+            command, driver, ..
+        } = self.agent_command(spec, profile, proxy).await?;
+        let limit = self.config.agent_handshake_timeout;
+        Ok(vessel_agent::history_with(driver, &command, folder, from, limit).await?)
     }
 
     /// Move a live structured session to another profile (ADR 0011): link
@@ -213,23 +257,21 @@ impl SessionRuntime {
             model_proxy,
         } = request;
         let to = (!profile.is_default()).then(|| profile.name().clone());
+        // The session keeps its driver: its options are that driver's.
+        let driver = handle.driver();
+        // One agent per conversation (`claims`): from the link on, its
+        // files are under the target profile too, so the move claims it
+        // there before it starts, and the session holds both after.
+        let mut profiles = self.held(id, info.profile.as_ref());
+        let _target = profiles.insert(to.clone());
+        let claim = self.claim(id, &info.spec.harness, profiles, &harness_session)?;
         let spec = info.spec.with_profile(profile.name().clone());
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
         let session = harness_session.clone();
         let from = from_home.clone();
         let (command, cwd, files) = tokio::task::spawn_blocking(move || {
-            let none = ResolvedMcpServers::new();
-            let command = vessel_harness::launch(
-                &lookup,
-                &env,
-                &spec,
-                &profile,
-                model_proxy.as_ref(),
-                &none,
-                None,
-            )?
-            .command;
+            let command = launch_for(driver, &lookup, &env, &spec, &profile, model_proxy.as_ref())?;
             let cwd = command
                 .cwd
                 .clone()
@@ -251,6 +293,8 @@ impl SessionRuntime {
             // The session's own, which the actor keeps (`moving`): a move
             // never changes whether the agent may ask.
             questions: false,
+            fork: None,
+            private_dir: self.private_dir(),
         };
         let (reply, answer) = oneshot::channel();
         let order = MoveOrder {
@@ -267,7 +311,60 @@ impl SessionRuntime {
         if control.send(Control::Move(Box::new(order))).await.is_err() {
             return Err(SessionError::Ended);
         }
-        answer.await.map_err(|_ended| SessionError::Ended)??;
+        let moved = answer.await.map_err(|_ended| SessionError::Ended)?;
+        // A move whose new agent did not start leaves its links in the
+        // target home (`moving`), so the session holds that profile too. A
+        // parked session that did not wake never linked.
+        if matches!(
+            moved,
+            Ok(())
+                | Err(MoveError::Restart(
+                    Restart::Spawn(_) | Restart::Handshake(_) | Restart::Exited(_)
+                ))
+        ) {
+            claim.keep();
+        }
+        moved?;
         Ok(handle.info())
     }
+}
+
+/// A probe's setup: no session, no MCP servers, no questions, and no
+/// private directory, so its launch writes no file
+/// (`AgentSetup::private_dir`).
+pub(super) fn probe_setup(cwd: PathBuf, handshake_timeout: Duration) -> AgentSetup {
+    AgentSetup {
+        cwd,
+        model: None,
+        resume: None,
+        options: Vec::new(),
+        mcp_servers: ResolvedMcpServers::new(),
+        handshake_timeout,
+        questions: false,
+        fork: None,
+        private_dir: None,
+    }
+}
+
+/// `spec`'s command under `profile` for `driver`: an ACP launch (MCP
+/// servers go over ACP, not here), or the agent's own protocol's
+/// (`vessel_harness::launch_direct`).
+fn launch_for(
+    driver: Driver,
+    lookup: &vessel_harness::Lookup,
+    env: &vessel_harness::HarnessEnv,
+    spec: &SessionSpec,
+    profile: &Profile,
+    proxy: Option<&ModelProxy>,
+) -> Result<CommandSpec, SessionError> {
+    let launch = match driver {
+        Driver::Acp => {
+            let none = ResolvedMcpServers::new();
+            vessel_harness::launch(lookup, env, spec, profile, proxy, &none, None)?
+        }
+        Driver::CodexAppServer | Driver::ClaudeStream | Driver::OpencodeHttp => {
+            vessel_harness::launch_direct(lookup, env, spec, profile, proxy)?
+        }
+    };
+    Ok(launch.command)
 }

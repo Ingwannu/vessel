@@ -31,6 +31,7 @@ mod support {
                 event: AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
                     usage: None,
+                    point: None,
                 },
             },
         )

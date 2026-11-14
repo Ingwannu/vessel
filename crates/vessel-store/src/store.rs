@@ -247,6 +247,36 @@ impl Store {
         self.read(Reader::devices).await
     }
 
+    /// At most `DeviceWindow::MAX_ITEMS` records after an id, in id order.
+    /// `more` explicitly distinguishes an incomplete window from a full list.
+    ///
+    /// # Errors
+    /// The read failed or a record exceeds pairing's metadata bounds.
+    pub async fn device_window(
+        &self,
+        after: Option<DeviceId>,
+    ) -> Result<crate::DeviceWindow, StoreError> {
+        self.guarded_device_window(after, ())
+            .await
+            .map(|(window, ())| window)
+    }
+
+    /// Read a device window while retaining the caller's admission guard
+    /// inside the blocking operation, then hand it back. Dropping the async
+    /// request never releases that guard while queued/running I/O remains.
+    /// The node uses this for its status permit; no node type enters storage.
+    ///
+    /// # Errors
+    /// The same failures as [`Self::device_window`].
+    pub async fn guarded_device_window<G: Send + 'static>(
+        &self,
+        after: Option<DeviceId>,
+        guard: G,
+    ) -> Result<(crate::DeviceWindow, G), StoreError> {
+        self.read(move |reader| Ok((reader.device_window(after)?, guard)))
+            .await
+    }
+
     /// One device with its credential hash, for authentication.
     ///
     /// # Errors

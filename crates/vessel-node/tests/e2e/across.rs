@@ -93,6 +93,17 @@ pub(crate) async fn member_custom(
     grant: Vec<Scope>,
     adjust: impl FnOnce(&mut vessel_node::Config),
 ) -> Member {
+    let (fixture, node) = member_started(relay, label, adjust).await;
+    member_joined(home, fixture, node, label, scopes, grant).await
+}
+
+/// A member's node named `label`, started and linked to `relay`, not yet
+/// in a fleet.
+pub(crate) async fn member_started(
+    relay: &Relay,
+    label: &str,
+    adjust: impl FnOnce(&mut vessel_node::Config),
+) -> (Fixture, Node) {
     let fixture = Fixture::new();
     let applied = fixture.cwd().join("member-codex");
     let node = relayed_with(&fixture, &[&relay.url], |config| {
@@ -102,6 +113,19 @@ pub(crate) async fn member_custom(
         adjust(config);
     })
     .await;
+    (fixture, node)
+}
+
+/// `node` (of `fixture`) invited into `home`'s fleet with `scopes` and
+/// joined, granting `grant`; once both sides recorded the grant.
+pub(crate) async fn member_joined(
+    home: &Member,
+    fixture: Fixture,
+    node: Node,
+    label: &str,
+    scopes: Vec<Scope>,
+    grant: Vec<Scope>,
+) -> Member {
     let offer = home
         .owner
         .invite_with_scopes(Some(label.to_owned()), 600, scopes)

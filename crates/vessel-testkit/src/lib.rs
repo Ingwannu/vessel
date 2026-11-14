@@ -20,6 +20,10 @@
 //! - `fake-provider`: an OpenAI-compatible model provider on loopback for
 //!   the model routing smoke's `--fake` run (milestone 5). See
 //!   `src/bin/fake_provider.rs`.
+//! - `fake-codex-app-server` and `fake-claude-stream`: Codex and Claude
+//!   Code over their own protocols (ADR 0057), skeletons that answer
+//!   `--version` and the first exchange; each driver slice extends its
+//!   own. See their files in `src/bin/`.
 //!
 //! Both harness fakes answer `report <path>` by writing their arguments,
 //! environment and (ACP) MCP servers to that file ([`write_report`]), so a
@@ -89,10 +93,12 @@ use std::time::Duration;
 
 use tokio::time::error::Elapsed;
 
+pub mod fleet_fixtures;
 pub mod model;
 #[cfg(feature = "relay")]
 pub mod relay;
 mod report;
+pub mod schedule_fixtures;
 #[cfg(feature = "upstream")]
 pub mod upstream;
 mod vesseld;
@@ -120,6 +126,14 @@ pub enum Fake {
     /// `fake-tool`: stands in for `npm`, `systemctl` or `launchctl`,
     /// logging each call to `$FAKE_TOOL_LOG`. See `src/bin/fake_tool.rs`.
     Tool,
+    /// `fake-codex-app-server`: `codex` over its app-server protocol (ADR
+    /// 0057), a skeleton each Codex driver slice extends. See
+    /// `src/bin/fake_codex_app_server.rs`.
+    CodexAppServer,
+    /// `fake-claude-stream`: `claude` over stream-json (ADR 0057), a
+    /// skeleton each Claude Code driver slice extends. See
+    /// `src/bin/fake_claude_stream.rs`.
+    ClaudeStream,
 }
 
 impl Fake {
@@ -132,6 +146,8 @@ impl Fake {
             Self::Acp => "fake-acp",
             Self::Ssh => "fake-ssh",
             Self::Tool => "fake-tool",
+            Self::CodexAppServer => "fake-codex-app-server",
+            Self::ClaudeStream => "fake-claude-stream",
         }
     }
 

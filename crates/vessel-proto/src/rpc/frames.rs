@@ -149,8 +149,13 @@ impl ServerFrame {
                     outcome: Outcome::Ok(reply),
                 }),
             },
-            Self::Welcome(_)
-            | Self::Rejected { .. }
+            Self::Welcome(welcome) => welcome.node.for_protocol(protocol).map(|node| {
+                Self::Welcome(Welcome {
+                    protocol: welcome.protocol,
+                    node,
+                })
+            }),
+            Self::Rejected { .. }
             | Self::Response {
                 outcome: Outcome::Err(_),
                 ..

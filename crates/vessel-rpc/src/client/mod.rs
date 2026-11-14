@@ -205,6 +205,12 @@ impl Unary for vessel_proto::agents::GetCatalogue {}
 impl Unary for vessel_proto::agents::InstallAgent {}
 impl Unary for vessel_proto::agents::ReadInstall {}
 // Protocol 11 (Track D): schedules and saved prompts answer once.
+impl Unary for vessel_proto::JoinFleet {}
+impl Unary for vessel_proto::LeaveFleet {}
+impl Unary for vessel_proto::SyncFleet {}
+impl Unary for vessel_proto::GetFleetStatus {}
+impl Unary for vessel_proto::GetPublished {}
+impl Unary for vessel_proto::automation::PreviewSchedule {}
 impl Unary for vessel_proto::automation::ListSchedules {}
 impl Unary for vessel_proto::automation::GetSchedule {}
 impl Unary for vessel_proto::automation::CreateSchedule {}
@@ -221,6 +227,11 @@ impl Unary for vessel_proto::automation::DeletePrompt {}
 impl Unary for vessel_proto::search::SearchMessages {}
 impl Unary for vessel_proto::parking::ParkSession {}
 impl Unary for vessel_proto::parking::WakeSession {}
+impl Unary for vessel_proto::settings::GetNodeSettings {}
+impl Unary for vessel_proto::settings::SetNodeSettings {}
+impl Unary for vessel_proto::forking::ForkSession {}
+impl Unary for vessel_proto::forking::RewindSession {}
+impl Unary for vessel_proto::history::GetAgentHistory {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -398,6 +409,12 @@ const fn is_unary(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        | Method::GetFleetStatus
+        | Method::GetPublished
+        | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
         | Method::CreateSchedule
@@ -413,7 +430,12 @@ const fn is_unary(method: Method) -> bool {
         | Method::DeletePrompt
         | Method::SearchMessages
         | Method::ParkSession
-        | Method::WakeSession => true,
+        | Method::WakeSession
+        | Method::GetNodeSettings
+        | Method::SetNodeSettings
+        | Method::ForkSession
+        | Method::RewindSession
+        | Method::GetAgentHistory => true,
     }
 }
 
