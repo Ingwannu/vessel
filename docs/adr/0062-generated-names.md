@@ -367,14 +367,31 @@ unknown reply fields. Tests cover old-shaped decoding and re-encoding,
 and the same adaptation with unassigned and synthetic assigned thresholds.
 A mixed-version binary fleet remains a manual verification.
 
-Generation is scheduled only after `session.create` has published the
-given title and returned. It is not scheduled for a terminal session, a
-fork, a rewind, an import, or a resume. The task that generates does
-not hold the create. Before it writes, it reads the title again: a
-`typed` rename that landed in between wins, and so does any title that
-is no longer the given one. A success publishes `renamed` with
-`generated`. A refusal publishes nothing (the given title stays) and
-logs the class.
+A fresh structured runtime can arm generation after it has been created;
+creation has no prompt, so the task waits for the first actual
+`AgentEvent::TurnStarted` that produces its given title. Arming does not
+hold create or prove that the wire acknowledgement has arrived first.
+Terminal sessions, forks, rewinds, imports and resumes are excluded; node
+wiring chooses fresh paths explicitly rather than treating every internal
+create as fresh.
+
+An external read followed by an ordinary rename is racy. A generated
+proposal therefore carries the expected title to the session actor. The
+actor compares its live, structured, non-resuming session's given origin,
+exact title and absent explicit specification title, then publishes the
+rename in that same serialized order. A typed rename, even to identical
+words, wins. A successful proposal returns `Applied`; a mismatch returns
+`Kept` and publishes nothing. No watch borrow crosses the publish await.
+
+The existing rename API is live-only, and the actor's final status must
+remain its last record. A session that ends before the proposal is
+committed keeps its given title; the task is cancelled. This differs from
+Paseo's persistent workspace title and preserves Vessel's actor lifecycle
+and final-log rule instead of adding a second writer. The existing
+`ModelCall` API is also best effort while live: an ended actor cannot
+record a late cancelled attempt. Such an outcome is classified in the node
+log without content, rather than claimed as a durable usage record.
+Actual provider billing after cancellation is not known by the node.
 
 A generated title satisfies `MAX_GENERATED_TITLE_UNITS` raw UTF-16 units
 before trimming, then the ordinary `SessionTitle` parser and
