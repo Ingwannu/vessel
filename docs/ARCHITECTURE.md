@@ -62,7 +62,8 @@ and 0013).
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). With the `authority-fixtures` feature, typed caller-authority fixtures built from `vessel-proto`'s types (protocol 20); the fake binaries keep no wire dependency. | proto |
 
 The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
-using the existing Admin-scoped RPC and connection-close event with a
+using the existing Admin-scoped RPC, authenticated local identity binding
+(`node_ctl/observe`) and an OS-lock completion event (`lock_wait`) under a
 bounded command deadline.
 
 The dependency direction is fixed by ADR 0001; adding an edge means updating

@@ -1,14 +1,19 @@
 # ADR 0064: Stopping, restarting and reconfiguring a node
 
 Status: proposed, 2026-11-14. The contract only. No command and no wire
-method is added by this file. The two new methods are gated on one named
-constant, `NODE_CONFIG_PROTOCOL`. Its value is the number given at merge;
-this decision does not choose one. Until that assignment the constant
-equals the base `PROTOCOL_VERSION`, which is 20
-(`crates/vessel-proto/src/node.rs`), and the integrator changes that one
-constant. `docs/PROTOCOL.md` is updated in the commit that registers the
-methods, not before, so the protocol document never describes a method
-the code does not serve.
+method is added by this file. The new-call constant is
+`pub const NODE_CONFIG_PROTOCOL: Option<ProtocolVersion> = None`.
+The integrator assigns `Some(n)` only when every client that shows or
+approves the new data is ready; this decision chooses no number.
+
+Before registering `node.reload` or `node.unset_settings`, this track
+merges the node head containing the shared `required_protocol()` accessor,
+landed once by the titles track. Until then it ships value types only.
+With that accessor, an unassigned call returns `None`; the client refuses
+before sending and the node refuses before dispatch with typed
+`Unsupported` (`CallError::UnassignedProtocol { method }`). This track
+introduces no second gate. `PROTOCOL_VERSION` stays at the base value.
+`docs/PROTOCOL.md` is updated with registration, not before it.
 
 ## Purpose and intent
 
@@ -18,9 +23,9 @@ per home (`--home`). A reloadable key takes effect without a restart; any
 other changed key is reported as restart-required; a key pinned by the
 launch is reported as override-controlled and not applied.
 
-Vessel already starts, installs, updates, inspects, pairs and tunes a node,
-and it can already stop one on the wire. It has no `stop`, `restart`,
-`reload` or `config` command. This decision says which of Paseo's commands
+Before this decision, Vessel starts, installs, updates, inspects, pairs
+and tunes a node, and can stop one on the wire. It lacks `stop`, `restart`,
+`reload` and `config` commands; the resume plan records their delivery. This decision says which of Paseo's commands
 and keys that existing surface is, which keys become `node.settings`
 (applied by a reload), which stay on the command that started the process,
 and what a person does instead of a daemon password.
@@ -312,9 +317,9 @@ removed, so
 the flag or the default applies again, including to live sessions for
 `park_after` and to new sessions for `drivers`. The answer is the settings
 then in force. An empty list, a repeated key, or `unknown` is
-`invalid_request` and writes nothing. Unset is a method of its own so a
-node of protocol 20 answers `unsupported` instead of ignoring a field on
-`node.set_settings`.
+`invalid_request` and writes nothing. Unset is a method of its own, gated through the shared
+`required_protocol()` accessor, so an unassigned feature or an older
+connection is refused rather than ignoring a field on `node.set_settings`.
 
 ### Who may call
 
@@ -326,15 +331,20 @@ local socket keep every scope, as they do today.
 
 ### Older and newer peers
 
-- A client whose negotiated version is below `NODE_CONFIG_PROTOCOL` does
-  not send the two new methods. The commands say the node is too old.
-  `config get`, and `config set` of `park_after` (since 12) or `drivers`
-  (since 18), still work. Until the number is assigned, the constant
-  equals the base `PROTOCOL_VERSION`, so a matching version is not proof
-  the node has the methods. `unsupported` means it does not, and the
-  command says so.
-- A node that has the constant, serving a client below it, sees no new
-  method. Old replies gain no required field.
+- `NODE_CONFIG_PROTOCOL` remains `None` until assignment at merge. After
+  the shared accessor reaches this branch, the two registered calls return
+  `None` from `required_protocol()` and are refused by both client and
+  node as typed `Unsupported`. The client sends nothing. Before that
+  merge, this track registers no new call.
+- Once the integrator assigns `Some(n)`, those calls are available only
+  to peers at least `n`. A client negotiated below it refuses before
+  sending; a node receiving the call from a lower-version connection
+  refuses before dispatch. Existing `config get`, and `config set` of
+  `park_after` (since 12) or `drivers` (since 18), keep their existing gates.
+- No new field is added to an existing reply or event by this decision.
+  Any such later field must be hidden while its feature constant is
+  `None`, and from older peers after assignment, in direct, list, page,
+  nested and forwarded replies through the shared per-peer mechanism.
 - A reload or unset answer that carries `unknown` is shown as a setting
   this client does not know. It is not omitted from the list.
 
@@ -351,9 +361,12 @@ ADR 0008 already refuses to interrupt sessions unless the person asks, and
 a terminal cannot be resumed.
 
 The CLI waits until the data directory's lock is free or the connection
-has closed, whichever it can see, with a deadline of 15 seconds
-(`--timeout`). The wait is on that event. The deadline only turns a hang
-into a failure.
+has closed, whichever it can see, with the `--timeout` budget (the default is
+`StopTimeout::DEFAULT`). For a data directory whose saved `node.id` equals the authenticated
+connection's node id, the CLI observes connection closure and then the OS
+lock's release. A loopback endpoint whose local directory has another id
+only provides connection closure; it cannot authorize waiting on that
+other directory. The deadline bounds the whole command.
 
 `--force` is only for a data directory on this machine. If the call does
 not finish, the process that holds the lock is signalled (`SIGTERM`, then
@@ -614,3 +627,44 @@ tests sessions across a stop and a restart and adds no resume behaviour.
 No crate boundary changes, so `docs/ARCHITECTURE.md` does not gain a row.
 The CLI's help is the user-facing text, updated with the command that
 adds it.
+
+## Local exit observations (slice 2c)
+
+[Decision Log]
+- Purpose and intent: distinguish a shutdown request, connection closure
+  and verified release of this node's data-directory lock.
+- Existing implementation and constraints: slice 2b waits for connection
+  closure. `Teardown::run` closes RPC connections before the store and
+  `serve` drops `NodeLock` afterward; closure alone cannot establish lock
+  release. Paseo's `daemon-instance.ts` 200–214 waits for its owner pid,
+  rechecks replacement and delays 100 ms between probes.
+- Alternatives considered: poll `NodeLock::holder`; use a Tokio blocking
+  worker; add a platform watcher or a supervisor. Polling violates the
+  event-wait rule. A blocking-pool acquisition cannot be cancelled and
+  runtime shutdown waits for that pool. A watcher or supervisor adds a
+  dependency or process boundary without improving the existing lock.
+- Selected approach: compare the saved node id with the authenticated
+  greeting before the request. Only a match enables OS-lock completion.
+  One dedicated standard-library thread opens the existing lock read/write,
+  waits for exclusive acquisition, unlocks immediately and sends its I/O
+  result through a one-slot completion channel. It never writes file data
+  or the owner record. A cancelled borrow preserves that same receiver.
+- Why this approach: the OS owns the release event on every supported
+  platform. A CLI deadline can end the process while the dedicated thread
+  is blocked; Tokio's blocking-pool shutdown cannot. No crate or dependency
+  is added. This is an implementation difference from Paseo's pid polling.
+- Advantages, costs and effects: local success can name actual lock
+  release; explicit token-file endpoints still work with another local
+  directory. `try_lock` in the existing preflight and exclusive acquisition
+  in the waiter can overlap a concurrent node start. That start may receive
+  the existing typed `Locked` refusal; acquisition is followed immediately
+  by unlock, but the interval is not measured and stop/start is not atomic.
+  No owner data is rewritten. Tests pin cancellation, unchanged owner bytes,
+  the original I/O cause, process exit with a blocked waiter, and two live
+  local nodes with different identities. Windows/macOS runtime verification
+  remains separate; the standard lock API already underlies `NodeLock`.
+
+The stop budget's default and minimum are named beside `StopTimeout`.
+Clap renders the default from that type, validation errors render its
+minimum, and an expiry error carries the same parsed budget used by the
+check. Focused waiter/handshake test budgets are named constants, too.

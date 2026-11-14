@@ -86,8 +86,11 @@ clean exit until you remove and recreate it with `vessel init --service`.
 permission. With live sessions it lists them and refuses; `--when-idle`
 returns after starting a drain, and `--now --yes` interrupts them. Without
 `--yes`, interruption requires a terminal confirmation. `--timeout` bounds
-the command in positive seconds (default 15). Local success observes the
-shutdown connection closing; remote success only confirms the request.
+the command in positive seconds; `--help` shows the default. When the local directory's
+identity matches the connected node, success
+also observes its lock being released. Another directory's loopback
+endpoint only proves connection closure; remote success confirms only the
+request.
 Forced cleanup, service-manager finalization and restart are pending.
 
 Sessions survive client disconnects; stopping the node marks live ones

@@ -6,16 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: slice 1 contract and slice 2a launchd clean-exit policy. Slice 2b
-  adds graceful `node stop`, typed policy and bounded positive deadlines.
-  Its tests exercise session protection, confirmation, drain rejection,
-  interruption persistence, stale owners and handshake expiry.
-- Half-done: force, matching-service finalization and restart are not in
-  this slice. Older unconditional launchd agents may start again; the
-  README names that existing limitation. No command claims a lock-free
-  postcondition solely from connection closure.
-- Next: slice 2c adds verified forced cleanup and service finalization;
-  slice 2d adds restart, then slices 3 and 4.
+- Done: slices 1, 2a (launchd) and 2b (graceful stop). Slice 2c adds
+  authenticated local-directory binding and OS-lock completion; focused
+  checks precede its commit and the whole gate runs on that commit.
+- Half-done: force, matching-service finalization and restart remain
+  separate slices. Connection closure alone is still the observation for
+  an endpoint whose token file belongs to another local directory.
+- Next: gate and report 2c, then force, service finalization and restart,
+  followed by slices 3 and 4. No real agent or service manager is verified.
 
 ## Existing asset check
 
@@ -120,10 +118,10 @@ Edge cases the slices have to keep a typed answer for:
 - reload of a path pinned by the environment;
 - a password that is empty, mismatched, or typed with no terminal.
 
-## What Vessel does today
+## Starting point before implementation
 
-Recorded in ADR 0064's "Existing implementation". The gaps this plan
-closes are the missing commands `stop`, `restart`, `config` and `reload`,
+Recorded in ADR 0064's "Existing implementation". At the start, the gaps
+were the missing commands `stop`, `restart`, `config` and `reload`,
 and a launchd unit that would undo a clean stop. The gaps it does not
 close are Paseo's features this decision does not add (plugins, voice, a
 daemon password, terminals that survive a restart, resume on startup).
@@ -143,8 +141,9 @@ not run. Nothing under `web/` changes.
 
 ### Slice 2: `vessel node stop` and `vessel node restart`
 
-Split into 2a (launchd clean-exit policy), 2b (graceful stop) and 2c
-(verified forced cleanup and service finalization), then 2d (restart), each with its own tests and gate.
+Split into 2a (launchd clean-exit policy), 2b (graceful stop), 2c (local
+identity and lock completion), then forced cleanup, service finalization
+and restart. Each is independently tested and gated.
 2a reuses `init/service.rs` and `write_once`: no dependency or crate edge
 is added. Standard-library rendering and the existing service manager
 are sufficient. Unlike Paseo's retained supervisor launch
@@ -195,28 +194,30 @@ updated for `KeepAlive` only on a failed exit. No `sleep` as the wait.
 
 ### Slice 3: `config` and `reload`
 
-Two methods, as the ADR. The number is given at merge. The code gates
-them on `NODE_CONFIG_PROTOCOL` and leaves `PROTOCOL_VERSION` at the base
-until that assignment; the constant then equals the base, and the
-integrator changes that one constant. `docs/PROTOCOL.md` is updated in
-this commit because the methods are registered. The mapping exhaustively
-destructures `SetNodeSettings`, so a new field does not compile until it
-has a variant and the reload class its own ADR decided. `config set`
-names that field, not a dotted subpath. `mcp.inject` and `mcp.policy`
-apply at the next session start; `mcp.serve` applies at once (ADR 0065,
-added at merge). This track does not define a syntax for those pieces. Generated
-TypeScript is regenerated in the same commit (`web/src/wire/`), and the
-page checks run because the wire changed.
+Two methods, as the ADR. `NODE_CONFIG_PROTOCOL` is
+`Option<ProtocolVersion> = None`; the number is given at merge, and only
+the integrator writes `Some(n)`. Before registering either method, merge
+the node head with the shared `required_protocol()` accessor from the
+titles track. Until that merge, ship value types only, with no registered
+call or parallel gating mechanism. `PROTOCOL_VERSION` stays at its base.
+The client refuses `None` before sending and the node refuses before
+dispatch with typed `Unsupported` / `UnassignedProtocol`.
 
-Tests: round trip; `admin` required to set, unset and reload; `read`
-enough to get; a peer negotiated below `NODE_CONFIG_PROTOCOL` answers
-`unsupported` and the CLI does not send; while the constant equals the
-base, `unsupported` is what tells the CLI the node lacks the method;
-unset clears the saved value so the flag applies; a bad
-`settings.json` on reload changes nothing; an unknown key is refused
-before a call; `restart_required` and `override_controlled` are empty;
-secrets are not in the output (the settings types have none, and the test
-uses a token file the command must not print).
+`docs/PROTOCOL.md` is updated when the methods are registered. Exhaustively
+destructure `SetNodeSettings`: a new field must receive a key and its
+ADR's reload class. `config set` names the whole field. `mcp.inject` and
+`mcp.policy` apply to the next session; `mcp.serve` applies at once
+(ADR 0065, added at merge). This track invents no dotted syntax.
+
+Tests after the shared accessor arrives: round trip; Admin to mutate,
+Read to get; unassigned calls refused without sending or dispatch; lower
+negotiated versions refused after assignment; unset restores the launch
+value; invalid settings reload changes nothing; unknown keys refuse
+before a call; empty restart/override lists for this track's existing
+keys; secret-free output. Any later addition to existing replies/events
+must test every direct/list/page/nested/forwarded per-peer path while its
+feature is unassigned and below its assigned version. Generated TS and
+web gates accompany registration.
 
 ### Slice 4: sessions across a restart
 
@@ -279,3 +280,32 @@ The ADR has the full table. The ones a review will look for:
   uses the same graceful RPC and event; actual Windows and macOS execution
   still require those operating systems.
 - No wire changes or generated TypeScript changes.
+
+## Slice 2c existing assets and verification
+
+`[modify]`: reuse `DataDir::read_node_id`, the authenticated greeting,
+`NodeClient::closed` and the standard-library lock already used by
+`NodeLock`. The new observer separates connection-only and directory-bound
+postconditions. The small waiter exists because neither the client event
+nor `NodeLock::holder` provides a cancellable release event; it uses no new
+dependency. ADR 0064 records the alternatives and startup race.
+
+Paseo `packages/server/src/server/daemon-instance.ts` 200–214 was read:
+its local exit loop checks the pid and instance replacement, then delays
+100 ms. Vessel waits on the existing directory lock rather than polling
+that pid. Defaults and the remote request-only result are unchanged.
+The preflight and waiter briefly acquiring a lock can cause a concurrent
+start's typed refusal; no atomic stop/start guarantee is claimed.
+
+The focused checks cover the stop CLI plus the three waiter tests.
+The process-exit test holds the lock in its parent and proves a cancelled
+waiter does not keep the child command alive. The two-node CLI test proves
+an explicit endpoint does not wait on another still-running local node.
+The whole gate runs once after committing and prints HEAD/status first.
+No wire, TypeScript, dependency or crate-edge change.
+
+A7: the stop default/minimum, waiter test budget and handshake test budget
+are each named once beside the relevant type or fixture. Checks and
+expiry/error output use those values, and boundary tests derive from the
+constants. The default is rendered by clap rather than duplicated in a
+help comment. No fixed budget is copied into an expectation string.

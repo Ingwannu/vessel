@@ -24,7 +24,7 @@ mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
-pub(crate) use control::{Confirmation, Stop, StopPolicy};
+pub(crate) use control::{Confirmation, Stop, StopPolicy, StopTimeout};
 pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};

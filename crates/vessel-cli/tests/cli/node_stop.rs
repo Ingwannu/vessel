@@ -1,10 +1,14 @@
 //! The shutdown command must preserve sessions until a person chooses otherwise.
 //! All harnesses are testkit fakes; nodes bind only OS-selected loopback ports.
 
+use std::time::Duration;
+
 use vessel_proto::{ErrorCode, NodeState, SessionStatus};
 use vessel_store::DataDir;
 
 use crate::support::{Fixture, within};
+
+const HANDSHAKE_TEST_BUDGET: Duration = Duration::from_millis(50);
 
 async fn terminal(fixture: &Fixture) -> vessel_proto::SessionId {
     let started = fixture
@@ -21,7 +25,10 @@ async fn graceful_stop_closes_the_connection_and_releases_the_lock() {
         let owner = fixture.owner().await;
         let ran = fixture.vessel(&["node", "stop"], b"").await;
         assert!(ran.ok, "{}", ran.stderr);
-        assert!(ran.stdout.contains("closed its shutdown connection"));
+        assert!(
+            ran.stdout
+                .contains("closed its shutdown connection; lock released")
+        );
         owner.closed().await;
         let lock = std::fs::File::open(DataDir::new(fixture.data()).lock_path()).unwrap();
         fixture.stop().await;
@@ -118,16 +125,18 @@ async fn command_deadline_covers_a_connection_that_never_completes_its_handshake
         let address = listener.local_addr().unwrap().to_string();
         // The listener stays open without completing the handshake. The only
         // timer is the product's deadline, not test synchronization.
+        let seconds = HANDSHAKE_TEST_BUDGET.as_secs_f64().to_string();
         let ran = fixture
             .vessel_at(
                 &address,
                 fixture.data(),
-                &["node", "stop", "--timeout", "0.05"],
+                &["node", "stop", "--timeout", &seconds],
                 b"",
             )
             .await;
         assert!(!ran.ok);
         assert!(ran.stderr.contains("--timeout"), "{}", ran.stderr);
+        assert!(ran.stderr.contains(&seconds), "{}", ran.stderr);
         fixture.stop().await;
     })
     .await;
@@ -216,6 +225,46 @@ async fn a_loopback_book_endpoint_uses_its_own_token_file_without_a_local_lock()
         .await;
         assert!(stopped.ok, "{}", stopped.stderr);
         fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_book_endpoint_never_waits_for_another_running_local_nodes_lock() {
+    within(async {
+        let client_home = Fixture::start().await;
+        let endpoint = Fixture::start().await;
+        let address = endpoint.node_address();
+        let token_path = DataDir::new(endpoint.data()).token_path();
+        let added = crate::support::vessel_in(
+            client_home.data(),
+            &[
+                "nodes",
+                "add",
+                "test-endpoint",
+                &address,
+                "--token-file",
+                token_path.to_str().unwrap(),
+            ],
+            b"",
+        )
+        .await;
+        assert!(added.ok, "{}", added.stderr);
+        let stopped = crate::support::vessel_in(
+            client_home.data(),
+            &["--node", "test-endpoint", "node", "stop"],
+            b"",
+        )
+        .await;
+        assert!(stopped.ok, "{}", stopped.stderr);
+        assert!(stopped.stdout.contains("closed its shutdown connection"));
+        assert!(!stopped.stdout.contains("lock released"));
+        assert_eq!(
+            client_home.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        endpoint.stop().await;
+        client_home.stop().await;
     })
     .await;
 }

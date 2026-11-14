@@ -1,6 +1,7 @@
 //! Shutdown choices are parsed here so command code never swaps booleans.
 //! This module does not contact a node or read its persisted state.
 
+use std::fmt;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
@@ -31,9 +32,22 @@ pub(crate) enum StopPolicy {
 pub(crate) struct StopTimeout(Duration);
 
 impl StopTimeout {
+    /// Paseo's graceful-exit budget is also the CLI's one default.
+    const DEFAULT: Self = Self(Duration::from_secs(15));
+    /// Millisecond rounding has one representable positive lower bound.
+    const MINIMUM: Duration = Duration::from_millis(1);
+    /// Integer unit conversion avoids introducing floating-point arithmetic.
+    const NANOS_PER_MILLISECOND: u32 = 1_000_000;
+
     /// Bound the entire graceful command, including connection and RPC waits.
     pub(crate) const fn duration(self) -> Duration {
         self.0
+    }
+}
+
+impl fmt::Display for StopTimeout {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.as_secs_f64().fmt(formatter)
     }
 }
 
@@ -47,7 +61,7 @@ impl FromStr for StopTimeout {
         // refuses an unrepresentable deadline rather than wrapping its unit.
         let fractional_millisecond = duration
             .subsec_nanos()
-            .checked_rem(1_000_000)
+            .checked_rem(Self::NANOS_PER_MILLISECOND)
             .is_some_and(|remainder| remainder != 0);
         // Conversion to nanoseconds may round a positive fraction down to a
         // whole millisecond (including zero). Preserve that fraction for ceil.
@@ -59,7 +73,7 @@ impl FromStr for StopTimeout {
             .ok_or(InvalidStopTimeout::Deadline)?;
         let millis = u64::try_from(millis).map_err(InvalidStopTimeout::Millis)?;
         let duration = Duration::from_millis(millis);
-        if duration.is_zero() || Instant::now().checked_add(duration).is_none() {
+        if duration < Self::MINIMUM || Instant::now().checked_add(duration).is_none() {
             return Err(InvalidStopTimeout::Deadline);
         }
         Ok(Self(duration))
@@ -70,16 +84,16 @@ impl FromStr for StopTimeout {
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum InvalidStopTimeout {
     /// The text is not a number of seconds.
-    #[error("timeout must be a positive number of seconds")]
+    #[error("timeout must be positive seconds (minimum rounded deadline: {} ms)", StopTimeout::MINIMUM.as_millis())]
     Number(#[source] std::num::ParseFloatError),
     /// NaN, infinity and negative durations cannot be deadlines.
-    #[error("timeout must be a finite positive number of seconds")]
+    #[error("timeout must be finite positive seconds (minimum rounded deadline: {} ms)", StopTimeout::MINIMUM.as_millis())]
     Range(#[source] std::time::TryFromFloatSecsError),
     /// The rounded milliseconds exceed the supported duration.
     #[error("timeout exceeds the supported deadline")]
     Millis(#[source] std::num::TryFromIntError),
     /// A zero or unrepresentable monotonic deadline.
-    #[error("timeout must be positive and fit a monotonic deadline")]
+    #[error("timeout must round to at least {} ms and fit a monotonic deadline", StopTimeout::MINIMUM.as_millis())]
     Deadline,
 }
 
@@ -94,8 +108,8 @@ pub(crate) struct Stop {
     now: bool,
     #[command(flatten)]
     confirmation: ApproveStop,
-    /// Graceful exit deadline in positive seconds (default: 15).
-    #[arg(long, default_value = "15")]
+    /// Graceful exit deadline in positive seconds.
+    #[arg(long, default_value_t = StopTimeout::DEFAULT)]
     pub(crate) timeout: StopTimeout,
 }
 
@@ -133,8 +147,22 @@ mod tests {
 
     #[test]
     fn deadlines_follow_paseos_positive_seconds_and_millisecond_rounding() {
-        for text in ["0", "-1", "NaN", "inf", "1e300", "word"] {
-            assert!(text.parse::<StopTimeout>().is_err());
+        let below_minimum = StopTimeout::MINIMUM.saturating_sub(StopTimeout::MINIMUM);
+        let invalid = [
+            below_minimum.as_secs_f64().to_string(),
+            format!("-{}", StopTimeout::MINIMUM.as_secs_f64()),
+            f64::MAX.to_string(),
+            "NaN".to_owned(),
+            "inf".to_owned(),
+            "word".to_owned(),
+        ];
+        for text in invalid {
+            let error = text.parse::<StopTimeout>().unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains(&format!(" {} ms", StopTimeout::MINIMUM.as_millis()))
+            );
         }
         assert_eq!(
             "0.0011".parse::<StopTimeout>().unwrap().duration(),
@@ -142,15 +170,19 @@ mod tests {
         );
         assert_eq!(
             "1e-50".parse::<StopTimeout>().unwrap().duration(),
-            Duration::from_millis(1)
+            StopTimeout::MINIMUM
         );
         assert_eq!(
             "1.00000000001".parse::<StopTimeout>().unwrap().duration(),
             Duration::from_millis(1001)
         );
         assert_eq!(
-            "15".parse::<StopTimeout>().unwrap().duration(),
-            Duration::from_secs(15)
+            StopTimeout::DEFAULT
+                .to_string()
+                .parse::<StopTimeout>()
+                .unwrap()
+                .duration(),
+            StopTimeout::DEFAULT.duration()
         );
     }
 
@@ -174,11 +206,16 @@ mod tests {
                 panic!("wrong command");
             };
             assert_eq!(stop.policy(), policy);
+            assert_eq!(stop.timeout.duration(), StopTimeout::DEFAULT.duration());
         }
+        let below_minimum = StopTimeout::MINIMUM
+            .saturating_sub(StopTimeout::MINIMUM)
+            .as_secs_f64()
+            .to_string();
         for args in [
             vec!["--now", "--when-idle"],
             vec!["--yes"],
-            vec!["--timeout", "0"],
+            vec!["--timeout", &below_minimum],
         ] {
             let args = [vec!["vessel", "node", "stop"], args].concat();
             assert!(Cli::try_parse_from(args).is_err());

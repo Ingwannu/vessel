@@ -1,5 +1,9 @@
 //! Graceful shutdown over the existing Admin-scoped `node.stop` (ADR 0064).
-//! Process signalling and service management are separate later slices.
+//! Local completion additionally requires the authenticated directory lock.
+//! Process signalling and service management remain separate slices.
+
+mod lock_wait;
+mod observe;
 
 use vessel_client::book::Resolved;
 use vessel_client::{CallError, NodeClient};
@@ -16,9 +20,10 @@ use crate::{io, nodes, remote};
 /// # Errors
 /// Invalid timing, refused authorization, unconfirmed interruption, or expiry.
 pub(crate) async fn stop(target: &Target, args: Stop) -> Result<(), CliError> {
-    tokio::time::timeout(args.timeout.duration(), graceful(target, args.policy()))
+    let limit = args.timeout;
+    tokio::time::timeout(limit.duration(), graceful(target, args.policy()))
         .await
-        .map_err(CliError::StopTimedOut)?
+        .map_err(|source| CliError::StopTimedOut { limit, source })?
 }
 
 async fn graceful(target: &Target, policy: StopPolicy) -> Result<(), CliError> {
@@ -38,17 +43,10 @@ async fn graceful(target: &Target, policy: StopPolicy) -> Result<(), CliError> {
         .filter(|session| session.status.is_live())
         .collect();
     let when = choose(&resolved, &live, policy).await?;
+    let mut observer = observe::Observer::bind(target, &resolved, client, when).await?;
     request(client, when).await?;
-    if when == StopWhen::WhenIdle {
-        io::out(b"the node is draining; it stops when the last live session ends\n").await?;
-    } else if connect::is_here(&resolved) {
-        // Closure is the existing lifecycle event. It proves the node closed
-        // this connection, not that an external manager cannot start it again.
-        client.closed().await;
-        io::out(b"the node closed its shutdown connection\n").await?;
-    } else {
-        io::out(b"shutdown requested; remote process exit was not verified\n").await?;
-    }
+    let completion = observer.completed().await?;
+    io::out(completion.message().as_bytes()).await?;
     Ok(())
 }
 
