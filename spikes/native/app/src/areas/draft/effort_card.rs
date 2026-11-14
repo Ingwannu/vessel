@@ -442,21 +442,11 @@ pub(crate) fn card(
         )
         .on_key_down(
             cx.listener(|shell, event: &gpui::KeyDownEvent, window, cx| {
-                match event.keystroke.key.as_str() {
-                    "escape" => {
-                        shell.areas.draft.effort.set_open(false);
-                        shell.areas.draft.composer.focus(window, cx);
-                    }
-                    // Tab (either way) reaches the slider, the card's one
-                    // keyboard control (the bolt, the title and the reset
-                    // are pointer targets, as the reference's).
-                    "tab" => {
-                        shell.areas.draft.effort.slider.focus(window, cx);
-                        cx.stop_propagation();
-                    }
-                    _ => return,
+                if event.keystroke.key == "escape" {
+                    shell.areas.draft.effort.set_open(false);
+                    shell.areas.draft.composer.focus(window, cx);
+                    cx.notify();
                 }
-                cx.notify();
             }),
         );
     Some(

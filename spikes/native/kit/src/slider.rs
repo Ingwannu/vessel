@@ -188,7 +188,9 @@ impl SliderState {
     /// A slider not pressed.
     pub fn new(cx: &mut App) -> Self {
         Self {
-            focus: cx.focus_handle(),
+            // A tab stop: the kit's root moves the keys with Tab
+            // (`focus_next`), and the slider must be reachable that way.
+            focus: cx.focus_handle().tab_stop(true),
             track: Rc::new(Cell::new(None)),
             pressed: Rc::new(Cell::new(false)),
             field: Rc::new(RefCell::new(None)),
@@ -344,18 +346,30 @@ fn track(
             .size_full(),
         );
     if let Some(fill) = thumb_x {
+        // The fill is a whole pill whose right cap is centred on the
+        // thumb's centre: its left end is always the track's 12-point cap
+        // (a fill narrower than the track is tall had its corners cut to
+        // half its width, the "square" end at the lowest stop the owner
+        // saw), and its right cap, 12 round, lies under the 14-round thumb.
+        let span = fill.mul_add(1.0, TRACK.mul_add(0.5, 0.0));
         let mut filled = div()
             .absolute()
             .left_0()
             .top_0()
             .bottom_0()
-            .w(px(fill))
-            .rounded_l(radius)
-            .bg(paint.fill)
+            .w(px(span))
+            .rounded(radius)
             .overflow_hidden();
-        if let Some(sampler) = &paint.field {
-            filled = filled.child(field(state, Rc::clone(sampler), fill, width));
-        }
+        filled = match &paint.field {
+            // The field's image carries the fill's colour where it is not
+            // yet revealed, so nothing is painted under it: a fill under
+            // the image showed as a one-pixel rim at fractional scales,
+            // where the image's bounds are snapped and the fill's are not.
+            Some(sampler) => {
+                filled.child(field(state, Rc::clone(sampler), fill, width, paint.fill))
+            }
+            None => filled.bg(paint.fill),
+        };
         filled = filled.children(paint.dots.iter().map(|particle| {
             let x = particle.x.mul_add(width.mul_add(-1.0, 0.0), fill);
             let y = particle.y.mul_add(TRACK, 0.0);
@@ -495,24 +509,20 @@ fn thumb(centre: f32, height: f32, paint: &Paint, tokens: &Tokens, events: &Even
 }
 
 /// The field over the fill, sampled every 2 points into one image.
-fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32) -> AnyElement {
+fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32, under: Hsla) -> AnyElement {
     let last = Rc::clone(&state.field);
     canvas(
         |_, _, _| {},
         move |bounds, (), window, cx| {
-            let Some(image) = field_image(&sampler, fill, width) else {
+            let span = f32::from(bounds.size.width);
+            let Some(image) = field_image(&sampler, fill, span, width, under) else {
                 return;
             };
             if let Some(previous) = last.borrow_mut().replace(Arc::clone(&image)) {
                 cx.drop_image(previous, Some(window));
             }
             let radius = px(TRACK.mul_add(0.5, 0.0));
-            let corners = Corners {
-                top_left: radius,
-                top_right: px(0.0),
-                bottom_right: px(0.0),
-                bottom_left: radius,
-            };
+            let corners = Corners::all(radius);
             if let Err(error) = window.paint_image(bounds, bounds, corners, image, 0, false) {
                 tracing::warn!(%error, "the slider's field could not be drawn");
             }
@@ -525,10 +535,18 @@ fn field(state: &SliderState, sampler: Sampler, fill: f32, width: f32) -> AnyEle
     .into_any_element()
 }
 
-/// The field's samples as an image (BGRA, straight alpha, as GPUI's
-/// images are), `fill` points wide.
-fn field_image(sampler: &Sampler, fill: f32, width: f32) -> Option<Arc<RenderImage>> {
-    let columns = (fill.mul_add(FIELD_STEP.recip(), 0.0).ceil()).clamp(1.0, 2048.0);
+/// The field's samples as an image (BGRA, opaque, as GPUI's images are),
+/// `span` points wide, the thumb `fill` points along: where the field is
+/// not yet revealed the sample is the fill's own colour `under`.
+fn field_image(
+    sampler: &Sampler,
+    fill: f32,
+    span: f32,
+    width: f32,
+    under: Hsla,
+) -> Option<Arc<RenderImage>> {
+    let base = under.to_rgb();
+    let columns = (span.mul_add(FIELD_STEP.recip(), 0.0).ceil()).clamp(1.0, 2048.0);
     let rows = TRACK.mul_add(FIELD_STEP.recip(), 0.0);
     let (count_x, count_y) = (whole(columns), whole(rows));
     let mut bytes = Vec::with_capacity(
@@ -539,8 +557,16 @@ fn field_image(sampler: &Sampler, fill: f32, width: f32) -> Option<Arc<RenderIma
         let up = y.mul_add(TRACK.recip().mul_add(-1.0, 0.0), 1.0);
         for column in 0..count_x {
             let x = centre_of(column).mul_add(FIELD_STEP, 0.0);
-            let [red, green, blue, alpha] = sampler(x, up, fill, width);
-            bytes.extend([byte(blue), byte(green), byte(red), byte(alpha)]);
+            let [red, green, blue, shown] = sampler(x, up, fill, width);
+            let over = |field: f32, fill: f32| {
+                field.mul_add(shown, fill.mul_add(shown.mul_add(-1.0, 1.0), 0.0))
+            };
+            bytes.extend([
+                byte(over(blue, base.b)),
+                byte(over(green, base.g)),
+                byte(over(red, base.r)),
+                u8::MAX,
+            ]);
         }
     }
     let buffer = image::RgbaImage::from_raw(count_x, count_y, bytes)?;
