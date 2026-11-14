@@ -1,7 +1,7 @@
 # Plugins
 
-Status: study committed, no code. ADR 0068 is proposed, not
-accepted. The inventory is `docs/plans/plugins-inventory.md`. The
+Status: the hook machinery is accepted. The host waits for the
+owner. The inventory is `docs/plans/plugins-inventory.md`. The
 three hosts are `docs/plans/plugins-hosts.md`.
 
 ## Goal
@@ -90,11 +90,12 @@ are separate decisions. They are not implied by slice 4.
   on `create_starting`. The before hook follows the draining
   refusal and precedes the checks that read the spec. Import and
   rewind are the skips, with the reasons in the ADR.
-  A refusal is `InvalidRequest`. A timeout is `Unavailable`. No
-  code. No crate.
-- Half-done: nothing in code. The ADR is still proposed.
-- Next: wait for the review of this revision. Do not start the
-  crate. A returned document is fixed before any code.
+  A refusal is `InvalidRequest`. A timeout is `Unavailable`. The
+  hook machinery slice is accepted. The host (a helper process,
+  and what may be installed) waits for the owner.
+- Half-done: the crate is not started.
+- Next: the registry and the two create hooks, as the record
+  states. Not the helper process.
 - Not verified: Paseo's scheduler implementation and the provider
   `forkSession` body; the field-by-field provider schemas; the
   app's client-bundle loader; whether `localeCompare` and byte

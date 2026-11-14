@@ -1,7 +1,8 @@
 # ADR 0068: Plugins as a versioned helper protocol; hooks first, and no UI
 
-Status: proposed, 2026-11-14. Not accepted. No code comes with this
-record. The study is `docs/plans/plugins-inventory.md` and
+Status: accepted for the hook machinery slice; the host (helper
+protocol, what may be installed) awaits the owner. No code comes
+with this record. The study is `docs/plans/plugins-inventory.md` and
 `docs/plans/plugins-hosts.md`; the plan is `docs/plans/plugins.md`.
 
 Paseo 0.15.4 is the reference. Where this record differs from it, the
