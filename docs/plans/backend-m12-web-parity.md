@@ -504,3 +504,17 @@ these inventory/history documents. A1's assigned usage-query scope is
 unchanged. Documentation correction review is pending; no feature code
 was written before correcting the returned contract. No UI/runtime or
 whole-table behavioral parity approval is implied.
+
+## First accounting implementation checkpoint
+
+The documentation correction passed contract review. A1 now has an
+unverified implementation draft: usage-query call edge, a single-flight
+latest-selection reader, pure token/cost/coverage facts and the Settings
+section. Scoped type checking and eight pure tests passed before the
+latest lint corrections; lint found four issues (an intentionally unsafe
+integer literal in a test and three concise void arrows). These were
+corrected without a rule exemption. Lint has not yet been rerun, and the
+implementation has no whole gate, browser flow or capture evidence yet.
+No limits/inbox/future call is registered. A new checked node head is to
+be merged at this clean checkpoint; its quality rules apply before further
+implementation and the whole merged tree must pass.

@@ -1,6 +1,7 @@
 # ADR 0075: Bring the existing web client to node feature parity
 
-Status: proposed, 2026-11-14.
+Status: accepted for the parity contract after source review, 2026-11-14.
+Implementation, rendered parity and combined integration remain separately gated.
 
 ## Context
 
