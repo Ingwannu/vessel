@@ -15,6 +15,7 @@ mod devices;
 mod diagnostics;
 mod failure;
 mod fixture;
+mod idle_release;
 mod machine_book;
 mod machines;
 mod models;

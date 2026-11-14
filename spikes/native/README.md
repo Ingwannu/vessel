@@ -279,6 +279,10 @@ The shared spring follows the installed Reanimated helper (including its
 64 ms delayed-frame cap); its numeric fixtures were sampled from that
 helper.
 
+`kit::settings::row_titled` is `row_at` with the caller's title element
+(a title with Paseo's `SettingsInfoTip` beside it); `row_at` builds its
+text title and delegates to the same private body.
+
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates
 with no action. Areas supply the action’s state and tooltip, rather than

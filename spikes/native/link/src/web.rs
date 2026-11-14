@@ -105,6 +105,11 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 )),
             })),
+            Command::NodeSettings(ask) => self.emit(Event::NodeSettings(ask.refused(
+                vessel_app_view::idle_release::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                ),
+            ))),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

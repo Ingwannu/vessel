@@ -394,9 +394,14 @@ labels from `en.ts` and `ko.ts`.
   (Paseo shows paths whole; Vessel's report is pasted elsewhere and an
   account's name in a path says nothing about the problem).
 - **About**: the lead's card as it is (version, What's new, updates, the
-  automatic-update switch, the log). Paseo's "Connected hosts" (each
-  host's daemon version) waits on the machine's version reaching the
-  app's `Machine` (asked of the lead).
+  automatic-update switch, the log), then Paseo's "Connected hosts" as
+  "Connected machines" ("연결된 머신", `settings/connected.rs`): each
+  machine with its node's version ("v0.1.0", "Offline", or "—"). The
+  version comes from the node's own `NodeInfo` at connection
+  (`view::NodeVersion` on `Machine`, the lead's request: a type, not a
+  string); it is also in the diagnostic. Not compared with the app's
+  (Paseo marks a differing one): app builds and the node are numbered
+  apart.
 
 Hidden, with why: Sidebar (the sidebar does not read its group, sort or
 items yet; S3's next slice, Paseo keeps those in the sidebar's menu) and
@@ -411,3 +416,41 @@ three chat displays ("Collapse turns" waits on the conversation), so the
 default stays Full; the diagnostic asks no machine anything new (it
 reports what the app holds), so Paseo's per-host progress rows have
 nothing to show; its text is English, as Paseo's.
+
+### Slice 3: the machine's sections
+
+Followed: `screens/settings/host-page.tsx` (`HostAgentsPage`),
+`screens/settings/idle-runtime-cleanup-card.tsx`,
+`components/settings/headings/settings-info-tip.tsx`; labels from
+`en.ts` and `ko.ts` (`settings.host.agents`).
+
+- **Agents** (`app/src/areas/settings/host_agents.rs`): Paseo's "Agents"
+  section with "Release idle agents" ("유휴 에이전트 해제"): its title
+  with the info tip (the kit's tooltip on a 16 info glyph), Paseo's hint
+  and info, the kit's switch. It reads the machine's own settings
+  (`node.settings`, protocol 12) when the page is shown for a machine
+  and sends `node.set_settings` when switched; the switch waits while a
+  change is out; a refused change says why under the hint and the switch
+  shows what the node still keeps. While the machine is not connected
+  the page is Paseo's one card, "Connect to this machine to manage
+  agents", under no heading.
+- **The model** (`view::idle_release`, tested): on is any number of idle
+  minutes, off is never; turning it on restores Paseo's hour (the node's
+  default, 60), and the hint names minutes other than 60 ("after 30
+  minutes"); answers carry the machine and a ticket, and one for another
+  machine or an older request changes nothing.
+- **The call** (`link::node_settings`): one request for a read or a
+  change, answered with the settings in force; failures cross as codes
+  only. `link/src/lib.rs` gains six registration lines (1082 of its
+  1086).
+- **The kit**: `settings::row_titled`, the row with the caller's title
+  element, for a title with its info tip; `row_at` delegates to the same
+  body.
+
+Differences, stated: a node older than protocol 12 says so in the row
+(Paseo draws nothing; an empty section would mislead); the info tip
+shows on a pointer only (the kit's tooltip has no touch mode); minutes
+other than an hour are shown, and lost when the switch is turned off and
+on (the command line still sets any number). Not shown, nothing behind
+them in Vessel: Paseo tools, browser tools, the appended system prompt,
+resume after restart, skills, agent profiles.

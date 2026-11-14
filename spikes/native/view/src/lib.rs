@@ -24,6 +24,7 @@ pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;
+pub mod idle_release;
 mod links;
 pub mod machine_book;
 pub mod machines;
@@ -54,7 +55,8 @@ pub mod workspace;
 
 pub use agent_mark::AgentMark;
 pub use board::{
-    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
+    Agent, Attention, Card, Fleet, Lane, Machine, NodeVersion, Phrase, Reach, Via, agent_name,
+    rows_for_scroll,
 };
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;

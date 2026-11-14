@@ -3,7 +3,7 @@
 
 use vessel_proto::{HarnessKind, HarnessRef, ProtocolVersion};
 
-use crate::board::{Agent, Machine, Reach};
+use crate::board::{Agent, Machine, NodeVersion, Reach};
 use crate::diagnostics::{AppFacts, Renderer, redact, report};
 
 fn app() -> AppFacts {
@@ -41,6 +41,7 @@ fn lists_the_app_then_each_machine_in_paseos_shape() {
             agent(HarnessKind::Codex, "Codex", Some("not signed in")),
         ],
         protocol: Some(ProtocolVersion::new(18)),
+        version: Some(NodeVersion::new("0.1.0")),
     };
     let text = report(&app(), &[laptop]);
     assert_eq!(
@@ -48,7 +49,7 @@ fn lists_the_app_then_each_machine_in_paseos_shape() {
         "Vessel app diagnostics\n  Collected at: 2026-11-14T12:00:00Z\n  App version: 0.0.0.0.16\n  \
          Platform: windows x86_64\n  Renderer: GPU, NVIDIA GeForce RTX 4070 (NVIDIA)\n  \
          Saved machines: 1\n  Preferences: C:\\Users\\me\\AppData\\Roaming\\vessel\\app-prefs.json\n  \
-         Log folder: none\n\nMachine: laptop\n  Status: online\n  Protocol: 18\n  Sessions: 0\n  \
+         Log folder: none\n\nMachine: laptop\n  Status: online\n  Version: 0.1.0\n  Protocol: 18\n  Sessions: 0\n  \
          Agent: Claude Code, available\n  Agent: Codex, unavailable: not signed in"
     );
 }
@@ -63,6 +64,7 @@ fn says_why_a_machine_is_unreachable_without_its_address() {
         sessions: Vec::new(),
         agents: Vec::new(),
         protocol: None,
+        version: None,
     };
     let text = report(&app(), &[away]);
     assert!(

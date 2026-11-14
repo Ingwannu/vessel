@@ -32,9 +32,11 @@ mod appearance;
 mod book;
 mod chat;
 mod choices;
+pub(crate) mod connected;
 mod devices;
 mod diagnostics;
 mod general;
+mod host_agents;
 mod language;
 mod motion;
 mod nav;
@@ -89,6 +91,7 @@ pub(crate) struct SettingsState {
 
     pub(crate) devices: devices::Devices,
     diagnostics: diagnostics::State,
+    host_agents: host_agents::State,
     language: language::State,
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
@@ -111,6 +114,7 @@ impl SettingsState {
 
             devices: devices::Devices::new(window, cx),
             diagnostics: diagnostics::State::new(cx),
+            host_agents: host_agents::State::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,

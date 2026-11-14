@@ -156,6 +156,46 @@ pub struct Machine {
     /// session (marks from 10, `session::CONVERSATION_PROTOCOL`).
     #[serde(default)]
     pub protocol: Option<ProtocolVersion>,
+    /// Its node's version, when it answered (Settings › About lists each
+    /// machine's, as Paseo's "Connected hosts").
+    #[serde(default)]
+    pub version: Option<NodeVersion>,
+}
+
+impl Machine {
+    /// A machine that did not answer, and why.
+    #[must_use]
+    pub fn unreachable(name: String, why: &str) -> Self {
+        Self {
+            name,
+            reach: Reach::Unreachable(why.to_owned()),
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        }
+    }
+}
+
+/// A node's version as it reports it (`NodeInfo::version`, the node
+/// binary's own: "0.1.0"). Shown, never compared: the app's builds and
+/// the node's are numbered apart.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct NodeVersion(String);
+
+impl NodeVersion {
+    /// The version a node reported.
+    #[must_use]
+    pub fn new(version: impl Into<String>) -> Self {
+        Self(version.into())
+    }
+}
+
+impl std::fmt::Display for NodeVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
 }
 
 /// An agent a machine can start a conversation with.

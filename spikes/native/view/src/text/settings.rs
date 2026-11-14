@@ -77,7 +77,14 @@ pub struct SettingsText {
     pub version: &'static str,
     pub licence: &'static str,
     pub licences: &'static str,
-    pub machines_versions: &'static str,
+    pub connected_machines: &'static str,
+    pub offline: &'static str,
+    pub agents_unavailable: &'static str,
+    pub idle_release: &'static str,
+    pub idle_release_info: &'static str,
+    pub idle_too_old: &'static str,
+    pub idle_forbidden: &'static str,
+    pub idle_refused: &'static str,
 }
 
 const EN: SettingsText = SettingsText {
@@ -135,7 +142,22 @@ const EN: SettingsText = SettingsText {
     version: "Version",
     licence: "Licence",
     licences: "Licences",
-    machines_versions: "Machines",
+    // About's section of each machine's node version (Paseo's
+    // `settings.about.connectedHosts`, with Vessel's word for a host) and
+    // the value shown for one that did not answer. Short.
+    connected_machines: "Connected machines",
+    offline: "Offline",
+    // Settings › Agents (Paseo's `settings.host.agents`): the card that
+    // stands for the section while the machine is not connected; the
+    // idle-release row's title, its tooltip (two paragraphs), and what it
+    // says when the node cannot take the change. "Machine" where Paseo
+    // says "host".
+    agents_unavailable: "Connect to this machine to manage agents",
+    idle_release: "Release idle agents",
+    idle_release_info: "Stops the agent's process while keeping its conversation. Send a message to resume.\n\nActive work, pending notifications, and provider safety checks prevent cleanup.",
+    idle_too_old: "This machine's node is too old to change this from the app. Update the node to change it here.",
+    idle_forbidden: "This device may not change this machine's settings.",
+    idle_refused: "The machine did not take the change. Try again.",
 };
 
 const KO: SettingsText = SettingsText {
@@ -190,10 +212,38 @@ const KO: SettingsText = SettingsText {
     version: "버전",
     licence: "라이선스",
     licences: "라이선스",
-    machines_versions: "머신",
+    connected_machines: "연결된 머신",
+    offline: "오프라인",
+    agents_unavailable: "에이전트를 관리하려면 이 머신에 연결하세요",
+    idle_release: "유휴 에이전트 해제",
+    idle_release_info: "대화를 유지하면서 에이전트 프로세스를 중지합니다. 메시지를 보내면 다시 이어집니다.\n\n진행 중인 작업, 대기 중인 알림, 프로바이더 안전 검사가 있으면 정리하지 않습니다.",
+    idle_too_old: "이 머신의 노드가 오래되어 앱에서 바꿀 수 없습니다. 노드를 업데이트하면 여기서 바꿀 수 있습니다.",
+    idle_forbidden: "이 기기에는 이 머신의 설정을 바꿀 권한이 없습니다.",
+    idle_refused: "머신이 변경을 받지 않았습니다. 다시 시도하세요.",
 };
 
 impl SettingsText {
+    /// The idle-release row's hint (Paseo's `idleRuntimeCleanup.hint`)
+    /// for the minutes in force: Paseo's hour as Paseo says it, other
+    /// minutes as a whole sentence with the count; `None` (off) as the
+    /// hour, Paseo's default.
+    #[must_use]
+    pub fn idle_hint(&self, minutes: Option<u16>) -> String {
+        match (self.lang, minutes) {
+            (Lang::En, None | Some(60)) => "Free up memory after an hour of inactivity.".to_owned(),
+            (Lang::En, Some(1)) => "Free up memory after a minute of inactivity.".to_owned(),
+            (Lang::En, Some(minutes)) => {
+                format!("Free up memory after {minutes} minutes of inactivity.")
+            }
+            (Lang::Ko, None | Some(60)) => {
+                "1시간 동안 활동이 없으면 메모리를 확보합니다.".to_owned()
+            }
+            (Lang::Ko, Some(minutes)) => {
+                format!("{minutes}분 동안 활동이 없으면 메모리를 확보합니다.")
+            }
+        }
+    }
+
     /// A section's name in the list and its page's title: Paseo's
     /// (`en.ts` `settings.sections`, `settings.hostSections`, and
     /// `openProject.tiles.pairDevice.title` for "Pair device"; `ko.ts` the

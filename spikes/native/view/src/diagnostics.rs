@@ -127,8 +127,13 @@ fn machine_section(machine: &Machine) -> String {
     let protocol = machine
         .protocol
         .map_or_else(|| "unknown".to_owned(), |protocol| protocol.to_string());
+    let version = machine
+        .version
+        .as_ref()
+        .map_or_else(|| "unknown".to_owned(), ToString::to_string);
     let mut entries = vec![
         ("Status", status),
+        ("Version", version),
         ("Protocol", protocol),
         ("Sessions", machine.sessions.len().to_string()),
     ];
