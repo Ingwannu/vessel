@@ -276,7 +276,7 @@ the measured ratios (`ratios`), offset lines with concentric turns, loops
 and the star (`geometry`), where each screen's drawing goes and how it
 steps down as the window narrows (`layout`), the first message's journey
 (`motion`: 300 ms move, 150 ms star to circle, 150 ms the agent's mark, the
-slider's measured values and curve), and the shapes the kit paints. Its
+kit's motion tokens and curve), and the shapes the kit paints. Its
 tests place the drawing over the real screens' measured boxes (1280, 1920
 and 390 wide) and check it never comes within 12 points of text.
 
@@ -290,11 +290,14 @@ box of its own (the avatar).
 
 `app::brand` is the shell's `brand`: the new session's column gives
 `on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
-composer's card and the pickers after `skip` children), the session's body
-gives `shell.brand.session(viewport, column)`, `shell.brand.sent()` starts
-the journey, and `brand::avatar(…)` draws an agent message's avatar. The
-journey's frames come from one 1/30 s timer; reduced motion and a software
-renderer show its end at once.
+composer's card and the pickers after `skip` children), the session's
+screen gives `shell.brand.session_body(viewport)` and its composer's column
+`shell.brand.session_column()`, the row waiting for the reply gives
+`shell.brand.reply_head()` (its first child is the avatar's slot, where the
+star lands), `shell.brand.sent()` starts the journey, and `brand::avatar(…)`
+draws an agent message's avatar. The
+journey steps once per presented frame while it runs; held motion (reduced,
+off, a software renderer) shows its end at once.
 
 `kit::window_glyph` draws the title bar's minimise, maximise, restore and
 close glyphs in the mark's line language (one line, round ends, corners on
@@ -365,6 +368,9 @@ Environment:
   setting shows them (every tool call a row of its own; an agent's log
   as one folded row) instead of collapsing tool calls, until the app
   reads that setting.
+- `VESSEL_APP_SLOW_MOTION=<n>`: the brand's first-message journey runs
+  n times slower, so a capture on a virtual display can take its frames
+  (with `VESSEL_APP_REDUCE_MOTION=0`). Nothing is stored.
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.

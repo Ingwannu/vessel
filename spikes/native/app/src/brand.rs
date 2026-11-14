@@ -17,9 +17,10 @@
 //!   after the whole window's prepaint, makes the figure from those boxes
 //!   in the same frame. A screen that reported nothing this frame draws
 //!   nothing (the board, settings). The journey is a start time and the
-//!   figure it starts from; frames come from one 1/30 s timer while it
-//!   runs and stop when it ends, and under reduced motion or a software
-//!   renderer the end shows at once.
+//!   figure it starts from; it asks for the next presented frame while it
+//!   runs (the display's own rate, the owner's word 42) and stops asking
+//!   when it ends; under held motion (reduced, off, a software renderer)
+//!   the end shows at once.
 //! - Alternatives: each screen drawing its own figure (the two would not
 //!   be one drawing across the route change); boxes computed from layout
 //!   constants (break when a font, a padding or the composer's height
@@ -30,7 +31,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{App, Bounds, Hsla, IntoElement, Pixels, Window};
@@ -53,11 +54,9 @@ const QUIET_DARK: f32 = 0.07;
 const QUIET_LIGHT: f32 = 0.10;
 /// The avatar's size, in points.
 pub(crate) const AVATAR: f32 = 24.0;
-/// The room the avatar takes beside the column: itself, 8 to the text, 10
-/// to the frame.
-const AVATAR_ROOM: f32 = 42.0;
-/// The journey's frame time: the app's motion clock, 30 a second.
-const FRAME: Duration = Duration::from_millis(33);
+/// The air between the frame and the column (worker C puts the avatar
+/// inside the column, at the head of the reply).
+const COLUMN_AIR: f32 = vessel_app_view::brand::ratios::CLEARANCE;
 
 /// What the shown screen measured this frame.
 #[derive(Debug, Clone, Copy)]
@@ -86,13 +85,15 @@ struct Shared {
     viewport: Cell<Option<Area>>,
     /// The open session's column (the composer's), this frame.
     column: Cell<Option<Area>>,
+    /// Where the coming reply's avatar will be (worker C's waiting row),
+    /// this frame.
+    reply_head: Cell<Option<Area>>,
     last_new: Cell<Option<Figure>>,
     journey: Cell<Option<Started>>,
-    ticking: Cell<bool>,
 }
 
 /// The brand's state on the shell.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Brand {
     shared: Rc<Shared>,
 }
@@ -175,15 +176,36 @@ impl Brand {
         }
     }
 
+    /// For the row that waits for the agent's reply (worker C's "working"
+    /// row, `on_children_prepainted`): its first child is the avatar's
+    /// slot, where the first message's star lands and turns into the
+    /// avatar; the reply's own avatar is drawn at the same place.
+    #[expect(
+        dead_code,
+        reason = "worker C gives it to the waiting row; this expectation goes with that line"
+    )]
+    pub(crate) fn reply_head(
+        &self,
+    ) -> impl Fn(Vec<Bounds<Pixels>>, &mut Window, &mut App) + 'static {
+        let shared = Rc::clone(&self.shared);
+        move |children, _window, _cx| {
+            shared.reply_head.set(children.first().copied().map(area));
+        }
+    }
+
     /// The drawing, to place first in the content panel (behind the
     /// screen; the panel clips it).
     pub(crate) fn backdrop(&self, tokens: &Tokens) -> impl IntoElement {
         let shared = Rc::clone(&self.shared);
         let ink = ink(tokens);
         vector::drawing(move |bounds, window, cx| {
-            let figure = figure(&shared, area(bounds), cx.reduce_motion())?;
+            let figure = figure(&shared, area(bounds), vessel_app_kit::motion::held(cx))?;
             if shared.journey.get().is_some() {
-                tick(&shared, window, cx);
+                // One step per presented frame at the display's own rate
+                // while the journey runs (the owner's word 42: a fixed
+                // 30-a-second clock looked choppy); under held motion the
+                // figure is already the end and nothing asks.
+                window.request_animation_frame();
             }
             Some(Drawing {
                 shapes: kit_shapes(&view::shapes(&figure)),
@@ -196,13 +218,14 @@ impl Brand {
 /// The figure this frame, from what the shown screen measured.
 fn figure(shared: &Shared, panel: Area, still: bool) -> Option<Figure> {
     let (viewport, column) = (shared.viewport.take(), shared.column.take());
+    let reply_head = shared.reply_head.take();
     let seen = shared.seen.take().or_else(|| {
         let (content, column) = (viewport?, column?);
         Some(Seen::Session(Session {
             content,
             column_left: column.x,
             column_right: column.right(),
-            avatar_room: AVATAR_ROOM,
+            air: COLUMN_AIR,
         }))
     })?;
     match seen {
@@ -226,7 +249,7 @@ fn figure(shared: &Shared, panel: Area, still: bool) -> Option<Figure> {
             let Some(started) = shared.journey.get() else {
                 return Some(to);
             };
-            let elapsed = started.at.elapsed().as_secs_f32();
+            let elapsed = slow(started.at.elapsed().as_secs_f32());
             if still || motion::ended(elapsed) {
                 shared.journey.set(None);
                 return Some(to);
@@ -235,41 +258,37 @@ fn figure(shared: &Shared, panel: Area, still: bool) -> Option<Figure> {
             Some(motion::between(
                 &started.from,
                 &to,
-                avatar_place(&screen),
+                avatar_place(&screen, reply_head),
                 journey,
             ))
         }
     }
 }
 
-/// Where the coming reply's avatar sits: beside the column's left edge,
-/// at the conversation's first rows (worker C places the reply; until C's
-/// slot reports it, this is the study's place).
-fn avatar_place(screen: &Session) -> Star {
-    #[expect(clippy::float_arithmetic, reason = "a place beside the column")]
+/// Where the coming reply's avatar sits: the waiting row's slot when it
+/// reported one this frame; else the column's left edge at the
+/// conversation's first rows (the study's place).
+fn avatar_place(screen: &Session, reported: Option<Area>) -> Star {
+    if let Some(slot) = reported {
+        #[expect(clippy::float_arithmetic, reason = "a slot's centre")]
+        let centre = Pt {
+            x: slot.x + slot.w / 2.0,
+            y: slot.y + slot.h / 2.0,
+        };
+        return Star {
+            centre,
+            span: slot.w.min(slot.h),
+        };
+    }
+    #[expect(clippy::float_arithmetic, reason = "a place at the column's left")]
     let centre = Pt {
-        x: screen.column_left - 8.0 - AVATAR / 2.0,
+        x: screen.column_left + AVATAR / 2.0,
         y: screen.content.y + 76.0,
     };
     Star {
         centre,
         span: AVATAR,
     }
-}
-
-/// One frame from now while the journey runs, from one timer at a time.
-fn tick(shared: &Rc<Shared>, window: &mut Window, cx: &mut App) {
-    if shared.ticking.replace(true) {
-        return;
-    }
-    let shared = Rc::clone(shared);
-    window
-        .spawn(cx, async move |cx| {
-            cx.background_executor().timer(FRAME).await;
-            shared.ticking.set(false);
-            let _drawn = cx.update(|window, _cx| window.refresh());
-        })
-        .detach();
 }
 
 /// The drawing's ink for the theme.
@@ -292,4 +311,36 @@ fn kit_shapes(shapes: &[view::Shape]) -> Vec<vector::Shape> {
             alpha: shape.alpha,
         })
         .collect()
+}
+
+/// `VESSEL_APP_SLOW_MOTION=<n>` runs the journey n times slower, so a
+/// capture on a virtual display can take its frames (as
+/// `VESSEL_APP_REDUCE_MOTION` fixes the held state for a capture). Not a
+/// setting: nothing is stored; unset or below 1, the journey's own speed.
+#[expect(clippy::float_arithmetic, reason = "a time divided by a factor")]
+pub(crate) fn slow(elapsed: f32) -> f32 {
+    static FACTOR: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+    let factor = *FACTOR.get_or_init(|| {
+        std::env::var("VESSEL_APP_SLOW_MOTION")
+            .ok()
+            .and_then(|v| v.parse::<f32>().ok())
+            .unwrap_or(1.0)
+            .max(1.0)
+    });
+    elapsed / factor
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_app_kit::motion::{QUICK, STANDARD};
+    use vessel_app_view::brand::motion::{MARK, MORPH, MOVE};
+
+    /// The journey's phases (`view`, which cannot read the kit) restate the
+    /// kit's motion tokens; this keeps them one set.
+    #[test]
+    fn the_journey_reads_the_kits_motion_tokens() {
+        assert!((MOVE - STANDARD.as_secs_f32()).abs() < 1e-6);
+        assert!((MORPH - QUICK.as_secs_f32()).abs() < 1e-6);
+        assert!((MARK - QUICK.as_secs_f32()).abs() < 1e-6);
+    }
 }

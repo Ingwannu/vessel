@@ -22,7 +22,7 @@ impl Brand {
     /// The journey now, for the avatar: done when none runs.
     pub(crate) fn journey(&self, still: bool) -> Journey {
         self.shared.journey.get().map_or(Journey::DONE, |started| {
-            motion::journey(started.at.elapsed().as_secs_f32(), still)
+            motion::journey(super::slow(started.at.elapsed().as_secs_f32()), still)
         })
     }
 }
@@ -32,7 +32,7 @@ impl Brand {
 /// message's journey runs; the ring and the mark at rest. For worker C to
 /// place at the head of each agent message.
 pub(crate) fn avatar(brand: &Brand, agent: &HarnessRef, tokens: &Tokens, cx: &App) -> Div {
-    let journey = brand.journey(cx.reduce_motion());
+    let journey = brand.journey(vessel_app_kit::motion::held(cx));
     #[expect(clippy::float_arithmetic, reason = "the avatar's centre")]
     let half = AVATAR / 2.0;
     let shapes = view::avatar(Pt { x: half, y: half }, AVATAR, journey);

@@ -52,7 +52,7 @@ fn session_at(content: Area, left: f32, right: f32) -> Session {
         content,
         column_left: left,
         column_right: right,
-        avatar_room: 42.0,
+        air: ratios::CLEARANCE,
     }
 }
 
@@ -173,12 +173,12 @@ fn the_frame_takes_what_the_margin_holds() {
     ));
     assert_eq!(wide.v.map(|v| v.loops), Some(4));
     let mid = session(&session_at(area(264.0, 73.0, 1271.0, 791.0), 358.0, 1177.0));
-    assert_eq!(mid.v.map(|v| v.loops), Some(3));
+    assert_eq!(mid.v.map(|v| v.loops), Some(4));
     let phone = session(&session_at(area(8.0, 81.0, 381.0, 835.0), 25.0, 364.0));
     assert_eq!(phone, Figure::default());
-    // the frame stays out of the column and the avatar's room
-    let column = area(358.0 - 42.0, 73.0, 1177.0 + 42.0, 791.0);
-    assert!(clearance(&mid, column) >= 0.0);
+    // the frame keeps its air from the column (the avatar is inside it)
+    let column = area(358.0, 73.0, 1177.0, 791.0);
+    assert!(clearance(&mid, column) >= ratios::CLEARANCE - 0.5);
 }
 
 #[test]
@@ -208,7 +208,27 @@ fn the_transition_starts_and_ends_on_the_two_screens() {
     assert_eq!(first.star, from.star);
     let last = between(&from, &to, avatar, at(1.0));
     assert_eq!(last.v.map(|v| v.arms), to.v.map(|v| v.arms));
-    // four loops become three: the outer one has faded out
-    assert_eq!(last.v.map(|v| (v.loops, v.outer)), Some((4, 0.0)));
+    assert_eq!(last.v.map(|v| (v.loops, v.outer)), Some((4, 1.0)));
     assert_eq!(last.star, None, "the avatar has it now");
+}
+
+#[test]
+fn a_loop_only_one_screen_has_fades_out() {
+    let from = new_session(&new_1280());
+    // a narrower margin holds three loops a side
+    let to = session(&session_at(area(264.0, 73.0, 1271.0, 791.0), 330.0, 1205.0));
+    assert_eq!(to.v.map(|v| v.loops), Some(3));
+    let avatar = Star {
+        centre: Pt { x: 342.0, y: 164.0 },
+        span: 24.0,
+    };
+    let at = |moved| Journey {
+        moved,
+        morphed: 0.0,
+        marked: 0.0,
+    };
+    let half = between(&from, &to, avatar, at(0.5));
+    assert_eq!(half.v.map(|v| (v.loops, v.outer)), Some((4, 0.5)));
+    let last = between(&from, &to, avatar, at(1.0));
+    assert_eq!(last.v.map(|v| (v.loops, v.outer)), Some((4, 0.0)));
 }

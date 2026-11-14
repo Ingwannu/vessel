@@ -24,7 +24,13 @@ measured ratios.
    captures' measured boxes.
 3. `kit::vector`: shapes rasterised at the display's pixels.
 4. `app::brand`: the backdrop, the screens' listeners, the journey, the
-   avatar.
+   avatar. The journey steps once per presented frame and reads the kit's
+   motion tokens (an app test pins them); held motion shows its end.
+5. `kit::window_glyph`: the title bar's four glyphs as one line with the
+   mark's rules, on whole device pixels at every scale
+   (`vector::snapped`), with the audit sheet `kit/examples/window_glyphs.rs`.
+6. `kit::frame::panel_edges`: the content panel's edge as two lines one
+   pitch apart (one at a phone's width), GPUI quads on whole device pixels.
 
 ## Measurements
 
@@ -58,15 +64,24 @@ measured ratios.
   `#[must_use]` on `vector::inline`, and names longer than one letter in
   the geometry; `float_arithmetic` is denied in this workspace, so each
   geometry file carries one `expect` with its reason, as the slider's do.
+- At 1280 the new session drew the narrow figure: the heading and the
+  pickers reported the column's whole width (a flex column stretches its
+  children), so no arm could clear them. Both now take their own width
+  (`self_start`), and the wide V is drawn.
+- The first window glyphs (one 9 × 9 SVG through `svg()`) were grey at
+  1.25 and 1.5 (the lead's capture): a one-unit stroke straddles two
+  device rows. The glyphs are now drawn in device pixels from their own
+  snapped origin, the line `⌊scale + ¼⌋` pixels.
 
 ## Open
 
 - The session's listeners and the avatar are worker C's to mount (the
   conversation is being rebuilt as Paseo's message exchange); until then
   the frame and the avatar show only in this track's local captures.
-- The avatar's place in a reply, and the slot that tells the journey where
-  the coming reply's head is, are to be agreed with worker C; until then
-  the star travels to the column's left at the conversation's first rows.
-- The window frame (two lines recommended) and the window controls (one
-  line with the mark's rules, 9 pt) are drawn in the study; their kit
-  controls and the lead's mounting lines are next.
+- Agreed with worker C: the avatar sits inside the column (a 24-point
+  slot, 8 points, the bubble), its circle's top at the bubble's top, on a
+  turn's first reply only; the waiting row gives `reply_head()` so the
+  star lands where the reply will start. Until C mounts it the star
+  travels to the column's left at the conversation's first rows.
+- The window glyphs and the panel's two-line edge are kit controls; the
+  lead mounts them in the chrome and the shell.

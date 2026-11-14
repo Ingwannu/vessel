@@ -75,7 +75,8 @@ frame and the window controls, where traces and pads are at home.
   three, two), none below two.
 - Motion: one bounded transition on the first message (the move 300 ms,
   star to circle 150 ms, the agent's mark 150 ms, the Codex app's curve,
-  all read from one place); frames from one 1/30 s timer while it runs.
+  all read from one place); one step per presented frame at the display's
+  own rate while it runs.
   Reduced motion, a software renderer or animations turned off show the
   end state at once. Nothing moves otherwise.
 

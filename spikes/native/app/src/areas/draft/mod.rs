@@ -588,6 +588,9 @@ pub(crate) fn render(
         .on_children_prepainted(shell.brand.new_session(0))
         .child(
             div()
+                // As wide as its words, so the brand's drawing measures the
+                // text and not the column (worker B's `brand.rs`).
+                .self_start()
                 .type_(Type::Title)
                 .text_size(px(vessel_app_kit::fonts::ui(22.0)))
                 .line_height(px(vessel_app_kit::fonts::ui(28.0)))
@@ -595,7 +598,7 @@ pub(crate) fn render(
                 .child(t.welcome),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx));
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }

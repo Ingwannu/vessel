@@ -7,16 +7,18 @@
 //!   star goes to the head of the agent's reply, turns into a circle, and
 //!   the agent's own mark appears inside (2026-11-14 ~05:55 UTC), with
 //!   "short, quick, fine" motion everywhere and a way to turn it off.
-//! - Constraints: no continuous animation; the app's motion clock runs at
-//!   30 frames a second and holds still with reduced motion or a software
-//!   renderer, where the end state shows at once.
+//! - Constraints: no continuous animation; the journey advances once per
+//!   presented frame while it runs (the app asks for the next frame, no
+//!   timer) and holds still with reduced motion, a software renderer or
+//!   animations off (`kit::motion::held`), where the end state shows at
+//!   once.
 //! - Choice: three phases on one clock, each eased by the Codex app's
 //!   curve (`cubic-bezier(.23, 1, .32, 1)`): the move ([`MOVE`]: the V
 //!   opens into the frame, the star travels and shrinks), the morph
 //!   ([`MORPH`]: star to circle), the mark ([`MARK`]: the circle becomes a
-//!   ring and the agent's mark fades in). The durations are the slider's
-//!   measured values, read from one place, until the lead's motion tokens
-//!   replace them.
+//!   ring and the agent's mark fades in). The durations restate the kit's
+//!   motion tokens (`STANDARD` 300 ms, `QUICK` 150 ms; `view` cannot read
+//!   the kit), through the slider's constants; an app test pins them.
 //! - Cost: about eighteen frames once per first message, nothing after.
 
 use super::{Arms, Figure, Loops, Pt, Star};

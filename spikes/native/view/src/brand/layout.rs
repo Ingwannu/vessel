@@ -9,8 +9,8 @@
 //!   pickers): the star alone in the space above the heading and the V's
 //!   bottom under the pickers.
 //! - Open session: the V grown into a frame in the side margins, its apex
-//!   below the screen; as many loops as the margin holds after the
-//!   avatar's room (4, 3, 2), none under two.
+//!   below the screen; as many loops as the margin holds after the air
+//!   kept beside the column (4, 3, 2), none under two.
 #![expect(
     clippy::float_arithmetic,
     reason = "placing lines against measured boxes is float geometry; each formula mirrors the study's drawing"
@@ -46,9 +46,9 @@ pub struct Session {
     pub column_left: f32,
     /// The conversation column's right edge.
     pub column_right: f32,
-    /// The room an agent's avatar takes beside the column (its size and
-    /// its two gaps), kept free of the frame.
-    pub avatar_room: f32,
+    /// The air kept between the frame and the column (the agent's avatar
+    /// sits inside the column, at the head of its reply).
+    pub air: f32,
 }
 
 fn tan_arm() -> f32 {
@@ -186,11 +186,11 @@ pub fn session(screen: &Session) -> Figure {
         content,
         column_left,
         column_right,
-        avatar_room,
+        air,
     } = *screen;
     let pitch = ratios::pitch_for(content.w);
     let margin = ratios::CLEARANCE;
-    let room = column_left - content.x - avatar_room - margin;
+    let room = column_left - content.x - air - margin;
     let Some(loops) = [4_u8, 3, 2]
         .into_iter()
         .find(|&loops| 2.0 * ratios::half_band(loops, pitch) <= room)
@@ -200,7 +200,7 @@ pub fn session(screen: &Session) -> Figure {
     let half = ratios::half_band(loops, pitch);
     let centre = f32::midpoint(column_left, column_right);
     let top_x = content.x + margin + half;
-    let bottom_x = top_x.max(column_left - avatar_room - half);
+    let bottom_x = top_x.max(column_left - air - half);
     let top_y = content.y + 18.0 + half;
     let apex_y = if bottom_x - top_x < 1.0 {
         top_y + FAR
