@@ -60,7 +60,7 @@ impl Areas {
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
             shortcuts: shortcuts::ShortcutListener::new(cx),
-            sidebar: sidebar::SidebarState::new(),
+            sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::default(),
         }

@@ -25,6 +25,8 @@ use vessel_proto::SessionId;
 use crate::board::{Card, Fleet, Machine, Reach};
 use crate::prefs::{Grouping, SessionSort, SidebarView};
 
+pub mod display;
+
 /// How many of a machine's sessions the sidebar lists before "N more":
 /// the sidebar is a way to switch, not a second board.
 pub const SIDEBAR_SESSIONS: usize = 5;
