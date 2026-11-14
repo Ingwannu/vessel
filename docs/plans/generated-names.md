@@ -167,7 +167,7 @@ that already uses `..` is left alone.
 ## Resume point
 
 - **Done:** slice 1 contract passed review. ADR 0062 remains proposed.
-- **Source review requested:** slice 2a adds title origin to the session, rename event,
+- **Source passed; whole gate owed:** slice 2a adds title origin to the session, rename event,
   actor and durable projection. Schema 15 leaves every older title
   unknown, including one whose create specification has a title.
   Wire tests cover old events and old session info in both directions.
@@ -194,8 +194,10 @@ that already uses `..` is left alone.
   and its two tests pass. TypeScript generation and all web checks pass
   (417 unit tests and 62 browser tests). Source review proceeds while the
   base fixes await integration; this is not a green whole gate.
-- **Next:** 2b settings and project instructions, then merge the authorized
-  node head and run the whole gate with both nested-build prerequisites.
+- **Next:** integrate the shared optional-admission foundation before
+  registering title settings. Then merge the authorized node head and run
+  the whole gate with both nested-build prerequisites. Title settings and
+  project instructions remain separate small follow-ups.
   No generation exists in 2a. Nothing calls a model. No branch work starts
   before slice 2 is complete.
 - `PROTOCOL_VERSION` stays at the base. `GENERATED_NAMES` is the single
@@ -206,3 +208,24 @@ that already uses `..` is left alone.
   each wire slice.
 - Not verified: real models, live nodes, UI interactions, an actual
   old-binary forwarding hop, Windows or macOS execution.
+
+
+### Shared admission foundation
+
+The protocol foundation is separate from title settings: the existing
+`Call::since()` signature and table remain unchanged. One additive
+`required_protocol()` returns an optional requirement and propagates it
+through the three fleet envelopes. Client and server admission refuse a
+pending requirement before ids, the writer queue or dispatch. The new
+SDK error is mapped at the root MCP, web and fleet-hop boundaries; native
+matches belong to their existing owner. No title settings types or new
+calls are added in this commit. Current calls remain assigned; pending
+state tests exercise both admission guards, while the existing in-memory
+suite checks legacy requests and older-peer refusals. A pending feature's
+end-to-end request test lands with that feature.
+
+The client admission rule and hop error conversion are extracted into
+small modules rather than growing existing over-budget files; only their
+existing ratchet limits are lowered. No dependency is added. The whole
+gate runs against the committed foundation before it is reported. The
+separate node-head merge and title schema renumbering remain owed.

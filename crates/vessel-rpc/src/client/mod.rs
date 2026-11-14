@@ -28,6 +28,7 @@
 //!   The [`Unary`] marker makes that a compile error.
 
 mod driver;
+mod protocol;
 mod subscription;
 
 use std::num::NonZeroUsize;
@@ -694,14 +695,7 @@ impl Connection {
 
     async fn start(&self, call: Call, waiter: Waiter) -> Result<PendingCall<'_>, CallError> {
         let negotiated = self.shared.welcome.protocol;
-        let needs = call.since();
-        if needs > negotiated {
-            return Err(CallError::NotInProtocol {
-                method: call.method(),
-                needs,
-                negotiated,
-            });
-        }
+        protocol::check(call.method(), call.required_protocol(), negotiated)?;
         let id = self
             .shared
             .ids

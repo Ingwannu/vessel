@@ -124,6 +124,27 @@ present, means automatic. This decision adds that one top-level key and
 no other. It does not list the keys other decisions add; those appear
 on the settings type when they merge.
 
+### Shared admission foundation
+
+The purpose is to represent a protocol number that is not assigned while
+preserving the existing numeric inspection API used by many callers.
+The existing `Call::since()` table covers assigned method and field
+versions. A numeric sentinel or the current version would pretend a
+pending feature had an assigned version; changing every numeric API at
+once would disrupt unrelated features. The choice is one additive
+`Call::required_protocol() -> Option<ProtocolVersion>`, defaulting to
+`Some(self.since())`; feature-specific pending calls return `None`.
+All three fleet envelopes propagate the inner requirement. Client
+admission runs before request ids and the writer queue, and server
+admission runs before dispatch. A pending requirement is the typed
+`CallError::UnassignedProtocol { method }`, with code `Unsupported`.
+The benefit is an explicit state and one mechanism for every feature;
+the cost is that admission must use the optional accessor rather than
+numeric inspection. This foundation adds no pending call or title type;
+its guards test pending and assigned states, and a feature adds its
+end-to-end pending request test when registered. It opens no new network
+path and uses the same pure-Rust refusal on Windows.
+
 ### The seam
 
 One generation is one completion through `vessel-llm`'s client, on one
