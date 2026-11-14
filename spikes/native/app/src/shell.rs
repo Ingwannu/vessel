@@ -393,10 +393,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_devices(window);
-        self.settle_sync(window);
-        self.settle_host_agents(window);
-        self.settle_overview(window);
+        self.settle_settings(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

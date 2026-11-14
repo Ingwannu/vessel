@@ -176,24 +176,19 @@ impl Demo {
                 .cloned()
                 .collect()
         };
+        // The two reachable machines differ only by name.
+        let online = |name: &str| Machine {
+            name: name.to_owned(),
+            reach: Reach::Online,
+            sessions: on(name),
+            agents: agents(),
+            protocol: Some(PROTOCOL_VERSION),
+            version: None,
+        };
         Fleet {
             machines: vec![
-                Machine {
-                    name: "laptop".to_owned(),
-                    reach: Reach::Online,
-                    sessions: on("laptop"),
-                    agents: agents(),
-                    protocol: Some(PROTOCOL_VERSION),
-                    version: None,
-                },
-                Machine {
-                    name: "build-server".to_owned(),
-                    reach: Reach::Online,
-                    sessions: on("build-server"),
-                    agents: agents(),
-                    protocol: Some(PROTOCOL_VERSION),
-                    version: None,
-                },
+                online("laptop"),
+                online("build-server"),
                 Machine {
                     name: "old-box".to_owned(),
                     reach: Reach::Unreachable("no route: this is the browser's demo".to_owned()),
