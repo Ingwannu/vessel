@@ -189,23 +189,19 @@ mod planted {
 
     impl Planted {
         async fn new() -> Self {
-            use std::os::unix::fs::PermissionsExt;
-
             let sandbox = Sandbox::new();
             let repo = sandbox.repo("r");
             let git = sandbox.git().await;
             let script = sandbox.path().join("planted.sh");
             // Touches `ran-<what>`, then passes its input through, as a
             // filter or a pager would.
-            std::fs::write(
+            Sandbox::executable(
                 &script,
-                format!(
+                &format!(
                     "#!/bin/sh\ntouch '{}/ran-'\"$1\"\ncat\n",
                     sandbox.path().display()
                 ),
-            )
-            .unwrap();
-            std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+            );
             Self {
                 sandbox,
                 repo,
@@ -343,8 +339,6 @@ mod planted {
     /// on a status, a log or a worktree's creation.
     #[tokio::test]
     async fn monitors_pagers_editors_aliases_and_hooks_folders_never_run() {
-        use std::os::unix::fs::PermissionsExt;
-
         let planted = Planted::new().await;
         planted.plant("core.fsmonitor", "fsmonitor");
         planted.plant("core.pager", "pager");
@@ -358,12 +352,10 @@ mod planted {
         let hooks = planted.sandbox.path().join("planted-hooks");
         std::fs::create_dir(&hooks).unwrap();
         let hook = hooks.join("post-checkout");
-        std::fs::write(
+        Sandbox::executable(
             &hook,
-            format!("#!/bin/sh\n{} hook\n", planted.script.display()),
-        )
-        .unwrap();
-        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+            &format!("#!/bin/sh\n{} hook\n", planted.script.display()),
+        );
         planted.sandbox.run(
             &planted.repo,
             &["config", "core.hooksPath", hooks.to_str().unwrap()],

@@ -65,6 +65,7 @@ fn node() -> NodeInfo {
         started_at: DateTime::UNIX_EPOCH,
         state: NodeState::Serving,
         public_key: None,
+        timezone: None,
     }
 }
 
@@ -573,6 +574,12 @@ impl Handler for Fake {
         run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
         restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
         list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
+        join_fleet: vessel_proto::JoinFleet => vessel_proto::JoinedFleet;
+        leave_fleet: vessel_proto::LeaveFleet => Ack;
+        sync_fleet: vessel_proto::SyncFleet => Ack;
+        fleet_status: vessel_proto::GetFleetStatus => vessel_proto::FleetSyncStatus;
+        fleet_published: vessel_proto::GetPublished => vessel_proto::FleetPublished;
+        preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
         list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
         get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
         create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
@@ -593,6 +600,14 @@ impl Handler for Fake {
         subscribe_push: vessel_proto::push::SubscribePush => vessel_proto::push::PushLease;
         unsubscribe_push: vessel_proto::push::UnsubscribePush => Ack;
         report_push_presence: vessel_proto::push::ReportPushPresence => Ack;
+        search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
+        park_session: vessel_proto::parking::ParkSession => SessionInfo;
+        wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+        node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
+        set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
+        fork_session: vessel_proto::forking::ForkSession => SessionInfo;
+        rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
+        agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
     }
 }
 

@@ -24,8 +24,11 @@
 //!   (`FleetConfig::poll`) and acts on what changed: `fleet.toml` makes the
 //!   node the home; `member.json` makes it a member (the loop starts or
 //!   stops the pull loop); `fleet/apply` asks for an apply. Polling a few
-//!   small files costs little and needs no protocol between the CLI and
-//!   the node beyond the files themselves (protocol 5 has no call for it).
+//!   small files preserves offline CLI compatibility. Admin RPC changes
+//!   wake that same loop; coalescing manual sync notifications wake the
+//!   existing publisher and member instead of creating another apply.
+//!   `joining` owns membership commits under `mutation`'s non-waiting OS
+//!   lock; `projection` reads credential-free local history for Read.
 //! - A node is the home or a member, never both: `init` refuses a member,
 //!   `join` refuses a home, and if both files appear anyway the home wins
 //!   and the member loop stops.
@@ -46,10 +49,14 @@ mod chunks;
 mod config;
 mod files;
 mod home;
+mod joining;
 mod links;
 mod local;
 mod mcp;
 mod member;
+mod mutation;
+mod projection;
+mod published;
 mod secrets;
 mod state;
 mod supervisor;
@@ -68,10 +75,16 @@ pub(crate) use chunks::{fetch, serve};
 pub use config::{FleetInit, InitError, SourcesError, init};
 pub use files::{FileError, FleetFiles};
 pub(crate) use home::Home;
+pub use joining::{CommitError, JoinError, Joined, join, leave};
+pub(crate) use joining::{join_reserved, leave_reserved};
 pub(crate) use links::{HomeRelays, Links};
 pub use local::{RestoreError, restore};
 pub(crate) use mcp::FleetMcp;
-pub use member::{DEFAULT_GRANT, JoinError, Joined, join, leave};
+pub use member::DEFAULT_GRANT;
+pub(crate) use projection::{
+    ProjectionError, finish as finish_status, read as read_status, role as read_role,
+};
+pub(crate) use published::read as read_published;
 pub(crate) use secrets::secret_value;
 pub use secrets::{SecretsError, delete_secret, secret_names, set_secret};
 pub use state::{ConflictEntry, ConflictWhy, FailureEntry, FleetState, FleetStatus, Role, status};

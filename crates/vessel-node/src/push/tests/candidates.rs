@@ -36,6 +36,7 @@ async fn finished(store: &Store, id: SessionId, sequence: u64) {
                     event: AgentEvent::TurnEnded {
                         reason: StopReason::EndTurn,
                         usage: None,
+                        point: None,
                     },
                 },
             })],

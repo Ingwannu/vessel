@@ -263,6 +263,11 @@ impl Method {
     ///   (`terminal.*` but its subscription, `script.*`, `port.list`): an
     ///   agent opens a shell beside a session it started on another node,
     ///   and a person runs a project's service there (ADR 0031).
+    /// - Forwardable, protocol 12's and 14's conversation calls
+    ///   (`session.search`, `session.park`, `session.wake`, `session.fork`,
+    ///   `session.rewind`) and protocol 17's `agent.history` (ADR 0053),
+    ///   which an import there needs as `session.create` does; not
+    ///   `node.settings` or `node.set_settings`, a node's administration.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -382,6 +387,8 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetFleetStatus
+            | Self::PreviewSchedule
             | Self::ListSchedules
             | Self::GetSchedule
             | Self::CreateSchedule
@@ -399,7 +406,18 @@ impl Method {
             | Self::DeletePrompt
             | Self::ListInbox
             | Self::GetInboxEntry
-            | Self::MarkInbox => true,
+            | Self::MarkInbox
+            // Protocol 12: a search reads, as `session.read` does.
+            | Self::SearchMessages
+            // Parking acts on a session as a prompt does.
+            | Self::ParkSession
+            | Self::WakeSession
+            // Forking and rewinding act on a session as a prompt does.
+            | Self::ForkSession
+            | Self::RewindSession
+            // An agent's history there, to import from it there (ADR
+            // 0053): it needs `operate`, as the import does.
+            | Self::GetAgentHistory => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::GetPushKey
@@ -412,6 +430,10 @@ impl Method {
             | Self::ReadInstall
             | Self::RemoveAgent
             | Self::StopNode
+            // The node's settings (protocol 12): its own administration,
+            // read and changed by its owner and its own devices.
+            | Self::GetNodeSettings
+            | Self::SetNodeSettings
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice
@@ -431,6 +453,11 @@ impl Method {
             | Self::WatchFleet
             | Self::ReportApplied
             | Self::ListMembers
+            | Self::JoinFleet
+            | Self::LeaveFleet
+            | Self::SyncFleet
+            // Each machine is read over its own connection (ADR 0056).
+            | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,

@@ -2,7 +2,7 @@
 // rows (`model.list`, `profile.list`). They are written in that machine's
 // own files; the page says which.
 
-import { useFleetState } from "../../context";
+import { useAgents, useFleetState } from "../../context";
 import { machineFor, machineState } from "../../data/machines";
 import { profileFacts, routeFacts } from "../../data/model-rows";
 import { nodeLabel } from "../../data/nodes";
@@ -18,6 +18,8 @@ export function ModelsSection({ machine }: { machine: NodeKey | undefined }) {
   const allProfiles = useFleetState((state) => state.profiles);
   const selected = useFleetState((state) => state.selected);
   const node = machineFor(book ?? [], machine, selected);
+  // A profile of an agent added on the machine is named by its label.
+  const agents = useAgents(node?.key ?? null);
   const lead =
     "Where each machine's agents get their models. Written in that machine's models.toml and profiles.toml.";
   if (node === null) {
@@ -86,7 +88,7 @@ export function ModelsSection({ machine }: { machine: NodeKey | undefined }) {
               <Row
                 key={profile.name}
                 title={profile.label ?? profile.name}
-                detail={{ facts: profileFacts(profile) }}
+                detail={{ facts: profileFacts(profile, agents) }}
                 control={
                   profile.label === undefined ||
                   profile.label === null ? undefined : (

@@ -5,9 +5,9 @@
 
 import { Link } from "@tanstack/react-router";
 
-import { useFleet, useFleetState } from "../../context";
+import { useAgents, useFleet, useFleetState } from "../../context";
 import { agentHeadline, agentsOn } from "../../data/agent-status";
-import { agentName } from "../../data/agents";
+import { agentKey, agentName } from "../../data/agents";
 import { retryMachine } from "../../data/book";
 import { isLive, shortId, statusWord, when } from "../../data/format";
 import { isHere, machineState, platform, reachWord } from "../../data/machines";
@@ -26,6 +26,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
   const status = useFleetState((state) => state.statuses[node.key]);
   const harnesses = useFleetState((state) => state.harnesses[node.key]);
   const sessions = useFleetState((state) => state.sessions[node.key]);
+  const agents = useAgents(node.key);
   const label = nodeLabel(node, status);
   const state = machineState(status);
   const info = status?.state === "connected" ? status.node : null;
@@ -116,32 +117,34 @@ export function MachineDetail({ node }: { node: BookNode }) {
           }
         >
           <RowList label={`Agents on ${label}`}>
-            {agentsOn(harnesses).map(({ kind, status: agent }) => {
-              const shown = agentHeadline(agent);
-              return (
-                <Row
-                  key={kind}
-                  title={
-                    <Link
-                      to="/settings/$section"
-                      params={{ section: "agents" }}
-                      search={{ machine: node.key, agent: kind }}
-                    >
-                      {agentName(kind)}
-                    </Link>
-                  }
-                  detail={{
-                    facts: [
-                      agent.kind === "not-found"
-                        ? ""
-                        : (agent.harness.version ?? "version unknown"),
-                      shown.detail ?? "",
-                    ],
-                  }}
-                  control={<Badge tone={shown.tone}>{shown.headline}</Badge>}
-                />
-              );
-            })}
+            {agentsOn(harnesses, agents).map(
+              ({ agent: kind, status: agent }) => {
+                const shown = agentHeadline(agent);
+                return (
+                  <Row
+                    key={agentKey(kind)}
+                    title={
+                      <Link
+                        to="/settings/$section"
+                        params={{ section: "agents" }}
+                        search={{ machine: node.key, agent: agentKey(kind) }}
+                      >
+                        {agentName(kind, agents)}
+                      </Link>
+                    }
+                    detail={{
+                      facts: [
+                        agent.kind === "not-found"
+                          ? ""
+                          : (agent.harness.version ?? "version unknown"),
+                        shown.detail ?? "",
+                      ],
+                    }}
+                    control={<Badge tone={shown.tone}>{shown.headline}</Badge>}
+                  />
+                );
+              },
+            )}
           </RowList>
         </SettingsSection>
       )}
@@ -175,7 +178,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
                   }
                   detail={{
                     facts: [
-                      agentName(session.spec.harness),
+                      agentName(session.spec.harness, agents),
                       shortId(session.id),
                       statusWord(session.status),
                     ],

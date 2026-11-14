@@ -36,9 +36,9 @@ impl fmt::Display for ProtocolVersion {
 
 /// The protocol this build speaks. Bump on any breaking change to a wire type
 /// and record the change in `docs/PROTOCOL.md`.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(12);
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(19);
 
-/// The oldest protocol this build still accepts. Versions 3 to 11 only add
+/// The oldest protocol this build still accepts. Versions 3 to 19 only add
 /// methods, events (with stand-ins for older peers) and defaulted fields,
 /// so version 2 peers keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);
@@ -119,6 +119,24 @@ pub struct NodeInfo {
     /// older nodes and from nodes without a key yet).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_key: Option<NodePublicKey>,
+    /// System IANA time zone, detected at start (protocol 13). Absent on
+    /// older nodes or when the system cannot supply an IANA name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<crate::automation::TimeZoneName>,
+}
+
+impl NodeInfo {
+    /// Remove fields unavailable to a negotiated older peer.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if protocol.get() < 13 && self.timezone.is_some() {
+            let mut node = self.clone();
+            node.timezone = None;
+            Some(node)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -143,5 +161,57 @@ mod tests {
             Some(ProtocolVersion::new(3))
         );
         assert_eq!(range(2, 3).negotiate(range(4, 9)), None);
+    }
+}
+
+#[cfg(test)]
+mod timezone_tests {
+    use super::*;
+    use crate::{Outcome, Reply, RequestId, ServerFrame, Welcome};
+
+    fn node() -> NodeInfo {
+        NodeInfo {
+            id: NodeId::random(),
+            name: "fixture".to_owned(),
+            hostname: "fixture".to_owned(),
+            os: "test".to_owned(),
+            arch: "test".to_owned(),
+            version: "0".to_owned(),
+            protocol: ProtocolRange::CURRENT,
+            started_at: DateTime::UNIX_EPOCH,
+            state: NodeState::Serving,
+            public_key: None,
+            timezone: Some("Asia/Seoul".parse().unwrap()),
+        }
+    }
+
+    #[test]
+    fn older_nodes_default_timezone_and_older_clients_never_receive_it() {
+        let old = NodeInfo {
+            timezone: None,
+            ..node()
+        };
+        let json = serde_json::to_string(&old).unwrap();
+        assert!(!json.contains("timezone"));
+        assert_eq!(serde_json::from_str::<NodeInfo>(&json).unwrap(), old);
+        let node = node();
+        for frame in [
+            ServerFrame::Welcome(Welcome {
+                protocol: ProtocolVersion::new(12),
+                node: node.clone(),
+            }),
+            ServerFrame::Response {
+                id: RequestId::new(1),
+                outcome: Outcome::Ok(Reply::NodeInfo(node.clone())),
+            },
+        ] {
+            assert_eq!(frame.for_protocol(PROTOCOL_VERSION), None);
+            let old_frame = frame.for_protocol(ProtocolVersion::new(12)).unwrap();
+            assert!(
+                !serde_json::to_string(&old_frame)
+                    .unwrap()
+                    .contains("timezone")
+            );
+        }
     }
 }

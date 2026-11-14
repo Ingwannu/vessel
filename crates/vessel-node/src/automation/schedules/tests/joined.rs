@@ -3,7 +3,10 @@
 //! agent made in its last run, even when the scheduler never heard that
 //! run end; runs waiting for room go oldest due first; an asked run with
 //! no room in 30 s (on the clock the test moves) is `unavailable`; a
-//! catch-up starts at most eight sessions in their first turn.
+//! catch-up starts at most eight sessions in their first turn. And what
+//! the join's code review found: an agent whose session ended makes no
+//! schedule, and ends the scheduler missed still take its schedules; a
+//! run that reached nothing does not stand for the one before.
 
 use super::*;
 
@@ -196,6 +199,10 @@ impl Runner for TurnRunner {
     async fn settle(&self, _run: &ScheduleRun) -> Option<RunOutcome> {
         None
     }
+
+    fn agent_alive(&self, _session: SessionId) -> bool {
+        true
+    }
 }
 
 async fn turn_scheduler(
@@ -281,4 +288,116 @@ async fn a_session_waiting_for_a_person_gives_its_first_turn_back() {
         let _started = hang_guard("a session started", jobs.recv()).await.unwrap();
     }
     turns.add_permits(9);
+}
+
+/// An agent's session that ended while its make waited in the queue gets
+/// no schedule (the join's code review, finding 3).
+#[tokio::test]
+async fn an_agent_whose_session_ended_makes_no_schedule() {
+    let clock = HandClock::at("2026-01-01T10:00:00Z");
+    let (runner, _jobs) = FakeRunner::answering(prompted());
+    let session = SessionId::random();
+    runner
+        .gone
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .push(session);
+    let node = scheduler(runner, clock).await;
+    let agent = Asker {
+        by: Creator::Agent {
+            node: NodeId::random(),
+            session,
+        },
+        via: Via::Agent,
+    };
+    let made = node
+        .schedules
+        .create(definition(every(600, "2026-01-01T10:00:00Z")), false, agent)
+        .await;
+    assert!(
+        matches!(
+            made,
+            Err(crate::automation::error::AutomationError::Forbidden(_))
+        ),
+        "{made:?}"
+    );
+}
+
+/// Ends the scheduler fell behind on are not lost: every agent's
+/// schedule whose agent can no longer act goes then, a paused one too.
+#[tokio::test]
+async fn missed_ends_still_take_the_agents_schedules() {
+    let clock = HandClock::at("2026-01-01T10:00:00Z");
+    let (runner, _jobs) = FakeRunner::answering(prompted());
+    let node = scheduler(Arc::clone(&runner), clock).await;
+    let session = SessionId::random();
+    let agent = Asker {
+        by: Creator::Agent {
+            node: NodeId::random(),
+            session,
+        },
+        via: Via::Agent,
+    };
+    let paused = node
+        .schedules
+        .create(definition(every(600, "2026-01-01T10:00:00Z")), true, agent)
+        .await
+        .unwrap();
+    runner
+        .gone
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .push(session);
+    // More ends than the channel holds, none of them this session's.
+    for _ in 0..40 {
+        let _sent = node.ended.send(SessionId::random());
+    }
+    hang_guard("the agent's schedule to go", async {
+        while node.schedules.get(paused.id).await.is_ok() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await;
+}
+
+/// A run refused before it reached its target (here, no slot in time)
+/// does not stand for the run before it: the next run is still told the
+/// session the first one started (the join's code review, finding 7).
+#[tokio::test]
+async fn a_run_that_reached_nothing_does_not_hide_the_one_before() {
+    let clock = HandClock::at("2026-01-01T10:00:00Z");
+    let started = Made::outcome(RunOutcome::Started {
+        session: SessionId::random(),
+    });
+    let (runner, mut jobs) = FakeRunner::answering(started.clone());
+    let node = scheduler(Arc::clone(&runner), clock).await;
+    let info = node
+        .schedules
+        .create(
+            definition(every(3600, "2026-01-01T10:00:00Z")),
+            false,
+            person(),
+        )
+        .await
+        .unwrap();
+    let first = node.schedules.run(info.id, person()).await.unwrap();
+    let _job = jobs.recv().await.unwrap();
+    *runner.answer.lock().unwrap_or_else(PoisonError::into_inner) =
+        Made::outcome(RunOutcome::Failed {
+            error: vessel_proto::automation::RunError {
+                code: vessel_proto::automation::RunErrorCode::Forbidden,
+                message: "refused".to_owned(),
+            },
+            session: None,
+        });
+    let _refused = node.schedules.run(info.id, person()).await.unwrap();
+    let _job = jobs.recv().await.unwrap();
+    *runner.answer.lock().unwrap_or_else(PoisonError::into_inner) = started;
+    let _third = node.schedules.run(info.id, person()).await.unwrap();
+    let third = jobs.recv().await.unwrap();
+    assert_eq!(
+        third.previous.map(|run| run.number),
+        Some(first.number),
+        "the run that started a session stands"
+    );
 }

@@ -13,6 +13,7 @@ use crate::output::AgentOutput;
 
 impl Driver {
     pub(super) async fn update(&mut self, notification: acp::SessionNotification) {
+        self.tail.observe(&notification.update);
         match mapper::session_update(notification.update) {
             Update::Event(event) => {
                 if let AgentEvent::ToolCall(call) = &event {

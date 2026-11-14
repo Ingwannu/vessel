@@ -27,8 +27,23 @@ describe("an entry as a line", () => {
       }),
     ).toBe("Read status.rs · in progress");
     expect(
-      spoken({ ...base, key: "c", kind: "turn_ended", reason: "end_turn" }),
+      spoken({
+        ...base,
+        key: "c",
+        kind: "turn_ended",
+        reason: "end_turn",
+        usage: null,
+      }),
     ).toBe("Turn ended · end turn");
+    expect(
+      spoken({
+        ...base,
+        key: "c2",
+        kind: "turn_ended",
+        reason: "end_turn",
+        usage: { total: 30, input: 20, output: 10 },
+      }),
+    ).toBe("Turn ended · end turn · 30 tokens · 20 in · 10 out");
     expect(
       spoken({
         ...base,

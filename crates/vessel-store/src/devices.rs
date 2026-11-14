@@ -26,6 +26,10 @@ use vessel_proto::{AgentSecret, DeviceId, DeviceInfo, DeviceSecret, Scope};
 use crate::codec::{encode, time_from_sql, time_to_sql};
 use crate::error::StoreError;
 
+mod window;
+pub use window::DeviceWindow;
+pub(crate) use window::read as window;
+
 /// SHA-256 of a credential: what the node keeps instead of the secret (a
 /// device's, stored; an agent's, in memory only, ADR 0013). There is no
 /// `PartialEq`; the `matches` methods compare in constant time.

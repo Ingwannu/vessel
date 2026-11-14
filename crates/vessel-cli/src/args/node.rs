@@ -5,6 +5,9 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand, ValueEnum};
+use vessel_proto::HarnessKind;
+use vessel_proto::parking::{IdleMinutes, ParkAfter};
+use vessel_proto::settings::AgentDriver;
 
 use super::ttl_secs;
 
@@ -46,12 +49,60 @@ pub(crate) enum NodeCommand {
         /// How long the link works: `90s`, `10m`, `2h` (at most `24h`).
         #[arg(long, default_value = "10m", value_parser = ttl_secs)]
         ttl: u32,
+        /// Let the new device read only; it cannot operate sessions or
+        /// administer this machine.
+        #[arg(long)]
+        read_only: bool,
     },
     /// List the node's paired devices, or revoke one.
     Devices {
         #[command(subcommand)]
         command: Option<DevicesCommand>,
     },
+    /// Show the node's settings, or change one (needs the `admin` scope).
+    /// A change is kept across restarts and applies to live sessions.
+    Settings {
+        /// How long a conversation may stay idle before its agent's process
+        /// is stopped (parked): minutes (1 to 10080), or `never`.
+        #[arg(long, value_name = "MINUTES|never", value_parser = park_after)]
+        park_after: Option<ParkAfter>,
+        /// Which protocol drives an agent's new sessions: `acp`, or
+        /// `direct`, its own (Codex, Claude Code and `OpenCode`; refused
+        /// until this build offers it). Repeat for several agents.
+        #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
+        driver: Vec<(HarnessKind, AgentDriver)>,
+    },
+}
+
+/// `--driver`: an agent's name, `=`, then `acp` or `direct`.
+fn driver(text: &str) -> Result<(HarnessKind, AgentDriver), String> {
+    let (agent, driver) = text
+        .split_once('=')
+        .ok_or_else(|| format!("`{text}` is not AGENT=acp or AGENT=direct"))?;
+    let kind = agent
+        .parse::<HarnessKind>()
+        .ok()
+        .filter(|kind| *kind != HarnessKind::Gemini)
+        .ok_or_else(|| format!("`{agent}` is not codex, claude or opencode"))?;
+    let driver = match driver.trim() {
+        "acp" => AgentDriver::Acp,
+        "direct" => AgentDriver::Direct,
+        other => return Err(format!("`{other}` is not acp or direct")),
+    };
+    Ok((kind, driver))
+}
+
+/// `--park-after`: minutes, or `never` (`0` and `off` too).
+fn park_after(text: &str) -> Result<ParkAfter, String> {
+    let text = text.trim();
+    if matches!(text, "never" | "off" | "0") {
+        return Ok(ParkAfter::Never);
+    }
+    text.parse::<u16>()
+        .ok()
+        .and_then(IdleMinutes::new)
+        .map(|minutes| ParkAfter::Idle { minutes })
+        .ok_or_else(|| format!("`{text}` is not minutes from 1 to 10080, or `never`"))
 }
 
 /// `vessel node update`.
@@ -106,4 +157,39 @@ pub(crate) enum DevicesCommand {
         /// The device's id, or a unique prefix of it.
         device: String,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn park_after_takes_minutes_or_never() {
+        assert_eq!(park_after("never"), Ok(ParkAfter::Never));
+        assert_eq!(park_after("0"), Ok(ParkAfter::Never));
+        assert_eq!(
+            park_after("30"),
+            Ok(ParkAfter::Idle {
+                minutes: IdleMinutes::new(30).unwrap()
+            })
+        );
+        assert!(park_after("10081").is_err());
+        assert!(park_after("soon").is_err());
+    }
+
+    #[test]
+    fn driver_takes_an_agent_and_a_protocol() {
+        assert_eq!(
+            driver("codex=direct"),
+            Ok((HarnessKind::Codex, AgentDriver::Direct))
+        );
+        assert_eq!(
+            driver("claude=acp"),
+            Ok((HarnessKind::ClaudeCode, AgentDriver::Acp))
+        );
+        assert!(driver("codex").is_err());
+        assert!(driver("codex=fast").is_err());
+        assert!(driver("vim=acp").is_err());
+        assert!(driver("gemini=acp").is_err(), "no protocol of its own");
+    }
 }

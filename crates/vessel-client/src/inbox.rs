@@ -1,4 +1,4 @@
-//! Node-owned inbox calls (protocol 12, ADR 0040).
+//! Node-owned inbox calls (protocol 19, ADR 0040).
 use crate::NodeClient;
 use vessel_proto::inbox::{InboxKey, InboxPage, InboxRead, ListInbox, MarkInbox};
 use vessel_rpc::CallError;

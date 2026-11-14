@@ -36,6 +36,7 @@ use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
 mod fleet;
+mod fleet_control;
 mod profiles;
 mod sessions;
 mod transfers;
@@ -60,13 +61,21 @@ mod forge;
 mod scripts;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
-// through the service's own checks.
+// through the service's own checks; protocol 13's previews of them.
+mod followed;
 mod inbox;
 mod notices;
 mod prompts;
 mod push;
+mod schedule_preview;
 mod scheduled;
 mod schedules;
+// Protocol 12 (track A2): the conversation, further.
+mod forking;
+mod history;
+mod parking;
+mod search;
+mod settings;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -119,8 +128,19 @@ pub(crate) struct NodeService {
     installs: crate::install::Installs,
     /// The scheduler (protocol 11, `automation::schedules`).
     schedules: Schedules,
+    preview_slots: Arc<tokio::sync::Semaphore>,
+    /// Membership writes are non-queueing; reads retain a separate budget.
+    fleet_mutations: Arc<tokio::sync::Semaphore>,
+    fleet_reads: Arc<tokio::sync::Semaphore>,
     /// Saved prompts (protocol 11, `automation::prompts`).
     prompts: SavedPrompts,
+    /// Places for searches running at once (protocol 12, `search`).
+    searches: tokio::sync::Semaphore,
+    /// Places for listings of agents' histories running at once
+    /// (protocol 17, `history`).
+    listings: tokio::sync::Semaphore,
+    /// The node's settings (protocol 12, `crate::settings`).
+    settings: Arc<crate::settings::Settings>,
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
@@ -152,6 +172,7 @@ pub(crate) struct Parts {
     pub(crate) ports: Arc<Ports>,
     pub(crate) catalogue: crate::catalogue::Catalogues,
     pub(crate) schedules: Schedules,
+    pub(crate) settings: Arc<crate::settings::Settings>,
     pub(crate) push: Arc<crate::push::Push>,
 }
 
@@ -181,6 +202,7 @@ impl NodeService {
             ports,
             catalogue,
             schedules,
+            settings,
             push,
         } = parts;
         let store = sessions.store().clone();
@@ -211,7 +233,13 @@ impl NodeService {
             catalogue,
             installs: crate::install::Installs::default(),
             schedules,
+            preview_slots: Arc::new(tokio::sync::Semaphore::new(4)),
+            fleet_mutations: Arc::new(tokio::sync::Semaphore::new(1)),
+            fleet_reads: Arc::new(tokio::sync::Semaphore::new(4)),
             prompts: SavedPrompts::new(store),
+            searches: tokio::sync::Semaphore::new(search::AT_ONCE),
+            listings: tokio::sync::Semaphore::new(history::AT_ONCE),
+            settings,
             notices: Arc::default(),
             push,
         }

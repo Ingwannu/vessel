@@ -197,11 +197,10 @@ impl StructuredActor {
             turn,
             reply,
         } = order;
-        let seen = self.desk.tickets.seen();
         let result = self.send_as(content, delivery, by).await;
         if let (Ok(delivered), Some(ticket)) = (&result, turn) {
             let started = self.desk.started();
-            self.desk.tickets.give(ticket, *delivered, seen, started);
+            self.desk.tickets.give(ticket, *delivered, started);
         }
         let _gone = reply.send(result);
     }
@@ -213,7 +212,11 @@ impl StructuredActor {
         if self.desk.queue.hold(QueueHold::Cancelled) {
             self.publish_queue().await;
         }
-        let result = if turn.is_none() || turn == self.desk.turn {
+        let result = if self.parking.parked.is_some() {
+            // Nothing runs on a parked agent (protocol 12): the hold is
+            // the whole of the cancel, and nothing wakes it.
+            Ok(())
+        } else if turn.is_none() || turn == self.desk.turn {
             let input = self.input.clone();
             self.pump(async move { input.cancel_turn().await })
                 .await
@@ -234,6 +237,16 @@ impl StructuredActor {
     ) -> Result<Delivered, SessionError> {
         match delivery {
             Delivery::Start => self.start(content).await.map(|()| Delivered::Started),
+            // A prompt the node delivers on its own (pull request feedback,
+            // a schedule, a starter's notice) does not try again a wake that
+            // failed (protocol 12): it waits, the queue held, for a person.
+            Delivery::Queue if self.wake_failed() => {
+                self.check_attachments(&content)?;
+                let entry = self.desk.queue.push(content, by)?;
+                let _held = self.desk.queue.hold(QueueHold::Failed);
+                self.publish_queue().await;
+                Ok(Delivered::Queued { entry })
+            }
             Delivery::Queue => {
                 let idle = !self.desk.running() && self.desk.queue.is_empty();
                 if idle && !self.desk.queue.is_held() {
@@ -260,6 +273,9 @@ impl StructuredActor {
         content: Vec<ContentBlock>,
         attachments: Attachments,
     ) -> Result<(), SessionError> {
+        // Every prompt reaches the agent here: a parked one is started
+        // again first (protocol 12).
+        self.wake().await?;
         let input = self.input.clone();
         self.pump(async move { input.prompt_with(content, attachments).await })
             .await

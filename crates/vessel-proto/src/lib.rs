@@ -19,9 +19,13 @@ mod device;
 mod error;
 mod event;
 mod fleet;
+mod fleet_control;
+mod fleet_published;
 pub mod forge;
+pub mod forking;
 mod forward;
 mod harness;
+pub mod history;
 mod id;
 pub mod inbox;
 mod key;
@@ -31,6 +35,7 @@ mod name;
 mod node;
 mod options;
 mod pairing;
+pub mod parking;
 pub mod ports;
 mod profile;
 mod proxy;
@@ -39,8 +44,10 @@ mod raw;
 mod relay;
 mod rpc;
 pub mod scripts;
+pub mod search;
 mod secret;
 mod session;
+pub mod settings;
 mod terminal;
 pub mod terminals;
 mod title;
@@ -52,7 +59,7 @@ pub mod workspace;
 pub use agent::{
     AgentEvent, ContentBlock, PermissionOption, PermissionOptionKind, PermissionOutcome,
     PermissionRequest, PlanEntry, PlanPriority, PlanStatus, StopReason, ToolCall, ToolCallContent,
-    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation,
+    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnPoint,
 };
 pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
@@ -65,7 +72,7 @@ pub use device::{
     DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
     PreambleReply, RefusalReason, RevokeDevice, Scope,
 };
-pub use error::{ErrorCode, WireError};
+pub use error::{ErrorCode, ErrorDetail, WireError};
 pub use event::{EventRecord, SessionEvent};
 pub use fleet::{
     BlobChunk, BlobHash, BundleFile, BundlePath, BundlePathRule, ConfigValue, FleetMember,
@@ -73,16 +80,23 @@ pub use fleet::{
     McpDefinitions, McpServers, McpTransport, ReadBlob, ReportApplied, ResolvedMcpServers,
     ResolvedValue, WatchFleet,
 };
+pub use fleet_control::{
+    FleetApplied, FleetControlError, FleetRole, FleetSyncProblem, FleetSyncStatus, GetFleetStatus,
+    JoinFleet, JoinedFleet, LeaveFleet, SyncFleet,
+};
+pub use fleet_published::{
+    FleetPublished, GetPublished, PublishedBundle, SharedFile, SharedFileKind,
+};
 pub use forward::{
     Callback, Deliver, FleetNode, ForgetNode, Forward, Forwarded, GetCallback, GrantHome,
     ListNodes, ListPeers, NodeForgotten, Origin, OriginBy, RelayCall,
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId, NodeId,
-    OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId, QueueEntryId,
-    RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId, ToolCallId,
-    TransferId, UploadId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
+    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
+    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
+    ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use model::{

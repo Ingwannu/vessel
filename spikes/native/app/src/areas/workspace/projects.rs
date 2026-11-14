@@ -265,7 +265,10 @@ pub(crate) fn render(
             .child(empty(labels.no_machines, tokens))
             .into_any_element();
     };
-    // A machine that did not answer has no list to wait for: say why.
+    // A machine that did not answer has no list to wait for: say so in
+    // the sidebar's words (the lead's fix of 2026-11-13: the transport's
+    // English text and the endpoint were on a Korean screen), the
+    // transport's text only in the line's tooltip.
     if let Some(vessel_app_view::Reach::Unreachable(why)) = shell
         .fleet
         .machines
@@ -273,9 +276,13 @@ pub(crate) fn render(
         .find(|known| known.name == machine)
         .map(|known| &known.reach)
     {
-        let gone = Problem::Gone(why.clone());
         return column
-            .child(empty(words.problem(&gone), tokens))
+            .child(
+                shell
+                    .areas
+                    .sidebar
+                    .unreachable_on_page(&machine, why, shell.t, tokens, compact),
+            )
             .into_any_element();
     }
     let view = shell.areas.workspace.projects.get(&machine);

@@ -106,6 +106,7 @@ fn reads_do_not_answer_and_late_marks_do_not_consume_new_attention() {
         AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
+            point: None,
         },
     );
     assert!(matches!(
@@ -156,6 +157,7 @@ fn outcomes_distinguish_failure_limits_refusal_and_cancelled_turns() {
             AgentEvent::TurnEnded {
                 reason,
                 usage: None,
+                point: None,
             },
         );
         let page = super::list(&db, ListInbox::default()).unwrap();
@@ -249,6 +251,7 @@ fn descending_pages_never_repeat_after_deletions_reads_or_newer_inserts() {
             AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
                 usage: None,
+                point: None,
             },
         );
         keys.push(id);
@@ -275,6 +278,7 @@ fn descending_pages_never_repeat_after_deletions_reads_or_newer_inserts() {
         AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
             usage: None,
+            point: None,
         },
     );
     let second = super::list(

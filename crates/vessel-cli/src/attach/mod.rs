@@ -135,7 +135,11 @@ async fn print_output<L: Log>(mut stream: Stream<L>) -> Result<Ended, CliError> 
                 | SessionEvent::Renamed { .. }
                 | SessionEvent::QueueChanged { .. }
                 | SessionEvent::CommandsChanged { .. }
-                | SessionEvent::UsageChanged { .. } => {}
+                | SessionEvent::UsageChanged { .. }
+                | SessionEvent::Parked { .. }
+                | SessionEvent::Woken
+                | SessionEvent::Forked { .. }
+                | SessionEvent::Rewound { .. } => {}
             },
             Some(Err(error)) if !error.is_fatal() => notice(&error, "\n").await?,
             Some(Err(error)) => return Err(error.into()),

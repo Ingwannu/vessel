@@ -11,6 +11,19 @@ use vessel_rpc::CallError;
 use crate::NodeClient;
 
 impl NodeClient {
+    /// Compute the next runs without saving; reuse the returned cadence
+    /// when creating or updating to keep an interval's effective anchor.
+    ///
+    /// # Errors
+    /// `NotInProtocol` before 13, `invalid_request` with a typed preview
+    /// reason, or `unavailable` while all preview slots are held.
+    pub async fn preview_schedule(
+        &self,
+        request: vessel_proto::automation::PreviewSchedule,
+    ) -> Result<vessel_proto::automation::SchedulePreview, CallError> {
+        self.call(request).await
+    }
+
     /// `schedule.list`: every schedule on the node, newest first.
     ///
     /// # Errors

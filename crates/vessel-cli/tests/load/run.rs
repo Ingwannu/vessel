@@ -285,7 +285,8 @@ impl Marker {
                 event,
                 AgentEvent::TurnEnded {
                     reason: StopReason::Cancelled,
-                    usage: _
+                    usage: _,
+                    ..
                 }
             ),
             Self::Ready | Self::Flooded => false,
@@ -381,7 +382,11 @@ impl Phase {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => 0,
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => 0,
         };
         self.bytes = self
             .bytes

@@ -1,5 +1,33 @@
 # Inbox and push: resume
 
+## Resumed node-only scope (2026-11-14)
+
+The current scope is node/wire/store/client/CLI/testkit/generated types and
+documentation. Native link/view/screens belong to the app workers; historical
+native next steps below are superseded by that ownership change.
+
+The node line `b981f5f2` (protocol 18) is merged for validation. Inbox/push
+provisionally use 19, minimum 2; the appended inbox migration is 14, after
+search's 13. Changed-crate all-target type checking, 37 store unit tests,
+and both TypeScript generating tests passed. Web lint/typecheck/unit/build
+passed. The whole root gate passed: 1,814 tests, zero failures, 10 default ignored
+measurements, with `RUST_TEST_THREADS=3`; fmt and clippy passed. Full web E2E
+also passed all 62 tests. The first root run's missing inbox entries in the
+pinned forwardable-method expectation were fixed before this successful run.
+
+The old theme-paint failure is the upstream race fixed in `59000e29`: the
+page paints the optimistic setting before its bridge write finishes, while
+the old test immediately fetched the served index once. The merged test
+polls for the persisted state. This explanation is grounded in
+`web/src/data/prefs.ts::preferThrough` and that immutable test correction;
+the current E2E theme test passed (1.9 seconds), as did all 62 tests.
+
+Current next work is node acceptance validation: simultaneous answers,
+actual CLI question answering, and the oversized-tool update boundary. These
+are not claims about delivered screens. See the plan's client-call table.
+
+## Previous stop checkpoint (2026-11-13)
+
 The current slice is the node inbox and account-free Web Push (ADRs 0040,
 0041). The node checkpoint's exact commit and final gate results are recorded
 below before handoff. Review has not passed; no repository push or deployment

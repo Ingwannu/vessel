@@ -7,6 +7,7 @@ mod conversation;
 mod forge;
 mod inbox;
 mod push;
+mod search;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -42,6 +43,9 @@ pub struct Store {
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
     inbox: watch::Receiver<()>,
+    /// Whether some session's messages are not in the search index yet
+    /// (protocol 12, [`Store::indexed`]).
+    indexing: watch::Receiver<bool>,
 }
 
 /// A freshly opened store and what recovery found.
@@ -94,11 +98,13 @@ impl Store {
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
         let (inbox, inbox_changes) = watch::channel(());
+        let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
             pruned,
             inbox,
+            indexing: indexing_sender,
         };
         writer::spawn(connection, ops, setup)?;
         let store = Self {
@@ -107,6 +113,7 @@ impl Store {
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
             inbox: inbox_changes,
+            indexing,
         };
         Ok(Opened { store, interrupted })
     }
@@ -244,6 +251,36 @@ impl Store {
     /// The read failed.
     pub async fn devices(&self) -> Result<Vec<DeviceInfo>, StoreError> {
         self.read(Reader::devices).await
+    }
+
+    /// At most `DeviceWindow::MAX_ITEMS` records after an id, in id order.
+    /// `more` explicitly distinguishes an incomplete window from a full list.
+    ///
+    /// # Errors
+    /// The read failed or a record exceeds pairing's metadata bounds.
+    pub async fn device_window(
+        &self,
+        after: Option<DeviceId>,
+    ) -> Result<crate::DeviceWindow, StoreError> {
+        self.guarded_device_window(after, ())
+            .await
+            .map(|(window, ())| window)
+    }
+
+    /// Read a device window while retaining the caller's admission guard
+    /// inside the blocking operation, then hand it back. Dropping the async
+    /// request never releases that guard while queued/running I/O remains.
+    /// The node uses this for its status permit; no node type enters storage.
+    ///
+    /// # Errors
+    /// The same failures as [`Self::device_window`].
+    pub async fn guarded_device_window<G: Send + 'static>(
+        &self,
+        after: Option<DeviceId>,
+        guard: G,
+    ) -> Result<(crate::DeviceWindow, G), StoreError> {
+        self.read(move |reader| Ok((reader.device_window(after)?, guard)))
+            .await
     }
 
     /// One device with its credential hash, for authentication.

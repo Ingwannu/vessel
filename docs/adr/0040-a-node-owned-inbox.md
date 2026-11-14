@@ -62,7 +62,7 @@ to the same form validation and first-answer rule.
 - Schema adds inbox rows and bounded tool projections. Session deletion and
   retention remove their rows. Outcome retention is bounded; pending requests
   remain until their actor resolves them, within its existing request limits.
-- Protocol 12 adds list/read calls. Minimum protocol stays unchanged. Old
+- Protocol 19 adds list/read calls. Minimum protocol stays unchanged. Old
   clients receive no new unsolicited frame; old nodes reject new methods
   before transmission through `Call::since`.
 - Per-node pages are folded by the client; partial and disconnected machines
@@ -80,7 +80,10 @@ session's retained attention record; pruned history is not fabricated.
 Existing read-through and explicit unread marks are preserved. Migration and
 backfill commit together and run once. Startup recovery's `Interrupted`
 withdraws pending requests without inventing a successful completion.
-Reopening a session clears its old outcome. Session deletion/retention uses
+Reopening a session clears its old outcome. Rewinding clears the abandoned
+branch's attention and tool cache while preserving its log. Backfill considers
+only outcomes after the latest retained turn start or rewind, so recovery
+cannot revive a prior branch's limit or completion. Session deletion/retention uses
 foreign-key cascade; archive removes its inbox entries. Read-through updates
 only older entries, so a late read never consumes newer attention.
 

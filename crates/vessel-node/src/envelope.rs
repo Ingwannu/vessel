@@ -604,6 +604,20 @@ async fn run_here(
             Reply::RestartScript(guard.restart_script(connection, request).await?)
         }
         Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
+        Call::JoinFleet(request) => Reply::JoinFleet(guard.join_fleet(connection, request).await?),
+        Call::LeaveFleet(request) => {
+            Reply::LeaveFleet(guard.leave_fleet(connection, request).await?)
+        }
+        Call::SyncFleet(request) => Reply::SyncFleet(guard.sync_fleet(connection, request).await?),
+        Call::GetFleetStatus(request) => {
+            Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
+        }
+        Call::GetPublished(request) => {
+            Reply::GetPublished(guard.fleet_published(connection, request).await?)
+        }
+        Call::PreviewSchedule(request) => {
+            Reply::PreviewSchedule(guard.preview_schedule(connection, request).await?)
+        }
         Call::ListSchedules(request) => {
             Reply::ListSchedules(guard.list_schedules(connection, request).await?)
         }
@@ -658,7 +672,27 @@ async fn run_here(
         Call::DeletePrompt(request) => {
             Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
         }
+        Call::SearchMessages(request) => {
+            Reply::SearchMessages(guard.search_messages(connection, request).await?)
+        }
+        Call::ParkSession(request) => {
+            Reply::ParkSession(guard.park_session(connection, request).await?)
+        }
+        Call::WakeSession(request) => {
+            Reply::WakeSession(guard.wake_session(connection, request).await?)
+        }
+        Call::ForkSession(request) => {
+            Reply::ForkSession(guard.fork_session(connection, request).await?)
+        }
+        Call::RewindSession(request) => {
+            Reply::RewindSession(guard.rewind_session(connection, request).await?)
+        }
+        Call::GetAgentHistory(request) => {
+            Reply::GetAgentHistory(guard.agent_history(connection, request).await?)
+        }
         Call::StopNode(_)
+        | Call::GetNodeSettings(_)
+        | Call::SetNodeSettings(_)
         | Call::AddAgent(_)
         | Call::GetCatalogue(_)
         | Call::InstallAgent(_)

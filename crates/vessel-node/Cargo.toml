@@ -61,7 +61,7 @@ futures-util = { workspace = true, features = ["sink"] }
 # Schedules' times in a person's time zone (ADR 0033, `automation::time`):
 # the bundled IANA database and civil dates, so a daylight-saving gap or
 # fold is decided by our rule, the same on every platform.
-jiff.workspace = true
+jiff = { workspace = true, features = ["tz-system"] }
 # Device credentials and invitation secrets (ADR 0010); already in the
 # workspace through vessel-store.
 getrandom.workspace = true

@@ -94,6 +94,7 @@ mod secure;
 mod server;
 mod service;
 mod sessions;
+mod settings;
 mod shutdown;
 mod subscribe;
 mod terminals;
@@ -103,7 +104,7 @@ mod transport;
 mod waits;
 mod workspace;
 
-pub use config::{Config, VesselMcp};
+pub use config::{Config, DEFAULT_PARK_AFTER, VesselMcp};
 
 /// This binary's version and target triple, as `vesseld version` prints
 /// them: what the remote installer checks (ADR 0008).

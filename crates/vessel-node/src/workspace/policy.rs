@@ -63,6 +63,9 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     ) {
         "a repository's scripts run where a person approved them and a person asked; an agent \
          runs commands with its own tools"
+    } else if matches!(method, Method::GetAgentHistory) {
+        "an agent's own history holds a person's conversations outside Vessel; an agent works \
+         with the node's sessions"
     } else if matches!(
         method,
         Method::ForgeStatus
@@ -139,7 +142,15 @@ const fn refused(method: Method) -> bool {
         // A repository's scripts (protocol 11): a person's.
         | Method::ListScripts
         | Method::RunScript
-        | Method::RestartScript => true,
+        | Method::RestartScript
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        // What the machine shares (ADR 0056): a person's read, `admin`.
+        | Method::GetPublished
+        // An agent's own history (protocol 17, ADR 0053): an account's
+        // other conversations are a person's, not the fleet's sessions.
+        | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -157,6 +168,8 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetFleetStatus
+        | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
         | Method::CreateSchedule
@@ -170,6 +183,16 @@ const fn refused(method: Method) -> bool {
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::SearchMessages
+        | Method::ParkSession
+        | Method::WakeSession
+        // The node's settings (protocol 12): the read as `node.info`; the
+        // change needs `admin`, which no agent holds.
+        | Method::GetNodeSettings
+        | Method::SetNodeSettings
+        // Forking and rewinding a session it may operate (ADR 0052).
+        | Method::ForkSession
+        | Method::RewindSession
         | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

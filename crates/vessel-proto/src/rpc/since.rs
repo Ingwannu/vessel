@@ -23,6 +23,7 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
             // permissions mode the caller did not ask for) and unnamed.
@@ -74,6 +75,9 @@ impl Call {
             },
             // A write guarded by its content came in 11: a protocol 10 node
             // cannot decode it (its guard compared a time instead).
+            // Drivers came in 18 (ADR 0057): an older node would keep
+            // running the agent over ACP and say nothing.
+            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -203,6 +207,11 @@ impl Call {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
@@ -222,7 +231,14 @@ impl Call {
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_) => None,
+            | Self::ReportPushPresence(_)
+            | Self::SearchMessages(_)
+            | Self::ParkSession(_)
+            | Self::WakeSession(_)
+            | Self::GetNodeSettings(_)
+            | Self::ForkSession(_)
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

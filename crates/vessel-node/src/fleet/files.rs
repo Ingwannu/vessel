@@ -11,8 +11,8 @@
 //!   people), `<data_dir>/secrets.toml` (this node's secrets, owner-only)
 //!   and `<data_dir>/fleet/` (owner-only, Vessel's): `blobs/`,
 //!   `manifest.json`, `managed.json`, `state.json`, `members.json` (home),
-//!   `member.json` and `member.credential` (member), `apply` (a request to
-//!   apply again) and `lock`.
+//!   `member.json` and `member.credential` (member), `membership.lock`
+//!   (join/leave/init admission), `apply` (a request to apply again) and `lock`.
 //! - The lock: `std::fs::File::lock` on `fleet/lock`, held while planning,
 //!   applying and saving `managed.json`, by the node and by `vessel fleet
 //!   restore` alike, so neither saves over the other's record. An OS lock

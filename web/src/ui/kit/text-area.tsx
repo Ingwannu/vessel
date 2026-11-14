@@ -33,9 +33,16 @@ export interface TextAreaProps {
   maxRows?: number;
   "aria-label"?: string;
   disabled?: boolean;
+  /** Shown and selectable, not changed (an editor while its save is on
+   * its way: a key typed then would be lost when the save closes it). */
+  readOnly?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** For a caller that moves focus into it. */
   textAreaRef?: RefObject<HTMLTextAreaElement | null>;
+  /** Fill its container's height and scroll inside, instead of growing
+   * with its text (an editor of a whole file: measuring a megabyte of
+   * text on every key would cost a layout each time). */
+  fill?: boolean;
 }
 
 /** The pixels one line takes in `element`, from its computed style. */
@@ -53,15 +60,17 @@ export function TextArea({
   minRows = 3,
   maxRows = 10,
   disabled,
+  readOnly,
   onKeyDown,
   textAreaRef,
+  fill = false,
   "aria-label": ariaLabel,
 }: TextAreaProps) {
   const fallback = useRef<HTMLTextAreaElement>(null);
   const own = textAreaRef ?? fallback;
   useLayoutEffect(() => {
     const element = own.current;
-    if (element === null) {
+    if (element === null || fill) {
       return;
     }
     const line = lineHeight(element);
@@ -76,10 +85,10 @@ export function TextArea({
     const wanted = Math.min(Math.max(element.scrollHeight, min), max);
     element.style.height = `${String(wanted)}px`;
     element.style.overflowY = element.scrollHeight > max ? "auto" : "hidden";
-  }, [own, value, minRows, maxRows]);
+  }, [own, value, minRows, maxRows, fill]);
   return (
     <span
-      className={`text-field area${look === "bare" ? " bare" : ""}${mono ? " mono" : ""}`}
+      className={`text-field area${look === "bare" ? " bare" : ""}${mono ? " mono" : ""}${fill ? " fill" : ""}`}
       data-disabled={disabled === true ? "" : undefined}
     >
       <Field.Control
@@ -91,6 +100,7 @@ export function TextArea({
             value={value}
             placeholder={placeholder}
             disabled={disabled}
+            readOnly={readOnly}
             spellCheck={false}
             aria-label={ariaLabel}
             onKeyDown={onKeyDown}

@@ -300,7 +300,11 @@ pub(crate) fn output_of(records: &[EventRecord]) -> String {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => None,
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => None,
         })
         .flatten()
         .collect();
@@ -350,7 +354,11 @@ pub(crate) fn status_of(record: &EventRecord) -> Option<&SessionStatus> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 
@@ -403,7 +411,11 @@ pub(crate) const fn agent_of(record: &EventRecord) -> Option<&AgentEvent> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 

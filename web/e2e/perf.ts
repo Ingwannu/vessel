@@ -3,11 +3,12 @@
 // Run on demand only, never by `npm run e2e`: it takes minutes and its
 // result is a set of numbers, not a pass or a fail.
 //
-// Five measurements against the fleet of global-setup.ts, one test each
+// Six measurements against the fleet of global-setup.ts, one test each
 // (`npm run perf -- -g <word>` runs one): the board loading over a slow
 // and a phone-like link, a timeline of thousands of entries, find in it
 // and going to a match far away, a terminal under heavy output, a board
-// of 500 cards. Each starts the sessions it needs through the CLI and
+// of 500 cards, a session's code panel over a large change and a large
+// tree. Each starts the sessions it needs through the CLI and
 // stops them when it ends. The rule of the track: no optimisation
 // without a number before and after from this harness on the same
 // machine.
@@ -21,6 +22,7 @@ import { test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { measureBoard } from "./perf/board";
+import { measureCode } from "./perf/code";
 import { measureFind } from "./perf/find";
 import { measureLoad } from "./perf/load";
 import { record } from "./perf/report";
@@ -67,4 +69,12 @@ test("a board of 500 cards", async ({ browser }) => {
   test.setTimeout(HOUR);
   const env = loadEnv();
   record(env, browser.version(), "board", await measureBoard(browser, env));
+});
+
+test("a code panel over a large change and a large tree", async ({
+  browser,
+}) => {
+  test.setTimeout(HOUR);
+  const env = loadEnv();
+  record(env, browser.version(), "code", await measureCode(browser, env));
 });

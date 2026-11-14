@@ -37,6 +37,18 @@ pub struct RuntimeConfig {
     /// suggested; a node raises it for adapters that start slowly (an `npx`
     /// adapter may download its package on first use).
     pub agent_handshake_timeout: Duration,
+    /// How long a structured session may stay idle before its agent's
+    /// process is parked (protocol 12, ADR 0038); `None` never parks.
+    /// Only sessions whose agent can resume are parked.
+    pub park_after: Option<Duration>,
+    /// The node's owner-only directory for a launch's private files
+    /// (`DataDir::prepare_mcp_dir`, emptied at every node start), copied
+    /// into every structured session's launch (`AgentSetup::private_dir`):
+    /// a new session, a fork, one started again and a move; a park's wake
+    /// and a rewind reuse the session's launch. A probe and a listing get
+    /// `None`. `None` here (tests) makes a launch that needs a file
+    /// refused.
+    pub private_dir: Option<std::path::PathBuf>,
 }
 
 /// `value` as a `NonZeroUsize` in a constant; a zero would fall back to 1,

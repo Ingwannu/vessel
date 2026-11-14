@@ -97,7 +97,11 @@ impl Reply {
             | Self::MoveProfile(info)
             | Self::RenameSession(info)
             | Self::ResumeSession(info)
-            | Self::MarkSession(info) => one(info),
+            | Self::MarkSession(info)
+            | Self::ParkSession(info)
+            | Self::WakeSession(info)
+            | Self::ForkSession(info)
+            | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
@@ -110,6 +114,9 @@ impl Reply {
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
             | Self::NodeInfo(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_)
+            | Self::GetAgentHistory(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::ReadEvents(_)
@@ -234,6 +241,12 @@ impl Reply {
             // method, which a node refuses on an older connection before it
             // runs (the client does not send it either), so an older peer
             // is never handed one. A run names its session by id.
+            | Self::JoinFleet(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
@@ -253,7 +266,9 @@ impl Reply {
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_) => None,
+            | Self::ReportPushPresence(_)
+            // A hit names a session; the session itself comes from a list.
+            | Self::SearchMessages(_) => None,
         }
     }
 }

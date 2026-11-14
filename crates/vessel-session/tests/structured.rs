@@ -108,6 +108,8 @@ mod support {
                     ring_capacity: DEFAULT_RING_CAPACITY,
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                    park_after: None,
+                    private_dir: None,
                 },
                 CancellationToken::new(),
             );
@@ -238,7 +240,11 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 
@@ -286,6 +292,21 @@ async fn status_follows_the_acp_handshake() {
         let [starting, options, ready, running] = first.as_slice() else {
             panic!("four records before running: {first:?}");
         };
+        // The fake's first conversation, its id its own (`fake-session-1-<tag>`).
+        let SessionEvent::Agent {
+            event:
+                AgentEvent::Ready {
+                    harness_session: conversation,
+                    ..
+                },
+        } = ready
+        else {
+            panic!("ready: {ready:?}");
+        };
+        assert!(
+            conversation.as_str().starts_with("fake-session-1-"),
+            "{conversation}"
+        );
         assert_eq!(
             (starting, ready, running),
             (
@@ -294,12 +315,13 @@ async fn status_follows_the_acp_handshake() {
                 },
                 &SessionEvent::Agent {
                     event: AgentEvent::Ready {
-                        harness_session: HarnessSessionId::new("fake-session-1"),
+                        harness_session: conversation.clone(),
                         abilities: Some(vessel_proto::AgentAbilities {
                             steer: true,
                             resume: true,
                             image: true,
                             audio: false,
+                            fork: true,
                         })
                     }
                 },
@@ -315,10 +337,7 @@ async fn status_follows_the_acp_handshake() {
             SessionOption::summary(options),
             "Mode Default, Model Fake-large, Effort High, Fast off"
         );
-        assert_eq!(
-            handle.info().harness_session,
-            Some(HarnessSessionId::new("fake-session-1"))
-        );
+        assert_eq!(handle.info().harness_session.as_ref(), Some(conversation));
 
         handle.kill();
         let end = follower.until_end().await;
@@ -373,7 +392,8 @@ async fn a_turn_with_a_permission_round_trip() {
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
-                    usage: None
+                    usage: None,
+                    point: None,
                 }
             }
         );
@@ -439,7 +459,7 @@ async fn a_model_the_agent_does_not_offer_fails_the_session() {
             .unwrap();
         let stored = collect(created.durable);
         let mut follower = Follower::new(&created.handle);
-        let SessionStatus::Failed { message } = follower.until_end().await else {
+        let SessionStatus::Failed { message, .. } = follower.until_end().await else {
             panic!("a failed handshake fails the session");
         };
         assert!(

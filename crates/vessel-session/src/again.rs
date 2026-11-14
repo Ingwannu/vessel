@@ -37,13 +37,15 @@
 //!   one that starts and fails its handshake or `session/load` leaves
 //!   `starting`, then `failed` with the reason, as a new session does.
 
+use std::collections::BTreeSet;
+
 use chrono::Utc;
 use tokio::sync::oneshot;
 use vessel_agent::AgentSetup;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    ContextUsage, EventSeq, HarnessSessionId, OptionChoice, PromptQueue, ResolvedMcpServers,
-    SessionInfo, SessionMarks, SessionMode, SessionStatus,
+    ContextUsage, EventSeq, HarnessSessionId, OptionChoice, ProfileName, PromptQueue,
+    ResolvedMcpServers, SessionInfo, SessionMarks, SessionMode, SessionStatus,
 };
 
 use crate::conversation::Seen;
@@ -70,6 +72,11 @@ pub struct Ended {
     pub usage: Option<ContextUsage>,
     /// The last record of its log that asked for attention.
     pub attention: Option<EventSeq>,
+    /// The profiles its moves linked its files into (either side of each
+    /// `profile_changed` its log holds; `None` the default). Its
+    /// conversation is one file under each of them, so a start again
+    /// claims it under all (`runtime::claims`).
+    pub moved_through: BTreeSet<Option<ProfileName>>,
 }
 
 /// What a start again runs with: the node's choices for this launch, as
@@ -167,8 +174,10 @@ impl SessionRuntime {
     ///
     /// # Errors
     /// [`SessionError::NotResumable`], [`SessionError::DuplicateId`] for a
-    /// session the runtime still has, as [`create`](Self::create) for the
-    /// launch, and [`SessionError::ShuttingDown`].
+    /// session the runtime still has, [`SessionError::ConversationTaken`]
+    /// while another live session is on its conversation, as
+    /// [`create`](Self::create) for the launch, and
+    /// [`SessionError::ShuttingDown`].
     pub async fn start_again(
         &self,
         ended: Ended,
@@ -185,15 +194,24 @@ impl SessionRuntime {
             queue,
             usage,
             attention,
+            moved_through,
         } = ended;
         let harness_session = resumable(&info)?.clone();
         if self.get(info.id).is_some() {
             return Err(SessionError::DuplicateId(info.id));
         }
+        // One agent per conversation (`runtime::claims`), under every
+        // profile its files are in: the one it was created under, the ones
+        // its moves linked, and its current one. Held until the session is
+        // registered, then kept.
+        let mut profiles = moved_through;
+        let _created = profiles.insert(info.spec.profile.clone());
+        let _current = profiles.insert(info.profile.clone());
+        let claim = self.claim(info.id, &info.spec.harness, profiles, &harness_session)?;
         let Relaunch {
             profile,
             mcp_servers,
-            notices,
+            mut notices,
             model_proxy,
             questions,
         } = launch;
@@ -201,7 +219,15 @@ impl SessionRuntime {
         // Launched under its current profile, which a move may have
         // changed since its spec was written.
         let spec = info.spec.clone().with_profile(profile.name().clone());
-        let AgentCommand { command, cwd } = self.agent_command(spec, profile, model_proxy).await?;
+        // Its driver chosen again, as for a new session: it ended, so
+        // nothing of its last run's agent carries on (`runtime::drivers`).
+        let AgentCommand {
+            command,
+            cwd,
+            driver,
+            notices: chosen,
+        } = self.agent_command(spec, profile, model_proxy).await?;
+        notices.extend(chosen);
         // The model it asked for at creation, as a move passes it on.
         let model = match &info.spec.mode {
             SessionMode::Structured { model, .. } => model.clone(),
@@ -215,6 +241,8 @@ impl SessionRuntime {
             mcp_servers,
             handshake_timeout: self.handshake_timeout(),
             questions,
+            fork: None,
+            private_dir: self.private_dir(),
         };
         // The run begins: its first record is its stored log's next.
         info.status = SessionStatus::Starting;
@@ -233,8 +261,15 @@ impl SessionRuntime {
             desk: Desk::continuing(queue),
             replaying: true,
             gate: Some(opened),
+            opening: None,
         };
-        let created = self.run_structured(Launch { command, setup }, begin, notices, actor)?;
+        let launch = Launch {
+            command,
+            setup,
+            driver,
+        };
+        let created = self.run_structured(launch, begin, notices, actor)?;
+        claim.keep();
         Ok(Reopening {
             created,
             gate: Gate(gate),

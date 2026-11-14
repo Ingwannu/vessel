@@ -59,6 +59,15 @@
 //!   compares. Handles: `InstallId`, which the node mints for an install,
 //!   and `AuthMethodId`, which the agent names and the page only hands
 //!   back, as an `OptionId`.
+//! - Protocol 11's schedules and saved prompts (track D, ADR 0033), by the
+//!   same rule. Handles: `ScheduleId` and `SavedPromptId`, which the node
+//!   mints. Plain: a schedule's and a saved prompt's name, a cron
+//!   expression and a time zone, which a person types (`--cron "0 9 * *
+//!   1-5" --tz Europe/London`); quantities: `EverySeconds`, `MaxRuns` and
+//!   a run's `RunNumber`, counted and compared. Content: `PromptText`, the
+//!   text a schedule or a saved prompt sends, carried as a draft's is
+//!   (track D had it plain as a name; the join moved it, plain either
+//!   way).
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be
@@ -70,6 +79,10 @@
 //!   interchangeable); a `#[ts(brand)]` attribute on each type (ts-rs has
 //!   none, and the rule would be spread over many files, with nothing to
 //!   say an alias was never considered).
+//! - Protocol 12's (track A2): `SearchCursor` is the node's handle for
+//!   where a search goes on (a handle, though a number inside, as
+//!   `CallId` is); `SearchQuery` is what a person types; `SearchLimit` a
+//!   quantity.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +106,7 @@ pub enum Alias {
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
     ("AgentLabel", Alias::Named),
+    ("AgentMessageId", Alias::Handle),
     ("AgentName", Alias::Named),
     ("AgentProgram", Alias::Named),
     ("AgentVersion", Alias::Named),
@@ -134,6 +148,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
+    ("IdleMinutes", Alias::Quantity),
     ("InboxCount", Alias::Quantity),
     ("InboxCursor", Alias::Quantity),
     ("InstallId", Alias::Handle),
@@ -157,13 +172,14 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
     ("PresentedToken", Alias::Secret),
+    ("PreviewCount", Alias::Quantity),
     ("ProcessName", Alias::Content),
     ("ProfileName", Alias::Named),
     ("ProjectCommand", Alias::Content),
     ("ProjectId", Alias::Handle),
     ("ProjectName", Alias::Named),
     ("PromptName", Alias::Named),
-    ("PromptText", Alias::Named),
+    ("PromptText", Alias::Content),
     ("ProtocolVersion", Alias::Quantity),
     ("ProviderName", Alias::Named),
     ("PullBody", Alias::Content),
@@ -187,7 +203,10 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ScheduleId", Alias::Handle),
     ("ScheduleName", Alias::Named),
     ("ScriptName", Alias::Named),
+    ("SearchCursor", Alias::Handle),
     ("SearchKey", Alias::Handle),
+    ("SearchLimit", Alias::Quantity),
+    ("SearchQuery", Alias::Named),
     ("SecretName", Alias::Named),
     ("SecretText", Alias::Secret),
     ("SecretValue", Alias::Secret),

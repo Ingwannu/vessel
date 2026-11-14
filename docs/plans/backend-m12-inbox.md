@@ -1,9 +1,10 @@
 # Milestone 12: inbox and push
 
-Track N1. ADRs 0040 and 0041. Scope: node, wire, store, CLI, client,
-native link/view/inbox. The board waiting lane and sidebar count use this
-view model but are the shell track's; the session's permission and question
-controls are the conversation track's.
+Track N1. ADRs 0040 and 0041. The resumed slice is node-only: wire,
+store, node, client, CLI, testkit, generated declarations and documentation.
+Native link/view/screens and desktop delivery are owned by the app workers.
+The person-level acceptance below remains the overall contract; this slice
+ends at the calls a screen consumes and does not claim those screens exist.
 
 ## Before writing code
 
@@ -92,7 +93,7 @@ controls are the conversation track's.
 
 ## Contract
 
-Protocol version 12 (minimum unchanged), schema's next appended migration.
+Protocol version 19 (minimum unchanged), schema's next appended migration.
 Inbox ids bind a session and event sequence, with a global per-node page
 cursor. `inbox.list` is read scoped; `inbox.mark` is read scoped but refuses
 agent callers. `push.key/subscribe/unsubscribe` require a local paired-device
@@ -184,3 +185,53 @@ deadline, exit 143. It did not reach the corrected node E2E or store tests.
 Whole clippy after the correction passed; web E2E's theme failure remains
 unresolved. The slice stays WIP. All tracked test-process identities and the
 web fleet were confirmed stopped. See `backend-m12-inbox-resume.md`.
+
+## Node-line integration (2026-11-14)
+
+The node line at `b981f5f2` is merged for validation before further work.
+Inbox/push provisionally use protocol 19, minimum 2; their seven new calls
+are `inbox.list`, `inbox.get`, `inbox.mark`, `push.key`, `push.subscribe`,
+`push.unsubscribe` and `push.presence`. The appended store migration is 14,
+after the existing search schema 13. Search indexing and inbox attention
+share the writer's committed append rather than appending the records twice.
+A rewind clears the previous branch's attention and cached tools; migration
+backfill excludes outcomes before the latest turn start or rewind.
+
+The previous theme-paint E2E failure is explained by upstream `59000e29`:
+`preferThrough` displays the optimistic theme before its bridge op finishes,
+so a single HTTP read can precede persistence. The merged test polls the
+served index until the bridge confirms that state. Runtime E2E verification
+and the whole merged gate remain pending until their logs complete.
+
+The merged gate passed: root fmt, whole clippy with `-D warnings`, and
+`cargo test --workspace` (1,814 passed, 10 default ignored measurements,
+`RUST_TEST_THREADS=3`); both TypeScript generating tests; web lint/typecheck,
+81 unit files / 417 tests, build, and full Playwright E2E (62 passed).
+The first merged run found the omitted inbox methods in the pinned
+forwardable-set expectation; that expectation was corrected and the whole
+root gate rerun. Product behavior and web sources did not change between
+those two root runs. The 1,058-file source manifest stayed fixed throughout
+the successful run. All recorded web-fleet processes and this track's fake
+executables were confirmed stopped.
+
+### What a screen calls
+
+| Purpose | Typed client call | State carried |
+| --- | --- | --- |
+| Fold machines | `node_info`, `inbox(ListInbox { before })` | Node identity plus exact counts, bounded rows and next cursor; fold by identity, not a display name |
+| Confirm one source | `inbox_entry(key)` | Current summary or absence, independently of a partial page |
+| Draw a compact live form | `inbox_request(key)` | One exact permission/question, with explicit incomplete detail; never invent choices |
+| Read/unread | `mark_inbox(key, read)` | Node-shared state; no answer, and agents are refused |
+| Answer | Existing `send(session, SessionInput::AnswerPermission/AnswerQuestion)` | Operate scope and actor validation; hold submitting until exact source confirmation |
+| Register Web Push | `push_key`, `subscribe_push`, `unsubscribe_push` | Only this paired Read device; public key and a 48-hour lease, no supplied device id |
+| Presence | `report_push_presence` | Per connection: focused session/elsewhere/background, real input `Active`; focus-only `Unchanged` |
+
+On the wire the empty push-key/unsubscribe requests are `null`. Every inbox
+row identifies the session/source sequence, current session and project
+labels, timestamp, shared read state and existing typed request/detail. The
+machine comes from the authenticated client's node identity. Opening carries
+the source sequence; when history is pruned, the exact live form is fetched
+separately. Answers are never inferred from disappearing off a browsed page.
+
+The next node acceptance work strengthens simultaneous-answer and CLI
+question coverage; no native implementation is part of this merge.

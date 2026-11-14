@@ -232,6 +232,7 @@ impl Launcher {
             // session's id is known (`Models::launch`).
             model: None,
             model_proxy: None,
+            fork: None,
         })
     }
 

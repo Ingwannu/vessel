@@ -104,7 +104,7 @@ and `p256::ecdsa::SigningKey::try_sign` produces the fixed-width JOSE
 signature. Tests verify the signature and every claim. No cipher, hash,
 key derivation or curve arithmetic is implemented in Vessel.
 
-Protocol 12's `push.key`, `push.subscribe`, `push.unsubscribe` and
+Protocol 19's `push.key`, `push.subscribe`, `push.unsubscribe` and
 `push.presence` are
 additive and device-scoped; minimum protocol is unchanged. There is no
 unsolicited new frame for an older client. Registering on an older node is

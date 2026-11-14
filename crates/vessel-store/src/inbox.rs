@@ -73,7 +73,11 @@ pub(crate) fn observe(
                 }
             }
         }
-        SessionEvent::Terminal(_)
+        SessionEvent::Rewound { .. } => clear_branch(connection, session),
+        SessionEvent::Parked { .. }
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Terminal(_)
         | SessionEvent::ProfileChanged { .. }
         | SessionEvent::ModelCall(_)
         | SessionEvent::OptionsChanged { .. }
@@ -124,15 +128,7 @@ fn agent(
         AgentEvent::QuestionResolved { id, .. } => {
             remove_request(connection, session, &format!("q{id}"))
         }
-        AgentEvent::TurnStarted { .. } => {
-            let _rows =
-                connection.execute("DELETE FROM inbox WHERE session=?1", [session.to_string()])?;
-            let _tools = connection.execute(
-                "DELETE FROM inbox_tools WHERE session=?1",
-                [session.to_string()],
-            )?;
-            Ok(())
-        }
+        AgentEvent::TurnStarted { .. } => clear_branch(connection, session),
         AgentEvent::TurnEnded { reason, .. } => {
             clear_waiting(connection, session)?;
             let item = match reason {
@@ -155,6 +151,17 @@ fn agent(
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::Steered { .. } => Ok(()),
     }
+}
+
+// Rewind changes the agent's conversation without deleting its log. Cached
+// tools and a completion from the abandoned branch must not remain current.
+fn clear_branch(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
+    let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [session.to_string()])?;
+    let _tools = connection.execute(
+        "DELETE FROM inbox_tools WHERE session=?1",
+        [session.to_string()],
+    )?;
+    Ok(())
 }
 
 fn clear_waiting(connection: &Connection, session: SessionId) -> Result<(), StoreError> {

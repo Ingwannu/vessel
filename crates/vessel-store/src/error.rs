@@ -174,6 +174,15 @@ pub enum StoreError {
         /// Which column.
         what: &'static str,
     },
+    /// A stored message of the search index did not decode (protocol 12);
+    /// the database was edited or corrupted.
+    #[error("stored message {id} of the search index has an invalid {what}")]
+    CorruptMessage {
+        /// The piece's id.
+        id: i64,
+        /// Which column.
+        what: &'static str,
+    },
     /// No device with this id is stored.
     #[error("device {0} is not known to this node")]
     UnknownDevice(DeviceId),
@@ -277,6 +286,7 @@ impl StoreError {
             | Self::CorruptId { .. }
             | Self::CorruptDevice { .. }
             | Self::CorruptAttachment { .. }
+            | Self::CorruptMessage { .. }
             | Self::Attachment(AttachmentFileError::Io { .. })
             | Self::Encode(_)
             | Self::OutOfRange(_)

@@ -45,6 +45,10 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
+                Self::JoinFleet(crate::JoinedFleet { home })
+            }),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
             Self::ListDevices(devices) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
@@ -113,8 +117,7 @@ impl Reply {
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
-            Self::NodeInfo(_)
-            | Self::SendInput(_)
+            Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
@@ -229,6 +232,11 @@ impl Reply {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
@@ -248,7 +256,16 @@ impl Reply {
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_) => None,
+            | Self::ReportPushPresence(_)
+            | Self::SearchMessages(_)
+            // Protocol 12's, 14's and 17's: asked only by peers that read them.
+            | Self::ParkSession(_)
+            | Self::WakeSession(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_)
+            | Self::ForkSession(_)
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         }
     }
 }

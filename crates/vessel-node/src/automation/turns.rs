@@ -48,7 +48,11 @@ pub(crate) fn signal(event: &SessionEvent) -> Option<Signal<'_>> {
         | SessionEvent::Renamed { .. }
         | SessionEvent::QueueChanged { .. }
         | SessionEvent::CommandsChanged { .. }
-        | SessionEvent::UsageChanged { .. } => None,
+        | SessionEvent::UsageChanged { .. }
+        | SessionEvent::Parked { .. }
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 
@@ -104,6 +108,7 @@ mod tests {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
                 usage: None,
+                point: None,
             },
         };
         assert_eq!(

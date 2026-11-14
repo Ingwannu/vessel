@@ -86,6 +86,7 @@ fn migration_backfills_retained_outcomes_once_and_preserves_existing_read_attent
         AgentEvent::TurnEnded {
             reason: StopReason::MaxTokens,
             usage: None,
+            point: None,
         },
     );
     let status = EventRecord {
@@ -105,8 +106,72 @@ fn migration_backfills_retained_outcomes_once_and_preserves_existing_read_attent
         now(),
     )
     .unwrap();
-    // Simulate the preceding schema, independent of the migration's number
-    // when parallel feature migrations are joined.
+    migrate_again_without_inbox(&mut db);
+    let page = super::super::list(&db, ListInbox::default()).unwrap();
+    assert_eq!(page.entries.len(), 1);
+    assert_eq!(page.entries[0].item, InboxItem::Limit);
+    assert_eq!(page.entries[0].read, InboxRead::Read);
+    schema::migrate(&mut db).unwrap();
+    assert_eq!(super::super::list(&db, ListInbox::default()).unwrap(), page);
+}
+
+#[test]
+fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
+    let db = database();
+    let id = session(&db);
+    append(&db, id, 0, AgentEvent::ToolCall(tool()));
+    append(
+        &db,
+        id,
+        1,
+        AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: None,
+        },
+    );
+    let old = super::super::list(&db, ListInbox::default())
+        .unwrap()
+        .entries
+        .remove(0);
+    assert_eq!(old.item, InboxItem::Finished);
+    let record = EventRecord {
+        seq: EventSeq::new(2),
+        at: now(),
+        event: SessionEvent::Rewound {
+            after: EventSeq::new(1),
+            harness_session: vessel_proto::HarnessSessionId::new("rewound-conversation"),
+            files_changed: 0,
+        },
+    };
+    let _appended = log::append(&db, id, [&record]).unwrap();
+    assert!(
+        super::super::list(&db, ListInbox::default())
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    assert!(super::super::get(&db, old.key).unwrap().is_none());
+    let tools: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM inbox_tools WHERE session=?1",
+            [id.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tools, 0);
+    let records: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE session_id=?1",
+            [id.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(records, 3);
+}
+
+// Drop only this appended migration: the search schema before it stays real.
+fn migrate_again_without_inbox(db: &mut Connection) {
     let version: i64 = db
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
@@ -114,11 +179,60 @@ fn migration_backfills_retained_outcomes_once_and_preserves_existing_read_attent
         .unwrap();
     db.pragma_update(None, "user_version", version.saturating_sub(1))
         .unwrap();
-    schema::migrate(&mut db).unwrap();
-    let page = super::super::list(&db, ListInbox::default()).unwrap();
-    assert_eq!(page.entries.len(), 1);
-    assert_eq!(page.entries[0].item, InboxItem::Limit);
-    assert_eq!(page.entries[0].read, InboxRead::Read);
-    schema::migrate(&mut db).unwrap();
-    assert_eq!(super::super::list(&db, ListInbox::default()).unwrap(), page);
+    schema::migrate(db).unwrap();
+}
+
+#[test]
+fn backfill_never_revives_attention_before_a_new_turn_or_rewind() {
+    for moved in [
+        SessionEvent::Agent {
+            event: AgentEvent::TurnStarted {
+                content: Vec::new(),
+            },
+        },
+        SessionEvent::Rewound {
+            after: EventSeq::ZERO,
+            harness_session: vessel_proto::HarnessSessionId::new("rewound-conversation"),
+            files_changed: 0,
+        },
+    ] {
+        let mut db = database();
+        let id = session(&db);
+        append(
+            &db,
+            id,
+            0,
+            AgentEvent::TurnEnded {
+                reason: StopReason::MaxTokens,
+                usage: None,
+                point: None,
+            },
+        );
+        let moved = EventRecord {
+            seq: EventSeq::new(1),
+            at: now(),
+            event: moved,
+        };
+        let stopped = EventRecord {
+            seq: EventSeq::new(2),
+            at: now(),
+            event: SessionEvent::Status {
+                status: SessionStatus::Interrupted,
+            },
+        };
+        let _appended = log::append(&db, id, [&moved, &stopped]).unwrap();
+        assert!(
+            super::super::list(&db, ListInbox::default())
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+        migrate_again_without_inbox(&mut db);
+        assert!(
+            super::super::list(&db, ListInbox::default())
+                .unwrap()
+                .entries
+                .is_empty()
+        );
+    }
 }

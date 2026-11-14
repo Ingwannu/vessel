@@ -4,13 +4,30 @@
 // and its kinds are listed; what the new-session page chooses from them
 // is `agent-choices.ts`, what Settings says of them `agent-status.ts`.
 //
-// Since protocol 11 a node may also run an agent its owner added by its
-// command (ADR 0032): `HarnessRef` is one of the four or `{ added: name }`.
-// The page draws nothing new for those yet (the agents' page track will):
-// it shows one by the name the node gives it wherever a session of one
-// appears, and offers only the four where it offers a choice.
+// [Decision Log]
+// - Purpose: since protocol 11 a node may run an agent its owner added by
+//   its command (ADR 0032): `HarnessRef` is one of the four or `{ added:
+//   name }`. The page must be honest with a machine that has some: show
+//   them wherever agents are chosen or shown, by their label.
+// - Constraint: `harness.list` carries an added agent only when its
+//   program is found, with no label; `agent.list` carries every added
+//   agent with its label (protocol 11 only). Two `HarnessRef`s are objects
+//   for added agents, so `===` tells nothing.
+// - Choice: compare by `agentKey` only; name an added agent by its label
+//   from `agent.list` when the page has read it, else by the name the
+//   machine gives it; its mark is the shown name's first letter. What a
+//   machine lets an agent run as (timeline, terminal, both, neither) is
+//   `agentModes`, read from `harness.list`'s own facts.
+// - Cost: a label shows once `agent.list` is read (the fleet reads it only
+//   for a machine that shows an added agent, `fleet.ts`); until then the
+//   name.
 
-import type { Harness, HarnessKind, HarnessRef } from "../wire/proto";
+import type {
+  AgentInfo,
+  Harness,
+  HarnessKind,
+  HarnessRef,
+} from "../wire/proto";
 
 /** Every agent Vessel can drive, in the order the page lists them. */
 export const AGENT_KINDS: readonly HarnessKind[] = [
@@ -32,10 +49,25 @@ export function agentKey(agent: HarnessRef): string {
   return typeof agent === "string" ? agent : `added:${agent.added}`;
 }
 
+/** Whether `a` and `b` are one agent. */
+export function sameAgent(a: HarnessRef | null, b: HarnessRef | null): boolean {
+  return a === null || b === null ? a === b : agentKey(a) === agentKey(b);
+}
+
 /** What the page calls an agent: the four by their names as their makers
- * write them, an added one by the name its node gives it. */
-export function agentName(agent: HarnessRef): string {
-  return typeof agent === "string" ? knownName(agent) : agent.added;
+ * write them, an added one by its label in `agents` (the machine's
+ * `agent.list`), else by the name its machine gives it. */
+export function agentName(
+  agent: HarnessRef,
+  agents: readonly AgentInfo[] = [],
+): string {
+  if (typeof agent === "string") {
+    return knownName(agent);
+  }
+  const info = agents.find((entry) => sameAgent(entry.agent, agent));
+  const label =
+    info?.detail.kind === "added" ? (info.detail.added.label ?? null) : null;
+  return label ?? agent.added;
 }
 
 function knownName(kind: HarnessKind): string {
@@ -55,10 +87,13 @@ function knownName(kind: HarnessKind): string {
  * not the vendor's logo: the logos are theirs, and a board needs only to
  * tell the four apart at a glance. (Claude Code and Codex both start with
  * C.) */
-export function agentMark(agent: HarnessRef): string {
+export function agentMark(
+  agent: HarnessRef,
+  agents: readonly AgentInfo[] = [],
+): string {
   return typeof agent === "string"
     ? knownMark(agent)
-    : agent.added.slice(0, 1).toUpperCase();
+    : agentName(agent, agents).slice(0, 1).toUpperCase();
 }
 
 function knownMark(kind: HarnessKind): string {
@@ -81,8 +116,7 @@ export function agentKindOf(value: string | undefined): HarnessKind | null {
 }
 
 /** Whether `harness` can run a session with a timeline (and so has
- * options to choose); every one of the four installed runs in a
- * terminal, an added agent does not (`runsTerminal`). */
+ * options to choose). */
 export function runsTimeline(harness: Harness): boolean {
   switch (harness.structured.state) {
     case "available":
@@ -102,4 +136,46 @@ export function runsTerminal(harness: Harness): boolean {
     case "unavailable":
       return false;
   }
+}
+
+/** How a machine lets an agent run: with a timeline, in a terminal, both
+ * (the four with their adapter), or neither (`harness.list` said why). */
+export type AgentModes =
+  | { kind: "both" }
+  | { kind: "timeline"; noTerminal: string }
+  | { kind: "terminal"; noTimeline: string }
+  | { kind: "neither"; reason: string };
+
+/** `harness`'s modes on its machine. */
+export function agentModes(harness: Harness): AgentModes {
+  const terminal = harness.terminal ?? { state: "available" };
+  const { structured } = harness;
+  if (structured.state === "available") {
+    return terminal.state === "available"
+      ? { kind: "both" }
+      : { kind: "timeline", noTerminal: terminal.reason };
+  }
+  return terminal.state === "available"
+    ? { kind: "terminal", noTimeline: structured.reason }
+    : { kind: "neither", reason: structured.reason };
+}
+
+/** Whether the machine offers a terminal for the agent (`null`, not known
+ * yet: as for the four). */
+export function offersTerminal(modes: AgentModes | null): boolean {
+  switch (modes?.kind) {
+    case undefined:
+    case "both":
+    case "terminal":
+      return true;
+    case "timeline":
+    case "neither":
+      return false;
+  }
+}
+
+/** The agents a machine has added (protocol 11's `agent.list`), out of
+ * every agent it lists. */
+export function addedAgents(agents: readonly AgentInfo[]): AgentInfo[] {
+  return agents.filter((entry) => entry.detail.kind === "added");
 }

@@ -1,6 +1,11 @@
 import { expect, test } from "vitest";
 
-import { type EnterPress, sendKeyLabel, sends } from "./compose-keys";
+import {
+  type EnterPress,
+  sendKeyLabel,
+  sends,
+  sendsOther,
+} from "./compose-keys";
 
 function enter(extra: Partial<EnterPress> = {}): EnterPress {
   return {
@@ -37,4 +42,20 @@ test("an input method's Enter never sends; another key never does", () => {
 test("labels", () => {
   expect(sendKeyLabel("enter", "⌘")).toBe("Enter");
   expect(sendKeyLabel("mod_enter", "Ctrl")).toBe("Ctrl+Enter");
+});
+
+test("the other way: Mod+Enter, or Mod+Shift+Enter where Mod+Enter sends", () => {
+  const press = {
+    key: "Enter",
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ctrlKey: true,
+    isComposing: false,
+  };
+  expect(sendsOther(press, "enter")).toBe(true);
+  expect(sendsOther(press, "mod_enter")).toBe(false);
+  expect(sendsOther({ ...press, shiftKey: true }, "mod_enter")).toBe(true);
+  expect(sendsOther({ ...press, ctrlKey: false }, "enter")).toBe(false);
+  expect(sendsOther({ ...press, isComposing: true }, "enter")).toBe(false);
 });

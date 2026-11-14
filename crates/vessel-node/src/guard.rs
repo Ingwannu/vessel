@@ -143,6 +143,12 @@ macro_rules! untargeted {
 // upload's later pieces name the upload, whose holder check keeps them to
 // the caller that began it (`uploads`).
 targets!(
+    // Protocol 12: parking and waking act on a session as a prompt does;
+    // protocol 14: forking reads it and rewinding acts on it (ADR 0052).
+    vessel_proto::parking::ParkSession,
+    vessel_proto::parking::WakeSession,
+    vessel_proto::forking::ForkSession,
+    vessel_proto::forking::RewindSession,
     SendInput,
     KillSession,
     MoveProfile,
@@ -177,10 +183,24 @@ untargeted!(
     vessel_proto::push::SubscribePush,
     vessel_proto::push::UnsubscribePush,
     vessel_proto::push::ReportPushPresence,
+    // Protocol 12: a search reads, and reads are not ownership-checked.
+    vessel_proto::search::SearchMessages,
+    // The node's settings: no session's.
+    vessel_proto::settings::GetNodeSettings,
+    vessel_proto::settings::SetNodeSettings,
+    // An agent's own history (ADR 0053): no session's, and refused to
+    // agents (`workspace::policy`).
+    vessel_proto::history::GetAgentHistory,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
     vessel_proto::automation::DeletePrompt,
+    vessel_proto::JoinFleet,
+    vessel_proto::LeaveFleet,
+    vessel_proto::SyncFleet,
+    vessel_proto::GetFleetStatus,
+    vessel_proto::GetPublished,
+    vessel_proto::automation::PreviewSchedule,
     vessel_proto::automation::ListSchedules,
     vessel_proto::automation::GetSchedule,
     vessel_proto::automation::CreateSchedule,
@@ -445,6 +465,12 @@ guarded! {
     run_script: vessel_proto::scripts::RunScript => vessel_proto::scripts::ScriptRunOutcome;
     restart_script: vessel_proto::scripts::RestartScript => vessel_proto::scripts::ScriptRunOutcome;
     list_ports: vessel_proto::ports::ListPorts => vessel_proto::ports::PortList;
+    join_fleet: vessel_proto::JoinFleet => vessel_proto::JoinedFleet;
+    leave_fleet: vessel_proto::LeaveFleet => Ack;
+    sync_fleet: vessel_proto::SyncFleet => Ack;
+    fleet_status: vessel_proto::GetFleetStatus => vessel_proto::FleetSyncStatus;
+    fleet_published: vessel_proto::GetPublished => vessel_proto::FleetPublished;
+    preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
     list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
     get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
     create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
@@ -465,6 +491,14 @@ guarded! {
     create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
     update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
     delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
+    search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
+    park_session: vessel_proto::parking::ParkSession => SessionInfo;
+    wake_session: vessel_proto::parking::WakeSession => SessionInfo;
+    node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
+    set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
+    fork_session: vessel_proto::forking::ForkSession => SessionInfo;
+    rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
+    agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
 
     @through_the_guard {
         forward: Forward => Forwarded;
