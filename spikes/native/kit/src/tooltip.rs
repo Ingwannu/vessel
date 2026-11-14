@@ -121,7 +121,7 @@ impl Tooltips {
             .type_(Type::Body)
             .line_height(px(crate::fonts::ui(LINE)))
             .text_color(neutral.foreground)
-            .child(tip.text);
+            .children(lines(&tip.text, neutral.foreground));
         Some(
             deferred(
                 anchored()
@@ -136,6 +136,22 @@ impl Tooltips {
         )
     }
 }
+
+/// A tooltip's words: its first line in the ink, the lines after it at
+/// 65 % (the Codex app's two-line tooltips, "1.5x speed" over "More
+/// usage"); a one-line tooltip is unchanged.
+fn lines(text: &SharedString, ink: gpui::Hsla) -> Vec<gpui::Div> {
+    text.split('\n')
+        .enumerate()
+        .map(|(index, line)| {
+            let colour = if index == 0 { ink } else { ink.opacity(SECOND) };
+            div().text_color(colour).child(line.to_owned())
+        })
+        .collect()
+}
+
+/// The second line's opacity (the reference's 65 %).
+const SECOND: f32 = 0.65;
 
 /// 8 above the trigger (upward, so negative).
 const ABOVE: f32 = -8.0;
