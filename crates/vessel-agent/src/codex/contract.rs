@@ -48,7 +48,13 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("InitializeResponse", &["userAgent"]),
     (
         "ThreadStartParams",
-        &["cwd", "model", "approvalPolicy", "sandbox"],
+        &[
+            "cwd",
+            "model",
+            "approvalPolicy",
+            "approvalsReviewer",
+            "sandbox",
+        ],
     ),
     (
         "ThreadResumeParams",
@@ -57,6 +63,7 @@ const FIELDS: &[(&str, &[&str])] = &[
             "cwd",
             "model",
             "approvalPolicy",
+            "approvalsReviewer",
             "sandbox",
             "excludeTurns",
         ],
@@ -64,7 +71,17 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("ThreadStartResponse", &["thread"]),
     ("ThreadResumeResponse", &["thread"]),
     ("Thread", &["id"]),
-    ("TurnStartParams", &["threadId", "input"]),
+    (
+        "TurnStartParams",
+        &[
+            "threadId",
+            "input",
+            "approvalPolicy",
+            "approvalsReviewer",
+            "sandboxPolicy",
+        ],
+    ),
+    ("SandboxPolicy", &["type", "networkAccess"]),
     ("TurnStartResponse", &["turn"]),
     ("TurnInterruptParams", &["threadId", "turnId"]),
     ("TurnSteerParams", &["threadId", "expectedTurnId", "input"]),
@@ -121,13 +138,63 @@ const FIELDS: &[(&str, &[&str])] = &[
         ],
     ),
     ("FileUpdateChange", &["path", "diff"]),
-    ("GrantedPermissionProfile", &[]),
+    (
+        "CommandExecutionRequestApprovalParams",
+        &["itemId", "command", "cwd", "availableDecisions"],
+    ),
+    (
+        "CommandExecutionApprovalDecision",
+        &[
+            "acceptWithExecpolicyAmendment",
+            "applyNetworkPolicyAmendment",
+        ],
+    ),
+    ("CommandExecutionRequestApprovalResponse", &["decision"]),
+    ("FileChangeRequestApprovalParams", &["itemId", "reason"]),
+    ("FileChangeRequestApprovalResponse", &["decision"]),
+    (
+        "PermissionsRequestApprovalParams",
+        &["itemId", "permissions", "reason"],
+    ),
+    (
+        "PermissionsRequestApprovalResponse",
+        &["permissions", "scope"],
+    ),
+    // Granted as asked: the two profiles must keep one shape (checked
+    // below as well).
+    ("RequestPermissionProfile", &["fileSystem", "network"]),
+    ("GrantedPermissionProfile", &["fileSystem", "network"]),
+    ("ToolRequestUserInputParams", &["itemId", "questions"]),
+    (
+        "ToolRequestUserInputQuestion",
+        &["id", "header", "question", "isOther", "isSecret", "options"],
+    ),
+    ("ToolRequestUserInputOption", &["label", "description"]),
+    ("ToolRequestUserInputResponse", &["answers"]),
+    ("ToolRequestUserInputAnswer", &["answers"]),
+    (
+        "McpServerElicitationRequestParams",
+        &["mode", "message", "requestedSchema"],
+    ),
+    (
+        "McpServerElicitationRequestResponse",
+        &["action", "content"],
+    ),
+    ("ServerRequestResolvedNotification", &["requestId"]),
 ];
 
 /// Each definition whose values the driver names, and those values.
 const VALUES: &[(&str, &[&str])] = &[
-    ("AskForApproval", &["on-request"]),
-    ("SandboxMode", &["workspace-write"]),
+    ("AskForApproval", &["on-request", "never"]),
+    ("ApprovalsReviewer", &["user", "auto_review"]),
+    (
+        "SandboxMode",
+        &["read-only", "workspace-write", "danger-full-access"],
+    ),
+    (
+        "SandboxPolicy",
+        &["readOnly", "workspaceWrite", "dangerFullAccess"],
+    ),
     (
         "TurnStatus",
         &["completed", "interrupted", "failed", "inProgress"],
@@ -145,9 +212,20 @@ const VALUES: &[(&str, &[&str])] = &[
         &["inProgress", "completed", "failed", "declined"],
     ),
     ("McpToolCallStatus", &["inProgress", "completed", "failed"]),
-    ("CommandExecutionApprovalDecision", &["decline"]),
-    ("FileChangeApprovalDecision", &["decline"]),
-    ("McpServerElicitationAction", &["decline"]),
+    (
+        "CommandExecutionApprovalDecision",
+        &["accept", "acceptForSession", "decline", "cancel"],
+    ),
+    (
+        "FileChangeApprovalDecision",
+        &["accept", "acceptForSession", "decline", "cancel"],
+    ),
+    ("PermissionGrantScope", &["turn", "session"]),
+    (
+        "McpServerElicitationAction",
+        &["accept", "decline", "cancel"],
+    ),
+    ("McpServerElicitationRequestParams", &["form", "url"]),
     (
         "ThreadItem",
         &[
@@ -219,6 +297,21 @@ fn every_field_and_value_the_driver_uses_is_in_the_checked_in_schema() {
             );
         }
     }
+}
+
+/// More permissions are granted by echoing what was asked: the requested
+/// and the granted profile must have the same properties, of the same
+/// types.
+#[test]
+fn a_permission_is_granted_in_the_shape_it_was_asked() {
+    let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+    let definitions = definitions(&schema);
+    let asked = &definitions["RequestPermissionProfile"]["properties"];
+    assert!(asked.is_object());
+    assert_eq!(
+        asked,
+        &definitions["GrantedPermissionProfile"]["properties"]
+    );
 }
 
 /// The `x.y.z` of `codex --version`'s line.

@@ -1,13 +1,17 @@
 //! Codex's app-server driver (ADR 0057; `docs/plans/agents-own-protocols.md`,
-//! "Codex"). Slice 1 is built: a session starts a thread or resumes one,
-//! its prompts are turns, their messages, reasoning, plans, tool calls
-//! and tokens stream as events, and a turn can be steered and cancelled.
-//! Every approval is declined until slice 2, so the node does not offer
-//! the driver yet (`vessel_harness::direct`). Listing is slice 4's.
+//! "Codex"). Slices 1 and 2 are built: a session starts a thread or
+//! resumes one, its prompts are turns, their messages, reasoning, plans,
+//! tool calls and tokens stream as events, a turn can be steered and
+//! cancelled, Codex's approvals are permission requests and its questions
+//! are questions, and the session's mode decides what it asks. The node
+//! may select the driver from slice 2 (`vessel_harness::direct`). Listing
+//! is slice 4's.
 //!
 //! Layout: `wire` reads and writes the JSON-RPC lines, `protocol` holds
 //! the messages as types (checked against `schema/app-server.json` by
-//! `contract`), `mapper` turns them into events, `session` runs the loop.
+//! `contract`), `mapper` turns them into events, `mode` is the session's
+//! mode option, `asks` holds what waits on a person, `session` runs the
+//! loop.
 //!
 //! [Decision Log]
 //! - Purpose: slice 0 fixes where this driver lives and what it is given,
@@ -19,7 +23,9 @@
 //!   agent's process and [`history`] lists its conversations (spawning its
 //!   own process, so a listing shapes its own command there).
 
+mod asks;
 mod mapper;
+mod mode;
 mod protocol;
 mod session;
 mod wire;

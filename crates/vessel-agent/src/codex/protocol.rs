@@ -60,14 +60,43 @@ pub(super) struct InitializeResponse {
 pub(super) enum AskForApproval {
     /// Asks when its sandbox or its rules say a step needs it.
     OnRequest,
+    /// Never asks (full access only).
+    Never,
 }
 
-/// `SandboxMode`.
+/// `ApprovalsReviewer`: who reviews what the agent asks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum ApprovalsReviewer {
+    /// A person (the host).
+    User,
+    /// Codex's own reviewer first, a person for what it will not decide.
+    AutoReview,
+}
+
+/// `SandboxMode`: a thread's sandbox.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(super) enum SandboxMode {
+    /// Reads only.
+    ReadOnly,
     /// Writes in the workspace only.
     WorkspaceWrite,
+    /// No sandbox (full access only).
+    DangerFullAccess,
+}
+
+/// `SandboxPolicy`: a turn's sandbox.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub(super) enum SandboxPolicy {
+    ReadOnly { network_access: bool },
+    WorkspaceWrite { network_access: bool },
+    DangerFullAccess,
 }
 
 /// `ThreadStartParams`.
@@ -78,6 +107,7 @@ pub(super) struct ThreadStartParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
     pub(super) approval_policy: AskForApproval,
+    pub(super) approvals_reviewer: ApprovalsReviewer,
     pub(super) sandbox: SandboxMode,
 }
 
@@ -90,6 +120,7 @@ pub(super) struct ThreadResumeParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
     pub(super) approval_policy: AskForApproval,
+    pub(super) approvals_reviewer: ApprovalsReviewer,
     pub(super) sandbox: SandboxMode,
     /// The history is read where it is replayed (thread/turns/list), never
     /// in this one answer.
@@ -124,6 +155,11 @@ pub(super) enum UserInput {
 pub(super) struct TurnStartParams {
     pub(super) thread_id: String,
     pub(super) input: Vec<UserInput>,
+    /// The session's mode as it stands now (a change applies from the
+    /// next turn).
+    pub(super) approval_policy: AskForApproval,
+    pub(super) approvals_reviewer: ApprovalsReviewer,
+    pub(super) sandbox_policy: SandboxPolicy,
 }
 
 /// `TurnStartResponse`.
@@ -340,22 +376,79 @@ pub(super) struct FileUpdateChange {
     pub(super) diff: String,
 }
 
-/// The decision sent for an approval request: `decline`
-/// (`CommandExecutionApprovalDecision`, `FileChangeApprovalDecision`).
-#[derive(Debug, Serialize)]
-pub(super) struct Declined {
-    pub(super) decision: &'static str,
+/// `ServerRequestResolvedNotification`: Codex no longer waits on one of
+/// its requests (answered elsewhere, or its turn ended).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct RequestResolved {
+    /// The request's id, as Codex sent it.
+    pub(super) request_id: Value,
 }
 
-/// `McpServerElicitationAction` `decline`, as its response.
-#[derive(Debug, Serialize)]
-pub(super) struct ElicitationDeclined {
-    pub(super) action: &'static str,
+/// `CommandExecutionRequestApprovalParams`: what a command's approval
+/// shows, and the decisions Codex offers for it.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct CommandApproval {
+    pub(super) item_id: String,
+    #[serde(default)]
+    pub(super) command: Option<String>,
+    #[serde(default)]
+    pub(super) cwd: Option<String>,
+    /// `CommandExecutionApprovalDecision`s, each a string or an object
+    /// (one carrying the rule or the network amendment to apply); absent
+    /// means the four plain ones.
+    #[serde(default)]
+    pub(super) available_decisions: Option<Vec<Value>>,
 }
 
-/// `GrantedPermissionProfile` granting nothing, as the response to a
-/// request for more permissions.
-#[derive(Debug, Serialize)]
-pub(super) struct NoPermissions {
-    pub(super) permissions: serde_json::Map<String, Value>,
+/// `FileChangeRequestApprovalParams`.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct FileChangeApproval {
+    pub(super) item_id: String,
+    #[serde(default)]
+    pub(super) reason: Option<String>,
+}
+
+/// `PermissionsRequestApprovalParams`: more permissions asked for.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct PermissionsApproval {
+    pub(super) item_id: String,
+    /// `RequestPermissionProfile`, granted as asked when allowed.
+    pub(super) permissions: Value,
+    #[serde(default)]
+    pub(super) reason: Option<String>,
+}
+
+/// `ToolRequestUserInputParams`.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct UserInputRequest {
+    pub(super) item_id: String,
+    pub(super) questions: Vec<UserInputQuestion>,
+}
+
+/// `ToolRequestUserInputQuestion`.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct UserInputQuestion {
+    pub(super) id: String,
+    pub(super) header: String,
+    pub(super) question: String,
+    #[serde(default)]
+    pub(super) is_other: bool,
+    /// Never shown: an answer is kept in the session's timeline.
+    #[serde(default)]
+    pub(super) is_secret: bool,
+    #[serde(default)]
+    pub(super) options: Option<Vec<UserInputOption>>,
+}
+
+/// `ToolRequestUserInputOption`.
+#[derive(Debug, Deserialize)]
+pub(super) struct UserInputOption {
+    pub(super) label: String,
+    pub(super) description: String,
 }

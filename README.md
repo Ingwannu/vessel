@@ -141,9 +141,12 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - Agents over their own protocols (protocol 18, ADR 0057): `vessel node
   settings --driver codex=direct` chooses Codex's app-server instead of
   its ACP adapter for new sessions (likewise `claude` and `opencode`;
-  `acp` goes back). No build offers one yet: the node refuses `direct`
-  until that agent's driver can ask for permissions as ACP does. Every
-  agent runs over ACP until then.
+  `acp` goes back). Codex's is offered: it asks for permissions and
+  questions with Codex's own choices, and its `mode` option is codex-acp's
+  (`read-only`, `workspace-write`, `agent`, `agent-full-access`). It runs
+  for a `codex` of at least 0.166.0, otherwise over ACP with a line in
+  the session's log. The node refuses `direct` for Claude Code and
+  OpenCode until their drivers can ask for permissions as ACP does.
 
 Search what was said in every session (protocol 12): prompts and the
 agents' replies, live, ended or archived, newest first.

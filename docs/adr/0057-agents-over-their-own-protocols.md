@@ -6,8 +6,9 @@ where possible"). This ADR records how it is done for each agent, and what
 it costs. It partly supersedes ADR 0003 (every structured agent over ACP)
 and replaces ADR 0055's wait for an adapter change. The research notes
 are summarised below; the plan is `docs/plans/agents-own-protocols.md`.
-Slice 0 (the seam made selectable, protocol 18) is built; no direct
-driver is (see "Slice 0, as built").
+Slice 0 (the seam made selectable, protocol 18) is built (see "Slice 0,
+as built"), and Codex's driver through its slice 2 is built and offered
+(see "Codex slice 2, as built").
 
 ## Context
 
@@ -304,7 +305,8 @@ holds.
   own program to it (`codex app-server`; `claude -p --input-format
   stream-json --output-format stream-json --verbose`; `opencode serve
   --hostname 127.0.0.1 --port 0`), the oldest and newest versions
-  checked, and whether it is offered (`selectable`, false for all three).
+  checked, and whether it is offered (`selectable`: false for all three
+  in slice 0; Codex's true from its slice 2).
   `launch_direct` builds the command with the account, profile and route
   of an ACP launch; what a session adds (resume, MCP configuration,
   permission flags) is the driver's to add from `AgentSetup`, in its
@@ -374,3 +376,40 @@ run a session. Choices made here:
   `modelContextWindow`.
 - **Until slice 2**, the thread runs `on-request` in a `workspace-write`
   sandbox (Paseo's default).
+
+## Codex slice 2, as built (2026-11-14)
+
+The Codex driver asks a person what Codex asks, and the node may select
+it (`selectable` true). Choices made here:
+
+- **The mode is an option** (`mode`), with codex-acp's id, values and
+  presets (`read-only`, `workspace-write`, `agent` the default with
+  Codex's own reviewer first, `agent-full-access` the only one that never
+  asks and leaves the sandbox), so a session's choices mean the same
+  whichever driver runs it. It goes with the thread's start or resume; a
+  change goes with the next `turn/start` (`approvalPolicy`,
+  `approvalsReviewer`, `sandboxPolicy`), as codex-acp applies it. Until
+  slice 3 it is the one option; any other choice fails the handshake.
+- **Approvals are permission requests with Codex's own choices**: a
+  command's `availableDecisions` (each sent back as Codex gave it, a rule
+  and all; one this build does not know left out), a file change's four
+  decisions, more permissions granted as asked for the turn or the
+  session, or none. The request's tool call is the item's, announced from
+  the request when Codex has not announced the item, then updated by it.
+- **Questions**: Codex's own (`item/tool/requestUserInput`) become one
+  question of a field each (a choice where it offers options and no free
+  text, otherwise text); a tool server's form is read as ACP's by the ACP
+  driver's own mapper, so one reader holds the bounds and checks. A
+  secret question (`isSecret`) is never shown, since an answer is kept in
+  the session's timeline; with nobody watching, a question is answered
+  empty and a form declined at once, each with a line in the log.
+- **Withdrawal**: a cancel withdraws what is open before it interrupts
+  (Codex hears `cancel`, no permissions, no answers), and what Codex asks
+  until the turn ends is withdrawn at once; the turn's end and the
+  connection's withdraw the rest; Codex's `serverRequest/resolved`
+  settles one it no longer waits on. At most 64 wait, as over ACP.
+- **Another thread's approvals** (a sub-agent's) are asked too: unasked,
+  Codex would wait on them for good, and nothing is allowed unasked.
+- **Checked**: `schema/app-server.json` grows to the 61 definitions the
+  driver follows; the contract test checks each field and value used,
+  and that a granted permission profile has the requested one's shape.

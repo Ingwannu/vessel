@@ -136,8 +136,8 @@ test regenerates it when `codex` is installed.
      call) as tool calls and their updates; `turn/plan/updated` as plans;
      `turn/completed` with usage.
    - `turn/interrupt` cancels and `turn/steer` steers.
-   - Every approval request is declined, with a log line. That is why the
-     setting cannot select the driver yet.
+   - Every approval request is declined, with a log line (until slice
+     2). That is why the setting could not select the driver yet.
    - `fake_codex_app_server` replays schema-shaped messages.
 2. **Permissions and questions.**
    - **The mode** is an option of its own here (it decides what is
@@ -165,7 +165,11 @@ test regenerates it when `codex` is installed.
      one without (or with `isOther`) is text; an elicitation's form is
      read as ACP's (both are MCP's schema). With questions off (nobody
      watches), they are answered empty or declined at once, with a line
-     in the log; other elicitation modes are declined.
+     in the log; other elicitation modes are declined. A secret question
+     (`isSecret`) is never shown (the timeline keeps answers): answered
+     empty, with a line in the log.
+   - Codex's `serverRequest/resolved` settles a request it no longer
+     waits on; a sub-agent thread's approvals are asked too.
    - After this slice the setting may select `direct` for Codex
      (`selectable`).
 3. **Options.**
@@ -322,6 +326,16 @@ checked against `/doc`.
     `turn/start`'s answer and `turn/started`; the token usage a real turn
     reports (`modelContextWindow` above all); `userAgent`'s form, which the
     introduced version is read from.
+  - (slice 2) each mode's `approvalPolicy`, `approvalsReviewer` and
+    `sandbox` taken at a thread's start and resume, and a change taken
+    with `turn/start`'s `sandboxPolicy`; whether a command's approval
+    comes before or after its `item/started`; the `availableDecisions` a
+    real command offers, and a rule sent back as offered; a permissions
+    grant echoing the request; `item/tool/requestUserInput` (experimental)
+    and an MCP form's real payloads; whether `serverRequest/resolved`
+    comes before `turn/completed` for what an interrupt ends, and whether
+    an answer to a request already resolved is harmless; a sub-agent
+    thread's approvals.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
     follows 2.1.246): `initialize` answered before any prompt and what
@@ -410,3 +424,25 @@ checked against `/doc`.
   (checked by a unit test that blocks the old order, and end to end with
   a cancel mid-stream); and an answer to `turn/start` that fails or does
   not read ends the turn failed, since only that answer names the turn.
+- Codex slice 2 (permissions and questions): built and offered
+  (`selectable` true). `codex/mode.rs` (the `mode` option, codex-acp's
+  values and presets; the one option until slice 3, another choice fails
+  the handshake), `codex/asks.rs` (approvals and questions held under
+  node-minted ids, at most 64 each, the response each answer becomes, the
+  withdrawal each refusal sends), `session` (permission requests on the
+  item's tool call, announced from the request when the item has not
+  come and updated by it; questions only when someone watches; a cancel
+  withdraws before it interrupts and what is asked meanwhile is withdrawn
+  at once; the turn's end and the connection's withdraw the rest;
+  `serverRequest/resolved` settles). The schema subset grows to 61
+  definitions; the contract test checks the new fields and values and
+  that a granted permission profile is shaped as the requested one.
+  Checked against `fake-codex-app-server`: a command's approval with a
+  rule among its decisions (sent back whole, answered once), a cancel and
+  Codex's own resolution withdrawing one, a file change and more
+  permissions, Codex's questions and a tool server's form asked, checked
+  and answered, a secret not asked, nobody watching, the mode at the
+  thread's start, at each turn and changed between turns; unit tests for
+  the bookkeeping (offered decisions, the bound, withdrawal, resolution)
+  and the mode's choice. The node's setting accepts `direct` for Codex
+  (e2e), and the runtime chooses it (unit).

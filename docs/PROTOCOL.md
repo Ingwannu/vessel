@@ -120,7 +120,10 @@ Types in `vessel_proto::settings`.
 - `node.set_settings { drivers?: SetAgentDrivers { claude_code?, codex?,
   open_code? } }` changes the agents it names. `unknown` is refused
   (`invalid_request`); `direct` is refused (`unsupported`) for an agent
-  whose driver this build does not offer yet: none in this version. A
+  whose driver this build does not offer yet. Which are offered is the
+  build's, not the version's: Codex's from its driver's slice 2 (it asks
+  a person for permissions and questions as over ACP); Claude Code's and
+  `OpenCode`'s not yet. A
   change is kept in `settings.json`; a choice a newer build saved runs
   as ACP here and stays in the file.
 - What a setting changes: the driver of that agent's sessions started
