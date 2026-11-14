@@ -162,7 +162,10 @@ impl Shell {
         let Some(shown) = shown else {
             return KeyAnswer::Pass;
         };
-        self.areas.session.composer.set_text(&shown, window, cx);
+        // The caret at the end, as Paseo's composer leaves it (its recall
+        // tests drive it so): Up then moves through a recalled message's
+        // lines before it recalls an older one.
+        self.areas.session.composer.replace_all(&shown, window, cx);
         cx.notify();
         KeyAnswer::Taken
     }
