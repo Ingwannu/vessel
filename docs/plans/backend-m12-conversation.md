@@ -100,6 +100,16 @@ Kept in the timeline: messages, thoughts, tool rows, plans, questions,
 permissions, a turn that failed (its words: the person must see them),
 a profile change (the person's own act).
 
+A failed turn (the coordinator's finding on 0.0.0.0.15, after Paseo's
+`formatTurnFailedMessage` and its Claude provider's `withheldErrorReply`)
+is one sentence in the kit's error alert under the replies: the agent's
+own words without the JSON-RPC wrapper ("Internal error: ") or its data
+as JSON (`view::timeline::turn_failure`). A usage limit (`errorKind`
+`rate_limit`, or the limit's sentence) is its sentence alone; any other
+failure reads "Turn failed · <sentence>". The reply Claude writes with
+the same words just before the failure is not drawn, so it is said
+once. The full text stays in the session's log (`vessel log`).
+
 The reply: the owner's bubble (Paseo's reply has none): Paseo's user
 bubble mirrored (16 inside, radius 16 with the corner toward the agent
 at 4) on `surface1` edged with a hairline. It hugs its words as the

@@ -15,7 +15,9 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{FindPalette, Tokens, Type, TypeExt as _};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{Entry, EntryKind, Prompt, answered_lines, settled, spans_of};
+use vessel_app_view::timeline::{
+    Entry, EntryKind, Prompt, answered_lines, repeats_failure, settled, spans_of,
+};
 use vessel_proto::{Question, QuestionOutcome};
 
 use super::Seat;
@@ -62,6 +64,11 @@ pub(super) fn entry(
             },
             Some(words.steered().to_owned()),
         ),
+        // Claude's reply that only repeats the failure ending its turn
+        // (Paseo holds it back): the failure says it once.
+        EntryKind::Message { .. } if repeats_failure(paint.entries, index) => {
+            div().into_any_element()
+        }
         EntryKind::Message { text } => bubbles::message(paint, index, text, entry.rev, window, cx),
         EntryKind::Thought { text } => {
             let head = work_row(paint, index, words.thought().to_owned(), None, open, cx);
@@ -113,7 +120,7 @@ pub(super) fn entry(
         EntryKind::TurnEnded { reason, .. } => {
             super::footer::completed(paint, index, *reason, window, cx)
         }
-        EntryKind::TurnFailed { .. } => divider(paint, words.spoken(entry), true),
+        EntryKind::TurnFailed { .. } => failure(paint, words.spoken(entry)),
         EntryKind::Log { line } => div()
             .px(px(4.0))
             .type_(Type::Mono)
@@ -192,36 +199,22 @@ fn meta(paint: &Paint<'_>, text: String) -> AnyElement {
         .into_any_element()
 }
 
-/// A divider with its words in the middle (GOAT's system divider): a
-/// turn's end; in danger when it failed.
-fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
-    let (line, ink) = if failed {
-        (
-            vessel_app_kit::ui::Hsla {
-                a: 0.3,
-                ..paint.tokens.neutral.destructive
-            },
-            paint.tokens.neutral.destructive,
-        )
-    } else {
-        (paint.look.border, paint.look.secondary)
-    };
-    let rule = || div().h(px(1.0)).flex_1().bg(line);
+/// A failed turn: its one sentence in Paseo's error alert (the kit's,
+/// a circled cross), under the replies (the coordinator's finding on
+/// 0.0.0.0.15; the sentence is `view::timeline::turn_failure`'s).
+fn failure(paint: &Paint<'_>, sentence: String) -> AnyElement {
     div()
-        .flex()
-        .items_center()
-        .gap(px(8.0))
-        .py(px(4.0))
-        .child(rule())
-        .child(
-            div()
-                .min_w(px(0.0))
-                .truncate()
-                .text_size(px(vessel_app_kit::fonts::ui(12.0)))
-                .text_color(ink)
-                .child(text),
-        )
-        .child(rule())
+        .ml(px(super::look::BUBBLE_COLUMN))
+        .child(vessel_app_kit::alert::alert(
+            vessel_app_kit::alert::Content {
+                title: Some(sentence.into()),
+                description: None,
+                action: None,
+            },
+            vessel_app_kit::alert::Variant::Error,
+            vessel_app_kit::alert::Size::Small,
+            paint.tokens,
+        ))
         .into_any_element()
 }
 

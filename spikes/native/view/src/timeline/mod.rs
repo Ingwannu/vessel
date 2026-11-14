@@ -34,6 +34,7 @@ mod agent;
 mod approval;
 mod diff;
 mod entry;
+mod failure;
 mod find;
 mod fold;
 mod live;
@@ -55,6 +56,7 @@ pub use entry::{
     Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, ToolView, block_text,
     first_reply, plan_progress, prompt_parts,
 };
+pub use failure::{FailureKind, TurnFailure, repeats_failure, turn_failure};
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
     query_of, readable_text, searchable, spans_of, start_at, step,
