@@ -35,8 +35,14 @@ Read in Paseo 0.15.4. Paths are the package paths in that tree.
   one. `portScript` wins over `range`. An explicit service `port` wins
   over the block. The project block replaces the daemon-wide
   `worktrees.servicePorts`; it does not merge with it
-  (`workspace-service-port-allocator.ts`). The script is executed, not a
-  shell: four arguments, 10 s, 1024 bytes, one TCP port. A reserved port
+  (`workspace-service-port-allocator.ts`). The allocator requests direct
+  execution: four arguments, 10 s, 1024 bytes, one TCP port. On Windows,
+  the plugin's `process.ts:36–44` overrides `shell: false` for `.cmd` and
+  `.bat` and inserts `cmd.exe`. Vessel deliberately refuses that automatic
+  shell path with `PortScriptError::WindowsCommandScript` to keep a chosen
+  branch name out of interpreter reparsing (ADR 0066). Its runtime test
+  `windows_command_scripts_are_refused_before_spawn` is still owed.
+  A reserved port
   is refused. A port the script returns is not probed first.
 - Health (`script-health-monitor.ts`, `local-service-connection.ts`):
   TCP connect to loopback, not HTTP. `pending` for 5 s, then every 3 s
@@ -185,7 +191,8 @@ shown and a partial comparison cannot claim the commands are unchanged.
   fact, not a declared or allocated service port.
 - Next value contract: the portable absolute executable path described in
   ADR 0066. Both raw grammars are decoded without filesystem access or
-  native normalization; native invocation remains a later typed check.
+  native normalization; native invocation and the Windows command-script
+  refusal remain later typed checks, with their tests still owed.
 - Then: add the nonempty allocation block and project-relative program
   path, followed by
   the file parser, digest, approval snapshots and exhaustive clients in

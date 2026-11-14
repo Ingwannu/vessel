@@ -338,11 +338,29 @@ built the way the workspace's other test programs are. No fake answers
 in a release build.
 
 On Windows neither path uses a signal, systemd or launchd. `port_script`
-is the executable itself, not `cmd.exe`, with the same four arguments,
+names the executable itself, with no automatically inserted `cmd.exe`,
+and receives the same four arguments,
 placed in a job object so the timeout ends it and the children it
 starts, as ADR 0031 already does for a script. The terminal is that
 ADR's Windows shell (`pwsh.exe`, then `powershell.exe`, then
 `cmd.exe`). A failure to start is a typed error, not a skipped entry.
+
+This is a deliberate Windows difference from Paseo. Although the allocator
+requests `shell: false`, `packages/plugin/src/server/process.ts:36–44`
+overrides it: `shouldUseWindowsShell` returns `true` for a `.cmd` or `.bat`
+command script, which then runs through `cmd.exe`. Vessel will instead
+refuse those port scripts before spawning with
+`PortScriptError::WindowsCommandScript`: "a port script on Windows must be
+a native executable, not a .cmd or .bat command script". This security
+floor avoids introducing a command-line interpreter that reparses the four
+arguments, including a branch name chosen by a person or an agent. It
+does not claim that an executable the user explicitly approves cannot
+itself interpret input. The runtime slice must add
+`windows_command_scripts_are_refused_before_spawn`, covering mixed-case
+extensions, Win32-normalized names and resolved targets that identify a
+command script, with a metacharacter-bearing branch and proof that no
+child starts. The lexical path type alone neither performs this check nor
+claims that test has run; actual Windows execution remains unverified.
 
 Named-script whitespace is an existing difference retained here. Paseo's
 `getScriptConfigs` trims `command` (`utils/worktree.ts:331-337`). Vessel's
