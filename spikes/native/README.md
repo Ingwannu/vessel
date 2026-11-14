@@ -234,6 +234,12 @@ use the same shared `kit::screen_header` frame as other areas. The existing
 `compact_header` wrapper supplies its navigation callback to that renderer,
 so ordinary and detail navigation keep one compact look.
 
+Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
+consumed at16 for pointer and20 for compact settings navigation.
+Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
+`Glyph::Boxes` (Providers): original drawings on the same grid after
+Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
