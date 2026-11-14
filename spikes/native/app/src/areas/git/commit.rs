@@ -14,8 +14,8 @@
 use vessel_app_kit::dialog::{DialogContent, DialogSize};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, button_with_kind, fonts,
@@ -29,7 +29,11 @@ use vessel_app_view::workspace::git::{
 use vessel_app_view::workspace::git_quick::GitAction;
 use vessel_proto::workspace::{GitStatus, RefName};
 
-use super::{Open, menu::issue_alert};
+use super::{Open, menu::issue_alert, name};
+
+/// Before the first measure: a card's width less its insets, the label
+/// "Branch" and the default-branch warning.
+const COMMIT_NAME_ESTIMATE: f32 = 280.0;
 use crate::shell::Shell;
 
 impl Shell {
@@ -124,7 +128,7 @@ pub(super) fn dialog(
         .flex()
         .flex_col()
         .gap(px(spacing::S4))
-        .child(summary(shell, status, tokens, cx))
+        .child(summary(shell, status, tokens, (window, narrow), cx))
         .child(super::commit_scope::scope(shell, tokens, narrow, cx))
         .child(
             div()
@@ -205,6 +209,7 @@ fn summary(
     shell: &Shell,
     status: &GitStatus,
     tokens: &Tokens,
+    (window, touch): (&Window, bool),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let git = &shell.areas.git;
@@ -227,15 +232,31 @@ fn summary(
                 .text_color(neutral.foreground_muted)
                 .child(labels.commit_branch),
         )
-        .child(
-            div()
+        .child({
+            // One line in the code face, cut in its middle; the whole name
+            // in a tooltip when cut (`name.rs`). GOAT's medium weight.
+            let room = name::room(&git.commit_branch_room, 1.0, COMMIT_NAME_ESTIMATE);
+            let shown = name::one_line(window, &header.name, Type::MonoBody, room);
+            let element = div()
+                .id("git-commit-branch")
                 .flex_1()
                 .min_w_0()
+                .type_(Type::MonoBody)
                 .font_weight(gpui::FontWeight::MEDIUM)
                 .text_color(neutral.foreground)
-                .whitespace_normal()
-                .child(header.name),
-        )
+                .whitespace_nowrap()
+                .child(vessel_app_kit::picker::anchor_probe(
+                    &git.commit_branch_room,
+                ))
+                .child(shown.text);
+            if shown.cut {
+                git.tips
+                    .on_code(element, &git.commit_branch_tip, header.name.clone(), touch)
+                    .into_any_element()
+            } else {
+                element.into_any_element()
+            }
+        })
         .children((destination == CommitDestination::DefaultBranch).then(|| {
             div()
                 .flex_none()

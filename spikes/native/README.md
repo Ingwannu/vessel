@@ -664,11 +664,14 @@ when it equals the one write in flight. What choosing an action does is
 `view::workspace::git::step` (explain in an Info toast and send nothing,
 open a form, or send one prepared write). Its shapes on a running fleet:
 `bash scripts/git-fixtures.sh ROOT TARGET` adds one project and session
-per state (commit, push, pull, no upstream, in step, push refused by the
-remote, no commits, detached), bare remotes under `ROOT/remotes`, and a
+per state (commit on a feature branch and on the default branch, push,
+pull, no upstream, in step, push refused by the remote, no commits,
+detached), bare remotes under `ROOT/remotes` with `main` as `origin/HEAD`, and a
 device paired as a person pairs one in `ROOT/person-config`; the fleet's
 `ROOT/readonly-config` shows what a read-only device sees. Run the app
 with `HOME=ROOT` for either book: they name their credentials from it.
+A branch name is drawn on one line cut in its middle, never wrapped
+(`app/src/areas/git/name.rs`).
 
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),

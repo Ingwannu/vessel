@@ -22,11 +22,17 @@ use vessel_app_view::workspace::git::{
     branch_choices, branch_request, branch_selection, can_branch, stash_for,
 };
 
-use super::{Open, menu::issue_alert};
+use super::{Open, menu::issue_alert, name};
 use crate::shell::Shell;
 
 /// Paseo's `desktopMinWidth`.
 const SWITCHER_WIDTH: f32 = 280.0;
+
+/// A switcher row's parts besides its name (the kit's combobox row): the
+/// list's 4-point inset each side, the row's 12-point insets, the 14-point
+/// branch glyph, two 8-point gaps and the 16-point check, and two points
+/// of margin.
+const ROW_CHROME: f32 = 80.0;
 
 /// The rows the switcher shows for `query`, with their branches.
 fn choices(shell: &Shell, query: &str) -> Vec<BranchChoice> {
@@ -57,13 +63,24 @@ pub(super) fn switcher(
         BranchChoices::Failed(problem) => (Vec::new(), lang.git_call_failure(problem).title),
         BranchChoices::Rows { rows, .. } => (rows, labels.empty_branches.to_owned()),
     };
+    // Each name on one line cut in its middle (`name.rs`): `origin/…` and
+    // the topic at the end are what tell two rows apart. The list is
+    // Paseo's 280 wide, or the window's width as a sheet below `COMPACT`.
+    let list = if window.viewport_size().width < px(vessel_app_kit::picker::COMPACT) {
+        f32::from(window.viewport_size().width)
+    } else {
+        SWITCHER_WIDTH
+    };
+    let room = ROW_CHROME.mul_add(-1.0, list);
     let rows: Vec<ComboRow> = rows
         .iter()
         .map(|choice| ComboRow {
             leading: Some(Leading::SmallGlyph(Glyph::Branch)),
             checked: choice.selected,
             disabled: !choice.enabled,
-            ..ComboRow::new(choice.branch.name.as_str().to_owned())
+            ..ComboRow::new(
+                name::one_line(window, choice.branch.name.as_str(), Type::Body, room).text,
+            )
         })
         .collect();
     let header = ComboHeader {

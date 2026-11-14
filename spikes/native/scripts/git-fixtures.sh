@@ -43,17 +43,24 @@ project_session() { # folder title
   echo "laptop $id $2" >> "$root/git-sessions"
 }
 
-# A repository with an origin it has pushed `branch` to, one commit each.
+# A repository whose origin has `main` (its default, as `origin/HEAD`
+# names it) and, when `branch` is another, that branch made from main and
+# pushed with an upstream; one commit each.
 with_origin() { # name branch
   local repo="$work/$1" bare="$remotes/$1.git"
   g "$remotes" init -q --bare "$bare"
   mkdir -p "$repo"
-  g "$repo" init -q -b "$2"
+  g "$repo" init -q -b main
   printf '# %s\n' "$1" > "$repo/README.md"
   g "$repo" add -A
   g "$repo" commit -q -m "First commit"
   g "$repo" remote add origin "$bare"
-  g "$repo" push -q -u origin "$2"
+  g "$repo" push -q -u origin main
+  g "$repo" remote set-head origin main
+  if [ "$2" != main ]; then
+    g "$repo" switch -q -c "$2"
+    g "$repo" push -q -u origin "$2"
+  fi
   # The node's git runs in a scratch home with no identity: commits there
   # take this repository's own. `no-commits-yet` keeps none, so its first
   # commit shows the node's refusal.
@@ -122,6 +129,12 @@ printf 'refused\n' >> "$work/push-refused-by-remote/README.md"
 g "$work/push-refused-by-remote" commit -q -am "A commit the remote refuses"
 project_session "$work/push-refused-by-remote" "git push refused"
 
+# 7a. A change to commit on the default branch itself (the commit form
+# warns there, and only there).
+with_origin commit-on-the-default-branch main
+printf 'edited on main\n' >> "$work/commit-on-the-default-branch/README.md"
+project_session "$work/commit-on-the-default-branch" "git commit on main"
+
 # 7. No commit yet, one new file.
 mkdir -p "$work/no-commits-yet"
 g "$work/no-commits-yet" init -q -b main
@@ -155,7 +168,9 @@ grep -q 'behind 3' <<<"$(status_of pull-behind-origin)" || problems+=("pull is n
 [ "$(status_of in-step-and-clean)" = "## main...origin/main" ] || problems+=("in-step is not in step")
 grep -q 'No commits yet' <<<"$(status_of no-commits-yet)" || problems+=("no-commits has a commit")
 grep -q 'HEAD (no branch)' <<<"$(status_of detached-head)" || problems+=("detached is on a branch")
-[ "$(wc -l < "$root/git-sessions")" -eq 8 ] || problems+=("not every state has its session")
+[ "$(g "$work/commit-ready-checkout-for-the-design-system" symbolic-ref --short refs/remotes/origin/HEAD)" = origin/main ] \
+  || problems+=("commit-ready's default is not main")
+[ "$(wc -l < "$root/git-sessions")" -eq 9 ] || problems+=("not every state has its session")
 env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/person-config" "$target/vessel" \
   --node laptop status > /dev/null || problems+=("the person's device was not paired")
 [ -d "$root/readonly-config" ] || problems+=("the fleet's read-only device is missing")

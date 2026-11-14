@@ -19,7 +19,16 @@ use vessel_app_view::workspace::git::{
 };
 use vessel_proto::workspace::WorkspaceRoot;
 
-use super::{Target, menu};
+use super::{Target, menu, name};
+
+/// What the toolbar label trigger takes besides its words: its insets
+/// (`spacing[1]` each side), the gap and the 12-point caret, plus a point
+/// so a measured width never rounds the cut text past its box.
+const TRIGGER_CHROME: f32 = 25.0;
+
+/// Before the first measure: the toolbar's insets, the gap and an
+/// icon-only split button.
+const HEAD_ESTIMATE: f32 = 110.0;
 use crate::shell::Shell;
 
 /// Track F's slot at the head of its Changes tab. The first frame on a
@@ -112,31 +121,6 @@ fn row(
     } else {
         State::Ready
     };
-    // Paseo's `BranchSwitcher`: the name opens the list of branches; its
-    // tooltip says so. A detached head shows where it is and still opens it.
-    let tip = lang.git_labels().switch_title;
-    let branch = div().flex().flex_1().min_w_0().child(
-        git.tips
-            .on(
-                trigger(
-                    "git-branch",
-                    header.name.clone(),
-                    switcher_state,
-                    // A long branch wraps rather than losing its end (the
-                    // kit trigger's explicit Wrap, after the first review).
-                    LabelLayout::Wrap,
-                    touch,
-                    tokens,
-                ),
-                &git.branch_tip,
-                tip,
-                touch,
-            )
-            .child(git.switcher.anchor())
-            .on_click(cx.listener(|shell, _event, window, cx| {
-                shell.git_toggle_switcher(window, cx);
-            })),
-    );
     let width = shell
         .code_git_width()
         .map_or(window.viewport_size().width, |width| {
@@ -146,6 +130,42 @@ fn row(
                 width
             }
         });
+    // Paseo's `BranchSwitcher`: the name opens the list of branches; its
+    // tooltip says so. A detached head shows where it is and still opens it.
+    // The name is one line cut in its middle (`name.rs`); when cut, the
+    // tooltip carries the whole name instead.
+    let estimate = HEAD_ESTIMATE.mul_add(-1.0, f32::from(width));
+    let room = name::room(&git.branch_room, TRIGGER_CHROME, estimate);
+    let shown = name::one_line(window, &header.name, Type::Meta, room);
+    let trigger = trigger(
+        "git-branch",
+        shown.text,
+        switcher_state,
+        LabelLayout::SingleLine,
+        touch,
+        tokens,
+    );
+    let trigger = if shown.cut {
+        git.tips
+            .on_code(trigger, &git.branch_tip, header.name.clone(), touch)
+    } else {
+        git.tips.on(
+            trigger,
+            &git.branch_tip,
+            lang.git_labels().switch_title,
+            touch,
+        )
+    };
+    let branch = div()
+        .flex()
+        .flex_1()
+        .min_w_0()
+        .child(vessel_app_kit::picker::anchor_probe(&git.branch_room))
+        .child(trigger.child(git.switcher.anchor()).on_click(cx.listener(
+            |shell, _event, window, cx| {
+                shell.git_toggle_switcher(window, cx);
+            },
+        )));
     let control = primary_control(&git.status, &git.writing, PanelWidth(f32::from(width)));
     div()
         .id("git-row")

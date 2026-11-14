@@ -19,11 +19,20 @@ use vessel_app_kit::{
 };
 use vessel_app_link::workspace::GitWrite;
 use vessel_app_view::workspace::git::{
-    DropStash, Reading, StashChoice, WriteIntent, stash_request,
+    DropStash, Reading, StashChoice, WriteIntent, stash_request, stash_subject,
 };
 use vessel_proto::workspace::StashEntry;
 
-use super::{Open, menu::issue_alert};
+use super::{Open, menu::issue_alert, name};
+
+/// Before the first measure: a card's text column beside its three buttons.
+const STASH_ROOM_ESTIMATE: f32 = 220.0;
+
+/// The drop confirmation's body: a card's width less its insets.
+const DROP_ROOM: f32 = 460.0;
+
+/// A sheet's insets around the drop confirmation's body.
+const DROP_INSETS: f32 = 64.0;
 use crate::shell::Shell;
 
 impl Shell {
@@ -102,35 +111,34 @@ pub(super) fn dialog(
             .child(words)
             .into_any_element()
     };
-    let body =
-        match &git.stashes {
-            Reading::Failed(problem) => issue_alert(
-                lang,
-                &vessel_app_view::workspace::git::Issue::Call(problem.clone()),
-                tokens,
-            )
-            .into_any_element(),
-            read @ (Reading::Empty | Reading::Loading { .. } | Reading::Ready(_)) => {
-                match read.shown() {
-                    None => note(labels.reading_stashes.to_owned()),
-                    Some(list) if list.entries.is_empty() => note(labels.empty_stashes.to_owned()),
-                    Some(list) => {
-                        let now = Utc::now();
-                        let offset = *chrono::Local::now().offset();
-                        // The dialog's body scrolls (the kit's dialog), so
-                        // a long list needs no scroller of its own.
-                        div()
-                            .flex()
-                            .flex_col()
-                            .children(list.entries.iter().enumerate().map(|(at, entry)| {
-                                row(shell, at, entry, (now, offset), tokens, cx)
-                            }))
-                            .children(list.more.then(|| note(labels.stashes_more.to_owned())))
-                            .into_any_element()
-                    }
+    let body = match &git.stashes {
+        Reading::Failed(problem) => issue_alert(
+            lang,
+            &vessel_app_view::workspace::git::Issue::Call(problem.clone()),
+            tokens,
+        )
+        .into_any_element(),
+        read @ (Reading::Empty | Reading::Loading { .. } | Reading::Ready(_)) => {
+            match read.shown() {
+                None => note(labels.reading_stashes.to_owned()),
+                Some(list) if list.entries.is_empty() => note(labels.empty_stashes.to_owned()),
+                Some(list) => {
+                    let now = Utc::now();
+                    let offset = *chrono::Local::now().offset();
+                    // The dialog's body scrolls (the kit's dialog), so
+                    // a long list needs no scroller of its own.
+                    div()
+                        .flex()
+                        .flex_col()
+                        .children(list.entries.iter().enumerate().map(|(at, entry)| {
+                            row(shell, (at, entry), (now, offset), tokens, window, cx)
+                        }))
+                        .children(list.more.then(|| note(labels.stashes_more.to_owned())))
+                        .into_any_element()
                 }
             }
-        };
+        }
+    };
     let body = div()
         .flex()
         .flex_col()
@@ -172,16 +180,17 @@ pub(super) fn dialog(
 /// One entry: its message, then `stash@{n}` and when; its three actions.
 fn row(
     shell: &Shell,
-    at: usize,
-    entry: &StashEntry,
+    (at, entry): (usize, &StashEntry),
     clock: (chrono::DateTime<Utc>, chrono::FixedOffset),
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let git = &shell.areas.git;
     let lang = shell.t.lang;
     let neutral = tokens.neutral;
     let meta = lang.git_stash_meta(entry, clock.0, clock.1);
+    let subject = stash_subject(&entry.message);
     let running = git.writing.intent().filter(|intent| {
         [StashChoice::Apply, StashChoice::Pop]
             .iter()
@@ -202,13 +211,27 @@ fn row(
                 .flex_1()
                 .min_w(px(160.0))
                 .gap(px(spacing::S0_5))
+                // Every row's text column is as wide as the first's.
+                .when(at == 0, |column| {
+                    column.child(vessel_app_kit::picker::anchor_probe(&shell.areas.git.stash_room))
+                })
                 .child(
                     div()
                         .type_(Type::Body)
                         .text_color(neutral.foreground)
                         .whitespace_normal()
-                        .child(entry.message.clone()),
+                        .child(subject.message.to_owned()),
                 )
+                .children(subject.branch.map(|branch| {
+                    // The branch it was saved on: one line, cut in its
+                    // middle (`name.rs`), never broken inside the message.
+                    let room = name::room(&shell.areas.git.stash_room, 1.0, STASH_ROOM_ESTIMATE);
+                    div()
+                        .type_(Type::Mono)
+                        .text_color(neutral.foreground_muted)
+                        .whitespace_nowrap()
+                        .child(name::one_line(window, branch, Type::Mono, room).text)
+                }))
                 .child(
                     div()
                         .flex()
@@ -317,8 +340,21 @@ fn confirm_drop(
             div()
                 .text_color(neutral.foreground)
                 .whitespace_normal()
-                .child(entry.message.clone()),
+                .child(stash_subject(&entry.message).message.to_owned()),
         )
+        .children(stash_subject(&entry.message).branch.map(|branch| {
+            div()
+                .type_(Type::Mono)
+                .text_color(neutral.foreground_muted)
+                .whitespace_nowrap()
+                .child({
+                    // The card is 520 wide; a sheet is the window's width.
+                    let room = DROP_INSETS
+                        .mul_add(-1.0, f32::from(window.viewport_size().width))
+                        .min(DROP_ROOM);
+                    name::one_line(window, branch, Type::Mono, room).text
+                })
+        }))
         .child(
             div()
                 .type_(Type::Mono)

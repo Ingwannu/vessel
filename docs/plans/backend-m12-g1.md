@@ -736,6 +736,18 @@ one, and is read again five seconds later.
   keeps git's own output under the explanation.
 - **A detached head still shows the trigger** ("Detached at abc1234") and
   opens the list; Paseo hides its switcher without a branch name.
+- **A branch name is one line, cut in its middle** in the header, the
+  commit form, the switcher's rows and a saved entry (`app/.../git/name.rs`,
+  the kit's `fonts::elide_middle` to the width a probe measured), the whole
+  name in a tooltip where the place has one (header, commit form). Paseo
+  cuts at the end (`numberOfLines={1}` in `toolbar-label-trigger.tsx` and
+  `combobox.tsx`), which hides what tells `feature/…-레이아웃` from
+  `origin/feature/…-레이아웃`. The header and the switcher keep the kit
+  controls' interface face; the commit form and saved entries use the code
+  face. Switcher rows have no tooltip (the kit's combobox row has none).
+- **A saved entry's subject is split** (`git::stash_subject`, git's fixed
+  `On <branch>: ` and `WIP on <branch>: ` prefixes; a ref name cannot hold
+  `:`): the message wraps as words, the branch is its own one-line row.
 - **Commit form**: the node commits by scope, so the scope is a select
   where GOAT has per-file checkboxes; rows name the change in one word
   where GOAT shows line counts (the status carries none); no "Commit on
@@ -752,3 +764,17 @@ one, and is read again five seconds later.
   back to is not built: the node's saved entries carry no branch of their
   own (Paseo tags its own entries), so which entry belongs to a branch
   could only be guessed from its message.
+
+### Resume (2026-11-14 04:40 UTC, stopped for the account window)
+
+- Done: slice 1 fixes for the coordinator's findings (one-line branch names
+  in four places, `main` as the fixtures' default with a commit-on-main
+  state, saved-entry subjects split); lead merged at `3a1075a5`; gate
+  fmt/clippy/test green; captures dark/en/1280 in `/tmp/work/m12-g1b/shots/slice1b`.
+- Half-done: the capture matrix (light, Korean, 390 as a sheet, scales
+  1.25/1.5/2 with `GPUI_X11_SCALE_FACTOR`; the default-branch warning on
+  "git commit on main"; the fill-inside-rounded-shape and pointer-cursor
+  checks over the dialogs and menus). Helpers: `/tmp/work/m12-g1b/scripts/`
+  (`app.sh` own display with its own authority file, `drive.py`).
+- Next: finish the matrix, report slice 1 to the coordinator, then slice 2
+  (open a pull request, its facts on the board card and in the session).

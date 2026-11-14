@@ -33,6 +33,7 @@ mod commit;
 mod commit_scope;
 mod head;
 mod menu;
+mod name;
 mod stashes;
 
 use vessel_app_kit::ui::{Context, Window};
@@ -101,6 +102,13 @@ pub(crate) struct GitArea {
     /// The toolbar's tooltips and where each trigger was drawn.
     pub(crate) tips: vessel_app_kit::Tooltips,
     pub(crate) branch_tip: vessel_app_kit::tooltip::Place,
+    /// The branch name's own box in the header and in the commit form, as
+    /// last drawn: the room its one line is cut to.
+    pub(crate) branch_room: vessel_app_kit::tooltip::Place,
+    pub(crate) commit_branch_room: vessel_app_kit::tooltip::Place,
+    pub(crate) commit_branch_tip: vessel_app_kit::tooltip::Place,
+    /// The saved-entry list's text column, as last drawn.
+    pub(crate) stash_room: vessel_app_kit::tooltip::Place,
     pub(crate) actions_tip: vessel_app_kit::tooltip::Place,
     /// The split button's bounds: the menu opens under its right edge
     /// from either half.
@@ -144,6 +152,10 @@ impl GitArea {
             polling: false,
             tips: vessel_app_kit::Tooltips::new(),
             branch_tip: vessel_app_kit::tooltip::Place::default(),
+            branch_room: vessel_app_kit::tooltip::Place::default(),
+            commit_branch_room: vessel_app_kit::tooltip::Place::default(),
+            commit_branch_tip: vessel_app_kit::tooltip::Place::default(),
+            stash_room: vessel_app_kit::tooltip::Place::default(),
             actions_tip: vessel_app_kit::tooltip::Place::default(),
             actions_anchor: vessel_app_kit::tooltip::Place::default(),
         }
