@@ -322,9 +322,9 @@ is no longer the given one. A success publishes `renamed` with
 `generated`. A refusal publishes nothing (the given title stays) and
 logs the class.
 
-A generated title must parse as a `SessionTitle` and be at most 80
-characters, Paseo's schema bound, which is inside the typed bound of
-120. The branch, when one is asked for in the same call, must parse as
+A generated title satisfies `MAX_GENERATED_TITLE_UNITS` raw UTF-16 units
+before trimming, then the ordinary `SessionTitle` parser and
+`SessionTitle::MAX_CHARS`. The branch, when one is asked for in the same call, must parse as
 a `BranchName` and as Paseo's slug: lower-case letters, digits, hyphens
 and slashes, no leading or trailing hyphen, no `--`, at most 100
 characters. The branch is not the title rewritten into a slug. When the session's

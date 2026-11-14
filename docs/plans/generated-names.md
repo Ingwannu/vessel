@@ -269,3 +269,8 @@ is reported as complete.
   next; the shared accessor correction has a separate independent gate.
 - Next: settings persistence and per-peer field gates after the shared
   admission contract, then project instructions and generation against fakes.
+
+The value contract's generated-title paragraph now names raw UTF-16 units
+and the two owning constants directly. The older ambiguous word
+"characters" must not be read as the user-title scalar count. Code and
+validation scope are unchanged; the exact-commit whole gate is still next.
