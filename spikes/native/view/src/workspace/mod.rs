@@ -21,6 +21,7 @@ pub mod pace;
 pub mod place;
 pub mod problem;
 pub mod projects;
+pub mod pull;
 pub mod reference;
 pub mod root;
 pub mod save;
