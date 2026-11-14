@@ -397,12 +397,16 @@ CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
 END;
 ";
 
+/// The provisional labels schema follows the integrated migrations.
+/// Integration changes this one assignment when another migration lands.
+const LABELS_SCHEMA: usize = 16;
+
 /// Current labels are separate from the original creation specification.
 const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[
+const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -469,10 +473,6 @@ pub(crate) fn configure_writer(connection: &Connection) -> Result<(), StoreError
     connection.pragma_update(None, "synchronous", "normal")?;
     Ok(())
 }
-
-/// Provisional position of the labels append; integration assigns it.
-#[cfg(test)]
-const LABELS_SCHEMA: usize = MIGRATIONS.len();
 
 #[cfg(test)]
 #[path = "schema/labels.rs"]

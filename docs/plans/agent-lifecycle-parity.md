@@ -231,7 +231,8 @@ No row of the crate table changes.
 
 - Corrective store review: the migration runner is restored byte for byte;
   labels are an ordinary final table entry. A legacy-row/null/idempotence
-  test uses the one provisional schema constant. The prior metadata/wire
+  test uses the one provisional schema constant, which also fixes the
+  migration array's length. The prior metadata/wire
   whole gate passed; this storage correction needs its own Rust gate.
 
 - The unassigned-input tests also assert the refusal reason, so another
@@ -259,7 +260,7 @@ No row of the crate table changes.
   Until its integration, the node ingress guard provides the typed refusal;
   no new registered call or client gating mechanism is introduced here.
 - The label migration is appended to the existing migration table; its runner
-  stays unchanged. `LABELS_SCHEMA` names the provisional table position for
+  stays unchanged. `LABELS_SCHEMA` binds the provisional table length and
   the legacy-row test. Integration assigns it; rollback SQL copies no ordinal.
 - Half-done: list filtering, actor patches/RPC/event, CLI and MCP ingress
   remain protected drafts. They cannot register calls before the shared gate.
