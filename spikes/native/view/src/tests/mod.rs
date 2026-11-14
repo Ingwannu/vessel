@@ -11,6 +11,7 @@ mod archive;
 mod board;
 mod compose_keys;
 mod devices;
+mod diagnostics;
 mod fixture;
 mod machine_book;
 mod machines;

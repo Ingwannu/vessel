@@ -361,3 +361,53 @@ Differences from Paseo, stated:
   ("<machine>의 프로바이더"), as its title, where it said "Agents on".
 - The picker's name is in the foreground and it has no open fill, as
   Paseo's trigger (before: muted, with the selected fill while open).
+
+### Slice 2: the app sections that have something behind them
+
+Followed: `settings-screen.tsx` (`GeneralSection`, `DiagnosticsSection`,
+`AboutSection`), `settings/general/sending-section.tsx`,
+`settings/appearance/appearance-section.tsx`, `settings/chat/chat-section.tsx`,
+`diagnostics/app-diagnostic-report.ts`, `components/app-diagnostic-sheet.tsx`;
+labels from `en.ts` and `ko.ts`.
+
+- **General**: Paseo's two sections. "General" holds Language (the row
+  track L wrote, now a row of this card rather than a card of its own);
+  "Sending" ("전송") holds "Send shortcut" (no hint, as Paseo's) and
+  "Default send" with its hint for the value in effect, its list in
+  Paseo's order (Interrupt, Steer, Queue). Paseo's default, Steer, and
+  the hints' sentences are the conversation track's (C, `65cd84bc`,
+  which owns what Send does); "Steer" is "지시" as Paseo's Korean.
+  "Kept" (where the preferences are) stays as Vessel's own, after
+  Paseo's sections.
+  "Send shortcut" is not shown on a compact layout, as Paseo's (its
+  `useKeyboardShortcutsAvailable`: a phone has no shortcuts).
+- **Appearance**: "Theme" (the tiles), "Fonts" ("Interface size", "Code
+  size") and "Layout" ("Content width") with Paseo's hints; the chat
+  display moved to Chat.
+- **Chat**: "Detail level" ("세부 수준") with "Chat display" ("채팅
+  표시"), Paseo's hint.
+- **Diagnostics**: "App diagnostic" with Run; the report
+  (`view::diagnostics`, Paseo's text shape: the app, then each machine)
+  opens in the kit's dialog with Copy and Refresh. Addresses, keys,
+  pairing links and secret values are taken out (Paseo's
+  `redactAppDiagnosticReport`), tested. The home folder shows as `~`
+  (Paseo shows paths whole; Vessel's report is pasted elsewhere and an
+  account's name in a path says nothing about the problem).
+- **About**: the lead's card as it is (version, What's new, updates, the
+  automatic-update switch, the log). Paseo's "Connected hosts" (each
+  host's daemon version) waits on the machine's version reaching the
+  app's `Machine` (asked of the lead).
+
+Hidden, with why: Sidebar (the sidebar does not read its group, sort or
+items yet; S3's next slice, Paseo keeps those in the sidebar's menu) and
+Notifications (nothing delivers one yet; S3's slice 4). Not drawn as
+rows, nothing reads them yet: "Show setup again" (no walkthrough),
+"Open location" (no side panes), "Always expand reasoning", "Chat
+outline", font families, content size, syntax theme, "Test audio".
+
+Differences, stated: three of Paseo's eight themes; sizes and width are
+selects over closed ranges where Paseo types a number; two of Paseo's
+three chat displays ("Collapse turns" waits on the conversation), so the
+default stays Full; the diagnostic asks no machine anything new (it
+reports what the app holds), so Paseo's per-host progress rows have
+nothing to show; its text is English, as Paseo's.

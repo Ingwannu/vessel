@@ -30,8 +30,10 @@
 mod agents;
 mod appearance;
 mod book;
+mod chat;
 mod choices;
 mod devices;
+mod diagnostics;
 mod general;
 mod language;
 mod nav;
@@ -83,6 +85,7 @@ pub(crate) struct SettingsState {
     pub(crate) agents: agents::AgentSettings,
 
     pub(crate) devices: devices::Devices,
+    diagnostics: diagnostics::State,
     language: language::State,
     pub(crate) sync: sync::SyncState,
 }
@@ -102,6 +105,7 @@ impl SettingsState {
             agents: agents::AgentSettings::new(window, cx),
 
             devices: devices::Devices::new(window, cx),
+            diagnostics: diagnostics::State::new(cx),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
         }
@@ -404,6 +408,7 @@ pub(crate) fn render(
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
         .children(agents::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
+        .children(diagnostics::dialogs(shell, tokens, window, cx))
 }
 
 /// The section shown, as a page: its title, a refused change above its

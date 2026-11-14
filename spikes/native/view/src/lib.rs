@@ -18,6 +18,7 @@ pub mod badge;
 pub mod board;
 mod conversation;
 pub mod devices;
+pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;

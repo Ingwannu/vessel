@@ -22,7 +22,7 @@ use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_view::settings::{Section, Surface};
 
-use super::{agents, appearance, choices, devices, general, sync};
+use super::{agents, appearance, chat, choices, devices, diagnostics, general, sync};
 use crate::shell::Shell;
 
 /// The surface this build runs on: a phone build is Android's, a browser
@@ -49,6 +49,10 @@ fn page(section: Section) -> Option<Draw> {
         Section::Appearance => {
             Some(|shell, tokens, phone, _, cx| appearance::render(shell, tokens, phone, cx))
         }
+        Section::Chat => Some(|shell, tokens, phone, _, cx| chat::render(shell, tokens, phone, cx)),
+        Section::Diagnostics => {
+            Some(|shell, tokens, phone, _, cx| diagnostics::render(shell, tokens, phone, cx))
+        }
         Section::About => Some(|shell, tokens, phone, _, cx| {
             crate::areas::about::content(shell, tokens, phone, cx)
         }),
@@ -63,11 +67,11 @@ fn page(section: Section) -> Option<Draw> {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
         // Not drawn yet. Shortcuts is track S3's page (one line here when
-        // it lands). Sidebar, Chat, Notifications, Diagnostics, Overview
-        // and Agents are this track's next slices; the rest have nothing
-        // behind them in Vessel yet (`refs/notes/paseo-parity-settings.md`).
+        // it lands); Sidebar and Notifications wait on S3's sidebar reading
+        // its items and on notifications being delivered. Overview and
+        // Agents are this track's next slice; the rest have nothing behind
+        // them in Vessel yet.
         Section::Sidebar
-        | Section::Chat
         | Section::Terminal
         | Section::Browser
         | Section::Editor
@@ -76,7 +80,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Integrations
         | Section::Notifications
         | Section::Permissions
-        | Section::Diagnostics
         | Section::Overview
         | Section::Connections
         | Section::Agents
