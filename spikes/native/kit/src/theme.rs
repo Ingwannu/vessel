@@ -12,6 +12,10 @@ pub mod spacing;
 /// The desktop command panel's scrim: black at 50 % (track S3's, after
 /// Paseo's command center), as `rgba` takes it.
 pub const COMMAND_SCRIM: u32 = 0x0000_0080;
+
+/// A form summary's light fill: GOAT's zinc25 (OKLCH .992, 0, 0) at its
+/// nearest 8-bit sRGB value, as `rgb` takes it.
+pub const SUMMARY_LIGHT: u32 = 0x00fc_fcfc;
 mod status;
 pub use status::{Signal, Status};
 

@@ -217,6 +217,8 @@ pub enum Answer {
         /// It (boxed: a session's info is large beside the other answers).
         result: Result<Box<SessionInfo>, Problem>,
     },
+    /// A session's pull request.
+    Pull(super::PullAnswer),
 }
 
 /// Which form added a project.
@@ -256,6 +258,7 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
             session,
             result: no(problem),
         },
+        Ask::Pull(ask) => Answer::Pull(super::pulls::refused(ask, problem)),
     }
 }
 

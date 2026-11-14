@@ -45,7 +45,7 @@ use crate::shell::Shell;
 
 /// The panel as a resizable panel: dragged at its left edge, kept in the
 /// layout's `panel_width`.
-const PANEL: Panel = Panel {
+pub(super) const PANEL: Panel = Panel {
     limits: CODE_PANEL,
     edge: |shell| &shell.areas.workspace.code.edge,
     kept: |shell| shell.prefs.settings.layout.panel_width,

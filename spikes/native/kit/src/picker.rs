@@ -31,7 +31,7 @@
 //! - Cost: no type-ahead without the search row (Paseo has none either),
 //!   no favourites (GOAT's), no animation.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use gpui::prelude::*;
@@ -281,6 +281,8 @@ pub enum Leading {
     /// A glyph in the foreground: a permissions mode's mark (Paseo's
     /// `ModeComboboxOption` draws its `DensityIcon` with `color="foreground"`).
     Mark(Glyph),
+    /// A 14-point leading glyph, as Paseo’s branch-switcher renderOption.
+    SmallGlyph(Glyph),
     /// An official agent mark, or the generic bot when unknown.
     AgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
@@ -344,6 +346,10 @@ pub struct ComboRow {
     pub switch: Option<bool>,
     /// A line under the label, muted, that may wrap (what an option is).
     pub note: Option<SharedString>,
+    /// The whole label, when `label` is a shortened form of it (a branch
+    /// cut in its middle): shown in a code-face tooltip on hover, as the
+    /// kit's tooltip shows one (nothing on touch).
+    pub tooltip: Option<SharedString>,
 }
 
 impl ComboRow {
@@ -361,6 +367,7 @@ impl ComboRow {
             heading: None,
             switch: None,
             note: None,
+            tooltip: None,
         }
     }
 }
@@ -413,6 +420,26 @@ pub struct ComboboxState {
     header_leading: Option<Leading>,
     /// Where its trigger was last drawn, in the window.
     anchor: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// Its rows' tooltips ([`ComboRow::tooltip`]) and where each row was
+    /// drawn, kept across frames so a hovered row's tooltip finds it.
+    tips: crate::Tooltips,
+    tip_places: RowPlaces,
+}
+
+/// Each row's tooltip place, by row, the same one frame after frame (a
+/// tooltip shown for a row compares its place by identity).
+#[derive(Debug, Default)]
+struct RowPlaces(RefCell<Vec<crate::tooltip::Place>>);
+
+impl RowPlaces {
+    /// Row `index`'s place, made the first time it is asked for.
+    fn get(&self, index: usize) -> crate::tooltip::Place {
+        let mut places = self.0.borrow_mut();
+        while places.len() <= index {
+            places.push(crate::tooltip::Place::default());
+        }
+        places.get(index).cloned().unwrap_or_default()
+    }
 }
 
 impl ComboboxState {
@@ -433,6 +460,8 @@ impl ComboboxState {
             search,
             header_leading: None,
             anchor: Rc::new(Cell::new(None)),
+            tips: crate::Tooltips::new(),
+            tip_places: RowPlaces::default(),
         }
     }
 
@@ -668,7 +697,14 @@ pub fn combobox<V: 'static>(
     let element = placed(panel, compact, header.side, anchor, get, window, cx);
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
     // from a row of the features sheet.
-    Some(deferred(element).with_priority(3).into_any_element())
+    // A row's tooltip draws over the list (the tooltip's own priority).
+    let tips = state.tips.render(tokens);
+    Some(
+        div()
+            .child(deferred(element).with_priority(3))
+            .children(tips)
+            .into_any_element(),
+    )
 }
 
 /// Where the list is drawn: below the compact width a sheet from the
@@ -799,8 +835,11 @@ fn rows_list<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
-    let column = leading_column(rows);
-    let highlighted = state.highlight_in(rows);
+    let listing = Listing {
+        column: leading_column(rows),
+        highlighted: state.highlight_in(rows),
+        state,
+    };
     // The rows scroll inside the panel's height; the title and the search
     // row above them stay (`min_h_0` lets the list be shorter than its rows).
     let mut list = div()
@@ -833,14 +872,7 @@ fn rows_list<V: 'static>(
             );
         }
         list = list.child(combo_row(
-            index,
-            row,
-            column,
-            highlighted,
-            handlers,
-            compact,
-            tokens,
-            cx,
+            index, row, listing, handlers, compact, tokens, cx,
         ));
     }
     list.into_any_element()
@@ -848,12 +880,14 @@ fn rows_list<V: 'static>(
 
 /// How wide a row's leading is, for keeping its column on rows without
 /// one: a glyph, a mode's mark and a project's tile are 16, a machine's dot
-/// 14. An agent's mark has none: an agent list gives every row one (the
-/// bot when the agent is unknown), and its artwork's width is the agent's.
+/// and a small glyph 14. An agent's mark has none: an agent list gives
+/// every row one (the bot when the agent is unknown), and its artwork's
+/// width is the agent's.
 const fn leading_width(leading: &Leading) -> Option<f32> {
     match leading {
         Leading::Glyph(_) | Leading::Mark(_) | Leading::Initial(_) => Some(16.0),
         Leading::Dot(_) => Some(14.0),
+        Leading::SmallGlyph(_) => Some(SMALL_ROW_GLYPH),
         Leading::AgentMark(_) => None,
     }
 }
@@ -985,6 +1019,11 @@ fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
     words
 }
 
+/// Existing picker rows keep their 16-point leading glyph.
+const ROW_GLYPH: f32 = 16.0;
+/// Paseo’s branch-switcher supplies its own 14-point leading slot.
+const SMALL_ROW_GLYPH: f32 = 14.0;
+
 /// What leads a row.
 fn row_leading(
     leading: Leading,
@@ -995,8 +1034,15 @@ fn row_leading(
 ) -> AnyElement {
     let neutral = tokens.neutral;
     match leading {
-        Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
-        Leading::Mark(which) => glyph(which, 16.0, neutral.foreground).into_any_element(),
+        Leading::Glyph(which) => {
+            glyph(which, ROW_GLYPH, neutral.foreground_muted).into_any_element()
+        }
+        Leading::Mark(which) => glyph(which, ROW_GLYPH, neutral.foreground).into_any_element(),
+        // BranchSwitcher's explicit 14-point slot must not resize every
+        // existing 16-point picker glyph merely because this caller needs it.
+        Leading::SmallGlyph(which) => {
+            glyph(which, SMALL_ROW_GLYPH, neutral.foreground_muted).into_any_element()
+        }
         Leading::AgentMark(art) => {
             let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical
@@ -1023,21 +1069,30 @@ fn row_leading(
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "a row is drawn from itself, its list's mark column and highlight, and the list's handlers"
-)]
+/// What a row takes from its list: the mark column every row keeps, the
+/// highlighted row, and the list's state (its rows' tooltips).
+#[derive(Clone, Copy)]
+struct Listing<'a> {
+    column: Option<f32>,
+    highlighted: Option<usize>,
+    state: &'a ComboboxState,
+}
+
 fn combo_row<V: 'static>(
     index: usize,
     row: &ComboRow,
-    column: Option<f32>,
-    highlighted: Option<usize>,
+    listing: Listing<'_>,
     handlers: &ComboHandlers<V>,
     compact: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
+    let Listing {
+        column,
+        highlighted,
+        state,
+    } = listing;
     let highlighted = highlighted == Some(index);
     let wash = neutral.surface1;
     // Paseo's option (`ComboboxItem`): its label, then its description on
@@ -1119,6 +1174,14 @@ fn combo_row<V: 'static>(
                 control.into_any_element()
             }
         }));
+    if let Some(whole) = &row.tooltip {
+        element = state.tips.on_code(
+            element,
+            &state.tip_places.get(index),
+            whole.clone(),
+            compact,
+        );
+    }
     if !row.disabled {
         let chose = Rc::clone(&handlers.chose);
         element = element
@@ -1148,6 +1211,15 @@ mod tests {
 
     use super::*;
     use crate::theme::{Scheme, Tokens};
+
+    #[test]
+    fn a_row_keeps_its_tooltip_place_from_frame_to_frame() {
+        let places = RowPlaces::default();
+        let third = places.get(2);
+        assert!(Rc::ptr_eq(&third, &places.get(2)));
+        assert!(!Rc::ptr_eq(&third, &places.get(0)));
+        assert!(Rc::ptr_eq(&places.get(0), &places.get(0)));
+    }
 
     /// A description as Claude Code sends one for a subagent.
     const LONG: &str = "Use this agent for wide read-only sweeps across many files.\n\
@@ -1182,15 +1254,13 @@ mod tests {
                 .flex()
                 .flex_col();
             for (index, row) in self.rows.iter().enumerate() {
+                let listing = Listing {
+                    column: leading_column(&self.rows),
+                    highlighted: self.state.highlight_in(&self.rows),
+                    state: &self.state,
+                };
                 list = list.child(combo_row(
-                    index,
-                    row,
-                    leading_column(&self.rows),
-                    self.state.highlight_in(&self.rows),
-                    &handlers,
-                    false,
-                    &tokens,
-                    cx,
+                    index, row, listing, &handlers, false, &tokens, cx,
                 ));
             }
             list
@@ -1453,5 +1523,16 @@ mod tests {
         assert_eq!(one_line(&"a\n\nb  c\td".into()).as_ref(), "a b c d");
         let plain: SharedString = "plain words".into();
         assert_eq!(one_line(&plain), plain);
+    }
+}
+
+#[cfg(test)]
+mod glyph_size_tests {
+    use super::{ROW_GLYPH, SMALL_ROW_GLYPH};
+
+    #[test]
+    fn a_branch_switcher_does_not_resize_existing_picker_glyphs() {
+        assert_eq!(ROW_GLYPH.to_bits(), 16.0_f32.to_bits());
+        assert_eq!(SMALL_ROW_GLYPH.to_bits(), 14.0_f32.to_bits());
     }
 }

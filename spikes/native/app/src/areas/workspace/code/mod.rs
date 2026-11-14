@@ -409,6 +409,30 @@ impl Shell {
         cx.notify();
     }
 
+    /// Track G1's read of what the Changes tab shows: the machine and the
+    /// root, only while the panel is out on Changes (G1 refreshes git's
+    /// status while it is). No reading, no change.
+    pub(crate) fn code_git_context(&self) -> Option<(&str, &WorkspaceRoot)> {
+        let panel = &self.areas.workspace.code;
+        if panel.open && panel.tab == Tab::Changes {
+            panel.root()
+        } else {
+            None
+        }
+    }
+
+    /// Track G1's read of the panel's width beside the conversation, for
+    /// how much of the git toolbar's label fits.
+    pub(crate) fn code_git_width(&self) -> Option<vessel_app_kit::ui::Pixels> {
+        let panel = &self.areas.workspace.code;
+        // The width the frame draws (word 29's edge): the dragged or kept
+        // one, held inside the row last measured.
+        let room = panel.row.get().unwrap_or(f32::INFINITY);
+        panel
+            .open
+            .then(|| vessel_app_kit::ui::px(frame::PANEL.width(self, room)))
+    }
+
     /// Read the shown tab again if a git write changed it while hidden;
     /// `true` when it was asked again.
     fn code_reread_shown(&mut self) -> bool {

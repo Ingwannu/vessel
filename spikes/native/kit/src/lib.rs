@@ -37,6 +37,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod menu;
@@ -54,9 +55,11 @@ pub mod settings;
 pub mod sheet;
 pub mod skeleton;
 pub mod slider;
+pub mod split_button;
 pub mod tabs;
 pub mod theme;
 pub mod toast;
+pub mod toolbar_label;
 pub mod tooltip;
 pub mod vector;
 pub mod virtual_list;
@@ -73,7 +76,7 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
-pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu};
+pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
 };
@@ -84,7 +87,10 @@ pub use picker::{
 pub use screen_header::{compact_header, screen_header};
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
-pub use toast::{ToastLook, toast, toasts};
+pub use toast::{
+    ToastContent, ToastDismiss, ToastHandlers, ToastHover, ToastHovered, ToastLook, toast,
+    toast_with, toasts,
+};
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{

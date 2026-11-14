@@ -16,8 +16,10 @@ pub(crate) mod composer;
 pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
+pub(crate) mod git;
 pub(crate) mod pair;
 pub(crate) mod palette;
+pub(crate) mod pulls;
 pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
@@ -38,6 +40,8 @@ pub(crate) struct Areas {
     pub(crate) conversation: conversation::ConversationArea,
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
+    pub(crate) git: git::GitArea,
+    pub(crate) pulls: pulls::PullsArea,
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
     pub(crate) shortcuts: shortcuts::ShortcutListener,
@@ -58,6 +62,8 @@ impl Areas {
             conversation: conversation::ConversationArea::new(cx),
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
+            git: git::GitArea::new(window, cx),
+            pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
             shortcuts: shortcuts::ShortcutListener::new(cx),

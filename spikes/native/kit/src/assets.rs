@@ -138,6 +138,12 @@ pub enum Glyph {
     Branch,
     /// A pull request (Paseo's `GitPullRequest`).
     PullRequest,
+    /// A draft pull request (Paseo's `GitPullRequestDraft`).
+    PullRequestDraft,
+    /// A closed pull request (Paseo's `GitPullRequestClosed`).
+    PullRequestClosed,
+    /// A merged pull request (Paseo's `GitMerge`).
+    GitMerge,
     /// Fast mode, off: a lightning bolt's outline.
     Lightning,
     /// Fast mode, on: the bolt filled.
@@ -201,7 +207,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 80] = [
+const ALL: [Glyph; 83] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -253,6 +259,9 @@ const ALL: [Glyph; 80] = [
     Glyph::Plus,
     Glyph::Branch,
     Glyph::PullRequest,
+    Glyph::PullRequestDraft,
+    Glyph::PullRequestClosed,
+    Glyph::GitMerge,
     Glyph::Lightning,
     Glyph::LightningFilled,
     Glyph::Reset,
@@ -356,6 +365,9 @@ impl Glyph {
             Self::PanelLeft => "kit/panel-left.svg",
             Self::MenuCompact => "kit/menu-compact.svg",
             Self::PullRequest => "kit/pull-request.svg",
+            Self::PullRequestDraft => "kit/pull-request-draft.svg",
+            Self::PullRequestClosed => "kit/pull-request-closed.svg",
+            Self::GitMerge => "kit/git-merge.svg",
             Self::Lightning => "kit/lightning.svg",
             Self::LightningFilled => "kit/lightning-filled.svg",
             Self::Reset => "kit/reset.svg",
@@ -574,6 +586,15 @@ impl Glyph {
             }
             Self::PullRequest => line_glyph!(
                 r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/>"#
+            ),
+            Self::PullRequestDraft => line_glyph!(
+                r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M18 6V5M18 11v-1M6 9v12"/>"#
+            ),
+            Self::PullRequestClosed => line_glyph!(
+                r#"<circle cx="6" cy="6" r="3"/><path d="M6 9v12M21 3l-6 6M21 9l-6-6M18 11.5V15"/><circle cx="18" cy="18" r="3"/>"#
+            ),
+            Self::GitMerge => line_glyph!(
+                r#"<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>"#
             ),
             // The page's own drawings (`web/src/ui/kit/icon.css`, on a
             // 16 grid at a stroke of 1), at one and a half times.

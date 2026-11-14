@@ -43,6 +43,10 @@ pub struct CardDetail {
     /// Its process's state, whatever the node's phrase (the palette's
     /// detail: the page's `statusWord`).
     pub process: Phrase,
+    /// Its pull request as the node watches it (protocol 11): whether
+    /// the node can see it and the last one read. Track G1b's.
+    #[serde(default)]
+    pub pull_request: Option<Box<vessel_proto::forge::SessionPullRequest>>,
     /// When it was created (the sidebar's default order).
     pub created_at: DateTime<Utc>,
     /// When it last did something, by the node's clock where it says, else
@@ -123,6 +127,7 @@ impl Card {
                 | SessionStatus::Interrupted => None,
             },
             process: phrase_of_status(&session.status),
+            pull_request: session.pull_request.clone(),
             created_at: session.created_at,
             active_at: session
                 .board
