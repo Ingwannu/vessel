@@ -11,10 +11,10 @@ named below with its reason.
 | --- | --- | --- |
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
-| b | `/` the agent's commands | built (a running session's composer) |
+| b | `/` the agent's commands | built (a running session's composer and the new chat's) |
 | c | Attach images and files | not started |
 | d | `@` a file of the project | not started (track F's seam) |
-| e | Drafts kept per session; Up and Down recall sent messages | not started |
+| e | Drafts kept per session; Up and Down recall sent messages | built |
 
 Code: `view/src/composer/` (the rules, with tests), `app/src/areas/composer/`
 (the wiring), `view/locales/{en,ko}/composer.ftl` (the words). The pills,
@@ -146,21 +146,28 @@ What Paseo does, and so the app (`view::composer::{slash, matching}`,
 The commands are the session's own report (`commands_changed`); until it
 arrives, its agent's last session's report, kept in the store and on the
 device with the agent's options (`offers`: a session's report wins over a
-kept copy and is kept when it differs).
+kept copy and is kept when it differs). The new chat's menu lists the kept
+report of the agent it would start on its machine.
 
 Deliberate differences:
 
-- **Only a running structured session's composer** has the menu: the node
-  sends no commands for a chat not started (`harness.options` carries
-  none). The kept copy could serve the new chat; not done (the draft's
-  composer is the lead's), proposed.
+- **The new chat lists the kept commands.** Paseo's new chat asks its
+  daemon for the commands of the agent it would start; the node reports
+  commands only from a running session (`harness.options` carries none),
+  so the new chat's menu lists what that agent's last session on that
+  machine said, kept on the device, and says so when none has yet
+  (`composer-commands-unknown`). Each composer keeps its own choice,
+  scroll and glide. The menu is drawn over the draft's card through two
+  seam lines in `app/src/areas/draft/mod.rs` (the lead's).
 - **At the prompt's start only.** Paseo also completes a skill's `/name`
   in the middle of a prompt; ACP does not say which commands are skills.
 - **Motion** (the owner's word 39; Paseo's popover appears at once): the
-  menu rises 4 points into place and fades in over the slider's glide
-  (`SLIDE`, 0.15 s), fades out with its last rows, and the chosen row's
-  fill comes in when the choice moves; at once under reduced motion, with
-  the app's animations off, and on a software renderer
+  menu rises 4 points into place and fades in over the kit's `STANDARD`
+  (0.3 s, a surface coming and going), fades out with its last rows, and
+  the chosen row's fill comes in over `QUICK` (0.15 s, a control's own
+  change) when the choice moves, both on the kit's one curve
+  (`vessel_app_kit::motion`); at once when motion is held (reduced motion,
+  the app's animations off, a software renderer: `motion::held`)
   (`composer::reveal`; frames are asked only while it moves).
 
 Checked: the fake fleet's Claude Code session (`compact` with a hint,
@@ -197,7 +204,7 @@ state or the error only when none; a remembered choice no longer offered
 falls back to what is shown (`resolveEffectiveComposerModeId`; here the
 agent's own value, `with_picks`).
 
-How it behaves (`view::offers`, tests in `view/src/offers/tests.rs`):
+How it behaves (`view::offers`, tests in `view/src/offers/tests/`):
 
 - A control opens on the list there is, in the same frame, however old;
   the first time (no list) it is Paseo's loading state, and a first
@@ -264,3 +271,51 @@ gone); `app/src/shell.rs` takes the kept lists and tells the store of a
 fleet whose agents changed; the kit's `ComboHeader` has a `note` (filled
 with `None` at each other list); `link/src/prefs.rs` lends its owner-only
 file helpers.
+
+## Slice e: drafts and recall
+
+Followed: Paseo `stores/draft-store/` (a draft per composer, kept on the
+device), `composer/recall.ts` (`ComposerRecall`) and
+`stores/session-store.ts` (`selectAgentSentMessages`); the bounds are the
+page's (`data/drafts.ts`) and its bridge's (`keep/drafts_doc.rs`).
+
+What the app does (`view::composer::{drafts, recall}`,
+`link/src/drafts.rs`, `app/src/areas/composer/drafts.rs`):
+
+- What is typed in a session's composer stays that session's draft, and
+  the new chat's its own; another session opening puts the one open's
+  text away and brings the other's back. A sent prompt empties the
+  composer, and so its draft.
+- Kept on the device a second after the last edit (one write for a burst
+  of typing): `drafts.json` beside the agents' lists, owner-only (0600 in
+  a 0700 folder, checked by a test), versioned. Read once at start; the
+  new chat's draft is in its composer on the first frame. A file of
+  another version, or one that does not read, is set aside as
+  `drafts.json.unread` (the text is the person's: never overwritten) and
+  the app starts with none.
+- Bounded as the bridge bounds the page's: at most 64 drafts, none older
+  than 30 days, each at most 128 KiB, 1 MiB in all, the oldest dropped
+  first. A longer draft is kept for this launch only, and the log says so
+  (its size, never its text).
+- Up in an empty session composer shows the last message sent in the
+  session, Up again the one before, Down the next newer, then the empty
+  composer; a message equal to the one after it, or empty, is skipped.
+  Within a recalled message of several lines the arrows move between its
+  lines first. The first edit gives the arrows back to the caret. A
+  recalled message is not a draft until it is edited, and a `/name` at
+  its start does not open the command menu (it is sent as it was). An
+  open `/` menu takes Up and Down before recall does.
+
+Deliberate differences:
+
+- **Text only.** Paseo's draft also holds its attachments; attachments are
+  slice c, and join the draft when they are built.
+- **No lifecycle.** Paseo marks a draft sent or abandoned to tell its
+  create flow apart; the app has no such flow, so an emptied composer is
+  simply no draft.
+- **Bounds.** Paseo's store has none of its own; the app writes its own
+  file and takes the page's bounds so it cannot grow without end.
+- **The new chat has no recall**: it has no sent messages.
+
+Checked: the view's rules and the file's (round trip per composer,
+owner-only modes, a file set aside, a missing file) by tests.

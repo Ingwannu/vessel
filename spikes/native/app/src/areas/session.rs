@@ -108,6 +108,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Track P: the session composer swaps the draft it holds.
+        self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
         let takes_prompts = open.structured;
         self.areas.session.pending = None;

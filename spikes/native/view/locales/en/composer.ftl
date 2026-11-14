@@ -28,3 +28,8 @@ composer-offers-stale = This list couldn't be refreshed, so it may be out of dat
 # The `/` menu's one line when no command answers what is typed, or the
 # agent has offered none (yet). Paseo's agentAutocomplete.noCommands.
 composer-commands-empty = No commands found
+
+# The new chat's `/` menu's one line when no session of the chosen agent on
+# that machine has said its commands yet (the node reports commands only
+# from a running session; the menu shows the last ones kept). One sentence.
+composer-commands-unknown = This agent's commands show here once one of its sessions has run.

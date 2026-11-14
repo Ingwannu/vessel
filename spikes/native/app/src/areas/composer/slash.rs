@@ -1,30 +1,52 @@
-//! The session composer's `/` menu: the agent's commands over the composer
-//! while the prompt starts with a command's name, as Paseo's composer shows
-//! them (`hooks/use-agent-autocomplete.ts`, `components/ui/autocomplete.tsx`,
+//! The `/` menu over a composer: the agent's commands while the prompt
+//! starts with a command's name, as Paseo's composer shows them
+//! (`hooks/use-agent-autocomplete.ts`, `components/ui/autocomplete.tsx`,
 //! `components/ui/autocomplete-popover.tsx`). The rules are
 //! `vessel_app_view::composer::slash`'s; the list is the kit's.
 //!
-//! Only a running structured session's composer has it: the commands are
-//! what this session's agent last said (`commands_changed`), and until it
-//! has, what its last session said, kept on the device (the store,
-//! `offers.rs`), so the menu opens on a list at once.
+//! Two composers have one: a running structured session's, and the new
+//! chat's. Each keeps its own choice, scroll and glide ([`SlashMenu`]), so
+//! the two never move each other.
 //!
-//! It opens and closes over `slider::motion`'s glide (the owner's word 39;
-//! Paseo's popover appears at once): `composer::reveal` holds how open it
+//! [Decision Log]
+//! - Purpose: Paseo's new chat completes `/` too (its draft asks the daemon
+//!   for the commands of the agent it would start); the lead approved the
+//!   new chat's menu over the draft's card (two seam lines).
+//! - Constraint: the node reports commands only from a running session
+//!   (`commands_changed`); `harness.options`, all a new chat can ask,
+//!   carries none.
+//! - Alternatives: start the agent to ask it (a process per keystroke's
+//!   menu, and the node has no such call); no menu in the new chat (Paseo
+//!   has one).
+//! - Choice: the session's menu lists what its agent said, and until it
+//!   has, what its last session said, kept on the device (the store,
+//!   `offers.rs`); the new chat's lists the kept ones of the agent it
+//!   would start on that machine, and says when none of its sessions has
+//!   said them yet (`composer-commands-unknown`).
+//! - Cost: the new chat's list is as old as that agent's last session;
+//!   commands added since show once a session of it runs.
+//!
+//! It opens and closes over the kit's `motion::STANDARD` (a surface coming
+//! and going; the owner's word 39; Paseo's popover appears at once), its
+//! chosen row's fill over `QUICK`: `composer::reveal` holds how open it
 //! is, the last rows stay drawn while it closes, and frames are asked only
-//! while it moves.
+//! while it moves; held motion (`motion::held`) is the end at once.
 
-use std::time::Duration;
+use std::cell::RefCell;
 
-use vessel_app_kit::Tokens;
-use vessel_app_kit::autocomplete::{AutocompleteRow, Listing, Motion, RowKind, autocomplete};
+use vessel_app_kit::autocomplete::{
+    AutocompleteRow, AutocompleteState, Listing, Motion, RowKind, autocomplete,
+};
 use vessel_app_kit::field::composer_hooks::{ComposerKey, KeyAnswer, hooked};
 use vessel_app_kit::ui::{
     AnyElement, App, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _,
     Window, div, px,
 };
-use vessel_app_view::composer::slash::{Menu, Step, apply};
-use vessel_app_view::slider::motion::{DRAG_GLIDE, SLIDE};
+use vessel_app_kit::{TextField, Tokens, motion};
+use vessel_app_view::composer::reveal::Reveal;
+use vessel_app_view::composer::slash::{Chosen, Menu, SlashRange, Step, apply};
+use vessel_app_view::offers::OfferKey;
+use vessel_proto::AgentCommand;
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -37,54 +59,122 @@ const LIFT: f32 = 4.0;
 /// (the lints keep float arithmetic out of the code; a test holds the sum).
 const OFFSET_LOW: f32 = 8.0;
 
-/// The app's motion for the list's rows (the chosen row's fill).
-fn motion() -> Motion {
-    Motion {
-        ease: |progress| SLIDE.at(progress),
-        length: Duration::from_secs_f32(DRAG_GLIDE),
+/// The list's rows' motion: the chosen row's fill, a control's own change.
+const ROWS: Motion = Motion {
+    ease: motion::ease,
+    length: motion::QUICK,
+};
+
+/// Which composer a `/` menu is over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Over {
+    /// A running session's.
+    Session,
+    /// The new chat's.
+    Draft,
+}
+
+impl Over {
+    /// The list's element id (its animations are keyed by it).
+    const fn id(self) -> &'static str {
+        match self {
+            Self::Session => "composer-commands",
+            Self::Draft => "draft-commands",
+        }
     }
 }
 
+/// One composer's `/` menu: the chosen row, the list's scroll, how open it
+/// is and the rows it showed last (drawn while it closes). The last two
+/// change while the window draws, so they are kept behind cells.
+#[derive(Debug, Default)]
+pub(crate) struct SlashMenu {
+    chosen: Chosen,
+    list: AutocompleteState,
+    reveal: RefCell<Reveal>,
+    last: RefCell<Option<(Listing, Option<usize>)>>,
+}
+
+/// What a menu lists: the agent's commands, or `None` while none of its
+/// sessions has said them.
+type Listed<'a> = Option<&'a [AgentCommand]>;
+
 impl Shell {
-    /// The `/` menu of the session's composer, when its caret is in a
-    /// command's name and the session is a running structured one.
-    fn slash_menu(&self, cx: &App) -> Option<Menu<'_>> {
-        let open = self.areas.session.open.as_ref()?;
-        if self.route != Route::Session || !open.structured || !open.live {
-            return None;
+    fn slash(&self, over: Over) -> &SlashMenu {
+        match over {
+            Over::Session => &self.areas.composer.session_slash,
+            Over::Draft => &self.areas.composer.draft_slash,
         }
-        let field = &self.areas.session.composer;
-        let commands = self.session_commands();
-        Menu::of(
-            &field.text(cx),
-            field.caret(cx),
-            commands,
-            &self.areas.composer.slash,
-        )
     }
 
-    /// A key the session's composer offered: the menu takes the arrows,
+    fn slash_mut(&mut self, over: Over) -> &mut SlashMenu {
+        match over {
+            Over::Session => &mut self.areas.composer.session_slash,
+            Over::Draft => &mut self.areas.composer.draft_slash,
+        }
+    }
+
+    fn slash_field(&self, over: Over) -> &TextField {
+        match over {
+            Over::Session => &self.areas.session.composer,
+            Over::Draft => &self.areas.draft.composer,
+        }
+    }
+
+    /// The commands the menu over `over` would list; `None` where that
+    /// composer has no menu now (another screen; a session not running
+    /// or not structured; a new chat with no agent).
+    fn slash_listed(&self, over: Over) -> Option<Listed<'_>> {
+        match over {
+            Over::Session => {
+                let open = self.areas.session.open.as_ref()?;
+                let here = self.route == Route::Session && open.structured && open.live;
+                here.then(|| self.session_commands())
+            }
+            Over::Draft => {
+                let draft = &self.areas.draft;
+                let (machine, agent) = draft.machine.as_ref().zip(draft.agent.as_ref())?;
+                let key = OfferKey::new(machine.as_str(), agent.clone());
+                (self.route == Route::Draft).then(|| self.areas.composer.offers.commands(&key))
+            }
+        }
+    }
+
+    /// The `/` menu over `over`, when its caret is in a command's name.
+    fn slash_menu(&self, over: Over, cx: &App) -> Option<Menu<'_>> {
+        let listed = self.slash_listed(over)?;
+        let field = self.slash_field(over);
+        let text = field.text(cx);
+        // A recalled message is sent as it was, a leading `/name` too
+        // (Paseo's recall: no menu over it).
+        if over == Over::Session && self.areas.composer.recall.showing(&text) {
+            return None;
+        }
+        Menu::of(&text, field.caret(cx), listed, &self.slash(over).chosen)
+    }
+
+    /// A key the composer under `over` offered: the menu takes the arrows,
     /// Enter, Tab and Escape while it lists commands (Paseo's
     /// `useAutocomplete`: with no rows, every key is the text's, so Enter
     /// sends what is typed).
-    pub(crate) fn composer_key(
+    fn slash_key(
         &mut self,
+        over: Over,
         key: ComposerKey,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
-        let Some((query, rows, range, name)) = self.slash_menu(cx).map(|menu| {
+        let taken = self.slash_menu(over, cx).and_then(|menu| {
             let name = menu
-                .taken(&self.areas.composer.slash)
+                .taken(&self.slash(over).chosen)
                 .map(|command| command.name.as_str().to_owned());
-            (menu.range.query.clone(), menu.rows.len(), menu.range, name)
-        }) else {
-            return KeyAnswer::Pass;
+            let rows = menu.rows.len();
+            (rows > 0).then(|| (menu.range.query.clone(), rows, menu.range, name))
+        });
+        let Some((query, rows, range, name)) = taken else {
+            return self.key_without_menu(over, key, window, cx);
         };
-        if rows == 0 {
-            return KeyAnswer::Pass;
-        }
-        let chosen = &mut self.areas.composer.slash;
+        let chosen = &mut self.slash_mut(over).chosen;
         let _now = chosen.follow(&query, rows);
         match key {
             ComposerKey::Up => {
@@ -95,29 +185,46 @@ impl Shell {
             }
             ComposerKey::Enter | ComposerKey::Tab => {
                 if let Some(name) = name {
-                    self.write_command(&range, &name, window, cx);
+                    self.write_command(over, &range, &name, window, cx);
                 }
             }
             // Paseo empties the prompt when Escape closes a menu opened at
             // its start.
             ComposerKey::Escape => {
-                self.areas.composer.slash.reset();
-                self.areas.session.composer.replace_all("", window, cx);
+                self.slash_mut(over).chosen.reset();
+                self.slash_field(over).replace_all("", window, cx);
             }
         }
         cx.notify();
         KeyAnswer::Taken
     }
 
+    /// A key with no menu to take it: in a session, Up and Down walk the
+    /// messages sent (`drafts.rs`); the new chat has none, so its keys are
+    /// the text's.
+    fn key_without_menu(
+        &mut self,
+        over: Over,
+        key: ComposerKey,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> KeyAnswer {
+        match over {
+            Over::Session => self.recall_key(key, window, cx),
+            Over::Draft => KeyAnswer::Pass,
+        }
+    }
+
     /// Write command `name` over the name being typed, the caret after it.
     fn write_command(
         &mut self,
-        range: &vessel_app_view::composer::slash::SlashRange,
+        over: Over,
+        range: &SlashRange,
         name: &str,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let field = &self.areas.session.composer;
+        let field = self.slash_field(over);
         let text = field.text(cx);
         let applied = apply(&text, range, name);
         let written = applied
@@ -126,20 +233,46 @@ impl Shell {
             .unwrap_or_default()
             .to_owned();
         field.replace_range(range.start..range.end, &written, window, cx);
-        self.areas.composer.slash.reset();
+        self.slash_mut(over).chosen.reset();
     }
 
-    /// A row of the `/` menu clicked.
-    fn command_clicked(&mut self, index: usize, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some((range, name)) = self.slash_menu(cx).and_then(|menu| {
+    /// A row of the menu over `over` clicked.
+    fn command_clicked(
+        &mut self,
+        over: Over,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some((range, name)) = self.slash_menu(over, cx).and_then(|menu| {
             let name = menu.rows.get(index)?.name.as_str().to_owned();
             Some((menu.range, name))
         }) else {
             return;
         };
-        self.write_command(&range, &name, window, cx);
-        self.areas.session.composer.focus(window, cx);
+        self.write_command(over, &range, &name, window, cx);
+        self.slash_field(over).focus(window, cx);
         cx.notify();
+    }
+
+    // The kit's list takes a plain function per row click; one per
+    // composer, each naming its own.
+    fn session_command_clicked(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.command_clicked(Over::Session, index, window, cx);
+    }
+
+    fn draft_command_clicked(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.command_clicked(Over::Draft, index, window, cx);
     }
 }
 
@@ -152,38 +285,85 @@ pub(crate) fn text(
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let field = &shell.areas.session.composer;
+    hooked_text(shell, Over::Session, tokens, touch, cx)
+}
+
+/// The new chat's composer text, its keys offered to its `/` menu first
+/// (the draft's card draws it in place of the bare field).
+pub(crate) fn draft_text(
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    hooked_text(shell, Over::Draft, tokens, touch, cx)
+}
+
+fn hooked_text(
+    shell: &Shell,
+    over: Over,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let field = shell.slash_field(over);
     let element = field.element(tokens, touch, cx);
     let weak = cx.entity().downgrade();
     hooked(
         field,
         element,
         move |key, window: &mut Window, cx: &mut App| {
-            weak.update(cx, |shell, cx| shell.composer_key(key, window, cx))
+            weak.update(cx, |shell, cx| shell.slash_key(over, key, window, cx))
                 .unwrap_or(KeyAnswer::Pass)
         },
         |_pasted, _window, _cx| KeyAnswer::Pass,
     )
 }
 
-/// The `/` menu over the composer card, as wide as the card, 12 above it
-/// (Paseo's popover), when the caret is in a command's name; while it
-/// closes, its last rows, fading.
+/// The `/` menu over the session's composer card.
 pub(crate) fn menu(
     shell: &Shell,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let area = &shell.areas.composer;
-    let now = area.now();
+    drawn_menu(shell, Over::Session, tokens, window, cx)
+}
+
+/// The `/` menu over the new chat's composer card.
+pub(crate) fn draft_menu(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    drawn_menu(shell, Over::Draft, tokens, window, cx)
+}
+
+/// The menu over a composer card, as wide as the card, 12 above it
+/// (Paseo's popover), when the caret is in a command's name; while it
+/// closes, its last rows, fading.
+fn drawn_menu(
+    shell: &Shell,
+    over: Over,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let now = shell.areas.composer.now();
+    let state = shell.slash(over);
     let current = shell
-        .slash_menu(cx)
-        .map(|menu| (listing_of(shell, &menu), menu.chosen));
-    let mut reveal = area.reveal.borrow_mut();
-    reveal.follow(current.is_some(), now, cx.reduce_motion());
+        .slash_menu(over, cx)
+        .map(|menu| (listing_of(shell, over, &menu), menu.chosen));
+    let mut reveal = state.reveal.borrow_mut();
+    let length = if motion::held(cx) {
+        0.0
+    } else {
+        motion::STANDARD.as_secs_f32()
+    };
+    reveal.follow(current.is_some(), now, length);
     let Some(shown) = reveal.shown(now) else {
-        drop(area.last_menu.borrow_mut().take());
+        drop(state.last.borrow_mut().take());
         return None;
     };
     if reveal.moving(now) {
@@ -192,18 +372,22 @@ pub(crate) fn menu(
     drop(reveal);
     let (listing, chosen) = match current {
         Some(current) => {
-            *area.last_menu.borrow_mut() = Some(current.clone());
+            *state.last.borrow_mut() = Some(current.clone());
             current
         }
-        None => area.last_menu.borrow().clone()?,
+        None => state.last.borrow().clone()?,
+    };
+    let on_choose: fn(&mut Shell, usize, &mut Window, &mut Context<'_, Shell>) = match over {
+        Over::Session => Shell::session_command_clicked,
+        Over::Draft => Shell::draft_command_clicked,
     };
     let list = autocomplete(
-        "composer-commands",
+        over.id(),
         &listing,
         chosen,
-        &area.list,
-        Shell::command_clicked,
-        motion(),
+        &state.list,
+        on_choose,
+        ROWS,
         tokens,
         cx,
     );
@@ -220,11 +404,20 @@ pub(crate) fn menu(
     )
 }
 
-/// The menu's rows as the kit's list draws them, or the words for none.
-fn listing_of(shell: &Shell, menu: &Menu<'_>) -> Listing {
+/// The menu's rows as the kit's list draws them, or the words for none:
+/// in the new chat, that its agent's commands are not known yet when no
+/// session of it has said them.
+fn listing_of(shell: &Shell, over: Over, menu: &Menu<'_>) -> Listing {
     if menu.rows.is_empty() {
+        let words = shell.words.composer();
+        let unknown = over == Over::Draft && matches!(shell.slash_listed(over), Some(None));
         Listing::Empty(SharedString::from(
-            shell.words.composer().commands_empty().to_owned(),
+            if unknown {
+                words.commands_unknown()
+            } else {
+                words.commands_empty()
+            }
+            .to_owned(),
         ))
     } else {
         Listing::Rows(
@@ -252,5 +445,10 @@ mod tests {
     fn the_list_comes_to_rest_at_paseos_offset_above_the_card() {
         let open = LIFT.mul_add(1.0, OFFSET_LOW);
         assert!((open - spacing::S3).abs() < 1e-6, "{open}");
+    }
+
+    #[test]
+    fn each_composer_s_list_has_its_own_id() {
+        assert_ne!(Over::Session.id(), Over::Draft.id());
     }
 }

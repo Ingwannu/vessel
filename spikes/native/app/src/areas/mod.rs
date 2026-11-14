@@ -50,7 +50,7 @@ pub(crate) struct Areas {
 
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
-        Self {
+        let mut areas = Self {
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
@@ -64,6 +64,9 @@ impl Areas {
             sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::default(),
-        }
+        };
+        // Track P: the composers' drafts read back, and kept as typed.
+        composer::keep_drafts(&mut areas, window, cx);
+        areas
     }
 }
