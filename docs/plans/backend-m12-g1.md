@@ -768,6 +768,40 @@ one, and is read again five seconds later.
   own (Paseo tags its own entries), so which entry belongs to a branch
   could only be guessed from its message.
 
+### Motion and idle cost (the owner's word 39)
+
+- Transitions: the issue under the git row fades in over
+  `motion::STANDARD` on `motion::CURVE`. The menu, the switcher, the
+  dialogs and the tooltips are the kit's, and take track S3's kit
+  transitions.
+- Idle CPU, release build, 1280x800, software renderer under Xvfb, the
+  pointer resting off every control, 60 s: the session with the panel
+  closed 0.58 % of a core; with the git panel open 9.68 %, as 0.45 s of a
+  core every five seconds and nothing between. The five-second status
+  refresh redrew the whole window twice per refresh (when the read
+  started and when it answered) even when nothing changed. Now a
+  background read asks for no frame, and an answer equal to what is shown
+  asks for none either: `Shell::git_status_read` says whether the drawing
+  changed, `Shell::workspace_answer` passes that on, and the shell's
+  `Event::Workspace` arm skips its frame (one arm in the shell, the
+  router's return value in track F's file). Measured again the same way:
+  0.57 % with the panel open, the closed panel's cost. A file made
+  outside the app still reaches the git row within one refresh (its
+  primary action turns to Commit). Track F's Changes list re-reads only
+  after the app's own writes (`Shell::code_git_changed`), as before; the
+  git area now knows when a refresh found a change, so one call there
+  would make the list follow outside edits too (offered to F).
+
+### Capture matrix (fake fleet, `scripts/git-fixtures.sh`)
+
+1280 in both themes and both languages at scale 1, dark at 1.25, 1.5
+and 2; the phone at 390 (forms as sheets); the small windows 1024x700 and
+800x600 reached through the Board. Found and fixed through it: the
+default-branch warning missing when `origin/HEAD` names the default
+(the node marks `origin/main`), a branch name cut twice on its first
+frame, and the commit form's 176-point file frame pushing the message
+below an 800x600 window.
+
 ## G1b, slice 2: a session's pull request (2026-11-14)
 
 ### What the node gives, and what it does not
@@ -818,16 +852,20 @@ one, and is read again five seconds later.
   unreachable, at its watch limit, session ended) each have their own
   sentence in Paseo's voice, where Paseo has one "isn't connected".
 
-### Resume (2026-11-14 04:40 UTC, stopped for the account window)
+### Resume (2026-11-14 15:00 UTC)
 
-- Done: slice 1 fixes for the coordinator's findings (one-line branch names
-  in four places, `main` as the fixtures' default with a commit-on-main
-  state, saved-entry subjects split); lead merged at `3a1075a5`; gate
-  fmt/clippy/test green; captures dark/en/1280 in `/tmp/work/m12-g1b/shots/slice1b`.
-- Half-done: the capture matrix (light, Korean, 390 as a sheet, scales
-  1.25/1.5/2 with `GPUI_X11_SCALE_FACTOR`; the default-branch warning on
-  "git commit on main"; the fill-inside-rounded-shape and pointer-cursor
-  checks over the dialogs and menus). Helpers: `/tmp/work/m12-g1b/scripts/`
-  (`app.sh` own display with its own authority file, `drive.py`).
-- Next: finish the matrix, report slice 1 to the coordinator, then slice 2
-  (open a pull request, its facts on the board card and in the session).
+- Done: slice 1 with its matrix fixes and the idle fix; slice 2's rules,
+  link calls and screens; gates green (777 tests).
+- Waiting on others: track N3's fake forge for the fleet (the facts, the
+  link, the card line and the form's refusals are drawn against Paseo's
+  pane but captured only up to "Create PR isn't available" until a node
+  can read a forge); track S3's kit transitions for the menu, the
+  switcher, the dialogs and the tooltips; G2's kit menu controls.
+- Next: the merge slice (`pr.merge`, pinned number, head and method,
+  Paseo's confirmation) and the feedback switch (`pr.feedback`).
+- Capture helpers (outside the repository): `app.sh` (own display, own
+  authority file), `drive.py`, `matrix*.sh`, `idle-cpu.sh`. The menu's
+  rows below Fetch move down by one group when Create PR is offered:
+  scripted clicks below Fetch must use the row positions of the session
+  driven (a click meant for "Stashes…" stashed the fixture once; it was
+  restored from that entry).
