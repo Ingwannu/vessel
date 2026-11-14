@@ -233,7 +233,13 @@ continues after the last record it printed. Rendering stays the view
 that already joins chunks. A terminal session has no agent events of
 those four kinds, so a filter prints nothing of its bytes.
 
-These flags are not a wire call. `read_events` is unchanged.
+These flags are not a wire call. `read_events` is unchanged. Count parsing
+consumes the whole integer rather than Paseo's numeric-prefix `parseInt`;
+a trailing typo is refused. RFC 3339 replaces locale-sensitive date parsing.
+The existing session stream ends at a run's final status, so follow ends
+there or at Ctrl-C; a later resume needs a new invocation. Paseo's timeline
+subscription waits for an explicit stop. Preserving the existing stream EOF
+avoids a new wire mode solely for this presentation command.
 
 ### MCP
 

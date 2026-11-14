@@ -125,12 +125,22 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   `permissions` is a type containing `permission`; any other string is
   a substring of the type. Vessel accepts only the four names and
   refuses the rest, so a typo is not an empty log.
+- Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
+  numeric prefix such as `2x` is accepted. Vessel parses the whole
+  non-negative count and refuses a suffix; this prevents a mistyped count
+  silently selecting another window. Paseo uses `Date.parse`; Vessel uses
+  RFC 3339 with an explicit offset so machine locale cannot alter selection.
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
   the whole selection. Follow joins assistant and reasoning fragments
   (`createFollowTranscriptWriter`). Vessel already joins reply chunks
   in the CLI view; follow uses that, and does not reprint Paseo's
   banners for a replaced timeline. The log has no epoch.
+- Paseo waits for an explicit stop even after timeline activity ends
+  (`logs.ts:401-407`). Vessel follows through the current session run,
+  ending at the stream's final status or Ctrl-C. This preserves the existing
+  session stream's explicit EOF; a later `session.resume` is a new follow
+  invocation from the saved sequence. No new wire mode changes that contract.
 
 ## Existing assets
 
@@ -266,5 +276,12 @@ No row of the crate table changes.
   protected drafts. Unwired services may be staged under `cfg(test)` until
   the shared accessor and call plumbing are ready; they are not a product
   build claim.
-- Next: gate and report the independent decoder refactor, then the remaining
-  labels slices. Windows, macOS, native UI and real harnesses are unverified.
+- In progress, independent of wire assignment: log selectors are a source
+  draft using the existing read/follow cursor. Typed count, kind and timestamp
+  inputs precede connection. Tail follows time/kind selection; filtered gaps
+  separate streamed messages and cannot fabricate a retention warning. The
+  fake-node selection and history-to-live tests have not run yet.
+- Next: report the independent decoder gate, then gate the log draft while
+  label call wiring awaits the shared accessor. No new wire call or dependency
+  is added by log options. Windows, macOS, native UI and real harnesses remain
+  unverified.
