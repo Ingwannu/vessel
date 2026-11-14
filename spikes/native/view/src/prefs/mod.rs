@@ -353,7 +353,7 @@ impl TryFrom<BTreeMap<OptionId, ChoiceValue>> for Choices {
         let fits = |(id, value): (&OptionId, &ChoiceValue)| {
             id.as_str().len() <= MAX_CHOICE_TEXT
                 && match value {
-                    ChoiceValue::Select { value } => value.as_str().len() <= MAX_CHOICE_TEXT,
+                    ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_TEXT,
                     ChoiceValue::Toggle { .. } => true,
                 }
         };

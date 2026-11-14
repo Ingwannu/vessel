@@ -59,6 +59,7 @@ impl<'a> Listed<'a> {
                 approved,
                 scripts,
                 last_approved,
+                ..
             } => Some(Self {
                 setup,
                 teardown,

@@ -913,7 +913,7 @@ fn option_rows(shell: &Shell, which: Picker, query: &str, built: &mut Built) {
                 for (row, meaning) in rows.zip(built.meanings.iter().skip(first)) {
                     row.detail = None;
                     if let Meaning::Choose(choice, _) = meaning
-                        && let vessel_proto::ChoiceValue::Select { value } = &choice.value
+                        && let vessel_proto::ChoiceValue::Select { value, .. } = &choice.value
                     {
                         row.leading = crate::areas::composer::modes::row_glyph(kind, value)
                             .map(Leading::Mark);

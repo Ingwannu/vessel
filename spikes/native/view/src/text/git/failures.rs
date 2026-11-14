@@ -190,17 +190,17 @@ impl Lang {
         let mut text = failure(lines);
         text.detail = match problem {
             TextProblem::Empty => None,
-            TextProblem::TooLong { max } => Some(match self {
+            TextProblem::TooLong { max, .. } => Some(match self {
                 Self::En => format!("Maximum length: {}.", self.git_limit(*max)),
                 Self::Ko => format!("최대 길이: {}.", self.git_limit(*max)),
             }),
-            TextProblem::Character { character } => Some(match self {
+            TextProblem::Character { character, .. } => Some(match self {
                 Self::En => format!("Unsupported character: {}.", self.git_character(*character)),
                 Self::Ko => format!("쓸 수 없는 문자: {}.", self.git_character(*character)),
             }),
             // The parser's exact rule is diagnostic data, like a hook's
             // output. It is never used as the localized explanation.
-            TextProblem::Shape { rule } => Some((*rule).to_owned()),
+            TextProblem::Shape { rule, .. } => Some((*rule).to_owned()),
         };
         text
     }

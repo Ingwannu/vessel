@@ -15,6 +15,7 @@ impl Lang {
             name,
             ahead,
             behind,
+            ..
         } = distance;
         let (ahead_text, behind_text) = (
             crate::grouped(u64::from(*ahead)),

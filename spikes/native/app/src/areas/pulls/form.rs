@@ -283,7 +283,7 @@ fn issue_alert(shell: &Shell, issue: &FormIssue, tokens: &Tokens) -> AnyElement 
     let lang = shell.t.lang;
     let (title, detail): (String, Option<AnyElement>) = match issue {
         FormIssue::Form(problem) => (problem.words(words).to_owned(), None),
-        FormIssue::Refused(OpenRefusal::Push { refusal }) => {
+        FormIssue::Refused(OpenRefusal::Push { refusal, .. }) => {
             let text = lang.git_issue(&Issue::Refused(refusal.clone()));
             (
                 refusal_words(
@@ -298,7 +298,7 @@ fn issue_alert(shell: &Shell, issue: &FormIssue, tokens: &Tokens) -> AnyElement 
         }
         FormIssue::Refused(refusal) => {
             let message = match refusal {
-                OpenRefusal::Rejected { message } => Some(mono(message, tokens)),
+                OpenRefusal::Rejected { message, .. } => Some(mono(message, tokens)),
                 OpenRefusal::NotPushed
                 | OpenRefusal::NoCommits
                 | OpenRefusal::Push { .. }

@@ -66,7 +66,7 @@ impl AgentsWords {
             (Lang::Ko, UnknownReason::TimedOut { .. }) => {
                 format!("확인 시간이 초과되었습니다. “{check}” 버튼을 선택해 다시 시도하세요.")
             }
-            (_, UnknownReason::Failed { step }) => self.failed_check(*step),
+            (_, UnknownReason::Failed { step, .. }) => self.failed_check(*step),
         }
     }
 

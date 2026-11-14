@@ -204,7 +204,7 @@ const fn phrase_of_status(status: &SessionStatus) -> Phrase {
     match status {
         SessionStatus::Starting => Phrase::Starting,
         SessionStatus::Running => Phrase::Running,
-        SessionStatus::Exited { code } => Phrase::Exited(*code),
+        SessionStatus::Exited { code, .. } => Phrase::Exited(*code),
         SessionStatus::Failed { .. } => Phrase::Failed,
         SessionStatus::Interrupted => Phrase::Interrupted,
     }

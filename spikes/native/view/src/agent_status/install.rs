@@ -105,7 +105,7 @@ pub fn after_read(expected: Cursor, page: &InstallOutput) -> Result<ReadNext, Ou
     let completion = match page.state {
         InstallState::Running => return Ok(ReadNext::Wait(next)),
         InstallState::Succeeded => Completion::Succeeded,
-        InstallState::Failed { code } => Completion::Failed(code),
+        InstallState::Failed { code, .. } => Completion::Failed(code),
         InstallState::TimedOut => Completion::TimedOut,
     };
     if page.bytes.bytes().is_empty() {
