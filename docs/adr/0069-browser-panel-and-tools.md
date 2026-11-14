@@ -136,9 +136,12 @@ webview, so input methods and dragging a file in from the desktop are
 weaker than Paseo's until that view is designed. The node becomes able
 to run a browser that holds cookies and opens connections from the
 node's machine. A scheme rule does not limit where those connections
-go. The setting defaults off, the browser's environment must not
-receive the node's token, device credentials or harness secrets, and
-every connection is held to the destination table below.
+go. The setting defaults off. The browser's environment must not
+receive the node's token, device credentials or harness secrets.
+TCP the HTTP proxy carries is held to the destination table below.
+WebRTC UDP and QUIC are not that TCP; the engine closes them with
+the switches in that section. Text an agent types is kept in the
+session log, as the credential section says.
 
 **Effects.** A new crate `vessel-browser`. Slice 2 has no process and
 no product double: its product engine is the absence, and every
@@ -179,13 +182,56 @@ address is refused the same way `numeric_host` refuses one. Chromium's
 own private-network preflight is not the control: it was not verified
 in the headless shell, and a literal address would not depend on it.
 
+An HTTP proxy does not carry every socket a page can open. Two of
+those paths were read:
+
+- **WebRTC UDP.** With no policy, ICE sends UDP from the browser
+  process, including to loopback, and the proxy never sees it. The
+  engine passes
+  `--force-webrtc-ip-handling-policy=disable_non_proxied_udp`.
+  That switch overrides the preference
+  (`content/public/common/content_switches.cc`, read: "Override
+  WebRTC IP handling policy to mimic the behavior when WebRTC IP
+  handling policy is specified in Preferences"). The value is the
+  policy `disable_non_proxied_udp`: "WebRTC uses either UDP SOCKS
+  proxying or will fallback to TCP proxying" (`WebRtcIPHandling.yaml`,
+  read). Chromium then sets
+  `enable_nonproxied_udp` false
+  (`peer_connection_dependency_factory.cc`, the
+  `kDisableNonProxiedUdp` arm, read). The allocator's comment says
+  false "disables all UDP traffic until UDP-supporting proxy RETURN
+  is available" (`port_allocator.h`, read), and the flags are
+  `DISABLE_UDP`, `DISABLE_STUN` and `DISABLE_UDP_RELAY`
+  (`port_allocator.cc`, read). This proxy is HTTP and speaks no UDP,
+  so that return does not happen and UDP stays off. The same policy
+  file's item caption says TCP uses "the public-facing interface".
+  The control this ADR follows is the flag, not that caption.
+  WebRTC TCP is built with the proxy-resolving socket factory
+  (`services/network/p2p/socket_tcp.cc`, read), so it is the table,
+  not this bypass. Whether that factory exempts loopback by default
+  was not read; the launch still has no bypass.
+- **QUIC (HTTP/3).** It is UDP to the origin. Whether a headless
+  shell already skips QUIC when `--proxy-server` is an HTTP proxy
+  was not read, so the engine does not rely on it. It passes
+  `--disable-quic` (`network_switch_list.h`, `kDisableQuic`, read).
+  WebTransport over HTTP/3 was not read. It needs QUIC, so the same
+  switch is what this ADR relies on for that UDP. The engine slice's
+  loopback UDP test checks WebRTC. It is not a QUIC server, and it
+  does not by itself prove the QUIC switch was honoured.
+
+The two switches are Chromium flags. On Windows they are the same
+flags. There is no signal, no systemd unit and no launchd job. A
+binary that rejects a flag fails the launch before the proxy is
+treated as ready. The engine slice asserts that. The error is the
+one `vessel-proc` already returns; its name was not re-read here.
+
 | Class | Option 1 | How |
 | --- | --- | --- |
-| Loopback (`127.0.0.0/8`, `::1`) | Refused | The proxy, via `is_public`. |
-| The node's own ports | Refused while they sit on loopback, which is the default (`127.0.0.1:7077`, the model proxy, `vessel ui`) | The same refusal. A node bound to a public address is a public destination; the listeners below still have to authenticate. |
-| Private, CGNAT, unique-local | Refused | `is_public`. |
-| Link-local and metadata | Refused | `is_public` (169.254.0.0/16, `fe80::/10`). |
-| Public | Allowed | `http` and `https` only. |
+| Loopback (`127.0.0.0/8`, `::1`) | Refused | Proxied TCP: the proxy, via `is_public`. WebRTC UDP and QUIC: the switches above, not the proxy. |
+| The node's own ports | Refused while they sit on loopback, which is the default (`127.0.0.1:7077`, the model proxy, `vessel ui`) | The same. A node bound to a public address is a public destination; the listeners below still have to authenticate. |
+| Private, CGNAT, unique-local | Refused | Proxied TCP: `is_public`. WebRTC UDP and QUIC: the switches. |
+| Link-local and metadata | Refused | Proxied TCP: `is_public` (169.254.0.0/16, `fe80::/10`). WebRTC UDP and QUIC: the switches. |
+| Public | `http` and `https` TCP only | The proxy. WebRTC UDP and QUIC stay off, including toward a public host. |
 
 An agent's shell is a different door. It exists only where both
 profiles set `agent_terminals`, which is off by default (ADR 0031),
@@ -214,9 +260,10 @@ What those listeners do with a page's `Origin`, read in this tree:
   must be that server's own origin. A websocket with no `Origin` is
   refused. No CORS header is sent.
 
-The proxy is what keeps the page from connecting. The listeners are
-the second line if a launch ever skipped the proxy, which the engine
-slice must not allow.
+The proxy keeps proxied TCP inside the table. The switches keep
+WebRTC UDP and QUIC from leaving beside it. The listeners are the
+second line if a launch ever skipped the proxy, which the engine
+slice must not allow. They do not see a UDP datagram.
 
 ## Where a credential lives
 
@@ -226,15 +273,48 @@ A password is typed in the app, or sent by an agent as `browser_type`,
 a relay, the frame is inside the Noise channel (ADR 0009): the relay
 forwards ciphertext and does not see the field. On the node's local
 socket the field stays on that machine. The node then hands the text
-to the page (CDP insert or a fill) and drops its copy.
+to the page (CDP insert or a fill) and does not keep a buffer of
+its own after that hand-off. The session event is another copy, and
+it stays.
 
-The node never writes that text, an evaluate function, `result_json`,
-or a screenshot's bytes to a log, to a session's history, or to a file
-of its own. A screenshot returned to the caller can still show a
-password the page painted; what the agent then puts in its conversation
-is the agent's message, not a second copy kept by the node. The page
-and the profile may hold what was typed. That is the profile, and it
-is the only copy that remains.
+The browser handler does not write a second copy of that text, of an
+evaluate function, of `result_json`, or of a screenshot's bytes: not
+as a tracing field, and not as a file beside the profile. That is
+not the only copy, and this ADR does not pretend it is.
+
+An agent sends the text by calling `browser_type`, `browser_fill` or
+`browser_keypress`. Those are MCP tool calls. The harness reports
+each call with its arguments, and the node stores the session event
+as the harness sent it. `ToolCall.raw_input` is "The tool's raw
+input arguments, forwarded and never interpreted"
+(`crates/vessel-proto/src/agent.rs`). The session log is that event
+(`crates/vessel-store/src/log.rs`, the `events` table). Nothing in
+this design removes the text from that event. Stripping it would
+hide a tool call the node already stores for every other tool.
+
+Paseo's Claude mapper puts the same text on the timeline item.
+It takes `raw.input` onto the detail
+(`packages/server/src/server/agent/providers/claude/tool-call-mapper.ts`,
+read). A tool name with no built-in kind, which is where `browser_*`
+falls (no `browser_` arm in that parser), is returned as
+`type: "unknown"` with that input
+(`tool-call-detail-parser.ts`, the final return, read).
+
+The message search index does not read a tool call's arguments
+(`crates/vessel-store/src/search/said.rs`: `ToolCall` ends a run and
+is not a message). `session.export` copies the harness's files
+(`crates/vessel-node/src/transfers/export.rs`, read). Those files
+were not opened here, so this ADR does not say they are free of the
+text.
+
+Nothing is redacted. The `browser_tools` description, and the
+descriptions of `browser_type`, `browser_fill` and
+`browser_keypress`, say that text passed to those tools is kept in
+the session log as the tool call's input. A password typed only in
+the app, as `browser.call` and not as one of those tools, is not
+such an event. The handler still does not log that field. The page
+and the profile may hold what was typed. A screenshot returned to
+the caller can still show a password the page painted.
 
 The profile is one directory, `browser/` under the node's data
 directory. The directory is mode `0700` and the files `0600`, the same
@@ -438,7 +518,11 @@ it, an upload path outside the workspace, a viewport of 0 and of
 8,193, a wait with both text and url, and a double that never answers,
 which is `TimedOut` at the deadline the test passes. `Destination` is
 tested with the proxy, in the engine slice, not by pretending the
-product answered it. No sleep. No real browser. No network. The
+product answered it. That same slice binds a UDP socket on
+`127.0.0.1`, has the page gather ICE toward it, waits until gathering
+finishes, and asserts the socket received nothing. Slice 2 has no
+real browser and does not run that. No sleep. No real browser in
+slice 2. No network. The
 settings field round-trips as absent when off, against a peer below
 `BROWSER_PROTOCOL`, with the constant set to a number in that test
 only.
@@ -472,9 +556,12 @@ only.
    read). Reason: the node must not hold an unbounded image or
    viewport.
 6. **Non-public destinations are refused** by the proxy
-   (`Destination`). Paseo's scheme check allows them. Reason: the
-   browser runs on the node, not on the person's desktop. The table is
-   above.
+   (`Destination`), and WebRTC UDP and QUIC are turned off at launch
+   because an HTTP proxy does not carry them. Paseo's scheme check
+   allows the destinations. Files under `packages` whose names contain
+   `browser` do not mention these switches (searched). Other Paseo
+   files were not searched for them. Reason: the browser runs on the
+   node, not on the person's desktop. The table is above.
 7. **One profile for the whole node**, not for one desktop the person
    is sitting at. Reason: there is no Electron session. Owner, mode and
    who shares it are above.
@@ -501,6 +588,12 @@ only.
     kill-on-close job object on Windows (the `vessel-proc` row of
     `docs/ARCHITECTURE.md`, read). No systemd unit and no launchd job.
     Windows is that job object, not a refusal.
+13. **Typing tools warn that their text stays in the session log.**
+    Nothing is stripped from `raw_input`. Paseo's mapper puts an
+    unknown tool's input on the timeline item (cited above). The
+    disk write of that item was not re-read. The switch warning
+    already in this ADR is about logged-in state, not this sentence.
+    Reason: the node must not say that no copy remains.
 
 ## What this does not decide
 

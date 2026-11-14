@@ -23,13 +23,20 @@ to 399). This plan follows the source.
   shared-document rules are in the ADR: who a page can reach, where a
   credential lives, a test double that is not in the product, WebView2
   apart from WebKit, `Scheme` and `NoHistory`, the 15 second deadline,
-  and the tool list fixed at session start.
+  and the tool list fixed at session start. The second return is also
+  in the ADR: WebRTC UDP and QUIC are closed by launch switches
+  because the HTTP proxy does not carry them, and text an agent types
+  stays in the session log as the tool call's input. The setting and
+  the three typing tools say so. Nothing is redacted.
 - **Not read, so not asserted:** the CDP sequence in `service.ts` past
   the lines this plan cites; the pane render past the presets (lines
   131 to 146), the shortcut function (lines 413 to 421) and the toolbar
   labels; the element-selector body; the keyboard guest preload body;
   snapshot fingerprint fields; the WebView2, WKWebView and WebKitGTK
-  headers.
+  headers. Chromium's session code that decides QUIC when only a
+  proxy is set. Whether the proxy-resolving TCP factory exempts
+  loopback unless the launch says otherwise. WebTransport's source.
+  The bytes inside a harness transcript.
 - **Next:** wait for review of ADR 0069. Do not start slice 2 before
   that. Merge sets `BROWSER_PROTOCOL`.
 
@@ -290,12 +297,17 @@ a later slice, subscribes to frames or asks for a screenshot of the
 same tabs and sends input back through `browser.call`.
 
 Security is the ADR's destination table and credential section, not
-a scheme check. The proxy refuses anything `is_public` refuses. The
-browser is not given the node token, a device credential or a harness
-secret. Cookies sit in `browser/` under the data directory (`0700` /
-`0600`), one profile for every session on the node. The setting stays
-off by default. With no real engine the product answers `NoEngine`
-and does not advertise the tools.
+a scheme check. The proxy refuses anything `is_public` refuses, for
+TCP it carries. The engine also passes
+`--force-webrtc-ip-handling-policy=disable_non_proxied_udp` and
+`--disable-quic`, because WebRTC UDP and QUIC do not go through that
+proxy. The browser is not given the node token, a device credential
+or a harness secret. Cookies sit in `browser/` under the data
+directory (`0700` / `0600`), one profile for every session on the
+node. Text an agent types is kept in the session log with the tool
+call. The setting stays off by default, and turning it on says so.
+With no real engine the product answers `NoEngine` and does not
+advertise the tools.
 
 Cannot: sit inside a GPUI element; match Electron's input-method and
 file-drag behaviour until a view is designed; ship inside the Rust
@@ -345,15 +357,19 @@ network, no app screen. Update ADR 0001, `docs/ARCHITECTURE.md` and
 ### Later, not scheduled here
 
 A real engine, only after its binary's NOTICE is read and a
-dependency paragraph names the licence and the size. Then the app's
-panel against the list above (toolbar, presets, shared profile,
-clear data, background new tab). Element annotate and devtools stay
+dependency paragraph names the licence and the size. That launch
+passes the two switches in the ADR, and its test is the loopback UDP
+listener: gathering finishes, and the socket got nothing. The app's
+panel comes after that, against the list above (toolbar, presets,
+shared profile, clear data, background new tab). Element annotate and devtools stay
 out until their own slice, because they are not `browser_*` tools.
 
 ## Review notes for slice 2
 
 - Do not copy `aria-snapshot-script.ts` or Playwright's injector.
 - Do not log a URL's userinfo, a cookie, or `result_json` at info.
+  Do not strip `browser_type`, `browser_fill` or `browser_keypress`
+  out of the session event. Their descriptions say the text stays.
 - Upload checks the path before any engine sees it.
 - The test double's evaluate fixture must be obviously not an
   execution, so nobody "fixes" a test by running the string. That
