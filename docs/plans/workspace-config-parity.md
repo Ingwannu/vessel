@@ -151,7 +151,11 @@ and no `PROTOCOL_VERSION` bump. All negotiated peers currently receive
 including script list/run/restart approval replies and worktree creation.
 Tests also exercise the assigned-threshold branch with a synthetic version.
 An older node's absent terminal list decodes as empty. Existing files without
-terminals retain their old bytes and normal approval path.
+terminals retain their old bytes and normal approval path. The web dialog
+and comparison each project every field by its generated type (including
+optional ones). Until terminal display/comparison lands, terminal-bearing
+current or previous sets return a typed refusal; no approval button is
+shown and a partial comparison cannot claim the commands are unchanged.
 
 ## Resume point
 
@@ -161,7 +165,13 @@ terminals retain their old bytes and normal approval path.
   its review report; no runtime behaviour is implied by parsing these keys.
 - Half-done: automatic terminal execution is absent; port keys remain ignored
   as before. `paseo.json` is not read.
-- Next: resolve any gate or review findings first; add the port contract in
-  2b, then runtime with approval and lifecycle tests. Keep changes small.
+- Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
+  displays terminals, web `command-changes` compares them, and the native
+  approval card displays them. The current web refusal is a deliberate
+  stopgap; display/comparison lands together with the native card's work.
+  The native lead owns its card and exhaustive adapter. This track owns
+  the web refusal now and its later terminal display/comparison.
+- Then: add the port contract in 2b, followed by runtime with approval and
+  lifecycle tests. Returned review findings take priority.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.

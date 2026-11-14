@@ -365,6 +365,16 @@ the missing fields as absent. An older peer reading a newer node ignores
 the unknown fields and still sees setup, teardown and scripts; it must
 not be the peer that records the approval of a version 3 digest.
 
+The repository's own clients must also cover every approved field. During
+staging the web dialog refuses any terminal-bearing current or previous
+set and offers no approval button; its comparison returns an explicit
+unsupported outcome instead of a partial diff. Both boundaries enumerate
+the generated types with all optional fields required, so a later field
+addition fails type checking. Assignment remains blocked until the web
+dialog displays terminals, web command-changes compares them, and the
+native approval card displays them. The native lead owns that card's
+exhaustive adapter and its stopgap refusal.
+
 `metadataGeneration` stays out of this digest. It is not a command. A
 later track that sends those strings to a model does not inherit this
 approval; that send is its own decision.

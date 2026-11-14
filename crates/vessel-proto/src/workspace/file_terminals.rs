@@ -4,8 +4,10 @@ use super::ProjectCommand;
 use crate::{ProtocolVersion, SessionTitle};
 use serde::{Deserialize, Serialize};
 
-/// Assigned at integration, once clients can show every new approved field.
-/// `None` deliberately refuses these sets on every negotiated connection.
+/// Assign only after the web approval dialog displays terminals, web
+/// command-changes compares them, and the native approval card displays them.
+/// Until all three land, `None` refuses these sets on negotiated connections;
+/// clients also refuse sets whose complete contents they cannot display.
 pub const PROJECT_FILE_KEYS: Option<ProtocolVersion> = None;
 
 /// A shell command a person must see before approving a project's terminals.
