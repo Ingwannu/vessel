@@ -180,11 +180,12 @@ Checked: the fake fleet's Claude Code session (`compact` with a hint,
 `review`) at 1280 and 390, both themes and languages, open, filtered, the
 choice moved, no match, closed; the kit's example scenes in both themes
 (long names and descriptions, no rows, thirty rows past 220 high, the
-choice kept in view). Captures outside the repository. Idle cost, debug
-build on the software renderer, composer focused: 440 to 460 ms of CPU per
-second with the menu closed, 517 to 525 with it open. The window redraws
-twice a second for the caret's blink (the lead's known cost); the open
-menu adds drawing to those frames, not frames of its own.
+choice kept in view). Captures outside the repository. Idle cost on the
+software renderer, a session's composer focused, with the caret steady
+while motion is held: 6 ms of CPU per second on a release build, with
+the menu closed and with it open (16 to 19 on a debug build). Before the
+caret was steady the window redrew twice a second for its blink (440 to
+525 ms a second, debug); the open menu asks for no frames of its own.
 
 Found while capturing, fixed: GPUI keeps a chosen row in view from the
 last frame's layout, so a list nothing else redraws stayed at its top on

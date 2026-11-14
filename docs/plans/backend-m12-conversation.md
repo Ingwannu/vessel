@@ -159,6 +159,82 @@ the new rules; the setting's page is track E3's. An install that saved
 "queue" before keeps it (the preferences store every field, so a saved
 default cannot be told from a choice).
 
+## Rewind and fork (protocol 14, ADR 0052; started 2026-11-14)
+
+Plan: Paseo's controls on our node's calls. Paseo puts **rewind** in
+the trailing row under the person's message (its time, an undo mark,
+copy; `components/message.tsx` `UserMessage`, `rewind/rewind-menu.tsx`):
+a menu headed "This action cannot be undone" with one row per mode the
+agent supports, and the rewound message goes back into the composer
+(`rewind/composer-restore.tsx`). It puts **fork** in the reply's turn
+footer between copy and "Worked for" (`assistant-fork-menu.tsx`). Our
+node rewinds and forks only at a turn's end the agent named (a point,
+`TurnPoint`), rewinds the conversation only (files are not put back;
+the record says how many tool calls changed them), and forks into a new
+session (no tabs or workspaces).
+
+| Slice | What | Reference |
+| --- | --- | --- |
+| R1 | the person's message's trailing row (time, rewind, copy); rewind to the turn end before it (`session.rewind`), the rewound message back in the composer; the entries rewound away drawn no more (they stay in the fold and the log: entries are never removed) | Paseo `UserMessage`, `RewindMenu` (conversation mode) |
+| F1 | the turn footer's fork menu; `session.fork` at that turn's end; the new session opened; its first line says where it came from | Paseo `AssistantForkMenu` (one target: a new session) |
+| F1b | the fork shows its origin's conversation up to the fork point above its first line, read-only, the line their divider; a removed origin leaves the line with a plain sentence | Paseo carries the context as a draft attachment only ("Chat history" / "Previous conversation"); ours draws the origin's real turns |
+| F2 | a fork that never had a conversation (`empty_fork`): its reason and Remove | ADR 0052 addendum (track A2) |
+
+Each slice: rules in `view` with tests, captures at 1280, 390 and
+800 × 600, the gate, a report.
+
+R1 done (2026-11-14; 9b8eadfb, 92ef3ed9, ba96e64a): on the fake fleet a
+rewind to the first turn's end left the second turn behind (no longer
+drawn, nor on the outline rail, nor found), the node logged "rewound to
+record 21", and the message went back into the empty composer.
+Differences from Paseo, kept: one mode (the conversation); the row's
+height is kept while it is hidden (Paseo's trailing row also keeps its
+place). The undo mark's tooltip ("Rewind to this message", the kit's
+tooltip; none on a phone, as Paseo's) followed R1 on 2026-11-14. The
+fake agent names a point only for its `plain` reply, so the fleet's
+other sessions offer no rewind.
+
+F1 done (2026-11-14): a turn's footer whose end the agent named shows
+Paseo's `Split` mark between copy and "Worked for" (tooltip "Fork chat
+from here"); its menu's one row "Fork in a new session" asks
+`session.fork` at that turn's end; the new session is listed at once
+(`Fleet::add_session`) and opened on the next frame, its first line
+"Forked from “plain” · today 18:55" (the source's title from the list,
+`Fleet::title_of`); a refusal is the notice's ("Failed to fork chat:
+…"). Rules in `view::timeline::fork_point` with tests
+(`view/tests/page/fork.rs`). On the fake fleet at 1280, 390 and
+800 × 600 the fork opened as "plain (fork)". Differences from Paseo,
+kept: one target (a new session; Paseo's are a tab or a workspace);
+the menu closes when chosen and the mark stays locked until the answer
+(Paseo keeps the row pending); no fork from the working turn (the node
+refuses a whole-conversation fork while a turn runs). The fork showed
+only its own records until F1b.
+
+F1b (2026-11-14, the coordinator: "a forked session that opens empty
+hides from the person exactly what the agent remembers"): once the
+fork's `forked` line is folded, the origin's log is read from its start
+with `session.read` (one act, `Act::Log`, page by page off the screen's
+thread) and kept up to the fork's record (`view::timeline::Until`; a
+whole-conversation fork, up to when it was made). It is folded as its
+own conversation (`origin.rs`: its own rows, runs and disclosures,
+reached through `Seat::ORIGIN`) and drawn as the list's first rows,
+the "Forked from" line under them as a divider. Inherited turns carry
+no rewind or fork mark; copy stays. The session area's list ops add
+the origin's row count (`ConversationArea::at`); find and the outline
+rail cover the fork's own turns. A removed origin leaves the line and
+"The conversation it was forked from was removed." What Paseo shows:
+no earlier turns; its fork is a draft whose composer holds one
+attachment pill, title "Chat history" (`activity-curator.ts`), subtitle
+"Previous conversation" (`attachment-pill-content.tsx`), the text the
+agent receives. Ours are the origin's real turns, as the agent has
+them. An archived origin's log is still on the node (`session.read`
+answers it), so its turns show as any other origin's; only a removed one
+(NotFound) leaves the line alone. Measured on the fake fleet (debug
+build): a long origin of 162 records (122 rows) read in 281 ms off the
+screen's thread, folded in 0.5 ms; the fork's own rows show before it.
+Captures: `shots/m/100`–`109` (1280, 800 × 600, 390; both themes; en
+and ko; long, removed and archived origins).
+
 ## Module layout (2026-11-14, the owner's word 44)
 
 `app/src/areas/conversation/` after the split (no behaviour change;
@@ -177,6 +253,9 @@ draws and wires.
 | `question.rs` / `question/card.rs` | the answer's state and controls / the card's drawing; the step's rules are `view::timeline::question_step` |
 | `queue.rs` / `queue/rows.rs` | the queue's edit and acts / its rows, grip and buttons |
 | `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
+| `rewind.rs` | the person's message's trailing row (time, undo, copy), the rewind menu, the act, the message back into the composer; where it can go is `view::timeline::rewind_point` |
+| `fork.rs` | the turn footer's fork mark and menu, the act, the new session listed and opened; where it can go is `view::timeline::fork_point` |
+| `origin.rs` | a fork's origin: read, folded as its own conversation, drawn as the list's first rows; the "Forked from" divider; where the read stops is `view::timeline::Until` |
 
 Moved to `view` with tests: `question_step` (choices, pick, typed,
 header, prompt, text target), `start_at`, `first_reply`.

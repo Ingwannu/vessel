@@ -33,7 +33,7 @@
 //!   is taken; no untyped tree is walked.
 
 use serde::Deserialize;
-use vessel_proto::{PermissionOption, PermissionOptionKind, RawJson, ToolKind};
+use vessel_proto::{PermissionOption, PermissionOptionKind, PermissionRequest, RawJson, ToolKind};
 
 use super::approval::{AnswerWords, allows, answer_words, answers_of};
 use super::entry::{Permission, ToolView};
@@ -123,20 +123,39 @@ pub fn permission_card<'a>(
             Some(_) | None => CardTitle::Required,
         }
     };
-    let options = &permission.request.options;
+    // Every field named on purpose, no `..` (unlike the other wire
+    // patterns, README "Rules every screen follows"): a person approves
+    // what this card shows, so a field the node adds must break the build
+    // here until the card shows it or refuses it by type. `id` is where
+    // the answer goes, not something shown; `tool_call` is `tool`, read by
+    // the caller (its title, command or plan are shown above).
+    let PermissionRequest {
+        id: _,
+        tool_call: _,
+        options,
+    } = &permission.request;
     let primary = answers_of(options).approve;
     let answers = options
         .iter()
         .zip(answer_words(options, say))
-        .map(|(option, words)| CardAnswer {
-            option,
-            words,
-            mark: if allows(option.kind) {
-                AnswerMark::Allow
-            } else {
-                AnswerMark::Reject
-            },
-            primary: primary.is_some_and(|primary| std::ptr::eq(primary, option)),
+        .map(|(option, words)| {
+            // The same guard for each answer: `name` is said by
+            // `answer_words`, `id` is what the answer sends.
+            let PermissionOption {
+                id: _,
+                name: _,
+                kind,
+            } = option;
+            CardAnswer {
+                option,
+                words,
+                mark: if allows(*kind) {
+                    AnswerMark::Allow
+                } else {
+                    AnswerMark::Reject
+                },
+                primary: primary.is_some_and(|primary| std::ptr::eq(primary, option)),
+            }
         })
         .collect();
     PermissionCard {

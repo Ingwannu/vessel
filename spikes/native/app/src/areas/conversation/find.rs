@@ -315,9 +315,11 @@ impl Shell {
         let Some(finder) = bar.finder.as_mut() else {
             return true;
         };
-        let Some(matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
+        let Some(mut matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
             return false;
         };
+        // What a rewind left behind is not drawn, so find skips it.
+        matches.retain(|found| !area.timeline.rewound(found.entry));
         bar.finder = None;
         let start = bar
             .at
@@ -393,7 +395,7 @@ impl Shell {
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(row, Reveal::Nearest);
+            area.list.reveal(area.at(row), Reveal::Nearest);
         }
     }
 }

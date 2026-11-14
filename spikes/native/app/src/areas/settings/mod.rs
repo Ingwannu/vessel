@@ -30,12 +30,17 @@
 mod agents;
 mod appearance;
 mod book;
+mod chat;
 mod choices;
+pub(crate) mod connected;
 mod devices;
+mod diagnostics;
 mod general;
+mod host_agents;
 mod language;
 mod motion;
 mod nav;
+mod overview;
 pub(crate) mod page;
 mod prefer;
 mod sections;
@@ -86,6 +91,9 @@ pub(crate) struct SettingsState {
     pub(crate) agents: agents::AgentSettings,
 
     pub(crate) devices: devices::Devices,
+    diagnostics: diagnostics::State,
+    host_agents: host_agents::State,
+    overview: overview::State,
     language: language::State,
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
@@ -107,6 +115,9 @@ impl SettingsState {
             agents: agents::AgentSettings::new(window, cx),
 
             devices: devices::Devices::new(window, cx),
+            diagnostics: diagnostics::State::new(cx),
+            host_agents: host_agents::State::default(),
+            overview: overview::State::new(window, cx),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,
@@ -155,6 +166,15 @@ impl Anchors {
 }
 
 impl Shell {
+    /// Each frame, the Settings pages that wait on the window settle what
+    /// came in since (devices, sync, the machine's agents, the overview).
+    pub(crate) fn settle_settings(&mut self, window: &Window) {
+        self.settle_devices(window);
+        self.settle_sync(window);
+        self.settle_host_agents(window);
+        self.settle_overview(window);
+    }
+
     /// Open Settings at `section` (pushed on a phone), or at its start
     /// (General beside the list; the list on a phone, as Paseo's gear),
     /// remembering where "Back" returns to.
@@ -342,6 +362,8 @@ pub(crate) fn render(
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
         .children(agents::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
+        .children(diagnostics::dialogs(shell, tokens, window, cx))
+        .children(overview::dialogs(shell, tokens, window, cx))
 }
 
 /// The section shown, as a page: its title, a refused change above its

@@ -200,7 +200,9 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
                 walk.show(Step::Refused(Refusal::Worktree(reason))).await;
                 return Made::Stopped;
             }
-            CreateWorktreeOutcome::NeedsApproval { commands, .. } => commands,
+            // No `..`: what a person approves is named whole (see
+            // `Listed::of`); a field the node adds must reach the screen.
+            CreateWorktreeOutcome::NeedsApproval { commands } => commands,
         };
         let Some(asked) = Listed::of(&listed) else {
             // Only a listed set needs an approval; anything else is a

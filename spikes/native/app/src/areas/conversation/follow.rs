@@ -47,7 +47,9 @@ impl Shell {
         area.folds = collapse.then(|| Folds::of(area.timeline.entries()));
         area.open_runs.clear();
         area.rows_again();
-        area.list.reset(area.rows.len());
+        self.origin_display(collapse);
+        let area = &mut self.areas.conversation;
+        area.list.reset(area.at(area.rows.len()));
         area.tail_dropped();
     }
 
@@ -60,6 +62,8 @@ impl Shell {
     ) {
         if self.areas.conversation.take(session, records) {
             self.find_grew(cx);
+            // A fork's `forked` line came: its origin is read (`origin`).
+            self.origin_read();
         }
     }
 
@@ -105,8 +109,14 @@ impl Shell {
                     |kept| format!("{}. {kept}", words.session_deleted()),
                 ));
             }
-            Ok(Acted::Done | Acted::Conversation(_)) | Err(_) => {}
+            // A fork's new session is listed at once (the list's next
+            // read would list it too).
+            Ok(Acted::Forked(info)) => self.fleet.add_session(&answer.machine, info),
+            Ok(Acted::Done | Acted::Conversation(_) | Acted::Log(_)) | Err(_) => {}
         }
+        // A fork's origin read (its answer is for the origin, not the
+        // session shown).
+        self.origin_answered(&answer, cx);
         // Started again: the session area follows it afresh (the node ends
         // a follow at the final status), as a send to an ended session
         // does.
@@ -116,6 +126,18 @@ impl Shell {
                 shown.machine == answer.machine && shown.session == answer.session
             }))
         .then_some(answer.session);
+        // A rewind's answer for the session shown lifts its menu's lock
+        // and puts the message back (`rewind`).
+        if self
+            .areas
+            .conversation
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.machine == answer.machine && shown.session == answer.session)
+        {
+            self.rewind_answered(&answer);
+            self.fork_answered(&answer);
+        }
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);
         }
@@ -147,16 +169,20 @@ impl Shell {
 
     /// Open or close a run of tool calls in the conversation at `seat`.
     pub(crate) fn toggle_run(&mut self, seat: Seat, lead: usize, cx: &mut Context<'_, Self>) {
+        let before = self.areas.conversation.head();
         if let Some(area) = (seat.get_mut)(self) {
             area.toggle_run(lead);
+            self.origin_toggled(seat, before);
             cx.notify();
         }
     }
 
     /// Open or close one entry's disclosure in the conversation at `seat`.
     pub(crate) fn toggle_entry(&mut self, seat: Seat, entry: usize, cx: &mut Context<'_, Self>) {
+        let before = self.areas.conversation.head();
         if let Some(area) = (seat.get_mut)(self) {
             area.toggle_entry(entry);
+            self.origin_toggled(seat, before);
             cx.notify();
         }
     }

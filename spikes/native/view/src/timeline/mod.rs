@@ -37,14 +37,17 @@ mod entry;
 mod failure;
 mod find;
 mod fold;
+mod fork;
 mod live;
 mod logs;
 mod meter;
+mod origin;
 mod outline;
 mod permission;
 mod plan;
 mod question;
 mod question_step;
+mod rewind;
 mod rows;
 mod runs;
 mod usage;
@@ -62,9 +65,11 @@ pub use find::{
     query_of, readable_text, searchable, spans_of, start_at, step,
 };
 pub use fold::{Change, Facts, Timeline};
+pub use fork::fork_point;
 pub use live::Live;
 pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
+pub use origin::{Until, origin_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
 pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
 pub use plan::{PlanActivity, all_pending, plan_activities};
@@ -75,6 +80,7 @@ pub use question::{
 pub use question_step::{
     Choice, Pick, box_is_other, choices, pick, picked, step_header, step_prompt, text_target, typed,
 };
+pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
 pub use usage::ModelUsage;

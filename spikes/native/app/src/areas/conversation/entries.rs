@@ -39,6 +39,22 @@ pub(super) struct Paint<'a> {
     pub(super) entries: &'a [Entry],
     /// The session's agent: its mark in a reply's avatar.
     pub(super) agent: Option<&'a vessel_proto::HarnessRef>,
+    /// The conversation's timeline, when a rewind may be asked now (the
+    /// session area's live conversation, between turns): a person's
+    /// message offers it where it can go (`rewind`).
+    pub(super) rewinds: Option<&'a vessel_app_view::timeline::Timeline>,
+    /// The conversation's timeline and its fork state, when the
+    /// conversation is the session area's own (not a side question's): a
+    /// turn's footer offers a fork where it can go (`fork`).
+    pub(super) forks: Option<(
+        &'a vessel_app_view::timeline::Timeline,
+        &'a super::fork::Forking,
+    )>,
+    /// The machines' sessions: a forked session's first line names its
+    /// source by its title.
+    pub(super) fleet: &'a vessel_app_view::Fleet,
+    /// What a fork's first line has above or under it (`origin`).
+    pub(super) above: super::origin::Above<'a>,
 }
 
 /// Entry `index` as its row.
@@ -128,6 +144,14 @@ pub(super) fn entry(
             .text_color(paint.look.secondary)
             .child(line.clone())
             .into_any_element(),
+        EntryKind::Forked { from, .. } => super::origin::forked_line(
+            paint,
+            format!(
+                "{} · {}",
+                words.forked_from(paint.fleet.title_of(*from)),
+                words.when(entry.at, Local::now().fixed_offset())
+            ),
+        ),
         EntryKind::Status { .. } | EntryKind::Parking(_) => meta(
             paint,
             format!(

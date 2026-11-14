@@ -32,12 +32,13 @@ use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::tabs::{tab, tab_head};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, canvas, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
-use vessel_app_view::panels::CODE_PANEL;
+use vessel_app_view::panels::{CODE_PANEL, Placement, SIDEBAR, code_placement, over_width};
 
 use super::{Place, Tab};
 use crate::areas::edge::Panel;
@@ -103,9 +104,38 @@ impl WhenOpen for vessel_app_kit::ui::Stateful<Div> {
     }
 }
 
+/// The width of the window's content row for a window `width` wide: the
+/// window less the frame's margins around the content panel (`shell.rs`).
+pub(crate) fn frame_row(width: f32) -> f32 {
+    spacing::S1.mul_add(-1.0, spacing::S2.mul_add(-1.0, width))
+}
+
+impl Shell {
+    /// Where the code panel is drawn now on a desktop window, `None` when
+    /// it is not out (`panels::code_placement`: beside the conversation
+    /// when the row holds both leasts with the sidebar at its least, over
+    /// it otherwise). A phone's width draws it over the whole screen.
+    pub(crate) fn code_placement(&self, window: &Window) -> Option<Placement> {
+        let out = self.areas.workspace.code.open
+            && self.route == crate::routes::Route::Session
+            && self.areas.session.open.is_some();
+        if !out || breakpoint::phone(window) {
+            return None;
+        }
+        let sidebar = if self.sidebar_shown() {
+            SIDEBAR.least
+        } else {
+            0.0
+        };
+        let row = sidebar.mul_add(-1.0, frame_row(f32::from(window.viewport_size().width)));
+        Some(code_placement(row))
+    }
+}
+
 /// Track F's slot in the lead's session screen: the screen, with the code
-/// panel beside it when it is out on an open session. See the module's
-/// decision log for why the row is drawn here.
+/// panel beside it when it is out on an open session, or over it when the
+/// window is too narrow for both (`Shell::code_placement`). See the
+/// module's decision log for why the row is drawn here.
 pub(crate) fn code_beside(
     shell: &Shell,
     screen: Div,
@@ -226,7 +256,13 @@ fn code_panel(
         // Before the row is first measured, no room limit: the row's flex
         // keeps the conversation's least width for that frame.
         let room = panel.row.get().unwrap_or(f32::INFINITY);
-        beside(frame, PANEL.width(shell, room), tokens)
+        let frame = match shell.code_placement(window) {
+            // Too narrow for both: over the conversation, which keeps
+            // the whole row under it (`panels::code_placement`).
+            Some(Placement::Over) => over(frame, over_width(PANEL.asked(shell), room), tokens),
+            Some(Placement::Beside) | None => beside(frame, PANEL.width(shell, room), tokens),
+        };
+        frame
             .children(PANEL.handle("code-edge", shell, tokens, window, cx))
             .into_any_element()
     })
@@ -244,6 +280,21 @@ fn beside(frame: Div, width: f32, tokens: &Tokens) -> Div {
         .min_w(px(CODE_PANEL.least))
         .border_l_1()
         .border_color(tokens.neutral.border)
+}
+
+/// The panel over the conversation at the row's right, `width` wide, with
+/// its hairline and the floating surfaces' shadow so it reads as above
+/// what it covers.
+fn over(frame: Div, width: f32, tokens: &Tokens) -> Div {
+    frame
+        .absolute()
+        .top_0()
+        .right_0()
+        .h_full()
+        .w(px(width))
+        .border_l_1()
+        .border_color(tokens.neutral.border)
+        .shadow(popup::shadow_md(tokens))
 }
 
 /// A line where the panel has nothing else to show.

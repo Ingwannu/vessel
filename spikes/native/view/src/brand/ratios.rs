@@ -28,6 +28,12 @@ pub const STAR_DOWN: f32 = 0.23;
 /// The star's tip radius in the mark's units (half its 490.2 span).
 pub const STAR_TIP: f32 = 245.1;
 
+/// How far the open session's frame leans in from the vertical at most, in
+/// degrees: the owner's sketch of the open session (2026-11-14, about
+/// 1950 wide) draws its arms 18–20° from the vertical, ending in the side
+/// margins short of the conversation.
+pub const FRAME_LEAN_DEGREES: f32 = 20.0;
+
 /// The air between the drawing and any text or control, in points.
 pub const CLEARANCE: f32 = 12.0;
 

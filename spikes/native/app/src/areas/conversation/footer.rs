@@ -21,14 +21,15 @@
 //!   it is something the person must know (Paseo shows its interruptions
 //!   in the stream as an error). The turn's tokens leave the timeline: the
 //!   context meter's card keeps the session's figures.
-//! - Differences: no fork menu yet (rewind and fork are the next slice).
+//! - The fork menu is `fork`'s, here between the copy button and the
+//!   label, where the turn's end can be forked.
 
 use chrono::{DateTime, Local, Utc};
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, Styled, Window, div, px,
 };
-use vessel_app_kit::{CopyLook, Type, TypeExt as _, copy_button};
+use vessel_app_kit::{CopyLook, Type, TypeExt as _, breakpoint, copy_button};
 use vessel_app_view::timeline::{Entry, EntryKind};
 use vessel_proto::StopReason;
 
@@ -108,6 +109,12 @@ pub(super) fn completed(
                 cx,
             )
         }))
+        .children(super::fork::mark(
+            paint,
+            index,
+            breakpoint::phone(window),
+            cx,
+        ))
         .children(label)
         .into_any_element()
 }

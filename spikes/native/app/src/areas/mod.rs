@@ -50,6 +50,8 @@ pub(crate) struct Areas {
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
     /// Track P's: a running session's option changes in flight.
     pub(crate) composer: composer::ComposerArea,
+    /// The parts drawn as views of their own (`crate::region`).
+    pub(crate) regions: crate::region::Regions,
 }
 
 impl Areas {
@@ -67,9 +69,10 @@ impl Areas {
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
             shortcuts: shortcuts::ShortcutListener::new(cx),
-            sidebar: sidebar::SidebarState::new(),
+            sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::default(),
+            regions: crate::region::Regions::default(),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, window, cx);
