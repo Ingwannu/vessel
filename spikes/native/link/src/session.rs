@@ -21,11 +21,12 @@
 use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
+use vessel_app_view::timeline::Until;
 use vessel_client::NodeClient;
 use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
-    ErrorCode, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput,
-    SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
+    ErrorCode, EventRecord, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo,
+    SessionInput, SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
 };
 use vessel_proto::{
     PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
@@ -85,6 +86,9 @@ pub enum Act {
     /// (`session.fork`, protocol 14): the new session, as `session.create`
     /// answers it; its `forked` record opens its log.
     Fork(Option<EventSeq>),
+    /// Read its log from the start up to `Until` (`session.read`, page by
+    /// page): a fork's origin, for what the fork carries over (F1b).
+    Log(Until),
 }
 
 /// Which act an answer is for.
@@ -122,6 +126,8 @@ pub enum ActKind {
     Rewind,
     /// A fork.
     Fork,
+    /// A read of its log.
+    Log,
 }
 
 impl Act {
@@ -145,6 +151,7 @@ impl Act {
             Self::Wake => ActKind::Wake,
             Self::Rewind(_) => ActKind::Rewind,
             Self::Fork(_) => ActKind::Fork,
+            Self::Log(_) => ActKind::Log,
         }
     }
 }
@@ -164,6 +171,8 @@ pub enum Acted {
     /// The new session a fork made (not the session acted on, whose
     /// description stands).
     Forked(Box<SessionInfo>),
+    /// Its log's records, in order, up to where the read stopped.
+    Log(Vec<EventRecord>),
 }
 
 /// Why a session act failed: the node's code, when it answered with one,
@@ -228,6 +237,35 @@ async fn answer(events: &mpsc::Sender<Event>, answer: ActAnswer) {
     let _closed = events.send(Event::Acted(answer)).await;
 }
 
+/// Records of `session`'s log read per page.
+const PAGE: u32 = 512;
+
+/// `session`'s log from its start, page by page, up to the first record
+/// `until` does not keep (the log is in order) or its end.
+async fn read_until(
+    client: &NodeClient,
+    session: SessionId,
+    until: Until,
+) -> Result<Vec<EventRecord>, vessel_client::CallError> {
+    let mut kept = Vec::new();
+    let mut from = EventSeq::new(0);
+    loop {
+        let page = client.read(session, from, PAGE).await?;
+        // A page that does not move on is the end too (nothing past it).
+        let last = page.at_end || page.next <= from;
+        for record in page.records {
+            if !until.keeps(&record) {
+                return Ok(kept);
+            }
+            kept.push(record);
+        }
+        if last {
+            return Ok(kept);
+        }
+        from = page.next;
+    }
+}
+
 async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted, ActFailed> {
     let boxed = |info: SessionInfo| Acted::Session(Box::new(info));
     let done = match act {
@@ -247,6 +285,7 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .call(vessel_proto::forking::ForkSession { session, after })
             .await
             .map(|info| Acted::Forked(Box::new(info))),
+        Act::Log(until) => read_until(client, session, until).await.map(Acted::Log),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
         // The options as they now stand also arrive as the session's own

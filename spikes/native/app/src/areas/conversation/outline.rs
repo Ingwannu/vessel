@@ -120,7 +120,7 @@ impl Shell {
             return;
         };
         if let Some(row) = area.rows.row_index(entry, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(row, Reveal::Top);
+            area.list.reveal(area.at(row), Reveal::Top);
         }
         cx.notify();
     }
@@ -146,9 +146,10 @@ pub(super) fn rail(
         return None;
     }
     let (top_row, _) = area.list.top();
-    let lit = area
-        .rows
-        .entry(top_row)
+    // A row of the fork's origin lights nothing (the rail is the fork's).
+    let lit = top_row
+        .checked_sub(area.head())
+        .and_then(|own| area.rows.entry(own))
         .and_then(|top| lit(&area.outline, top));
     let attention = area.outline_pointer.attention;
     let neutral = tokens.neutral;

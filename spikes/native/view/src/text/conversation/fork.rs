@@ -35,6 +35,30 @@ impl ConversationWords {
         }
     }
 
+    /// Under a fork's first line when its source's conversation cannot be
+    /// shown: `removed` when the node no longer has the session, else
+    /// the node's or the connection's `message`.
+    #[must_use]
+    pub fn origin_unread(&self, removed: bool, message: &str) -> String {
+        if removed {
+            return self
+                .either(
+                    "The conversation it was forked from was removed.",
+                    "분기한 원래 대화는 삭제되었습니다.",
+                )
+                .to_owned();
+        }
+        let failed = self.either(
+            "The conversation it was forked from could not be read",
+            "분기한 원래 대화를 읽지 못했습니다",
+        );
+        if message.trim().is_empty() {
+            format!("{failed}.")
+        } else {
+            format!("{failed}: {message}")
+        }
+    }
+
     /// A forked session's first line: the source's title when the list
     /// knows it, else that it came from another session.
     #[must_use]

@@ -234,7 +234,13 @@ impl Shell {
             }
             // No answer at all: the session's lost connection says it.
             Err(ActFailed { code: None, .. })
-            | Ok(Acted::Session(_) | Acted::Deleted(_) | Acted::Done | Acted::Conversation(_)) => {}
+            | Ok(
+                Acted::Session(_)
+                | Acted::Deleted(_)
+                | Acted::Done
+                | Acted::Conversation(_)
+                | Acted::Log(_),
+            ) => {}
         }
     }
 

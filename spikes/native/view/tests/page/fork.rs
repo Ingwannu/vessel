@@ -5,7 +5,7 @@
 
 use serde_json::json;
 use vessel_app_view::Lang;
-use vessel_app_view::timeline::{EntryKind, Timeline, fork_point};
+use vessel_app_view::timeline::{EntryKind, Timeline, Until, fork_point, origin_of};
 use vessel_proto::{EventRecord, EventSeq, SessionId};
 
 use crate::support::{Log, kinds};
@@ -98,5 +98,69 @@ fn a_refused_fork_says_paseos_words_and_the_nodes() {
     assert_eq!(
         Lang::Ko.conversation().fork_failed(""),
         "채팅을 분기하지 못했습니다"
+    );
+}
+
+#[test]
+fn a_forks_origin_is_read_up_to_the_turn_it_continues_from() {
+    let source = SessionId::random();
+    let mut log = Log::default();
+    let records = [
+        log.record(&json!({ "type": "forked", "from": source.to_string(), "after": 5 })),
+        log.record(&json!({ "type": "forked", "from": SessionId::random().to_string() })),
+    ];
+    let mut timeline = Timeline::default();
+    let _change = timeline.apply(&records[..1]);
+    assert_eq!(
+        origin_of(timeline.entries()),
+        Some((source, Until::Record(EventSeq::new(5))))
+    );
+    let mut origin = Log::default();
+    let read: Vec<EventRecord> = (0..8)
+        .map(|_| {
+            origin.agent(
+                &json!({ "event": "message_chunk", "content": { "type": "text", "text": "x" } }),
+            )
+        })
+        .collect();
+    let kept: Vec<_> = read
+        .iter()
+        .filter(|record| Until::Record(EventSeq::new(5)).keeps(record))
+        .map(|record| record.seq.get())
+        .collect();
+    assert_eq!(kept, [0, 1, 2, 3, 4, 5], "the turn's end itself is kept");
+
+    // A whole-conversation fork names no record: what was made by the
+    // time it was.
+    let mut whole = Timeline::default();
+    let _change = whole.apply(&records[1..]);
+    let Some((_, Until::Time(made))) = origin_of(whole.entries()) else {
+        panic!("{:?}", origin_of(whole.entries()));
+    };
+    assert_eq!(made, records[1].at);
+    // The fixtures' records are all made at one moment: kept.
+    assert!(Until::Time(made).keeps(&read[0]));
+    let mut later = read[0].clone();
+    later.at = made
+        .checked_add_signed(chrono::TimeDelta::seconds(1))
+        .expect("a moment later");
+    assert!(!Until::Time(made).keeps(&later), "made after the fork");
+    assert_eq!(origin_of(Timeline::default().entries()), None, "not a fork");
+}
+
+#[test]
+fn an_origin_that_cannot_be_read_is_said_plainly() {
+    let words = Lang::En.conversation();
+    assert_eq!(
+        words.origin_unread(true, "not found"),
+        "The conversation it was forked from was removed."
+    );
+    assert_eq!(
+        words.origin_unread(false, "connection lost"),
+        "The conversation it was forked from could not be read: connection lost"
+    );
+    assert_eq!(
+        Lang::Ko.conversation().origin_unread(true, ""),
+        "분기한 원래 대화는 삭제되었습니다."
     );
 }

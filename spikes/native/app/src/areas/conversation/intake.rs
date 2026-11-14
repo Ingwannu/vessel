@@ -61,6 +61,8 @@ impl ConversationArea {
             }
             // The new session's; the one shown stands as it was.
             Ok(Acted::Forked(_)) => self.refused = None,
+            // Another session's log (a fork's origin, `origin`).
+            Ok(Acted::Log(_)) => {}
             Ok(Acted::Done) => {
                 self.refused = None;
                 // An answer went: what still waits is read again, so a
@@ -101,6 +103,7 @@ impl ConversationArea {
             return false;
         }
         self.tail_took(change.added_from);
+        self.origin_seen(change.added_from);
         // A batch after the first read: what it brings arrives on screen.
         if change.added_from > 0 {
             self.fresh = Some((change.added_from, std::time::Instant::now()));
@@ -130,8 +133,10 @@ impl ConversationArea {
             .row_index(first_changed, self.folds.as_ref(), &self.logs)
             .unwrap_or(rows_before)
             .min(rows_before);
-        self.list
-            .splice(from..rows_before, rows_after.saturating_sub(from));
+        self.list.splice(
+            self.at(from)..self.at(rows_before),
+            rows_after.saturating_sub(from),
+        );
         self.revealed();
         true
     }
