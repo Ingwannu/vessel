@@ -17,14 +17,17 @@
 //! - Choice: Paseo's rule with what the node sends: open, not a draft,
 //!   mergeable (clean, or unstable: only checks that are not required
 //!   fail), the folder clean and in step with its remote, its head the
-//!   pull request's head; the methods in Paseo's order, filtered by the
-//!   repository's.
+//!   pull request's head, and (when the node knows the worktree's base)
+//!   ahead of that base; the methods in Paseo's order, filtered by the
+//!   repository's. The pull request is taken apart whole: a merge is a
+//!   person's consent, and `MergePullRequest` is built whole too.
 //! - Cost: a pull request whose summary is a moment behind a push shows
 //!   no merge rows until the next read: the safe side.
 
 use vessel_proto::SessionId;
 use vessel_proto::forge::{
     MergeMethod, MergeOutcome, MergePullRequest, MergeRefusal, Mergeable, PullRequest, PullState,
+    PullSummary,
 };
 use vessel_proto::workspace::GitStatus;
 
@@ -35,24 +38,57 @@ const ORDER: [MergeMethod; 3] = [MergeMethod::Squash, MergeMethod::Merge, MergeM
 /// `status`: none when the forge would not take a merge now.
 #[must_use]
 pub fn merge_methods(pull: &PullRequest, status: &GitStatus) -> Vec<MergeMethod> {
-    let summary = &pull.summary;
-    let open = summary.state == PullState::Open && !summary.draft;
-    let mergeable = matches!(
-        summary.mergeable,
-        Mergeable::Mergeable | Mergeable::Unstable
-    );
+    // Whole on purpose (README, types that carry what a person accepts): a
+    // merge row is a person's consent to merge what this pull request
+    // shows, so a field a newer node adds breaks the build until this rule
+    // reads it or says here why it does not decide a merge.
+    let PullRequest {
+        summary,
+        author: _,
+        head_branch: _,
+        base: _,
+        checks: _,
+        reviews: _,
+        created_at: _,
+        merged_at: _,
+        closed_at: _,
+        merge_methods: allowed,
+        read_at: _,
+    } = pull;
+    // The checks and the review are the forge's to weigh: it folds the
+    // required ones into `mergeable` (Blocked, or Unstable when only checks
+    // that are not required fail), as Paseo's `directMergeReady` does.
+    let PullSummary {
+        repo: _,
+        number: _,
+        url: _,
+        title: _,
+        state,
+        draft,
+        head_commit,
+        checks: _,
+        review: _,
+        mergeable,
+        updated_at: _,
+    } = summary;
+    let open = *state == PullState::Open && !draft;
+    let mergeable = matches!(mergeable, Mergeable::Mergeable | Mergeable::Unstable);
     let clean = status.files.is_empty() && !status.more && status.operation.is_none();
     let in_step = status
         .upstream
         .as_ref()
         .is_some_and(|upstream| upstream.ahead == 0 && upstream.behind == 0);
-    let same_head = status.head.as_ref() == Some(&summary.head_commit);
-    if !(open && mergeable && clean && in_step && same_head) {
+    let same_head = status.head.as_ref() == Some(head_commit);
+    // Paseo's `aheadCount > 0`: a branch with nothing over its base has
+    // nothing to merge. The node knows the base only for a worktree made
+    // from a branch; elsewhere the forge's own facts decide.
+    let has_work = status.base.as_ref().is_none_or(|base| base.ahead > 0);
+    if !(open && mergeable && clean && in_step && same_head && has_work) {
         return Vec::new();
     }
     ORDER
         .into_iter()
-        .filter(|method| pull.merge_methods.contains(method))
+        .filter(|method| allowed.contains(method))
         .collect()
 }
 
@@ -85,7 +121,7 @@ pub enum Merged {
 pub fn merge_outcome(outcome: MergeOutcome) -> Merged {
     match outcome {
         MergeOutcome::Merged { .. } => Merged::Done,
-        MergeOutcome::Refused { refusal } => Merged::Refused(refusal),
+        MergeOutcome::Refused { refusal, .. } => Merged::Refused(refusal),
         MergeOutcome::Unknown => Merged::Refused(MergeRefusal::Unknown),
     }
 }

@@ -114,9 +114,10 @@ impl Shell {
             }
             Ok(Merged::Refused(refusal)) => {
                 let mut text = merge_refusal_words(&refusal, words).into_owned();
-                if let MergeRefusal::Rejected { message }
+                if let MergeRefusal::Rejected { message, .. }
                 | MergeRefusal::NotMergeable {
                     message: Some(message),
+                    ..
                 } = &refusal
                 {
                     text.push('\n');

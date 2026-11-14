@@ -78,6 +78,24 @@ fn local_changes_unpushed_commits_or_another_head_offer_no_merge() {
 }
 
 #[test]
+fn a_worktree_with_nothing_over_its_base_offers_no_merge() {
+    let mut level = ready();
+    level.base = Some(Distance {
+        name: "main".parse().unwrap(),
+        ahead: 0,
+        behind: 2,
+    });
+    assert!(merge_methods(&whole(), &level).is_empty());
+    let mut ahead = level.clone();
+    ahead.base = Some(Distance {
+        name: "main".parse().unwrap(),
+        ahead: 1,
+        behind: 2,
+    });
+    assert!(!merge_methods(&whole(), &ahead).is_empty());
+}
+
+#[test]
 fn the_request_pins_the_number_and_the_head_seen() {
     let session = "00000000-0000-4000-8000-000000000042".parse().unwrap();
     let request = merge_request(session, &whole(), MergeMethod::Squash);

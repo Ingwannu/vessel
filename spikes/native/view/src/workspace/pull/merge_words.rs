@@ -26,13 +26,14 @@ pub fn merge_refusal_words<'a>(refusal: &MergeRefusal, catalog: &'a Translator) 
     let words = catalog.pulls();
     let text = match refusal {
         MergeRefusal::NoPullRequest => words.merge_missing(),
-        MergeRefusal::OtherPullRequest { number } => {
+        MergeRefusal::OtherPullRequest { number, .. } => {
             return words
                 .merge_other(&number.get().to_string())
                 .map_or(Cow::Borrowed(words.merge_refused_unknown()), Cow::Owned);
         }
         MergeRefusal::NotOpen {
             state: PullState::Merged,
+            ..
         } => words.merge_already(),
         MergeRefusal::NotOpen { .. } => words.merge_closed(),
         MergeRefusal::Draft => words.merge_draft(),
@@ -41,7 +42,7 @@ pub fn merge_refusal_words<'a>(refusal: &MergeRefusal, catalog: &'a Translator) 
         MergeRefusal::MethodNotAllowed => words.merge_method(),
         MergeRefusal::MergeQueue => words.merge_queue(),
         MergeRefusal::CannotPin => words.merge_pin(),
-        MergeRefusal::Access { access } => access_words(access, catalog),
+        MergeRefusal::Access { access, .. } => access_words(access, catalog),
         MergeRefusal::Rejected { .. } => words.merge_rejected(),
         MergeRefusal::Unknown => words.merge_refused_unknown(),
     };
