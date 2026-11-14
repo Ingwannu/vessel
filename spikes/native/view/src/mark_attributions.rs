@@ -40,9 +40,12 @@ pub const MARKS: [MarkAttribution; 5] = [
         mark: AgentMark::Gemini,
         name: "Gemini CLI",
         owner: "Google",
-        source: "https://github.com/google/adk-docs/blob/main/docs/integrations/assets/gemini-spark.svg",
+        // Google's own file, as the Gemini app (gemini.google.com) serves it
+        // from Google's CDN, unchanged; Google publishes no licence with it.
+        // The owner's word 30 (2026-11-14): the Gemini mark may be used.
+        source: "https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg",
         terms: "https://about.google/brand-resource-center/brand-elements/",
-        licence: Some("https://github.com/google/adk-docs/blob/main/LICENSE"),
+        licence: None,
     },
     MarkAttribution {
         mark: AgentMark::OpenCode,

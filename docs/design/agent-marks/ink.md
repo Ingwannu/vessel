@@ -72,7 +72,7 @@ plate and terminal-text snapshots, with no located bare or light variant
 of that product icon. No public, appropriately sourced bare alternative
 was located in this check; this does not assert none exists in Google's
 private brand resources. (Superseded 2026-11-14: the owner asked for the
-Gemini spark rather than the CLI plate, and Google's own
-`google/adk-docs` repository publishes the spark as a vector under
-Apache-2.0; see the source list. The spark's ink matches the reference's
-16 at 16, its gradient unchanged in both themes.)
+Gemini spark rather than the CLI plate; it is now Google's own file as the
+Gemini app serves it, see the source list. Its outline and inset are the
+same as the blue spark's before it, so the ink matches the reference's 16
+at 16; its four colours are the same in both themes.)

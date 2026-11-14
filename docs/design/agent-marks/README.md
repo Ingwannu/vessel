@@ -1,11 +1,10 @@
 # Agent artwork: sources and rights
 
-Retrieved 2026-11-13; Gemini replaced 2026-11-14. These trademarks belong
-to their respective owners; Vessel displays them to identify the agent,
-without endorsement. Vendor artwork is excluded from Vessel's licence.
-Only drawing path data is kept; no original archive or SVG file is
-redistributed. Gemini's spark comes from a Google repository published
-under Apache-2.0 (text beside this file), with trademark rights reserved.
+Retrieved 2026-11-13; Gemini replaced 2026-11-14 (twice: see its
+section). These trademarks belong to their respective owners; Vessel
+displays them to identify the agent, without endorsement. Vendor artwork
+is excluded from Vessel's licence. Only drawing path data is kept, except
+Gemini's: Google's own file, embedded unchanged.
 
 ## Claude Code
 
@@ -55,19 +54,41 @@ under Apache-2.0 (text beside this file), with trademark rights reserved.
 
 ## Gemini CLI
 
-- Mark: Google's Gemini spark, the "Standard product icon" export (vector, Google's own gradient `#346bf1` → `#3186ff` → `#4fa0ff`).
-- Source page: https://github.com/google/adk-docs/blob/main/docs/integrations/assets/gemini-spark.svg (Google's Agent Development Kit documentation, in the `google` organisation).
-- Download, pinned: https://raw.githubusercontent.com/google/adk-docs/94636546e5377a2cd74d90ae81c5b7874739dda6/docs/integrations/assets/gemini-spark.svg (commit "Update integrations assets (#1255)", 2026-02-06; git blob `62f07e26`).
-- Original SHA-256: `068b3fb370ae6473fea495e2ea05de028e7372d4bcef2fe3a9d4bc50f15c2d5e`.
-- Kept: the path and the gradient (stops, coordinates, transform) unchanged; dropped: the Illustrator comment, the element ids and the empty bounding rectangle. The 192-unit view box and its 8-unit inset are Google's.
-- Terms: https://github.com/google/adk-docs/blob/main/LICENSE (Apache-2.0, no NOTICE file) and https://about.google/brand-resource-center/brand-elements/
-- Terms summary: the repository distributes its files under Apache-2.0, allowing redistribution with the licence, but does not grant trademark rights. Google's product-icon guidance requires an approval request; keep the icon unchanged, attribute Google, and do not imply endorsement.
+- Mark: Google's Gemini spark as Google draws it today, in its four
+  colours (the owner, 2026-11-14, word 30: "the Gemini logo may of course
+  be used"; the coordinator: Google's own mark, from Google, never from
+  another product's files).
+- Source: the file the Gemini app (https://gemini.google.com/) loads from
+  Google's own CDN:
+  https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg
+  (fetched 2026-11-14 from the app's page, where it is the spark the page
+  draws).
+- SHA-256 of the file: `f56df33f86dc0c0257da337c63bf7ad68c0a1b27b796ec707e147984351bccb3`
+  (27,794 bytes). Embedded byte for byte as `kit/src/agent_mark/paths.rs`
+  `GEMINI`; nothing dropped.
+- What the file is: a 192-unit view box; the spark's outline (Google's 8-unit
+  inset, the same outline as before) is a vector clip, and its colours
+  are a 472 × 461 JPEG colour field embedded as a `data:` URI (nothing
+  reaches outside). GPUI's rasteriser draws embedded JPEG
+  (`resvg` with `raster-images`), so the outline stays sharp at every
+  scale and the colour field, a smooth blend, is resampled.
+- Terms: https://about.google/brand-resource-center/brand-elements/.
+  Google publishes no licence with the file; it is used only to identify
+  the Gemini agent, unchanged, attributed to Google, without implying
+  endorsement.
+- Not used, and why: the Gemini CLI brand kit
+  (https://geminicli.com/brand-kit/, Google's) is the CLI's own icon (a
+  prompt on a dark plate), not the Gemini mark the owner asked for; the
+  older blue spark on the same CDN
+  (`gemini_sparkle_v002_d4735304ff6292a690345.svg`) is Google's previous
+  colours; the four-colour PNG is a raster.
 
-Until 2026-11-14 the app showed the Gemini CLI application icon (a dark
-plate with a prompt, a 1645-pixel PNG from google-gemini/gemini-cli). The
-owner asked for the Gemini mark itself, the spark Paseo and GOAT show; the
-spark above replaces it, from Google's own repository, not from Paseo or
-an icon set. The PNG and its use are gone from the app.
+History: until 2026-11-14 the app showed the Gemini CLI application icon
+(a dark plate with a prompt, a PNG from google-gemini/gemini-cli); then,
+for 0.0.0.0.13 and 0.0.0.0.14, the blue spark from Google's
+`google/adk-docs` repository under Apache-2.0 (its licence text,
+`google-Apache-2.0.txt`, stays beside this file while the release build
+copies every text here; no Apache-2.0 artwork is embedded now).
 
 
 ## For the owner
