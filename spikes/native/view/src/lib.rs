@@ -20,9 +20,11 @@ pub mod brand;
 pub mod composer;
 mod conversation;
 pub mod devices;
+pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;
+pub mod idle_release;
 mod links;
 pub mod machine_book;
 pub mod machines;
@@ -32,6 +34,7 @@ pub mod models;
 pub mod notices;
 pub mod offers;
 mod options;
+pub mod overview;
 pub mod pairing;
 pub mod palette;
 pub mod panels;
@@ -53,7 +56,8 @@ pub mod workspace;
 
 pub use agent_mark::AgentMark;
 pub use board::{
-    Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
+    Agent, Attention, Card, Fleet, Lane, Machine, NodeVersion, Phrase, Reach, Via, agent_name,
+    rows_for_scroll,
 };
 pub use conversation::{Asked, Conversation, Entry, Notice, Speaker, ToolState};
 pub use links::is_web_url;
@@ -65,6 +69,6 @@ pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
     GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText,
-    NoticeWords, OptionsText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
-    UpdateText, grouped, meter_tokens, short_tokens,
+    NoticeWords, OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords,
+    SidebarWords, Text, UpdateText, grouped, meter_tokens, short_tokens,
 };

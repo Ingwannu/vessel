@@ -184,6 +184,7 @@ impl Demo {
                     sessions: on("laptop"),
                     agents: agents(),
                     protocol: Some(PROTOCOL_VERSION),
+                    version: None,
                 },
                 Machine {
                     name: "build-server".to_owned(),
@@ -191,6 +192,7 @@ impl Demo {
                     sessions: on("build-server"),
                     agents: agents(),
                     protocol: Some(PROTOCOL_VERSION),
+                    version: None,
                 },
                 Machine {
                     name: "old-box".to_owned(),
@@ -198,6 +200,7 @@ impl Demo {
                     sessions: Vec::new(),
                     agents: Vec::new(),
                     protocol: None,
+                    version: None,
                 },
             ],
             read_at: Some(now),

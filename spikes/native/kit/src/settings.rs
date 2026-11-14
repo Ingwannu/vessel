@@ -258,6 +258,58 @@ fn row_faced(
     compact: bool,
     tokens: &Tokens,
 ) -> Div {
+    let title = div()
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground)
+        .child(title.into())
+        .into_any_element();
+    row_of(
+        title, hint, hint_face, error, control, first, compact, tokens,
+    )
+}
+
+/// [`row_at`] whose title is the caller's element: a title with something
+/// beside it, as Paseo's rows put a `SettingsInfoTip` after their title.
+/// The element sets its own face (the row's title is [`Type::Body`] in the
+/// foreground).
+#[must_use]
+pub fn row_titled(
+    title: AnyElement,
+    hint: Option<SharedString>,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
+    row_of(
+        title,
+        hint,
+        Type::Meta,
+        error,
+        control,
+        first,
+        compact,
+        tokens,
+    )
+}
+
+/// The row's words (its title, then its hint and error under it) in the
+/// shared frame.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a row's parts, each optional, as its callers pass them"
+)]
+fn row_of(
+    title: AnyElement,
+    hint: Option<SharedString>,
+    hint_face: Type,
+    error: Option<SharedString>,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
     let mut words = div()
         .flex_1()
@@ -265,12 +317,7 @@ fn row_faced(
         .when(compact, |words| words.flex_basis(px(160.0)))
         .flex()
         .flex_col()
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(neutral.foreground)
-                .child(title.into()),
-        );
+        .child(title);
     if let Some(hint) = hint {
         words = words.child(
             div()

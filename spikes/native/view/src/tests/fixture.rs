@@ -73,6 +73,7 @@ pub(super) fn machine(name: &str, online: bool, sessions: &[SessionInfo]) -> Mac
             .collect(),
         agents: Vec::new(),
         protocol: online.then_some(vessel_proto::PROTOCOL_VERSION),
+        version: None,
     }
 }
 

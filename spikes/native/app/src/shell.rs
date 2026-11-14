@@ -208,6 +208,7 @@ impl Shell {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
+            Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Fleet(fleet) => {
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
@@ -394,6 +395,8 @@ impl Render for Shell {
         }
         self.settle_devices(window);
         self.settle_sync(window);
+        self.settle_host_agents(window);
+        self.settle_overview(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

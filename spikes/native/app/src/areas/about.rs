@@ -150,6 +150,8 @@ pub(crate) fn content(
         .flex_col()
         // The page's name for it: the page's title says About already.
         .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
+        // Paseo's "Connected hosts", Settings' (`settings/connected.rs`).
+        .children(crate::areas::settings::connected::section(shell, tokens, compact))
         .child(settings::section(about.software, licences, tokens))
         .child(marks::section(shell, tokens, compact, cx))
         .into_any_element()
