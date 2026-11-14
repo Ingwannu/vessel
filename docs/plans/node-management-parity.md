@@ -6,11 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: ADR 0064 and this plan. The first docs slice was returned; this
-  commit answers it in the ADR. Status is proposed. A foreground restart
-  on Linux runs the lock holder's executable, not `vesseld.owner`, and
-  gets the invoker's environment. Sibling settings keys are cited and
-  added at merge. Windows refusals are stated. No code.
+- Done: ADR 0064 and this plan. Status is proposed. A foreground restart
+  on Linux runs the lock holder's executable, not `vesseld.owner`. When
+  `readlink` of `/proc/<pid>/exe` ends in ` (deleted)` because the file
+  was replaced, restart runs the regular file now at that path only if
+  the record still names it. A missing path is its own refusal. The
+  invoker's environment, the sibling settings keys and the Windows
+  refusals are stated. No code.
 - Half-done: nothing.
 - Next: slice 2, after this commit's fast checks are green. A further
   return is fixed before slice 2.
@@ -163,6 +165,11 @@ the testkit's node, never a real agent and never the network:
   process group id is its own pid;
 - a record whose executable path was rewritten while the lock is held is
   refused, and the planted path is not executed;
+- a program replaced at its path while it runs (`readlink` ends with
+  ` (deleted)`) is restarted as the regular file now at that path when
+  the record still names it; a record that names another path is not
+  run; a missing path refuses with `the running program was replaced on
+  disk; start the node with vessel node start` and spawns nothing;
 - a process whose arguments were not read is a refusal that names
   `vessel node start`;
 - restart when nothing is running is a refusal;
@@ -219,7 +226,8 @@ The ADR has the full table. The ones a review will look for:
   0062, ADR 0069 and ADR 0065, added at merge;
 - a foreground restart runs the lock holder's executable and the
   invoker's environment, not the owner file and not the stopped
-  process's environment;
+  process's environment. A file replaced in place is the new file at
+  the kernel's path, not the ` (deleted)` text;
 - Windows has no service unit; `--force` and `restart` refuse with the
   ADR's sentences. macOS foreground restart refuses the same way when
   the executable cannot be confirmed without `unsafe`;

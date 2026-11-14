@@ -446,13 +446,34 @@ OS user and does not refuse the node user, so the mode is not this check.
 - Linux: the holder is the process id of the `flock` writer on
   `vesseld.lock` in `/proc/locks` (the lock file's device and inode), not
   a pid taken from the record alone. The executable is `readlink` of
-  `/proc/<pid>/exe` (the standard library, no `unsafe`). The arguments are
-  `/proc/<pid>/cmdline`, split on NUL. `holder()`'s pid must be that same
-  pid. A disagreement is the refusal above: nothing is signalled and
-  nothing is spawned from the file's pid or the file's path.
+  `/proc/<pid>/exe` (the standard library, no `unsafe`), except a result
+  that ends in ` (deleted)` and is not itself a file, which the next
+  point handles. The arguments are `/proc/<pid>/cmdline`, split on NUL.
+  `holder()`'s pid must be that same pid. A disagreement is the refusal
+  above: nothing is signalled and nothing is spawned from the file's pid
+  or the file's path.
 - The arguments must be non-empty, must include `--data-dir` of this
   directory, and must contain no NUL inside a field. Otherwise the refusal
   names `vessel node start` and does not guess `--bind none`.
+- A binary replaced while it runs (a rebuild, an install over the same
+  path, a package upgrade; not `vessel node update`, which stops and lets
+  the next attach start the new one) makes Linux `readlink` of
+  `/proc/<pid>/exe` return `<path> (deleted)`. That text is not a path to
+  execute, and comparing it with the record would refuse a normal upgrade
+  as a tampered record. Restart treats a `readlink` result that names an
+  existing file as the program, including one whose real name ends in
+  ` (deleted)`. When the result does not exist and ends with the suffix
+  ` (deleted)`, the path is the text without that suffix. Restart runs
+  the regular file now at that path only when the record's `executable`
+  is that same path. The path comes from the kernel; the record only has
+  to still name it, which is what the process stored from its own
+  `current_exe()` when it took the lock. A record rewritten to any other
+  path is the tamper refusal above and is not run. The new file is
+  whatever now stands at the path the kernel reported, the same path a
+  person would start again. Whoever can replace that file can already
+  choose what the next start runs. If that path is missing, or is not a
+  regular file, restart refuses with `the running program was replaced
+  on disk; start the node with vessel node start` and spawns nothing.
 - macOS: there is no `/proc`. `proc_pidpath` would name the executable of
   `holder()`'s pid, and calling it is `unsafe`, which this workspace
   forbids. A matching launchd unit is still restarted by the service
@@ -462,7 +483,10 @@ OS user and does not refuse the node user, so the mode is not this check.
   `forced stop cannot confirm the process holding the lock on this
   system`, rather than signalling or executing the record.
 - Slice 2 plants a different executable path in the record while the lock
-  is held. Restart refuses, and that path is not executed.
+  is held. Restart refuses, and that path is not executed. It also
+  replaces a running program at its path: the new file there is what
+  restart spawns, a record pointing somewhere else is not run, and a
+  missing path gets the replacement sentence above.
 
 ### Environment, stdio and the process group
 
