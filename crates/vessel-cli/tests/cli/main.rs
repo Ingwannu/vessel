@@ -23,6 +23,8 @@ mod fleet;
 #[cfg(test)]
 mod init;
 #[cfg(test)]
+mod logs;
+#[cfg(test)]
 mod mcp;
 mod nodes;
 #[cfg(test)]

@@ -14,6 +14,7 @@ mod conversation;
 mod fleet;
 mod forge;
 mod history;
+mod log;
 mod node;
 mod nodes;
 mod search;
@@ -27,6 +28,7 @@ pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
 pub(crate) use history::History;
+pub(crate) use log::Log;
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
@@ -133,13 +135,7 @@ pub(crate) enum Command {
     /// import one: `vessel run AGENT --structured --resume ID --cwd DIR`.
     History(History),
     /// Print a session's log.
-    Log {
-        /// Session id, or a unique prefix of one.
-        session: SessionSelector,
-        /// First record to print.
-        #[arg(long, default_value = "0", value_parser = parse_seq)]
-        from: EventSeq,
-    },
+    Log(Log),
     /// Stop a session (its whole process group).
     Kill {
         /// Session id, or a unique prefix of one.

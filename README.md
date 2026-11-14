@@ -80,6 +80,12 @@ cargo build --release
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 
+`vessel log ID --tail N` prints only the last N records after `--from`.
+Omit `--tail` to read the whole log; `--tail 0` prints nothing. A count must
+be a complete non-negative integer, validated before connecting. The tail
+window grows only as records arrive, without reserving the requested count.
+stdout keeps session output and stderr keeps status and retention notices.
+
 ### A conversation: the queue, files, questions, marks
 
 A structured session's next message can go in while its agent still

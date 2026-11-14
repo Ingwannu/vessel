@@ -282,15 +282,19 @@ No row of the crate table changes.
   protected drafts. Unwired services may be staged under `cfg(test)` until
   the shared accessor and call plumbing are ready; they are not a product
   build claim.
-- In progress, independent of wire assignment: log selectors are a source
-  draft using the existing read/follow cursor. Typed count, kind and timestamp
-  inputs precede connection. Tail follows time/kind selection; filtered gaps
-  separate streamed messages and cannot fabricate a retention warning. The
-  fake-node selection and history-to-live tests have not run yet.
+- Implementation slice 5a, verification pending: one-shot `--tail` reuses
+  the existing read/render path. The count is parsed before connection and
+  its window allocates only for actual records. Zero selects no history;
+  omission keeps the unbounded-by-count snapshot behavior. Raw pages prove
+  retention gaps; dropping earlier tail records never invents a notice.
+  Parser/window units and a fake-node CLI test remain unrun.
+- The full time/kind/follow implementation is a protected draft for slice 5b,
+  not part of the tail slice. It must reuse the tail type and window rather
+  than restating their rules. Existing render test expectations stay unchanged.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: report the independent decoder gate, then gate the log draft while
+- Next: report the independent decoder gate, then gate tail slice 5a while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Windows, macOS, native UI and real harnesses remain
   unverified.

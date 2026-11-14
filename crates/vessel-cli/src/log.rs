@@ -20,15 +20,13 @@
 //! - Cost: one write per change of stream instead of two per page; status
 //!   records are few, so this is a handful of extra writes per session.
 
-use vessel_client::NodeClient;
-use vessel_proto::{EventRecord, EventSeq, SessionEvent, SessionId};
+use vessel_proto::{EventRecord, EventSeq, SessionEvent};
 
-use crate::error::CliError;
-use crate::io;
 use crate::view::Conversation;
 
-/// Records asked for per page.
-const PAGE: u32 = 500;
+mod read;
+pub(crate) mod tail;
+pub(crate) use read::print;
 
 /// Which stream a run of text goes to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,29 +42,6 @@ enum Stream {
 struct Run {
     stream: Stream,
     text: Vec<u8>,
-}
-
-/// Print the log of `session` from `from` to its end.
-pub(crate) async fn print(
-    client: &NodeClient,
-    session: SessionId,
-    from: EventSeq,
-) -> Result<(), CliError> {
-    let mut conversation = Conversation::default();
-    let mut next = from;
-    loop {
-        let page = client.read(session, next, PAGE).await?;
-        for run in render(&mut conversation, next, &page.records) {
-            match run.stream {
-                Stream::Out => io::out(&run.text).await?,
-                Stream::Note => io::note_bytes(&run.text).await?,
-            }
-        }
-        next = page.next;
-        if page.at_end {
-            return Ok(());
-        }
-    }
 }
 
 /// A page as runs in record order. `expected` is the first record asked
@@ -89,11 +64,8 @@ fn render(
             }),
         }
     };
-    if let Some(first) = records.first()
-        && first.seq > expected
-    {
-        let pruned = format!("[vessel] records {expected}..{} were pruned\n", first.seq);
-        push(Stream::Note, pruned.as_bytes());
+    if let Some(notice) = pruned(expected, records) {
+        push(notice.stream, &notice.text);
     }
     for record in records {
         match &record.event {
@@ -116,6 +88,15 @@ fn render(
         }
     }
     runs
+}
+
+/// Only a raw page can prove pruning: omitting earlier tail records is selection.
+fn pruned(expected: EventSeq, records: &[EventRecord]) -> Option<Run> {
+    let first = records.first()?;
+    (first.seq > expected).then(|| Run {
+        stream: Stream::Note,
+        text: format!("[vessel] records {expected}..{} were pruned\n", first.seq).into_bytes(),
+    })
 }
 
 #[cfg(test)]

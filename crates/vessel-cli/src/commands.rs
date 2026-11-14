@@ -77,7 +77,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             attach::attach(&connected, &info, from).await
         }
         Command::Send(send) => conversation::send(target, send).await,
-        Command::Log { session, from } => log(target, &session, from).await,
+        Command::Log(log) => log_command(target, &log).await,
         Command::Search(search) => crate::search::search(target, search).await,
         Command::History(history) => crate::history::history(target, history).await,
         Command::Kill { session } => {
@@ -367,10 +367,10 @@ pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, Cli
 }
 
 /// Print a session's log (see `log` for the order of stdout and stderr).
-async fn log(target: &Target, session: &SessionSelector, from: EventSeq) -> Result<(), CliError> {
+async fn log_command(target: &Target, log: &crate::args::Log) -> Result<(), CliError> {
     let client = connect(target).await?.client;
-    let info = session.resolve(&client).await?;
-    crate::log::print(&client, info.id, from).await
+    let info = log.session.resolve(&client).await?;
+    crate::log::print(&client, info.id, log.from, log.tail).await
 }
 
 #[cfg(test)]
