@@ -844,6 +844,23 @@ never rebuilt.
   - The usual checks passed. The 4 headless WARNs (no desktop portal on
     Xvfb) are the same as in 0.0.0.0.12's run.
 
+- **0.0.0.0.14**:
+  - Built from exactly `a792d766`, the desktop lead's head (the native
+    gate passed at `52344564`; above it only plans), checked out
+    detached; this branch then merged it.
+  - The set went into place at 06:04:53 UTC on 2026-11-14. It is not
+    published yet: the coordinator checks it on the real node first.
+  - In it: the slider's fill inside its pill, popovers that take the
+    pointer, the card's decorations at 30 frames a second coming to
+    rest, the whole app's motion held still on a software renderer, and
+    no redraw for an unchanged fleet read.
+  - Sizes, with the change against 0.0.0.0.13: setup 12,751,182
+    (+4,183), exe 46,177,792 (+34,816), zip 18,583,488 (+16,508), linux
+    82,676,920 (+6,664), tar.gz 28,748,306 (+16,030).
+  - The usual checks passed. On Xvfb the shipped Linux build logged "a
+    software renderer: the app holds its motion still" and used 0.3% of
+    a core over 15 s on its first screen with no node.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
