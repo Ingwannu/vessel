@@ -197,7 +197,7 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor().timer(REFRESH_EVERY).await;
-                let alive = this.update(cx, |shell, cx| {
+                let alive = this.update(cx, |shell, _cx| {
                     let visibility = match (shell.code_git_context(), &shell.areas.git.target) {
                         (Some((machine, root)), Some(target))
                             if machine == target.machine && *root == target.root =>
@@ -218,9 +218,11 @@ impl Shell {
                     } else {
                         visibility
                     };
+                    // A background read changes nothing drawn (the facts
+                    // shown stay; only a running write greys a row), so it
+                    // asks for no frame: an idle panel draws nothing.
                     if should_refresh(&git.status, &git.writing, visibility) {
                         shell.git_read_status();
-                        cx.notify();
                     }
                 });
                 if alive.is_err() {

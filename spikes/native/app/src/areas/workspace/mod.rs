@@ -107,13 +107,16 @@ impl Shell {
         }
     }
 
-    /// A machine answered a workspace ask.
+    /// A machine answered a workspace ask. Returns whether what is drawn
+    /// may have changed; `false` only for an answer that changed nothing
+    /// (track G1's refresh of an unchanged status), so the shell asks for
+    /// no frame.
     pub(crate) fn workspace_answer(
         &mut self,
         machine: &str,
         answer: Answer,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
         match answer {
             Answer::Projects(result) => {
                 let _was = self
@@ -160,7 +163,13 @@ impl Shell {
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             // Track G1's: the git toolbar's reads and writes.
-            Answer::Status { root, result } => self.git_status_read(machine, &root, result),
+            Answer::Status { root, result } => {
+                // An unchanged status asks for no frame (track G1's
+                // five-second refresh of an idle panel draws nothing).
+                if !self.git_status_read(machine, &root, result) {
+                    return false;
+                }
+            }
             Answer::Stashes { root, result } => self.git_stashes_read(machine, &root, result),
             Answer::Git { write, result } => self.git_written(machine, &write, result, cx),
             // Track G1b's: the pull request form's defaults and its calls.
@@ -170,5 +179,6 @@ impl Shell {
             Answer::Saved { .. } => {}
         }
         cx.notify();
+        true
     }
 }

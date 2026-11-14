@@ -257,7 +257,13 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
-            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
+            Event::Workspace { machine, answer } => {
+                // An answer that changed nothing drawn asks for no frame
+                // (an idle git panel refreshes every five seconds).
+                if !self.workspace_answer(&machine, answer, cx) {
+                    return;
+                }
+            }
             Event::Searched(answer) => self.message_searched(answer, cx),
         }
         cx.notify();

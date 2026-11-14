@@ -37,16 +37,25 @@ impl Shell {
     }
 
     /// `git.status` answered.
+    ///
+    /// Returns whether what is drawn changed: the five-second refresh of an
+    /// unchanged repository must not redraw the window (measured: 0.45 s of
+    /// a core per refresh under a software renderer, 9.7 % idle CPU with the
+    /// panel open, against 0.6 % closed).
     pub(crate) fn git_status_read(
         &mut self,
         machine: &str,
         root: &WorkspaceRoot,
         result: Result<GitStatus, Problem>,
-    ) {
+    ) -> bool {
         if !self.git_follows(machine, root) {
-            return;
+            return false;
         }
         let git = &mut self.areas.git;
+        let unchanged = matches!(
+            (&result, git.status.shown()),
+            (Ok(read), Some(shown)) if read == shown
+        );
         if let Some(key) = git.status.outstanding() {
             let _taken = git.status.accept(key, result);
         }
@@ -55,6 +64,7 @@ impl Shell {
         if let (Some(Open::Commit), Some(status)) = (&git.open, git.status.ready()) {
             git.files.reset(commit_files(status, git.stage).count());
         }
+        !unchanged
     }
 
     /// `git.branches` answered.
