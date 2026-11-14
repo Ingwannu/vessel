@@ -185,6 +185,12 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if self.since() <= protocol
+            && let Self::UsageChanged { usage } = self
+            && let Some(usage) = usage.for_protocol(protocol)
+        {
+            return Some(Self::UsageChanged { usage });
+        }
         if self.since() <= protocol {
             return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }

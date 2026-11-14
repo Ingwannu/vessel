@@ -367,13 +367,47 @@ END;
 /// retention and is independent of the partial transcript tail.
 const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
 
-/// A session title's origin (schema 15, ADR 0062). `NULL` is unknown: a
-/// row from before this version, which generation does not replace.
+/// The usage ledger (schema 15). Reported usage is independent of the
+/// event byte cap, but deleted with its session. Baselines belong to
+/// native sessions, not agent processes.
+const USAGE_LEDGER: &str = "
+ALTER TABLE sessions ADD COLUMN usage_cost_baseline TEXT;
+CREATE TABLE usage_meta (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    started_at INTEGER NOT NULL,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    pruned_through INTEGER
+) STRICT;
+INSERT INTO usage_meta(singleton, started_at) VALUES (1, unixepoch() * 1000000000);
+CREATE TABLE usage_samples (
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    harness TEXT NOT NULL,
+    profile TEXT NOT NULL,
+    sample TEXT NOT NULL,
+    PRIMARY KEY(session_id, seq)
+) STRICT, WITHOUT ROWID;
+CREATE INDEX usage_time ON usage_samples(at);
+CREATE TRIGGER usage_count_insert AFTER INSERT ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count + 1;
+END;
+CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
+    UPDATE usage_meta SET sample_count = sample_count - 1;
+END;
+";
+
+/// The provisional title-origin schema follows the integrated ledger.
+/// Integration changes this one assignment when another migration lands.
+const TITLE_ORIGIN_SCHEMA: usize = 16;
+
+/// A session title's origin (ADR 0062). `NULL` is unknown: a row from
+/// before this migration, which generation does not replace.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-const MIGRATIONS: &[&str] = &[
+const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -388,6 +422,7 @@ const MIGRATIONS: &[&str] = &[
     V12,
     V13,
     SIDE_CONTEXT,
+    USAGE_LEDGER,
     TITLE_ORIGIN,
 ];
 

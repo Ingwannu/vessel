@@ -222,6 +222,7 @@ impl Unary for vessel_proto::automation::ResumeSchedule {}
 impl Unary for vessel_proto::automation::RunSchedule {}
 impl Unary for vessel_proto::automation::DeleteSchedule {}
 impl Unary for vessel_proto::automation::ListRuns {}
+impl Unary for vessel_proto::usage::QueryUsage {}
 impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
@@ -427,6 +428,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt

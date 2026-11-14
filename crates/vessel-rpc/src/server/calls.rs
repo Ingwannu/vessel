@@ -344,14 +344,15 @@ mod protocol_tests {
     #[test]
     fn unassigned_and_newer_calls_are_refused_before_dispatch() {
         let method = vessel_proto::Method::NodeInfo;
-        let old = ProtocolVersion::new(4);
+        let old = vessel_proto::MIN_PROTOCOL_VERSION;
         let pending = protocol_refusal(method, None, old).unwrap();
         assert_eq!(pending.code, ErrorCode::Unsupported);
         assert!(pending.message.contains("not assigned"));
-        let newer = ProtocolVersion::new(5);
+        let newer = vessel_proto::PROTOCOL_VERSION;
         let denied = protocol_refusal(method, Some(newer), old).unwrap();
         assert_eq!(denied.code, ErrorCode::Unsupported);
-        assert!(denied.message.contains("needs protocol 5"));
+        let expected = format!("needs protocol {newer}");
+        assert!(denied.message.contains(expected.as_str()));
         assert!(protocol_refusal(method, Some(newer), newer).is_none());
         assert!(protocol_refusal(method, Some(old), newer).is_none());
     }

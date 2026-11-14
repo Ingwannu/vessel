@@ -94,7 +94,7 @@ async fn origins_follow_renames_and_survive_reopening() {
 }
 
 #[tokio::test]
-async fn schema_fourteen_titles_are_unknown_including_explicit_ones() {
+async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;
     let mut info = new_session(0);
@@ -105,10 +105,15 @@ async fn schema_fourteen_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    let latest: i64 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
-    connection.pragma_update(None, "user_version", 14).unwrap();
+    connection
+        .pragma_update(None, "user_version", latest.checked_sub(1).unwrap())
+        .unwrap();
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;
     let stored = store.session(info.id).await.unwrap().unwrap();

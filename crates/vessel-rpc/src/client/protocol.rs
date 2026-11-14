@@ -31,11 +31,11 @@ mod tests {
     #[test]
     fn unassigned_and_newer_requirements_are_refused_without_a_numeric_stand_in() {
         let method = Method::NodeInfo;
-        let old = ProtocolVersion::new(4);
+        let old = vessel_proto::MIN_PROTOCOL_VERSION;
         let pending = check(method, None, old).unwrap_err();
         assert_eq!(pending, CallError::UnassignedProtocol { method });
         assert_eq!(pending.code(), Some(vessel_proto::ErrorCode::Unsupported));
-        let required = ProtocolVersion::new(5);
+        let required = vessel_proto::PROTOCOL_VERSION;
         assert_eq!(
             check(method, Some(required), old),
             Err(CallError::NotInProtocol {
