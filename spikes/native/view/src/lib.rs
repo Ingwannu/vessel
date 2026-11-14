@@ -34,6 +34,7 @@ pub mod models;
 pub mod notices;
 pub mod offers;
 mod options;
+pub mod overview;
 pub mod pairing;
 pub mod palette;
 pub mod panels;
@@ -67,6 +68,6 @@ pub use options::{
 pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, Lang, MachinesText, MarkText, NoticeWords,
-    OptionsText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
-    grouped, meter_tokens, short_tokens,
+    OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    UpdateText, grouped, meter_tokens, short_tokens,
 };

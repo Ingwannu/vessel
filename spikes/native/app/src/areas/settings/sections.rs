@@ -22,7 +22,9 @@ use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_view::settings::{Section, Surface};
 
-use super::{agents, appearance, chat, choices, devices, diagnostics, general, host_agents, sync};
+use super::{
+    agents, appearance, chat, choices, devices, diagnostics, general, host_agents, overview, sync,
+};
 use crate::shell::Shell;
 
 /// The surface this build runs on: a phone build is Android's, a browser
@@ -62,6 +64,9 @@ fn page(section: Section) -> Option<Draw> {
         Section::Devices => {
             Some(|shell, tokens, phone, _, cx| devices::render(shell, tokens, phone, cx))
         }
+        Section::Overview => {
+            Some(|shell, tokens, phone, _, cx| overview::render(shell, tokens, phone, cx))
+        }
         Section::Agents => {
             Some(|shell, tokens, phone, _, cx| host_agents::render(shell, tokens, phone, cx))
         }
@@ -71,9 +76,8 @@ fn page(section: Section) -> Option<Draw> {
         }
         Section::Shortcuts => Some(crate::areas::shortcuts::page::render),
         // Not drawn yet. Sidebar and Notifications wait on S3's sidebar
-        // reading its items and on notifications being delivered. Overview
-        // is this track's next slice; the rest have nothing behind them in
-        // Vessel yet.
+        // reading its items and on notifications being delivered; the rest
+        // have nothing behind them in Vessel yet.
         Section::Sidebar
         | Section::Terminal
         | Section::Browser
@@ -82,7 +86,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Integrations
         | Section::Notifications
         | Section::Permissions
-        | Section::Overview
         | Section::Connections
         | Section::Metadata
         | Section::Voice

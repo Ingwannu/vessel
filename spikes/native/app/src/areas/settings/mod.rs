@@ -40,6 +40,7 @@ mod host_agents;
 mod language;
 mod motion;
 mod nav;
+mod overview;
 pub(crate) mod page;
 mod prefer;
 mod sections;
@@ -92,6 +93,7 @@ pub(crate) struct SettingsState {
     pub(crate) devices: devices::Devices,
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
+    overview: overview::State,
     language: language::State,
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
@@ -115,6 +117,7 @@ impl SettingsState {
             devices: devices::Devices::new(window, cx),
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
+            overview: overview::State::new(window, cx),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,
@@ -351,6 +354,7 @@ pub(crate) fn render(
         .children(agents::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
         .children(diagnostics::dialogs(shell, tokens, window, cx))
+        .children(overview::dialogs(shell, tokens, window, cx))
 }
 
 /// The section shown, as a page: its title, a refused change above its

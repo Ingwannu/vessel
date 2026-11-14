@@ -190,6 +190,20 @@ impl NodeVersion {
     pub fn new(version: impl Into<String>) -> Self {
         Self(version.into())
     }
+
+    /// As a badge or a value shows it (Paseo's `formatDaemonVersionBadge`):
+    /// "v" before it unless it has one; `None` when it is blank.
+    #[must_use]
+    pub fn label(&self) -> Option<String> {
+        let version = self.0.trim();
+        if version.is_empty() {
+            None
+        } else if version.starts_with('v') {
+            Some(version.to_owned())
+        } else {
+            Some(format!("v{version}"))
+        }
+    }
 }
 
 impl std::fmt::Display for NodeVersion {

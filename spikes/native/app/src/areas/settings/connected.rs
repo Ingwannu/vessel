@@ -49,9 +49,12 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, compact: bool) -> Option<D
 
 /// What the row's value says (Paseo's `formatVersionWithPrefix`).
 fn version_text(machine: &Machine, offline: &str) -> String {
-    match (&machine.reach, &machine.version) {
-        (Reach::Unreachable(_), _) => offline.to_owned(),
-        (Reach::Online, Some(version)) => format!("v{version}"),
-        (Reach::Online, None) => "—".to_owned(),
+    match &machine.reach {
+        Reach::Unreachable(_) => offline.to_owned(),
+        Reach::Online => machine
+            .version
+            .as_ref()
+            .and_then(vessel_app_view::NodeVersion::label)
+            .unwrap_or_else(|| "—".to_owned()),
     }
 }

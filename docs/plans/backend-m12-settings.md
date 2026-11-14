@@ -454,3 +454,46 @@ other than an hour are shown, and lost when the switch is turned off and
 on (the command line still sets any number). Not shown, nothing behind
 them in Vessel: Paseo tools, browser tools, the appended system prompt,
 resume after restart, skills, agent profiles.
+
+### Slice 4: the machine's Overview
+
+Followed: `screens/settings/host-page.tsx` (`HostSettingsPage`,
+`HostStatusBadges`, `HostConnectionError`, `RemoveHostSection`),
+`screens/settings/host-appearance-section.tsx` (`HostAppearanceSection`,
+`HostRenameButton`), `components/rename-modal.tsx`
+(`AdaptiveRenameModal`); labels from `en.ts` and `ko.ts`
+(`settings.host.appearance`, `daemon.rename`, `daemon.dangerZone`,
+`daemon.remove`), "machine" where Paseo says "host".
+
+- **Badges**: the status ("Online", or "Offline" in Paseo's warning
+  tone), how the book reaches the machine (Direct, Over SSH, Paired; read
+  from the book when the page is shown), the node's version ("v0.1.0",
+  `NodeVersion::label`, shared with About).
+- **Not answering**: Paseo's connection-error alert, in the app's own
+  words (the sidebar's sentence), not the connection's raw error.
+- **Appearance › Name**: the name, muted, and a pencil that opens Paseo's
+  rename dialog: the field holds the name, Rename is off while the name
+  is unchanged or being saved, an invalid name says why after Rename
+  (Paseo clears it as the name is typed again), the dialog stays open
+  until the book answers and shows its refusal inside.
+- **Danger zone › Remove machine**: Paseo's row and confirm ("Remove
+  laptop? This will delete its saved connection."); the confirm stays
+  open until the book answers. The machine leaves the book (the CLI's
+  `nodes remove`), never its node.
+- **Rules** (`view::overview`, tested): what the typed name asks for
+  (unchanged, a rename, or why not; a name another machine has is
+  refused here first), and a dialog closing only on its own edit's
+  success.
+- The book's edits are the existing `link::machines` actor; the page's
+  own dialog says a refusal, so `book.rs` no longer repeats it as a
+  notice.
+
+Left out, nothing behind them yet: Paseo's colour and sidebar-badge rows
+(the app keeps no machine appearance), "Restart daemon" and "Update
+daemon" (the node-control track brings the calls). Stand-ins until the
+shared controls land: the pencil is a plain glyph button (G2's
+`host_rename_button` is not on the lead's branch), Remove has no Trash2
+before its label (the kit's button has no leading content yet), the
+name is not selected when the dialog opens (no select-all in the kit's
+field yet). The badges are the kit's (pills on `surface3`, where Paseo's
+are bare outlines).

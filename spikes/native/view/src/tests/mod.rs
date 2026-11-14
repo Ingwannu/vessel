@@ -21,6 +21,7 @@ mod machines;
 mod models;
 mod notices;
 mod options;
+mod overview;
 mod palette;
 mod prefs;
 mod search;
