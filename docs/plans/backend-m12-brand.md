@@ -47,6 +47,21 @@ measured ratios.
 - Window controls: the mark's loops read only from 12 pt at scale 1; at
   9 pt they are mush. The one-line glyphs with the mark's rules read at
   9 pt.
+- Cost (the lead's method: release build, software renderer, 1280 × 800
+  at scale 1, `top` over 5 s after 25 s still; compared with the lead's
+  build without the drawing, two runs each): CPU at rest 0.4–0.8 % with
+  the drawing and 0.4–0.6 % without, on the new session and the open
+  session alike, also right after a journey that ran (motion kept on).
+  Memory: new session 192–195 MB against 188–190 (one raster); open
+  session 228–230 MB against 213–215 (the frame's raster, and the
+  avatars the capture build adds to every reply), the same after a
+  journey that ran.
+- The journey, captured 20 times slower: the move (the V opening into
+  the frame, the star travelling and shrinking), star to circle, then
+  the ring and the agent's mark, in order, both themes. While the arms
+  move they cross the conversation's text for about the first third of
+  the move (about 60 ms at full speed, at the quiet ink); at rest they
+  never do.
 
 ## Problems met (what was run, what happened)
 
@@ -72,6 +87,19 @@ measured ratios.
   1.25 and 1.5 (the lead's capture): a one-unit stroke straddles two
   device rows. The glyphs are now drawn in device pixels from their own
   snapped origin, the line `⌊scale + ¼⌋` pixels.
+- The first cost measurement showed the open session 75 MB above the
+  build without the drawing. The first guess (twelve kept journey frames)
+  was wrong: keeping at most two large rasters changed nothing (289 MB
+  again), and the software renderer holds motion still, so no journey had
+  run. The cause was the raster's box: the shapes' whole extent, and the
+  open session's frame meets its apex far below the screen. The backdrop
+  now rasterises only the area it fills (228–230 MB).
+- A test run from an earlier gate kept going after its clippy failed and
+  wrote into the next gate's log; each gate now runs as one chain that
+  stops at the first failure and writes fresh logs.
+- One app launch on the virtual display failed with "failed to connect to
+  X server: Unknown connection error" while the server was up; the same
+  command a minute later worked.
 
 ## Open
 
@@ -84,4 +112,10 @@ measured ratios.
   star lands where the reply will start. Until C mounts it the star
   travels to the column's left at the conversation's first rows.
 - The window glyphs and the panel's two-line edge are kit controls; the
-  lead mounts them in the chrome and the shell.
+  lead mounts them in the chrome and the shell, with 4 points of margin
+  above the panel and left of it while the sidebar shows (the outer line
+  sits one pitch outside). Once the sidebar's resize handle (owner's word
+  29: a 1-pixel line at 25 % ink on the frame's left edge while hovered)
+  is in, a capture checks that it and the outer line do not read as one.
+- Whether the arms should fade while they cross the conversation during
+  the move is the owner's to judge from the frame strip.

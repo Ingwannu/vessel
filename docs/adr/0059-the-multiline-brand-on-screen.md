@@ -95,9 +95,11 @@ one way to draw a vector sharply.
   drawing is the mark.
 - The drawing depends on boxes the screens report; a screen that reports
   nothing shows no drawing (the board, settings), which is intended.
-- A layout change rasterises the drawing once; a journey rasterises about
-  eighteen frames. The idle cost is measured against a build without the
-  drawing (the lead's method: release build, software renderer, `top`
-  over five seconds) in `docs/plans/backend-m12-brand.md`.
+- A layout change rasterises the drawing once, only the area it fills; a
+  journey rasterises about eighteen frames, of which the cache keeps two.
+  Measured against a build without the drawing (the lead's method:
+  release build, software renderer, `top` over five seconds): no CPU at
+  rest beyond it, about 5 MB more memory on the new session and 15 MB on
+  the open session (`docs/plans/backend-m12-brand.md`).
 - The owner may still choose option 1 or 3; both are drawn in the study
   and option 3's geometry is the same module's to add.

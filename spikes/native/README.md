@@ -283,10 +283,12 @@ and 390 wide) and check it never comes within 12 points of text.
 `kit::vector` paints shapes it is given (points with a stroke or a fill,
 a share of one theme ink) as the agent marks are painted: rasterised at
 exactly the device pixels they cover and drawn 1:1, cached by content
-(twelve rasters; one pushed out is dropped from GPUI's atlas).
-`vector::drawing` makes its shapes at paint time, so a backdrop can use
-boxes the content measured in the same frame; `vector::inline` draws in a
-box of its own (the avatar).
+(twelve rasters, at most two of them panel-sized; one pushed out is
+dropped from GPUI's atlas). `vector::drawing` makes its shapes at paint
+time, so a backdrop can use boxes the content measured in the same frame,
+and rasterises only the area it fills (the open session's frame runs far
+below the screen); `vector::inline` draws in a box of its own (the
+avatar).
 
 `app::brand` is the shell's `brand`: the new session's column gives
 `on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
