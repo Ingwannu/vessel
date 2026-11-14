@@ -84,7 +84,6 @@ async fn stored_sessions_do_not_guess_a_current_profile_after_restart() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn only_a_successful_profile_move_changes_the_sessions_saved_login_binding() {
     use crate::support::{ask, read_until, status_of, structured_spec};
-    use vessel_harness::fakes::claude_project;
     use vessel_proto::{EventSeq, SessionStatus};
     within(async {
         let fixture = Fixture::new();
@@ -158,15 +157,7 @@ async fn only_a_successful_profile_move_changes_the_sessions_saved_login_binding
         let unchanged = owner.usage_limits(request()).await.unwrap();
         assert_eq!(unchanged.account.profile.unwrap().as_str(), "source");
         assert!(matches!(unchanged.state, AccountLimitState::Ready { .. }));
-        let native = owner
-            .session(session)
-            .await
-            .unwrap()
-            .harness_session
-            .unwrap();
-        let project = claude_project(&source, &fixture.cwd()).unwrap();
-        std::fs::create_dir_all(&project).unwrap();
-        std::fs::write(project.join(format!("{native}.jsonl")), "{}\n").unwrap();
+        saved_transcript(&owner, session, &source, &fixture.cwd()).await;
         let _saved = owner
             .move_profile(session, Some("target".parse().unwrap()), false)
             .await
@@ -266,4 +257,21 @@ async fn rewind_preserving_login(
         .unwrap();
     assert_eq!(reply.account.profile.unwrap().as_str(), "source");
     assert!(matches!(reply.state, AccountLimitState::Ready { .. }));
+}
+
+async fn saved_transcript(
+    owner: &vessel_client::NodeClient,
+    session: vessel_proto::SessionId,
+    source: &std::path::Path,
+    cwd: &std::path::Path,
+) {
+    let native = owner
+        .session(session)
+        .await
+        .unwrap()
+        .harness_session
+        .unwrap();
+    let project = vessel_harness::fakes::claude_project(source, cwd).unwrap();
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(project.join(format!("{native}.jsonl")), "{}\n").unwrap();
 }
