@@ -22,12 +22,20 @@
 //!   at most 220 high, scrolling, the chosen row kept in view; the loading,
 //!   empty and failed states as one muted line 12 inside.
 //! - Cost: a second list look beside the combobox's, as Paseo has.
+//!
+//! Motion (the owner's word 39; Paseo's list has none): the chosen row's
+//! fill comes in over the screen's [`Motion`] when the choice moves, and is
+//! there at once under reduced motion (GPUI's animations end at once then).
+//! The list's own opening and closing are the screen's (it knows when it
+//! stops drawing the list).
 
 use std::cell::Cell;
+use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, ClickEvent, Context, Div, ElementId, ScrollHandle, SharedString, Window, div, px,
+    Animation, AnimationExt as _, AnyElement, ClickEvent, Context, Div, ElementId, ScrollHandle,
+    SharedString, Window, div, px,
 };
 
 use crate::assets::Glyph;
@@ -106,15 +114,43 @@ impl AutocompleteState {
     }
 }
 
+/// How a change in the list moves: its easing and length, from the app's
+/// one set of motion tokens (the kit has none of its own, and cannot read
+/// the view's).
+#[derive(Debug, Clone, Copy)]
+pub struct Motion {
+    /// The curve, from 0 to 1.
+    pub ease: fn(f32) -> f32,
+    /// How long.
+    pub length: Duration,
+}
+
+impl Motion {
+    /// No motion: every change at once (examples, tests).
+    pub const NONE: Self = Self {
+        ease: linear,
+        length: Duration::ZERO,
+    };
+}
+
+const fn linear(progress: f32) -> f32 {
+    progress
+}
+
 /// The list over the composer: the chosen command's card (when it has a
 /// description), then the rows or the one line saying why there are none.
 /// `on_choose` takes a clicked row's index.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a list is drawn from its rows, its choice, its state, what a click does and how it moves"
+)]
 pub fn autocomplete<V: 'static>(
     id: impl Into<SharedString>,
     listing: &Listing,
     chosen: Option<usize>,
     state: &AutocompleteState,
     on_choose: fn(&mut V, usize, &mut Window, &mut Context<'_, V>),
+    motion: Motion,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> Div {
@@ -154,16 +190,28 @@ pub fn autocomplete<V: 'static>(
         .track_scroll(&state.scroll)
         .py(px(spacing::S1))
         .children(rows.iter().enumerate().map(|(index, row)| {
-            row_element(
-                ElementId::NamedInteger(id.clone(), u64::try_from(index).unwrap_or(u64::MAX)),
-                row,
-                chosen == Some(index),
-                tokens,
-            )
-            .on_click(cx.listener(move |view, _event: &ClickEvent, window, cx| {
-                on_choose(view, index, window, cx);
-            }))
-            .into_any_element()
+            let number = u64::try_from(index).unwrap_or(u64::MAX);
+            let element = row_element(ElementId::NamedInteger(id.clone(), number), row, tokens)
+                .on_click(cx.listener(move |view, _event: &ClickEvent, window, cx| {
+                    on_choose(view, index, window, cx);
+                }));
+            if chosen != Some(index) {
+                return element.into_any_element();
+            }
+            let fill = Surfaces::of(tokens).surface2;
+            if motion.length.is_zero() {
+                return element.bg(fill).into_any_element();
+            }
+            // A new id for each chosen row: the fill comes in again when
+            // the choice moves (GPUI drops an animation's state when its
+            // element is not drawn).
+            element
+                .with_animation(
+                    ElementId::NamedInteger(format!("{id}-chosen").into(), number),
+                    Animation::new(motion.length).with_easing(motion.ease),
+                    move |row, shown| row.bg(fill.opacity(shown)),
+                )
+                .into_any_element()
         }));
     div()
         .flex()
@@ -201,11 +249,11 @@ fn note(words: impl Into<SharedString>, tokens: &Tokens) -> Div {
         .child(words.into())
 }
 
-/// One row; its fill is `surface2` when chosen or under the pointer.
+/// One row; its fill is `surface2` under the pointer (and when chosen: the
+/// caller's, with its motion).
 fn row_element(
     id: impl Into<ElementId>,
     row: &AutocompleteRow,
-    chosen: bool,
     tokens: &Tokens,
 ) -> gpui::Stateful<Div> {
     let neutral = tokens.neutral;
@@ -219,7 +267,6 @@ fn row_element(
         .px(px(spacing::S3))
         .py(px(spacing::S2))
         .cursor_pointer()
-        .when(chosen, |frame| frame.bg(surfaces.surface2))
         .hover(move |style| style.bg(surfaces.surface2));
     let label = div()
         .type_(Type::Body)

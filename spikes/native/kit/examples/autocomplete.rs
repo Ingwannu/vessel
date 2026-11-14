@@ -139,6 +139,7 @@ impl Render for Sheet {
                         self.chosen,
                         &self.state,
                         Self::choose,
+                        vessel_app_kit::autocomplete::Motion::NONE,
                         &tokens,
                         cx,
                     )),
