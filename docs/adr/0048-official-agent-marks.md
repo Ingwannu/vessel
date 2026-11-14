@@ -55,9 +55,9 @@ attributions are kept in `docs/design/agent-marks/README.md`.
 - Claude uses Anthropic's official Clay Spark. Codex uses its vendor
   OpenAI's official black/white Blossom (not a redraw of the terminal
   prompt). The source's inset is preserved. Gemini uses Google's Gemini
-  spark, the vector "Standard product icon" with its own gradient, from
-  Google's Apache-2.0 `google/adk-docs` repository (amended 2026-11-14;
-  until then the Gemini CLI app icon, a PNG plate). Nothing is traced.
+  spark in its four colours, Google's own file as the Gemini app serves it
+  (amended twice on 2026-11-14; before, the Gemini CLI app icon, a PNG
+  plate, then the blue spark from `google/adk-docs`). Nothing is traced.
 - Requested sizes target the reference's painted ink. Full image viewports
   retain their clear space and may be wider than the nominal slot; the
   measured boxes/differences are recorded in `docs/design/agent-marks/ink.md`.
@@ -168,3 +168,20 @@ and Gemini shown as a terminal plate rather than Gemini's mark.
   each crop compared with librsvg at the same device box (numbers in the
   source list). Google's approval requirement for product icons remains
   the owner's, as before.
+
+## Amendment 2026-11-14 (second): Gemini's mark from Google itself
+
+The owner's word 30: the Gemini mark may of course be used; the
+coordinator: Google's own mark, from Google, never from another
+product's files (the spark above came from Google's ADK documentation).
+
+- Gemini is now the file the Gemini app loads from Google's CDN, embedded
+  byte for byte (source, hash and terms in the source list): the spark's
+  vector outline over a JPEG colour field in Google's four colours,
+  embedded as `data:`. The kit's rule that embedded drawings are inert
+  vectors keeps "no script, no link" for all and allows that one embedded
+  raster for Gemini only (`embedded_drawings_are_inert_vectors`).
+- Not redrawn as gradients: Google's mark is used unchanged.
+- The outline and inset are the old spark's, so its ink and the pills'
+  geometry are unchanged; the sharpness sheet at the four scales is the
+  same proof as above.
