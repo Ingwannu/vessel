@@ -697,6 +697,94 @@ modifier held alone is not shown before the key (GPUI's interceptor
 hears keys, not modifier changes); the row menu has no leading glyphs
 (the kit's menu has none yet).
 
+### Word 39: Animations setting and the shell's transitions (track S3, 2026-11-14)
+
+Commits: `17bfe083` (Settings › Appearance › Animations, and the setting
+holds every motion), `9f237519` (the kit's surfaces arrive on the motion
+tokens), `a1fa3c4c` (the combobox's placement in its own function),
+`49ac8dae` (a page fades in; the palette's keyboard row fills in).
+
+[Decision Log]
+- Purpose: the owner's word 39: every change a person causes has a short
+  transition; a setting turns them off and then every change is instant;
+  nothing animates while the screen is still.
+- Tokens: the lead's `kit::motion` (QUICK 150 ms, STANDARD 300 ms, the
+  curve .23,1,.32,1). Popovers, menus, the combobox and tooltips arrive
+  over QUICK, as Paseo's menu does (`menu-overlay.tsx`, 150 ms, opacity
+  and a 0.97 scale); dialogs, sheets, toasts, the palette and a page over
+  STANDARD. GPUI draws no scale on a box, so a surface rises 4 points
+  instead (`popup::appear`).
+- Leaving: Paseo's desktop popovers, menus, dialogs and its command
+  center unmount at once (no exiting animation on the web); so do ours.
+  A tooltip appears over QUICK and goes at once. The phone's palette
+  sheet keeps its spring out.
+- Selection moving: the row the keyboard arrives on fills in over QUICK
+  (`popup::fill_in`: the menu's and the palette's rows); the row it
+  leaves clears at once.
+- A page: the frame is wrapped in one box keyed by the route and the
+  session shown (`app/src/shell/page.rs`) and fades in over STANDARD; a
+  Settings section is the same page, as Paseo's settings sections switch
+  in place.
+- Per frame: every transition is GPUI's `with_animation`, which asks for
+  the next frame while it runs and stops when it ends; no timer drives
+  motion, and nothing repeats.
+- Held motion: one flag (`app::motion`): the system's reduced motion, a
+  software renderer, and the Animations setting; GPUI's `with_animation`
+  draws the end at once under it. `VESSEL_APP_REDUCE_MOTION=0` fixes only
+  the system's and the renderer's reasons, so the setting can be shown on
+  and off on a virtual display (agreed with the lead).
+- The setting: `prefs::Appearance::animations` (`Animations::{On, Off}`,
+  lenient, default on) with `PreferenceChange::Animations`; applied at
+  once through `motion::animations` and at start in `main.rs`. Kept with
+  the app's preferences only: the page has no such setting yet and its
+  document ignores the field (the contract test pins both documents).
+- Not done: the sidebar's width and the right panel showing and hiding
+  wait for the lead's resize work (no transition while a drag resizes);
+  a toast's strip needs an action on a reachable machine, which the
+  capture fleet was not (its entrance is the menu's `popup::appear` over
+  STANDARD).
+
+Measured, release build on a virtual display (software Vulkan, so the app
+draws a frame every 35 to 45 ms; the grabber reads the screen every 16):
+the mean brightness of each surface's crop, frame by frame after the
+press, dark theme.
+- Menu: on 29.6, 31.5, 32.5, 32.8, 32.9 (127 to 251 ms); off 29.6 to
+  32.9 in one frame.
+- Dialog (scrim and card): on 28.3, 19.6, 16.0, 15.4, 14.6 (132 to
+  274 ms); off 28.7 to 14.6 in one frame.
+- A page (to the board): on 28.1, 26.3, 26.6, 26.8, 26.9, 27.0; off 28.1
+  to 27.0 in one frame. To Settings: on 27.0, 28.0, 29.0, 29.3, 29.4,
+  29.6, 29.7; off in one frame.
+- The phone's sidebar sheet: on 28.9, 23.4, 21.1, 20.6, 20.4, 20.3 as it
+  slides in from the left (about 200 ms); off 28.9 to 20.3 in one frame.
+- The menu's row moving: on 32.9, 32.8 (the old row cleared), 33.8; off
+  32.9 to 33.8 in one frame.
+- The palette, opened once before (a fresh process's first open is
+  slower than the strip): on 29.9, 27.6, 29.8, 30.7, 30.8 (about 150 ms
+  after the panel's first frame); off 29.9 to 30.8 in one frame. Its
+  keyboard row: on 30.0, 28.8, 29.8, 30.0 (the new row filling); off no
+  step at all (the highlight moves in one frame). Closing: one frame,
+  on and off.
+- Tooltip (the model pill's): on 30.9, 31.2, 32.1, 32.6; off 30.9 to
+  32.6 in one frame.
+- Combobox (Settings › General › Language): on one frame with the list
+  at part opacity and part of its rise (the row under it shows through),
+  then whole; off whole in one frame.
+- Both themes were captured; the light strips step the same way.
+
+Idle CPU, release build, 30 s with the screen open and the pointer still
+(one core): Settings 0.57% with Animations on and 0.47% off. With a
+focused field (the new-session page's composer, the palette's search)
+29% and 48% on, 0.5% off: each caret blink redraws the whole window,
+which in software costs a large part of a core. On a real software
+renderer the app holds every motion, the caret's blink with it, so this
+cost appears only when a capture forces motion on; on a GPU a blink is
+one ordinary frame.
+
+Captures: the scratch directory's `s3/shots/motion/` (frames with
+`times.txt` per strip; `strips/` on above off, and the numbers beside
+each).
+
 ### Resume point (track S3, 2026-11-14 04:40 UTC)
 
 - Done: palette (`153da701`, accepted); `view::matcher` rename after C's
