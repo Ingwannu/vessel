@@ -286,11 +286,18 @@ builder values above. `interaction_highlight` is the same value the
 dark palette already stores (`rgba(0xffff_ff14)`, the 0.08 alpha the
 dark neutrals use), not a new byte. `destructive_foreground` is white.
 `accent` and `accent_foreground` are the theme's, so Zinc's text on the
-accent is `#18181b`.
+accent is `#18181b`, except where the tint's accent is Paseo's green
+`#20744A`. That green is Light (`:336`), the default dark (`:472`) and
+Pure black (`:735`). All three use the mark's colour `BRAND`
+(`#1A5868`) with white on it. The kit already records the accent as
+the mark's colour, and the substitution applies wherever Paseo uses
+that same green, not only on the two palettes that already ship.
+Zinc, Midnight, Claude and Ghostty are not that green, so their
+accents stay the tint's.
 
-Light and Dark `Neutrals`, including `accent` = `BRAND` and white on
-it, are not rewritten. Paseo's `#20744A` for those two is recorded
-above and not applied. The mark stays `BRAND` on light and the primary
+Light and Dark `Neutrals` other than that accent are not rewritten.
+Paseo's `#20744A` for the three green themes is recorded above and
+not applied. The mark stays `BRAND` on light and the primary
 text colour on dark (`kit/src/widgets.rs`, `mark`): `#1A5868` on the
 dark surface0 `#181B1A` is only 2.18:1, which is why the mark is not
 drawn in the brand colour there.
@@ -352,7 +359,10 @@ Listed so they are not added under a new name:
   `catppuccin`, `dracula`, `tokyo-night`, `one`, `nord`, `gruvbox`,
   `solarized`, default `one` (`storage.ts:154`). Independent of the
   app theme except that a theme with two palettes follows the
-  scheme. Not in this work; `CodeTokens` stays the page's two schemes.
+  scheme. Paseo's eight ids and the default `one` are the value to
+take. This ADR does not decide to differ. The coordinator routes
+that preference; until it lands, `CodeTokens` stays the page's two
+schemes so a screen is not left without a colour.
 - Plugin themes.
 
 ### Contrast
@@ -429,22 +439,19 @@ Paseo's own pairs, not a correction:
 - Extra-muted is under 4.5 on most surfaces (Light on white is 2.56).
   No contrast floor: the test checks the hex. Paseo uses it for
   placeholders and the quietest chrome.
-- Accent foreground on the accent fill: Light and Dark, white on
-  `#1A5868`, at least 7.95 (7.955). Zinc 13.96. Midnight at least
-  4.81 (4.816; the table shows 4.82). Claude, white on `#d97757`,
-  at least 3.12 (3.122), which is large-text only and is kept
-  (Paseo's Ghostty comment claims its blue can carry white; Claude's
-  orange was not given that treatment, and this ADR does not invent
-  one). Ghostty 4.62. Pure black, white on `#20744A`, 5.74.
+- Accent foreground on the accent fill: Light, Dark and Pure black,
+  white on `#1A5868`, at least 7.95 (7.955). The same pair with
+  Paseo's `#20744A` would be 5.74 and is not what those three use.
+  Zinc 13.96. Midnight at least 4.81 (4.816; the table shows 4.82).
+  Claude, white on `#d97757`, at least 3.12 (3.122), which is
+  large-text only and is kept (Paseo's Ghostty comment claims its
+  blue can carry white; Claude's orange was not given that treatment,
+  and this ADR does not invent one). Ghostty 4.62.
 - Destructive foreground (white) on destructive: Light at least 5.73
   (5.739; the table shows 5.74), Dark 4.56, Zinc at least 4.74
   (4.745; the table shows 4.75), Midnight 4.72, Claude at least 4.28
   (4.286; the table shows 4.29, under 4.5, kept), Ghostty 4.71,
   Pure black 4.75.
-
-For Light and Dark the accent pair is the brand, because that is the
-palette that ships. The same pair with Paseo's `#20744A` would be 5.74
-and is not what those two palettes use.
 
 ### How system light and dark are chosen
 
@@ -468,8 +475,9 @@ Paseo's. Paseo's empty family becomes `DEFAULT_UI_FONT_STACK` and
 `appearance/apply.ts`). The `web` branch of that `Platform.select`,
 which `isWeb` names for a browser or Electron (`platform.ts:22-23`),
 is `system-ui` and a mono stack that ends in `Courier New`. The
-`default` branch is `normal` and `monospace`. Neither is used here. Both are refused here. The
-order is the chosen family if there is one, then Geist (Geist Mono
+`default` branch is `normal` and `monospace`. Neither is used here,
+which is the owner's rule against a generic family and a pixel-looking
+fallback. The order is the chosen family if there is one, then Geist (Geist Mono
 for code), then Pretendard. Pretendard is always last. No generic
 family name is ever added.
 
@@ -497,12 +505,16 @@ error. Paseo clamps (`parseClampedFontSize`); clamping is the silent
 drop this type does not do. A file that holds an out-of-range size
 loads the default, as the other sizes already do.
 
-Interface size (12–20, default 14) and code size (10–18, default 12)
-stay as they are. Paseo's interface range is 10–21, default 14 on
-the desktop and 15 on React Native; its code range is 9–22, default
-12. Widening those two ranges is not this work. Content width stays
-the three steps already stored; Paseo's is a pixel value from 600 to
-4000, empty meaning 820 (`theme.ts:650`). Not this work.
+Interface size is 12–20, default 14, and code size is 10–18, default
+12, in the preference that already shipped. Paseo's interface range
+is 10–21, default 14 on the desktop (`storage.ts:57-63`,
+`FONT_SIZE.base` is 14) and 15 on React Native; its code range is
+9–22, default 12 (`storage.ts:71-73`). Content width here is three
+steps; Paseo's is a pixel value from 600 to 4000, empty meaning 820
+(`theme.ts:650`, `storage.ts:75-77`). These are not a decision to
+differ. Paseo's ranges and the pixel width are the values to take.
+The coordinator routes them; until that lands, the shipped fields
+stay so a stored preference still loads.
 
 The preference's order, once the variants exist, follows
 `THEME_OPTIONS`: Light, Dark, System, Zinc, Midnight, Claude,

@@ -46,7 +46,9 @@ Read from Paseo 0.15.4.
   scheme. One dark set covers every dark theme, as Paseo's builder
   does. Not duplicated per variant.
 - `kit/src/code.rs`: the page's syntax colours, per scheme. Paseo's
-  eight syntax themes are not this work.
+  eight syntax themes (default `one`) are the value to take; the
+  coordinator routes that preference. Until then the page's two
+  schemes stay, so code is not left uncoloured.
 - `kit/src/fonts.rs`: Geist, then Pretendard, embedded. Interface
   and code sizes scale the type steps. No content size, no chosen
   family.
@@ -84,8 +86,10 @@ Do not start a second theme type in the app.
    Exhaustive matches gain arms (the existing picture helper and
    the existing name function); that is the compile, not a new
    layout. Words for the five: Paseo's, including 순수 검정.
-   Interface range, code range, content width and syntax theme stay
-   as they are.
+   Interface range (Paseo 10–21), code range (9–22), content width
+   (600–4000, empty means 820) and the eight syntax themes are
+   Paseo's values to take. This track does not change the shipped
+   fields. The coordinator routes them.
 4. A kit example that draws one screenful of each palette, for
    captures on this track's own display, at the four scales. No
    hex outside the kit.
