@@ -90,7 +90,8 @@ crates while writing ADR 0066.
 
 1. **Done as a decision.** ADR 0066: the key table, the refusal to read
    `paseo.json`, and the contract for the missing keys (version 3
-   digest, provisional protocol 21). No code.
+   digest). The wire number is the next free one; ADR 0062 already
+   marks provisional 21. No code.
 2. **Next.** Parse the missing keys, put them in the version 3 digest,
    open the terminals after a successful setup, allocate a service port,
    report health. Tests beside those rules. A file with none of the new
@@ -106,17 +107,25 @@ crates while writing ADR 0066.
    path in one. A validated target enum, never a shell string. Its own
    section of ADR 0066 when it is designed.
 
-Out of this plan: `metadataGeneration`, `.worktreeinclude`, a node-wide
-port range, a service proxy, and a streaming setup panel. Each is named
-in ADR 0066 as not a key this track adds.
+Out of this plan: `.worktreeinclude`, a node-wide port range, and a
+service proxy. `metadataGeneration` is ADR 0062's `[metadata.title]`,
+`[metadata.branch]`, `[metadata.commit]` and `[metadata.pull]`, not this
+track's parser, and not part of the command digest. A streaming setup
+panel is not a slice: Paseo pushes `workspace_setup_progress`, and Vessel
+already has `WorktreeInfo.setup` plus `worktree.output` (ADR 0066).
+Adding a second push is not one of this track's slices.
 
 ## Resume point
 
-- Done: ADR 0066 and this plan. No code. Digest versions 1 and 2 are
-  unchanged. `paseo.json` is not read.
+- Done: ADR 0066 and this plan, then the review's document fixes (status
+  proposed, env-name collision, setup progress, `port_script`'s cost,
+  terminal order and title, pointers from ADR 0027 and ADR 0031, ADR
+  0062's metadata tables). No code. Digest versions 1 and 2 are
+  unchanged. `paseo.json` is not read. Protocol 21 stays with ADR 0062.
 - Half-done: nothing. The contract is written and not parsed.
-- Next: slice 2, in `project_file` and the node that runs setup and
-  starts a service. Do not start slice 3 or 4 in that change. Do not
-  bump a protocol number until the fields exist; 21 is provisional.
+- Next: after this fix is reported, slice 2, in `project_file` and the
+  node that runs setup and starts a service. Do not start slice 3 or 4
+  in that change. Do not bump a protocol number until the fields exist,
+  and do not reuse 21.
 - The slice report names the commit the gate was run on. This file does
   not copy that log.

@@ -1,10 +1,11 @@
 # ADR 0066: The project file's keys, and not reading `paseo.json`
 
-Status: accepted, 2026-11-14 (milestone 12, the project-file track).
+Status: proposed, 2026-11-14 (milestone 12, the project-file track).
 Amends ADR 0027's file and ADR 0031's digest. No crate edge changes.
-Nothing on the wire changes in this decision; the fields it names land
-with the code, at provisional protocol 21 until the integrator assigns
-the final number.
+Nothing on the wire changes in this decision. ADR 0062 already marks
+provisional protocol 21 for generated names, so this decision does not
+claim 21. The fields it names take the next free number the integrator
+assigns.
 
 ## Context
 
@@ -112,11 +113,11 @@ Ignored: kept by Paseo, not a command, not approved, not implemented.
 | `scripts.<name>.type` | The string `service` marks a supervised long-running process. Anything else, including a missing type, is a one-shot script. | The table: `[scripts.<name>]` or `[services.<name>]` (ADR 0031) | Renamed. The kind is where the name is written, not a field. |
 | `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Not parsed yet. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores it; a person who wrote it meant it. |
 | `scripts.<name>` other keys | Kept (`passthrough`) and not read by the runner. | Unknown keys inside an entry stay ignored, and stay out of the digest, while they start nothing. | Ignored. `dir` is Vessel's own (ADR 0031); Paseo has no `dir`. |
-| `metadataGeneration.title.instructions` | Replaces the default wording of a generated workspace title. | None | Ignored. Not a command. Not this track (`paseo.metadata`). |
-| `metadataGeneration.branchName.instructions` | The same, for a generated branch name. | None | Ignored, as above |
-| `metadataGeneration.commitMessage.instructions` | The same, for a generated commit message. | None | Ignored, as above |
-| `metadataGeneration.pullRequest.instructions` | The same, for a generated pull-request title and body. | None | Ignored, as above |
-| `metadataGeneration` other keys, including a legacy `agentTitle` | Kept so old files still parse. The instructions above are the ones the generator reads. | None | Ignored |
+| `metadataGeneration.title.instructions` | Replaces the default wording of a generated workspace title. | `[metadata.title] instructions` | Renamed. ADR 0062. Not a command, so outside this digest. This track does not parse it. |
+| `metadataGeneration.branchName.instructions` | The same, for a generated branch name. | `[metadata.branch] instructions` | Renamed, ADR 0062, as above |
+| `metadataGeneration.commitMessage.instructions` | The same, for a generated commit message. | `[metadata.commit] instructions` | Renamed, ADR 0062, as above |
+| `metadataGeneration.pullRequest.instructions` | The same, for a generated pull-request title and body. | `[metadata.pull] instructions` | Renamed, ADR 0062, as above |
+| `metadataGeneration` other keys, including a legacy `agentTitle` | Kept so old files still parse. | None in ADR 0062 | Ignored. Not a command, and outside this digest. |
 | Any other top-level key | Kept. | Ignored, not approved | Ignored |
 
 Not keys of `paseo.json`, so they are not rows and they get no
@@ -147,7 +148,7 @@ setup = ["npm ci"]
 teardown = "docker compose down"
 
 [[worktree.terminals]]
-name = "logs"                 # optional; a session title when present
+name = "logs"                 # optional; TerminalInfo.title when present
 command = "tail -f dev.log"   # one shell line, as setup's commands are
 
 [worktree.service_ports]
@@ -166,16 +167,30 @@ dir = "web"
 Terminals. At most 32, the same cap as a command list. `command` is a
 `ProjectCommand`. `name`, when present, is a `SessionTitle` (trimmed,
 one line, at most 120 characters, no control character); a blank name is
-the same as no name. A bad entry, or more than 32, refuses the file, so
-nothing in it runs. They open only after setup has succeeded, in file
-order, each as a shell terminal (it takes input). The command is sent as
-one line of input ending in a carriage return, once the shell has
-produced output or 1.5 s have passed. A failure to open one does not
-remove the worktree; it is a typed notice on that worktree, not a log
-line alone. They count toward the terminal caps ADR 0031 already sets
-(64 a node, 16 a project folder); one that would pass a cap is the same
-kind of notice, naming which terminal did not open. Services are not
-started by creating a worktree. Only the listed terminals are.
+the same as no name. Paseo trims a name and has no length bound
+(`utils/worktree.ts`): a name that is not a non-empty string is dropped
+and the terminal still opens, and a bad command is skipped rather than
+refusing the file. Vessel refuses the whole file for a name that is not
+a title, for a bad command, or for more than 32, so nothing in it runs.
+The bound is a stated difference: a title is one line on a card, and
+`SessionTitle` is already that bound. The name does not land on a
+session. ADR 0031: an opened shell is a terminal, not a session, and it
+has no `SessionInfo`. The name is `TerminalInfo.title`
+(`Option<SessionTitle>` on `crates/vessel-proto/src/terminals.rs`).
+
+They open only after setup has succeeded. Paseo opens them concurrently
+(`Promise.all` in `runWorktreeAutoTerminals`). Vessel opens them one
+after another, in file order. Stated difference: the cap notice has to
+name which terminal did not open, and two opens racing the 16-per-folder
+cap would make that notice depend on which finished first. Each is a
+shell terminal (it takes input). The command is sent as one line of
+input ending in a carriage return, once the shell has produced output or
+1.5 s have passed. A failure to open one does not remove the worktree;
+it is a typed notice on that worktree, not a log line alone. They count
+toward the terminal caps ADR 0031 already sets (64 a node, 16 a project
+folder); one that would pass a cap is the same kind of notice, naming
+which terminal did not open. Services are not started by creating a
+worktree. Only the listed terminals are.
 
 Ports. Allocation for one service, in this order: its own `port` if it
 has one; otherwise `port_script` if the block has one; otherwise `range`
@@ -200,12 +215,64 @@ is present, even though `port_script` wins at run time: editing the
 unused range is still a change to the set a person approved.
 
 The service's environment, when it is started, gains `VESSEL_PORT` for
-its own port and `VESSEL_SERVICE_<NAME>_PORT` for each service in the
-file, with the name in capitals and every character that is not a letter
-or a digit made `_`. It does not gain a proxy URL. ADR 0031 left
-forwarding to the preview track; a hostname and a reverse proxy are not
-a key of the project file. There is no `VESSEL_WORKTREE_PORT`. Paseo's
-per-worktree legacy port is not a key of `paseo.json`.
+its own port and `VESSEL_SERVICE_<NAME>_PORT` for every service in the
+file, itself included. `<NAME>` is Paseo's `normalizeServiceEnvName`
+(`workspace-service-env.ts`): Unicode uppercase as JavaScript's
+`toUpperCase` does it (so U+00DF becomes `SS`, not an ASCII-only
+fold), then each run of characters outside ASCII `A-Z` and `0-9`
+becomes one `_`, then leading and trailing `_` are removed. A `ScriptName`
+is already ASCII, so the uppercase step does not admit a character the
+name type refuses; the collapse is what makes `web-app`, `web_app` and
+`web.app` one variable, and `web-` the same variable as `web`. Two
+services that normalise to one name refuse the file, naming both. Nothing
+in the file runs. Paseo throws the same collision later, when a service
+is started (`assertNoServiceEnvNameCollisions`); refusing the file is
+earlier, and a silent overwrite is not allowed. The environment does not
+gain a proxy URL. ADR 0031 left forwarding to the preview track; a
+hostname and a reverse proxy are not a key of the project file. There is
+no `VESSEL_WORKTREE_PORT`. Paseo's per-worktree legacy port is not a key
+of `paseo.json`.
+
+What an approval covers for `port_script` is the path, not the bytes at
+that path. The program runs at every service start, including each
+restart, not only when a worktree is created. An agent that can write in
+the tree can replace a relative path's file without changing the digest,
+and the next start runs the new bytes. That is the same hole ADR 0027
+already names for a setup command that runs a repository script
+(`./setup.sh`, `npm ci` running package scripts): the approved text does
+not pin the script it invokes. It differs in when. Setup's command list
+is the parsed text whose digest matched, and for a new worktree that
+text is the blob at the start commit; the script it names is still the
+tree's. `port_script` is itself that path, read again at every start, so
+a change takes effect without a new approval. An absolute path is
+outside the repository; the approval still shows the path and still does
+not cover its content. The cost is stated so it is not a new kind of
+trust, and so it is not hidden.
+
+### Setup progress, and why it is not a slice
+
+Paseo, after a worktree exists, emits `workspace_setup_progress` with
+`running`, `completed` or `failed`, a detail snapshot of each command's
+output as it arrives, and an error string when it fails
+(`worktree-session.ts`). That is the streaming panel.
+
+Vessel already has the outcome and the bytes, not that push.
+`WorktreeInfo.setup` is `SetupState` (`none`, `skipped`, `running`,
+`succeeded`, `failed`) on the worktree itself
+(`crates/vessel-proto/src/workspace/worktree.rs`). The log is
+`worktree.output` (protocol 10, `ReadSetupOutput` in
+`crates/vessel-proto/src/rpc.rs`): a page of the worktree's log file,
+and the call waits on the log's length, which the runner bumps on every
+write and once when the run ends (`crates/vessel-node/src/workspace/setup.rs`).
+A session's own log gets a `vessel:` notice with the result and, after a
+failure, its last lines (ADR 0027). There is no per-command progress
+event and no panel payload.
+
+This track does not add one. The task's slices are the file's missing
+keys, auto-archive, and editor targets. A push beside a log a client can
+already follow would be a second way to read the same run. Stated
+difference: no `workspace_setup_progress`. A client reads `setup` on the
+worktree and pages `worktree.output`.
 
 Health. For a service that was given a port, a TCP connect to loopback
 on that port (IPv4 and IPv6, as Paseo's local connect does), not an HTTP
@@ -235,13 +302,15 @@ while that key was ignored does not cover the command it starts.
 Wire, when the code lands. Additive fields, with a default of absent:
 `CommandSet` gains the terminals and the port block; `ScriptEntry` gains
 an optional port; terminal info gains an optional health. No new call.
-Provisional protocol 21. A peer older than that version is shown a
-version 3 set as invalid, as ADR 0031 shows a script-bearing set to a
-protocol 10 peer, so it cannot approve a digest of commands it cannot
-display. A newer peer reading an older node treats the missing fields as
-absent. An older peer reading a newer node ignores the unknown fields
-and still sees setup, teardown and scripts; it must not be the peer that
-records the approval of a version 3 digest.
+The protocol number is the next free one the integrator assigns. ADR
+0062 has already marked provisional 21, and this decision does not take
+it. A peer older than the assigned version is shown a version 3 set as
+invalid, as ADR 0031 shows a script-bearing set to a protocol 10 peer,
+so it cannot approve a digest of commands it cannot display. A newer
+peer reading an older node treats the missing fields as absent. An older
+peer reading a newer node ignores the unknown fields and still sees
+setup, teardown and scripts; it must not be the peer that records the
+approval of a version 3 digest.
 
 `metadataGeneration` stays out of this digest. It is not a command. A
 later track that sends those strings to a model does not inherit this
