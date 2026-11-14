@@ -29,6 +29,9 @@ mod nodes;
 // none yet (no files).
 #[cfg(not(target_arch = "wasm32"))]
 mod offers;
+// The composers' drafts kept between runs (track P's row e).
+#[cfg(not(target_arch = "wasm32"))]
+pub mod drafts;
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
@@ -268,6 +271,9 @@ pub enum Command {
         /// The agent.
         harness: HarnessRef,
     },
+    /// Keep the composers' drafts on this device (written on the blocking
+    /// pool; nothing is answered). A browser keeps none.
+    SaveDrafts(vessel_app_view::composer::drafts::Drafts),
     /// Keep `harness`'s `/` commands, as a session of it on `machine`
     /// reported them, on this device for the next run (its options' file;
     /// nothing is answered). A browser keeps none.
@@ -648,6 +654,7 @@ impl State {
                 harness,
                 commands,
             } => self.keep_commands(&machine, harness, commands),
+            Command::SaveDrafts(drafts) => save_drafts(drafts),
             Command::Resume {
                 machine,
                 session,
@@ -1034,6 +1041,17 @@ impl State {
             .await;
         }
     }
+}
+
+/// Write the composers' drafts on the blocking pool; a failure is logged
+/// (never their text).
+#[cfg(not(target_arch = "wasm32"))]
+fn save_drafts(drafts: vessel_app_view::composer::drafts::Drafts) {
+    drop(tokio::task::spawn_blocking(move || {
+        if let Err(error) = drafts::save(&drafts) {
+            tracing::warn!(%error, "the drafts could not be kept");
+        }
+    }));
 }
 
 /// Keep an agent's answer on this device, written only when it differs
