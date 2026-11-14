@@ -168,7 +168,7 @@ buffer" (`en.ts` 2561; Korean "터미널 스크롤백" / "내장 터미널 버�
 | Shell create, rename, kill, follow, send | proto and `vessel-client` | Extend `link` with commands that call them. No new crate, no new method number. |
 | PTY | `vessel-pty` | Not used by the app. |
 | Page emulator | xterm.js | Not shareable. Its resize rule is already ported. |
-| Parser | none | Adopt `vte` 0.15, `std` only. Reject `alacritty_terminal` 0.26 (PTY stack, `home`, Apache-2.0 only, unstable grid) and a parser written or copied here. ADR 0073. |
+| Parser | none | Adopt `vte` 0.15 without default features (its `std` build has an unbounded OSC buffer). Reject `alacritty_terminal` 0.26 (PTY stack, `home`, Apache-2.0 only, unstable grid) and a parser written or copied here. ADR 0073. |
 | Scalar width | `unicode-width` 0.2.3 already in the native lock | Adopt as a direct dependency of `view`. Not an exclusive owner. |
 | Renderer | none | New kit control, later. It takes a snapshot; it does not import `view`. |
 
@@ -186,8 +186,11 @@ match to decide a mode. `vte`'s callbacks are the decoding edge; past
 them the model holds enums.
 
 **Counts.** `ScrollbackLines`, 0 through 1,000,000, default 10,000.
-`CellCount`, a non-zero `u16`. `GridSize { cols, rows }`, default 80×24.
-Zero on either axis is `TerminalError::Empty`, and nothing is resized.
+`GridSize { cols, rows }`, default 80×24, at most 1,024 × 512.
+Zero on either axis is `TerminalError::Empty`, over the bounds
+`TerminalError::TooLarge`, and nothing is resized; `GridSize::within`
+draws a node's larger size at the bounds. History is also capped at
+4 Mi cells, 80 MiB at 20 bytes a cell (lines keep no trailing blanks).
 `FeedBudget` is 16 × 1024 bytes, the PTY read.
 
 **Cells.** A cell is a scalar (or the continuation of the previous
@@ -264,7 +267,9 @@ buffer has a stated bound and no input reaches a panic. The model is
 taken from the inherited draft in slices of a few hundred lines, each
 reviewed (V2) and gated: the parser's state machine around `vte`; the
 grid and scrollback; attributes and colours; wide and combining cells;
-the answered-query set. Each slice's tests include hostile input
+reflow of soft-wrapped lines on a width change (after wide cells, since
+a wide pair never splits across lines; until then a resize cuts or pads
+each row); the answered-query set. Each slice's tests include hostile input
 (unterminated sequences, huge parameters and counts, overlong OSC and
 DCS strings, scroll regions outside the grid, zero and enormous sizes)
 and a fuzz-style test over random bytes with a fixed seed. T1's screen
@@ -299,13 +304,35 @@ grid, and that an unchanged generation draws nothing), not described.
   the screen debounces resize by 100 ms.
 - Scalar width, not Paseo's grapheme clusters. Hangul matches; emoji
   clusters and Indic conjuncts do not.
+- A zero-width mark is composed into the cell before the cursor when
+  Unicode has a composed scalar of the same width (decomposed Hangul, as
+  `ls` prints file names on a macOS node, and decomposed Latin accents);
+  a mark with no composed form (a Thai vowel sign, a joiner) is dropped.
+  xterm.js keeps it; keeping it here would add bytes to every cell
+  history holds, or a side table every edit must shift. A wide scalar
+  that does not fit before the edge wraps whole, or is dropped with
+  auto-wrap off or on a one-column grid (xterm.js).
 - A live query is answered by the view that created the terminal until
   some viewer has focus and has typed, then only by that viewer.
   Paseo's daemon always answers, with no viewer in the decision
   (`terminal.ts` 883–922, read). An attach, or a creating view that
   has closed, with nobody qualified, is answered by nobody, and the
   program waits. The app shows no error of its own.
+- A cursor report counts rows from the screen's top in origin mode
+  too, as Paseo's daemon does (`buffer.cursorY`); xterm counts from the
+  region. With a wrap pending it reports the last column.
 - A dangerous path is refused, not stripped.
+- Blink (SGR 5, 6), overline (53) and the underline's colour (58) are
+  read and dropped; xterm.js draws them. Blink needs a timer over the
+  cells, and an underline colour adds four bytes to every cell history
+  keeps. Inverse swaps the colours first, then bold draws a foreground
+  in one of the eight ANSI colours bright; faint is half ink, concealed
+  is no ink: xterm.js's defaults, which Paseo keeps
+  (`terminal-emulator-runtime.ts` 555–571: no
+  `drawBoldTextInBrightColors`, `minimumContrastRatio: 1`), in xterm.js
+  6.1.0-beta.336's order (`addon-webgl/src/TextureAtlas.ts` 519–526
+  swaps, then 355 and 364–366 brighten; `DomRendererRowFactory.ts`
+  347–355, then 437–438).
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
 - A file that is not already on the node is not uploaded. There is no
@@ -345,8 +372,58 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   "Untrusted input" above, each against this contract (find wraps;
   replies only from the closed set, in the drawn colours; the hand-over
   is `replay`; sends split at 64 KiB with the paste rules).
-- Next: the parser slice, then grid and scrollback, attributes and
-  colours, wide and combining cells, the answered set; then T1's
+- P1, the parser (`view/src/terminal/parse/`), f3406a18: V2 passed the
+  source (2026-11-14); its gate runs with P2. P2, the grid and
+  scrollback (`view/src/terminal/grid/`, `size.rs`, `model.rs`): two
+  screens, history bounded by lines and cells, the cursor and modes,
+  DECSTBM, tabs, the CUx/ED/EL/IL/DL/ICH/DCH/ECH/SU/SD family, the
+  alternate screen as xterm.js keeps it, resize without reflow;
+  `TerminalModel::replay`. Its saved-cursor test found a P1 defect: `vte` sends a
+  bare `CSI s` as one parameter of 0, so the empty-list check never
+  held (fixed with a test).
+- P3, attributes and colours (`grid/pen.rs`, `grid/sgr.rs`,
+  `paint/`): the pen on every cell, SGR in its semicolon and colon
+  forms (a malformed colour is skipped with its values, not read as
+  codes), erase in the background only, DECSC keeping the pen, resize
+  padding plain; `paint` resolves a pen in a `Palette` (the 16 from
+  `tokens.terminal`, the cube and grey ramp past them).
+- P4, wide and combining cells (`grid/width.rs`, `grid/print.rs`):
+  `unicode-width` 0.2.3 as a direct `view` dependency (in the lock
+  already; About lists it); a wide scalar is a `Scalar` and a
+  `Continuation`, and every edit that can split a pair blanks the half
+  left behind (overwrite, ECH, ICH, DCH, a narrower grid, a history line
+  cut in a snapshot).
+- P5, the answered set (`reply/`, `duty.rs`, `TerminalModel::feed`,
+  `set_palette`): Paseo's bytes for DA1, DSR 5, CPR and its private
+  form, OSC 10/11/12 in the palette shown (none until a palette is
+  given); `query` matches every action with no catch-all arm and lists
+  ENQ, DECRQSS, XTGETTCAP, OSC 52 `?`, DA2/DA3, DECRQM and `CSI t` as
+  never answered; a reply is computed before its action applies; the
+  named fixtures (`the_opener_answers_before_anyone_qualifies`,
+  `nobody_answers_a_live_query_when_no_viewer_may`, the two hand-over
+  tests at the model) and a flood bound (under four times the bytes,
+  plus one carried answer).
+- P6, reflow (`grid/reflow.rs`): a width change joins the primary
+  screen's and history's soft-wrapped lines and cuts them again (a row
+  ends a cell early rather than split a wide pair; a one-column grid
+  blanks pairs), as xterm.js does with Paseo's options: the run of lines
+  holding the cursor is only cut (`reflowCursorLine` false; the shell
+  redraws it), a soft row gives up only the one blank a wide scalar
+  left (an erased gap stays), rows going to history are not padded (the
+  peak is history's cells and one screen). Blank rows below the cursor
+  go before any line leaves for history; rows a program printed below
+  the cursor that no longer fit under it are dropped. The alternate
+  screen is cut or padded. While it shows, the primary's saved cursor
+  is clamped, not remapped.
+- V2's returns folded in before the P1–P6 gate: rows 56 (paint order,
+  `CSI ? u`, one-parameter DSR and the OSC trim stated, the error
+  messages and the reply bound named) and 57 (reflow's memory, the
+  cursor's run, the soft trim).
+- For T1: a line feed at the bottom allocates a blank row and trims the
+  leaving one; a 16 KiB call of line feeds at 1,024 columns is about
+  320 MiB of allocation and fill. Measure one worst-case `feed` before
+  choosing the thread live bytes are applied on.
+- Next: T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the

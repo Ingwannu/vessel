@@ -136,8 +136,13 @@ is string shaping only.
 
 ## The choice
 
-`vte` 0.15, feature `std` only, is the parser, and only
-`vessel-app-view` may depend on it. The grid is new code in `view`:
+`vte` 0.15, without default features, is the parser, and only
+`vessel-app-view` may depend on it. Its `std` build keeps an OSC string
+in a `Vec` that grows for as long as the program writes one (`lib.rs`
+63–64, 547–551); without `std` the parser's own buffer is an `ArrayVec`
+of 1,024 bytes and bytes past it are dropped, so an endless OSC costs no
+memory (`view::terminal::parse`, `OSC_LIMIT`; `memchr` and `arrayvec`
+stay, they are not optional). The grid is new code in `view`:
 bytes in, cells out, keys and pastes back to bytes. No source from
 Alacritty, xterm or WezTerm is copied in. `unicode-width` 0.2.3, with
 its default `cjk` feature, is the width of a scalar; it is not given an
@@ -183,7 +188,17 @@ Bounds:
 - Scrollback is that preferences field: default 10,000, allowed 0
   through 1,000,000. Lines are kept as output arrives; the oldest line
   is dropped when the count is passed, which is the bound, not a
-  discarded command. The node's ring is unchanged (4,096 records, 1
+  discarded command. History is also bounded by cells: a line keeps no
+  trailing unprinted cells, and past 4 Mi cells in all the oldest line
+  goes, whichever bound comes first (at the setting's maximum and the
+  grid's widest, lines alone would be a billion cells). A cell is 20
+  bytes (a glyph, two colours, six attributes; a test pins it), so
+  history's cells are at most 80 MiB; each line also costs a 32-byte
+  header, about 32 MiB more at the 1,000,000-line setting, so about
+  112 MiB at most. At the default a line would have to average over 419
+  printed cells for the cell bound to come first. A reflow allocates no
+  more than history's own cells and one screen (rows going to history
+  are not padded). The node's ring is unchanged (4,096 records, 1
   MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
   many bytes it consumed. The rest stays with the caller. A frame feeds
@@ -198,8 +213,13 @@ Bounds:
   records that arrived meanwhile follow it. The model is plain data, so
   it can be built off the UI thread; `view` still does no I/O (the app
   reads, `view` parses).
-- The empty size is refused. Anything else the wire can hold (`u16`,
-  and the wire's 80×24 when nobody has resized) is a size. Resize of
+- The empty size is refused, and so is a size over 1,024 columns or
+  512 rows (`TerminalError::TooLarge`): two screens are kept, so the
+  largest size bounds a terminal's memory before any byte is read (a 4K
+  screen at the smallest code face is about 550 × 150). A size the node
+  reports past the bounds (the wire holds `u16`) is drawn at the bounds
+  (`GridSize::within`); the wire's 80×24 when nobody has resized is a
+  size. Resize of
   the model is immediate. The screen waits 100 ms of an unchanged
   measurement before asking, and only a view that has focus and has
   typed sends it (`ResizeRule`, already).
@@ -252,8 +272,12 @@ bytes are those above:
   `a_query_split_across_the_handover_is_not_answered`.
 - The answered set is closed: exactly the five replies above (primary
   device attributes for `CSI c` and `CSI 0 c`; status for `CSI 5 n`;
-  the cursor for `CSI 6 n` and `CSI ? 6 n`; the colour for `OSC 10`,
-  `11` or `12` whose argument is exactly `?`). A reply's bytes come only
+  the cursor for `CSI 6 n` and `CSI ? 6 n`, each with exactly one
+  parameter, as Paseo's handlers ask (`terminal.ts` 892, 907:
+  `params.length !== 1` is not answered); the colour for `OSC 10`, `11`
+  or `12` whose argument is exactly `?`). Paseo trims the OSC argument
+  first (line 916), so `OSC 10 ; ? BEL` with a space is answered there
+  and refused here, a stated difference on the refusing side. A reply's bytes come only
   from the fixed DA and status strings, the cursor's position and the
   colours drawn, never from text the program sent. Every other query
   produces no reply. Refused by name, each with a test that feeds it
@@ -263,7 +287,17 @@ bytes are those above:
   the clipboard read (`OSC 52` with `?`), ENQ (answerback, `0x05`),
   DECRQM (`CSI Ps $ p`, `CSI ? Ps $ p`, which Paseo's client also
   swallows), secondary and tertiary device attributes (`CSI > c`,
-  `CSI = c`), and an `OSC 10`–`12` whose argument is anything but `?`.
+  `CSI = c`), an `OSC 10`–`12` whose argument is anything but `?`, a
+  status query with more than one parameter (`CSI 6 ; 1 n`), and the
+  kitty keyboard query `CSI ? u`. Paseo's daemon answers that last one
+  with its tracked flags (`packages/protocol/src/terminal-input-mode.ts`
+  105, 189–193, written at `terminal.ts` 1041–1042) and tracks push,
+  pop and set (`CSI > f u`, `CSI < n u`, `CSI = f ; m u`). Vessel
+  refuses the query and ignores the three: the input slice encodes keys
+  as xterm does (normal and application cursor modes), never with
+  kitty's flags, and any answer, `CSI ? 0 u` included, would tell a
+  program the protocol is there. A stated difference, tested
+  (`kittys_keyboard_query_push_pop_and_set_neither_answer_nor_move_the_cursor`).
 - `feed` may return those reply bytes. The link sends them from one
   viewer. Once any viewer qualifies under `ResizeRule` (it has focus
   and the person has typed), that viewer is the one. Every other
