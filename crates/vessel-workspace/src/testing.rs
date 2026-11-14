@@ -98,24 +98,11 @@ impl Sandbox {
         std::fs::write(path, text).unwrap();
     }
 
-    /// Write an executable script at `path`, one this crate's code then runs.
-    ///
-    /// Not with `std::fs::write`: while this process holds the file open
-    /// for writing, a test on another thread may fork, and until that child
-    /// execs it holds the descriptor too; running the script then fails
-    /// with `ETXTBSY` ("Text file busy"), which a probe reports as no git.
-    /// So the text goes to a side file and `cp`, a process of its own,
-    /// creates the script: no descriptor for it is ever open here. (The
-    /// same helper as the remote and CLI tests'.)
+    /// Write an executable script at `path`, one this crate's code then
+    /// runs (never with `std::fs::write`: a busy text file reads as no git;
+    /// see `vessel_testkit::write_executable`).
     #[cfg(unix)]
     pub(crate) fn executable(path: &Path, text: &str) {
-        use std::os::unix::fs::PermissionsExt as _;
-
-        let mut source = path.as_os_str().to_owned();
-        source.push(".source");
-        std::fs::write(&source, text).unwrap();
-        let copied = Command::new("cp").arg(&source).arg(path).status().unwrap();
-        assert!(copied.success());
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        vessel_testkit::write_executable(path, text).unwrap();
     }
 }

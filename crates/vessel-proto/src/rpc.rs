@@ -386,6 +386,8 @@ rpc_methods! {
     InstallAgent / install_agent / "agent.install" [Admin, 11]: crate::agents::InstallAgent => crate::agents::InstallJob;
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
+    /// Reported tokens and permitted costs (protocol 21, ADR 0042).
+    QueryUsage / query_usage / "usage.query" [Read, 21]: crate::usage::QueryUsage => crate::usage::UsageReport;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;

@@ -71,6 +71,7 @@ mod settings_file;
 mod side_context;
 mod store;
 mod token;
+mod usage;
 mod workspace;
 mod writer;
 

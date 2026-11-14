@@ -251,7 +251,15 @@ impl StructuredActor {
             // What the agent said of itself is `agent.status`'s, read from
             // probes; a session has nothing to keep of it.
             AgentOutput::Introduced(_) => {}
-            AgentOutput::Usage(usage) => {
+            AgentOutput::Usage(mut usage) => {
+                // Moves, wakes and rewinds consume their Ready event. A
+                // context report during that load is useful, but must not
+                // charge historical cost under the previous account.
+                usage.observation = if self.move_state.replaying {
+                    vessel_proto::conversation::UsageObservation::Replayed
+                } else {
+                    vessel_proto::conversation::UsageObservation::Current
+                };
                 self.life
                     .publish(&mut self.agent, SessionEvent::UsageChanged { usage })
                     .await;

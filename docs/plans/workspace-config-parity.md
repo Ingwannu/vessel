@@ -159,7 +159,12 @@ shown and a partial comparison cannot claim the commands are unchanged.
 
 ## Resume point
 
-- Done: slice 1's reviewed ADR and follow-up amendments.
+- Done: slice 1's reviewed ADR and follow-up amendments; slice 2a's
+  reviewed terminal approval contract and exhaustive web refusal.
+- Integration: node baseline `a365d295` is merged with both architecture
+  texts preserved. The merged head's whole gate is pending; the earlier
+  protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
+  unassigned.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.

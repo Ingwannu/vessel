@@ -542,6 +542,12 @@ before it is reported; the report pastes the summary.
 **Why.** A red commit in the history breaks bisecting and every branch cut
 from it.
 **Check.** CI on every push; review of the report.
+**Today.** Tests build binaries themselves: the testkit's nested builds
+(`Fake::path`, `vessel_testkit::vesseld`) resolve features apart from
+`cargo test --workspace` and recompiled vessel-node's whole graph under
+the target lock (312 s in gate 19, 2026-11-14). Every gate pre-builds them
+first. The fix to come is for the tests to use what the runner built
+(`CARGO_BIN_EXE_*`, or a pre-build step as an xtask), so no test builds.
 
 ### P2. A refactor changes no behaviour
 
