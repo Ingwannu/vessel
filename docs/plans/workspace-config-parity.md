@@ -189,9 +189,14 @@ shown and a partial comparison cannot claim the commands are unchanged.
   The existing serde
   conversion pattern is reused; the observed-listener DTO is a separate
   fact, not a declared or allocated service port.
-- Next value contract: the portable absolute executable path described in
-  ADR 0066. Both raw grammars are decoded without filesystem access or
-  native normalization; native invocation and the Windows command-script
+- Implemented value contract: `ExecPath` keeps private literal text and
+  its Unix, Windows or shared grammar. Its decoder and serde check raw
+  components without filesystem access or native normalization; four
+  portable fixture tests cover prefix forms, components, round trips and
+  the shared byte bound. Rust's Windows prefix source also recognizes a
+  forward slash in the verbatim UNC marker; the remaining verbatim
+  components still use backslashes. The type is not yet a wire field or
+  project-file key. Native invocation and the Windows command-script
   refusal remain later typed checks, with their tests still owed.
 - Then: add the nonempty allocation block and project-relative program
   path, followed by
