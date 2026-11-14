@@ -1,9 +1,10 @@
 # ADR 0067: Dictation, spoken into the node
 
-Status: proposed, 2026-11-14. The protocol number below is the next free
-one on this branch (`PROTOCOL_VERSION` is 20 in `crates/vessel-proto/src/node.rs`).
-It is provisional: the node integrator assigns the final number. Nothing
-in this decision is on the wire until the slice that adds the methods.
+Status: proposed, 2026-11-14. The protocol number is the one given at
+merge. This commit does not change `PROTOCOL_VERSION` (20 in
+`crates/vessel-proto/src/node.rs`). New calls are gated on one constant,
+`dictation::SINCE`, so the integrator changes that one line. Nothing in
+this decision is on the wire until the slice that adds the methods.
 
 The behaviour this follows is Paseo's composer dictation (read for this
 decision; file and line in `docs/plans/dictation.md`). Voice mode, local
@@ -62,8 +63,9 @@ Constraints that bind the shape:
 - Ids, rates, sizes, durations and kinds are newtypes or enums. No
   bare string decides behaviour past the decoder. No sentinel (`-1`
   is not an acknowledgement). No `bool` whose call site does not read
-  as a sentence. No float in the node: a log-probability threshold is
-  thousandths of a log-probability, an integer.
+  as a sentence. No float on the dictation wire. Paseo's
+  log-probability threshold belongs to voice mode, which is out of
+  scope; dictation does not store one.
 - Audio and the transcript never go into a log, an error message, a
   test failure, the session log or a file. A refusal names a reason
   enum.
@@ -109,16 +111,22 @@ Constraints that bind the shape:
 
 ## The choice
 
-Provisional protocol 21. Five methods, each `operate`, each not
-forwardable, each refused to an agent. Settings ride on the existing
-settings calls. The secret rides on the existing secret calls.
+The number given at merge adds five methods, each `operate`, each not
+forwardable, each refused to an agent, each gated on `dictation::SINCE`.
+`PROTOCOL_VERSION` stays 20 until the integrator sets that constant.
+Settings ride on the existing settings calls. The secret rides on the
+existing secret calls.
 
 ### The stream
 
 `DictationId` is minted by the client, the way Paseo mints
 `msg_<time>_<random>`. One to 64 characters, ASCII letters, digits,
-`_` and `-` only. The node does not mint it, because the client must
-name the stream before the first chunk and again after a reconnect.
+`_` and `-` only. Paseo's `dictationId` is any string
+(`packages/protocol/src/messages.ts` 1715). Vessel narrows it so the
+id can sit in a log field without quoting or escaping. Anything else
+is `invalid_request` before a stream opens. The node does not mint
+it, because the client must name the stream before the first chunk
+and again after a reconnect.
 
 `dictation.start { id, format }` opens the stream on this connection
 and answers when the provider session is ready. Readiness is this
@@ -128,11 +136,44 @@ reply. There is no acknowledgement of "nothing yet".
 `audio/pcm`, bits are 16, one channel, and `rate` is an integer from
 8_000 to 48_000. Paseo's clients send `audio/pcm;rate=16000;bits=16`.
 Anything else is `invalid_request` before a provider is opened.
+Paseo sends `format` again on every chunk (`messages.ts` 1720–1724).
+Vessel does not. The format belongs to the stream; a different rate
+is a new `start`.
 
 `dictation.chunk { id, seq, pcm }` carries one chunk. `seq` starts at
-0 and is a `ChunkSeq` up to 8_191. `pcm` is `DictationPcm`: `Bytes` in
-memory, base64 on the wire, even length, at most 256 KiB decoded.
-The reply is `DictationAck { through }`, the highest contiguous `seq`
+0 and is a `ChunkSeq` from 0 through 1_799. `pcm` is `DictationPcm`:
+`Bytes` in memory, base64 on the wire, even length, at most 256 KiB
+decoded. The length the contract expects is one second of 16-bit mono
+at the stream's rate, `rate * 2` bytes (32_000 at 16 kHz). At the
+highest accepted rate that is 96_000 bytes, so one second always fits
+in the 256 KiB chunk. Paseo's web recorder cuts on that second
+(`packages/app/src/hooks/use-dictation-audio-source.web.ts` 189–195,
+`chunkSamples = outputRate` with `outputRate` 16_000) and then emits
+one shorter remainder when samples are left (197–198). `vessel dictate
+<file>` sends the same shape: one-second chunks of PCM16 at the rate
+`start` declares, then one shorter final chunk when the bytes do not
+divide evenly. A file shorter than one second is that one short chunk.
+
+A chunk shorter than one second, down to one sample, is a tail. The
+stream holds at most one, and only with a `seq` higher than every
+`seq` already accepted. It is not committed until `finish` names that
+`seq` as `final_seq`. A second short chunk, or any chunk with a higher
+`seq` than the tail, is `invalid_request` `BadAudio` and is not stored.
+The stream stays, so the client can finish the audio already accepted.
+`finish` that names some other `final_seq` while a tail is held is the
+same `BadAudio` on the finish call, and the stream stays so a
+corrected finish can succeed.
+
+A `seq` above 1_799, or a chunk whose samples would take accepted
+audio past 30 minutes, refuses with `TooLong`. The chunk call returns
+`invalid_request` `TooLong`, the stream ends, and a waiting
+`dictation.next` receives `Failed { TooLong }`. 1_800 chunks of one
+second are 30 minutes at any accepted rate, so a client that sends
+the expected chunks meets one cap. `seq` is checked before the shape
+rules: a `seq` past 1_799 is `TooLong` even when the bytes are also
+short.
+
+A chunk that was accepted answers `DictationAck { through }`, the highest contiguous `seq`
 the node has accepted, counting from 0. A repeat of an earlier `seq`
 answers the same acknowledgement and is not transcribed again. A gap
 is held, in order, and does not advance `through`.
@@ -200,10 +241,15 @@ field, is Paseo's default sentence: transcribe only what the speaker
 says, add no words, preserve punctuation and casing, and return an
 empty transcript for silence or non-speech. It is not a setting.
 
-Low confidence does not remove text. Paseo's dictation stream returns
-the transcript either way. The threshold is stored for the endpoint
-and applied only as information the provider already computed; it is
-not a reason to hide words.
+Confidence is not a dictation setting and not a field of `Partial` or
+`Final`. Paseo's shared speech-to-text client computes
+`isLowConfidence` from `confidenceThreshold`, default `-3.0`
+(`packages/server/src/server/speech/providers/openai/stt.ts` 216–228).
+Voice mode reads that flag
+(`packages/server/src/server/session/voice/voice-turn-controller.ts`
+69–78 and 180–182). Nothing under `packages/server/src/server/dictation/`
+reads it. Voice mode is out of scope, so this contract does not store the
+threshold and does not request log-probabilities.
 
 ### Provider seam
 
@@ -225,10 +271,10 @@ the endpoint, and does not pretend to be off.
 the header the provider's API expects, taken from the node's secret
 store under the name the setting holds. Default model `whisper-1`.
 Default base `https://api.openai.com/v1`. Default language `en`.
-Default confidence thousandths `-3000` (Paseo's `-3.0`). Log-probabilities
-are requested only for the two models Paseo treats as supporting them
-(`gpt-4o-transcribe`, `gpt-4o-mini-transcribe`); any other model is
-transcribed without that field.
+The request does not set `include` to `logprobs`. Paseo does, and only
+for `gpt-4o-transcribe` and `gpt-4o-mini-transcribe` (`stt.ts`
+202–211), so it can set `isLowConfidence`. Nothing in this contract
+reads that flag.
 
 The provider is a closed enum in the node, not a trait with one
 implementation. Tests use a fake provider behind the same enum's test
@@ -238,8 +284,9 @@ listener on loopback started by the test.
 ### Settings, defaults, secret
 
 On `NodeSettings`, one optional `dictation`. Omitted when every field
-is the default, so a node of protocol 20 and a client of protocol 20
-see the same settings bytes as today.
+is the default, so a peer at today's `PROTOCOL_VERSION` (20) sees the
+same settings bytes as today. The object is meaningful at
+`dictation::SINCE` and above.
 
 | Field | Default | Paseo, when its environment is unset |
 | --- | --- | --- |
@@ -249,7 +296,6 @@ see the same settings bytes as today.
 | local model | `parakeet-tdt-0.6b-v2-int8` | catalog `defaultFor: "stt"` |
 | endpoint model | `whisper-1` | `model ?? "whisper-1"` |
 | endpoint base | `https://api.openai.com/v1` | the SDK's default host |
-| confidence | `-3000` thousandths | `-3.0` |
 | key | absent | no key until one is saved |
 
 The switch is `on` or `off`, not a bool. `off` makes `start` fail
@@ -271,13 +317,13 @@ authenticate, not which secret it uses. The name is visible to
 `start` with `endpoint` and `key: absent` fails `unavailable` with
 `KeyAbsent`.
 
-A client that negotiated a protocol below 21 does not send these
-methods (`Call::since`). It ignores a `dictation` object if a newer
-node included one (serde's default: unknown fields do not fail). A
-node below 21 has no object and no methods. A newer client, seeing a
-negotiated protocol below 21, treats dictation as absent. It does not
-apply the defaults to an older node and then call methods that node
-does not have.
+A client that negotiated a protocol below `dictation::SINCE` does not
+send these methods (`Call::since`). It ignores a `dictation` object if
+a newer node included one (serde's default: unknown fields do not
+fail). A node below `dictation::SINCE` has no object and no methods. A
+newer client, seeing a negotiated protocol below `dictation::SINCE`,
+treats dictation as absent. It does not apply the defaults to an older
+node and then call methods that node does not have.
 
 ### Privacy: where the audio goes
 
@@ -315,10 +361,10 @@ a silent cut.
 
 | Bound | Value | Refusal |
 | --- | --- | --- |
-| Chunk | 256 KiB decoded, even length | `invalid_request` `BadAudio` |
-| `seq` | 0..=8_191 | `invalid_request` `BadAudio` |
+| Chunk | 256 KiB decoded, even length; one second, or one shorter tail | `invalid_request` `BadAudio` |
+| `seq` | 0..=1_799 | `invalid_request` `TooLong`, then the stream ends |
 | Reorder hold | 32 chunks or 1 MiB, whichever first | `Failed` `ReorderOverflow` |
-| Audio accepted per stream | 30 minutes at the stream's rate, 16-bit mono | `Failed` `TooLong` |
+| Audio accepted per stream | 30 minutes at the stream's rate, 16-bit mono | `invalid_request` `TooLong` on the chunk that crosses it, then the stream ends |
 | Commits in flight | 2 per stream; a further chunk waits, it is not dropped | the call stays open until a slot frees or the stream fails |
 | Streams | 2 per connection, 8 on the node | `unavailable` `TooMany` |
 | Finish wait | at most 300_000 ms, formula above | `Failed` `TimedOut` |
@@ -368,9 +414,9 @@ None of the five is forwardable. Audio does not hop through a fleet
 home. A person dictates to the node the connection is on.
 `node.settings` is already not forwardable.
 
-Local model list, download and delete are not methods of protocol 21.
-They belong to the slice that links an engine. When they exist, list
-is `read` and download and delete are `admin`, matching Paseo's
+Local model list, download and delete are not methods of this
+decision. They belong to the slice that links an engine. When they
+exist, list is `read` and download and delete are `admin`, matching Paseo's
 `daemon.read` and `daemon.manage`, and they are not forwardable
 (they write the node's disk).
 
@@ -445,8 +491,9 @@ refusal is the cost of not lying about a model that is not there.
 Effects, when the implementation slice lands:
 
 - `vessel-proto` gains the types and the five rows. `PROTOCOL_VERSION`
-  becomes the assigned number. `docs/PROTOCOL.md` records both
-  directions.
+  stays 20. `dictation::SINCE` becomes the assigned number, and it is
+  the only version this track names. `docs/PROTOCOL.md` records both
+  directions in the commit that publishes that number.
 - `vessel-node` gains the stream task and the endpoint provider. No
   `vessel-*` edge is added. `reqwest` is used from the node as an
   existing workspace dependency; the external-owner table does not
@@ -459,5 +506,6 @@ Effects, when the implementation slice lands:
   wire, not in this decision.
 
 What this decision does not do: link `sherpa-onnx`, download a model,
-open a microphone, implement voice mode, or accept protocol 21 as
-final.
+open a microphone, implement voice mode (including its confidence
+flag), or choose the protocol number. The integrator sets
+`dictation::SINCE`.

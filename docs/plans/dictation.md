@@ -1,7 +1,8 @@
 # Dictation
 
 Node-side speech to text, following Paseo's composer dictation. ADR 0067
-is the contract. Protocol 21 in that ADR is provisional.
+is the contract. The protocol number is `dictation::SINCE`, given at
+merge. This plan does not change `PROTOCOL_VERSION`.
 
 ## What Paseo does
 
@@ -81,12 +82,14 @@ There is no cap on streams, chunk bytes, buffered gaps, or total audio.
 takes PCM16 at `requiredSampleRate`, then `connect`, `appendPcm16`,
 `commit`, `clear`, `close`. Events: `committed`, `transcript`, `error`.
 
-Endpoint, `providers/openai/stt.ts`: required rate 24_000 (89). Audio is
-written to a temp WAV and deleted in `finally` (204–268). Model default
-`whisper-1` (228). Confidence default `-3.0` (232). Log-probabilities
-only for `gpt-4o-transcribe` and `gpt-4o-mini-transcribe` (229–231).
-The dictation manager does not look at `isLowConfidence`; the text is
-returned either way (manager 283–301).
+Endpoint, `providers/openai/stt.ts`: required rate 24_000 (72). Audio is
+written to a temp file and deleted in `finally` (196–197, 261–268). Model default
+`whisper-1` (201). Log-probabilities are requested only for
+`gpt-4o-transcribe` and `gpt-4o-mini-transcribe` (202–211). Confidence
+default `-3.0` (216); `isLowConfidence` is the average log-probability
+below that (225–228). Nothing under `server/dictation/` reads
+`isLowConfidence`. Voice mode does (`voice-turn-controller.ts` 69–78
+and 180–182).
 
 Config, `providers/openai/config.ts` 45–82: key from the saved config,
 else `OPENAI_STT_API_KEY`, else `OPENAI_API_KEY`. No key means no
@@ -141,7 +144,7 @@ slice still adds no `vessel-*` edge.
 
 | Slice | What | State |
 | --- | --- | --- |
-| 1 | ADR 0067 and this plan. No code, no protocol bump, no dependency. | this commit |
+| 1 | ADR 0067 and this plan. No code, no protocol bump, no dependency. | corrected: confidence, chunk length, stated differences, `dictation::SINCE` |
 | 2 | The five methods, the stream, a fake provider, the endpoint provider against a loopback HTTP fake, settings, the secret name. Gate on that commit. | next |
 | 3 | `vessel dictate <file>` as a client of those methods. Then stop. | after 2 |
 
@@ -162,10 +165,22 @@ Each one is in ADR 0067 with its reason. Short list:
   absent, not the name and not the value.
 - No environment overrides. Defaults match Paseo with those variables
   unset.
-- Caps Paseo does not have: chunk 256 KiB, seq through 8_191, reorder
+- Caps Paseo does not have: chunk 256 KiB, `seq` 0..=1_799, reorder
   32 or 1 MiB, 30 minutes of audio, 2 commits in flight (further
   chunks wait), 2 streams per connection, 8 on the node, transcript
-  64 KiB.
+  64 KiB. `seq` past 1_799 is `TooLong`. 1_800 one-second chunks are
+  30 minutes, so the two caps meet.
+- Chunks are one second of PCM16 at the stream's rate, except one
+  shorter tail. Paseo's web recorder emits that shape
+  (`use-dictation-audio-source.web.ts` 189–198) and does not refuse a
+  shorter middle chunk. Vessel does (`BadAudio`), so a client cannot
+  fill `seq` before the 30 minutes. `vessel dictate <file>` sends
+  one-second chunks and one shorter tail.
+- `format` is only on `start`. Paseo sends it on every chunk
+  (`messages.ts` 1720–1724). The format is fixed for the stream.
+- `DictationId` is 1–64 of `[A-Za-z0-9_-]`. Paseo's `dictationId` is
+  any string (`messages.ts` 1715). The id has to be safe in a log
+  field.
 - `local` is the stored default and `start` fails `LocalNotBuilt`
   until an engine is linked. It does not silently switch to the
   endpoint.
@@ -177,20 +192,29 @@ Each one is in ADR 0067 with its reason. Short list:
   it with no message.
 - Empty finish fails the finish call itself. Paseo pushes a stream
   error.
-- Confidence is thousandths, an integer. Low confidence does not hide
-  text, matching the dictation manager (it never reads the flag).
+- No confidence setting, and the endpoint does not request
+  log-probabilities. Paseo stores `confidenceThreshold` (default
+  `-3.0`, `stt.ts` 216) and voice mode reads `isLowConfidence`
+  (`voice-turn-controller.ts` 180–182). The dictation stream never
+  reads it. Voice mode is out of scope, so a field nothing here can
+  observe is not in the contract.
 - Voice mode, TTS, and model download are not in these slices.
 
 ## Resume point
 
 Done: Paseo read as cited above. Vessel's RPC, settings, secrets,
-forwarding and agent refusal read. ADR 0067 written. No code.
+forwarding and agent refusal read. ADR 0067 written, then corrected:
+confidence stays with voice mode, a chunk is one second (one shorter
+tail) and `seq` 0..=1_799 refuses as `TooLong`, `format` is fixed at
+`start`, the id is a log-safe token, and the protocol number is
+`dictation::SINCE` at merge. No code.
 
 Half-done: nothing.
 
-Next: slice 2, on this branch, after this docs commit. Do not take a
-protocol number other than the one the integrator assigns if 21 has
-been taken. Do not add `sherpa-onnx`. Do not open a microphone.
+Next: slice 2, on this branch, after this docs commit is reported.
+Do not change `PROTOCOL_VERSION`. Gate the new methods on
+`dictation::SINCE`. Do not add `sherpa-onnx`. Do not open a
+microphone.
 
 Gate: run on the docs commit before it is reported. The numbers and
 the log paths are in that report. They are not copied back into this
