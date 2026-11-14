@@ -446,6 +446,10 @@ pub enum Side {
 pub struct ComboboxState {
     open: bool,
     highlighted: Option<usize>,
+    /// The highlighted row's label: the highlight follows its row when rows
+    /// are added or removed above it while the list is open (an agent's
+    /// list refreshed behind it), rather than staying on an index.
+    highlighted_label: Option<SharedString>,
     focus: FocusHandle,
     search: TextField,
     header_leading: Option<Leading>,
@@ -466,6 +470,7 @@ impl ComboboxState {
         Self {
             open: false,
             highlighted: None,
+            highlighted_label: None,
             focus: cx.focus_handle(),
             search,
             header_leading: None,
@@ -485,6 +490,7 @@ impl ComboboxState {
     pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
         self.open = true;
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         if let Some(placeholder) = search {
             self.search.set_placeholder(placeholder, window, cx);
@@ -494,10 +500,11 @@ impl ComboboxState {
         }
     }
 
-    /// Close it.
-    pub const fn close(&mut self) {
+    /// Close it (no longer `const`: it drops the highlighted row's label).
+    pub fn close(&mut self) {
         self.open = false;
         self.highlighted = None;
+        self.highlighted_label = None;
     }
 
     /// Whether it is open.
@@ -516,6 +523,7 @@ impl ComboboxState {
     /// back, a row's own list).
     pub fn reset_query(&mut self, placeholder: &str, window: &mut Window, cx: &mut App) {
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         self.search.set_placeholder(placeholder, window, cx);
         self.search.focus(window, cx);
@@ -539,7 +547,7 @@ impl ComboboxState {
         if count == 0 {
             return;
         }
-        let mut at = self.highlighted;
+        let mut at = self.highlight_in(rows);
         for _ in 0..count {
             let next = match (at, forward) {
                 (None, true) => 0,
@@ -548,8 +556,9 @@ impl ComboboxState {
                 (Some(index), false) => index.saturating_sub(1),
             };
             at = Some(next);
-            if rows.get(next).is_some_and(|row| !row.disabled) {
+            if let Some(row) = rows.get(next).filter(|row| !row.disabled) {
                 self.highlighted = at;
+                self.highlighted_label = Some(row.label.clone());
                 return;
             }
         }
@@ -558,8 +567,26 @@ impl ComboboxState {
     fn choice(&self, rows: &[ComboRow]) -> Option<usize> {
         // A query/probe can replace rows after the highlight was set.
         // Recheck availability at activation rather than trusting its index.
-        self.highlighted
+        self.highlight_in(rows)
             .filter(|index| rows.get(*index).is_some_and(|row| !row.disabled))
+    }
+
+    /// The highlighted row among `rows`: at its index while the row there
+    /// is the one highlighted, else the row of that label nearest to it
+    /// (rows were added or removed above it); none when it is gone.
+    fn highlight_in(&self, rows: &[ComboRow]) -> Option<usize> {
+        let index = self.highlighted?;
+        let Some(label) = &self.highlighted_label else {
+            return Some(index);
+        };
+        if rows.get(index).is_some_and(|row| &row.label == label) {
+            return Some(index);
+        }
+        rows.iter()
+            .enumerate()
+            .filter(|(_, row)| &row.label == label)
+            .min_by_key(|(at, _)| at.abs_diff(index))
+            .map(|(at, _)| at)
     }
 }
 
@@ -783,6 +810,7 @@ fn rows_list<V: 'static>(
 ) -> AnyElement {
     let neutral = tokens.neutral;
     let column = leading_column(rows);
+    let highlighted = state.highlight_in(rows);
     // The rows scroll inside the panel's height; the title and the search
     // row above them stay (`min_h_0` lets the list be shorter than its rows).
     let mut list = div()
@@ -815,7 +843,14 @@ fn rows_list<V: 'static>(
             );
         }
         list = list.child(combo_row(
-            index, row, column, state, handlers, compact, tokens, cx,
+            index,
+            row,
+            column,
+            highlighted,
+            handlers,
+            compact,
+            tokens,
+            cx,
         ));
     }
     list.into_any_element()
@@ -1000,20 +1035,20 @@ fn row_leading(
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "a row is drawn from itself, its list's mark column, the list's state and handlers"
+    reason = "a row is drawn from itself, its list's mark column and highlight, and the list's handlers"
 )]
 fn combo_row<V: 'static>(
     index: usize,
     row: &ComboRow,
     column: Option<f32>,
-    state: &ComboboxState,
+    highlighted: Option<usize>,
     handlers: &ComboHandlers<V>,
     compact: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
-    let highlighted = state.highlighted == Some(index);
+    let highlighted = highlighted == Some(index);
     let wash = neutral.surface1;
     // Paseo's option (`ComboboxItem`): its label, then its description on
     // the same line, each one line (`numberOfLines={1}`); the description
@@ -1161,7 +1196,7 @@ mod tests {
                     index,
                     row,
                     leading_column(&self.rows),
-                    &self.state,
+                    self.state.highlight_in(&self.rows),
                     &handlers,
                     false,
                     &tokens,
@@ -1245,7 +1280,9 @@ mod tests {
             cx.update(|_, cx| {
                 probe.update(cx, |probe, cx| {
                     probe.rows[index].disabled = true;
+                    // The highlight is an index and its row's label.
                     probe.state.highlighted = Some(index);
+                    probe.state.highlighted_label = Some(probe.rows[index].label.clone());
                     cx.notify();
                 });
             });
@@ -1387,6 +1424,38 @@ mod tests {
         let mut agent = ComboRow::new("agent");
         agent.leading = Some(Leading::AgentMark(None));
         assert_eq!(leading_column(&[agent, ComboRow::new("x")]), None);
+    }
+
+    #[gpui::test]
+    fn the_highlight_follows_its_row_when_rows_are_added_above_it(cx: &mut TestAppContext) {
+        let (probe, cx) = cx.add_window_view(|window, cx| Probe {
+            state: ComboboxState::new(window, cx),
+            rows: rows(),
+            seen: Rc::default(),
+            choices: Rc::default(),
+        });
+        cx.update(|_, cx| {
+            probe.update(cx, |probe, _cx| {
+                let rows = probe.rows.clone();
+                probe.state.step(&rows, true);
+                probe.state.step(&rows, true);
+                assert_eq!(probe.state.highlight_in(&rows), Some(1));
+                // A new row arrives above, as an agent's refreshed list
+                // lays a new value at the edge away from the anchor.
+                let mut added = vec![ComboRow::new("new above")];
+                added.extend(rows.iter().cloned());
+                assert_eq!(probe.state.highlight_in(&added), Some(2), "followed");
+                assert_eq!(probe.state.choice(&added), Some(2), "Enter takes it");
+                // Its row gone: no highlight rather than another row.
+                let gone: Vec<ComboRow> = rows
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != 1)
+                    .map(|(_, row)| row.clone())
+                    .collect();
+                assert_eq!(probe.state.highlight_in(&gone), None);
+            });
+        });
     }
 
     #[test]
