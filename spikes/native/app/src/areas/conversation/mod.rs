@@ -251,6 +251,17 @@ pub(crate) enum MenuAction {
     CopyId,
     /// Kill a live session.
     Kill,
+    /// Show the agent's own log (its lines are not in the conversation).
+    AgentLog,
+}
+
+/// Whether the agent's own log is shown in its dialog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AgentLog {
+    /// Not shown.
+    Hidden,
+    /// Shown over the conversation.
+    Shown,
 }
 
 /// The conversation area's state.
@@ -265,8 +276,9 @@ pub(crate) struct ConversationArea {
     pub(crate) open_runs: HashSet<usize>,
     /// The agent's own log lines, by run (`view::timeline::logs`).
     pub(crate) logs: Logs,
-    /// The log runs opened, by their first line's entry.
-    pub(crate) open_logs: HashSet<usize>,
+    /// Whether the agent's log is shown (the Session actions' "Agent
+    /// log").
+    pub(crate) agent_log: AgentLog,
     /// Whether tool calls are collapsed (Settings' "Collapse tool calls"
     /// against "Full"); see [`collapsing`].
     collapse: bool,
@@ -357,7 +369,7 @@ impl ConversationArea {
             folds: None,
             open_runs: HashSet::new(),
             logs: Logs::default(),
-            open_logs: HashSet::new(),
+            agent_log: AgentLog::Hidden,
             collapse: collapsing(None),
             toggled: HashSet::new(),
             rows: Rows::All(0),
@@ -513,7 +525,7 @@ impl ConversationArea {
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
         self.logs = Logs::default();
-        self.open_logs.clear();
+        self.agent_log = AgentLog::Hidden;
         self.toggled.clear();
         self.rows = Rows::All(0);
         self.list.reset(0);
@@ -645,17 +657,6 @@ impl ConversationArea {
         } else {
             self.list.reset(after);
             self.tail_dropped();
-        }
-    }
-
-    /// Open or close a run of the agent's log lines: only its own row
-    /// changes (the lines show in its box, never as rows).
-    fn toggle_log(&mut self, lead: usize) {
-        if !self.open_logs.remove(&lead) {
-            let _new = self.open_logs.insert(lead);
-        }
-        if let Some(row) = self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
-            self.list.changed(row..row.saturating_add(1));
         }
     }
 
@@ -851,15 +852,6 @@ impl Shell {
         }
     }
 
-    /// Open or close a run of the agent's log lines in the conversation
-    /// at `seat`.
-    pub(crate) fn toggle_log(&mut self, seat: Seat, lead: usize, cx: &mut Context<'_, Self>) {
-        if let Some(area) = (seat.get_mut)(self) {
-            area.toggle_log(lead);
-            cx.notify();
-        }
-    }
-
     /// Open or close one entry's disclosure in the conversation at `seat`.
     pub(crate) fn toggle_entry(&mut self, seat: Seat, entry: usize, cx: &mut Context<'_, Self>) {
         if let Some(area) = (seat.get_mut)(self) {
@@ -902,6 +894,12 @@ impl Shell {
                     self.conversation_marked_unread(&shown.machine, shown.session);
                 }
                 self.mark(mark);
+                None
+            }
+            MenuAction::AgentLog => {
+                self.areas.conversation.agent_log = AgentLog::Shown;
+                self.areas.conversation.dialog.focus(window, cx);
+                cx.notify();
                 None
             }
             MenuAction::CopyId => {
@@ -989,6 +987,16 @@ impl Shell {
             area.clear();
             cx.notify();
         }
+    }
+
+    /// The agent's log was closed.
+    pub(crate) fn dismiss_log(
+        &mut self,
+        _window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.conversation.agent_log = AgentLog::Hidden;
+        cx.notify();
     }
 
     /// The confirm open was dismissed.

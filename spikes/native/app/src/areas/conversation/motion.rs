@@ -12,8 +12,10 @@
 //!   scrolled out of view, so an animation keyed by a row would play again
 //!   each time the row came back.
 //! - Choice: only what just arrived moves: the pending message as it is
-//!   sent, a reply when its entry first comes ([`FRESH`] after the batch
-//!   that brought it); everything else is drawn at its end state. Off
+//!   sent (whole from its first frame, only rising: the person's Enter
+//!   is answered on the next frame), a reply when its entry first comes
+//!   ([`FRESH`] after the batch that brought it); everything else is
+//!   drawn at its end state. Off
 //!   (`VESSEL_APP_MOTION=off`, until the setting exists): the end state at
 //!   once. Nothing here repeats: an idle session draws no frame for it.
 //! - Cost: a reduced-motion wish of the system and a software renderer
@@ -43,6 +45,24 @@ const FALL: f32 = -6.0;
 /// Whether the conversation moves.
 pub(super) fn on() -> bool {
     std::env::var("VESSEL_APP_MOTION").as_deref() != Ok("off")
+}
+
+/// The person's own message settling: drawn whole on its first frame
+/// (Enter to the message drawn is the next frame, slice M's measure), it
+/// only rises `RISE` to its place over `duration`; at once when motion
+/// is off. A fade would leave the first frames nearly empty.
+pub(super) fn settle(id: ElementId, duration: Duration, element: AnyElement) -> AnyElement {
+    if !on() {
+        return element;
+    }
+    div()
+        .child(element)
+        .with_animation(
+            id,
+            Animation::new(duration).with_easing(gpui::ease_out_quint()),
+            |row, delta| row.mt(px(delta.mul_add(FALL, RISE))),
+        )
+        .into_any_element()
 }
 
 /// `element` arriving: from transparent and `RISE` lower to its place,

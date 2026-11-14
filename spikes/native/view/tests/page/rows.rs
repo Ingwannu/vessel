@@ -148,6 +148,12 @@ fn a_run_of_log_lines_is_one_row_or_none() {
         3,
         "the box holds every line of the run"
     );
+    assert_eq!(
+        Logs::all(&entries).lines().collect::<Vec<_>>().len(),
+        4,
+        "the Session actions' Agent log holds every run's lines"
+    );
+    assert!(Logs::all(&entries[3..5]).is_empty());
     let full = Rows::of(entries.len(), None, &logs, &HashSet::new());
     assert_eq!(full, Rows::Some(vec![0, 3, 4, 5, 6]));
     assert_eq!(full.row_index(1, None, &logs), Some(0));

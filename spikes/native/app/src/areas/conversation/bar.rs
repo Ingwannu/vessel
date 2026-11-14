@@ -15,6 +15,7 @@ use vessel_app_view::session::{
     CONVERSATION_PROTOCOL, MarkAction, ParkState, can_rename, is_live, mark_actions, park_state,
     session_name,
 };
+use vessel_app_view::timeline::{EntryKind, Logs};
 use vessel_proto::SessionStatus;
 
 use super::MenuAction;
@@ -256,6 +257,13 @@ pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
             MenuAction::Mark(mark) => MenuItem::new(words.mark_action(*mark)),
             MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
             MenuAction::Kill => MenuItem::danger(words.kill()),
+            MenuAction::AgentLog => MenuItem::new(
+                words.agent_log(
+                    Logs::all(shell.areas.conversation.timeline.entries())
+                        .lines()
+                        .count(),
+                ),
+            ),
         })
         .collect()
 }
@@ -284,6 +292,16 @@ impl Shell {
             })
             .unwrap_or_default();
         rows.push(MenuAction::CopyId);
+        // The agent's own log, out of the conversation (slice M): here
+        // once the agent has written a line.
+        if area
+            .timeline
+            .entries()
+            .iter()
+            .any(|entry| matches!(entry.kind, EntryKind::Log { .. }))
+        {
+            rows.push(MenuAction::AgentLog);
+        }
         if area.info.as_deref().is_none_or(is_live) {
             rows.push(MenuAction::Kill);
         }

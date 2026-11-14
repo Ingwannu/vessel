@@ -440,11 +440,13 @@ fn message(
     });
     // The owner's reply bubble (slice M; Paseo's reply has none): the
     // person's bubble mirrored, its corner toward the agent at 4, on its
-    // own surface with a hairline, as wide as the column so a code block
-    // or a table scrolls inside it; the agent's mark in a circle beside a
+    // own surface with a hairline. It hugs its words as the person's does
+    // (a short reply is a short bubble, not a panel) and grows to the
+    // column at most: a wide table or code block takes the column and
+    // scrolls sideways inside it. The agent's mark in a circle beside a
     // turn's first reply, its place kept beside the rest so they line up.
     let bubble = div()
-        .flex_1()
+        .max_w(relative(BUBBLE_SHARE))
         .min_w(px(0.0))
         .p(px(16.0))
         .rounded(px(BUBBLE_RADIUS))
@@ -474,7 +476,15 @@ fn message(
                 .w(px(AVATAR))
                 .children(first_reply(paint.entries, index).then(|| avatar(paint))),
         )
-        .child(bubble)
+        .child(
+            div()
+                .flex_1()
+                .min_w(px(0.0))
+                .flex()
+                .flex_col()
+                .items_start()
+                .child(bubble),
+        )
         .into_any_element()
 }
 
