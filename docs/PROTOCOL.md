@@ -30,6 +30,32 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 16 (2026-11-14, milestone 12's node line, ADR 0056)
+
+Nodes speak 2..=16. One method, no event, no record; a client refuses it
+locally on an older node (`unsupported`, "needs protocol 16").
+
+`fleet.published {}` (admin, not forwardable, refused to agents; the browser
+bridge passes it) answers what this machine shares through its fleet, by
+name and metadata, never file contents, secret values or a tool server's
+command, arguments, address or headers. Tagged `role`:
+
+- `standalone`: it shares nothing (a value, not an error).
+- `home { bundle? }`: what it publishes; absent before its first bundle.
+- `member { home, bundle?, applied? }`: the bundle it last received from
+  `home`, and the version last applied here (older than `bundle`'s when
+  the last apply did not finish).
+- `unknown`: a newer node's role.
+
+`PublishedBundle { generation, files: SharedFile[], servers, secrets }`;
+`SharedFile { path, kind: instructions | skill | other, size, executable }`;
+`servers` are tool (MCP) server names, `secrets` the secret names they use,
+each once, sorted. Over a bound (4096 files, 256 servers, the reply's byte
+budget) the whole read is refused: `unavailable` with
+`detail: { kind: fleet_control, reason: published_too_large }`, which a
+version 15 client reads as `unknown`. The member protocol
+(`fleet.manifest`, `fleet.peers`) is unchanged and stays `sync`-only.
+
 ## Version 15 (2026-11-13, milestone 12, N3 row 2)
 
 Nodes speak 2..=15. Track N3 built its fleet controls as part of its

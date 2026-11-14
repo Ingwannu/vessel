@@ -206,6 +206,7 @@ impl Unary for vessel_proto::JoinFleet {}
 impl Unary for vessel_proto::LeaveFleet {}
 impl Unary for vessel_proto::SyncFleet {}
 impl Unary for vessel_proto::GetFleetStatus {}
+impl Unary for vessel_proto::GetPublished {}
 impl Unary for vessel_proto::automation::PreviewSchedule {}
 impl Unary for vessel_proto::automation::ListSchedules {}
 impl Unary for vessel_proto::automation::GetSchedule {}
@@ -405,6 +406,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::LeaveFleet
         | Method::SyncFleet
         | Method::GetFleetStatus
+        | Method::GetPublished
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule

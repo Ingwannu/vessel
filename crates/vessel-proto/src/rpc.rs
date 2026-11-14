@@ -155,6 +155,8 @@ rpc_methods! {
     SyncFleet / sync_fleet / "fleet.sync" [Admin, 15]: crate::SyncFleet => Ack;
     /// Read safe local apply history and permitted member reports (protocol 15).
     GetFleetStatus / fleet_status / "fleet.status" [Read, 15]: crate::GetFleetStatus => crate::FleetSyncStatus;
+    /// What this machine shares through its fleet, by name (protocol 16, ADR 0056).
+    GetPublished / fleet_published / "fleet.published" [Admin, 16]: crate::GetPublished => crate::FleetPublished;
     /// List fleet members (protocol 5).
     ListMembers / list_members / "fleet.members" [Admin, 5]: ListMembers => Vec<FleetMember>;
     /// Run a call on another node of the fleet (protocol 6).

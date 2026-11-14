@@ -150,6 +150,10 @@ pub enum FleetControlError {
     /// No truncated state or member list is returned.
     #[error("fleet status is too large to send; inspect this machine's local fleet status")]
     StatusTooLarge,
+    /// What this machine shares is longer than a reply carries (protocol
+    /// 16, `fleet.published`); none of it is sent.
+    #[error("the shared list is longer than one reply carries; none of it was sent")]
+    PublishedTooLarge,
     /// A future reason; retain the message and offer no guessed recovery.
     #[serde(other)]
     #[error("update this client to read the fleet refusal")]

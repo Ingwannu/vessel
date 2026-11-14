@@ -441,6 +441,8 @@ impl Method {
             | Self::JoinFleet
             | Self::LeaveFleet
             | Self::SyncFleet
+            // Each machine is read over its own connection (ADR 0056).
+            | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,

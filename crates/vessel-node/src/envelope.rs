@@ -612,6 +612,9 @@ async fn run_here(
         Call::GetFleetStatus(request) => {
             Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
         }
+        Call::GetPublished(request) => {
+            Reply::GetPublished(guard.fleet_published(connection, request).await?)
+        }
         Call::PreviewSchedule(request) => {
             Reply::PreviewSchedule(guard.preview_schedule(connection, request).await?)
         }

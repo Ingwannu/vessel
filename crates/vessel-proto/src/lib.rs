@@ -20,6 +20,7 @@ mod error;
 mod event;
 mod fleet;
 mod fleet_control;
+mod fleet_published;
 pub mod forge;
 pub mod forking;
 mod forward;
@@ -79,6 +80,9 @@ pub use fleet::{
 pub use fleet_control::{
     FleetApplied, FleetControlError, FleetRole, FleetSyncProblem, FleetSyncStatus, GetFleetStatus,
     JoinFleet, JoinedFleet, LeaveFleet, SyncFleet,
+};
+pub use fleet_published::{
+    FleetPublished, GetPublished, PublishedBundle, SharedFile, SharedFileKind,
 };
 pub use forward::{
     Callback, Deliver, FleetNode, ForgetNode, Forward, Forwarded, GetCallback, GrantHome,

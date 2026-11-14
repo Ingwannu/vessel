@@ -653,6 +653,7 @@ vessel init --service --join
 vessel fleet status                           # what it applied, and the files it left alone
 # on the home
 vessel fleet members
+vessel fleet published                        # what it shares, by name (needs admin)
 ```
 
 - Edit the sources on the home; members follow within seconds.

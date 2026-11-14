@@ -142,7 +142,9 @@ const fn refused(method: Method) -> bool {
         | Method::RestartScript
         | Method::JoinFleet
         | Method::LeaveFleet
-        | Method::SyncFleet => true,
+        | Method::SyncFleet
+        // What the machine shares (ADR 0056): a person's read, `admin`.
+        | Method::GetPublished => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects

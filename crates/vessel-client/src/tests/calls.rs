@@ -108,3 +108,30 @@ async fn fleet_controls_are_refused_before_their_declared_protocol() {
     drop(client);
     assert!(old_node.await.unwrap().is_none(), "no new control was sent");
 }
+
+/// Protocol 15 has no `fleet.published`: the client refuses it locally.
+#[tokio::test]
+async fn published_is_refused_locally_before_protocol_16() {
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        let welcome = ServerFrame::Welcome(Welcome {
+            protocol: ProtocolVersion::new(15),
+            node: node(),
+        });
+        node_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        client.fleet_published().await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    drop(client);
+    assert!(old_node.await.unwrap().is_none(), "nothing was sent");
+}

@@ -1076,6 +1076,19 @@ Legacy area tables stay until their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
 
+## Protocol 16: what a machine shares, for a person (ADR 0056)
+
+`fleet/published` reads `fleet.published` from the machine's own files on a
+blocking task under the fleet read permits: the role (`projection::role`),
+`manifest.json` (what a home publishes or a member last pulled) and, for a
+member, `state.json`'s applied version. It keeps paths, kinds (from the
+bundle layout: `instructions.md`, `skills/…`), sizes, executable flags,
+tool server names and the secret names they use, and drops everything
+else of the manifest (blob hashes, commands, arguments, addresses,
+headers, literal values). It shares `projection`'s byte-bounded file read
+and reply budget, and refuses the whole answer past a bound. `admin`, not
+forwardable, refused to agents; `vessel fleet published` prints it.
+
 ## Protocol 13: schedule preview (N3)
 
 `NodeInfo.timezone` carries the startup-detected system IANA name; unknown

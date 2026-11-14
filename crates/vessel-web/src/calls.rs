@@ -201,6 +201,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::LeaveFleet
         | Method::SyncFleet
         | Method::GetFleetStatus
+        // A person's read of what the machine shares (ADR 0056).
+        | Method::GetPublished
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule

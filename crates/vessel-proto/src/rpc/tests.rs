@@ -40,6 +40,7 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "fleet.join",
             "fleet.leave",
             "fleet.sync",
+            "fleet.published",
             "fleet.members",
             "fleet.forget",
             "memory.export",
@@ -102,10 +103,13 @@ fn every_method_knows_its_first_version() {
     for method in added_fleet {
         assert_eq!(method.since(), ProtocolVersion::new(15));
     }
+    assert_eq!(Method::GetPublished.since(), ProtocolVersion::new(16));
     for method in Method::ALL {
         assert!(method.since() <= crate::PROTOCOL_VERSION, "{method:?}");
         let name = method.as_str();
-        let fleet = name.starts_with("fleet.") && !added_fleet.contains(method);
+        let fleet = name.starts_with("fleet.")
+            && !added_fleet.contains(method)
+            && *method != Method::GetPublished;
         let profile = name.starts_with("profile.") || *method == Method::MoveProfile;
         let v6 = (fleet && !v5_fleet.contains(method))
             || ["session.export", "session.import"].contains(&name)
@@ -287,6 +291,19 @@ fn protocol_fifteen_methods_know_their_version_and_scope() {
         .map(|method| (method.as_str(), method.scope()))
         .collect();
     assert_eq!(fifteen, PROTOCOL_FIFTEEN);
+}
+
+/// Protocol 16's method (ADR 0056): what a machine shares, for a person.
+const PROTOCOL_SIXTEEN: &[(&str, Scope)] = &[("fleet.published", Scope::Admin)];
+
+#[test]
+fn protocol_sixteen_methods_know_their_version_and_scope() {
+    let sixteen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(16))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(sixteen, PROTOCOL_SIXTEEN);
 }
 
 #[test]

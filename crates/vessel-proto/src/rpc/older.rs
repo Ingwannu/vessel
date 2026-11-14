@@ -235,6 +235,7 @@ impl Reply {
             | Self::LeaveFleet(_)
             | Self::SyncFleet(_)
             | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)

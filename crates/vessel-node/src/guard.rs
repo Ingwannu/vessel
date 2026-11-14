@@ -189,6 +189,7 @@ untargeted!(
     vessel_proto::LeaveFleet,
     vessel_proto::SyncFleet,
     vessel_proto::GetFleetStatus,
+    vessel_proto::GetPublished,
     vessel_proto::automation::PreviewSchedule,
     vessel_proto::automation::ListSchedules,
     vessel_proto::automation::GetSchedule,
@@ -458,6 +459,7 @@ guarded! {
     leave_fleet: vessel_proto::LeaveFleet => Ack;
     sync_fleet: vessel_proto::SyncFleet => Ack;
     fleet_status: vessel_proto::GetFleetStatus => vessel_proto::FleetSyncStatus;
+    fleet_published: vessel_proto::GetPublished => vessel_proto::FleetPublished;
     preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
     list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
     get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
