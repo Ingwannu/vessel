@@ -203,6 +203,16 @@ impl Shell {
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::Fleet(fleet) => {
+                // The link reads the fleet every 2 s; a read that changed
+                // nothing draws nothing (an idle window repainted every
+                // 2 s, measured by the coordinator on 0.0.0.0.13).
+                if self.loaded && fleet.machines == self.fleet.machines {
+                    self.fleet.read_at = fleet.read_at;
+                    if self.route == Route::Settings {
+                        self.agent_load(false, cx);
+                    }
+                    return;
+                }
                 self.fleet = fleet;
                 if !self.loaded {
                     self.loaded = true;
