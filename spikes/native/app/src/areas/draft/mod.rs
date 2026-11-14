@@ -44,8 +44,6 @@ mod effort_card;
 mod features;
 mod pickers;
 
-use std::collections::HashMap;
-
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
@@ -54,6 +52,7 @@ use vessel_app_kit::{
     ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, send_button,
 };
 use vessel_app_link::Command;
+use vessel_app_view::offers::Offered;
 use vessel_app_view::{
     Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
 };
@@ -61,15 +60,6 @@ use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
 
 use crate::routes::Route;
 use crate::shell::Shell;
-
-/// What the app knows of one agent's options on one machine (the page's
-/// `OptionsState`).
-#[derive(Debug, Clone)]
-pub(crate) enum Probe {
-    Loading,
-    Ready(Vec<SessionOption>),
-    Failed(String),
-}
 
 /// What the controls show (the page's `ControlsState`; the app starts no
 /// terminals yet, so no terminal case).
@@ -117,8 +107,6 @@ pub(crate) struct Draft {
     /// (setting a field's text needs the window, which an event from the
     /// link does not have).
     restore: std::cell::RefCell<Option<String>>,
-    /// What each agent offers, by machine and agent, as last asked.
-    pub(crate) probes: HashMap<(String, HarnessRef), Probe>,
     /// The person's choices for this machine's agent, once `chosen`; until
     /// then the last start's (the page's `startingPicks`).
     picks: Picks,
@@ -164,7 +152,6 @@ impl Draft {
             error: None,
             sending: None,
             restore: std::cell::RefCell::new(None),
-            probes: HashMap::new(),
             picks: Picks::default(),
             chosen: false,
             settled: None,
@@ -259,68 +246,52 @@ impl Shell {
         self.probe_agent(key, again);
     }
 
-    /// Ask what `key`'s agent offers on its machine.
+    /// Ask what `key`'s agent offers on its machine: when nothing is
+    /// known of it yet, or (`again`) when a control opens, as the store
+    /// allows (one request in flight, none soon after an answer; track P's
+    /// `areas::composer::offers`).
     pub(crate) fn probe_agent(&mut self, key: (String, HarnessRef), again: bool) {
-        let ask = match self.areas.draft.probes.get(&key) {
-            None => true,
-            Some(Probe::Loading) => false,
-            Some(Probe::Ready(_) | Probe::Failed(_)) => again,
-        };
-        if !ask {
-            return;
-        }
-        let probes = &mut self.areas.draft.probes;
-        if !matches!(probes.get(&key), Some(Probe::Ready(_))) {
-            let _earlier = probes.insert(key.clone(), Probe::Loading);
-        }
         let (machine, harness) = key;
-        self.command(Command::Options { machine, harness });
+        if again || !self.offers_known(&machine, &harness) {
+            self.want_offers(machine, harness, vessel_app_view::offers::Why::Open);
+        }
     }
 
-    /// An agent's options arrived. A failure to refresh keeps what was
-    /// shown.
+    /// An agent's options arrived; the store takes them (a failure to
+    /// refresh keeps what was shown, said as not fresh).
     pub(crate) fn options_arrived(
         &mut self,
         machine: String,
         harness: HarnessRef,
         outcome: Result<Vec<SessionOption>, String>,
     ) {
-        let probes = &mut self.areas.draft.probes;
-        let key = (machine, harness);
-        match outcome {
-            Ok(options) => {
-                // Which ids an agent sends, for the effort table
-                // (`view::effort::ROLES`): ids, categories and kinds only.
-                let shape: Vec<String> = options
-                    .iter()
-                    .map(|option| match &option.kind {
-                        vessel_proto::OptionKind::Select { values, .. } => format!(
-                            "{} ({:?}, select of {})",
-                            option.id.as_str(),
-                            option.category,
-                            values
-                                .iter()
-                                .map(|value| value.id.as_str())
-                                .collect::<Vec<_>>()
-                                .join("|")
-                        ),
-                        vessel_proto::OptionKind::Toggle { .. } => {
-                            format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
-                        }
-                        vessel_proto::OptionKind::Unknown => {
-                            format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
-                        }
-                    })
-                    .collect();
-                tracing::info!(agent = ?key.1, options = %shape.join(", "), "an agent's options");
-                let _earlier = probes.insert(key, Probe::Ready(options));
-            }
-            Err(why) => {
-                if !matches!(probes.get(&key), Some(Probe::Ready(_))) {
-                    let _earlier = probes.insert(key, Probe::Failed(why));
-                }
-            }
+        if let Ok(options) = &outcome {
+            // Which ids an agent sends, for the effort table
+            // (`view::effort::ROLES`): ids, categories and kinds only.
+            let shape: Vec<String> = options
+                .iter()
+                .map(|option| match &option.kind {
+                    vessel_proto::OptionKind::Select { values, .. } => format!(
+                        "{} ({:?}, select of {})",
+                        option.id.as_str(),
+                        option.category,
+                        values
+                            .iter()
+                            .map(|value| value.id.as_str())
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    ),
+                    vessel_proto::OptionKind::Toggle { .. } => {
+                        format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
+                    }
+                    vessel_proto::OptionKind::Unknown => {
+                        format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
+                    }
+                })
+                .collect();
+            tracing::info!(agent = ?harness, options = %shape.join(", "), "an agent's options");
         }
+        self.offers_arrived(machine, harness, outcome);
     }
 
     /// The choices the draft starts with: the person's, once they chose
@@ -336,11 +307,6 @@ impl Shell {
             .and_then(|(machine, agent)| self.prefs.choices(machine, agent))
             .map(|kept| Picks::from_choices(kept.to_vec()))
             .unwrap_or_default()
-    }
-
-    fn probed(&self) -> Option<&Probe> {
-        let key = self.areas.draft.settled.as_ref()?;
-        self.areas.draft.probes.get(key)
     }
 
     /// The running session's options as it last reported them, laid out
@@ -363,11 +329,11 @@ impl Shell {
                 .session_controls(&agent)
                 .map(|controls| Shown::Ready(Box::new(controls)));
         }
-        let (_, agent) = self.areas.draft.settled.as_ref()?;
-        Some(match self.probed() {
-            None | Some(Probe::Loading) => Shown::Loading,
-            Some(Probe::Failed(why)) => Shown::Failed(why.clone()),
-            Some(Probe::Ready(options)) => Shown::Ready(Box::new(controls_with_effort(
+        let (machine, agent) = self.areas.draft.settled.as_ref()?;
+        Some(match self.offered(machine, agent) {
+            Offered::Loading => Shown::Loading,
+            Offered::Failed(why) => Shown::Failed(why.to_owned()),
+            Offered::Ready { options, .. } => Shown::Ready(Box::new(controls_with_effort(
                 &with_picks(options, &self.effective_picks()),
                 kind_of(agent),
                 &agent_name(agent),
@@ -447,14 +413,13 @@ impl Shell {
             cx.notify();
             return;
         }
-        let options = match self.probed() {
-            Some(Probe::Ready(offered)) => {
-                let options = choices_for(offered, &self.effective_picks());
-                self.prefs.keep_choices(&machine, &harness, &options);
-                options
-            }
-            _ => Vec::new(),
-        };
+        let options = self
+            .offer_options(&machine, &harness)
+            .map(|offered| choices_for(offered, &self.effective_picks()));
+        if let Some(options) = &options {
+            self.prefs.keep_choices(&machine, &harness, options);
+        }
+        let options = options.unwrap_or_default();
         let folder = self.areas.draft.folder.trim().to_owned();
         self.prefs.machine = Some(machine.clone());
         self.prefs.agent = Some(harness.clone());
@@ -501,17 +466,7 @@ impl Shell {
         if draft.machine.as_deref() == Some(from) {
             draft.machine = Some(to.to_owned());
         }
-        draft.probes = std::mem::take(&mut draft.probes)
-            .into_iter()
-            .map(|((machine, agent), probe)| {
-                let machine = if machine == from {
-                    to.to_owned()
-                } else {
-                    machine
-                };
-                ((machine, agent), probe)
-            })
-            .collect();
+        self.areas.composer.offers.renamed(from, to);
         if let Some((machine, _)) = &mut draft.settled
             && machine == from
         {
@@ -535,7 +490,7 @@ impl Shell {
             draft.chosen = false;
             draft.settled = None;
         }
-        draft.probes.retain(|(machine, _), _| machine != name);
+        self.areas.composer.offers.forgotten(name);
     }
 
     pub(crate) fn draft_started(&mut self) {

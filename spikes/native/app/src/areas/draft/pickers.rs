@@ -23,10 +23,11 @@ use vessel_proto::{HarnessRef, OptionChoice, OptionId};
 
 use super::density::Density;
 use super::features::feature_name;
-use super::{ControlsTarget, Probe, Shown, pill_with};
+use super::{ControlsTarget, Shown, pill_with};
 use crate::areas::workspace::{PlacePick, PlaceRows};
 use crate::shell::Shell;
 use vessel_app_view::extras::{Extra, extra_of};
+use vessel_app_view::offers::{Freshness, Offered};
 
 /// Which picker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,15 +117,12 @@ fn controls_for(shell: &Shell, machine: &str, agent: &HarnessRef) -> Option<Cont
             .then(|| shell.session_controls(agent))
             .flatten();
     }
-    let key = (machine.to_owned(), agent.clone());
-    let Some(Probe::Ready(options)) = shell.areas.draft.probes.get(&key) else {
-        return None;
-    };
+    let options = shell.offer_options(machine, agent)?;
     let current = shell.areas.draft.agent.as_ref() == Some(agent);
     let options = if current {
         vessel_app_view::with_picks(options, &shell.effective_picks())
     } else {
-        options.clone()
+        options.to_vec()
     };
     Some(controls_with_effort(
         &options,
@@ -157,6 +155,12 @@ impl Shell {
             ControlsTarget::Session { agent, .. } => Some(agent),
             ControlsTarget::Draft => None,
         };
+        // Opening one of the draft agent's lists refreshes its list behind
+        // what is shown (owner word 28; the store bounds the requests).
+        if session.is_none() && matches!(which, Picker::Thinking | Picker::Mode | Picker::Features)
+        {
+            self.probe(true);
+        }
         let search = match which {
             // A running session's list is its agent's models: nothing to
             // probe, no other agent to browse.
@@ -177,9 +181,11 @@ impl Shell {
                 let all_agents = machine(self, &online).map_or(0, |machine| machine.agents.len());
                 self.areas.draft.browsing =
                     (all_agents == 1).then(|| agents.first().cloned()).flatten();
+                // Every agent's list behind the one shown (Paseo refetches
+                // its whole snapshot when the selector opens).
                 if let Some(name) = name {
                     for agent in agents {
-                        self.probe_agent((name.clone(), agent), false);
+                        self.probe_agent((name.clone(), agent), true);
                     }
                 }
                 Some(if self.areas.draft.browsing.is_some() {
@@ -621,6 +627,31 @@ fn browsed(shell: &Shell) -> (Option<HarnessRef>, Option<HarnessRef>, bool) {
     (in_use, browsing, session)
 }
 
+/// What the browsed agent's model list shows: on a running session its
+/// own report (never the store's), else the store's (track P's
+/// `areas::composer::offers`).
+fn browsed_offer<'a>(
+    shell: &'a Shell,
+    machine: &str,
+    agent: &HarnessRef,
+    session: bool,
+) -> Offered<'a> {
+    if session {
+        Offered::Ready {
+            options: &[],
+            freshness: Freshness::Fresh,
+        }
+    } else {
+        shell.offered(machine, agent)
+    }
+}
+
+/// The line above a list kept from before whose refresh failed: said once,
+/// quietly (owner word 28).
+fn stale_note(shell: &Shell, freshness: Freshness) -> Option<vessel_app_kit::ui::SharedString> {
+    (freshness == Freshness::Stale).then(|| shell.words.composer().offers_stale().to_owned().into())
+}
+
 fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built) {
     let words = shell.t.lang.options();
     built.width = MODEL_WIDTH;
@@ -646,20 +677,13 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
         // One agent's models (Paseo's provider view).
         built.header.title = Some(agent_name(&agent).into());
         built.header.back = !single && !session;
-        let key = (here.name.clone(), agent.clone());
-        // The session's options are its own report, not a probe.
-        let ready = Probe::Ready(Vec::new());
-        let probe = if session {
-            Some(&ready)
-        } else {
-            shell.areas.draft.probes.get(&key)
-        };
-        match probe {
-            None | Some(Probe::Loading) => built.header.empty = words.loading.into(),
-            Some(Probe::Failed(why)) => {
+        match browsed_offer(shell, &here.name, &agent, session) {
+            Offered::Loading => built.header.empty = words.loading.into(),
+            Offered::Failed(why) => {
                 built.header.empty = format!("{} — {why}", words.error).into();
             }
-            Some(Probe::Ready(_)) => {
+            Offered::Ready { freshness, .. } => {
+                built.header.note = stale_note(shell, freshness);
                 let model =
                     controls_for(shell, &here.name, &agent).and_then(|controls| controls.model);
                 if let Some(model) = model {
@@ -836,12 +860,11 @@ fn agent_row(shell: &Shell, machine: &str, agent: &Agent) -> ComboRow {
         return row;
     }
     row.opens = true;
-    let key = (machine.to_owned(), agent.harness.clone());
     row.trailing = Some(
-        match shell.areas.draft.probes.get(&key) {
-            None | Some(Probe::Loading) => words.loading_short.to_owned(),
-            Some(Probe::Failed(_)) => words.error.to_owned(),
-            Some(Probe::Ready(_)) => controls_for(shell, machine, &agent.harness)
+        match shell.offered(machine, &agent.harness) {
+            Offered::Loading => words.loading_short.to_owned(),
+            Offered::Failed(_) => words.error.to_owned(),
+            Offered::Ready { .. } => controls_for(shell, machine, &agent.harness)
                 .and_then(|controls| controls.model)
                 .map_or_else(
                     || words.default_model.to_owned(),
