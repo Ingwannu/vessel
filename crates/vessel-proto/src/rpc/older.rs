@@ -23,7 +23,10 @@
 //!   lane.
 
 use super::Reply;
-use crate::agents::{harnesses_for, profiles_for, readable};
+use crate::agents::{
+    agents_for, catalogue_for, harnesses_for, profiles_for, prompts_for, readable, readiness_for,
+    schedules_for, usage_for,
+};
 use crate::board::{KanbanColumn, SessionBoard};
 use crate::device::Scope;
 use crate::forward::Forwarded;
@@ -77,8 +80,9 @@ impl Reply {
                 })
             }
             Self::ListSessions(sessions) => {
-                // An added agent's session is left out of a list an older
-                // peer could not decode with it (protocol 11, ADR 0032).
+                // A session of an agent newer than the peer is left out of
+                // a list it could not decode with it (protocol 11, ADR
+                // 0032; ADR 0058).
                 let shown = |session: &SessionInfo| readable(session, protocol);
                 let changed = sessions
                     .iter()
@@ -102,6 +106,19 @@ impl Reply {
             Self::ReloadProfiles(profiles) => {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
+            // From protocol 11, lists that name the seven of ADR 0058 to a
+            // peer older than their `HarnessKind::since`.
+            Self::ListAgents(agents) => agents_for(agents, protocol).map(Self::ListAgents),
+            Self::GetAgentStatus(answers) => {
+                readiness_for(answers, protocol).map(Self::GetAgentStatus)
+            }
+            Self::GetCatalogue(catalogue) => {
+                catalogue_for(catalogue, protocol).map(Self::GetCatalogue)
+            }
+            Self::ListSchedules(list) => schedules_for(list, protocol).map(Self::ListSchedules),
+            Self::ListPrompts(list) => prompts_for(list, protocol).map(Self::ListPrompts),
+            // A usage report's agent groups (protocol 21) name agents too.
+            Self::QueryUsage(report) => usage_for(report, protocol).map(Self::QueryUsage),
             Self::GetSession(session) => info(session).map(Self::GetSession),
             Self::GetConversation(conversation) => conversation
                 .usage
@@ -243,12 +260,10 @@ impl Reply {
             | Self::RunScript(_)
             | Self::RestartScript(_)
             | Self::ListPorts(_)
-            // Protocol 11's: asked only by peers that read them.
-            | Self::ListAgents(_)
+            // Protocol 11's: about an added agent, or the one agent the
+            // call named (which needs that agent's protocol).
             | Self::AddAgent(_)
             | Self::RemoveAgent(_)
-            | Self::GetAgentStatus(_)
-            | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
             | Self::LeaveFleet(_)
@@ -256,7 +271,6 @@ impl Reply {
             | Self::GetFleetStatus(_)
             | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
-            | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
             | Self::UpdateSchedule(_)
@@ -265,8 +279,6 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
-            | Self::QueryUsage(_)
-            | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)

@@ -30,6 +30,39 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 22, provisional (2026-11-14, milestone 12, ADR 0058)
+
+Nodes speak 2..=22. The number is confirmed when the line merges. No new
+method, no event, no record.
+
+### Seven more known agents (ADR 0058)
+
+- `HarnessKind` gains `grok`, `pi`, `omp`, `antigravity`, `muse`, `amp`
+  and `cursor` (wire names; a typed word also accepts `agy`, `amp-acp`,
+  `muse-code`, `oh-my-pi`, `cursor-agent`). `HarnessKind::since` is 22 for
+  them (`agents::READS_TEN_AGENTS`), 2 for the four; `HarnessRef::since`
+  follows it.
+- A peer older than 22 is handed them as ADR 0032 hands an added agent to
+  a peer older than 11 (`vessel_proto::agents::older`): left out of
+  `harness.list`, `profile.list`, `profile.reload`, `session.list`, and,
+  for peers of 11 to 21, `agent.list`, `agent.status`, `agent.catalogue`
+  (an entry running one counts in `skipped`), `schedule.list` and
+  `prompt.list`, and for a peer of 21 `usage.query`'s agent groups (the
+  totals still count every agent); a reply about one session, schedule or saved prompt of
+  such an agent becomes `unsupported` ("this runs grok, which a client of
+  protocol 22 or later knows"); the node refuses a call acting on or
+  subscribing to such a session before it runs.
+- A call naming one (`session.create`, `harness.options`, `profile.list`,
+  `agent.history`, `agent.status`, `agent.install`, `usage.query`'s agent
+  scope, a schedule's or saved prompt's spec) needs 22 (`Call::since`).
+- `InstallOffer.by_hand?: bool` (left out when false): an install a person
+  runs themselves (a script piped to a shell, a download); `agent.install`
+  refuses it (`unsupported`, quoting it).
+- An added agent written before 22 under a name that is now known
+  (`{"added": "grok"}`) still decodes from records and the wire; a new
+  `agent.add` and `agents.toml` refuse such a name, saying which agent it
+  names now.
+
 ## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
 
 N2 proposed 19; side questions took 19 and `device.self` 20 at the merge.

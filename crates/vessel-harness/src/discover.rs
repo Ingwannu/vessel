@@ -9,8 +9,7 @@ use vessel_proto::{Harness, HarnessKind, HarnessRef, StructuredSupport, Terminal
 
 use crate::added::{AddedAgent, AddedAgents};
 
-use crate::harnesses::{Structured, descriptor};
-use crate::launch::adapter_missing;
+use crate::harnesses::descriptor;
 use crate::lookup::Lookup;
 
 /// How long a harness gets to answer `--version`.
@@ -112,17 +111,9 @@ fn locate_all(lookup: &Lookup) -> Vec<Found> {
         .filter_map(|kind| {
             let descriptor = descriptor(kind);
             let path = lookup.find(descriptor.binary)?;
-            let structured = match &descriptor.structured {
-                Structured::Native { .. } => StructuredSupport::Available,
-                Structured::Adapter { binary, install } => {
-                    if lookup.find(binary).is_some() {
-                        StructuredSupport::Available
-                    } else {
-                        StructuredSupport::Unavailable {
-                            reason: adapter_missing(binary, install),
-                        }
-                    }
-                }
+            let structured = match descriptor.structured.unavailable(lookup) {
+                None => StructuredSupport::Available,
+                Some(reason) => StructuredSupport::Unavailable { reason },
             };
             Some(Found {
                 kind,

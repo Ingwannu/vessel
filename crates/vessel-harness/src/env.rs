@@ -74,7 +74,7 @@ impl HarnessEnv {
     pub fn variables() -> impl Iterator<Item = &'static str> {
         HarnessKind::ALL
             .into_iter()
-            .filter_map(|kind| descriptor(kind).home.variable)
+            .filter_map(|kind| descriptor(kind).home.as_ref()?.variable)
     }
 
     /// With `name` (one of [`variables`](Self::variables)) set to `value`;
@@ -112,7 +112,11 @@ impl HarnessEnv {
     /// home variable as here (removed when unset here) and, on Unix, `HOME`.
     /// The profile's own changes come after.
     pub(crate) fn apply(&self, command: CommandSpec, harness: HarnessKind) -> CommandSpec {
-        let command = match descriptor(harness).home.variable {
+        let command = match descriptor(harness)
+            .home
+            .as_ref()
+            .and_then(|home| home.variable)
+        {
             Some(name) => match self.var(name) {
                 Some(value) => command.env(name, value),
                 None => command.env_remove(name),

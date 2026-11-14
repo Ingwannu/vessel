@@ -30,7 +30,7 @@ use vessel_proto::{
     ResolvedValue,
 };
 
-use super::{Descriptor, Home, Structured};
+use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 use crate::mcp::{EncodeProblem, McpError, TerminalMcp};
 use crate::memory::MemoryFilesError;
@@ -47,18 +47,20 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         // @agentclientprotocol/codex-acp") to this package. Both install
         // the same `codex-acp` binary, so an existing install of the old
         // one is still found.
-        install: "npm install -g @agentclientprotocol/codex-acp",
+        install: Installer::Run("npm install -g @agentclientprotocol/codex-acp"),
+        third_party: false,
     },
-    home: Home {
+    inherits: Inheritance::Node,
+    home: Some(Home {
         variable: Some("CODEX_HOME"),
         default: &[".codex"],
-    },
+    }),
     layout: HarnessLayout {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
     },
     login: Some(&["login", "status"]),
-    install: "npm install -g @openai/codex",
+    install: Installer::Run("npm install -g @openai/codex"),
     login_command: Some(&["login"]),
     account_files: &["auth.json"],
     sessions: Some(session_files),

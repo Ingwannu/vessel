@@ -129,10 +129,9 @@ async fn an_added_agent_runs_a_conversation_with_only_what_it_is_given() {
         let json = serde_json::to_string(&listed).unwrap();
         assert!(!json.contains("s3cret-value"), "{json}");
         let kinds: Vec<String> = listed.iter().map(|agent| agent.agent.to_string()).collect();
-        assert_eq!(
-            kinds,
-            ["claude-code", "codex", "gemini", "opencode", "fake"]
-        );
+        let known = HarnessKind::ALL.map(|kind| kind.to_string());
+        assert_eq!(kinds[..known.len()], known, "the known agents first");
+        assert_eq!(kinds[known.len()..], ["fake"]);
 
         // Found, and not for terminals.
         let fake = HarnessRef::Added(name("fake"));

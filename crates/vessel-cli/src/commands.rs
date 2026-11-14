@@ -159,10 +159,17 @@ fn driver_change(
             HarnessKind::ClaudeCode => &mut change.claude_code,
             HarnessKind::Codex => &mut change.codex,
             HarnessKind::OpenCode => &mut change.open_code,
-            // `--driver` refuses it already.
-            HarnessKind::Gemini => {
+            // `--driver` refuses them already.
+            HarnessKind::Gemini
+            | HarnessKind::Grok
+            | HarnessKind::Pi
+            | HarnessKind::Omp
+            | HarnessKind::Antigravity
+            | HarnessKind::Muse
+            | HarnessKind::Amp
+            | HarnessKind::Cursor => {
                 return Err(CliError::Usage(
-                    "gemini has no protocol of its own; it always runs over ACP",
+                    "only codex, claude and opencode have a driver setting",
                 ));
             }
         };

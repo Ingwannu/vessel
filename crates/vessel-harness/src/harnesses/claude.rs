@@ -38,7 +38,7 @@ use std::path::{Component, Path, PathBuf};
 use serde::Serialize;
 use vessel_proto::{HarnessSessionId, McpTransport, ResolvedMcpServers};
 
-use super::{Descriptor, Home, Structured};
+use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 use crate::mcp::{EncodeProblem, FileForm, McpError, TerminalMcp};
 use crate::memory::{MemoryFilesError, RebaseError};
@@ -56,18 +56,20 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         // same `claude-agent-acp` binary, so an existing install is found;
         // the older `@zed-industries/claude-code-acp` installs
         // `claude-code-acp`, which is not looked for.
-        install: "npm install -g @agentclientprotocol/claude-agent-acp",
+        install: Installer::Run("npm install -g @agentclientprotocol/claude-agent-acp"),
+        third_party: false,
     },
-    home: Home {
+    inherits: Inheritance::Node,
+    home: Some(Home {
         variable: Some("CLAUDE_CONFIG_DIR"),
         default: &[".claude"],
-    },
+    }),
     layout: HarnessLayout {
         instructions: Some("CLAUDE.md"),
         skills: Some("skills"),
     },
     login: Some(&["auth", "status"]),
-    install: "npm install -g @anthropic-ai/claude-code",
+    install: Installer::Run("npm install -g @anthropic-ai/claude-code"),
     login_command: Some(&["auth", "login"]),
     account_files: &[".credentials.json", ".claude.json"],
     sessions: Some(session_files),

@@ -163,8 +163,15 @@ pub enum AgentToAdd {
 pub struct InstallOffer {
     /// What it installs.
     pub part: InstallPart,
-    /// The whole command, as a person would type it.
+    /// The whole command, as a person would type it, or the step a person
+    /// takes (`by_hand`).
     pub command: String,
+    /// A command or step a person runs themselves (a script piped to a
+    /// shell, a download): the node shows it and refuses to run it
+    /// ([`READS_TEN_AGENTS`](crate::agents::READS_TEN_AGENTS), ADR 0058;
+    /// left out when false).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub by_hand: bool,
 }
 
 /// What an install puts in place.

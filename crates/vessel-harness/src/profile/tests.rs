@@ -94,6 +94,13 @@ fn the_adr_example_parses() {
             "codex",
             "gemini",
             "opencode",
+            "grok",
+            "pi",
+            "omp",
+            "antigravity",
+            "muse",
+            "amp",
+            "cursor",
             "claude-alt",
             "codex-work"
         ]

@@ -6,14 +6,17 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::agents::{HarnessRef, TerminalSupport};
+use crate::agents::{HarnessRef, READS_TEN_AGENTS, TerminalSupport};
+use crate::node::ProtocolVersion;
 
 /// An agent harness Vessel knows how to drive.
 ///
 /// Closed on purpose: everything harness-specific (argv, environment,
 /// structured-mode launch) lives in one module per variant in
 /// `vessel-harness`, and adding a variant must fail to compile until that
-/// module exists.
+/// module exists. The first four came with protocol 2; the other seven
+/// with ADR 0058, which a peer reads only from the version
+/// [`HarnessKind::since`] gives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "kebab-case")]
@@ -26,11 +29,38 @@ pub enum HarnessKind {
     Gemini,
     /// The `OpenCode` CLI (`opencode`).
     OpenCode,
+    /// xAI's Grok Build CLI (`grok`), over ACP.
+    Grok,
+    /// Pi (`pi`), over its own JSON lines protocol.
+    Pi,
+    /// Oh My Pi (`omp`), Pi's fork, over its own JSON lines protocol.
+    Omp,
+    /// Google Antigravity's CLI (`agy`), over its stream.
+    Antigravity,
+    /// Meta's Muse Code (`muse`), over ACP first.
+    Muse,
+    /// Amp (`amp`), through the third-party `amp-acp` adapter.
+    Amp,
+    /// Cursor's agent CLI (`cursor-agent`), over ACP.
+    Cursor,
 }
 
 impl HarnessKind {
-    /// Every harness kind, in display order.
-    pub const ALL: [Self; 4] = [Self::ClaudeCode, Self::Codex, Self::Gemini, Self::OpenCode];
+    /// Every harness kind, in display order: the four, then the seven in
+    /// the order the owner named them.
+    pub const ALL: [Self; 11] = [
+        Self::ClaudeCode,
+        Self::Codex,
+        Self::Gemini,
+        Self::OpenCode,
+        Self::Grok,
+        Self::Pi,
+        Self::Omp,
+        Self::Antigravity,
+        Self::Muse,
+        Self::Amp,
+        Self::Cursor,
+    ];
 
     /// Canonical kebab-case name used on the wire and in the CLI.
     #[must_use]
@@ -47,6 +77,34 @@ impl HarnessKind {
             Self::Codex => "codex",
             Self::Gemini => "gemini",
             Self::OpenCode => "opencode",
+            Self::Grok => "grok",
+            Self::Pi => "pi",
+            Self::Omp => "omp",
+            Self::Antigravity => "antigravity",
+            Self::Muse => "muse",
+            Self::Amp => "amp",
+            Self::Cursor => "cursor",
+        }
+    }
+
+    /// The protocol a peer must speak to read this kind: 2 for the four,
+    /// [`READS_TEN_AGENTS`] for the seven of ADR 0058 (the one place their
+    /// number is written). An older peer decodes a kind as one of
+    /// the four strings it knows, so it is handed the seven as ADR 0032
+    /// hands it an added agent (`agents::older`).
+    #[must_use]
+    pub const fn since(self) -> ProtocolVersion {
+        match self {
+            Self::ClaudeCode | Self::Codex | Self::Gemini | Self::OpenCode => {
+                ProtocolVersion::new(2)
+            }
+            Self::Grok
+            | Self::Pi
+            | Self::Omp
+            | Self::Antigravity
+            | Self::Muse
+            | Self::Amp
+            | Self::Cursor => READS_TEN_AGENTS,
         }
     }
 }
@@ -72,13 +130,22 @@ impl std::error::Error for UnknownHarness {}
 impl FromStr for HarnessKind {
     type Err = UnknownHarness;
 
-    /// Accepts the canonical name and the binary name (`claude`).
+    /// Accepts the canonical name, the binary name (`claude`, `agy`,
+    /// `cursor-agent`) and the names the agents' own projects use
+    /// (`amp-acp`, `muse-code`, `oh-my-pi`).
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_ascii_lowercase().as_str() {
             "claude-code" | "claude" => Ok(Self::ClaudeCode),
             "codex" => Ok(Self::Codex),
             "gemini" => Ok(Self::Gemini),
             "opencode" | "open-code" => Ok(Self::OpenCode),
+            "grok" => Ok(Self::Grok),
+            "pi" => Ok(Self::Pi),
+            "omp" | "oh-my-pi" => Ok(Self::Omp),
+            "antigravity" | "agy" => Ok(Self::Antigravity),
+            "muse" | "muse-code" => Ok(Self::Muse),
+            "amp" | "amp-acp" => Ok(Self::Amp),
+            "cursor" | "cursor-agent" => Ok(Self::Cursor),
             other => Err(UnknownHarness(other.to_owned())),
         }
     }
@@ -131,5 +198,38 @@ mod tests {
             "claude".parse::<HarnessKind>().unwrap(),
             HarnessKind::ClaudeCode
         );
+        for (alias, kind) in [
+            ("agy", HarnessKind::Antigravity),
+            ("amp-acp", HarnessKind::Amp),
+            ("muse-code", HarnessKind::Muse),
+            ("oh-my-pi", HarnessKind::Omp),
+            ("cursor-agent", HarnessKind::Cursor),
+        ] {
+            assert_eq!(alias.parse::<HarnessKind>().unwrap(), kind);
+        }
+    }
+
+    #[test]
+    fn the_wire_names_are_the_canonical_names_but_open_code() {
+        for kind in HarnessKind::ALL {
+            let wire = serde_json::to_value(kind).unwrap();
+            let expected = if kind == HarnessKind::OpenCode {
+                "open-code"
+            } else {
+                kind.name()
+            };
+            assert_eq!(wire, serde_json::json!(expected));
+            assert_eq!(serde_json::from_value::<HarnessKind>(wire).unwrap(), kind);
+        }
+    }
+
+    #[test]
+    fn the_seven_need_their_protocol_and_the_four_protocol_2() {
+        let (four, seven) = HarnessKind::ALL.split_at(4);
+        assert!(
+            four.iter()
+                .all(|kind| kind.since() == ProtocolVersion::new(2))
+        );
+        assert!(seven.iter().all(|kind| kind.since() == READS_TEN_AGENTS));
     }
 }

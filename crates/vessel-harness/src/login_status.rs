@@ -47,7 +47,15 @@ pub fn read_login_status(harness: HarnessKind, stdout: &[u8], stderr: &[u8]) -> 
         HarnessKind::ClaudeCode => claude(stdout),
         HarnessKind::Codex => codex(stdout, stderr),
         // No status command (`login_check` answers `None`).
-        HarnessKind::Gemini | HarnessKind::OpenCode => LoginStatus::Unread,
+        HarnessKind::Gemini
+        | HarnessKind::OpenCode
+        | HarnessKind::Grok
+        | HarnessKind::Pi
+        | HarnessKind::Omp
+        | HarnessKind::Antigravity
+        | HarnessKind::Muse
+        | HarnessKind::Amp
+        | HarnessKind::Cursor => LoginStatus::Unread,
     }
 }
 

@@ -53,12 +53,22 @@ impl Call {
                 } else {
                     spec.profile.as_ref().map(|_| 5)
                 };
-                // An added agent came in 11 (ADR 0032): an older node
-                // cannot decode it.
-                fields.max(added(Some(&spec.harness)))
+                // An added agent came in 11 (ADR 0032), a known agent when
+                // its kind did (ADR 0058): an older node cannot decode
+                // either.
+                fields.max(agent(Some(&spec.harness)))
             }
-            Self::HarnessOptions(request) => added(Some(&request.harness)),
-            Self::ListProfiles(request) => added(request.harness.as_ref()),
+            Self::HarnessOptions(request) => agent(Some(&request.harness)),
+            Self::ListProfiles(request) => agent(request.harness.as_ref()),
+            Self::GetAgentHistory(request) => agent(Some(&request.harness)),
+            Self::GetAgentStatus(request) => agent(request.agent.as_ref()),
+            Self::InstallAgent(request) => Some(request.agent.since().get()),
+            Self::QueryUsage(request) => match &request.scope {
+                crate::usage::UsageScope::Agent { harness, .. } => agent(Some(harness)),
+                crate::usage::UsageScope::Machine | crate::usage::UsageScope::Session { .. } => {
+                    None
+                }
+            },
             // `scopes` came in 5; a scope newer than that needs its own
             // version, or an older node would refuse the name it lacks.
             Self::InviteDevice(request) => request.scopes.as_ref().map(|scopes| {
@@ -93,10 +103,10 @@ impl Call {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
             },
-            Self::CreatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::UpdatePrompt(request) => side_spec(request.session.as_deref()),
-            Self::CreateSchedule(request) => side_target(&request.definition.target),
-            Self::UpdateSchedule(request) => side_target(&request.definition.target),
+            Self::CreatePrompt(request) => saved_spec(request.session.as_deref()),
+            Self::UpdatePrompt(request) => saved_spec(request.session.as_deref()),
+            Self::CreateSchedule(request) => target(&request.definition.target),
+            Self::UpdateSchedule(request) => target(&request.definition.target),
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
@@ -217,9 +227,7 @@ impl Call {
             | Self::ListAgents(_)
             | Self::AddAgent(_)
             | Self::RemoveAgent(_)
-            | Self::GetAgentStatus(_)
             | Self::GetCatalogue(_)
-            | Self::InstallAgent(_)
             | Self::ReadInstall(_)
             | Self::LeaveFleet(_)
             | Self::SyncFleet(_)
@@ -233,7 +241,6 @@ impl Call {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
-            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
@@ -241,27 +248,31 @@ impl Call {
             | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
-            | Self::RewindSession(_)
-            | Self::GetAgentHistory(_) => None,
+            | Self::RewindSession(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }
 }
 
-/// The version a call naming `harness` needs for it: 11 for an added agent.
-fn added(harness: Option<&HarnessRef>) -> Option<u32> {
-    harness
-        .filter(|harness| harness.added().is_some())
-        .map(|harness| harness.since().get())
+/// The version a call naming `harness` needs for it: 11 for an added agent,
+/// [`HarnessKind::since`](crate::HarnessKind::since) for a known one (2,
+/// no later than any method, for the four).
+fn agent(harness: Option<&HarnessRef>) -> Option<u32> {
+    harness.map(|harness| harness.since().get())
 }
 
-fn side_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
+/// A saved spec (a prompt's, a schedule's new session): its side link came
+/// in 19, its agent when its agent did.
+fn saved_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
+    let spec = spec?;
+    spec.side_question_of
+        .map(|_| 19)
+        .max(agent(Some(&spec.harness)))
 }
 
-fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
+fn target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
     match target {
-        crate::automation::ScheduleTarget::NewSession { spec, .. } => side_spec(Some(spec)),
+        crate::automation::ScheduleTarget::NewSession { spec, .. } => saved_spec(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }

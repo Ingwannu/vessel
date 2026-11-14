@@ -42,6 +42,16 @@ async fn an_install_runs_the_vendors_command_and_is_read_back() {
             ErrorCode::HarnessNotInstalled
         );
         place_npm(&fixture);
+        // Cursor's installer is a script piped to a shell (ADR 0058): shown
+        // by `agent.list`, never run by the node.
+        assert_eq!(
+            code(
+                owner
+                    .call(install(HarnessKind::Cursor, InstallPart::Harness))
+                    .await
+            ),
+            ErrorCode::Unsupported
+        );
         // Gemini CLI speaks ACP itself: it has no adapter.
         assert_eq!(
             code(

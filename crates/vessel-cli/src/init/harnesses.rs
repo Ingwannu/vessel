@@ -10,6 +10,18 @@ use vessel_proto::{HarnessKind, StructuredSupport};
 use super::{Init, Outcome};
 use crate::error::CliError;
 
+/// The agents a first run reports as missing and offers to install: the
+/// four Vessel began with. The seven of ADR 0058 are reported when found
+/// and installed from the agent list (`agent.install`) when a person asks
+/// there, so a first run neither asks seven more questions nor runs
+/// another package manager (Bun) on a yes meant for the others.
+const OFFERED: [HarnessKind; 4] = [
+    HarnessKind::ClaudeCode,
+    HarnessKind::Codex,
+    HarnessKind::Gemini,
+    HarnessKind::OpenCode,
+];
+
 pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
     let found = discover(&init.lookup).await;
     for harness in HarnessKind::ALL {
@@ -24,13 +36,17 @@ pub(super) async fn run(init: &mut Init) -> Result<(), CliError> {
                 init.report(Outcome::Already, &step, &format!("{version}; {structured}"))
                     .await?;
             }
-            None => {
+            None if OFFERED.contains(&harness) => {
                 init.report(Outcome::Skipped, &step, "not installed")
                     .await?;
             }
+            None => {}
         }
     }
-    for install in missing(&init.lookup) {
+    let offered = missing(&init.lookup)
+        .into_iter()
+        .filter(|install| OFFERED.contains(&install.harness));
+    for install in offered {
         let what = match install.part {
             InstallPart::Harness => install.harness.to_string(),
             InstallPart::Adapter => format!("{}'s ACP adapter", install.harness),

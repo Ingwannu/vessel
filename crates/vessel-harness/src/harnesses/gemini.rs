@@ -10,7 +10,7 @@
 //! sessions cannot be moved, and terminal sessions get no MCP servers at
 //! launch (structured ones still do, over ACP).
 
-use super::{Descriptor, Home, Structured};
+use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
@@ -18,17 +18,19 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     profile: "gemini",
     structured: Structured::Native {
         args: &["--experimental-acp"],
+        env: &[],
     },
-    home: Home {
+    inherits: Inheritance::Node,
+    home: Some(Home {
         variable: None,
         default: &[".gemini"],
-    },
+    }),
     layout: HarnessLayout {
         instructions: Some("GEMINI.md"),
         skills: None,
     },
     login: None,
-    install: "npm install -g @google/gemini-cli",
+    install: Installer::Run("npm install -g @google/gemini-cli"),
     login_command: None,
     account_files: &[],
     sessions: None,

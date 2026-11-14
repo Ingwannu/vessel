@@ -71,7 +71,16 @@ pub const fn direct(kind: HarnessKind) -> Option<&'static Direct> {
         HarnessKind::Codex => Some(&CODEX),
         HarnessKind::ClaudeCode => Some(&CLAUDE),
         HarnessKind::OpenCode => Some(&OPENCODE),
-        HarnessKind::Gemini => None,
+        // Gemini speaks only ACP; the seven of ADR 0058 get their drivers
+        // behind this seam in their own slices.
+        HarnessKind::Gemini
+        | HarnessKind::Grok
+        | HarnessKind::Pi
+        | HarnessKind::Omp
+        | HarnessKind::Antigravity
+        | HarnessKind::Muse
+        | HarnessKind::Amp
+        | HarnessKind::Cursor => None,
     }
 }
 

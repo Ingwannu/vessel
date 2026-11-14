@@ -17,14 +17,30 @@ const ADDED_AGENTS: ProtocolVersion = ProtocolVersion::new(11);
 
 /// The name of an agent added on a node by its command (protocol 11, ADR
 /// 0032): the profile name rule (`[A-Za-z0-9._-]`, 1 to 64), and never a
-/// name of one of the four known agents, in any case or spelling
-/// (`claude`, `Claude-Code`, `opencode`).
+/// name of an agent Vessel knows, in any case or spelling (`claude`,
+/// `Claude-Code`, `opencode`, `agy`).
 ///
 /// Why the profile rule: an added agent's default profile is named after
 /// it, as the four's are (ADR 0011), so every agent name must be a profile
-/// name. Why the four are refused: a word a person types is read as one of
-/// the four first ([`HarnessRef::from_str`]), so an added agent called
+/// name. Why the known names are refused: a word a person types is read as
+/// a known agent first ([`HarnessRef::from_str`]), so an added agent called
 /// `codex` could never be named.
+///
+/// [Decision Log]
+/// - Purpose: ADR 0058 made seven more names known (`grok`,
+///   `pi`, `amp-acp`, ...). Before it a person could add an agent under one
+///   of them, and the node wrote that name into `agents.toml`, its
+///   sessions and its schedules.
+/// - Constraint: refusing those names when they are read would stop a node
+///   from loading its own files after an upgrade, and lose the sessions.
+/// - Choice: a name typed now ([`AgentName::from_str`], `agent.add`,
+///   `agents.toml`) refuses all eleven, so `agents.toml` naming such an
+///   agent is refused with a message saying which known agent the name now
+///   is, and the person renames it there (nothing is renamed for them). A
+///   name read back from a session, a schedule or the wire
+///   ([`AgentName`]'s `Deserialize`) refuses only the four's, which were
+///   never free, so those records stay readable; [`AgentName::reserved`]
+///   says what such a name names now.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct AgentName(ProfileName);
@@ -41,6 +57,31 @@ impl AgentName {
     pub const fn profile(&self) -> &ProfileName {
         &self.0
     }
+
+    /// The known agent this name now names, for an agent added under it
+    /// before that agent became known (ADR 0058): a typed word reads as
+    /// the known agent, so a node says so where it lists this one.
+    #[must_use]
+    pub fn reserved(&self) -> Option<HarnessKind> {
+        self.as_str().parse().ok()
+    }
+
+    /// A name as it was written into the wire or a file: as
+    /// [`AgentName::from_str`], except that a name only a kind newer than
+    /// protocol 11 reserves still reads (see the type's decision log).
+    ///
+    /// # Errors
+    ///
+    /// As [`AgentName::from_str`], for the four's names and invalid text.
+    pub fn stored(text: &str) -> Result<Self, AgentNameError> {
+        match text.parse::<HarnessKind>() {
+            Ok(harness) if harness.since() <= ADDED_AGENTS => Err(AgentNameError::Reserved {
+                written: text.to_owned(),
+                harness,
+            }),
+            Ok(_) | Err(_) => text.parse().map(Self).map_err(AgentNameError::Invalid),
+        }
+    }
 }
 
 impl fmt::Display for AgentName {
@@ -54,7 +95,7 @@ impl fmt::Display for AgentName {
 pub enum AgentNameError {
     /// It breaks the profile name rule.
     Invalid(InvalidName),
-    /// It names one of the four agents Vessel knows.
+    /// It names an agent Vessel knows.
     Reserved {
         /// The text given.
         written: String,
@@ -91,10 +132,24 @@ impl FromStr for AgentName {
     }
 }
 
-crate::key::serde_via_text!(AgentName);
+impl Serialize for AgentName {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
 
-/// Any agent a node can run (protocol 11, ADR 0032): one of the four Vessel
-/// knows, or one added on that node by its command.
+/// Read back as [`AgentName::stored`]: a name the node itself wrote before
+/// ADR 0058 stays readable.
+impl<'de> Deserialize<'de> for AgentName {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = <std::borrow::Cow<'de, str>>::deserialize(deserializer)?;
+        Self::stored(&text).map_err(serde::de::Error::custom)
+    }
+}
+
+/// Any agent a node can run (protocol 11, ADR 0032): one Vessel knows (the
+/// four; the seven of ADR 0058), or one added on that node by
+/// its command.
 ///
 /// On the wire a known agent is the string it was before protocol 11
 /// (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`), so every spec
@@ -104,7 +159,7 @@ crate::key::serde_via_text!(AgentName);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "HarnessRefShape"))]
 pub enum HarnessRef {
-    /// One of the four.
+    /// One Vessel knows.
     Known(HarnessKind),
     /// One added on the node by its command.
     Added(AgentName),
@@ -142,11 +197,11 @@ impl HarnessRef {
     }
 
     /// The protocol a peer must speak to read this: an added agent came in
-    /// 11.
+    /// 11, a known agent when its kind did ([`HarnessKind::since`]).
     #[must_use]
     pub const fn since(&self) -> ProtocolVersion {
         match self {
-            Self::Known(_) => ProtocolVersion::new(2),
+            Self::Known(kind) => kind.since(),
             Self::Added(_) => ADDED_AGENTS,
         }
     }
@@ -189,7 +244,7 @@ impl fmt::Display for UnknownAgent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "`{}` names no agent: one of claude, codex, gemini, opencode, or an added agent's name",
+            "`{}` names no agent: one of claude, codex, gemini, opencode, grok, pi, omp, antigravity, muse, amp, cursor, or an added agent's name",
             self.0
         )
     }
@@ -236,7 +291,7 @@ impl<'de> Deserialize<'de> for HarnessRef {
             type Value = HarnessRef;
 
             fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str(r#"one of "claude-code", "codex", "gemini", "open-code", or {"added": "<name>"}"#)
+                f.write_str(r#"a known agent's wire name ("claude-code", "codex", "grok", ...) or {"added": "<name>"}"#)
             }
 
             fn visit_str<E: serde::de::Error>(self, text: &str) -> Result<HarnessRef, E> {
@@ -347,6 +402,30 @@ mod tests {
     }
 
     #[test]
+    fn an_agent_added_under_a_name_known_since_21_still_reads() {
+        // Typed now: the known agent, and refused as a new added name.
+        assert_eq!("grok".parse::<HarnessRef>().unwrap(), HarnessKind::Grok);
+        assert!(matches!(
+            "amp-acp".parse::<AgentName>(),
+            Err(AgentNameError::Reserved {
+                harness: HarnessKind::Amp,
+                ..
+            })
+        ));
+        // Written before ADR 0058: still the added agent, which says
+        // what the word names now.
+        let stored: HarnessRef = serde_json::from_str(r#"{"added":"amp-acp"}"#).unwrap();
+        let name = stored.added().unwrap();
+        assert_eq!(name.as_str(), "amp-acp");
+        assert_eq!(name.reserved(), Some(HarnessKind::Amp));
+        assert_eq!(
+            serde_json::to_string(&stored).unwrap(),
+            r#"{"added":"amp-acp"}"#
+        );
+        assert_eq!("goose".parse::<AgentName>().unwrap().reserved(), None);
+    }
+
+    #[test]
     fn versions_and_names() {
         let goose = HarnessRef::Added("goose".parse().unwrap());
         assert_eq!(goose.since(), ProtocolVersion::new(11));
@@ -356,6 +435,10 @@ mod tests {
         );
         let codex = HarnessRef::Known(HarnessKind::Codex);
         assert_eq!(codex.since(), ProtocolVersion::new(2));
+        assert_eq!(
+            HarnessRef::Known(HarnessKind::Cursor).since(),
+            crate::agents::READS_TEN_AGENTS
+        );
         assert_eq!(goose.to_string(), "goose");
         assert_eq!(codex.to_string(), "codex");
     }

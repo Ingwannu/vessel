@@ -127,8 +127,8 @@ fn an_unreadable_value_is_kept_raw_and_read_as_its_default() {
 fn an_unknown_agent_kind_or_choice_kind_is_kept_whole() {
     let text = format!(
         r#"{{"defaults":{{
-            "{NODE}":{{"agent":"cursor","agents":{{
-                "cursor":{{"profile":null,"choices":{{}}}},
+            "{NODE}":{{"agent":"later-agent","agents":{{
+                "later-agent":{{"profile":null,"choices":{{}}}},
                 "codex":{{"profile":"work","choices":{{"model":{{"kind":"select","value":"o5"}}}}}},
                 "gemini":{{"profile":null,"choices":{{"depth":{{"kind":"slider","value":3}}}}}}
             }}}},
@@ -139,7 +139,7 @@ fn an_unknown_agent_kind_or_choice_kind_is_kept_whole() {
     let values = doc.values();
     let node: NodeId = NODE.parse().unwrap();
     let machine = &values.defaults[&node];
-    // `cursor` is not a kind this build knows: the page sees no default
+    // `later-agent` is not a kind this build knows: the page sees no default
     // agent, and only the agent it can read.
     assert_eq!(machine.agent, None);
     let agents: Vec<_> = machine.agents.keys().map(|kind| kind.0).collect();
@@ -154,8 +154,8 @@ fn an_unknown_agent_kind_or_choice_kind_is_kept_whole() {
     };
     let text = compact(&written(&doc.changed(&change).unwrap()));
     for kept in [
-        r#""agent":"cursor""#,
-        r#""cursor":{"profile":null,"choices":{}}"#,
+        r#""agent":"later-agent""#,
+        r#""later-agent":{"profile":null,"choices":{}}"#,
         r#""kind":"slider""#,
         r#""not-a-node":{"agent":"codex"}"#,
         r#""claude-code":{"profile":null,"choices":{}}"#,
@@ -168,7 +168,7 @@ fn an_unknown_agent_kind_or_choice_kind_is_kept_whole() {
         .unwrap();
     let text = compact(&written(&forgotten));
     assert!(
-        !text.contains("cursor") && text.contains("not-a-node"),
+        !text.contains("later-agent") && text.contains("not-a-node"),
         "{text}"
     );
 }

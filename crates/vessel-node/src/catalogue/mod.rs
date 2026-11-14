@@ -141,14 +141,16 @@ fn young(fetched_at: DateTime<Utc>) -> bool {
         .is_some_and(|until| Utc::now() < until)
 }
 
-/// The four's npm packages, as `vessel init` installs them: an entry
-/// running one of them is that agent.
+/// The known agents' packages, as their installs name them: an entry
+/// running one of them is that agent. An install a person runs by hand (a
+/// script, a download) names no package.
 fn known_packages() -> Vec<(String, HarnessKind)> {
     HarnessKind::ALL
         .into_iter()
         .flat_map(|kind| {
             vessel_harness::installs(kind)
                 .into_iter()
+                .filter(|install| !install.by_hand)
                 .filter_map(move |install| {
                     install
                         .args()

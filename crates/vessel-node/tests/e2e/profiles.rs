@@ -150,6 +150,13 @@ async fn profiles_are_listed_without_values_and_sessions_run_in_their_homes() {
                 "codex",
                 "gemini",
                 "opencode",
+                "grok",
+                "pi",
+                "omp",
+                "antigravity",
+                "muse",
+                "amp",
+                "cursor",
                 "claude-alt",
                 "claude-work",
                 "codex-work"
@@ -231,11 +238,16 @@ async fn reload_applies_a_good_file_and_keeps_the_profiles_on_a_bad_one() {
         let fixture = Fixture::new();
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
-        assert_eq!(client.profiles(None).await.unwrap().len(), 4);
+        // Every known agent's default profile.
+        assert_eq!(
+            client.profiles(None).await.unwrap().len(),
+            HarnessKind::ALL.len()
+        );
 
         write_profiles(&fixture, &profiles_toml());
         let reloaded = client.reload_profiles().await.unwrap();
-        assert_eq!(reloaded.len(), 7);
+        // The defaults and the file's three.
+        assert_eq!(reloaded.len(), HarnessKind::ALL.len() + 3);
         assert_eq!(client.profiles(None).await.unwrap(), reloaded);
 
         // A broken file: refused with where it is wrong, never a value, and

@@ -164,7 +164,20 @@ impl NodeService {
                 let handshake = kept.and_then(|kept| kept.handshake);
                 Checked::now(signed_in, handshake, KEPT_STATUS)
             }
-            HarnessRef::Known(HarnessKind::Gemini | HarnessKind::OpenCode)
+            // The seven of ADR 0058 get their own sign-in step with their
+            // readiness slice; until then their handshake says, as for an
+            // added agent's.
+            HarnessRef::Known(
+                HarnessKind::Gemini
+                | HarnessKind::OpenCode
+                | HarnessKind::Grok
+                | HarnessKind::Pi
+                | HarnessKind::Omp
+                | HarnessKind::Antigravity
+                | HarnessKind::Muse
+                | HarnessKind::Amp
+                | HarnessKind::Cursor,
+            )
             | HarnessRef::Added(_) => {
                 let said = self.said(agent, profile).await;
                 let (signed_in, handshake) = readiness::from_handshake(said, None, &help);

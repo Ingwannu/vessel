@@ -402,3 +402,65 @@ fn a_direct_launch_runs_the_agents_own_program() {
             .is_none()
     );
 }
+
+#[test]
+fn the_seven_launch_in_a_clean_environment_and_without_acp_are_refused() {
+    use vessel_proc::{EnvValue, Environment};
+
+    let bin = TempDir::new();
+    for kind in [HarnessKind::Grok, HarnessKind::Muse, HarnessKind::Pi] {
+        drop(install(bin.path(), kind, Role::Structured, &fake_tui()).unwrap());
+    }
+    drop(install(bin.path(), HarnessKind::Amp, Role::Terminal, &fake_tui()).unwrap());
+    drop(install(bin.path(), HarnessKind::Codex, Role::Terminal, &fake_tui()).unwrap());
+    let lookup = Lookup::new([bin.path().to_path_buf()]);
+
+    let grok = launch(&lookup, &structured(HarnessKind::Grok, None)).unwrap();
+    assert_eq!(grok.args, ["agent", "stdio", "--no-auto-update"]);
+    assert_eq!(grok.environment, Environment::Clear);
+    assert!(grok.env_change("PATH").is_some(), "{grok:?}");
+
+    let muse = launch(&lookup, &structured(HarnessKind::Muse, None)).unwrap();
+    assert_eq!(muse.args, ["acp"]);
+    assert_eq!(
+        muse.env_change("MUSE_EXPERIMENTAL_ACP"),
+        Some(&EnvValue::Set("on".into()))
+    );
+
+    // Amp's adapter is a third party's, and says so when it is missing.
+    let amp = launch(&lookup, &structured(HarnessKind::Amp, None)).unwrap_err();
+    assert!(
+        matches!(&amp, HarnessError::StructuredUnavailable { harness: HarnessKind::Amp, reason } if reason.contains("third party") && reason.contains("amp-acp")),
+        "{amp:?}"
+    );
+
+    // Pi has no ACP: refused, naming what it needs, until its driver runs.
+    let pi = launch(&lookup, &structured(HarnessKind::Pi, None)).unwrap_err();
+    assert!(
+        matches!(&pi, HarnessError::StructuredUnavailable { harness: HarnessKind::Pi, reason } if reason.contains("pi --mode rpc")),
+        "{pi:?}"
+    );
+    // In a terminal it runs, in the clean environment too.
+    let pi = launch(&lookup, &terminal(HarnessKind::Pi, &[], None)).unwrap();
+    assert_eq!(pi.environment, Environment::Clear);
+
+    // The four keep the node's environment.
+    let codex = launch(&lookup, &terminal(HarnessKind::Codex, &[], None)).unwrap();
+    assert_eq!(codex.environment, Environment::Inherit);
+}
+
+#[tokio::test]
+async fn a_harness_without_acp_is_found_with_its_reason() {
+    let bin = TempDir::new();
+    drop(install(bin.path(), HarnessKind::Omp, Role::Terminal, &fake_tui()).unwrap());
+    let lookup = Lookup::new([bin.path().to_path_buf()]);
+    let found = discover(&lookup).await;
+    let omp = found
+        .iter()
+        .find(|harness| harness.kind == HarnessKind::Omp)
+        .unwrap();
+    assert!(
+        matches!(&omp.structured, StructuredSupport::Unavailable { reason } if reason.contains("omp --mode rpc-ui")),
+        "{omp:?}"
+    );
+}

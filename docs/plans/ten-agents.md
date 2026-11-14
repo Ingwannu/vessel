@@ -65,14 +65,15 @@ shorthands: `PR` = `packages/server/src/server/agent/providers`, `REG` =
   the agent's name meanwhile.
 - **Credentials**: a driver never reads an agent's credential files; what
   cannot be done is a typed refusal, never a silent drop.
-- **Protocol**: the next free number, 21, provisionally.
+- **Protocol**: the next free number, 22 (20 is `device.self`, 21
+  `usage.query`), provisionally.
 
 ## 2. Shared slices (first)
 
 Every slice passes the root gate on its own.
 
-- **P1 (proto, protocol 21)** `vessel-proto`: `HarnessKind` + seven
-  variants, names and aliases, `ALL` grows; `HarnessKind::since()` (21 for
+- **P1 (proto, protocol 22)** `vessel-proto`: `HarnessKind` + seven
+  variants, names and aliases, `ALL` grows; `HarnessKind::since()` (22 for
   the seven); `agents/older.rs`'s `readable`/`withheld` take kinds as well
   as added agents; `OptionValue.risk: Option<Risk>` and `unattended: bool`
   (left out when false); `NodeSettings.agents_enabled` (per kind, default on
@@ -241,4 +242,13 @@ Every slice passes the root gate on its own.
 
 ## 6. Progress
 
-(Each slice adds its line here.)
+- **P1a + C0, the seven as known kinds** (2026-11-14): `HarnessKind` +7,
+  `since` (one constant, `READS_TEN_AGENTS`, 22 provisional), older peers
+  handed them as added agents (lists incl. `agent.list`/`status`/
+  `catalogue`, `schedule.list`, `prompt.list`; single replies withheld;
+  calls naming one need the version); stored added names grandfathered;
+  seven harness modules with `Inheritance::Clean`, `Structured::None` for
+  Pi, OMP, Antigravity, `Installer::ByHand` (+ `InstallOffer.by_hand`,
+  refused by `agent.install`); `vessel init` offers only the four; page
+  names. Left for P1b: `OptionValue.risk`/`unattended`, the per-agent
+  enabled setting. Real-only: none yet (no turn runs in this slice).

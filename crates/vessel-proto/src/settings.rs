@@ -76,7 +76,15 @@ impl AgentDrivers {
             HarnessKind::ClaudeCode => Some(self.claude_code),
             HarnessKind::Codex => Some(self.codex),
             HarnessKind::OpenCode => Some(self.open_code),
-            HarnessKind::Gemini => None,
+            // The seven of ADR 0058 gain a field when their driver lands.
+            HarnessKind::Gemini
+            | HarnessKind::Grok
+            | HarnessKind::Pi
+            | HarnessKind::Omp
+            | HarnessKind::Antigravity
+            | HarnessKind::Muse
+            | HarnessKind::Amp
+            | HarnessKind::Cursor => None,
         }
     }
 

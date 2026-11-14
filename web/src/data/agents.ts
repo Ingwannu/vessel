@@ -29,12 +29,21 @@ import type {
   HarnessRef,
 } from "../wire/proto";
 
-/** Every agent Vessel can drive, in the order the page lists them. */
+/** Every agent Vessel can drive, in the order the page lists them: the
+ * four, then the seven of ADR 0058 in the order the owner
+ * named them. */
 export const AGENT_KINDS: readonly HarnessKind[] = [
   "claude-code",
   "codex",
   "gemini",
   "open-code",
+  "grok",
+  "pi",
+  "omp",
+  "antigravity",
+  "muse",
+  "amp",
+  "cursor",
 ];
 
 /** One of the four, or `null` for an agent added on a node. */
@@ -80,13 +89,28 @@ function knownName(kind: HarnessKind): string {
       return "Gemini";
     case "open-code":
       return "OpenCode";
+    case "grok":
+      return "Grok";
+    case "pi":
+      return "Pi";
+    case "omp":
+      return "Oh My Pi";
+    case "antigravity":
+      return "Antigravity";
+    case "muse":
+      return "Muse Code";
+    case "amp":
+      return "Amp";
+    case "cursor":
+      return "Cursor";
   }
 }
 
 /** The one letter an agent's mark shows (the kit's Avatar). A letter,
  * not the vendor's logo: the logos are theirs, and a board needs only to
  * tell the four apart at a glance. (Claude Code and Codex both start with
- * C.) */
+ * C.) The seven of ADR 0058 show the generic mark, their name's first
+ * letter, as an added agent does, until their vendors' marks are cleared. */
 export function agentMark(
   agent: HarnessRef,
   agents: readonly AgentInfo[] = [],
@@ -106,6 +130,14 @@ function knownMark(kind: HarnessKind): string {
       return "G";
     case "open-code":
       return "O";
+    case "grok":
+    case "pi":
+    case "omp":
+    case "antigravity":
+    case "muse":
+    case "amp":
+    case "cursor":
+      return knownName(kind).slice(0, 1).toUpperCase();
   }
 }
 

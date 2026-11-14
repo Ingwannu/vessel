@@ -36,9 +36,13 @@ impl fmt::Display for ProtocolVersion {
 
 /// The protocol this build speaks. Bump on any breaking change to a wire type
 /// and record the change in `docs/PROTOCOL.md`.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(21);
+///
+/// Provisional at merge: the number of ADR 0058's seven agents
+/// (`agents::READS_TEN_AGENTS`) is assigned when the lines merge; this
+/// follows it.
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(22);
 
-/// The oldest protocol this build still accepts. Versions 3 to 21 only add
+/// The oldest protocol this build still accepts. Versions 3 to 22 only add
 /// methods, events (with stand-ins for older peers) and defaulted fields,
 /// so version 2 peers keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);

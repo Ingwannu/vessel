@@ -45,6 +45,7 @@ use vessel_proto::agents::{
 };
 use vessel_proto::{AgentName, AgentNameError, ConfigValue, EnvName, McpServerName, SecretName};
 
+pub(crate) use command::clean;
 pub use command::{PASSED_ON, command, installer, passed_on};
 pub use edit::{EditError, add_agent, remove_agent};
 

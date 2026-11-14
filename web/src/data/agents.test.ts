@@ -19,6 +19,7 @@ import {
 } from "./agent-choices";
 import { agentHeadline, agentsOn } from "./agent-status";
 import {
+  AGENT_KINDS,
   agentKey,
   agentMark,
   agentModes,
@@ -150,9 +151,9 @@ describe("an added agent", () => {
       "codex",
       "added:goose",
       "added:gone",
-      "claude-code",
-      "gemini",
-      "open-code",
+      // Every other known agent, found or not, in the page's order (the
+      // seven of ADR 0058 after the four).
+      ...AGENT_KINDS.filter((kind) => kind !== "codex"),
     ]);
     const [, goose, gone] = listed;
     expect(goose === undefined ? null : agentHeadline(goose.status)).toEqual({

@@ -15,8 +15,13 @@ use crate::error::HarnessError;
 use crate::harnesses::{Structured, descriptor};
 use crate::lookup::Lookup;
 use crate::mcp::{EncodeProblem, McpError, McpFile, TerminalMcp};
-use crate::profile::{Base, Profile, same_variable};
+use crate::profile::{Base, Profile};
 use crate::routing::{ModelProxy, Routed};
+
+mod environment;
+
+use environment::with_routing;
+pub(crate) use environment::{check_environment, environment, with_profile};
 
 /// What [`launch`] decided: the command, and what it needs around it.
 /// `Debug` shows no value: `CommandSpec` and `McpFile` hide them.
@@ -220,9 +225,8 @@ fn launch_over(
                     // Against what the child really inherits for every
                     // other variable: the process's. Its home variable and
                     // `HOME` come from `env` and are refused here anyway.
-                    check_environment(&rendered, profile, descriptor.home.variable, &|name| {
-                        std::env::var_os(name)
-                    })?;
+                    let home = descriptor.home.as_ref().and_then(|home| home.variable);
+                    check_environment(&rendered, profile, home, &|name| std::env::var_os(name))?;
                     let (with_servers, file) = attach(command, rendered, mcp_dir)?;
                     command = with_servers;
                     mcp_file = file;
@@ -240,27 +244,14 @@ fn launch_over(
                 .args(routed.args.iter())
                 .args(text.iter().copied())
         }
-        SessionMode::Structured { .. } => match (direct, &descriptor.structured) {
-            (Some(direct), _) => CommandSpec::new(installed(descriptor.binary)?)
-                .args(direct.args.iter())
-                .args(routed.args.iter()),
-            (None, Structured::Native { args }) => CommandSpec::new(installed(descriptor.binary)?)
-                .args(args.iter())
-                .args(routed.args.iter()),
-            (None, Structured::Adapter { binary, install }) => {
-                let program =
-                    lookup
-                        .find(binary)
-                        .ok_or_else(|| HarnessError::StructuredUnavailable {
-                            harness,
-                            reason: adapter_missing(binary, install),
-                        })?;
-                CommandSpec::new(program).args(routed.args.iter())
-            }
-        },
+        SessionMode::Structured { .. } => {
+            structured(lookup, harness, direct, &installed)?.args(routed.args.iter())
+        }
     };
-    // This node's account first (`HarnessEnv`), then the profile's own,
-    // then the route's.
+    // The environment the harness starts from (the node's, or the clean
+    // one of ADR 0058), this node's account (`HarnessEnv`), then the
+    // profile's own, then the route's.
+    let command = environment(command, lookup, env, harness);
     let command = with_routing(with_profile(env.apply(command, harness), profile), &routed);
     let command = match working_dir(spec, env)? {
         Some(cwd) => command.cwd(cwd),
@@ -337,72 +328,6 @@ fn checked(spec: &SessionSpec, profile: &Profile) -> Result<(), HarnessError> {
     Ok(())
 }
 
-/// `command` with `profile`'s environment changes: removals first, then
-/// the variables it sets (a profile never does both to one variable).
-pub(crate) fn with_profile(command: CommandSpec, profile: &Profile) -> CommandSpec {
-    let command = profile
-        .unset()
-        .fold(command, |command, name| command.env_remove(name.as_str()));
-    profile.env().fold(command, |command, (name, value)| {
-        command.env(name.as_str(), value)
-    })
-}
-
-/// `command` pointed at the model proxy: the route's removals, then its
-/// variables.
-fn with_routing(command: CommandSpec, routed: &Routed) -> CommandSpec {
-    let command = routed.unset.iter().fold(command, CommandSpec::env_remove);
-    routed
-        .env
-        .iter()
-        .fold(command, |command, (name, value)| command.env(name, value))
-}
-
-/// An MCP variable goes into the harness's own environment (Codex), so it
-/// must not change the harness itself: no variable that steers it (its
-/// home, search path, loader, proxies, credentials), and no variable the
-/// harness would otherwise get with another value, from the profile or
-/// from the environment it inherits (`inherited`, the node's own). A
-/// variable the profile removes may not come back either.
-pub(crate) fn check_environment(
-    rendered: &TerminalMcp,
-    profile: &Profile,
-    home_variable: Option<&str>,
-    inherited: &dyn Fn(&str) -> Option<OsString>,
-) -> Result<(), McpError> {
-    for (name, value) in &rendered.env {
-        let same = |other: &str| same_variable(other, name.as_str());
-        if protected(name.as_str()) || home_variable.is_some_and(same) {
-            return Err(McpError::ProtectedVariable { name: name.clone() });
-        }
-        let profile_value = profile
-            .env()
-            .find(|(key, _)| same(key.as_str()))
-            .map(|(_, set)| OsString::from(set));
-        let removed = profile.unset().any(|key| same(key.as_str()));
-        let current = profile_value.or_else(|| inherited(name.as_str()));
-        let differs = current.is_some_and(|current| current != value.expose());
-        if removed || differs {
-            return Err(McpError::SharedVariable { name: name.clone() });
-        }
-    }
-    Ok(())
-}
-
-/// Variables that steer a harness rather than configure an MCP server.
-/// Compared ignoring case everywhere: `http_proxy` is as live as
-/// `HTTP_PROXY`.
-fn protected(name: &str) -> bool {
-    let name = name.to_ascii_uppercase();
-    matches!(
-        name.as_str(),
-        "PATH" | "PATHEXT" | "HOME" | "USERPROFILE" | "NODE_OPTIONS"
-    ) || ["LD_", "DYLD_", "OPENAI_", "CODEX_"]
-        .iter()
-        .any(|prefix| name.starts_with(prefix))
-        || name.ends_with("_PROXY")
-}
-
 /// The rendered form on the command: its arguments, its variables, and the
 /// file's path as one argument.
 fn attach(
@@ -424,9 +349,34 @@ fn attach(
     Ok((command.arg(argument), Some(file)))
 }
 
-/// Why structured mode is unavailable when an adapter is missing.
-pub(crate) fn adapter_missing(binary: &str, install: &str) -> String {
-    format!("its ACP adapter `{binary}` is not installed (install it with `{install}`)")
+/// A structured session's command before the route's arguments: over
+/// `direct`'s protocol when given, else as the harness speaks ACP.
+/// `installed` finds a program or says it is missing; an adapter runs
+/// without the harness's own binary on the search path, as before.
+fn structured(
+    lookup: &Lookup,
+    harness: HarnessKind,
+    direct: Option<&Direct>,
+    installed: &dyn Fn(&'static str) -> Result<PathBuf, HarnessError>,
+) -> Result<CommandSpec, HarnessError> {
+    let descriptor = descriptor(harness);
+    if let Some(direct) = direct {
+        return Ok(CommandSpec::new(installed(descriptor.binary)?).args(direct.args.iter()));
+    }
+    let refused = |reason| HarnessError::StructuredUnavailable { harness, reason };
+    match &descriptor.structured {
+        Structured::Native { args, env } => Ok(env.iter().fold(
+            CommandSpec::new(installed(descriptor.binary)?).args(args.iter()),
+            |command, (name, value)| command.env(name, value),
+        )),
+        adapter @ Structured::Adapter { binary, .. } => match lookup.find(binary) {
+            Some(program) => Ok(CommandSpec::new(program)),
+            None => Err(refused(adapter.unavailable(lookup).unwrap_or_default())),
+        },
+        none @ Structured::None { .. } => {
+            Err(refused(none.unavailable(lookup).unwrap_or_default()))
+        }
+    }
 }
 
 /// The spec's directory, which must be absolute, or else the home
@@ -460,109 +410,7 @@ fn working_dir(spec: &SessionSpec, env: &HarnessEnv) -> Result<Option<PathBuf>, 
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
-    use vessel_proto::{EnvName, ResolvedValue};
-
     use super::*;
-    use crate::profile::parse_profiles;
-
-    fn rendered(pairs: &[(&str, &str)]) -> TerminalMcp {
-        TerminalMcp {
-            env: pairs
-                .iter()
-                .map(|(name, value)| {
-                    (
-                        name.parse::<EnvName>().unwrap(),
-                        ResolvedValue::new((*value).to_owned()),
-                    )
-                })
-                .collect(),
-            ..TerminalMcp::default()
-        }
-    }
-
-    fn profile(text: &str) -> Profile {
-        let file = format!("[profiles.p]\nharness = \"codex\"\n{text}\n");
-        parse_profiles(&file, Some(Path::new("/h")))
-            .unwrap()
-            .get(&"p".parse().unwrap())
-            .cloned()
-            .unwrap()
-    }
-
-    /// The node's environment, for these tests.
-    fn node_env(name: &str) -> Option<OsString> {
-        match name {
-            "DOCS_TOKEN" => Some("inherited".into()),
-            "SAME" => Some("same".into()),
-            _ => None,
-        }
-    }
-
-    fn check(pairs: &[(&str, &str)], profile: &Profile) -> Result<(), McpError> {
-        check_environment(&rendered(pairs), profile, Some("CODEX_HOME"), &node_env)
-    }
-
-    fn shared(name: &str) -> McpError {
-        McpError::SharedVariable {
-            name: name.parse().unwrap(),
-        }
-    }
-
-    fn protected_name(name: &str) -> McpError {
-        McpError::ProtectedVariable {
-            name: name.parse().unwrap(),
-        }
-    }
-
-    /// Review finding 2: a server's variable must not override what Codex
-    /// inherits.
-    #[test]
-    fn a_variable_the_harness_inherits_keeps_its_value() {
-        let plain = Profile::default_for(HarnessKind::Codex);
-        assert_eq!(
-            check(&[("DOCS_TOKEN", "mine")], &plain),
-            Err(shared("DOCS_TOKEN"))
-        );
-        assert_eq!(check(&[("SAME", "same")], &plain), Ok(()));
-        assert_eq!(check(&[("FRESH", "x")], &plain), Ok(()));
-        // The profile decides first: its value, or its removal.
-        let sets = profile("env = { DOCS_TOKEN = \"mine\" }");
-        assert_eq!(check(&[("DOCS_TOKEN", "mine")], &sets), Ok(()));
-        assert_eq!(
-            check(&[("DOCS_TOKEN", "other")], &sets),
-            Err(shared("DOCS_TOKEN"))
-        );
-        let removes = profile("unset = [\"FRESH\"]");
-        assert_eq!(check(&[("FRESH", "x")], &removes), Err(shared("FRESH")));
-    }
-
-    #[test]
-    fn variables_that_steer_the_harness_are_refused() {
-        let plain = Profile::default_for(HarnessKind::Codex);
-        for name in [
-            "PATH",
-            "Path",
-            "HOME",
-            "USERPROFILE",
-            "LD_PRELOAD",
-            "DYLD_INSERT_LIBRARIES",
-            "NODE_OPTIONS",
-            "HTTPS_PROXY",
-            "http_proxy",
-            "OPENAI_API_KEY",
-            "CODEX_HOME",
-            "CODEX_SANDBOX",
-        ] {
-            assert_eq!(
-                check(&[(name, "x")], &plain),
-                Err(protected_name(name)),
-                "{name}"
-            );
-        }
-        assert_eq!(check(&[("PROXYLESS", "x")], &plain), Ok(()));
-    }
 
     /// Review finding 7: the I/O error stays the source, and encoding
     /// problems are typed.

@@ -38,7 +38,11 @@ pub enum Role {
 pub fn install(dir: &Path, kind: HarnessKind, role: Role, fake: &Path) -> io::Result<PathBuf> {
     let descriptor = descriptor(kind);
     let name = match (role, &descriptor.structured) {
-        (Role::Terminal, _) | (Role::Structured, Structured::Native { .. }) => descriptor.binary,
+        // A harness without ACP is driven directly: its fake is its binary.
+        (Role::Terminal, _)
+        | (Role::Structured, Structured::Native { .. } | Structured::None { .. }) => {
+            descriptor.binary
+        }
         (Role::Structured, Structured::Adapter { binary, .. }) => binary,
     };
     place(fake, dir, name)

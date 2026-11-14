@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 
 use vessel_proto::{HarnessKind, ProfileName};
 
-use crate::harnesses::{Structured, descriptor};
+use crate::harnesses::{Installer, Structured, descriptor};
 use crate::lookup::Lookup;
 
 /// What an install puts in place.
@@ -47,11 +47,27 @@ pub struct Install {
     pub part: InstallPart,
     /// The program the command needs (`npm`).
     pub program: &'static str,
-    /// The whole command, as a person would type it.
+    /// The whole command, as a person would type it, or the step a person
+    /// takes (`by_hand`).
     pub command: &'static str,
+    /// Whether a person runs it themselves: a script piped to a shell or a
+    /// download, which Vessel shows and never runs (ADR 0058).
+    pub by_hand: bool,
 }
 
 impl Install {
+    /// `installer`, as `harness`'s `part`.
+    fn of(harness: HarnessKind, part: InstallPart, installer: Installer) -> Self {
+        let command = installer.text();
+        Self {
+            harness,
+            part,
+            program: command.split_whitespace().next().unwrap_or(command),
+            command,
+            by_hand: !installer.runs(),
+        }
+    }
+
     /// The command's arguments after the program.
     #[must_use]
     pub fn args(&self) -> Vec<&'static str> {
@@ -66,22 +82,21 @@ pub fn missing(lookup: &Lookup) -> Vec<Install> {
     let mut missing = Vec::new();
     for harness in HarnessKind::ALL {
         let descriptor = descriptor(harness);
-        let (part, command) = if lookup.find(descriptor.binary).is_none() {
+        let (part, installer) = if lookup.find(descriptor.binary).is_none() {
             (InstallPart::Harness, descriptor.install)
         } else {
             match &descriptor.structured {
-                Structured::Adapter { binary, install } if lookup.find(binary).is_none() => {
-                    (InstallPart::Adapter, *install)
+                Structured::Adapter {
+                    binary, install, ..
+                } if lookup.find(binary).is_none() => (InstallPart::Adapter, *install),
+                Structured::Adapter { .. }
+                | Structured::Native { .. }
+                | Structured::None { .. } => {
+                    continue;
                 }
-                Structured::Adapter { .. } | Structured::Native { .. } => continue,
             }
         };
-        missing.push(Install {
-            harness,
-            part,
-            program: command.split_whitespace().next().unwrap_or(command),
-            command,
-        });
+        missing.push(Install::of(harness, part, installer));
     }
     missing
 }
@@ -94,16 +109,11 @@ pub fn installs(harness: HarnessKind) -> Vec<Install> {
     let descriptor = descriptor(harness);
     let adapter = match &descriptor.structured {
         Structured::Adapter { install, .. } => Some((InstallPart::Adapter, *install)),
-        Structured::Native { .. } => None,
+        Structured::Native { .. } | Structured::None { .. } => None,
     };
     std::iter::once((InstallPart::Harness, descriptor.install))
         .chain(adapter)
-        .map(|(part, command)| Install {
-            harness,
-            part,
-            program: command.split_whitespace().next().unwrap_or(command),
-            command,
-        })
+        .map(|(part, installer)| Install::of(harness, part, installer))
         .collect()
 }
 
@@ -127,7 +137,7 @@ pub fn login_command(harness: HarnessKind) -> Option<(&'static str, &'static [&'
 /// The variable that moves `harness`'s home, if it has one.
 #[must_use]
 pub fn home_variable(harness: HarnessKind) -> Option<&'static str> {
-    descriptor(harness).home.variable
+    descriptor(harness).home.as_ref()?.variable
 }
 
 /// Another account's harness home, found beside the default one.
@@ -190,10 +200,13 @@ pub fn account_homes(user_home: &Path) -> io::Result<Vec<AccountHome>> {
 /// a dash, and more.
 fn is_account_dir_name(harness: HarnessKind, file_name: &str) -> bool {
     let descriptor = descriptor(harness);
-    let [default] = descriptor.home.default else {
+    let Some(home) = &descriptor.home else {
         return false;
     };
-    descriptor.home.variable.is_some()
+    let [default] = home.default else {
+        return false;
+    };
+    home.variable.is_some()
         && !descriptor.account_files.is_empty()
         && file_name
             .strip_prefix(default)

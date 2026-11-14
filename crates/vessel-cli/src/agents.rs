@@ -371,18 +371,26 @@ async fn install(
         InstallPart::Harness
     };
     let listed = client.call(ListAgents {}).await?;
-    let command = listed
+    let offer = listed
         .iter()
         .find_map(|info| match &info.detail {
-            AgentDetail::Known { installs, .. } if info.agent == agent => installs
-                .iter()
-                .find(|offer| offer.part == part)
-                .map(|offer| offer.command.clone()),
+            AgentDetail::Known { installs, .. } if info.agent == agent => {
+                installs.iter().find(|offer| offer.part == part).cloned()
+            }
             AgentDetail::Known { .. } | AgentDetail::Added { .. } => None,
         })
         .ok_or(CliError::Usage(
             "the node offers no such install (`vessel agents` lists each agent's)",
         ))?;
+    let command = offer.command;
+    if offer.by_hand {
+        // A script or a download (ADR 0058): the node will not run it.
+        io::note(&format!(
+            "Vessel does not run this installer; on that machine, run:\n  {command}\n"
+        ))
+        .await?;
+        return Ok(());
+    }
     io::note(&format!(
         "The node would run, as its user, in its home:\n  {command}\n"
     ))

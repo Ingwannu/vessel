@@ -101,14 +101,23 @@ on every session.
 1. **Seven new known agents.** `HarnessKind` gains `Grok`, `Cursor`,
    `Amp`, `Pi`, `Omp`, `Antigravity` and `Muse`, named `grok`, `cursor`,
    `amp`, `pi`, `omp`, `antigravity`, `muse` on the wire (Paseo's ids;
-   `amp-acp`, `agy`, `muse-code` and `oh-my-pi` are accepted when parsing).
+   `amp-acp`, `agy`, `muse-code`, `oh-my-pi` and `cursor-agent` are
+   accepted when parsing).
    Each has its module in `vessel-harness` (binary, home, install command,
    sign-in command or check, version minimum).
-   - **Protocol 21, provisional** (19 is side questions, 20 the device's
-     own view; the number is confirmed when the line merges). A peer older
-     than 21 is handed these as ADR 0032 hands an added agent: left out of
-     lists, a reply about one withheld, calls on one refused before they
+   - **Protocol 22, provisional** (19 is side questions, 20 the device's
+     own view, 21 reported usage; the number is confirmed when the line
+     merges). A peer older than 22 is handed these as ADR 0032 hands an
+     added agent: left out of lists, a reply about one withheld, calls on one refused before they
      run. `HarnessKind::since` says which protocol reads each kind.
+   - **Names taken before 22**: a person may have added an agent under one
+     of these names (an `amp-acp` from the registry, say). Records that
+     name it (`{"added": "amp-acp"}` in a session or schedule) still
+     decode; `agent.add` and `agents.toml` refuse such a name, saying
+     which known agent it names now, and the person renames it (nothing
+     is renamed for them, and no word silently changes meaning). A
+     profile in `profiles.toml` named like one of the seven is refused the
+     same way.
    - **Marks**: they are known kinds so that a mark can be attached later
      without a wire change; until the owner and the vendor say so, each
      shows the generic mark beside its name (decision 8).
@@ -161,7 +170,7 @@ on every session.
      sandbox on and the workspace not trusted. If the owner later prefers
      the safer mode as the default, only the default changes.
    - Option values gain `risk` (`safe`, `moderate`, `dangerous`,
-     `planning`: Paseo's tiers) and `unattended` (protocol 21, left out when
+     `planning`: Paseo's tiers) and `unattended` (protocol 22, left out when
      false). A direct driver sets them; for an ACP agent, the harness module
      tags the mode ids it knows (Grok's always-approve, Amp's Bypass). A
      mode that runs without permission prompts is named for what it is,
@@ -179,6 +188,11 @@ on every session.
    the node's whole environment. The four keep theirs.
 5. **Install and sign-in.** Installed: the binary, its `--version`, and the
    driver's minimum (OMP 16.3.9, Antigravity 1.1.15, Muse 1.3.0, as Paseo).
+   An install that is a script piped to a shell or a download (Cursor's,
+   Antigravity's, Muse's, Amp's adapter) is offered `by_hand`
+   (`InstallOffer.by_hand`, protocol 22): shown, never run by the node.
+   `vessel init` keeps offering only the four; the seven are installed
+   from the agent list when a person asks there.
    Signed in: the agent's own status command or a call that runs no turn
    (Muse's `account/read`, Pi's and OMP's model list being empty, `agy
    models`, ACP's `auth_required`), only on a person's request (ADR 0032,

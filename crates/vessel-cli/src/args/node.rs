@@ -82,7 +82,9 @@ fn driver(text: &str) -> Result<(HarnessKind, AgentDriver), String> {
     let kind = agent
         .parse::<HarnessKind>()
         .ok()
-        .filter(|kind| *kind != HarnessKind::Gemini)
+        // Only an agent with a driver setting (one with a protocol of its
+        // own whose driver is built) takes one.
+        .filter(|kind| vessel_proto::settings::AgentDrivers::default().get(*kind).is_some())
         .ok_or_else(|| format!("`{agent}` is not codex, claude or opencode"))?;
     let driver = match driver.trim() {
         "acp" => AgentDriver::Acp,
@@ -195,5 +197,6 @@ mod tests {
         assert!(driver("codex=fast").is_err());
         assert!(driver("vim=acp").is_err());
         assert!(driver("gemini=acp").is_err(), "no protocol of its own");
+        assert!(driver("pi=direct").is_err(), "no driver setting yet");
     }
 }

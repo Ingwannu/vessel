@@ -1,96 +1,125 @@
-//! What a peer of protocol 2 to 10 is handed where a reply would carry an
-//! added agent (protocol 11, ADR 0032).
+//! What a peer is handed where a reply would carry an agent newer than its
+//! protocol: an added agent (protocol 11, ADR 0032) for a peer of 2 to 10,
+//! one of the seven known agents of ADR 0058 for a peer older than
+//! [`READS_TEN_AGENTS`].
 //!
 //! [Decision Log]
-//! - Purpose: an older peer decodes an agent as one of four strings, so a
-//!   list holding `{"added": ...}` would fail to decode whole and drop its
-//!   connection.
-//! - Constraint: there is no honest stand-in. Reporting an added agent's
-//!   session as one of the four would show a person the wrong agent, and a
-//!   client acting on it (moving it to a Claude profile, say) would act on
-//!   a guess.
+//! - Purpose: an older peer decodes an agent as one of the kinds it knows,
+//!   so a list holding `{"added": ...}` or `"grok"` would fail to decode
+//!   whole and drop its connection.
+//! - Constraint: there is no honest stand-in. Reporting such a session as
+//!   one of the agents the peer knows would show a person the wrong agent,
+//!   and a client acting on it (moving it to a Claude profile, say) would
+//!   act on a guess.
 //! - Choice: lists (`harness.list`, `profile.list`, `profile.reload`,
-//!   `session.list`) leave such entries out; a reply that is about one
-//!   (`session.get`, a session's change, a subscription) is withheld and
-//!   the peer gets `unsupported`, saying a newer client sees it. The calls
+//!   `session.list`, and from protocol 11 `agent.list`, `agent.status`,
+//!   `agent.catalogue`, `schedule.list`, `prompt.list`, and from protocol
+//!   21 `usage.query`'s agent groups) leave such entries
+//!   out (`lists`); a reply that is about one (`session.get`, a session's
+//!   change, a subscription, one schedule or saved prompt) is withheld and
+//!   the peer gets `unsupported`, saying which protocol sees it. The calls
 //!   that would change such a session or subscribe to it are refused by
 //!   the node before they run (`vessel-node`'s guard), so withholding a
-//!   reply never hides a change that happened.
+//!   reply never hides a change that happened. A schedule or saved prompt
+//!   is named by an id the peer only learns from a list that leaves it
+//!   out.
+//! - One rule for both: an agent is readable from [`HarnessRef::since`] on.
 //! - Both walk into the fleet's envelope, whose reply nests the inner
 //!   call's.
 
+mod lists;
+
+use crate::agents::HarnessRef;
+use crate::automation::{SavedPrompt, ScheduleInfo, ScheduleTarget};
 use crate::error::{ErrorCode, WireError};
 use crate::forward::Forwarded;
-use crate::harness::Harness;
 use crate::node::ProtocolVersion;
-use crate::profile::ProfileInfo;
 use crate::rpc::Reply;
-use crate::session::SessionInfo;
+use crate::session::{SessionInfo, SessionSpec};
+
+pub(crate) use lists::{
+    agents, catalogue, harnesses, profiles, prompts, readiness, schedules, usage,
+};
 
 /// The first protocol whose peers read an added agent.
 pub const READS_ADDED_AGENTS: ProtocolVersion = ProtocolVersion::new(11);
 
+/// The first protocol whose peers read the seven known agents of ADR 0058
+/// (Grok, Pi, OMP, Antigravity, Muse Code, Amp, Cursor). Provisional: the
+/// number is confirmed when the line merges.
+pub const READS_TEN_AGENTS: ProtocolVersion = ProtocolVersion::new(22);
+
+/// The first protocol whose peers read every agent: nothing is withheld
+/// from them.
+pub const READS_EVERY_AGENT: ProtocolVersion = READS_TEN_AGENTS;
+
+/// Whether a peer of `protocol` can read `harness`.
+#[must_use]
+pub const fn reads(harness: &HarnessRef, protocol: ProtocolVersion) -> bool {
+    harness.since().get() <= protocol.get()
+}
+
 /// Whether a peer of `protocol` can be handed `session`.
 #[must_use]
-pub fn readable(session: &SessionInfo, protocol: ProtocolVersion) -> bool {
-    protocol >= READS_ADDED_AGENTS || session.spec.harness.added().is_none()
+pub const fn readable(session: &SessionInfo, protocol: ProtocolVersion) -> bool {
+    reads(&session.spec.harness, protocol)
 }
 
-/// The error a peer of an older protocol gets in place of an added agent's
-/// session.
+/// The error a peer of an older protocol gets in place of a session, a
+/// schedule or a saved prompt running `harness`.
 #[must_use]
-pub fn unreadable() -> WireError {
-    WireError::new(
-        ErrorCode::Unsupported,
-        "this session runs an agent added on this machine; a client of protocol 11 or later sees it",
-    )
+pub fn unreadable(harness: &HarnessRef) -> WireError {
+    let message = match harness {
+        HarnessRef::Added(_) => format!(
+            "this runs an agent added on this machine; a client of protocol {READS_ADDED_AGENTS} or later sees it"
+        ),
+        HarnessRef::Known(kind) => format!(
+            "this runs {kind}, which a client of protocol {} or later knows",
+            kind.since()
+        ),
+    };
+    WireError::new(ErrorCode::Unsupported, message)
 }
 
-/// `harnesses` without the added agents, when a peer of `protocol` cannot
-/// read them; `None` when nothing changes.
-pub(crate) fn harnesses(harnesses: &[Harness], protocol: ProtocolVersion) -> Option<Vec<Harness>> {
-    let hidden = |harness: &Harness| harness.kind.added().is_some();
-    (protocol < READS_ADDED_AGENTS && harnesses.iter().any(hidden)).then(|| {
-        harnesses
-            .iter()
-            .filter(|harness| !hidden(harness))
-            .cloned()
-            .collect()
-    })
+/// `spec`'s agent, when a peer of `protocol` cannot read it.
+fn newer(spec: &SessionSpec, protocol: ProtocolVersion) -> Option<WireError> {
+    (!reads(&spec.harness, protocol)).then(|| unreadable(&spec.harness))
 }
 
-/// `profiles` without the added agents' ones, when a peer of `protocol`
-/// cannot read them; `None` when nothing changes.
-pub(crate) fn profiles(
-    profiles: &[ProfileInfo],
-    protocol: ProtocolVersion,
-) -> Option<Vec<ProfileInfo>> {
-    let hidden = |profile: &ProfileInfo| profile.harness.added().is_some();
-    (protocol < READS_ADDED_AGENTS && profiles.iter().any(hidden)).then(|| {
-        profiles
-            .iter()
-            .filter(|profile| !hidden(profile))
-            .cloned()
-            .collect()
-    })
+/// A schedule's new session, when a peer of `protocol` cannot read its
+/// agent.
+fn newer_schedule(schedule: &ScheduleInfo, protocol: ProtocolVersion) -> Option<WireError> {
+    match &schedule.definition.target {
+        ScheduleTarget::NewSession { spec, .. } => newer(spec, protocol),
+        ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => None,
+    }
+}
+
+/// A saved prompt's session, when a peer of `protocol` cannot read its
+/// agent.
+fn newer_prompt(prompt: &SavedPrompt, protocol: ProtocolVersion) -> Option<WireError> {
+    prompt
+        .session
+        .as_deref()
+        .and_then(|spec| newer(spec, protocol))
 }
 
 impl Reply {
     /// The error a peer of `protocol` gets in place of this reply, when the
-    /// reply is about one added agent's session it could not decode; `None`
-    /// when it may be handed (lists are filtered by
-    /// [`Reply::for_protocol`] instead).
+    /// reply is about one session, schedule or saved prompt whose agent it
+    /// could not decode; `None` when it may be handed (lists are filtered
+    /// by [`Reply::for_protocol`] instead).
     #[must_use]
     #[expect(
         clippy::too_many_lines,
-        reason = "one arm per reply, so a new reply must decide whether it can carry an added \
-                  agent; the list is the point"
+        reason = "one arm per reply, so a new reply must decide whether it can carry an agent \
+                  newer than a peer; the list is the point"
     )]
     pub fn withheld(&self, protocol: ProtocolVersion) -> Option<WireError> {
-        if protocol >= READS_ADDED_AGENTS {
+        if protocol >= READS_EVERY_AGENT {
             return None;
         }
-        let one = |session: &SessionInfo| (!readable(session, protocol)).then(unreadable);
+        let one = |session: &SessionInfo| newer(&session.spec, protocol);
         match self {
             Self::GetSession(info)
             | Self::OpenSideQuestion(info)
@@ -106,11 +135,20 @@ impl Reply {
             | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
+            Self::GetSchedule(schedule)
+            | Self::CreateSchedule(schedule)
+            | Self::UpdateSchedule(schedule)
+            | Self::PauseSchedule(schedule)
+            | Self::ResumeSchedule(schedule) => newer_schedule(schedule, protocol),
+            Self::CreatePrompt(prompt) | Self::UpdatePrompt(prompt) => {
+                newer_prompt(prompt, protocol)
+            }
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
                 nested(forwarded, protocol)
             }
             // Lists (filtered by `for_protocol`), and replies that name no
-            // agent or only one of the four.
+            // agent or only one the asking call named (which needs the
+            // agent's protocol, `Call::since`).
             Self::ListSessions(_)
             | Self::ListHarnesses(_)
             | Self::ListProfiles(_)
@@ -239,12 +277,9 @@ impl Reply {
             | Self::InstallAgent(_)
             | Self::PromptSideQuestion(_)
             | Self::ReadInstall(_)
-            // Protocol 11's schedules and saved prompts: a schedule's new
-            // session and a saved prompt carry a `SessionSpec`, whose agent
-            // may be an added one, but every one of these is a protocol 11
-            // method, which a node refuses on an older connection before it
-            // runs (the client does not send it either), so an older peer
-            // is never handed one. A run names its session by id.
+            // Protocol 11's fleet calls, and the schedules' runs and
+            // previews: none carries an agent. A run names its session by
+            // id.
             | Self::JoinFleet(_)
             | Self::LeaveFleet(_)
             | Self::SyncFleet(_)
@@ -252,18 +287,11 @@ impl Reply {
             | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
-            | Self::GetSchedule(_)
-            | Self::CreateSchedule(_)
-            | Self::UpdateSchedule(_)
-            | Self::PauseSchedule(_)
-            | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
-            | Self::CreatePrompt(_)
-            | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             // A hit names a session; the session itself comes from a list.
             | Self::SearchMessages(_) => None,
@@ -277,146 +305,4 @@ fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<WireError>
 }
 
 #[cfg(test)]
-mod tests {
-    use chrono::DateTime;
-
-    use super::*;
-    use crate::agents::{HarnessRef, TerminalSupport};
-    use crate::harness::{HarnessKind, StructuredSupport};
-    use crate::id::SessionId;
-    use crate::rpc::{Outcome, ServerFrame};
-    use crate::session::{SessionMode, SessionSpec};
-
-    const V10: ProtocolVersion = ProtocolVersion::new(10);
-    const V11: ProtocolVersion = ProtocolVersion::new(11);
-
-    fn session(harness: impl Into<HarnessRef>) -> SessionInfo {
-        let mode = SessionMode::Structured {
-            model: None,
-            resume: None,
-            options: Vec::new(),
-        };
-        SessionInfo::new(
-            SessionId::random(),
-            SessionSpec::new(harness, mode),
-            DateTime::UNIX_EPOCH,
-        )
-    }
-
-    fn goose() -> HarnessRef {
-        HarnessRef::Added("goose".parse().unwrap())
-    }
-
-    #[test]
-    fn lists_leave_added_agents_out_for_an_older_peer() {
-        let known = session(HarnessKind::Codex);
-        let added = session(goose());
-        let listed = Reply::ListSessions(vec![known.clone(), added]);
-        assert_eq!(listed.for_protocol(V11), None);
-        assert_eq!(
-            listed.for_protocol(V10),
-            Some(Reply::ListSessions(vec![known]))
-        );
-
-        let harness = |kind: HarnessRef| Harness {
-            kind,
-            path: "/bin/agent".into(),
-            version: None,
-            structured: StructuredSupport::Available,
-            terminal: TerminalSupport::Available,
-        };
-        let found =
-            Reply::ListHarnesses(vec![harness(HarnessKind::Gemini.into()), harness(goose())]);
-        assert_eq!(found.for_protocol(V11), None);
-        assert_eq!(
-            found.for_protocol(V10),
-            Some(Reply::ListHarnesses(vec![harness(
-                HarnessKind::Gemini.into()
-            )]))
-        );
-
-        let profile = |harness: HarnessRef, name: &str| ProfileInfo {
-            name: name.parse().unwrap(),
-            label: None,
-            harness,
-            sets: Vec::new(),
-            model: None,
-        };
-        let profiles = vec![
-            profile(HarnessKind::Codex.into(), "codex"),
-            profile(goose(), "goose"),
-        ];
-        assert_eq!(
-            Reply::ReloadProfiles(profiles.clone()).for_protocol(V10),
-            Some(Reply::ReloadProfiles(vec![profile(
-                HarnessKind::Codex.into(),
-                "codex"
-            )]))
-        );
-        assert_eq!(Reply::ListProfiles(profiles).for_protocol(V11), None);
-    }
-
-    #[test]
-    fn a_call_naming_an_added_agent_needs_protocol_11() {
-        use crate::options::GetHarnessOptions;
-        use crate::profile::ListProfiles;
-        use crate::rpc::{Call, CreateSession};
-
-        let mode = || SessionMode::Structured {
-            model: None,
-            resume: None,
-            options: Vec::new(),
-        };
-        let added = Call::CreateSession(CreateSession {
-            spec: SessionSpec::new(goose(), mode()),
-        });
-        assert_eq!(added.since(), V11);
-        let known = Call::CreateSession(CreateSession {
-            spec: SessionSpec::new(HarnessKind::Codex, mode()),
-        });
-        assert_eq!(known.since(), ProtocolVersion::new(2));
-        let options = |harness| {
-            Call::HarnessOptions(GetHarnessOptions {
-                harness,
-                profile: None,
-            })
-        };
-        assert_eq!(options(goose()).since(), V11);
-        assert_eq!(
-            options(HarnessKind::Gemini.into()).since(),
-            ProtocolVersion::new(9)
-        );
-        let profiles = |harness| Call::ListProfiles(ListProfiles { harness });
-        assert_eq!(profiles(Some(goose())).since(), V11);
-        assert_eq!(profiles(None).since(), ProtocolVersion::new(5));
-    }
-
-    #[test]
-    fn one_added_agents_session_is_withheld_from_an_older_peer() {
-        let added = Reply::GetSession(session(goose()));
-        assert_eq!(added.withheld(V11), None);
-        assert_eq!(added.withheld(V10), Some(unreadable()));
-        assert_eq!(
-            Reply::GetSession(session(HarnessKind::Codex)).withheld(V10),
-            None
-        );
-        let forwarded = Reply::Forward(Forwarded {
-            reply: Box::new(added),
-        });
-        assert_eq!(forwarded.withheld(V10), Some(unreadable()));
-
-        // As the node writes it: the reply becomes the error.
-        let frame = ServerFrame::Response {
-            id: crate::id::RequestId::new(7),
-            outcome: Outcome::Ok(forwarded),
-        };
-        assert_eq!(frame.for_protocol(V11), None);
-        assert_eq!(
-            frame.for_protocol(V10),
-            Some(ServerFrame::Response {
-                id: crate::id::RequestId::new(7),
-                outcome: Outcome::Err(unreadable()),
-            })
-        );
-    }
-}
+mod tests;

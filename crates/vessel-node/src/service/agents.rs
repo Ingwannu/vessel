@@ -17,23 +17,24 @@ use crate::error::ServiceError;
 use crate::transfers::export::named;
 
 impl NodeService {
-    /// Refuse a call that would act on, or subscribe to, an added agent's
-    /// session for a client of protocol 2 to 10, before it runs: the
-    /// client could not decode that session, so it must not change it
-    /// unseen (its replies are withheld too, `Reply::withheld`). A session
-    /// this node does not have passes, for the call itself to answer.
+    /// Refuse a call that would act on, or subscribe to, a session of an
+    /// agent newer than the client (an added agent before protocol 11, one
+    /// of ADR 0058's seven before its `since`), before it runs: the client could not
+    /// decode that session, so it must not change it unseen (its replies
+    /// are withheld too, `Reply::withheld`). A session this node does not
+    /// have passes, for the call itself to answer.
     pub(crate) async fn refuse_older(
         &self,
         connection: &Connection,
         session: SessionId,
     ) -> Result<(), WireError> {
         let protocol = connection.protocol();
-        if protocol >= vessel_proto::agents::READS_ADDED_AGENTS {
+        if protocol >= vessel_proto::agents::READS_EVERY_AGENT {
             return Ok(());
         }
         match self.sessions.get(session).await {
             Ok(info) if !vessel_proto::agents::readable(&info, protocol) => {
-                Err(vessel_proto::agents::unreadable())
+                Err(vessel_proto::agents::unreadable(&info.spec.harness))
             }
             Ok(_) | Err(ServiceError::NotFound(_)) => Ok(()),
             Err(error) => Err(wire(&error)),
@@ -120,6 +121,18 @@ impl NodeService {
                     ),
                 )
             })?;
+        if install.by_hand {
+            // A script piped to a shell or a download (ADR 0058): what it
+            // runs is not a package manager's command the node can show
+            // whole beforehand.
+            return Err(WireError::new(
+                ErrorCode::Unsupported,
+                format!(
+                    "{agent}'s installer is run by hand, not by Vessel: {}",
+                    install.command
+                ),
+            ));
+        }
         if self
             .sessions
             .live_profiles()

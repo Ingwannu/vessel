@@ -32,8 +32,9 @@ pub fn home(
     user_home: &Path,
     inherited: impl Fn(&str) -> Option<OsString>,
 ) -> Option<PathBuf> {
-    // An added agent's home is not known (ADR 0032): nothing is guessed.
-    let home = &descriptor(profile.known()?).home;
+    // An added agent's home is not known (ADR 0032), nor that of a known
+    // agent whose vendor does not document it: nothing is guessed.
+    let home = descriptor(profile.known()?).home.as_ref()?;
     // The descriptor's names are constants that parse; one that did not
     // would mean no variable, as for a harness without one.
     let variable = home
@@ -95,10 +96,13 @@ pub fn login_check(
             harness,
             binary: descriptor.binary,
         })?;
-    Ok(Some(with_profile(
-        env.apply(CommandSpec::new(program).args(args.iter()), harness),
-        profile,
-    )))
+    let command = crate::launch::environment(
+        CommandSpec::new(program).args(args.iter()),
+        lookup,
+        env,
+        harness,
+    );
+    Ok(Some(with_profile(env.apply(command, harness), profile)))
 }
 
 #[cfg(test)]

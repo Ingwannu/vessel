@@ -124,8 +124,8 @@ pub(crate) fn list(profiles: &Profiles) -> Vec<AgentInfo> {
         .collect()
 }
 
-/// One of the four as `agent.list` shows it: its vendor's installs and how
-/// a person signs in.
+/// A known agent as `agent.list` shows it: its vendor's installs and how a
+/// person signs in.
 pub(crate) fn known(kind: HarnessKind) -> AgentInfo {
     let installs = vessel_harness::installs(kind)
         .into_iter()
@@ -135,6 +135,7 @@ pub(crate) fn known(kind: HarnessKind) -> AgentInfo {
                 vessel_harness::InstallPart::Adapter => InstallPart::Adapter,
             },
             command: install.command.to_owned(),
+            by_hand: install.by_hand,
         })
         .collect();
     AgentInfo {

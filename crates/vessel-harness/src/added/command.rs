@@ -122,6 +122,33 @@ pub fn passed_on(name: &str, value: &OsStr) -> bool {
     !proxy || !value.as_encoded_bytes().contains(&b'@')
 }
 
+/// `command` from an empty environment, with what every program the node
+/// starts outside the four's own environment gets (the module's Decision
+/// Log): `PATH` (the search path `lookup` finds programs on), the user's
+/// home from `env`, and the variables of [`PASSED_ON`] the node has
+/// (`node`, its own environment).
+pub(crate) fn clean(
+    command: CommandSpec,
+    lookup: &Lookup,
+    env: &HarnessEnv,
+    node: &impl Fn(&str) -> Option<OsString>,
+) -> CommandSpec {
+    let mut command = command.env_clear();
+    if let Some(path) = lookup.search_path() {
+        command = command.env("PATH", path);
+    }
+    let home = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    command = command.env(home, env.user_home());
+    for name in PASSED_ON {
+        if let Some(value) = node(name)
+            && passed_on(name, &value)
+        {
+            command = command.env(name, value);
+        }
+    }
+    command
+}
+
 /// The command `agent` runs as, before its profile's changes: its program
 /// (looked up on `lookup`, or the absolute path written) and arguments, in
 /// an environment that starts empty (the module's Decision Log). `node`
@@ -145,21 +172,12 @@ pub fn command(
             name: agent.name().clone(),
             program: agent.program().clone(),
         })?;
-    let mut command = CommandSpec::new(program)
-        .args(agent.args.iter())
-        .env_clear();
-    if let Some(path) = lookup.search_path() {
-        command = command.env("PATH", path);
-    }
-    let home = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
-    command = command.env(home, env.user_home());
-    for name in PASSED_ON {
-        if let Some(value) = node(name)
-            && passed_on(name, &value)
-        {
-            command = command.env(name, value);
-        }
-    }
+    let mut command = clean(
+        CommandSpec::new(program).args(agent.args.iter()),
+        lookup,
+        env,
+        &node,
+    );
     for name in &agent.inherit {
         if let Some(value) = node(name.as_str()) {
             command = command.env(name.as_str(), value);
@@ -199,22 +217,14 @@ pub fn installer(
     node_vars: impl IntoIterator<Item = (OsString, OsString)>,
 ) -> Option<CommandSpec> {
     let program = lookup.find(install.program)?;
-    let mut command = CommandSpec::new(program)
-        .args(install.args())
-        .env_clear()
-        .cwd(env.user_home());
-    if let Some(path) = lookup.search_path() {
-        command = command.env("PATH", path);
-    }
-    let home = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
-    command = command.env(home, env.user_home());
-    for name in PASSED_ON {
-        if let Some(value) = node(name)
-            && passed_on(name, &value)
-        {
-            command = command.env(name, value);
-        }
-    }
+    let mut command = clean(
+        CommandSpec::new(program)
+            .args(install.args())
+            .cwd(env.user_home()),
+        lookup,
+        env,
+        &node,
+    );
     for (name, value) in node_vars {
         if name
             .to_str()

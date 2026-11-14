@@ -345,14 +345,30 @@ export type AgentMessageId = string & { readonly __brand: "AgentMessageId" };
 /**
  * The name of an agent added on a node by its command (protocol 11, ADR
  * 0032): the profile name rule (`[A-Za-z0-9._-]`, 1 to 64), and never a
- * name of one of the four known agents, in any case or spelling
- * (`claude`, `Claude-Code`, `opencode`).
+ * name of an agent Vessel knows, in any case or spelling (`claude`,
+ * `Claude-Code`, `opencode`, `agy`).
  *
  * Why the profile rule: an added agent's default profile is named after
  * it, as the four's are (ADR 0011), so every agent name must be a profile
- * name. Why the four are refused: a word a person types is read as one of
- * the four first ([`HarnessRef::from_str`]), so an added agent called
+ * name. Why the known names are refused: a word a person types is read as
+ * a known agent first ([`HarnessRef::from_str`]), so an added agent called
  * `codex` could never be named.
+ *
+ * [Decision Log]
+ * - Purpose: ADR 0058 made seven more names known (`grok`,
+ *   `pi`, `amp-acp`, ...). Before it a person could add an agent under one
+ *   of them, and the node wrote that name into `agents.toml`, its
+ *   sessions and its schedules.
+ * - Constraint: refusing those names when they are read would stop a node
+ *   from loading its own files after an upgrade, and lose the sessions.
+ * - Choice: a name typed now ([`AgentName::from_str`], `agent.add`,
+ *   `agents.toml`) refuses all eleven, so `agents.toml` naming such an
+ *   agent is refused with a message saying which known agent the name now
+ *   is, and the person renames it there (nothing is renamed for them). A
+ *   name read back from a session, a schedule or the wire
+ *   ([`AgentName`]'s `Deserialize`) refuses only the four's, which were
+ *   never free, so those records stay readable; [`AgentName::reserved`]
+ *   says what such a name names now.
  */
 export type AgentName = string;
 
@@ -3013,9 +3029,11 @@ terminal?: TerminalSupport, };
  * Closed on purpose: everything harness-specific (argv, environment,
  * structured-mode launch) lives in one module per variant in
  * `vessel-harness`, and adding a variant must fail to compile until that
- * module exists.
+ * module exists. The first four came with protocol 2; the other seven
+ * with ADR 0058, which a peer reads only from the version
+ * [`HarnessKind::since`] gives.
  */
-export type HarnessKind = "claude-code" | "codex" | "gemini" | "open-code";
+export type HarnessKind = "claude-code" | "codex" | "gemini" | "open-code" | "grok" | "pi" | "omp" | "antigravity" | "muse" | "amp" | "cursor";
 
 /**
  * Reply to `harness.options`.
@@ -3039,8 +3057,9 @@ probed_at: string,
 abilities?: AgentAbilities | null, };
 
 /**
- * Any agent a node can run (protocol 11, ADR 0032): one of the four Vessel
- * knows, or one added on that node by its command.
+ * Any agent a node can run (protocol 11, ADR 0032): one Vessel knows (the
+ * four; the seven of ADR 0058), or one added on that node by
+ * its command.
  *
  * On the wire a known agent is the string it was before protocol 11
  * (`"claude-code"`, `"codex"`, `"gemini"`, `"open-code"`), so every spec
@@ -3319,9 +3338,17 @@ export type InstallOffer = {
  */
 part: InstallPart, 
 /**
- * The whole command, as a person would type it.
+ * The whole command, as a person would type it, or the step a person
+ * takes (`by_hand`).
  */
-command: string, };
+command: string, 
+/**
+ * A command or step a person runs themselves (a script piped to a
+ * shell, a download): the node shows it and refuses to run it
+ * ([`READS_TEN_AGENTS`](crate::agents::READS_TEN_AGENTS), ADR 0058;
+ * left out when false).
+ */
+by_hand?: boolean, };
 
 /**
  * A page of an install's output, the shape of `worktree.output`.

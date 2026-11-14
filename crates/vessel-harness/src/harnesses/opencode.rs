@@ -12,23 +12,27 @@
 //! sessions get no MCP servers at launch (structured ones still do, over
 //! ACP), and there is no login check or session move yet.
 
-use super::{Descriptor, Home, Structured};
+use super::{Descriptor, Home, Inheritance, Installer, Structured};
 use crate::layout::HarnessLayout;
 
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "opencode",
     profile: "opencode",
-    structured: Structured::Native { args: &["acp"] },
-    home: Home {
+    structured: Structured::Native {
+        args: &["acp"],
+        env: &[],
+    },
+    inherits: Inheritance::Node,
+    home: Some(Home {
         variable: None,
         default: &[".config", "opencode"],
-    },
+    }),
     layout: HarnessLayout {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
     },
     login: None,
-    install: "npm install -g opencode-ai",
+    install: Installer::Run("npm install -g opencode-ai"),
     login_command: Some(&["auth", "login"]),
     account_files: &[],
     sessions: None,

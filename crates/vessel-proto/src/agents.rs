@@ -1,6 +1,8 @@
-//! Agents beyond the four Vessel knows (protocol 11, ADR 0032): how one is
+//! Agents beyond the ones Vessel knows (protocol 11, ADR 0032): how one is
 //! named on the wire, what a node keeps of the ones its owner added, and
-//! what it knows of each agent's installation and sign-in.
+//! what it knows of each agent's installation and sign-in. Protocol 21
+//! (ADR 0058) made seven more agents known; this module's withholding
+//! (`older`) covers them too.
 //!
 //! [Decision Log]
 //! - Purpose: a node runs any agent that speaks ACP, not only Claude Code,
@@ -41,8 +43,14 @@ pub use calls::{AddAgent, ListAgents, RemoveAgent};
 pub use catalogue::{Catalogue, CatalogueEntry, CatalogueRun, CatalogueVariable, GetCatalogue};
 pub use install::{InstallAgent, InstallJob, InstallOutput, InstallState, ReadInstall};
 pub use name::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
-pub use older::{READS_ADDED_AGENTS, readable, unreadable};
-pub(crate) use older::{harnesses as harnesses_for, profiles as profiles_for};
+pub use older::{
+    READS_ADDED_AGENTS, READS_EVERY_AGENT, READS_TEN_AGENTS, readable, reads, unreadable,
+};
+pub(crate) use older::{
+    agents as agents_for, catalogue as catalogue_for, harnesses as harnesses_for,
+    profiles as profiles_for, prompts as prompts_for, readiness as readiness_for,
+    schedules as schedules_for, usage as usage_for,
+};
 pub use status::{AgentReadiness, CheckStep, GetAgentStatus, Installed, SignedIn, UnknownReason};
 pub use text::{
     AgentLabel, AgentProgram, AgentVersion, AuthMethodId, InvalidAgentText, RegistryId,

@@ -39,9 +39,46 @@ fn everything_is_missing_from_an_empty_search_path() {
     assert_eq!(harnesses, HarnessKind::ALL);
     for install in &missing {
         assert_eq!(install.part, InstallPart::Harness);
-        assert_eq!(install.program, "npm");
+        if install.by_hand {
+            continue;
+        }
+        // A package manager's command: npm, or Bun for Oh My Pi.
+        assert!(matches!(install.program, "npm" | "bun"), "{install:?}");
         assert_eq!(install.args().first(), Some(&"install"), "{install:?}");
     }
+    let by_hand: Vec<HarnessKind> = missing
+        .iter()
+        .filter(|install| install.by_hand)
+        .map(|install| install.harness)
+        .collect();
+    assert_eq!(
+        by_hand,
+        [
+            HarnessKind::Antigravity,
+            HarnessKind::Muse,
+            HarnessKind::Cursor
+        ]
+    );
+}
+
+#[test]
+fn amps_adapter_is_a_third_partys_download() {
+    let installs = installs(HarnessKind::Amp);
+    let adapter = installs
+        .iter()
+        .find(|install| install.part == InstallPart::Adapter)
+        .unwrap();
+    assert!(adapter.by_hand, "{adapter:?}");
+    assert!(adapter.command.contains("third party"), "{adapter:?}");
+    let pi = installs_of_parts(HarnessKind::Pi);
+    assert_eq!(pi, [InstallPart::Harness], "no ACP adapter for Pi");
+}
+
+fn installs_of_parts(harness: HarnessKind) -> Vec<InstallPart> {
+    installs(harness)
+        .iter()
+        .map(|install| install.part)
+        .collect()
 }
 
 #[test]

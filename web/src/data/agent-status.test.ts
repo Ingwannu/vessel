@@ -8,6 +8,7 @@ import {
   askedWhen,
   offerRows,
 } from "./agent-status";
+import { AGENT_KINDS } from "./agents";
 import { controlsOf } from "./options";
 import { claude, codexTerminalOnly } from "./fixtures/machines";
 import { fixtureId } from "../testing/ids";
@@ -33,9 +34,7 @@ describe("an agent's status on a machine", () => {
   it("lists every agent, the installed first", () => {
     expect(agentsOn([codexTerminalOnly]).map((entry) => entry.agent)).toEqual([
       "codex",
-      "claude-code",
-      "gemini",
-      "open-code",
+      ...AGENT_KINDS.filter((kind) => kind !== "codex"),
     ]);
   });
 });
