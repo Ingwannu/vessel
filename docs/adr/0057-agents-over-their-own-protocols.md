@@ -299,8 +299,14 @@ holds.
   `AgentSetup::private_dir` carries the node's owner-only MCP directory
   to a session's launches (never to a probe or a listing), the only place
   a driver writes a launch's private files, through the harness's
-  `McpFile`. A module whose `BUILT` is false is refused before its agent
-  starts (`AgentError::NoDriver`, `unsupported`).
+  `McpFile`, which checks at every write that the directory is the
+  writer's own, owner-only and not a link (Unix; Windows relies on the
+  data directory's ACL). A module whose `BUILT` is false is refused
+  before its agent starts (`AgentError::NoDriver`, `unsupported`); a
+  launch a built driver cannot honour is refused there too
+  (`AgentError::Refused(LaunchRefusal)`: a choice not offered, a fork it
+  cannot make, a conversation id it cannot have made, its private file),
+  answered as the ACP path answers the same problem.
 - **The choice** is the session runtime's (`runtime/drivers`), at a
   session's first launch, its start again, a probe and a listing: the
   node's setting, then whether the build offers the driver, then the

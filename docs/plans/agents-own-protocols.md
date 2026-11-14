@@ -74,8 +74,19 @@ the coordinator and the other driver's worker before it is made.
   session runtime on a new session, a fork, a start again and a move (a
   wake and a rewind reuse the session's launch), and `None` for a probe;
   a driver writes there only through `vessel_harness::McpFile`.
+- **Launch refusals** (2026-11-14, agreed with the coordinator and A2):
+  `AgentError::Refused(LaunchRefusal)`, what a direct driver's `launch`
+  returns for a launch it cannot honour, before anything is spawned:
+  `Option` (a choice it does not offer: `invalid_request`), `Fork` (a
+  fork it cannot make: the session answers `ForkRefused`, the adapters'
+  `unsupported`), `Conversation` (an id the agent cannot have made:
+  `invalid_request`), `NoPrivateDir` and `Mcp` (the private file:
+  `spawn_failed`). `McpFile::write` checks its directory at every write
+  on Unix (a directory of the writer's, owner-only, not a link, the same
+  across the create); Windows relies on the data directory's ACL.
+  Codex moves its fork refusal into `codex::launch` in its next slice.
 - `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
-  `VersionFit`, `launch_direct`, `version_check`.
+  `VersionFit`, `launch_direct`, `version_check`, `claude_mcp_file`.
 - `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,
   `SetAgentDrivers`.
 
