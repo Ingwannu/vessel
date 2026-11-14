@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn negotiated_origins_are_hidden_until_assigned_but_storage_keeps_them() {
-        use crate::{ProtocolVersion, SessionEvent};
+        use crate::SessionEvent;
         let event = SessionEvent::Renamed {
             title: "My title".parse().unwrap(),
             origin: TitleOrigin::Generated,
@@ -337,17 +337,11 @@ mod tests {
                 .contains("title_origin"),
             crate::speaks_generated_names()
         );
-        let assigned = Some(ProtocolVersion::new(20));
-        assert_eq!(
-            event.origin_for_protocol(ProtocolVersion::new(20), assigned),
-            None
-        );
-        assert_eq!(
-            info.for_protocol_with_names(ProtocolVersion::new(20), assigned),
-            None
-        );
+        let assigned = Some(protocol);
+        assert_eq!(event.origin_for_protocol(protocol, assigned), None);
+        assert_eq!(info.for_protocol_with_names(protocol, assigned), None);
         for threshold in [None, assigned] {
-            let old = ProtocolVersion::new(19);
+            let old = crate::MIN_PROTOCOL_VERSION;
             let event = event.origin_for_protocol(old, threshold).unwrap();
             let info = info.for_protocol_with_names(old, threshold).unwrap();
             assert!(!serde_json::to_string(&event).unwrap().contains("origin"));

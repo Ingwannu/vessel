@@ -68,6 +68,7 @@ mod prompts;
 mod schedule_preview;
 mod scheduled;
 mod schedules;
+mod usage;
 // Protocol 12 (track A2): the conversation, further.
 mod forking;
 mod history;

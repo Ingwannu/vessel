@@ -1,7 +1,7 @@
 # Milestone 12: session extras (N5)
 
 Status: row 1 node implementation and integration gates passed, 2026-11-14;
-implementation review is pending. The results under resumed integration
+V1 reported implementation PASS for 85c60716. Merge is not claimed. The results under resumed integration
 below supersede the old checkpoint's unverified wire/web status.
 This session owns node, wire, client, CLI, testkit and contracts only.
 Native preparation below remains historical WIP for the app owners; no
@@ -614,8 +614,9 @@ Provider-native exports can still carry generated context; no opaque file
 is rewritten. A future direct driver must preserve atomic context placement
 and byte checks or refuse the command, never silently drop its context.
 
-The next node contract is row 2 (ADR 0046), then delivered files/HTML
-(row 4, ADR 0047) under the resumed three-feature assignment. Row 3's terminal
+At that handoff, the next node contract was row 2 (ADR 0046), then delivered
+files/HTML (row 4, ADR 0047). The later continuation order below supersedes
+that sequence. Row 3's terminal
 surface and rows 5/6 are outside this resumed session's assigned work.
 The app owners implement the screen using the call guide above; no native
 screen, control or page implementation was added here. The old native WIP
@@ -626,4 +627,245 @@ this worktree or target directory. No owned fleet or virtual display remains.
 No preview node/unit/port, real-provider prompt, service permission, account
 configuration, push or release operation was used. All local commands ran
 as the checkout's ordinary user, preserving existing ownership and modes.
-Implementation review and any resulting fixes are still owed before merge.
+At that handoff, implementation review was still owed. V1 subsequently
+reported implementation PASS for 85c60716; node integration and app/UI
+approval are separate and are not claimed by that decision.
+
+## Row 2: independent-model client composition (ADR 0046)
+
+Reference behaviour is confirmed in GOAT's useMultipleModelSend.ts,
+chatViewSend.ts, useComposerSend.ts and composerSend.logic.ts/tests (paths
+under apps/web/src/components/chat). A person opens a new Git-project draft,
+chooses its base branch, shift-selects models, submits one text/file snapshot,
+and receives independent background threads/worktrees. Provider validation
+and common attachment readiness happen before dispatch. Runtime partial
+failure keeps successes; failed selections/draft are restored only if the
+original draft is unchanged, otherwise offered through Restore prompt.
+An uncertain request retains a thread identity and blocks automatic retry;
+Open thread or explicit Allow retry is required. Continue/drop is per thread.
+There is no server comparison-room resource in that implementation.
+
+Decision: modify/reuse the existing typed client composition, with bounded
+prepare/send phases and per-target outcomes, rather than invent a server
+batch registry. ADR 0046 defines types, authority, limits, uncertainty,
+attachment snapshot copying, older nodes and tests. There are no new wire
+calls/fields/events, schema or protocol changes for this row. A native
+comparison surface is the app owners' work and can consume these outcomes.
+V1 accepted the corrected contract at ff4cfb29. Local implementation and
+whole-gate results are recorded below; V1 implementation review remains
+pending. The gate for 85c60716 is separate row 1 evidence.
+
+Row 2's prepared handle retains one explicit destination NodeId. All calls,
+including chunk copy and readiness/setup reads, use that destination through
+the ordinary typed route; member ids must never fall through to a home.
+The contract bounds RPC/readiness/setup waits and treats a mutating deadline
+as uncertain, not permission to resend. No existing test timeout is changed.
+
+
+### Row 2 contract review: three accepted boundary corrections
+
+V1 returned a1ad971e/a896ac17 before implementation. The composition choice
+was accepted; the three findings are accepted without changing node guards:
+
+1. Delegated worktree reads and exhausted local wait slots can remove wait.
+   The first no-progress reply returns the same WaitingSetup/WaitingReady
+   state without an automatic reissue. The sole job enforces at least one
+   second before another observation; earlier continuation is local-only.
+   Setup/readiness observation budgets remain finite. Tests must use an
+   actual member/relay and a local exhausted-slot connection, not an ideal
+   long-poll mock, for both setup and event/readiness paths.
+2. Attachment reads are bounded to 45 seconds, begin/write/finish to 120.
+   Whole copy is at most thirty minutes per target, with 120 seconds of no
+   acknowledged-byte progress ending a copy. The exact phase, known upload,
+   acknowledged offset, attempted byte range and resource trail survive
+   deadlines/lost replies/cancellation. Unknown mutations are UncertainCopy;
+   incomplete copies never prompt or automatically resend. Existing upload
+   expiry is not used as a request timeout. Stalled reads and lost begin,
+   write and finish have separate tests.
+3. One nonclone client ComparisonJob owns target transitions and the frozen
+   common snapshot; start no longer consumes mixed pending ownership.
+   Passive snapshots cannot restart work. Source binding requires Ready
+   only initially; later pending targets use those same stored refs/text
+   after the source is Started or ended, or fail if it is removed/changed.
+   Dropping a method reply future retains the owner/operation. Explicit
+   cancel or owner drop stops later phases and turns an admitted unresolved
+   session-create/upload/prompt into typed uncertainty, never a restored
+   waiting continuation. Ready+WaitingSetup, later identical bytes, sent-once
+   successes and cancellation during continued session-create are required.
+
+The corrected API details and outcome table live in ADR 0046. Shared input
+is validated before binding/first prompts; a rejected candidate is unbound,
+whereas a bound snapshot cannot be replaced by a newer draft. The CLI must
+cancel before printing its final report if exiting with pending work; no
+executable continuation is promised across CLI processes. No server registry
+or durable idempotency claim is introduced. GOAT's cited SSH fanout fixture
+is predispatch refusal coverage only; positive fanout is proved by the new
+real-node/fake-agent tests when implemented.
+
+The docs-only ff4cfb29 revision changed no production code, generated wire,
+gate, fleet, service or permissions. The unchanged 85c60716 whole-gate results remain
+separate; no code gate is rerun for this documentation-only correction.
+Row 1 implementation PASS is V1's reported decision, not app/UI approval.
+V1 accepted ff4cfb29 as contract-only PASS. Row 2 implementation verification
+and its immutable implementation review remain pending.
+
+V1 confirmed the authority-phase wording correction during implementation:
+operate-only fails read/forward preflight; read-only can pass reads and then
+the first normal worktree.create is Forbidden before resources. Both must
+leave zero worktrees. Existing guards remain unchanged; the contract PASS
+is unchanged and is not current implementation/test approval.
+
+
+### Row 2 implementation and targeted evidence
+
+The client owns the comparison in `vessel-client::comparison`: bounded input
+and strict manifest decoding, one nonclone worker, independent preparation,
+advisory setup/readiness observations, immutable common input and chunked
+copy, and passive typed recovery reports. The worker uses one active
+selection, within the contract's maximum of two. Acknowledged model turns
+run independently. No node comparison registry, RPC, wire field/event,
+schema migration or protocol bump is added; the branch remains protocol 19.
+The CLI consumer is `session compare`; its source upload and single-send
+share one streaming file reader. Serde is an existing workspace dependency,
+now directly used for the CLI's typed recovery report.
+
+An earlier targeted run passed Clippy for client/CLI/node with all targets,
+5 client input/error tests, 20 real-node tests and 1 actual CLI test. This
+is targeted evidence only. The initial whole root gate passed fmt/Clippy,
+then stopped at two existing SSH-start handshake timeouts (203 Node E2E
+passed, including all 20 comparison cases). Their required isolated retries
+both passed: token refusal 1.24 s, login-profile startup 14.04 s. The
+remaining whole-gate stages were not executed by that failed run. A final
+changed-tree gate is owed after the recovery/preflight corrections below.
+The real-node cases cover:
+
+- One pinned commit even while the requested branch advances; independent
+  models/worktrees; provider receipt of common text and readable file links,
+  identical stored bytes and distinct destination attachment ids.
+- Busy Start-only refusal, independent bad-model failure, failed setup,
+  no initial source from another job, common-media validation before any
+  prompt and an explicitly corrected unbound candidate.
+- Actual member/relay setup reads with wait removed, local exhausted wait
+  shares, and exhausted delegated readiness reads; the same pending state,
+  monotonic eligibility and no immediate extra RPC or replacement session.
+- Ready plus WaitingSetup/NeedsApproval, first target Started, then the same
+  original pending target receiving the original stored bytes; no resend
+  or recreation of the successful target.
+- Lost begin/write/finish replies, stalled byte-read, accepted-byte progress
+  deadline, exact known upload/offset/attempt trail and no incomplete prompt.
+  Owner cancellation/drop and dropped method futures preserve admitted
+  uncertainty or finish the original operation exactly once. A cancelled
+  continued create cannot recover its previous executable continuation.
+- Same-length source mutation, missing source and missing empty source;
+  remaining copies fail without replacing the snapshot or resending success.
+- Real negotiated protocol 9/10 peers, zero/count/choice/encoded-size and
+  unknown-field bounds. Snapshots are not deserializable and jobs are not
+  cloneable (compile-fail API examples are included in the full doc gate).
+
+Authority is reported at the actual boundaries confirmed by V1. Operate-only
+fails read/forward preflight. Read-only reaches its first normal guarded
+worktree.create and is Forbidden before any resource exists. Agent
+credentials are refused by the existing git.log preflight guard, so this
+helper is unavailable to them. The normal ninth-agent-worktree Limit after
+eight is verified independently; neither test grants or bypasses authority.
+
+One early readiness fixture incorrectly assumed every delegated session.read
+removed wait. Its grouped run timed out at the unchanged 20-second step
+limit; the required exact isolated retry also timed out (20.80 s). This was
+a fixture error, not a load-only failure: ordinary remote event long polling
+is intentionally supported. The corrected fixture fills the actual shared
+wait quota; all final targeted cases pass. Earlier CLI fixtures also used a
+noncanonical harness JSON name and a stale project default branch; both
+were corrected to the actual canonical wire name and explicit main ref.
+No timeout was increased, no test was ignored and no product guard changed.
+
+App integration is outside this slice. A transport owner retains
+`NodeClient::comparison(destination, plan)` outside its panel, calls prepare,
+uploads once to a Ready source through ordinary bounded upload calls, then
+binds `ComparisonInput` with finished `SourceAttachments`. It follows
+`updates()`/snapshot, keeps pending targets through start, and uses
+continue_target on that same owner after setup/readiness or external
+approval. It follows each returned ordinary SessionId separately. Cancel or
+drop stops new phases; passive reports cannot restore an executable owner.
+Local source uploads also retain their own phase/known upload/offset trail;
+the CLI implementation demonstrates cancellation reporting. No native or
+page screen, draft-recovery interaction, registration or UI approval is
+claimed. Only the two existing side-question test-helper visibility declarations
+were widened to reuse its real scoped-device fixture; no product seam in
+another area was changed.
+
+
+Two additional source-review findings were corrected before final
+verification. An acknowledged finish id must remain in recovery reports even
+when returned metadata is rejected; the CLI source upload follows the same
+rule. A successful harness.options RPC with no structured capabilities means
+that adapter is unavailable, so shared preflight must stop before any
+worktree/session is created. These retain existing node semantics and add no
+wire field or authority. Regression and final-gate results follow below when
+complete; the earlier source pin and failed whole run remain separate.
+
+
+The two corrections passed targeted verification: all 22 comparison Node E2E
+cases, 5 client input/error cases and the real CLI case, plus client/CLI/node
+all-target Clippy. The finish-mismatch fixture withholds a real node's
+acknowledgement after the stored file exists, changes only returned metadata,
+and then reads the actual stored bytes by the retained id; no destination
+prompt or retry occurs. The unavailable-provider fixture installs a fake
+Codex terminal without its adapter and confirms the successful capabilities-
+absent response stops all selections before any worktree/session creation.
+
+The final source pin covers 1,662 root source/build-input files; manifest
+SHA-256 is 762b9e60ba5b48674c00907a27288502dc60742d7d4a68c6c2516694c48aa1ef.
+The original failed gate/pin remain separate. The final changed-tree whole
+root/web gate completed successfully on 2026-11-14 at 10:59 UTC. Rust test
+threads were set to one for resource scheduling; safety limits and assertions
+were unchanged. No test was newly ignored.
+
+### Row 2 final gate and handoff
+
+The detached final gate passed all stages: fmt, workspace all-target Clippy
+with warnings denied, workspace Rust tests (1,827 passed, zero failed, ten
+existing ignored), generated TypeScript checks (two passed), web lint and
+typecheck, web unit tests (417 passed in 81 files), the production bundle,
+bundled CLI/node/testkit binaries and Playwright E2E (62 passed in 3.5 min).
+The Rust total includes both compile-fail comparison API examples; its Node
+E2E suite passed all 207 cases, including all 22 comparison cases and both
+SSH cases that timed out in the original whole run. The actual changed
+client/node/CLI crates were recompiled. No automatic screenshots, traces or
+video were recorded; no native/page screen or UI approval is claimed.
+
+The master log is row2-final-gate.log, with one row2-final-<stage>.log for
+each stage. The source manifest above covers 1,662 root source/build inputs
+and matched byte-for-byte after TypeScript generation and the complete
+final gate, including its file list. There is no generated wire delta. The
+first failed whole run and exact retries remain historical evidence above;
+they were not silently relabelled as a pass.
+
+The CLI/API guide above is the screen handoff. The implementation is ready
+for V1's immutable-diff review; contract PASS is not implementation approval.
+No new protocol call, field, event, scope, store migration or protocol bump
+is added by row 2. The current branch protocol 19/schema 14 belong to row 1
+and its integration base.
+
+The gate ended normally. All five saved fake-fleet PIDs were absent after
+teardown, and no binary from this slice's target directory remained. No
+manual fleet or virtual display was created. Commands ran as the checkout's
+ordinary user with existing ownership/modes preserved; no live service,
+preview node/port, real-provider prompt, permission change, push or release
+operation was used.
+
+### Continuation order
+
+Finish and submit this row's node/client/CLI slice before starting another.
+The next assigned node contract is startup recovery, following Paseo's
+`agents.resumeOnStartup` and `agents.resumePrompt` behaviour. Read the
+reference restart-recovery module and its actual defaults before proposing
+the contract; obtain a new ADR number before implementation. Define which
+in-turn sessions qualify, excluding parked, archived and person-stopped
+sessions, ordering and a startup concurrency bound, and observable failures
+when an agent cannot resume. Clean-stop and kill recovery need fake-agent
+tests. This is a node.settings feature, not an app screen.
+
+Delivered files/HTML (row 4, ADR 0047) remains pending after that newly
+prioritized contract. App screens, page work, conversation/composer
+registration and the old native WIP are outside this session's scope.

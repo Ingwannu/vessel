@@ -16,9 +16,13 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
-/// Undoes schemas 14 to 10: side plans, search, schedules, saved prompts,
-/// hooks, the set an approval covered, and pull request feedback.
+/// Undoes schemas 15 to 10: the usage ledger, side plans, search,
+/// schedules, saved prompts, hooks, the set an approval covered, and pull
+/// request feedback.
 const UNDO_SCHEMAS_10_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+     DROP TABLE usage_samples;
+     DROP TABLE usage_meta;
+     ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
      ALTER TABLE sessions DROP COLUMN latest_plan;
      DROP TRIGGER sessions_search_gone;
      DROP TRIGGER sessions_search_pruned;
@@ -65,7 +69,7 @@ mod build {
 }
 
 #[tokio::test]
-async fn an_approval_from_schema_9_walks_to_the_newest_and_new_ones_keep_their_set() {
+async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set() {
     let (_temp, dir) = data_dir();
     let store = open(&dir, StoreConfig::default()).await;
     let app = project();

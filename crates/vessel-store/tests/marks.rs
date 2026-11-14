@@ -308,7 +308,10 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN title_origin;
-     ALTER TABLE sessions DROP COLUMN latest_plan;
+             DROP TABLE usage_samples;
+             DROP TABLE usage_meta;
+             ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+             ALTER TABLE sessions DROP COLUMN latest_plan;
              DROP TRIGGER sessions_search_gone;
              DROP TRIGGER sessions_search_pruned;
              DROP TABLE search_index;

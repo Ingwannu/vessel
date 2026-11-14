@@ -11,12 +11,17 @@ use vessel_proto::{
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 15 to 7 (protocols 10 through 13), so a test can take a
-/// database further back: the title origin (15), the bounded side plan (14), the search index (13),
-/// the schedules', saved prompts' and hooks' tables (12), pull request feedback (10; 11's column goes with `approvals`), the
-/// workspace's tables (9), retention's index (schema 1's in its place, 8),
-/// the conversation's columns and the attachments table (7).
+/// Undoes schemas 15 to 7 (protocols 10 through 21), so a test can take a
+/// database further back: the usage ledger (15), the bounded side plan
+/// (14), the search index (13), the schedules', saved prompts' and hooks'
+/// tables (12), pull request feedback (10; 11's column goes with
+/// `approvals`), the workspace's tables (9), retention's index (schema 1's
+/// in its place, 8), the conversation's columns and the attachments table
+/// (7).
 const UNDO_SCHEMAS_7_TO_15: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+     DROP TABLE usage_samples;
+     DROP TABLE usage_meta;
+     ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
      ALTER TABLE sessions DROP COLUMN latest_plan;
      DROP TRIGGER sessions_search_gone;
      DROP TRIGGER sessions_search_pruned;
@@ -802,7 +807,6 @@ async fn a_sessions_title_and_choices_follow_its_records_across_a_reopen() {
                     2,
                     SessionEvent::Renamed {
                         title: renamed.clone(),
-                        origin: vessel_proto::TitleOrigin::Unknown,
                     },
                 ),
                 record(

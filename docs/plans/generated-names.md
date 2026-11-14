@@ -168,7 +168,7 @@ that already uses `..` is left alone.
 
 - **Done:** slice 1 contract passed review. ADR 0062 remains proposed.
 - **Source passed; whole gate owed:** slice 2a adds title origin to the session, rename event,
-  actor and durable projection. Schema 15 leaves every older title
+  actor and durable projection. The `TITLE_ORIGIN_SCHEMA` migration leaves every older title
   unknown, including one whose create specification has a title.
   Wire tests cover old events and old session info in both directions.
   A typed older forwarding hop may discard origin, retaining the title
@@ -187,17 +187,17 @@ that already uses `..` is left alone.
   bounded completion seam; 2d automatic scheduling and application. The
   application must compare the expected given title inside the actor:
   a read before queuing a rename leaves a race with a person's rename.
-- **Gate status:** the full workspace run is incomplete: the known
-  protocol-version assertion and a connector timeout remain base failures.
-  The store reopening fixture initially failed on the expected recovery
-  event; the corrected fixture asserts that event and all rename origins,
-  and its two tests pass. TypeScript generation and all web checks pass
-  (417 unit tests and 62 browser tests). Source review proceeds while the
-  base fixes await integration; this is not a green whole gate.
-- **Next:** integrate the shared optional-admission foundation before
-  registering title settings. Then merge the authorized node head and run
-  the whole gate with both nested-build prerequisites. Title settings and
-  project instructions remain separate small follow-ups.
+- **Gate status:** the pre-integration whole run passed all checks except
+  the previously accepted protocol-version assertion. The connector and
+  store migration tests passed, as did both TypeScript checks and the web
+  suite. This is reference evidence only: the merged tree must pass the
+  whole gate without that exception.
+- **Next:** gate the merged shared admission foundation and title-origin
+  paths together before registering title settings. The integrated usage
+  ledger keeps its existing migration; title origin follows it through
+  `TITLE_ORIGIN_SCHEMA`, the single provisional assignment. Older-schema
+  fixtures undo the new column before their existing rollback statements.
+  Title settings and project instructions remain separate small follow-ups.
   No generation exists in 2a. Nothing calls a model. No branch work starts
   before slice 2 is complete.
 - `PROTOCOL_VERSION` stays at the base. `GENERATED_NAMES` is the single
@@ -228,4 +228,5 @@ The client admission rule and hop error conversion are extracted into
 small modules rather than growing existing over-budget files; only their
 existing ratchet limits are lowered. No dependency is added. The whole
 gate runs against the committed foundation before it is reported. The
-separate node-head merge and title schema renumbering remain owed.
+node-head merge preserves the integrated tables and tests; the combined
+whole gate remains owed before either the foundation or provenance closes.

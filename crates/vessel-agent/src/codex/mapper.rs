@@ -20,6 +20,7 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use serde_json::Value;
+use vessel_proto::conversation::UsageObservation;
 use vessel_proto::{
     AgentEvent, ContentBlock, ContextUsage, PlanEntry, PlanPriority, PlanStatus, RawJson,
     StopReason, TokenCount, ToolCall, ToolCallContent, ToolCallId, ToolCallStatus, ToolCallUpdate,
@@ -253,6 +254,9 @@ pub(super) fn plan(steps: &[TurnPlanStep]) -> AgentEvent {
 pub(super) fn context(usage: &ThreadTokenUsage) -> Option<ContextUsage> {
     let size = usage.model_context_window.filter(|size| *size > 0)?;
     Some(ContextUsage {
+        // The session runtime marks a report made while loading as
+        // replayed (ADR 0042); the driver cannot tell, as over ACP.
+        observation: UsageObservation::Current,
         used: TokenCount::new(usage.last.total_tokens),
         size: TokenCount::new(size),
         cost: None,
