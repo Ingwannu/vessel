@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
+use vessel_proto::parking::ParkReason;
 use vessel_proto::{
     AttachmentRef, ContentBlock, EventSeq, HarnessSessionId, ModelCall, PermissionId,
     PermissionOutcome, PermissionRequest, PlanEntry, PlanStatus, ProfileName, Question, QuestionId,
@@ -242,6 +243,9 @@ pub enum EntryKind {
         /// To what.
         status: SessionStatus,
     },
+    /// The session's agent was released or resumed while the session
+    /// stayed live (protocol 12, ADR 0038).
+    Parking(ParkingChange),
     /// The session's profile changed (protocol 5).
     Profile {
         /// From; `None` for the default.
@@ -282,6 +286,7 @@ impl EntryKind {
                 | Self::TurnFailed { .. }
                 | Self::Log { .. }
                 | Self::Status { .. }
+                | Self::Parking(_)
                 | Self::Profile { .. }
                 | Self::Model(_),
                 TextKind::Prompt | TextKind::Message | TextKind::Thought,
@@ -353,4 +358,33 @@ pub fn prompt_parts(content: &[ContentBlock]) -> (String, Vec<AttachmentRef>) {
         }
     }
     (text, attachments)
+}
+
+/// What happened to a session's agent while the session stayed live
+/// (`parked`, `woken`; protocol 12).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParkingChange {
+    /// Its process was stopped, the conversation kept; why.
+    Parked(ParkReason),
+    /// It was started again with its conversation.
+    Woken,
+}
+
+/// Whether the message at `index` is the first reply of its turn: no
+/// reply since the person's last message (the reply that carries the
+/// agent's circle beside it, slice M).
+#[must_use]
+pub fn first_reply(entries: &[Entry], index: usize) -> bool {
+    entries.get(..index).is_none_or(|before| {
+        before
+            .iter()
+            .rev()
+            .find(|entry| {
+                matches!(
+                    entry.kind,
+                    EntryKind::Message { .. } | EntryKind::Prompt(_) | EntryKind::Steer { .. }
+                )
+            })
+            .is_none_or(|entry| !matches!(entry.kind, EntryKind::Message { .. }))
+    })
 }

@@ -36,19 +36,25 @@
 //! - Keep: no resampling anywhere between the vector and the screen. If
 //!   this changes, compare the crops with a reference rasteriser at the
 //!   same device size (`kit/examples/mark_sharpness.rs`).
+//! - A tint (the session list's muted marks, as Paseo's `agent-list.tsx`
+//!   draws its provider icons in `foregroundMuted`): the same raster with
+//!   every pixel's colour replaced by the tint and its coverage kept, so
+//!   a muted mark is exactly as sharp as the coloured one. A mark whose
+//!   parts differ only in colour (`OpenCode`'s inner square) reads as one
+//!   silhouette then.
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use gpui::{
-    App, Bounds, Corners, DevicePixels, Pixels, RenderImage, Styled as _, SvgSize, Window, canvas,
-    point, px, size,
+    App, Bounds, Corners, DevicePixels, Hsla, Pixels, RenderImage, Rgba, Styled as _, SvgSize,
+    Window, canvas, point, px, size,
 };
 
 use super::Image;
 
 /// An asset's name, and its device width and height.
-type Key = (&'static str, i32, i32);
+type Key = (&'static str, i32, i32, Option<[u8; 4]>);
 
 thread_local! {
     /// Rasters by [`Key`]. GPUI draws on one thread; an `Arc` keeps one
@@ -56,12 +62,18 @@ thread_local! {
     static RASTERS: RefCell<HashMap<Key, Arc<RenderImage>>> = RefCell::new(HashMap::new());
 }
 
-/// `image` at `logical` points, drawn at the display's pixels.
-pub(super) fn exact(image: Image, logical: gpui::Size<Pixels>) -> impl gpui::IntoElement {
+/// `image` at `logical` points, drawn at the display's pixels, in its own
+/// colours or in `tint`.
+pub(super) fn exact(
+    image: Image,
+    logical: gpui::Size<Pixels>,
+    tint: Option<Hsla>,
+) -> impl gpui::IntoElement {
+    let tint = tint.map(bgra);
     canvas(
         |_, _, _| {},
         move |bounds, (), window, cx| {
-            paint(image, bounds, window, cx);
+            paint(image, tint, bounds, window, cx);
         },
     )
     .flex_none()
@@ -102,10 +114,16 @@ fn points(device: i32, scale: f32) -> Pixels {
     px((device as f32).mul_add(scale.recip(), 0.0))
 }
 
-fn paint(image: Image, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+fn paint(
+    image: Image,
+    tint: Option<[u8; 4]>,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+    cx: &mut App,
+) {
     let scale = window.scale_factor();
     let (x, y, width, height) = device_box(bounds, scale);
-    let Some(raster) = raster(image, width, height, cx) else {
+    let Some(raster) = raster(image, (width, height), tint, cx) else {
         return;
     };
     let snapped = Bounds {
@@ -117,18 +135,26 @@ fn paint(image: Image, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App
     }
 }
 
-fn raster(image: Image, width: i32, height: i32, cx: &App) -> Option<Arc<RenderImage>> {
-    let key = (image.path, width, height);
+fn raster(
+    image: Image,
+    (width, height): (i32, i32),
+    tint: Option<[u8; 4]>,
+    cx: &App,
+) -> Option<Arc<RenderImage>> {
+    let key = (image.path, width, height, tint);
     if let Some(found) = RASTERS.with_borrow(|rasters| rasters.get(&key).map(Arc::clone)) {
         return Some(found);
     }
     let renderer = cx.svg_renderer();
-    let made = renderer.parse_svg(image.bytes).and_then(|parsed| {
-        renderer.render_parsed(
-            &parsed,
-            SvgSize::ExactSize(size(DevicePixels(width), DevicePixels(height))),
-        )
-    });
+    let made = renderer
+        .parse_svg(image.bytes)
+        .and_then(|parsed| {
+            renderer.render_parsed(
+                &parsed,
+                SvgSize::ExactSize(size(DevicePixels(width), DevicePixels(height))),
+            )
+        })
+        .map(|made| tint.and_then(|tint| tinted(&made, tint)).unwrap_or(made));
     match made {
         Ok(made) => {
             let _first = RASTERS.with_borrow_mut(|rasters| rasters.insert(key, Arc::clone(&made)));
@@ -141,11 +167,68 @@ fn raster(image: Image, width: i32, height: i32, cx: &App) -> Option<Arc<RenderI
     }
 }
 
+/// One over 255 squared (a byte times a byte, as a share).
+const INVERSE_SQUARE: f32 = 1.0 / 65_025.0;
+
+/// `colour` as GPUI's straight BGRA bytes.
+fn bgra(colour: Hsla) -> [u8; 4] {
+    let Rgba { r, g, b, a } = colour.to_rgb();
+    [byte(b), byte(g), byte(r), byte(a)]
+}
+
+/// A channel 0 to 1 as a byte.
+#[expect(
+    clippy::as_conversions,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the value is clamped to 0..=255 and rounded before the cast"
+)]
+fn byte(channel: f32) -> u8 {
+    channel.mul_add(255.0, 0.0).round().clamp(0.0, 255.0) as u8
+}
+
+/// `made` with every pixel in `tint` (straight BGRA), its coverage kept and
+/// scaled by the tint's own alpha.
+fn tinted(made: &RenderImage, tint: [u8; 4]) -> Option<Arc<RenderImage>> {
+    let bytes = made.as_bytes(0)?;
+    let device = made.size(0);
+    let mut out = Vec::with_capacity(bytes.len());
+    let (pixels, _rest) = bytes.as_chunks::<4>();
+    // Coverage times the tint's alpha, both 0 to 255: the product over
+    // 255 squared is the share of full opacity.
+    let per = f32::from(tint[3]).mul_add(INVERSE_SQUARE, 0.0);
+    for pixel in pixels {
+        let alpha = byte(f32::from(pixel[3]).mul_add(per, 0.0));
+        out.extend_from_slice(&[tint[0], tint[1], tint[2], alpha]);
+    }
+    let width = u32::try_from(device.width.0).ok()?;
+    let height = u32::try_from(device.height.0).ok()?;
+    let buffer = image::RgbaImage::from_raw(width, height, out)?;
+    Some(Arc::new(RenderImage::new(vec![image::Frame::new(buffer)])))
+}
+
 #[cfg(test)]
 mod tests {
-    use gpui::{Bounds, point, px, size};
+    use gpui::{Bounds, RenderImage, point, px, size};
 
-    use super::device_box;
+    use super::{device_box, tinted};
+
+    /// A tint replaces the colour and keeps each pixel's coverage, scaled
+    /// by the tint's own alpha.
+    #[test]
+    fn a_tint_keeps_the_coverage() {
+        let bytes = vec![10, 20, 30, 255, 200, 100, 50, 128, 0, 0, 0, 0];
+        let buffer = image::RgbaImage::from_raw(3, 1, bytes).unwrap();
+        let made = RenderImage::new(vec![image::Frame::new(buffer)]);
+        let full = tinted(&made, [1, 2, 3, 255]).unwrap();
+        assert_eq!(
+            full.as_bytes(0).unwrap(),
+            &[1, 2, 3, 255, 1, 2, 3, 128, 1, 2, 3, 0]
+        );
+        let half = tinted(&made, [1, 2, 3, 128]).unwrap();
+        assert_eq!(half.as_bytes(0).unwrap()[3], 128);
+        assert_eq!(half.as_bytes(0).unwrap()[7], 64);
+    }
 
     /// Off-grid origins and fractional sizes land on whole device pixels
     /// at every scale the owner's screens use.

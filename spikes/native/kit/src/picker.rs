@@ -38,7 +38,7 @@ use gpui::prelude::*;
 use gpui::{
     Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent,
     MouseButton, Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point,
-    px, rgb, rgba, svg,
+    px, rgba, svg,
 };
 
 use crate::assets::Glyph;
@@ -47,6 +47,9 @@ use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+
+mod send;
+pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are
 /// touch-sized (`constants/layout.ts`).
@@ -270,56 +273,14 @@ pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
     .into_any_element()
 }
 
-/// What the round button beside the composer does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SendKind {
-    /// Send the text (an arrow up, on the accent).
-    Send,
-    /// Stop the running turn (a square, on red).
-    Stop,
-}
-
-/// Paseo's send button: a circle 28 across (44 on touch), the accent with
-/// a white arrow, half-faded while there is nothing to send; while a turn
-/// runs and nothing is typed, a red circle with a white square.
-#[must_use]
-pub fn send_button(
-    id: impl Into<ElementId>,
-    kind: SendKind,
-    enabled: bool,
-    touch: bool,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    // Paseo's stop is `palette.red[600]`, the same in both themes.
-    let (fill, mark) = match kind {
-        SendKind::Send => (neutral.accent, Glyph::ArrowUp),
-        SendKind::Stop => (rgb(0x00dc_2626).into(), Glyph::Stop),
-    };
-    let size = if touch { 44.0 } else { 28.0 };
-    div()
-        .id(id)
-        .flex()
-        .items_center()
-        .justify_center()
-        .flex_shrink_0()
-        .size(px(size))
-        .rounded_full()
-        .bg(fill)
-        .when(!enabled, |button| button.opacity(0.5))
-        .when(enabled, Styled::cursor_pointer)
-        .child(glyph(
-            mark,
-            if touch { 20.0 } else { 16.0 },
-            neutral.accent_foreground,
-        ))
-}
-
 /// What leads a row.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
+    /// A glyph in the foreground: a permissions mode's mark (Paseo's
+    /// `ModeComboboxOption` draws its `DensityIcon` with `color="foreground"`).
+    Mark(Glyph),
     /// An official agent mark, or the generic bot when unknown.
     AgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
@@ -416,6 +377,10 @@ pub struct ComboHeader {
     pub search: bool,
     /// Shown when no row is left (the search matched nothing).
     pub empty: SharedString,
+    /// A muted line above the rows, that may wrap: what to know about the
+    /// list as a whole (it could not be refreshed, so it may be out of
+    /// date). Paseo has none; `None` for none.
+    pub note: Option<SharedString>,
     /// Which side of its trigger the list opens on.
     pub side: Side,
 }
@@ -439,6 +404,10 @@ pub enum Side {
 pub struct ComboboxState {
     open: bool,
     highlighted: Option<usize>,
+    /// The highlighted row's label: the highlight follows its row when rows
+    /// are added or removed above it while the list is open (an agent's
+    /// list refreshed behind it), rather than staying on an index.
+    highlighted_label: Option<SharedString>,
     focus: FocusHandle,
     search: TextField,
     header_leading: Option<Leading>,
@@ -459,6 +428,7 @@ impl ComboboxState {
         Self {
             open: false,
             highlighted: None,
+            highlighted_label: None,
             focus: cx.focus_handle(),
             search,
             header_leading: None,
@@ -478,6 +448,7 @@ impl ComboboxState {
     pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
         self.open = true;
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         if let Some(placeholder) = search {
             self.search.set_placeholder(placeholder, window, cx);
@@ -487,10 +458,11 @@ impl ComboboxState {
         }
     }
 
-    /// Close it.
-    pub const fn close(&mut self) {
+    /// Close it (no longer `const`: it drops the highlighted row's label).
+    pub fn close(&mut self) {
         self.open = false;
         self.highlighted = None;
+        self.highlighted_label = None;
     }
 
     /// Whether it is open.
@@ -509,6 +481,7 @@ impl ComboboxState {
     /// back, a row's own list).
     pub fn reset_query(&mut self, placeholder: &str, window: &mut Window, cx: &mut App) {
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         self.search.set_placeholder(placeholder, window, cx);
         self.search.focus(window, cx);
@@ -532,7 +505,7 @@ impl ComboboxState {
         if count == 0 {
             return;
         }
-        let mut at = self.highlighted;
+        let mut at = self.highlight_in(rows);
         for _ in 0..count {
             let next = match (at, forward) {
                 (None, true) => 0,
@@ -541,8 +514,9 @@ impl ComboboxState {
                 (Some(index), false) => index.saturating_sub(1),
             };
             at = Some(next);
-            if rows.get(next).is_some_and(|row| !row.disabled) {
+            if let Some(row) = rows.get(next).filter(|row| !row.disabled) {
                 self.highlighted = at;
+                self.highlighted_label = Some(row.label.clone());
                 return;
             }
         }
@@ -551,8 +525,26 @@ impl ComboboxState {
     fn choice(&self, rows: &[ComboRow]) -> Option<usize> {
         // A query/probe can replace rows after the highlight was set.
         // Recheck availability at activation rather than trusting its index.
-        self.highlighted
+        self.highlight_in(rows)
             .filter(|index| rows.get(*index).is_some_and(|row| !row.disabled))
+    }
+
+    /// The highlighted row among `rows`: at its index while the row there
+    /// is the one highlighted, else the row of that label nearest to it
+    /// (rows were added or removed above it); none when it is gone.
+    fn highlight_in(&self, rows: &[ComboRow]) -> Option<usize> {
+        let index = self.highlighted?;
+        let Some(label) = &self.highlighted_label else {
+            return Some(index);
+        };
+        if rows.get(index).is_some_and(|row| &row.label == label) {
+            return Some(index);
+        }
+        rows.iter()
+            .enumerate()
+            .filter(|(_, row)| &row.label == label)
+            .min_by_key(|(at, _)| at.abs_diff(index))
+            .map(|(at, _)| at)
     }
 }
 
@@ -596,6 +588,7 @@ pub fn combobox<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    let list_id: ElementId = id.into();
     if !state.open {
         return None;
     }
@@ -610,7 +603,7 @@ pub fn combobox<V: 'static>(
     });
 
     let mut panel = div()
-        .id(id.into())
+        .id(list_id.clone())
         .track_focus(&state.focus)
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
@@ -653,31 +646,67 @@ pub fn combobox<V: 'static>(
     if header.search {
         panel = panel.child(search_row(state, tokens, cx));
     }
+    if let Some(note) = &header.note {
+        panel = panel.child(note_row(note.clone(), tokens));
+    }
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
     ));
 
-    let element = if compact {
+    // Word 39: the list arrives as Paseo's popover does (opacity and a
+    // small rise, `popup::appear`); a phone's sheet over the surface
+    // length. It leaves at once, as Paseo's desktop popovers do.
+    let panel = popup::appear(
+        ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
+        panel,
+        if compact {
+            crate::motion::STANDARD
+        } else {
+            crate::motion::QUICK
+        },
+    );
+    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
+    // from a row of the features sheet.
+    Some(deferred(element).with_priority(3).into_any_element())
+}
+
+/// Where the list is drawn: below the compact width a sheet from the
+/// bottom over the dimmed page (a press on the dim closes it); wider, at
+/// its trigger on the caller's side.
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    compact: bool,
+    side: Side,
+    anchor: Option<Bounds<Pixels>>,
+    get: fn(&mut V) -> &mut ComboboxState,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
-        let size = window.viewport_size();
+        let viewport = window.viewport_size();
         let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
             get(view).close();
             cx.notify();
         });
-        anchored().position(point(px(0.0), px(0.0))).child(
-            div()
-                .w(size.width)
-                .h(size.height)
-                .flex()
-                .flex_col()
-                .justify_end()
-                .bg(rgba(0x0000_0073))
-                .on_mouse_down(MouseButton::Left, on_scrim)
-                .child(panel),
-        )
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(
+                div()
+                    .w(viewport.width)
+                    .h(viewport.height)
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .bg(rgba(0x0000_0073))
+                    .on_mouse_down(MouseButton::Left, on_scrim)
+                    .child(panel),
+            )
+            .into_any_element()
     } else {
         // Paseo's `offset(5)` from the trigger, on the caller's side.
-        let (at, corner, offset) = match (header.side, anchor) {
+        let (at, corner, offset) = match (side, anchor) {
             // Not drawn yet (the first frame): near the window's middle.
             (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
             (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
@@ -689,10 +718,8 @@ pub fn combobox<V: 'static>(
             .anchor(corner)
             .snap_to_window_with_margin(px(EDGE))
             .child(panel)
-    };
-    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
-    // from a row of the features sheet.
-    Some(deferred(element).with_priority(3).into_any_element())
+            .into_any_element()
+    }
 }
 
 fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
@@ -772,6 +799,8 @@ fn rows_list<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
+    let column = leading_column(rows);
+    let highlighted = state.highlight_in(rows);
     // The rows scroll inside the panel's height; the title and the search
     // row above them stay (`min_h_0` lets the list be shorter than its rows).
     let mut list = div()
@@ -803,9 +832,58 @@ fn rows_list<V: 'static>(
                     .child(heading.clone()),
             );
         }
-        list = list.child(combo_row(index, row, state, handlers, compact, tokens, cx));
+        list = list.child(combo_row(
+            index,
+            row,
+            column,
+            highlighted,
+            handlers,
+            compact,
+            tokens,
+            cx,
+        ));
     }
     list.into_any_element()
+}
+
+/// How wide a row's leading is, for keeping its column on rows without
+/// one: a glyph, a mode's mark and a project's tile are 16, a machine's dot
+/// 14. An agent's mark has none: an agent list gives every row one (the
+/// bot when the agent is unknown), and its artwork's width is the agent's.
+const fn leading_width(leading: &Leading) -> Option<f32> {
+    match leading {
+        Leading::Glyph(_) | Leading::Mark(_) | Leading::Initial(_) => Some(16.0),
+        Leading::Dot(_) => Some(14.0),
+        Leading::AgentMark(_) => None,
+    }
+}
+
+/// The leading column a list keeps on every row, if any.
+///
+/// When any row leads with a mark, a row without one keeps the mark's room,
+/// so every label starts at one left edge. Paseo never meets the case in
+/// its permissions list (its manifest gives every mode it lists a mark);
+/// Vessel does (Codex's `read-only` beside its marked modes), so this is a
+/// stated difference: the alternative, a label starting in the mark column,
+/// puts one row of the list out of line.
+fn leading_column(rows: &[ComboRow]) -> Option<f32> {
+    rows.iter()
+        .filter_map(|row| row.leading.as_ref().and_then(leading_width))
+        .reduce(f32::max)
+}
+
+/// The header's note ([`ComboHeader::note`]): muted, small, wrapping,
+/// above the rows.
+fn note_row(note: SharedString, tokens: &Tokens) -> Div {
+    div()
+        .flex_none()
+        .px(px(12.0))
+        .pt(px(8.0))
+        .pb(px(4.0))
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .whitespace_normal()
+        .child(note)
 }
 
 /// The title row: a way back when it leads back, the title in 14 medium.
@@ -918,6 +996,7 @@ fn row_leading(
     let neutral = tokens.neutral;
     match leading {
         Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
+        Leading::Mark(which) => glyph(which, 16.0, neutral.foreground).into_any_element(),
         Leading::AgentMark(art) => {
             let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical
@@ -944,17 +1023,22 @@ fn row_leading(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a row is drawn from itself, its list's mark column and highlight, and the list's handlers"
+)]
 fn combo_row<V: 'static>(
     index: usize,
     row: &ComboRow,
-    state: &ComboboxState,
+    column: Option<f32>,
+    highlighted: Option<usize>,
     handlers: &ComboHandlers<V>,
     compact: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
-    let highlighted = state.highlighted == Some(index);
+    let highlighted = highlighted == Some(index);
     let wash = neutral.surface1;
     // Paseo's option (`ComboboxItem`): its label, then its description on
     // the same line, each one line (`numberOfLines={1}`); the description
@@ -985,11 +1069,18 @@ fn combo_row<V: 'static>(
         .py(px(8.0))
         .when(row.disabled && !fade_text, |element| element.opacity(0.55))
         .when(highlighted && !row.disabled, |element| element.bg(wash))
-        .children(
-            row.leading
-                .clone()
-                .map(|leading| row_leading(leading, compact, crate::agent_mark::Size::Fourteen, crate::agent_mark::Space::Row, tokens)),
-        )
+        .map(|element| match (row.leading.clone(), column) {
+            (Some(leading), _) => element.child(row_leading(
+                leading,
+                compact,
+                crate::agent_mark::Size::Fourteen,
+                crate::agent_mark::Space::Row,
+                tokens,
+            )),
+            // The list's mark column, kept empty ([`leading_column`]).
+            (None, Some(width)) => element.child(div().flex_none().w(px(width))),
+            (None, None) => element,
+        })
         .child(words)
         // Paseo's trailing slot: the check, then the row's own words (a
         // value at most 45% of the row, one line).
@@ -1094,7 +1185,8 @@ mod tests {
                 list = list.child(combo_row(
                     index,
                     row,
-                    &self.state,
+                    leading_column(&self.rows),
+                    self.state.highlight_in(&self.rows),
                     &handlers,
                     false,
                     &tokens,
@@ -1178,7 +1270,9 @@ mod tests {
             cx.update(|_, cx| {
                 probe.update(cx, |probe, cx| {
                     probe.rows[index].disabled = true;
+                    // The highlight is an index and its row's label.
                     probe.state.highlighted = Some(index);
+                    probe.state.highlighted_label = Some(probe.rows[index].label.clone());
                     cx.notify();
                 });
             });
@@ -1287,6 +1381,71 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_list_with_any_mark_keeps_the_mark_column_on_every_row() {
+        let marked = |glyph: Glyph| {
+            let mut row = ComboRow::new("marked");
+            row.leading = Some(Leading::Mark(glyph));
+            row
+        };
+        // Codex's modes: two marked, `read-only` without one.
+        let modes = [
+            ComboRow::new("Read Only"),
+            marked(Glyph::Shield),
+            marked(Glyph::ShieldOff),
+        ];
+        assert_eq!(leading_column(&modes), Some(16.0));
+        // No row marked: no column, labels start at the row's edge.
+        assert_eq!(
+            leading_column(&[ComboRow::new("a"), ComboRow::new("b")]),
+            None
+        );
+        // A machine's dot keeps its own width; the widest wins.
+        let mut dot = ComboRow::new("machine");
+        dot.leading = Some(Leading::Dot(gpui::black()));
+        assert_eq!(
+            leading_column(&[dot.clone(), ComboRow::new("x")]),
+            Some(14.0)
+        );
+        assert_eq!(leading_column(&[dot, marked(Glyph::Shield)]), Some(16.0));
+        // An agent list's rows carry their own marks, of the agent's width.
+        let mut agent = ComboRow::new("agent");
+        agent.leading = Some(Leading::AgentMark(None));
+        assert_eq!(leading_column(&[agent, ComboRow::new("x")]), None);
+    }
+
+    #[gpui::test]
+    fn the_highlight_follows_its_row_when_rows_are_added_above_it(cx: &mut TestAppContext) {
+        let (probe, cx) = cx.add_window_view(|window, cx| Probe {
+            state: ComboboxState::new(window, cx),
+            rows: rows(),
+            seen: Rc::default(),
+            choices: Rc::default(),
+        });
+        cx.update(|_, cx| {
+            probe.update(cx, |probe, _cx| {
+                let rows = probe.rows.clone();
+                probe.state.step(&rows, true);
+                probe.state.step(&rows, true);
+                assert_eq!(probe.state.highlight_in(&rows), Some(1));
+                // A new row arrives above, as an agent's refreshed list
+                // lays a new value at the edge away from the anchor.
+                let mut added = vec![ComboRow::new("new above")];
+                added.extend(rows.iter().cloned());
+                assert_eq!(probe.state.highlight_in(&added), Some(2), "followed");
+                assert_eq!(probe.state.choice(&added), Some(2), "Enter takes it");
+                // Its row gone: no highlight rather than another row.
+                let gone: Vec<ComboRow> = rows
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != 1)
+                    .map(|(_, row)| row.clone())
+                    .collect();
+                assert_eq!(probe.state.highlight_in(&gone), None);
+            });
+        });
     }
 
     #[test]

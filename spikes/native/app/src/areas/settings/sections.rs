@@ -66,17 +66,16 @@ fn page(section: Section) -> Option<Draw> {
         Section::Sync => {
             Some(|shell, tokens, phone, window, cx| sync::render(shell, tokens, phone, window, cx))
         }
-        // Not drawn yet. Shortcuts is track S3's page (one line here when
-        // it lands); Sidebar and Notifications wait on S3's sidebar reading
-        // its items and on notifications being delivered. Overview and
-        // Agents are this track's next slice; the rest have nothing behind
-        // them in Vessel yet.
+        Section::Shortcuts => Some(crate::areas::shortcuts::page::render),
+        // Not drawn yet. Sidebar and Notifications wait on S3's sidebar
+        // reading its items and on notifications being delivered. Overview
+        // and Agents are this track's next slice; the rest have nothing
+        // behind them in Vessel yet.
         Section::Sidebar
         | Section::Terminal
         | Section::Browser
         | Section::Editor
         | Section::Files
-        | Section::Shortcuts
         | Section::Integrations
         | Section::Notifications
         | Section::Permissions

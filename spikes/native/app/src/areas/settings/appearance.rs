@@ -86,6 +86,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
+        .child(super::motion::section(shell, tokens, compact, cx))
         .when(applied(List::Interface) || applied(List::Code), |page| {
             page.child(settings::section(words.fonts, fonts, tokens))
         })

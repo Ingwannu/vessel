@@ -73,6 +73,7 @@ pub(crate) fn kind(entry: &Entry) -> &'static str {
         K::TurnFailed { .. } => "turn_failed",
         K::Log { .. } => "log",
         K::Status { .. } => "status",
+        K::Parking(_) => "parking",
         K::Profile { .. } => "profile",
         K::Model(_) => "model",
     }

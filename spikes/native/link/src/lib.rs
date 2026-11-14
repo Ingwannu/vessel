@@ -25,6 +25,13 @@
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+// The agents' lists kept between runs (owner word 28); a browser keeps
+// none yet (no files).
+#[cfg(not(target_arch = "wasm32"))]
+mod offers;
+// The composers' drafts kept between runs (track P's row e).
+#[cfg(not(target_arch = "wasm32"))]
+pub mod drafts;
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
@@ -57,14 +64,14 @@ use vessel_app_view::{Agent, Machine, Reach};
 use vessel_app_view::{Card, Fleet};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+use vessel_proto::{
+    AgentCommand, EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId,
+    SessionId, SessionOption,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::{
     ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
     SessionMode, SessionSpec,
-};
-use vessel_proto::{
-    EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
-    SessionOption,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -264,6 +271,20 @@ pub enum Command {
         /// The agent.
         harness: HarnessRef,
     },
+    /// Keep the composers' drafts on this device (written on the blocking
+    /// pool; nothing is answered). A browser keeps none.
+    SaveDrafts(vessel_app_view::composer::drafts::Drafts),
+    /// Keep `harness`'s `/` commands, as a session of it on `machine`
+    /// reported them, on this device for the next run (its options' file;
+    /// nothing is answered). A browser keeps none.
+    KeepCommands {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
+        /// Its commands, in its order.
+        commands: Vec<AgentCommand>,
+    },
     /// Start an ended or interrupted session again with its conversation
     /// (`session.resume`, protocol 10), then send it `text`; answered
     /// [`Event::Resumed`] or [`Event::ResumeFailed`].
@@ -398,6 +419,16 @@ pub enum Event {
         /// Its options in its order, or the words of the failure.
         outcome: Result<Vec<SessionOption>, String>,
     },
+    /// A machine connected: the lists its agents gave last time, kept on
+    /// this device (newest first), to show until they answer again. Sent
+    /// before the fleet that has the machine online, only when there are
+    /// any.
+    OptionsKept {
+        /// The machine.
+        machine: String,
+        /// Each agent's lists.
+        lists: Vec<KeptLists>,
+    },
     /// Something failed; the words to show.
     Failed(String),
     /// The session's machine is not connected any more (its records
@@ -422,6 +453,18 @@ pub enum Event {
     },
     /// A machine answered a search ([`Command::Search`]).
     Searched(search::Answer),
+}
+
+/// What an agent on a machine said last time, kept on this device
+/// ([`Event::OptionsKept`]): either half may be unknown.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeptLists {
+    /// The agent.
+    pub harness: HarnessRef,
+    /// Its options (`harness.options`), when it answered.
+    pub options: Option<Vec<SessionOption>>,
+    /// Its `/` commands, when a session of it reported them.
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -459,6 +502,7 @@ impl Link {
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -522,6 +566,10 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    /// The agents' lists kept between runs, by node: read before the first
+    /// connection, written when an answer differs (on the blocking pool;
+    /// the lock is held only there and for a lookup at connect).
+    offers: std::sync::Arc<std::sync::Mutex<offers::Store>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -536,6 +584,16 @@ struct Connected {
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
+        // The kept lists first, so the first connection hands them over.
+        let path = offers::Store::default_path();
+        match tokio::task::spawn_blocking(move || offers::Store::load(path)).await {
+            Ok(store) => {
+                if let Ok(mut kept) = self.offers.lock() {
+                    *kept = store;
+                }
+            }
+            Err(error) => tracing::warn!(%error, "the kept agent lists were not read"),
+        }
         self.reload().await;
         let mut tick = tokio::time::interval(REFRESH);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -591,6 +649,12 @@ impl State {
                 self.start(&machine, harness, folder, prompt, options).await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
+            Command::KeepCommands {
+                machine,
+                harness,
+                commands,
+            } => self.keep_commands(&machine, harness, commands),
+            Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
             Command::Resume {
                 machine,
                 session,
@@ -670,9 +734,14 @@ impl State {
         let mut machines = Vec::with_capacity(book.len());
         for (name, entry) in book {
             let name = name.as_str().to_owned();
-            let reach = match self.clients.get(&name) {
-                Some(connected) => Ok(connected.clone()),
-                None => self.connect(&entry).await,
+            let reach = if let Some(connected) = self.clients.get(&name) {
+                Ok(connected.clone())
+            } else {
+                let reach = self.connect(&entry).await;
+                if let Ok(connected) = &reach {
+                    self.hand_kept(&name, &connected.client).await;
+                }
+                reach
             };
             let machine = match reach {
                 Ok(connected) => match connected.client.sessions().await {
@@ -735,6 +804,49 @@ impl State {
         Ok(Connected { client, agents })
     }
 
+    /// A machine just connected: the lists its agents gave last time, if
+    /// any are kept ([`Event::OptionsKept`]).
+    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
+        let node = &client.node().id;
+        let lists: Vec<KeptLists> = match self.offers.lock() {
+            Ok(store) => store
+                .for_node(node)
+                .into_iter()
+                .filter(|kept| kept.profile.is_none())
+                .map(|kept| KeptLists {
+                    harness: kept.agent.clone(),
+                    options: kept.options.clone(),
+                    commands: kept.commands.clone(),
+                })
+                .collect(),
+            Err(_poisoned) => Vec::new(),
+        };
+        if !lists.is_empty() {
+            self.emit(Event::OptionsKept {
+                machine: machine.to_owned(),
+                lists,
+            })
+            .await;
+        }
+    }
+
+    /// Keep a session's reported commands for `harness` on `machine`'s
+    /// node (by its id, as its options are); a machine not connected has no
+    /// id to keep them under, and they are dropped (its next session
+    /// reports them again).
+    fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
+        let Ok(client) = self.client(machine) else {
+            return;
+        };
+        drop(tokio::spawn(offers::keep_answer(
+            std::sync::Arc::clone(&self.offers),
+            client.node().id,
+            harness,
+            offers::Said::Commands(commands),
+            Utc::now(),
+        )));
+    }
+
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
         self.clients
             .get(machine)
@@ -795,13 +907,26 @@ impl State {
     fn options(&self, machine: String, harness: HarnessRef) {
         let client = self.client(&machine).cloned();
         let events = self.events.clone();
+        let store = std::sync::Arc::clone(&self.offers);
         drop(tokio::spawn(async move {
             let outcome = match client {
-                Ok(client) => client
-                    .harness_options(harness.clone(), None)
-                    .await
-                    .map(|offered| offered.options)
-                    .map_err(|error| error.to_string()),
+                Ok(client) => {
+                    let answer = client.harness_options(harness.clone(), None).await;
+                    // Kept beside the answer, not before it: the disk
+                    // never delays what the app shows.
+                    if let Ok(offered) = &answer {
+                        drop(tokio::spawn(offers::keep_answer(
+                            store,
+                            client.node().id,
+                            harness.clone(),
+                            offers::Said::Options(offered.options.clone()),
+                            offered.probed_at,
+                        )));
+                    }
+                    answer
+                        .map(|offered| offered.options)
+                        .map_err(|error| error.to_string())
+                }
                 Err(error) => Err(error.to_string()),
             };
             let _closed = events

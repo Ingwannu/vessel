@@ -12,8 +12,8 @@ use vessel_app_link::Command;
 use vessel_app_view::{Controls, Picks, SelectControl, choices_for, controls_of, with_picks};
 use vessel_proto::HarnessRef;
 
-use crate::areas::draft::Probe;
 use crate::shell::Shell;
+use vessel_app_view::offers::Offered;
 
 // The composer's model list is 360 wide; the 220-wide preference list
 // cuts model names before a person can distinguish the available choices.
@@ -21,14 +21,7 @@ const CHOICES_WIDTH: f32 = 360.0;
 
 fn controls(agent: &HarnessRef, shell: &Shell) -> Option<Controls> {
     let machine = shell.areas.settings.agents.machine.as_ref()?;
-    let Probe::Ready(options) = shell
-        .areas
-        .draft
-        .probes
-        .get(&(machine.as_str().to_owned(), agent.clone()))?
-    else {
-        return None;
-    };
+    let options = shell.offer_options(machine.as_str(), agent)?;
     let picks = shell
         .prefs
         .choices(machine.as_str(), agent)
@@ -208,12 +201,7 @@ impl Shell {
             .map(|choices| Picks::from_choices(choices.to_vec()))
             .unwrap_or_default();
         picks.pick(control.choose(value.id.clone()));
-        let Some(Probe::Ready(options)) = self
-            .areas
-            .draft
-            .probes
-            .get(&(machine.as_str().to_owned(), agent.clone()))
-        else {
+        let Some(options) = self.offer_options(machine.as_str(), &agent) else {
             return;
         };
         let choices = choices_for(options, &picks);
@@ -236,15 +224,12 @@ fn probe_message(agent: &HarnessRef, shell: &Shell, tokens: &Tokens) -> Div {
     let state = &shell.areas.settings.agents;
     let words = shell.t.lang.agents();
     let mut card = gpui::div();
-    let message = state.machine.as_ref().and_then(|machine| {
-        shell
-            .areas
-            .draft
-            .probes
-            .get(&(machine.as_str().to_owned(), agent.clone()))
-    });
+    let message = state
+        .machine
+        .as_ref()
+        .map(|machine| shell.offered(machine.as_str(), agent));
     match message {
-        Some(Probe::Failed(error)) => {
+        Some(Offered::Failed(error)) => {
             // The app's sentence; the machine's own words in the tooltip.
             let alert = vessel_app_kit::alert::alert(
                 vessel_app_kit::alert::Content {
@@ -258,13 +243,13 @@ fn probe_message(agent: &HarnessRef, shell: &Shell, tokens: &Tokens) -> Div {
                 vessel_app_kit::alert::Size::Small,
                 tokens,
             );
-            card = card.child(super::super::with_original(alert, error.clone(), shell));
+            card = card.child(super::super::with_original(alert, error.to_owned(), shell));
         }
-        Some(Probe::Loading) | None => {
+        Some(Offered::Loading) | None => {
             card =
                 card.child(super::super::note(words.options_loading(), tokens).p(px(spacing::S4)));
         }
-        Some(Probe::Ready(_)) => {}
+        Some(Offered::Ready { .. }) => {}
     }
     card
 }
@@ -306,14 +291,7 @@ fn footer(
     let loading = state
         .machine
         .as_ref()
-        .and_then(|machine| {
-            shell
-                .areas
-                .draft
-                .probes
-                .get(&(machine.as_str().to_owned(), agent.clone()))
-        })
-        .is_some_and(|probe| matches!(probe, Probe::Loading));
+        .is_some_and(|machine| shell.offers_asking(machine.as_str(), agent));
     let target = agent.clone();
     let scope = state.machine.clone();
     actions.child(
@@ -331,7 +309,11 @@ fn footer(
                 && shell.agent_context(scope.as_ref())
                 && let Some(machine) = shell.areas.settings.agents.machine.clone()
             {
-                shell.probe_agent((machine.as_str().to_owned(), target.clone()), true);
+                shell.want_offers(
+                    machine.as_str().to_owned(),
+                    target.clone(),
+                    vessel_app_view::offers::Why::Retry,
+                );
             }
             cx.notify();
         })),

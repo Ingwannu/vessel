@@ -427,6 +427,10 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
     )
 }
 
+/// The tallest the banner's notes are drawn before they scroll, points:
+/// about five lines of meta text.
+const NOTES_MOST: f32 = 96.0;
+
 /// The note shown once after an update, at the top of the frame.
 pub(crate) fn updated(
     shell: &Shell,
@@ -446,8 +450,15 @@ pub(crate) fn updated(
         .bg(tokens.bg_well)
         .border_b_1()
         .border_color(tokens.border_faint)
+        // `min_w` 0 on the words: GPUI measures a text's least width
+        // unwrapped, so a long line of notes widened the banner past a
+        // window that was not maximised and the frame cut it, Dismiss
+        // with it (the owner's word 40); now the notes wrap and Dismiss
+        // keeps its width.
         .child(
             div()
+                .flex_1()
+                .min_w_0()
                 .flex()
                 .flex_col()
                 .gap(px(4.0))
@@ -457,20 +468,25 @@ pub(crate) fn updated(
                         .text_color(tokens.text_primary)
                         .child(words.updated_to(&updated.label)),
                 )
-                .children(
-                    updated
-                        .notes
-                        .clone()
-                        .map(|notes| line(notes, tokens.text_secondary)),
-                ),
+                // At most a few lines tall, scrolled past that: in a small
+                // window the whole notes pushed the composer below the
+                // frame (About keeps them in full).
+                .children(updated.notes.clone().map(|notes| {
+                    div()
+                        .id("updated-notes")
+                        .max_h(px(NOTES_MOST))
+                        .overflow_y_scroll()
+                        .child(line(notes, tokens.text_secondary))
+                })),
         )
         .child(
-            button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
+            div().flex_none().child(
+                button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
                 |this, _event, _window, cx| {
                     this.updated = None;
                     cx.notify();
                 },
-            )),
+            ))),
         )
 }
 

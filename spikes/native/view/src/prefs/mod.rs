@@ -36,7 +36,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
 
 pub use appearance::{
-    Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange, Theme,
+    Animations, Appearance, CodeSize, ContentWidth, ConversationDisplay, InterfaceSize, OutOfRange,
+    Theme,
 };
 pub use change::{PreferenceChange, Refused, ShortcutEdit, ShortcutEdits, ShortcutTarget};
 pub use keys::{ActionId, Bindings, InvalidActionId, InvalidKeyBinding, KeyBinding, TooMany};
@@ -141,6 +142,15 @@ pub struct Layout {
     /// The inspector (a session's summary).
     #[serde(deserialize_with = "lenient")]
     pub inspector: Panel,
+    /// The sidebar's width when dragged, whole points (`None`: the
+    /// default, `panels::SIDEBAR`). Not written while `None`, so the
+    /// document the page and the bridge share is unchanged until a panel
+    /// is dragged.
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub sidebar_width: Option<u16>,
+    /// The code panel's width when dragged (`panels::CODE_PANEL`).
+    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
+    pub panel_width: Option<u16>,
 }
 
 /// Whether a panel shows.
@@ -186,10 +196,13 @@ impl SendKey {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnDelivery {
-    /// It waits in the session's queue for the turn to end.
-    #[default]
+    /// It waits in the session's queue for the turn to end (behind a
+    /// permission request it interrupts: `session::send_delivery`).
     Queue,
-    /// It joins the running turn, where the agent can steer.
+    /// It joins the running turn, where the agent can steer; otherwise it
+    /// replaces the turn. Paseo's default (`storage.ts`, the owner's word
+    /// 45).
+    #[default]
     Steer,
     /// The turn is stopped and it starts the next.
     Interrupt,

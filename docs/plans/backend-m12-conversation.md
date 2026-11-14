@@ -58,6 +58,129 @@ command on one long line asking for permission with four answers, and
 either lacks the shapes; the verb's own tests hold the output's line
 count, which `vessel log` does not print.
 
+## Slice M: the conversation as a message exchange (2026-11-14)
+
+The owner on 0.0.0.0.13 (words 33, 36–39 of the common brief): the
+session view as Paseo's, sending as sending a message, the reply a
+bubble beside the agent's mark, quick motion. Read for it: Paseo's
+`components/message.tsx` (`UserMessage`, `AssistantMessage`,
+`AssistantTurnFooter`), `assistant-turn-footer-label.ts`,
+`assistant-fork-menu.tsx`, `agent-stream/turn-footer.tsx` and
+`agent-stream/view.tsx` (the stream, its pending message), the
+composer's `submit.ts` (a failed send), `types/stream.ts` (what a stream
+holds) and `docs/agent-lifecycle.md` (an agent is closed, never ended
+for the person: the next prompt resumes its provider session).
+
+Sending: a message that starts a turn (no turn running, or a session
+that ended, was interrupted or released) shows at once as the person's
+message after the entries (`tail`), with Paseo's working footer under
+it (a 14-point spinner, the elapsed time once the turn's prompt is
+in); an ended session is started again underneath. When the node
+records the prompt the pending row gives way to it. A failed send puts
+the words back in the composer with the error under the conversation
+(Paseo's send error). A send into a running turn goes to the queue or
+joins the turn, as before.
+
+What left the timeline, and where each fact is now:
+
+| Line | Now |
+| --- | --- |
+| "Session starting / running / exited / interrupted / failed · time" | not drawn; the session's state is the header's chip (nothing while it runs) |
+| "Agent ready" | not drawn (Paseo has nothing); the working footer ends when the agent answers |
+| "Agent released while idle", "Agent resumed" | not drawn; the header's "Released" chip and its tooltip ("Send a message to resume.") |
+| "Model call · route · model" | not drawn (gateway accounting) |
+| "Turn ended · reason · tokens · in · out · cache" | Paseo's turn footer: the reply's copy button and "Worked for 14s" ("작업 시간 14s"), the end time while pointed at; a turn that did not end normally adds its reason ("· cancelled"); the session's tokens and cost are the context meter's card; a turn's own tokens are no longer shown |
+| the ended card ("Session ended … Start again") | gone for a session that can go on (the next message starts it again); kept for an archived session (Paseo's archived callout) and for one whose agent cannot go on |
+| the held message box and "Restarting the session…" (the composer's) | the message in the conversation and the working footer |
+| "released" on a sidebar row and a board card | gone: an idle session reads idle, as in Paseo; the header keeps it |
+| "Agent log · N lines" rows between turns (the adapter's stderr) | the Session actions' "Agent log · N lines" (shown once the agent wrote a line), opening a dialog with every line in one box, copyable; Paseo shows no adapter log in its stream |
+| the rule under a folded run's summary (it read as a rule between turns) | gone; Paseo's summary row (`agent-stream/turn-collapse/summary-line.tsx`, its `ExpandableBadge`) has no rule, and its stream draws none between turns |
+
+Kept in the timeline: messages, thoughts, tool rows, plans, questions,
+permissions, a turn that failed (its words: the person must see them),
+a profile change (the person's own act).
+
+A failed turn (the coordinator's finding on 0.0.0.0.15, after Paseo's
+`formatTurnFailedMessage` and its Claude provider's `withheldErrorReply`)
+is one sentence in the kit's error alert under the replies: the agent's
+own words without the JSON-RPC wrapper ("Internal error: ") or its data
+as JSON (`view::timeline::turn_failure`). A usage limit (`errorKind`
+`rate_limit`, or the limit's sentence) is its sentence alone; any other
+failure reads "Turn failed · <sentence>". The reply Claude writes with
+the same words just before the failure is not drawn, so it is said
+once. The full text stays in the session's log (`vessel log`).
+
+The reply: the owner's bubble (Paseo's reply has none): Paseo's user
+bubble mirrored (16 inside, radius 16 with the corner toward the agent
+at 4) on `surface1` edged with a hairline. It hugs its words as the
+person's bubble does (a two-word reply is a two-word bubble) and grows
+to the column at most: a wide table takes the column, its cells wrap,
+and what still does not fit scrolls sideways inside the bubble (800 ×
+600: the five-column table of the fleet's `shapes` turn); a long code
+line scrolls sideways inside its block; the bubble never passes the
+column. Every reply takes it the same way (the first
+after a session is started again, a replayed conversation, a reply
+still streaming: all are the timeline's message entries); beside a turn's first reply a 28-point circle
+with the session's agent's mark (worker B's star-to-circle morph is to
+be mounted in that circle). The person's bubble takes Paseo's values:
+`surface3`, 16 inside, the corner toward the writer at 4, as wide as
+the column needs.
+
+Motion (`conversation::motion`, on the kit's tokens
+`vessel_app_kit::motion`): two one-shot transitions, both `STANDARD`
+(300 ms on `cubic-bezier(.23,1,.32,1)`: a message arriving is a
+surface, by the lead's rule). A message sent is drawn whole on its
+first frame and rises 6 points into place (a fade would leave Enter's
+next frame nearly empty); a reply fades and rises in. Only what just
+arrived moves, so nothing replays on scrolling and an idle session
+draws nothing for it; while motion is held (Animations off, reduced
+motion, a software renderer) GPUI draws both at their end at once. The
+working footer's elapsed time is drawn again once a second while a turn
+runs, and not otherwise.
+
+## Send while a turn runs: Paseo's rules (2026-11-14, the owner's word 45)
+
+`view::session::send_delivery` decides how a plain send goes, from
+Settings' Default send and three facts (a turn runs, the agent takes a
+message mid-turn, a permission waits). Paseo's rules, its cases as the
+tests in `view/src/tests/delivery.rs`:
+
+| Default send | No turn running | Turn running | Permission waiting |
+| --- | --- | --- | --- |
+| Steer (the default now, Paseo's `storage.ts`) | starts a turn | joins the turn; replaces it when the agent cannot steer (Paseo's server, `steerOrReplaceActiveTurn`) | joins the turn |
+| Queue | starts a turn | waits in the queue | interrupts (Paseo's `resolveActiveSendBehavior`: a queued message would be stranded behind the request) |
+| Interrupt | starts a turn | stops the turn, starts the next | stops the turn, starts the next |
+
+Differences from before: the default was Queue, and a Steer the agent
+could not take waited in the queue. A send that does not wait in the
+queue shows in the conversation at once (the tail; a steered message
+settles on its steer record). Settings' notes under Default send say
+the new rules; the setting's page is track E3's. An install that saved
+"queue" before keeps it (the preferences store every field, so a saved
+default cannot be told from a choice).
+
+## Module layout (2026-11-14, the owner's word 44)
+
+`app/src/areas/conversation/` after the split (no behaviour change;
+every file under 460 lines). Rules with tests live in `view`; `app`
+draws and wires.
+
+| File | Holds |
+| --- | --- |
+| `mod.rs` | the module's Decision Logs, its file list and re-exports |
+| `area.rs` | `ConversationArea` (the state), opening, clearing, revealing, the rows |
+| `intake.rs` | an act's answer and a batch of records, applied only for the session shown |
+| `place.rs` | `Seat` and `Place`: where a conversation's state is kept, how a card's answer is sent |
+| `actions.rs` | the Session actions menu, its confirms, the agent's log, the acts sent |
+| `follow.rs` | what the shell tells the conversation (opened, records, answers, lost, machine book) |
+| `entries.rs` / `bubbles.rs` | an entry drawn by kind / the message exchange (the two bubbles, the circle) |
+| `question.rs` / `question/card.rs` | the answer's state and controls / the card's drawing; the step's rules are `view::timeline::question_step` |
+| `queue.rs` / `queue/rows.rs` | the queue's edit and acts / its rows, grip and buttons |
+| `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
+
+Moved to `view` with tests: `question_step` (choices, pick, typed,
+header, prompt, text target), `start_at`, `first_reply`.
+
 ## Captures
 
 In a local folder, not committed, each beside the GOAT or

@@ -67,14 +67,16 @@ pub(crate) fn sidebar(
     route: Route,
     shell: &Shell,
     tokens: &Tokens,
+    window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    match route {
+    let inner = match route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
         Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
             areas::sidebar::render(shell, tokens, false, cx).into_any_element()
         }
-    }
+    };
+    areas::sidebar::frame(shell, inner, tokens, window, cx).into_any_element()
 }
 
 /// What arriving at `route` does (focus its field, settle its choices).

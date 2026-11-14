@@ -140,8 +140,12 @@ impl Link {
                 harness,
                 outcome: Ok(crate::demo::options()),
             }),
-            // The demo's turns end as they start: nothing runs to stop.
-            Command::Stop { .. } | Command::SavePrefs(_) => {}
+            // The demo's turns end as they start: nothing runs to stop; a
+            // browser keeps no files.
+            Command::Stop { .. }
+            | Command::SavePrefs(_)
+            | Command::KeepCommands { .. }
+            | Command::SaveDrafts(_) => {}
             Command::Answer {
                 session,
                 id,

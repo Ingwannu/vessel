@@ -10,6 +10,12 @@ use std::borrow::Cow;
 
 use gpui::{AssetSource, SharedString};
 
+mod icon;
+
+#[cfg(test)]
+use icon::view_box;
+pub use icon::{IconError, window_icon};
+
 /// Vessel's mark, one colour (`fill="currentColor"`), embedded from the
 /// design system's own file by path (`docs/design/brand/`, the owner's
 /// paths, never copied): GPUI draws an SVG as a mask in the element's
@@ -57,6 +63,16 @@ pub enum Glyph {
     Stop,
     /// The permissions mode.
     Shield,
+    /// A permissions mode that accepts edits (Paseo's `ShieldPlus`).
+    ShieldPlus,
+    /// A permissions mode that decides for itself (Paseo's `ShieldCheck`).
+    ShieldCheck,
+    /// A permissions mode that asks nothing (Paseo's `ShieldOff`).
+    ShieldOff,
+    /// A planning mode (Paseo's `ShieldEllipsis`).
+    ShieldEllipsis,
+    /// A permissions mode that asks before writing (Paseo's `ShieldAlert`).
+    ShieldAlert,
     /// The effort (thinking).
     Brain,
     /// An agent.
@@ -156,6 +172,14 @@ pub enum Glyph {
     Pin,
     /// Work going on: three quarters of a ring, turned by `spinner`.
     Spinner,
+    /// The board (three lanes of cards).
+    Board,
+    /// The light theme (a sun).
+    Sun,
+    /// The dark theme (a moon).
+    Moon,
+    /// The system's theme (a screen).
+    Monitor,
     /// A pencil: edit (a queued message).
     Pencil,
     /// An arrow turning up and right: send into the running turn (GOAT's
@@ -177,7 +201,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 71] = [
+const ALL: [Glyph; 80] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -194,6 +218,11 @@ const ALL: [Glyph; 71] = [
     Glyph::ArrowUp,
     Glyph::Stop,
     Glyph::Shield,
+    Glyph::ShieldPlus,
+    Glyph::ShieldCheck,
+    Glyph::ShieldOff,
+    Glyph::ShieldEllipsis,
+    Glyph::ShieldAlert,
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
@@ -241,6 +270,10 @@ const ALL: [Glyph; 71] = [
     Glyph::Undo2,
     Glyph::Pin,
     Glyph::Spinner,
+    Glyph::Board,
+    Glyph::Sun,
+    Glyph::Moon,
+    Glyph::Monitor,
     Glyph::Pencil,
     Glyph::Steer,
     Glyph::Grip,
@@ -284,6 +317,11 @@ impl Glyph {
             Self::ArrowUp => "kit/arrow-up.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
+            Self::ShieldPlus => "kit/shield-plus.svg",
+            Self::ShieldCheck => "kit/shield-check.svg",
+            Self::ShieldOff => "kit/shield-off.svg",
+            Self::ShieldEllipsis => "kit/shield-ellipsis.svg",
+            Self::ShieldAlert => "kit/shield-alert.svg",
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
@@ -335,6 +373,10 @@ impl Glyph {
             Self::Undo2 => "kit/undo-2.svg",
             Self::Pin => "kit/pin.svg",
             Self::Spinner => "kit/spinner.svg",
+            Self::Board => "kit/board.svg",
+            Self::Sun => "kit/sun.svg",
+            Self::Moon => "kit/moon.svg",
+            Self::Monitor => "kit/monitor.svg",
             Self::Pencil => "kit/pencil.svg",
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
@@ -376,6 +418,33 @@ impl Glyph {
             Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
             Self::Shield => {
                 line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
+            }
+            // The shield's outline with its mark inside, centred on the
+            // shield's optical middle (12, 11.5).
+            Self::ShieldPlus => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M12 8.5v6M9 11.5h6"/>"#
+                )
+            }
+            Self::ShieldCheck => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M9 11.5l2 2 4-4"/>"#
+                )
+            }
+            Self::ShieldOff => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M4 4l16 16"/>"#
+                )
+            }
+            Self::ShieldEllipsis => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/>"#
+                )
+            }
+            Self::ShieldAlert => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M12 8v4M12 15h.01"/>"#
+                )
             }
             Self::Brain => line_glyph!(
                 r#"<path d="M12 5.5a3 3 0 0 0-5.6-1.2A3 3 0 0 0 4 8.5a3.2 3.2 0 0 0 .8 5.8A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5z"/><path d="M12 5.5a3 3 0 0 1 5.6-1.2A3 3 0 0 1 20 8.5a3.2 3.2 0 0 1-.8 5.8A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/>"#
@@ -542,6 +611,18 @@ impl Glyph {
             Self::Pin => line_glyph!(
                 r#"<path d="M8.25 3.75h7.5"/><path d="M9.75 3.75v6L6 13.5v2.25h12V13.5l-3.75-3.75v-6"/><path d="M12 15.75V21"/>"#
             ),
+            Self::Board => line_glyph!(
+                r#"<rect x="3" y="3.75" width="5.25" height="16.5" rx="1.5"/><rect x="9.375" y="3.75" width="5.25" height="10.5" rx="1.5"/><rect x="15.75" y="3.75" width="5.25" height="13.5" rx="1.5"/>"#
+            ),
+            Self::Sun => line_glyph!(
+                r#"<circle cx="12" cy="12" r="4.125"/><path d="M12 2.25v1.875M12 19.875v1.875M2.25 12h1.875M19.875 12h1.875M5.1 5.1l1.35 1.35M17.55 17.55l1.35 1.35M5.1 18.9l1.35-1.35M17.55 6.45l1.35-1.35"/>"#
+            ),
+            Self::Moon => line_glyph!(
+                r#"<path d="M20.25 14.4A8.25 8.25 0 0 1 9.6 3.75a8.25 8.25 0 1 0 10.65 10.65Z"/>"#
+            ),
+            Self::Monitor => line_glyph!(
+                r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
+            ),
         }
     }
 }
@@ -566,85 +647,6 @@ impl AssetSource for Assets {
             .map(SharedString::from)
             .collect())
     }
-}
-
-/// The window's icon (X11 reads it; Windows and macOS take theirs from the
-/// executable and the bundle, the release track's): the mark in white on
-/// a rounded tile of the brand colour, `size` pixels square.
-///
-/// # Errors
-/// The mark could not be drawn (only a broken build could cause it).
-pub fn window_icon(size: u32) -> Result<image::RgbaImage, IconError> {
-    // The tile is drawn in the mark's own units, read from its view box
-    // (the owner redraws the mark; nothing here assumes its numbers), the
-    // mark inset by a tenth of its box on each side.
-    let view = view_box(MARK).ok_or(IconError::Mark)?;
-    let paths = MARK
-        .split_once("<path")
-        .map(|(_, rest)| format!("<path{rest}"))
-        .ok_or(IconError::Mark)?
-        .replace("currentColor", "#ffffff")
-        .replace("</svg>", "");
-    let tile = tile_svg(view, &paths);
-    let tree = resvg::usvg::Tree::from_str(&tile, &resvg::usvg::Options::default())
-        .map_err(|_bad| IconError::Mark)?;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(size, size).ok_or(IconError::Size)?;
-    let scale = size_scale(size, tree.size().width());
-    resvg::render(
-        &tree,
-        resvg::tiny_skia::Transform::from_scale(scale, scale),
-        &mut pixmap.as_mut(),
-    );
-    image::RgbaImage::from_raw(size, size, pixmap.take()).ok_or(IconError::Size)
-}
-
-/// A drawing's view box: x, y, width, height.
-fn view_box(svg: &str) -> Option<[f32; 4]> {
-    let (_, rest) = svg.split_once("viewBox=\"")?;
-    let (text, _) = rest.split_once('"')?;
-    let mut numbers = text.split_whitespace().map(str::parse::<f32>);
-    let mut next = || numbers.next()?.ok();
-    Some([next()?, next()?, next()?, next()?])
-}
-
-/// The window icon's drawing: a rounded tile of the brand colour a fifth
-/// larger than the mark's view box, the mark's `paths` on it.
-#[expect(
-    clippy::float_arithmetic,
-    reason = "a view box's units are fractional; this is a drawing's geometry"
-)]
-fn tile_svg(view: [f32; 4], paths: &str) -> String {
-    let [x, y, width, height] = view;
-    let (inset_x, inset_y) = (width / 10.0, height / 10.0);
-    let (left, top) = (x - inset_x, y - inset_y);
-    let (wide, high) = (width + 2.0 * inset_x, height + 2.0 * inset_y);
-    // The tile's corner, as the first icon's: 180 of 840.
-    let corner = wide * 180.0 / 840.0;
-    format!(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{left} {top} {wide} {high}"><rect x="{left}" y="{top}" width="{wide}" height="{high}" rx="{corner}" fill="#{BRAND:06x}"/>{paths}</svg>"##
-    )
-}
-
-/// How much to scale a drawing `width` wide to `size` pixels.
-#[expect(
-    clippy::cast_precision_loss,
-    clippy::as_conversions,
-    clippy::float_arithmetic,
-    reason = "an icon's size is a few hundred pixels: exact in f32, and the ratio is what resvg takes"
-)]
-fn size_scale(size: u32, width: f32) -> f32 {
-    size as f32 / width
-}
-
-/// The icon could not be made.
-#[derive(Debug, thiserror::Error)]
-pub enum IconError {
-    /// The mark's file is not as expected.
-    #[error("the mark could not be read")]
-    Mark,
-    /// The size is not a drawable one.
-    #[error("not a drawable icon size")]
-    Size,
 }
 
 #[cfg(test)]
