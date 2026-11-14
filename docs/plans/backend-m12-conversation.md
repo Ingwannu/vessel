@@ -19,12 +19,13 @@ neutral colours come only from `tokens.neutral.*`.
 | --- | --- | --- |
 | Timeline logic | `view/src/timeline/` | records folded into entries (`fold`), runs of tool calls (`runs`), the rows drawn (`rows`), the page's window arithmetic (`window`), find (`find`), the outline (`outline`), approvals (`approval`: the buttons of a request and what each says; `permission`: what the permission card shows, its title, plan or command, primary answer, marks and count), a question's form (`question`: its steps, drafts, checks, the answer and the answered lines, the page's `question-form.ts` and `question-answers.ts`), the context meter (`meter`), diffs (`diff`) |
 | Session logic | `view/src/session/` | read marks (`marks`), titles and names (`titles`) |
+| Search logic | `view/src/search.rs` | every machine's messages searched for the palette's Messages group: each machine's pages and state, the rows newest first with the ones shown kept in place, More, and the notes under the group |
 | Terminal logic | `view/src/terminal/` | the input sender and its queue (`sender`), the resize rule and the replay log (`frame`) |
 | Words | `view/src/text/conversation/` | the area's sentences, English and Korean (`lang.conversation()`) |
-| Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
+| Node calls | `link/src/session.rs`, `search.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task; a machine's page of a search (`Command::Search`, answered by `Event::Searched`; a machine before protocol 12 answers `Refusal::Older` without being asked) |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), an ended or archived session's banner first in the slot over the composer (`ended`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), an ended or archived session's banner first in the slot over the composer (`ended`), the palette's Messages group (`search`: its seams, and an example host until the palette draws it), the look (`look`), the scroll bench (`bench`) |
 
 Other areas use the conversation through seams, each one call:
 
@@ -38,6 +39,7 @@ Other areas use the conversation through seams, each one call:
 | A session's usage line and a limit notice | usage and limits (track N2), drawn by its own renderer | two lines it adds first in the slot over the composer (`dock.rs`'s `dock`, before the requests): its session line (the node's totals for the session shown: tokens, cache, the cost the agent reported), then its limit notice; both read the session shown (`shell.areas.conversation.shown`: machine and session) and return `Option<AnyElement>`, and the slot shows when either does. A turn's own token count stays on this area's turn divider, and the context meter stays this area's |
 | A session marked unread elsewhere | a sidebar row's or a board card's "Mark as unread" (track S2) | `Shell::conversation_marked_unread(machine, session)`, called as the mark is sent: when it is the session shown, the open screen does not mark it read again until a record comes after what it shows; another session, nothing. The Session actions menu here is its first caller |
 | Whether an ended session can go on | the composer (the lead's), to offer no send when it cannot | `Shell::conversation_cannot_resume()`: the session shown has ended and its agent cannot pick up where it left off (the banner says so and has no Start again); `false` while it runs, can start again, or is not yet described |
+| The palette's Messages group | the command palette (track S3): its group after Paseo's command groups, entered by its shortcut and the sidebar's Search row | `Shell::message_search_query(text, cx)` as the words change (empty when it closes; searched once they rest 150 ms); `Shell::message_search_rows()`, the rows top to bottom as typed ids (`view::search::Row::Hit(HitId)` or `Row::More`); `conversation::search::message_row(shell, row, active, compact, tokens)` draws one (no handlers: the palette's keys and pointer choose); `message_search_note(shell, tokens)` the lines under them; choosing a hit calls `Shell::open_search_hit(hit, window, cx)` (the palette closes first), More `Shell::message_search_more(cx)`. Until the palette lands, `VESSEL_APP_MESSAGE_SEARCH=<words>` draws the group in a card over the session shown (`search::example`) |
 | Open at a record | the inbox opening a session at what it lists | after the session area opened the session, `Shell::conversation_reveal(seq, cx)`: the record's entry is brought to the top once it is read, the first row when the log starts after it |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
@@ -100,6 +102,10 @@ Paseo screen it follows.
 | `ended/01-ended-en-dark-1280`, `ended/05-ended-ko-light-1280`, `ended/06-archived-ko-light-1280`, `ended/07-ended-en-light-390` | an ended session (the fleet's `context-ended`, stopped after its turn) and an archived one: "Session ended" or "Session archived", whether the agent can go on, Start again at the right, first over the composer card; on a phone the line wraps beside the button. The lead's own line above it ("This session has ended. Sending starts it again…") goes in its merge | the page's `ended-banner.tsx`; Paseo `components/archived-agent-callout.tsx` (surface1, a hairline of borderAccent, radius 16, 12 by 16 on a phone and 16 by 24 wider, a secondary button) |
 | `ended/03-starting-en-dark-1280`, `ended/04-started-en-dark-1280` | Start again pressed: the session runs again and the conversation goes on with its new records (the node ends a follow at the final status, so the session area follows it afresh); the banner goes | the page's `marks.run("start-again")` |
 | `ended/02-meter-ended-en-dark-1280`, `ended/08-meter-ended-ko-dark-390` | the meter card on an ended session: "Compact context" disabled with "Compacting needs the session running." (a prompt there would start the session again, not compact it) | GOAT `ChatView.tsx` `compactDisabledReason` |
+| `search/01-plans-en-dark-1280` | the palette's Messages group (drawn by `search::example` until the palette lands) for "plans": two messages on `laptop`, "Agent:" in green and "You:" in blue, the matched word semibold in the foreground, the session's title with its machine after it, when the message was written at the right | GOAT `CommandPaletteThreadItems.tsx`, `ThreadSearchMatch.tsx`, `CommandPaletteResults.tsx` |
+| `search/02-opened-at-hit-en-dark-1280` | the first hit chosen: its session opens at that message with find on the words, the current match (2/2, amber) the one in the message that matched | GOAT `openThreadFindOnQuery` (find on the word at the matched message) |
+| `search/03-more-ko-light-1280`, `search/04-more-row-ko-light-1280`, `search/05-after-more-ko-light-1280` | "paragraph" on both machines: ten rows (build-server's answered first, laptop's below them: a row once shown keeps its place), then "메시지 더 보기"; pressed, the rest show and More goes | GOAT `PALETTE_MESSAGE_LIMIT` (10), `nextShownOrder` |
+| `search/06-nothing-en-dark-390` | a phone's width, words nothing matches: "No messages match." | the app's own (GOAT shows an empty group) |
 | `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
@@ -110,6 +116,15 @@ Paseo screen it follows.
   two never disagree.
 - **The phone's width.** The kit's breakpoint is 768 (the lead's); Paseo's
   compact layout starts under 600.
+- **Message search.** One place, the palette's Messages group, entered
+  by its shortcut and the sidebar's Search row (Paseo's command center
+  row); GOAT also searches from a field at the top of its sidebar, not
+  built here. Rows are ranked by when the message was written (the
+  node's order); GOAT also weighs how recently a thread was used, which
+  the app does not record. A snippet is the message's own text, Markdown
+  marks and all, as GOAT's is. A machine before protocol 12, and one
+  that refused, are named in a line under the rows; an unreachable
+  machine is left out (the sidebar already says it is offline).
 - **The ended banner.** The page's words and Start again in Paseo's
   archived-agent callout. Paseo centres one line ("This agent is
   archived" and Unarchive); this keeps the page's heading and line at
@@ -334,10 +349,13 @@ done yet:
 - **Chat settings** (Settings › Chat, track E2 draws the page): always
   expand reasoning, the outline shown or not, collapse whole turns; each
   needs a preference and its rule here.
-- **What A2 landed** (protocol 12): searching every session's messages
-  (open a hit at its record), parking an idle agent (parked beside
-  running, a wake button when waking failed, the `parked` and `woken`
-  marks in the timeline); then rewind, fork, import and handoff as A2
+- **What A2 landed** (protocols 12 to 14): message search is done on
+  this side, the palette's group waits for the palette (track S3, the
+  seam above; the example host goes then). Left: parking an idle agent
+  (parked wherever a session shows, a wake button when waking failed,
+  the `parked` and `woken` marks in the timeline); then rewind and fork
+  (an empty fork offers to be removed: "the agent did not fork at the
+  chosen point"), import from an agent's own history and handoff as A2
   sends them.
 - Then: the branch chip rail, the
   inspector's Summary, the terminal view (§7), stream banners; copying a

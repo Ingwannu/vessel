@@ -252,6 +252,7 @@ pub(crate) fn overlays(
     let narrow = breakpoint::phone(window);
     let words = shell.t.lang.conversation();
     let mut floating = Vec::new();
+    floating.extend(super::search::example(shell, tokens, window, cx));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(
         "session-actions",
