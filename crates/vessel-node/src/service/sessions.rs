@@ -85,6 +85,10 @@ impl NodeService {
             spec.side_question_of = None;
         }
         if let Some(parent) = spec.side_question_of {
+            // This path inherits a spec or reuses a side; never discard an override.
+            if !spec.labels.is_empty() {
+                return Err(wire(&ServiceError::SideCreationLabels));
+            }
             if unattended.is_some() {
                 return Err(crate::side_questions::SideError::Template.wire());
             }

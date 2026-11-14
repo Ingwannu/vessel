@@ -302,8 +302,9 @@ impl Importer<'_> {
         )
         .with_cwd(to_cwd.clone());
         spec.profile.clone_from(&named_profile);
-        // It keeps its name.
+        // It keeps its name and the labels it carries now.
         spec.title.clone_from(&info.title);
+        spec.labels.clone_from(&info.labels);
         tracing::info!(%transfer, written = placed.written, same = placed.same, "session imported");
         Ok(SessionPlaced {
             imported: SessionImported {

@@ -6853,6 +6853,12 @@ board?: SessionBoard | null,
  */
 title?: SessionTitle | null, 
 /**
+ * The labels it carries now (ADR 0063): `spec.labels` at creation,
+ * then whatever `session.labels` set. Left out when there are none,
+ * and stripped for a peer that predates them.
+ */
+labels?: SessionLabels, 
+/**
  * What a person marked on it: pinned, archived, unread (protocol 10,
  * ADR 0026). Kept by the node, so every client sees the same; left
  * out when nothing is marked, and absent from older nodes.
@@ -6924,6 +6930,14 @@ id: QuestionId,
  * The answer.
  */
 answer: QuestionAnswer, };
+
+/**
+ * The labels a session carries now, or the ones a creation asked for.
+ *
+ * Keys are ordered, so a summary and a stored row do not depend on who
+ * sent the map. An empty map is left off the wire.
+ */
+export type SessionLabels = Record<string, string>;
 
 /**
  * A session's marks, as `SessionInfo.marks`.
@@ -7102,6 +7116,12 @@ profile?: ProfileName | null,
  * on its own; this stays what was asked.
  */
 title?: SessionTitle | null, 
+/**
+ * Labels asked for at creation (ADR 0063). The map now is
+ * [`SessionInfo::labels`], which starts as this and changes on its
+ * own; this stays what was asked. Left out when there are none.
+ */
+labels?: SessionLabels, 
 /**
  * Where it runs (protocol 10, ADR 0027): a project's folder or a
  * worktree. With a place, `cwd` is left out by the client and filled

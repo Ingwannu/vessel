@@ -707,7 +707,7 @@ impl Connection {
             .ids
             .next()
             .ok_or(CallError::RequestIdsExhausted)?;
-        let command = Command::Call { id, call, waiter };
+        let command = Command::call(id, call, waiter);
         // The queue is bounded; while waiting for room, also watch for the
         // connection closing, so a caller never waits on a dead driver.
         let queued = tokio::select! {

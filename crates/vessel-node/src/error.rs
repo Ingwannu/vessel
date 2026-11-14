@@ -115,6 +115,9 @@ pub(crate) enum ServiceError {
     /// A side-question boundary refused the action (ADR 0045).
     #[error(transparent)]
     SideQuestion(#[from] crate::side_questions::SideError),
+    /// Side creation inherits a spec or returns an existing side; it cannot apply overrides.
+    #[error("creation labels cannot override a side question's inherited spec")]
+    SideCreationLabels,
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -415,6 +418,7 @@ impl ServiceError {
             Self::Ahead { .. }
             | Self::ReadAhead { .. }
             | Self::InvalidTtl
+            | Self::SideCreationLabels
             | Self::NoScopes
             | Self::UnknownProfile(_)
             | Self::ProfileRemoved { .. }

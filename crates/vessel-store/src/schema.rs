@@ -367,6 +367,11 @@ END;
 /// retention and is independent of the partial transcript tail.
 const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
 
+/// Schema 15: a session's current labels as JSON (ADR 0063). NULL is none.
+/// The number is this list's length when the feature merges; here it is 15,
+/// the entry after the side-plan column.
+const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
 const MIGRATIONS: &[&str] = &[
@@ -384,6 +389,7 @@ const MIGRATIONS: &[&str] = &[
     V12,
     V13,
     SIDE_CONTEXT,
+    LABELS,
 ];
 
 /// Bring the database to the newest schema.

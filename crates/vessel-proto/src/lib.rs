@@ -29,6 +29,7 @@ pub mod history;
 mod id;
 mod key;
 pub mod labels;
+pub mod lifecycle_version;
 pub mod lsp;
 mod model;
 mod name;

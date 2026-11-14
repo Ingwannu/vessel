@@ -26,11 +26,27 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`packages/server/src/server/agent/agent-manager.ts:631-644`,
   `writeLabels` at `:2296`). The CLI and the MCP tool only send
   strings, so a person cannot delete. An omitted key stays.
-- CLI create and import: `key=value`, key trimmed and non-empty, value
-  the remainder including empty and not trimmed
-  (`packages/cli/src/commands/agent/update.ts:103-140`,
-  `packages/cli/src/commands/agent/import.ts:54-82`). The same split is
-  used by `run`. The last copy of a key wins.
+- CLI update (`packages/cli/src/commands/agent/update.ts:103-140`)
+  splits each flag on commas, trims each whole segment, ignores empty
+  segments, then splits at the first `=` and trims the non-empty key.
+  The value is the remainder of that trimmed segment, including empty.
+- CLI run (`run.ts:460-466,478-501`) uses one complete `key=value` per
+  flag; neither side is trimmed, and it does not reject an empty key.
+  Import (`import.ts:54-82`) also takes one pair, but trims and refuses
+  an empty key. All three keep the last copy of a key.
+- Vessel uses that one-pair run form and the comma-separated update
+  form. Its validated key trims and refuses empty at every ingress,
+  including wire/MCP and filters. The reason is one canonical key type;
+  a label must not change identity between creation and discovery.
+- Paseo displays `Object.entries(labels)` (`update.ts:144-149`). Vessel
+  uses canonical key order so stored metadata and summaries have a
+  deterministic order regardless of how a sender built the map. Human
+  summaries use comma-space, following existing device-scope lists in
+  `vessel-cli/src/devices.rs`; Paseo's formatter joins with a bare comma.
+- Paseo's provider-history import (`import.ts:110-123`) maps to
+  `vessel run --structured --resume ID --label key=value`. Vessel's
+  separate `session.import` transfer path copies the source's current
+  label map when it starts the imported session, as it copies the title.
 - CLI update refuses an empty name, an empty `--thinking`, and combining
   `--thinking` with `--name` or `--label`
   (`update.ts:152-197`). Labels alone are a metadata update.
@@ -134,7 +150,21 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 No external crate. The standard library and the types above hold the
 bounds, the map and the timestamps.
 
+The existing row decoder also reuses each wire type's serde validator for
+bare text columns through a consuming string deserializer. This retains
+column-specific corruption errors without JSON tree adapters, and keeps
+the session row mapping short as the current-label column is added.
+
+The larger creation payload is boxed only inside the existing RPC driver's
+command queue, matching its already boxed session subject. A small command
+factory keeps cancellation/unsubscribe slots compact without changing wire
+frames, request handling or the public client API.
+
 ## Slices
+
+The labels work is divided for review: 2a validating types; 2b creation,
+current storage and older-peer projection; 2c list filtering; 2d actor
+patches and their RPC/event; 2e CLI/MCP ingress. Each is gated separately.
 
 1. **This commit.** ADR 0063 and this plan. No code, so `PROTOCOL_VERSION`
    and the schema stay at the base.
@@ -200,15 +230,20 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1 contract and slice 2a validated label types, atomic patch,
-  logical-and predicate and bounded decoding. The review correction keeps
-  these in `labels.rs`; discovery requests and the version constant have
-  separate modules when they land. Bound diagnostics use the declared
-  constants. The command-line-only refusal is deferred to its parser.
-- Half-done: creation and storage drafts remain separate from this slice.
-  No wire field, call, store column or command is enabled by 2a, and no
-  dependency or crate edge is added.
-- Next: gate and report the 2a review correction; then 2b creation/current
-  fields and storage, 2c discovery filter, 2d actor patch/RPC/event and
-  2e CLI/MCP ingress, before background. The protocol constant lands in
-  `lifecycle_version.rs` with 2b; do not change `PROTOCOL_VERSION`.
+- Done: slice 1 contract; slice 2a validating types and its review
+  corrections: `labels.rs` owns only validated labels and map operations;
+  bound messages use constants; the command-line refusal lands with its
+  parser. Discovery requests and the version floor have separate modules.
+- Slice 2b adds only creation/current fields, their separate storage,
+  import copying and older-peer projections for every nested session and
+  template. `lifecycle_version::SINCE` stays at the base pending assignment at
+  merge; `PROTOCOL_VERSION` stays unchanged. No new call or event yet.
+- Focused verification passed for creation/restart/import, both old-peer
+  directions and nested reply projections, typed stored metadata and legacy
+  text-column decoding. Wire declarations are generated. The whole commit
+  gate is next; the focused checks are not a whole-workspace claim.
+- Half-done: subsequent label slices remain drafts: 2c list filtering,
+  2d actor-serialized patches and their RPC/event, 2e CLI and MCP ingress.
+  Each has its own tests; no later feature is enabled by this slice.
+- Next: gate and report 2b, then finish 2c through 2e, before background.
+  Windows, macOS and real harnesses remain unverified locally.

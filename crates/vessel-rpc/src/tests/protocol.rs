@@ -1,5 +1,5 @@
-//! Protocol 5 against older connections: a raw client that offers only one
-//! version, so the server cannot negotiate up.
+//! Requests against older connections: each peer offers one version,
+//! so negotiation cannot hide an unsupported field or method.
 
 use vessel_proto::{CreateSession, GetManifest, Hello};
 
@@ -40,6 +40,30 @@ async fn call_raw(client: &mut MemoryTransport, id: u64, call: Call) -> String {
         .await
         .unwrap();
     client.next().await.unwrap().unwrap()
+}
+
+/// Negotiate a client with a node that cannot raise its advertised version.
+async fn older_node(version: ProtocolVersion) -> (Connection, MemoryTransport) {
+    let (client_end, mut server_end) = pair();
+    let older_node = async move {
+        let hello = server_end.next().await.unwrap().unwrap();
+        let _hello: ClientFrame = serde_json::from_str(&hello).unwrap();
+        let welcome = ServerFrame::Welcome(vessel_proto::Welcome {
+            protocol: version,
+            node: node(),
+        });
+        server_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        server_end
+    };
+    let config = ClientConfig::default();
+    let (client, server_end) = tokio::join!(
+        Connection::connect(client_end, client_info(), &config),
+        older_node
+    );
+    (client.unwrap(), server_end)
 }
 
 fn refusal(text: &str) -> WireError {
@@ -108,27 +132,7 @@ async fn an_older_connection_reads_a_stand_in_for_a_newer_event() {
 /// typed calls are: one newer than the connection is not sent.
 #[tokio::test]
 async fn an_already_built_call_newer_than_the_connection_is_not_sent() {
-    let (client_end, mut server_end) = pair();
-    // A node that speaks protocol 4 only.
-    let older_node = async move {
-        let hello = server_end.next().await.unwrap().unwrap();
-        let _hello: ClientFrame = serde_json::from_str(&hello).unwrap();
-        let welcome = ServerFrame::Welcome(vessel_proto::Welcome {
-            protocol: ProtocolVersion::new(4),
-            node: node(),
-        });
-        server_end
-            .send(serde_json::to_string(&welcome).unwrap())
-            .await
-            .unwrap();
-        server_end
-    };
-    let config = ClientConfig::default();
-    let (client, _server_end) = tokio::join!(
-        Connection::connect(client_end, client_info(), &config),
-        older_node
-    );
-    let client = client.unwrap();
+    let (client, _server) = older_node(ProtocolVersion::new(4)).await;
     let call = UnaryCall::try_from(ListProfiles { harness: None }.into_call()).unwrap();
     assert!(matches!(
         client.call_any(call).await,
@@ -191,4 +195,99 @@ async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
         );
         assert!(served.seen.try_recv().is_err());
     }
+}
+
+fn labeled_creation_calls() -> [Call; 2] {
+    let labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+    let call = CreateSession {
+        spec: spec().with_labels(labels),
+    }
+    .into_call();
+    [
+        call.clone(),
+        vessel_proto::Forward {
+            node: NodeId::random(),
+            call: Box::new(call),
+        }
+        .into_call(),
+    ]
+}
+
+#[tokio::test]
+async fn creation_labels_are_refused_before_an_older_server_dispatches() {
+    let previous = vessel_proto::lifecycle_version::SINCE
+        .checked_sub(1)
+        .unwrap();
+    let (mut raw, mut served) = raw_client(previous).await;
+    for (index, call) in labeled_creation_calls().into_iter().enumerate() {
+        let response = call_raw(&mut raw, u64::try_from(index).unwrap(), call).await;
+        assert_eq!(refusal(&response).code, ErrorCode::Unsupported);
+    }
+    assert!(served.seen.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn creation_labels_are_never_sent_to_an_older_node() {
+    let previous = vessel_proto::lifecycle_version::SINCE
+        .checked_sub(1)
+        .unwrap();
+    let (client, mut server_end) = older_node(ProtocolVersion::new(previous)).await;
+    for call in labeled_creation_calls() {
+        let call = UnaryCall::try_from(call).unwrap();
+        assert!(matches!(
+            client.call_any(call).await,
+            Err(CallError::NotInProtocol { .. })
+        ));
+    }
+    // A permitted call is a barrier: it must be the first frame after Hello.
+    let permitted = async {
+        let request: ClientFrame =
+            serde_json::from_str(&server_end.next().await.unwrap().unwrap()).unwrap();
+        let ClientFrame::Request { id, call } = request else {
+            panic!("expected node info");
+        };
+        assert_eq!(call, GetNode.into_call());
+        let response = ServerFrame::Response {
+            id,
+            outcome: Outcome::Ok(vessel_proto::Reply::NodeInfo(node())),
+        };
+        server_end
+            .send(serde_json::to_string(&response).unwrap())
+            .await
+            .unwrap();
+    };
+    let (reply, ()) = tokio::join!(client.call(GetNode), permitted);
+    let _node = reply.unwrap();
+}
+
+#[tokio::test]
+async fn malformed_creation_labels_are_refused_before_dispatch() {
+    let (mut raw, mut served) = raw_client(vessel_proto::lifecycle_version::SINCE).await;
+    let too_many: std::collections::BTreeMap<_, _> = (0..33)
+        .map(|index| (format!("key{index}"), "value"))
+        .collect();
+    let maps = [
+        serde_json::json!({"": "v"}),
+        serde_json::json!({"vessel.reserved": "v"}),
+        serde_json::json!({"a=b": "v"}),
+        serde_json::json!({"\u{0085}": "v"}),
+        serde_json::json!({"a": "\u{0085}"}),
+        serde_json::json!({"a": "x".repeat(257)}),
+        serde_json::json!({"a": null}),
+        serde_json::json!(too_many),
+    ];
+    for (index, labels) in maps.into_iter().enumerate() {
+        let request = serde_json::json!({"type":"request", "id":index, "call":{
+            "method":"session.create", "params":{"spec":{
+                "harness":"claude-code", "mode":"structured", "labels":labels
+            }}
+        }});
+        raw.send(request.to_string()).await.unwrap();
+        let response = raw.next().await.unwrap().unwrap();
+        assert_eq!(refusal(&response).code, ErrorCode::InvalidRequest);
+    }
+    assert!(
+        served.seen.try_recv().is_err(),
+        "no malformed input reached the node handler"
+    );
 }
