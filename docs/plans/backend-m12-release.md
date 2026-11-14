@@ -873,6 +873,23 @@ never rebuilt.
     software renderer: the app holds its motion still" and used 0.3% of
     a core over 15 s on its first screen with no node.
 
+- **0.0.0.0.15**:
+  - Built from exactly `a925f5e9`, the desktop lead's head (native gate
+    green there, 705 tests), checked out detached and run through the
+    machine's build slots (`cargo-slot`, slot 4 after 826 s in line);
+    this branch then merged it.
+  - The set went into place at 12:45:12 UTC on 2026-11-14. It is not
+    published yet: the coordinator's Linux smoke test comes first.
+  - New in the build: the patched `gpui-base` 0.8.1 (a steady caret
+    while motion is held), compiled from `spikes/release/patches/gpui-base`
+    (the build log names that path).
+  - Sizes, with the change against 0.0.0.0.14: setup 12,841,933
+    (+90,751), exe 46,493,184 (+315,392), zip 18,700,707 (+117,219),
+    linux 83,149,200 (+472,280), tar.gz 28,890,686 (+142,380).
+  - The usual checks passed. The shipped Linux build on Xvfb held its
+    motion (software renderer) and used 0.4% of a core on its first
+    screen.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
