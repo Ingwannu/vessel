@@ -627,3 +627,27 @@ No preview node/unit/port, real-provider prompt, service permission, account
 configuration, push or release operation was used. All local commands ran
 as the checkout's ordinary user, preserving existing ownership and modes.
 Implementation review and any resulting fixes are still owed before merge.
+
+## Row 2: node contract proposal (ADR 0046)
+
+Reference behaviour is confirmed in GOAT's useMultipleModelSend.ts,
+chatViewSend.ts, useComposerSend.ts and composerSend.logic.ts/tests (paths
+under apps/web/src/components/chat). A person opens a new Git-project draft,
+chooses its base branch, shift-selects models, submits one text/file snapshot,
+and receives independent background threads/worktrees. Provider validation
+and common attachment readiness happen before dispatch. Runtime partial
+failure keeps successes; failed selections/draft are restored only if the
+original draft is unchanged, otherwise offered through Restore prompt.
+An uncertain request retains a thread identity and blocks automatic retry;
+Open thread or explicit Allow retry is required. Continue/drop is per thread.
+There is no server comparison-room resource in that implementation.
+
+Decision: modify/reuse the existing typed client composition, with bounded
+prepare/send phases and per-target outcomes, rather than invent a server
+batch registry. ADR 0046 defines types, authority, limits, uncertainty,
+attachment snapshot copying, older nodes and tests. There are no new wire
+calls/fields/events, schema or protocol changes for this row. A native
+comparison surface is the app owners' work and can consume these outcomes.
+This is a proposed contract only; implementation has not started. The gate
+results for 85c60716 remain its unchanged code's evidence, not evidence for
+this proposed feature. V1 contract review is required before implementation.
