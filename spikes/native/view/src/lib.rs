@@ -16,6 +16,7 @@ pub mod ago;
 pub mod alert;
 pub mod badge;
 pub mod board;
+pub mod composer;
 mod conversation;
 pub mod devices;
 pub mod effort;
