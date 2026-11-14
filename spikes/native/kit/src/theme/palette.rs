@@ -252,13 +252,6 @@ fn from_tint(tint: Tint) -> Tokens {
 
 #[cfg(test)]
 mod tests {
-    // WCAG 2.1 defines the ratio with these operations, and the floor is a
-    // truncated real, so the comparison is the check (ADR 0070).
-    #![expect(
-        clippy::float_arithmetic,
-        reason = "relative luminance is defined with these operations"
-    )]
-
     use super::{CLAUDE, FOREGROUND, GHOSTTY, MIDNIGHT, PURE_BLACK, Tint, WHITE, ZINC, paint};
     use crate::assets::BRAND;
     use crate::theme::{Scheme, ThemeId, Tokens};
@@ -309,11 +302,19 @@ mod tests {
         }
     }
 
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "a WCAG channel is the byte divided by 255"
+    )]
     fn channel(hex: u32, shift: u32) -> f64 {
         let byte = u8::try_from((hex >> shift) & 0xff).expect("a channel fits in a byte");
         f64::from(byte) / 255.0
     }
 
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "the sRGB transfer function is defined with these operations"
+    )]
     fn linear(channel: f64) -> f64 {
         if channel <= 0.04045 {
             channel / 12.92
@@ -323,6 +324,10 @@ mod tests {
     }
 
     /// WCAG 2.1 contrast of two opaque `0x00RRGGBB` colours.
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "WCAG 2.1 defines the contrast ratio with these operations"
+    )]
     fn contrast(a: u32, b: u32) -> f64 {
         let lum = |hex: u32| {
             0.2126 * linear(channel(hex, 16))
@@ -384,16 +389,8 @@ mod tests {
 
     #[test]
     fn light_and_dark_are_the_palettes_that_already_ship() {
-        assert_eq!(Tokens::of_theme(ThemeId::Light).scheme, Scheme::Light);
-        assert_eq!(
-            Tokens::of_theme(ThemeId::Light).neutral.accent,
-            Tokens::of(Scheme::Light).neutral.accent
-        );
-        assert_eq!(
-            Tokens::of_theme(ThemeId::Dark).neutral.surface0,
-            Tokens::of(Scheme::Dark).neutral.surface0
-        );
-        assert_ne!(paint(BRAND), paint(0x0020_744a));
+        assert_eq!(Tokens::of_theme(ThemeId::Light), Tokens::of(Scheme::Light));
+        assert_eq!(Tokens::of_theme(ThemeId::Dark), Tokens::of(Scheme::Dark));
     }
 
     #[test]

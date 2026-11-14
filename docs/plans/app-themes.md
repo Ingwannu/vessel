@@ -100,11 +100,11 @@ Do not start a second theme type in the app.
   Paseo's green `#20744A` is the mark's colour on Light, Dark and
   Pure black. Interface range, code range, content width and the
   syntax themes are routed, not decided here.
-- Returned: slice 2 (`6e51c58c`, `f0fcae1f`). The palettes stay.
-  This commit corrects ADR 0070: Pure black's destructive floor is
-  4.74 (4.745), Zinc's truncation, because both fills are `#c44a4a`.
-  The expect's width and the Light/Dark equality assertion are the
-  next commit, then the native gate.
+- Returned, then fixed: slice 2. `df0b0f2a` states Pure black's
+  destructive floor as 4.74 (4.745), Zinc's truncation, because both
+  fills are `#c44a4a`. This commit puts the contrast `expect` on
+  `channel`, `linear` and `contrast` only, and asserts Light and
+  Dark equal the shipped tokens.
 - Half-done: nothing in the preference (slice 3).
 - Next: after that fix is gated, slice 3. The theme id, content
   size 10–21 default 15, and the two font families in `view::prefs`,

@@ -38,7 +38,7 @@ pub enum Scheme {
 ///   Pretendard (the owner's type rule), not the system's.
 /// - The page's tokens beside them (`bg_*`, `text_*`) stay until each
 ///   screen is moved; a new control uses these.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Neutrals {
     /// `surface0`: the background; a combobox, a dialog, a sheet.
     pub surface0: Hsla,
@@ -124,7 +124,7 @@ impl Neutrals {
 }
 
 /// Every colour token the app's screens draw with.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Tokens {
     /// Which theme these are.
     pub scheme: Scheme,
