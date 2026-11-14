@@ -90,10 +90,11 @@ pub use widgets::{
 pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
-        AnyElement, App, AsyncApp, Bounds, ClipboardItem, Context, Div, ElementId, Entity,
-        HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState, MouseButton, MouseDownEvent,
-        Pixels, Point, SharedString, Stateful, StyledText, Subscription, WeakEntity, Window,
-        canvas, div, list, point, px, relative, rgb, rgba, svg, uniform_list,
+        AnyElement, App, AsyncApp, Bounds, ClickEvent, ClipboardItem, Context, Div, DragMoveEvent,
+        ElementId, Entity, HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState,
+        MouseButton, MouseDownEvent, Pixels, Point, SharedString, Stateful, StyledText,
+        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
+        uniform_list,
     };
 }
 

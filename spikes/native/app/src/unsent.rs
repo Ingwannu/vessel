@@ -104,6 +104,16 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             machine,
             answer: ask.refused(&Problem::Unsent),
         },
+        // The machine's page never asked: said under the Messages group as
+        // that machine's failure, in the app's words.
+        Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
+            machine: ask.machine,
+            ticket: ask.ticket,
+            result: Err(vessel_app_link::search::Refusal::Failed {
+                code: Some(ErrorCode::Unavailable),
+                message: said(),
+            }),
+        }),
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Open { .. }
         | Command::Stop { .. }

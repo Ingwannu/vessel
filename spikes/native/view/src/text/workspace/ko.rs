@@ -647,6 +647,32 @@ impl WorkspaceWords for Ko {
         }
     }
 
+    fn add_lines(&self, first: usize, last: usize) -> String {
+        if first == last {
+            format!("{first}번 줄 채팅에 추가")
+        } else {
+            format!("{first}\u{2013}{last}번 줄 채팅에 추가")
+        }
+    }
+
+    fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
+        if capped {
+            format!("가장 가까운 파일 {files}개만 보입니다. 이름을 더 입력해 좁혀 보세요")
+        } else if complete {
+            format!("파일 {files}개")
+        } else {
+            format!("파일 {files}개 · 앞쪽 파일 {searched}개만 검색했습니다")
+        }
+    }
+
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String {
+        if more {
+            format!("처음 {lines}줄만 보입니다(파일 {files}개). 더 있으니 검색어를 좁혀 보세요")
+        } else {
+            format!("파일 {files}개에서 {lines}줄")
+        }
+    }
+
     fn digest(&self, digest: &str) -> String {
         format!("다이제스트 {digest}")
     }

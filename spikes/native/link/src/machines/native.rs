@@ -73,6 +73,9 @@ impl State {
         })
         .await
         .map_err(|_stopped| Failure::Worker)??;
+        // Track F's follows of a renamed or forgotten machine end here,
+        // after the book file was written (the seam agreed with E2).
+        self.workspace.book_applied(&edit);
         match edit {
             Edit::Rename { from, to } => {
                 if self.follow_machine.as_deref() == Some(from.as_str()) {

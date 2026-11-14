@@ -19,6 +19,7 @@ mod notices;
 mod options;
 mod palette;
 mod prefs;
+mod search;
 mod settings;
 mod shortcuts;
 mod sidebar;

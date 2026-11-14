@@ -47,6 +47,7 @@ mod bench;
 /// The slot over the composer, and the requests' cards for other areas
 /// ([`dock::requests`]).
 pub(crate) mod dock;
+mod ended;
 mod entries;
 mod find;
 mod look;
@@ -58,6 +59,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+pub(crate) mod search;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
@@ -70,13 +72,13 @@ use vessel_app_kit::{DialogState, MenuHandlers, MenuState, Reveal, VirtualList};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
-use vessel_app_view::session::MarkAction;
+use vessel_app_view::session::{MarkAction, is_live};
 use vessel_app_view::timeline::{
     FindCache, Folds, Live, Logs, OutlineItem, Rows, Timeline, ToolView, outline,
 };
 use vessel_proto::{
-    EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer, QuestionId,
-    SessionId, SessionInfo, ToolCallId,
+    ErrorCode, EventRecord, EventSeq, Mark, PermissionId, PermissionOptionId, QuestionAnswer,
+    QuestionId, SessionId, SessionInfo, ToolCallId,
 };
 
 pub(crate) use bar::bar;
@@ -277,6 +279,14 @@ pub(crate) struct ConversationArea {
     /// The last act the node refused, and its words: shown beside the
     /// control it is about.
     pub(crate) refused: Option<(ActKind, String)>,
+    /// Start again is on its way (the ended banner's button, the menu's
+    /// row): neither sends it a second time.
+    starting_again: bool,
+    /// The node refused to start the session again: its code and words,
+    /// said under the ended banner.
+    again_refused: Option<(Option<ErrorCode>, String)>,
+    /// The palette's message search (kept when another session shows).
+    pub(crate) search: search::Searching,
     /// The session's machine is not connected (records stopped, or an act,
     /// a prompt or an input found no connection): the transport's words.
     /// Said once, in the bar, in the app's words; these only in the line's
@@ -342,6 +352,9 @@ impl ConversationArea {
             list: VirtualList::new(true),
             info: None,
             refused: None,
+            starting_again: false,
+            again_refused: None,
+            search: search::Searching::default(),
             lost: None,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
@@ -385,6 +398,20 @@ impl ConversationArea {
         });
         if !for_shown || self.read_answered(&answer) {
             return Followup::None;
+        }
+        if answer.kind == ActKind::StartAgain {
+            self.starting_again = false;
+            self.again_refused = None;
+            // The node's refusal is said under the ended banner, in the
+            // words for it; a lost connection stays the bar's.
+            if let Err(ActFailed {
+                code: code @ Some(_),
+                message,
+            }) = &answer.result
+            {
+                self.again_refused = Some((*code, message.clone()));
+                return Followup::None;
+            }
         }
         match answer.result {
             Ok(Acted::Session(info)) => {
@@ -442,6 +469,8 @@ impl ConversationArea {
         self.list.reset(0);
         self.info = None;
         self.refused = None;
+        self.starting_again = false;
+        self.again_refused = None;
         self.menu.close();
         self.confirm = None;
         self.rename = None;
@@ -461,10 +490,6 @@ impl ConversationArea {
     /// request it lists): now if it is read, else once it is; the first
     /// row when the log no longer holds it (its request is then drawn from
     /// the node's word, [`Self::live`]).
-    #[expect(
-        dead_code,
-        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
-    )]
     pub(crate) fn reveal(&mut self, seq: EventSeq) {
         self.reveal = Some(seq);
         self.revealed();
@@ -704,8 +729,20 @@ impl Shell {
             }
             Ok(Acted::Done | Acted::Conversation(_)) | Err(_) => {}
         }
+        // Started again: the session area follows it afresh (the node ends
+        // a follow at the final status), as a send to an ended session
+        // does.
+        let again = (answer.kind == ActKind::StartAgain
+            && matches!(&answer.result, Ok(Acted::Session(info)) if is_live(info))
+            && self.areas.conversation.shown.as_ref().is_some_and(|shown| {
+                shown.machine == answer.machine && shown.session == answer.session
+            }))
+        .then_some(answer.session);
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);
+        }
+        if let Some(session) = again {
+            self.resumed(session, cx);
         }
         cx.notify();
     }
@@ -742,10 +779,6 @@ impl Shell {
     /// Bring record `seq` of the session shown into view (the inbox
     /// opening a session at what it lists; call it after the session area
     /// opened the session).
-    #[expect(
-        dead_code,
-        reason = "the inbox (track N1) opens a session at the record it lists; remove with its first call"
-    )]
     pub(crate) fn conversation_reveal(&mut self, seq: EventSeq, cx: &mut Context<'_, Self>) {
         self.areas.conversation.reveal(seq);
         cx.notify();
@@ -799,9 +832,15 @@ impl Shell {
             MenuAction::Mark(MarkAction::Archive) => Some(Confirm::Archive),
             MenuAction::Mark(MarkAction::Delete) => Some(Confirm::Delete),
             MenuAction::Kill => Some(Confirm::Kill),
+            MenuAction::Mark(MarkAction::StartAgain) => {
+                self.conversation_start_again(cx);
+                None
+            }
             MenuAction::Mark(mark) => {
-                if mark == MarkAction::MarkUnread {
-                    self.areas.conversation.read_held();
+                if mark == MarkAction::MarkUnread
+                    && let Some(shown) = self.areas.conversation.shown.clone()
+                {
+                    self.conversation_marked_unread(&shown.machine, shown.session);
                 }
                 self.mark(mark);
                 None

@@ -67,6 +67,26 @@ pub(super) enum Branches {
 }
 
 impl DraftPlace {
+    /// The machine was renamed in the book.
+    pub(super) fn machine_renamed(&mut self, from: &str, to: &str) {
+        if let Some((machine, _)) = self.chosen.as_mut().filter(|(machine, _)| machine == from) {
+            to.clone_into(machine);
+        }
+        super::book::rekey_pairs(&mut self.branches, from, to);
+    }
+
+    /// The machine was forgotten.
+    pub(super) fn machine_forgot(&mut self, name: &str) {
+        if self
+            .chosen
+            .as_ref()
+            .is_some_and(|(machine, _)| machine == name)
+        {
+            self.chosen = None;
+        }
+        super::book::forget_pairs(&mut self.branches, name);
+    }
+
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             chosen: None,
