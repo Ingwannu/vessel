@@ -384,7 +384,7 @@ fn status_words(status: &SessionStatus) -> String {
         SessionStatus::Running => "running".to_owned(),
         SessionStatus::Exited { code: Some(code) } => format!("exited with code {code}"),
         SessionStatus::Exited { code: None } => "exited".to_owned(),
-        SessionStatus::Failed { message } => format!("failed: {}", one_line(message, 200)),
+        SessionStatus::Failed { message, .. } => format!("failed: {}", one_line(message, 200)),
         SessionStatus::Interrupted => "interrupted".to_owned(),
     }
 }

@@ -37,8 +37,8 @@ attributions are kept in `docs/design/agent-marks/README.md`.
   User-added agents retain Generic even when named like a built-in.
 - The kit accepts only its own opaque embedded `Artwork` constants and a
   typed logical size/space, never a path, SVG string or URL from a node.
-  Its `Assets` supplies reviewed vector paths through GPUI's existing
-  image renderer. No new dependency, runtime download or cache is needed.
+  It rasterises those reviewed vectors itself, at the device pixels each
+  mark lands on (amended 2026-11-14, below). No runtime download.
 - Geometry, fills, winding rules and the approved light/dark variant are
   retained. Source wrappers, unused clips and metadata are not executable
   assets in the app. A necessary clear-space view box is added around,
@@ -54,10 +54,10 @@ attributions are kept in `docs/design/agent-marks/README.md`.
   16/20-point icon family and cannot become legible when shrunk to match.
 - Claude uses Anthropic's official Clay Spark. Codex uses its vendor
   OpenAI's official black/white Blossom (not a redraw of the terminal
-  prompt). The source's inset is preserved. Gemini uses Google's official Gemini CLI
-  app icon from its Apache-2.0 repository: an unchanged raster original,
-  since an official vector was not available. The existing image renderer
-  handles it; the icon is never traced into an unofficial vector.
+  prompt). The source's inset is preserved. Gemini uses Google's Gemini
+  spark, the vector "Standard product icon" with its own gradient, from
+  Google's Apache-2.0 `google/adk-docs` repository (amended 2026-11-14;
+  until then the Gemini CLI app icon, a PNG plate). Nothing is traced.
 - Requested sizes target the reference's painted ink. Full image viewports
   retain their clear space and may be wider than the nominal slot; the
   measured boxes/differences are recorded in `docs/design/agent-marks/ink.md`.
@@ -101,7 +101,7 @@ Each new brand needs its own vendor source and terms review. Some small
 slots intentionally show the generic glyph. The About attribution list
 must name every shipped mark as its owner's trademark, used to identify
 an agent without endorsement. An official raster original may be used unchanged with its source terms
-recorded, as Gemini CLI is. An unavailable official asset is reported as
+recorded (none is today). An unavailable official asset is reported as
 missing, never traced into an unofficial substitute.
 
 ## GitHub interpretation for the owner (2026-11-13)
@@ -144,3 +144,27 @@ There is no current production surface that shows the Copilot Invertocat
 without that agent-name context. A future mapping may not silently make
 these generic positions into unlabelled GitHub marks. Forge uses explicitly
 identify GitHub and use the same kit data through `forge_mark`.
+
+## Amendment 2026-11-14: drawn at the display's pixels; Gemini's spark
+
+The owner saw the marks broken on their screen (likely 125 % or 150 %)
+and Gemini shown as a terminal plate rather than Gemini's mark.
+
+- Cause, read in the pinned GPUI: `img()` rasterises an SVG once at twice
+  its own view box and stretches that texture onto the bounds; shrunk
+  12:1 to 65:1 by a bilinear sampler without mipmaps, strokes break up.
+  `svg()` renders at device size but only as a one-colour mask.
+- Decision: one path for every mark. `kit/src/agent_mark/raster.rs`
+  snaps the mark's box to the device grid, rasterises the embedded vector
+  with GPUI's own renderer (resvg) at exactly that many device pixels,
+  and paints it 1:1; rasters are cached per asset and device size. Its
+  Decision Log names the alternatives (mask for one-colour marks plus
+  layered masks, pre-shrunk images, a GPUI patch).
+- Gemini: Google's spark from `google/adk-docs` (source, hash and terms in
+  the source list), the same in both themes, its ink 16 at 16 like the
+  reference's. The PNG plate and its use are removed; the Apache-2.0 text
+  stays because the spark comes from an Apache-2.0 repository.
+- Proof: `kit/examples/mark_sharpness.rs` at `Xft.dpi` 96/120/144/192,
+  each crop compared with librsvg at the same device box (numbers in the
+  source list). Google's approval requirement for product icons remains
+  the owner's, as before.

@@ -31,7 +31,7 @@ use std::time::{Duration, Instant};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind};
 use vessel_app_view::session::{ReadView, read_through};
-use vessel_proto::{ErrorCode, EventSeq, Mark};
+use vessel_proto::{ErrorCode, EventSeq, Mark, SessionId};
 
 use super::ConversationArea;
 use crate::shell::Shell;
@@ -74,9 +74,9 @@ impl ConversationArea {
         })
     }
 
-    /// The person marked the session unread here: the open screen does not
+    /// The person marked the session unread: the open screen does not
     /// mark it read again until a record comes after what it shows.
-    pub(super) fn read_held(&mut self) {
+    fn read_held(&mut self) {
         self.read.held_at = Some(self.timeline.next());
     }
 
@@ -116,6 +116,22 @@ pub(super) fn check(shell: &Shell, window: &Window, cx: &mut Context<'_, Shell>)
 }
 
 impl Shell {
+    /// Session `session` on `machine` was marked unread in this app (the
+    /// Session actions menu here, a sidebar row's, a board card's; call it
+    /// as the mark is sent): when it is the session shown, the open screen
+    /// does not mark it read again until a record comes after what it
+    /// shows, so the person's mark stays. Another session: nothing.
+    pub(crate) fn conversation_marked_unread(&mut self, machine: &str, session: SessionId) {
+        let area = &mut self.areas.conversation;
+        if area
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.machine == machine && shown.session == session)
+        {
+            area.read_held();
+        }
+    }
+
     /// Send the read mark due, or wait for the rest of the second.
     fn conversation_read(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;

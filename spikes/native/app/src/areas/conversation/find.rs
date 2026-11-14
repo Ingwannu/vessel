@@ -45,7 +45,8 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     Reveal, TextField, Tokens, Type, TypeExt as _, VirtualList, breakpoint, popup,
 };
-use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, step};
+use vessel_app_view::timeline::{Entry, Finder, MAX_QUERY, Match, step};
+use vessel_proto::EventSeq;
 
 use crate::shell::Shell;
 
@@ -82,6 +83,10 @@ pub(crate) struct FindBar {
     again: bool,
     /// The match current when a refresh began.
     keep: Option<Match>,
+    /// Opened at a message (a search hit, GOAT's find "on the word at the
+    /// matched message"): the record it starts at, until the search has
+    /// read that far and made the first match there current.
+    at: Option<EventSeq>,
 }
 
 /// What find marks on screen: its query, and the current match.
@@ -199,8 +204,28 @@ impl Shell {
             refreshing: false,
             again: false,
             keep: None,
+            at: None,
         });
         cx.notify();
+    }
+
+    /// Open find on `query` at the message starting at record `at` (a
+    /// search hit): the current match is the first one there, once the
+    /// session is read that far; until then none is brought into view.
+    pub(super) fn find_at(
+        &mut self,
+        query: &str,
+        at: EventSeq,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.open_find(window, cx);
+        let Some(bar) = self.areas.conversation.find.as_mut() else {
+            return;
+        };
+        bar.at = Some(at);
+        bar.field.set_text(query, window, cx);
+        self.find_changed(query.to_owned(), cx);
     }
 
     /// Close the bar.
@@ -298,6 +323,9 @@ impl Shell {
             return false;
         };
         bar.finder = None;
+        let start = bar
+            .at
+            .and_then(|at| start_at(area.timeline.entries(), area.timeline.next(), &matches, at));
         if bar.refreshing {
             // The same match stays current, found again by what it is (the
             // page's rule: a refresh must not take the reader back to it).
@@ -307,13 +335,24 @@ impl Shell {
             bar.index = at.unwrap_or_else(|| bar.index.min(matches.len().saturating_sub(1)));
             bar.matches = matches;
             bar.refreshing = false;
-            if std::mem::take(&mut bar.again) {
+            let again = std::mem::take(&mut bar.again);
+            if let Some(index) = start {
+                bar.index = index;
+                bar.at = None;
+                self.find_reveal(cx);
+            }
+            if again {
                 self.start_search(true, cx);
             }
         } else {
             bar.matches = matches;
-            bar.index = 0;
-            self.find_reveal(cx);
+            bar.index = start.unwrap_or(0);
+            // Opened at a message not read yet: nothing is brought into
+            // view (the message is, once read); a refresh settles it.
+            if bar.at.is_none() || start.is_some() {
+                bar.at = None;
+                self.find_reveal(cx);
+            }
         }
         cx.notify();
         true
@@ -503,3 +542,22 @@ fn small_button(
 
 #[cfg(test)]
 mod language_tests;
+
+/// Where find starts for the message at record `at`: the first match in
+/// its entry or after it (the first match when none is); `None` while the
+/// session is not read that far (`next`, the record after the last read).
+fn start_at(entries: &[Entry], next: EventSeq, matches: &[Match], at: EventSeq) -> Option<usize> {
+    if next <= at {
+        return None;
+    }
+    let entry = entries
+        .iter()
+        .rposition(|entry| entry.seq <= at)
+        .unwrap_or(0);
+    Some(
+        matches
+            .iter()
+            .position(|found| found.entry >= entry)
+            .unwrap_or(0),
+    )
+}
