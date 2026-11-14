@@ -140,7 +140,12 @@ they started.
 11. On shutdown the node kills each session's process group, waits for final
     statuses, and flushes the store. On the next start, sessions that were live
     are marked `Interrupted`. Their logs stay readable, and structured ones can
-    be resumed through their `HarnessSessionId`.
+    be resumed through their `HarnessSessionId`. Optional startup recovery
+    (ADR 0059, default off) selects committed active-turn intents before
+    that normalization, consumes each before dispatch, then uses ordinary
+    resume and Start-only delivery under current creator authority. At most
+    two unresolved attempts run; idle/parked/person-stopped/helper work stays
+    manual. Recovery is best effort and does not replay uncertain dispatches.
 12. Schedules (protocol 11, ADR 0033): `schedule.create` checks the
     target as a run would meet it and hands the definition to the
     scheduler, one task that owns every schedule and sleeps until the
@@ -1216,3 +1221,53 @@ available, and `fleet sync` always addresses the selected node (ADR 0044).
 The CLI's existing test-only `serde_json` dependency is now a normal one:
 encoding the already-confirmed invitation uses the protocol's formatter and
 retains its concrete error source rather than inventing a string error.
+
+
+## Startup continuation (milestone 12, ADR 0059)
+
+`vessel-node::settings` keeps one saved-state engine inside a bounded,
+node-owned FIFO worker (one active operation, eight queued). RPC handlers
+only await its reply; cancellation cannot release file-write/apply ordering.
+A provisional Off-save barrier pauses boot admissions. A successful Off
+invalidates the generation before durable intent cleanup; cleanup failures
+stay effective Off and block a later On until paid. A saved On whose store
+application failed stays admission-paused until a retry. Shutdown closes
+new input/launch admission, drains settings, then signals session actors.
+
+`vessel-store::restart` owns a bounded per-session projection in schema 15:
+creation eligibility, active turn identity/time, parked state, suppression
+generation, pending intent and claim protection. The existing writer updates
+it with event batches and internal checkpoints. Raw-log retention cannot
+lose an active turn; pending/claimed rows survive retention, deletion
+cascades, and legacy rows remain manual. Both reopen modes compare the
+prepared generation in their writer transaction, rejecting a raced stop.
+
+`vessel-session::journal` carries public records and commit-acknowledged
+checkpoints on the same bounded lane. A person's stop commits suppression
+before the effect or successful reply. Accepted normal input re-arms only
+its actual TurnStarted in the admitted generation. Graceful shutdown
+captures active work before provider signals; a crash uses committed active
+state. These checkpoints are not timeline events and consume no sequence
+numbers. A per-session input gate covers suppression commit through the
+actual stop enqueue, while ordinary input releases it before its driver
+reply. Reserving channel room first keeps a full lane from holding up kill.
+Internal cleanup kills remain distinct from person stops.
+
+`vessel-node::recovery` shares a short admission arbiter with ordinary
+per-session operations (64 transient slots, typed refusal when full).
+`service::recovery` coordinates at most two unresolved boot attempts in
+oldest-turn/id order with a 120-second admission window. Normal resume
+preparation has no process effect. A nonclone prepared launch starts under
+a fresh stored creator grant and device fence plus policy/stop/run checks;
+provider readiness is awaited outside those fences. Actor prompt capacity
+is reserved before another fresh grant check and synchronous Start-only
+enqueue. Revoke/Off/stop cannot authorize a later phase through a stale
+principal, and cleanup can affect only the exact run that attempt owns.
+
+Manual resume consumes queued auto intent. Existing queues remain held,
+and already admitted prompts are not stopped merely by switching Off.
+Prelaunch failures use the ordinary ended-session failure; live diagnostics
+are sequenced by their actor. Native conversation replay keeps its existing
+Ready boundary. There is no replacement session, mutation retry service,
+new authority/scope/RPC or dependency. The additive settings fields and
+screen handoff are documented in PROTOCOL.md; native/page work is separate.

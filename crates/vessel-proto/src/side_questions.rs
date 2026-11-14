@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::SessionId;
 use crate::automation::PromptText;
 
+/// First protocol that preserves side-session links through every hop.
+pub const SIDE_QUESTION_PROTOCOL: crate::ProtocolVersion = crate::ProtocolVersion::new(19);
+
 /// Open or find the newest unarchived side conversation. Needs read and
 /// operate; only people, including delegated people, may call it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,12 +63,11 @@ mod tests {
         ScheduleTarget, UpdatePrompt, UpdateSchedule,
     };
     use crate::{
-        Call, CreateSession, HarnessKind, PROTOCOL_VERSION, SavedPromptId, ScheduleId, SessionMode,
-        SessionSpec,
+        Call, CreateSession, HarnessKind, SavedPromptId, ScheduleId, SessionMode, SessionSpec,
     };
 
     #[test]
-    fn every_direct_and_nested_side_spec_requires_the_current_protocol() {
+    fn every_direct_and_nested_side_spec_requires_its_feature_protocol() {
         let parent = SessionId::random();
         let mut spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
@@ -127,7 +129,7 @@ mod tests {
             }),
         ];
         for call in calls {
-            assert_eq!(call.since(), PROTOCOL_VERSION);
+            assert_eq!(call.since(), SIDE_QUESTION_PROTOCOL);
             let encoded = serde_json::to_string(&call).unwrap();
             let decoded: Call = serde_json::from_str(&encoded).unwrap();
             assert_eq!(decoded, call);
@@ -152,7 +154,7 @@ mod tests {
                 }),
             ];
             for envelope in envelopes {
-                assert_eq!(envelope.since(), PROTOCOL_VERSION);
+                assert_eq!(envelope.since(), SIDE_QUESTION_PROTOCOL);
             }
         }
     }

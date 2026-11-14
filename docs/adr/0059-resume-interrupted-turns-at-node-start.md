@@ -1,6 +1,6 @@
 # 0059: Resume interrupted turns when the node starts
 
-Date: 2026-11-14. Status: proposed contract; no implementation approval.
+Date: 2026-11-14. Status: V1 accepted contract 396e2a84; implementation author-gated, V1 implementation review pending.
 
 ## Reference and existing parts
 
@@ -54,11 +54,14 @@ accepted spaces, tabs and line endings verbatim. This is a deliberate bound
 beyond the reference server's unrestricted string. Never log the prompt in
 settings diagnostics or Debug; the ordinary submitted turn contains it.
 
-No new RPC or scope. Get remains Read, change remains Admin, including
-ordinary fleet forwarding guards. Add a default-false
+No new RPC or scope. Get remains Read and change remains Admin. Both remain
+non-forwardable host administration: even an Admin fleet member's
+`fleet.forward`/`relay`/`deliver` envelope is refused. Use the host's own
+paired connection, either direct or over an opaque encrypted relay carrier;
+that transport is not fleet delegation. Add a default-false
 `GetNodeSettings.include_restart_recovery` request flag: an explicit recovery
-read requires the feature's protocol at every decoding hop, preventing an
-old forwarding node from silently stripping the new reply field. A change
+read requires the feature's protocol at every decoding hop, so a nested
+older-hop envelope reports unsupported before ordinary forwarding refusal. A change
 naming the nested patch, even an empty one, has the same requirement. An
 absent reply field decodes as disabled/default prompt for compatibility,
 but is not evidence that an older node supports the setting: the client/CLI
@@ -312,9 +315,10 @@ archived/private/owned/archived-workspace exclusions mapped above. Add:
 - Manual resume takeover, manual prompt during recovery, stop/off during
   load and during prompt, lost prompt acknowledgement, shutdown/restart
   between intent consumption and dispatch. No automatic mutation replay.
-- Read/Admin guards, older peer defaults, new-field refusal through actual
-  direct/member/relay hops, generated TypeScript and a real CLI settings
-  round trip. Whole required root/web gate after changed implementation.
+- Read/Admin guards on the host's paired direct/opaque-relay links, older
+  peer defaults, old-hop nested-field refusal, and actual fleet member
+  envelope refusal even with Admin, with no setting changed. Generated
+  TypeScript and a real CLI settings round trip. Whole required root/web gate after changed implementation.
 
 No new external package or license. Two-way concurrency and deadlines are
 deliberate resource bounds beyond the reference's unbounded fanout. The
@@ -323,3 +327,129 @@ than risking revival after acknowledging it. Persistent projections cost
 one small row per retained session and a schema migration. Implementation,
 test results, screen integration and whole-feature parity are not asserted
 by this contract.
+
+
+### Implementation boundaries
+
+The implementation extends the existing settings merge/write/apply engine,
+ordinary resume preparation, agent grant reservation, actor prompt path and
+SQLite writer. It adds no alternate agent launcher, new session identifier,
+server comparison room, permission RPC or public timeline event.
+
+The settings handle admits one active operation and eight queued operations.
+A node-owned worker retains FIFO ownership through the actual file write,
+runtime policy application and durable intent cleanup. Its separate drain
+runs before actors capture shutdown. On a successful Off save, the effective
+policy/generation changes before cleanup; cleanup failure remains an explicit
+obligation. A later On cannot save ahead of it. If saving On succeeds but its
+store-policy acknowledgement fails, admissions remain paused and the error
+says the save succeeded but application did not. An equal-value retry retries
+that missing phase instead of fabricating a successful no-op.
+
+The boot owner captures its policy generation once before serving calls;
+a delayed claim or task must never rebase that batch to a later Off/On
+generation. Preparation has no process effect. A nonclone prepared relaunch retains the
+normal conversation claim; its synchronous start is admitted under fresh
+stored creator authority, the device revocation fence and the boot/session
+arbiter. The final grant mints the new agent credential and binds its MCP
+setup at that same launch admission. Provider readiness is awaited outside
+those fences. Actor capacity is reserved before obtaining fresh authority
+for the independently admitted Start-only prompt. A temporary Off-save
+barrier retains the unsent one-shot effect, drops its authority and waits
+for policy change before another fresh lookup. Preparation/read futures
+continue to settle, so an opaque authority lookup cannot retain a device
+fence across the unrelated settings write. There is no mutation resend.
+
+Ordinary session operations take a lease through their actual work. The
+same arbiter checks those leases before a boot claim, and a stop invalidates
+an existing attempt before waiting. There are 64 ordinary-operation slots;
+full admission is a typed Unavailable refusal, rather than a new unbounded
+semaphore queue. Node-owned stop/archive/resume work retains the lease even
+when its RPC reply is cancelled. The scheduler's prompt path takes the same
+lease. A queued candidate held by an ordinary operation is observed through
+a watch; after the bounded admission window recovery yields that candidate
+without launching into the person's operation. Already admitted boot effects
+remain owned until they and their cleanup settle.
+
+The internal journal orders public records and typed commit-acknowledged
+checkpoints on one bounded channel. Checkpoints acquire no EventSeq. A
+person's stop advances the durable generation before the stop effect or
+acknowledgement. The actor captures graceful shutdown before signalling its
+provider; crash recovery uses the committed active-turn projection. Normal
+and startup reopen compare the prepared durable generation in the same
+writer transaction, so a stop that won while preparing produces a conflict,
+not an actor behind its stored generation. Manual resume consumes the old
+pending boot intent. Finishing an old attempt releases its claim protection
+without erasing a new actual turn's shutdown intent. An internal cleanup
+kill retains its distinct cause instead of pretending to be a person's stop.
+
+The node closes launch/input admission when stopping while leaving actors
+and persistence alive for the settings drain and ordered capture. Automatic
+queue progress cannot start a new turn through that closed admission.
+Queued input is restored held; native conversation loading keeps the existing
+replay-until-Ready boundary. Failures before launch use the ordinary failed
+status under ownership; a live run's bounded diagnostic is sequenced by its
+actor. A prompt already admitted is described as admitted/uncertain if its
+reply is lost, never as certainly unsent, and is not killed merely by Off.
+
+The wire change remains additive: an explicit recovery-settings read flag,
+an optional response policy and an optional partial settings patch, using
+the existing node.settings/node.set_settings methods and their existing
+Read/Admin guards. The CLI exposes on/off and the exact bounded prompt;
+an older peer is shown as unavailable, not asserted to be Off. Native/page
+work is outside this node slice; a screen must opt into the read and check
+peer capability, retain a prompt when Off, and show partial-save errors.
+
+The schema adds one bounded per-session restart projection and one singleton
+policy row. Pending/claimed candidates survive retention; deletion cascades.
+Legacy rows with no explicit eligibility projection stay manual rather than
+inferring unattended ownership from retained message text. There is no new
+dependency or retry service.
+
+
+Input admission and a person's stop now share one per-session gate. Channel
+capacity is reserved before taking it; ordinary input releases it at enqueue,
+before waiting for the driver. Typed SessionStop retains it through the
+suppression commit and actual kill/cancel enqueue. This closes the gap where
+a concurrent new prompt could capture the post-stop generation before the
+older stop effect was sent. A kill signal also closes subsequent enqueue
+admission immediately. Internal cleanup keeps the distinct raw signal path.
+The regression holds the real journal ACK while a fake provider and actor
+remain alive, and uses an acknowledged rename on the actor's independent
+channel to prove newer input was not sent. Reserving the sole control slot
+before input admission makes a control-lane barrier unsuitable: it blocks
+the fixture itself even when input was correctly withheld. The actor gives
+queued input priority over rename, so incorrectly enqueued input blocks its
+Arm behind the held ACK and cannot complete that rename. The test then
+checks kill refusal or a genuinely subsequent cancel/start. This
+tests the journal boundary rather than claiming a fake ACK is a SQLite commit.
+
+Creation eligibility is based on the authenticated local Owner/Device
+principal as well as unattended status. An import's display origin can
+replace Remote with Imported, while its stored creator is the delivering
+device; display metadata alone therefore cannot authorize a later local
+startup prompt. A delegated import remains Never. The regression exercises
+the actual service creation path and real projection with both local and
+delegated imported origins; it does not claim an end-to-end file-transfer
+RPC authority test. No import permission or snapshot format is changed.
+
+
+### Author verification
+
+The final changed-tree Linux gate passed: root formatting, all-target
+workspace Clippy with warnings denied, 1,880 Rust tests with zero failures
+and ten existing ignored (112 result sections), both TypeScript declaration
+checks, web lint/typecheck, 417 web tests, production build, bundled binaries
+and all 62 browser E2Es. The 1,694 selected source/build inputs stayed equal
+before/after declaration generation and after the gate. No real provider,
+native app, other operating system or combined node-head gate was run by
+this slice; those outcomes are not implied by the fake-provider evidence.
+The wire version and schema numbers remain provisional until integration.
+
+The final run includes the corrected stop fixtures and exact provider
+request assertions, actual paired-device relay settings/permission coverage,
+fleet settings refusal, clean stop and process kill, revoked/reduced grants,
+Off/manual stop at real load/admission boundaries, bounded concurrency and
+node-owned settings cancellation/partial-failure cases. No deadline,
+assertion, channel capacity or ignore was weakened. Earlier failed attempts
+remain recorded separately in the track plan rather than relabelled green.

@@ -30,8 +30,8 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
-    SessionOption, SessionSpec, SessionTitle,
+    EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo, SessionOption,
+    SessionSpec, SessionTitle,
 };
 use vessel_session::{Created, LaunchOptions, ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
@@ -116,6 +116,26 @@ impl Sessions {
         &self.store
     }
 
+    /// Retain an ordinary-operation lease through a node-owned mutation
+    /// even when the caller's RPC task is cancelled after admission.
+    pub(crate) async fn hold<T, F>(
+        &self,
+        operation: Option<Arc<crate::recovery::Operation>>,
+        work: F,
+    ) -> Result<T, ServiceError>
+    where
+        T: Send + 'static,
+        F: Future<Output = Result<T, ServiceError>> + Send + 'static,
+    {
+        self.tasks
+            .spawn(async move {
+                let _operation = operation;
+                work.await
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
     /// Start a session and its persistence.
     ///
     /// Runs as its own task: once the process is started, storing the
@@ -126,12 +146,13 @@ impl Sessions {
         spec: SessionSpec,
         options: LaunchOptions,
         lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+        restart_eligible: vessel_store::RestartEligibility,
     ) -> Result<SessionInfo, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
                 let _lease = lease;
-                sessions.start(spec, options).await
+                sessions.start(spec, options, restart_eligible).await
             })
             .await
             .map_err(ServiceError::Task)?
@@ -141,13 +162,22 @@ impl Sessions {
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
+        restart_eligible: vessel_store::RestartEligibility,
     ) -> Result<SessionInfo, ServiceError> {
         let Created { handle, durable } = self.runtime.create_with(spec, options).await?;
         let id = handle.id();
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
         let durability = self.track(&handle, EventSeq::ZERO);
-        if let Err(error) = self.store.create_session(handle.info()).await {
+        let kept = async {
+            self.store.create_session(handle.info()).await?;
+            if !self.store.configure_restart(id, restart_eligible).await? {
+                return Err(vessel_store::StoreError::UnknownSession(id));
+            }
+            Ok::<(), vessel_store::StoreError>(())
+        }
+        .await;
+        if let Err(error) = kept {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
             // `durable` lets it finish without waiting for us.
@@ -194,7 +224,7 @@ impl Sessions {
     fn persist(
         self: &Arc<Self>,
         handle: SessionHandle,
-        durable: mpsc::Receiver<Arc<EventRecord>>,
+        durable: mpsc::Receiver<vessel_session::JournalEntry>,
         durability: watch::Sender<Durability>,
     ) {
         let sessions = Arc::clone(self);
@@ -225,12 +255,14 @@ impl Sessions {
         }
         self.agents.retire(id);
         self.models.retire(id);
-        // Nobody listening is fine: nothing needs to hear of this end.
-        let _listeners = self.ended.send(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }
         self.forget(id);
+        // End listeners recheck find(). Publish only after both live
+        // entries are gone, or they can consume the only wake while still
+        // finding Live and wait for an end that will never be sent again.
+        let _listeners = self.ended.send(id);
     }
 
     /// Drop a session's durability entry; it is then found in the store.
@@ -466,12 +498,62 @@ impl Sessions {
     }
 
     /// Stop a session. Killing one that already ended is a no-op.
-    pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => handle.kill(),
-            Found::Stored(_) => {}
+    pub(crate) async fn kill(self: &Arc<Self>, id: SessionId) -> Result<(), ServiceError> {
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                match sessions.find(id).await? {
+                    Found::Live { handle, .. } => {
+                        sessions
+                            .stop(&handle, vessel_session::SessionStop::Kill)
+                            .await?;
+                    }
+                    Found::Stored(info) => {
+                        let _same = sessions
+                            .store
+                            .suppress_ended_restart(id, info.next_seq)
+                            .await?;
+                    }
+                }
+                Ok(())
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
+    /// The same ordered barrier serves cancel, kill and archive. If the
+    /// final status closed publication first, wait for its log and CAS the
+    /// ended row, never a new manually resumed run.
+    async fn stop(
+        &self,
+        handle: &SessionHandle,
+        action: vessel_session::SessionStop,
+    ) -> Result<(), ServiceError> {
+        let turn = match action {
+            vessel_session::SessionStop::Kill => None,
+            vessel_session::SessionStop::Cancel { turn } => turn,
+        };
+        match handle.stop(action).await {
+            Ok(()) => Ok(()),
+            Err(vessel_session::SessionError::Journal(
+                vessel_session::JournalError::Unavailable,
+            )) if handle.has_ended() => {
+                // ended is published before the ring append. Await actor
+                // completion before choosing the final durable CAS boundary.
+                let final_info = handle.ended().await;
+                if let Found::Live { mut durability, .. } = self.find(handle.id()).await? {
+                    persist::wait_until(handle.id(), &mut durability, final_info.next_seq).await?;
+                }
+                if turn.is_none() {
+                    let _same = self
+                        .store
+                        .suppress_ended_restart(handle.id(), final_info.next_seq)
+                        .await?;
+                }
+                Ok(())
+            }
+            Err(error) => Err(error.into()),
         }
-        Ok(())
     }
 }
 

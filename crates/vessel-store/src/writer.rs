@@ -21,6 +21,9 @@
 //! stored before the index existed), it indexes one bounded step of it in
 //! a transaction of its own before looking at the queue again.
 
+mod restarting;
+pub(crate) use restarting::RestartOp;
+
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -63,6 +66,8 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Restart policy, claims and ordered session barriers.
+    Restart(RestartOp),
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create { info: Box<SessionInfo>, done: Done },
@@ -105,6 +110,8 @@ pub(crate) enum Write {
     Reopen {
         session: SessionId,
         next: EventSeq,
+        mode: crate::ReopenMode,
+        generation: Option<vessel_proto::restart::RestartGeneration>,
         done: Done<KeptMarks>,
     },
     /// Record an attachment whose file is in place and checked (protocol
@@ -154,6 +161,7 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    Checked(Done<bool>, Result<bool, StoreError>),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
 }
@@ -162,6 +170,7 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::Checked(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };
@@ -339,6 +348,7 @@ fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::Restart(operation) => restarting::apply(transaction, operation, effects, indexer),
         Write::Create { info, done } => {
             let applied = isolated(transaction, |connection| {
                 log::create_session(connection, &info)
@@ -396,10 +406,12 @@ fn apply(
         Write::Reopen {
             session,
             next,
+            mode,
+            generation,
             done,
         } => {
             let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
+                again::reopen(connection, session, next, mode, generation)
             });
             Answer::Marked(done, applied)
         }

@@ -89,9 +89,55 @@ impl Store {
         self.send(Write::Reopen {
             session,
             next,
+            mode: crate::ReopenMode::Manual,
+            generation: None,
             done,
         })
         .await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+    /// Reopen only a still-unarchived interrupted row owned by a boot claim.
+    ///
+    /// # Errors
+    /// As [`reopen`](Self::reopen), or the recovery claim/marks changed.
+    pub async fn reopen_for_restart(
+        &self,
+        session: SessionId,
+        next: EventSeq,
+    ) -> Result<KeptMarks, StoreError> {
+        let (done, committed) = oneshot::channel();
+        self.send(Write::Reopen {
+            session,
+            next,
+            mode: crate::ReopenMode::Startup,
+            generation: None,
+            done,
+        })
+        .await?;
+        committed.await.map_err(|_closed| StoreError::Closed)?
+    }
+    /// Reopen only if the durable stop generation still matches the run
+    /// initialized by the caller. A concurrent stop wins as a typed conflict,
+    /// rather than leaving a new actor behind its stored generation.
+    ///
+    /// # Errors
+    /// As [`reopen`](Self::reopen), or the stop/claim/marks changed.
+    pub async fn reopen_exact(
+        &self,
+        session: SessionId,
+        next: EventSeq,
+        generation: vessel_proto::restart::RestartGeneration,
+        mode: crate::ReopenMode,
+    ) -> Result<KeptMarks, StoreError> {
+        let (done, committed) = oneshot::channel();
+        self.send(Write::Reopen {
+            session,
+            next,
+            mode,
+            generation: Some(generation),
+            done,
+        })
+        .await?;
+        committed.await.map_err(|_closed| StoreError::Closed)?
     }
 }

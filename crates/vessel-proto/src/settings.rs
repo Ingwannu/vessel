@@ -1,5 +1,6 @@
-//! A node's settings that a client reads and changes (protocol 12): for now
-//! how long an idle agent runs before it is parked (ADR 0038).
+//! A node's saved settings: idle parking (ADR 0038), agent drivers
+//! (ADR 0057) and startup continuation (ADR 0059). Authority stays with
+//! the host's own connections; fleet delegation cannot administer it.
 //!
 //! [Decision Log]
 //! - Purpose: parking was set only by `vesseld --park-after`, so a person
@@ -19,9 +20,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::harness::HarnessKind;
 use crate::parking::ParkAfter;
+use crate::restart::{RestartRecovery, SetRestartRecovery};
 
 /// The node's settings in force.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct NodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -31,6 +33,9 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
+    /// Startup continuation policy; older nodes omit it (ADR 0059).
+    #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
+    pub restart_recovery: RestartRecovery,
 }
 
 /// Which protocol drives an agent's structured sessions (protocol 18, ADR
@@ -126,13 +131,17 @@ impl SetAgentDrivers {
 }
 
 /// `node.settings`: the node's settings in force. Needs `read`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct GetNodeSettings {}
+pub struct GetNodeSettings {
+    /// Require recovery settings to survive every decoding hop (ADR 0059).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub include_restart_recovery: bool,
+}
 
 /// `node.set_settings`: change the settings it names; the others stay.
 /// Needs `admin`. Answers the settings in force.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -144,6 +153,9 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Patch startup recovery without changing its other saved field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restart_recovery: Option<SetRestartRecovery>,
 }
 
 #[cfg(test)]

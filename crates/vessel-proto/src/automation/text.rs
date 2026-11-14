@@ -197,6 +197,16 @@ automation_text! {
     DeliveryKey = DeliveryKey;
 }
 
+impl PromptText {
+    /// The fixed startup continuation prompt from the reference (ADR 0059).
+    /// This trusted, nonblank ASCII literal is within the normal text bound;
+    /// constructing a default must neither fail nor bypass validation for input.
+    #[must_use]
+    pub fn resume_default() -> Self {
+        Self(Arc::from("Resume working."))
+    }
+}
+
 impl TimeZoneName {
     /// Coordinated Universal Time.
     #[must_use]

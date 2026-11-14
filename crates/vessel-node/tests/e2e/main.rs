@@ -80,6 +80,7 @@ mod remote;
 #[cfg(test)]
 #[cfg(unix)]
 mod removal_race;
+mod restart;
 #[cfg(test)]
 mod resume;
 #[cfg(test)]

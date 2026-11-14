@@ -72,6 +72,9 @@ impl Sessions {
         if let Mark::Read { through } = mark {
             within_log(id, through, info.next_seq)?;
         }
+        if matches!(mark, Mark::Archive) {
+            let _same = self.store.suppress_ended_restart(id, info.next_seq).await?;
+        }
         let _kept = self.store.mark(id, mark, Utc::now()).await?;
         drop(order);
         self.store
@@ -98,7 +101,9 @@ impl Sessions {
         self.tasks
             .spawn(async move {
                 if matches!(mark, Mark::Archive) {
-                    handle.kill();
+                    sessions
+                        .stop(&handle, vessel_session::SessionStop::Kill)
+                        .await?;
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;

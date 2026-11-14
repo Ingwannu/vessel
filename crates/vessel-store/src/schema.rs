@@ -367,6 +367,21 @@ END;
 /// retention and is independent of the partial transcript tail.
 const SIDE_CONTEXT: &str = "ALTER TABLE sessions ADD COLUMN latest_plan TEXT;";
 
+/// Startup recovery (schema 15): durable facts, not retained transcript scans.
+const RESTART: &str = "
+CREATE TABLE restart_control(singleton INTEGER PRIMARY KEY CHECK(singleton=1), enabled INTEGER NOT NULL CHECK(enabled IN(0,1))) STRICT;
+INSERT INTO restart_control VALUES(1,0);
+CREATE TABLE restart_state(
+ session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+ state TEXT NOT NULL,
+ active_at INTEGER,
+ pending_at INTEGER,
+ claimed INTEGER NOT NULL CHECK(claimed IN(0,1))
+) STRICT, WITHOUT ROWID;
+CREATE INDEX restart_pending ON restart_state(pending_at,session_id) WHERE pending_at IS NOT NULL;
+CREATE INDEX restart_active ON restart_state(active_at,session_id) WHERE active_at IS NOT NULL;
+";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
 const MIGRATIONS: &[&str] = &[
@@ -384,6 +399,7 @@ const MIGRATIONS: &[&str] = &[
     V12,
     V13,
     SIDE_CONTEXT,
+    RESTART,
 ];
 
 /// Bring the database to the newest schema.

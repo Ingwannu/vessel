@@ -2639,7 +2639,11 @@ export type GetNode = null;
 /**
  * `node.settings`: the node's settings in force. Needs `read`.
  */
-export type GetNodeSettings = Record<symbol, never>;
+export type GetNodeSettings = { 
+/**
+ * Require recovery settings to survive every decoding hop (ADR 0059).
+ */
+include_restart_recovery?: boolean, };
 
 /**
  * `project.get`: one project, at once or after its next change.
@@ -4119,7 +4123,11 @@ park_after: ParkAfter,
  * Which protocol drives each agent's new sessions (protocol 18);
  * absent when every agent runs over ACP.
  */
-drivers?: AgentDrivers, };
+drivers?: AgentDrivers, 
+/**
+ * Startup continuation policy; older nodes omit it (ADR 0059).
+ */
+restart_recovery?: RestartRecovery, };
 
 /**
  * Whether a node is taking new work.
@@ -5827,6 +5835,19 @@ session: SessionId,
 side: SessionId, };
 
 /**
+ * Node-level startup continuation policy (ADR 0059).
+ */
+export type RestartRecovery = { 
+/**
+ * Whether interrupted, eligible turns are continued at startup.
+ */
+enabled: boolean, 
+/**
+ * Exact text sent after restoring the provider's conversation.
+ */
+prompt: PromptText, };
+
+/**
  * `script.restart`: run a script's run again (in place while it runs, in
  * a new terminal once it ended).
  */
@@ -7211,7 +7232,24 @@ park_after?: ParkAfter | null,
  * is refused, and so is `direct` for an agent whose driver this node
  * does not offer yet.
  */
-drivers?: SetAgentDrivers | null, };
+drivers?: SetAgentDrivers | null, 
+/**
+ * Patch startup recovery without changing its other saved field.
+ */
+restart_recovery?: SetRestartRecovery | null, };
+
+/**
+ * A partial startup-policy change; omission preserves either saved field.
+ */
+export type SetRestartRecovery = { 
+/**
+ * Enable or disable without replacing the configured prompt.
+ */
+enabled?: boolean | null, 
+/**
+ * Replace the prompt, also while recovery is disabled.
+ */
+prompt?: PromptText | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

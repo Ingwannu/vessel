@@ -983,3 +983,222 @@ Only the contract/plan are revised. V1 contract re-review is required before
 implementation; neither this revision nor row 2's existing PASS asserts
 these new behaviours exist. No production source, runtime settings, grant,
 service or permission was changed, and no unchanged af6d166d gate was rerun.
+
+
+### ADR 0059 implementation checkpoint
+
+V1 accepted revised contract 396e2a84, closing both documentation returns;
+this is contract-only PASS. The implementation is in progress and has not
+received implementation or whole-gate approval.
+
+Existing Settings, normal resume preparation, current device grants, actor
+input and the SQLite writer are extended rather than duplicated. The code
+now includes the additive policy fields and CLI, a bounded node-owned
+settings worker, active-turn/stop-generation projections, ordered internal
+checkpoints, exact-generation reopen, fresh authority at launch and prompt,
+and two-attempt startup coordination. No new RPC/scope/public event or
+external dependency is added. Protocol 20 and schema 15 remain provisional.
+README, ARCHITECTURE, PROTOCOL and ADR 0059 describe the resulting paths and
+partial failure/ownership boundaries. Tests use fake providers only.
+
+Targeted checks so far are development evidence, not a final result. The
+initial behavioral run passed six settings cases, then two of three startup
+cases; its non-timeout failure followed an ended subscription before the new
+run was visible. The positive restart tests now wait at the actual provider
+load barrier before following/releasing the new run. Later targeted Clippy
+runs exposed and corrected missing collector adaptations, operation-context
+types, strict-lint findings and a split-test module path. Latest behavior,
+generated types and the final frozen-tree whole gate remain pending.
+
+The next test run explicitly uses a private SSD temporary directory and
+records host load/memory before and after. Build output and logs remain on
+the build volume. Earlier targeted runs had no TMPDIR override and already
+used the operating system temporary directory; no HDD-to-SSD speedup is
+claimed for them. Deadlines and assertions are unchanged.
+
+Screen handoff (pending, outside this node slice): read the peer capability,
+then `node.settings { include_restart_recovery: true }`; patch the existing
+`node.set_settings.restart_recovery` object with independently optional
+`enabled`/`prompt`. Preserve exact custom text while off, distinguish an
+unsupported peer from Off, and surface saved-but-not-applied/cleanup errors.
+Settings Debug redacts prompt content; an actual continuation is an ordinary
+persisted user turn. No native/page area, control or registration is added.
+
+Development review also found a late-generation race: a claimed task that
+first runs after Off/On must still use the original boot generation. That
+generation is to be captured once by the boot owner, with a deferred-attempt
+regression; taking a new snapshot at task execution would revive invalidated
+work. A default-prompt test also needed to answer the fake provider's actual
+permission before expecting TurnEnded. Exact default/reference-newline/
+multibyte provider echoes now replace that incomplete wait. Neither finding
+is treated as a whole-gate pass.
+
+Focused recovery-unit evidence on the intermediate implementation: 10 tests
+passed, 0 failed, 219 filtered out, in 38.63 seconds after a 5m39s compile
+and a 1,226-second slot wait. This covers actual settings cancellation/
+cleanup, final Off/stop prompt admission, missing-folder independence and
+three provider failure modes. It is not the final tree or whole-workspace
+gate: the boot-generation correction, remaining integration tests, generated
+types and full gate are still pending. No deadline or assertion was relaxed.
+
+The second focused invocation did not execute its integration tests: an
+incorrect test Reply variant failed compilation and was corrected. The
+10-test unit result above remains separate. Boot generation is now captured
+once by the boot owner. Typed stop/input admission also closes the durable
+ACK-to-effect gap; new held-journal-ACK fake-provider regressions cover kill
+and cancel. These final changes still need the whole changed-tree gate.
+
+The first final-gate attempt passed both required prebuilds, TypeScript's
+two generator tests and formatting, then stopped at Clippy: a test import
+path, one missing semicolon and a documentation backtick were corrected.
+It did not reach workspace tests or web checks. An explicit failed-Off file
+replacement regression now also checks that the old On generation/admission
+and pending intent survive a failed save. The next changed-tree gate remains
+required; no lint/deadline/assertion was weakened.
+
+Before the second final-gate attempt left its build queue, source review
+found another required exclusion: Imported display metadata can replace a
+delegated session's Remote marker. Creation now records Person only for an
+authenticated local Owner/Device with no unattended owner, and a real service
+creation/projection regression contrasts local and delegated imports. This
+correction was installed while the gate log still contained only the slot
+wait, before any prebuild or source-manifest freeze. The import/file-copy
+RPC authority path is not claimed tested by that internal creation fixture.
+
+The second final-gate attempt passed prebuilds, TypeScript's two tests and
+fmt, then Clippy found two unnecessary test type qualifications. They were
+removed without changing assertions or production behaviour. Workspace tests
+and web checks had not run. The next gate collects all stage results while
+retaining a nonzero overall status for any failure; this is not a waiver of
+Clippy or any required check.
+
+
+### Recovery whole-run fixture corrections
+
+The third frozen-tree whole run passed fmt, all-target workspace Clippy,
+TypeScript's two tests, web lint/typecheck, 417 web tests, web build, bundled
+binaries and all 62 web E2Es. The 1,693 selected source files stayed identical
+before/after generation and after E2E. Rust returned 1,871 passed, seven
+failed, ten existing ignored across 112 result sections: this is a failed
+whole gate, not implementation approval. Its logs/manifests are retained
+separately as recovery-attempt3 in the scratch evidence folder.
+
+All seven failures were new fixtures. Three exact provider echo assertions
+expected fake-small although structured_spec selects fake-large and recovery
+correctly preserves it. The exact full-text comparison now uses that selected
+model; whitespace and multibyte assertions are unchanged. The Store new-turn
+fixture omitted the actor's Running transition after reopen; it now appends
+Running before TurnStarted, keeping Starting excluded in production.
+
+The fleet-settings test incorrectly assumed node.settings was forwardable.
+It already is host-only administration. No method allowlist or grant is
+expanded: the actual member envelope must refuse both read and mutation
+even with Admin, leaving the setting unchanged. A separate host-paired
+opaque-relay device exercises successful Read/Admin and Read-only mutation
+refusal. A nested envelope's version requirement remains a compatibility
+check, not a forwarding permission. Screen callers must use that host's
+paired connection, not call_on.
+
+Both stop-journal timeout cases were run exactly once alone on the unchanged
+source and failed at the same 20-second barrier (21.89s cancel, 20.25s kill);
+before/after load was 6.95/7.31, so these are not load exceptions. A newer
+prompt reserves the sole control slot before waiting for input admission;
+a PrivateDir control-lane barrier therefore deadlocks the fixture itself.
+The test now reuses the independent rename response channel, acknowledged
+by the real actor after higher-priority queued input. The held journal ACK,
+no-TurnStarted check, kill refusal, subsequent cancel/start and exact event
+counts remain. No deadline, channel capacity or production guard changed.
+The corrected tree subsequently passed the targeted checks and the complete
+changed-tree gate recorded below.
+
+
+### Independent correction: side-session completion notification
+
+A subsequently reported reset race was confirmed at the actual end broadcast:
+hand_over notified before runtime.remove/forget, so a waiter could consume
+its only wake while still finding Live. The unchanged ten-second wait
+already subscribes before checking and rechecks after every notification.
+The correction publishes after both removals, with no retry or timeout
+change. A synchronous receiver-wake regression forces the old observation
+using a real fake provider and actual persist::run. It fails on the assigned
+standalone base a365d295 in 3.15 seconds, seeing both live entries Present.
+
+The standalone correction and whole gate are kept separate from recovery;
+the same product correction and exact regression are included here so a
+later combined tree has one identical test rather than competing variants.
+The standalone correction is committed as cdea77d820b38d291c6ddab03fd04437751749cf
+on base a365d295. Its author-run full root gate passed (1,964 tests, zero
+failures, 12 existing ignored), and it was sent to the node integrator,
+coordinator and V1. Its selected 1,715 source inputs matched the committed
+Git blobs. V1 subsequently passed its source and Linux root gate; node-head
+integration is separate. This recovery tree's final gate is recorded below,
+and no native/page scope is added.
+
+
+### Startup recovery: final gate and node handoff
+
+The final changed-tree gate ended successfully on 2026-11-14 at 21:24 UTC.
+It passed root fmt, workspace all-target Clippy with warnings denied,
+workspace tests including doc-tests (1,880 passed, zero failed, ten existing
+ignored across 112 result sections), both generated declaration checks,
+web lint/typecheck, 417 web tests in 81 files, production build, required
+bundled CLI/node/testkit binaries and all 62 browser E2Es (3.4 minutes).
+Node unit tests passed 234 cases and Node E2E passed 223, including the 16
+restart cases. Earlier root failures, the exact failed stop-fixture retries
+and the corrected targeted checks remain historical evidence above; they
+are not alternative whole-gate approvals. No test was newly ignored, and
+no assertion, deadline or channel capacity changed.
+
+The one outer build slot held every sequential stage. The same environment
+prebuilt fake binaries and vesseld before tests, used SSD temporary data,
+and ran Rust test harnesses with one test thread. The changed proto,
+session, store, node, CLI and testkit crates actually recompiled. Load was
+19.34 before Rust tests, 21.78 before browser E2E and 21.71 at gate end.
+The 1,694 selected source/build inputs matched before/after TypeScript and
+at the end: SHA-256
+a3a81588be6bcf0d79ff67e609f0b5a180dbb8a9e7f8e157f28cab4cece5fa37.
+The selection excludes docs, native assets, ignored local settings and
+dependency/output folders; it is not a full environment attestation.
+Logs are recovery-final-gate.log and recovery-final-<stage>.log, with
+recovery-final-source{,-after-typescript,-after}.sha256. Authored whitespace
+checks pass. The canonical generated proto.ts retains seven ts-rs trailing
+whitespace warnings; it was regenerated and not manually reformatted.
+
+The process-kill test explicitly kills and waits on its owned child node,
+then checks the same native conversation and one recovery prompt. One
+verified fake-provider cleanup raced its exit and printed No such process;
+the guard checked that the captured start identity no longer matched. It
+was not a failed node-kill assertion or a deadline exception.
+
+Screen callers use the host's own paired connection (direct or opaque
+relay), not fleet forwarding. Read node.settings with
+include_restart_recovery=true and check feature capability; absence on an
+older peer is unavailable, not confirmed Off. Patch
+node.set_settings.restart_recovery.enabled and/or .prompt; leaving either
+out preserves it, and Off retains the exact accepted prompt. Read remains
+Read and mutation remains Admin. A failed/lost reply can follow a saved
+change: re-read effective state and show partial-save diagnostics rather
+than assuming it was unsent or unchanged. Existing session read/follow
+shows ordinary status, the actual resume prompt and bounded failures.
+There is no new RPC, public event or permission scope. This branch uses
+named recovery feature protocol 20 and store schema 15 provisionally;
+integration must renumber around the current node line's additions. The
+settings response/patch contain PromptText and are Clone rather than Copy.
+
+The already-reviewed side hand-over correction is byte-identical in this
+combined implementation; its standalone cdea77d8 and V1 pass remain separate.
+This implementation is based on contract commit 396e2a84 (production from
+the row 2 line), not a replacement for a combined latest-node gate. Submit
+the immutable root delta from that base to V1; only V1 forwards accepted
+recovery code to the integrator. No native/page work, live preview, real
+agent prompt, service permission change, release or push is included.
+
+Changed files retain their ordinary checkout account ownership, and commands
+ran as that account. The owned executable,
+SSD-temporary executable/cwd scan was empty after the gate. No manual fleet
+or virtual display was started. Ignored build configurations and the two
+intentionally untracked web dependency/bundle links remain local.
+
+Next remains delivered files/HTML (ADR 0047), after this slice's immutable
+review handoff. UI settings, side surfaces and other app integration belong
+to the app tracks and are not asserted complete by these node/CLI checks.

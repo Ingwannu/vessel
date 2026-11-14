@@ -12,9 +12,13 @@ impl NodeService {
     pub(crate) async fn node_settings(
         &self,
         _: &Connection,
-        _: GetNodeSettings,
+        request: GetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        Ok(self.settings.current().await)
+        let mut current = self.settings.current().await;
+        if !request.include_restart_recovery {
+            current.restart_recovery = vessel_proto::restart::RestartRecovery::default();
+        }
+        Ok(current)
     }
 
     /// `node.set_settings`: change, keep and apply what the request names.
@@ -29,10 +33,15 @@ impl NodeService {
                     ErrorCode::InvalidRequest
                 }
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
-                SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
+                SettingsError::Full | SettingsError::Closed => ErrorCode::Unavailable,
+                SettingsError::Write(_)
+                | SettingsError::Lost(_)
+                | SettingsError::Reply(_)
+                | SettingsError::Cleanup(_)
+                | SettingsError::Apply(_) => ErrorCode::Internal,
             };
             if code == ErrorCode::Internal {
-                tracing::warn!(%error, "node settings not kept");
+                tracing::warn!(%error, "node settings change did not fully apply");
             }
             WireError::new(code, error.to_string())
         })

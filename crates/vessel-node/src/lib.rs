@@ -87,6 +87,7 @@ mod principal;
 mod probes;
 mod profiles;
 mod readiness;
+mod recovery;
 mod relays;
 mod secret_copy;
 mod secure;

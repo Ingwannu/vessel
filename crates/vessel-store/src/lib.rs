@@ -65,6 +65,7 @@ mod marks;
 mod node_key;
 mod reader;
 mod recovery;
+mod restart;
 mod schema;
 mod search;
 mod settings_file;
@@ -86,8 +87,12 @@ pub use error::{Column, Quantity, StoreError};
 pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
 pub use lock::{NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
+pub use restart::{Eligibility as RestartEligibility, RestartCandidate};
 pub use settings_file::SettingsFileError;
 pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
+
+/// Reopen admission policy; no wire-level resource or operation is added.
+pub use again::ReopenMode;

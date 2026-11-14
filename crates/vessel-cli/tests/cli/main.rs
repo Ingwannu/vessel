@@ -27,6 +27,7 @@ mod mcp;
 mod nodes;
 #[cfg(test)]
 mod reconnect;
+mod restart;
 #[cfg(test)]
 mod side_questions;
 #[cfg(test)]

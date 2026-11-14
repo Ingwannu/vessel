@@ -71,7 +71,21 @@ pub(crate) enum NodeCommand {
         /// until this build offers it). Repeat for several agents.
         #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
         driver: Vec<(HarnessKind, AgentDriver)>,
+        /// Resume interrupted turns when this node starts: on or off.
+        #[arg(long, value_name = "on|off", value_parser = on_off)]
+        resume_on_startup: Option<bool>,
+        /// Exact continuation prompt, saved even while recovery is off.
+        #[arg(long, value_name = "TEXT")]
+        resume_prompt: Option<vessel_proto::automation::PromptText>,
     },
+}
+
+fn on_off(text: &str) -> Result<bool, String> {
+    match text {
+        "on" => Ok(true),
+        "off" => Ok(false),
+        _ => Err("choose on or off".to_owned()),
+    }
 }
 
 /// `--driver`: an agent's name, `=`, then `acp` or `direct`.

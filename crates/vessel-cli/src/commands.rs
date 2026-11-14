@@ -124,20 +124,38 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             read_only,
         } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
-        NodeCommand::Settings { park_after, driver } => {
+        NodeCommand::Settings {
+            park_after,
+            driver,
+            resume_on_startup,
+            resume_prompt,
+        } => {
             let client = connect(target).await?.client;
             let drivers = driver_change(&driver)?;
-            let settings = if park_after.is_some() || drivers.is_some() {
-                client
-                    .call(SetNodeSettings {
-                        park_after,
-                        drivers,
-                    })
-                    .await?
-            } else {
-                client.call(GetNodeSettings {}).await?
-            };
-            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+            let recovery_supported =
+                client.protocol() >= vessel_proto::restart::RESTART_RECOVERY_PROTOCOL;
+            let restart_recovery = (resume_on_startup.is_some() || resume_prompt.is_some())
+                .then_some(vessel_proto::restart::SetRestartRecovery {
+                    enabled: resume_on_startup,
+                    prompt: resume_prompt,
+                });
+            let settings =
+                if park_after.is_some() || drivers.is_some() || restart_recovery.is_some() {
+                    client
+                        .call(SetNodeSettings {
+                            park_after,
+                            drivers,
+                            restart_recovery,
+                        })
+                        .await?
+                } else {
+                    client
+                        .call(GetNodeSettings {
+                            include_restart_recovery: recovery_supported,
+                        })
+                        .await?
+                };
+            Ok(io::out(render::node_settings(&settings, recovery_supported).as_bytes()).await?)
         }
     }
 }

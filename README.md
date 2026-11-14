@@ -78,7 +78,25 @@ cargo build --release
 ```
 
 Sessions survive client disconnects; stopping the node marks live ones
-`Interrupted`, and their logs stay readable after a restart.
+`Interrupted`, and their logs stay readable after a restart. Startup recovery
+is off by default. To continue interrupted active turns in their existing
+conversations, enable it explicitly:
+
+```bash
+vessel node settings --resume-on-startup on
+vessel node settings --resume-prompt "Resume working."
+vessel node settings --resume-on-startup off
+```
+
+Use a connection paired with the host being configured, directly or through
+its encrypted relay link; node settings cannot be forwarded by a fleet member.
+The exact prompt is retained while off. At startup at most two eligible
+agents load at once, oldest interrupted turn first. Idle, parked, archived,
+person-stopped, helper and unattended sessions stay manual. A failed attempt
+is reported in its ordinary session log and is not automatically retried.
+Turning recovery off consumes pending work; turning it on later does not
+reconstruct that batch. See [ADR 0059](docs/adr/0059-resume-interrupted-turns-at-node-start.md)
+for creator permissions, crash loss windows and other exclusions.
 
 ### A conversation: the queue, files, questions, marks
 

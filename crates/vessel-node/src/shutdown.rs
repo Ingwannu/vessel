@@ -16,6 +16,8 @@ const FORWARDER_GRACE: Duration = Duration::from_secs(2);
 
 /// Everything that must be stopped, in [`Teardown::run`]'s order.
 pub(crate) struct Teardown {
+    /// Settle saved policy before actors capture their shutdown intents.
+    pub(crate) settings: Arc<crate::settings::Settings>,
     pub(crate) runtime: Arc<SessionRuntime>,
     /// Session creations and persist tasks.
     pub(crate) tasks: TaskTracker,
@@ -39,6 +41,7 @@ impl Teardown {
     ///    the RPC close timeout).
     /// 5. Close the store, folding its WAL into the database file.
     pub(crate) async fn run(self) {
+        self.settings.drain().await;
         tracing::info!("stopping sessions");
         self.runtime.shutdown().await;
         let _first_close = self.tasks.close();

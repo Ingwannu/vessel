@@ -83,7 +83,11 @@ impl NodeService {
             Ok(())
         };
         let started = match granted.await {
-            Ok(()) => self.sessions.start_again(ended, launch, claim).await,
+            Ok(()) => {
+                self.sessions
+                    .start_again(ended, launch, claim, connection.operation())
+                    .await
+            }
             Err(error) => Err(error),
         };
         let handle = match started {

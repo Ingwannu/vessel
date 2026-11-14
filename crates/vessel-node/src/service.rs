@@ -72,6 +72,7 @@ mod schedules;
 mod forking;
 mod history;
 mod parking;
+pub(crate) mod recovery;
 mod search;
 mod settings;
 mod side_questions;
@@ -143,6 +144,7 @@ pub(crate) struct NodeService {
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
+    pub(crate) recovery: Arc<crate::recovery::Recovery>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
 }
@@ -203,8 +205,10 @@ impl NodeService {
             schedules,
             settings,
         } = parts;
+        let recovery = Arc::new(crate::recovery::Recovery::new(settings.policy()));
         let store = sessions.store().clone();
         Self {
+            recovery,
             lsp,
             lsp_roots,
             lifecycle,
@@ -277,6 +281,7 @@ impl NodeService {
 /// subscriptions go.
 #[derive(Debug)]
 pub(crate) struct Connection {
+    operation: Option<Arc<crate::recovery::Operation>>,
     outbound: Outbound,
     principal: Principal,
     /// The protocol the client negotiated: an older client is never handed
@@ -295,6 +300,7 @@ impl Connection {
             "client connected"
         );
         Self {
+            operation: None,
             outbound: peer.outbound,
             principal,
             protocol: peer.protocol,
@@ -321,6 +327,7 @@ impl Connection {
     /// another node runs as its delegated principal (protocol 6).
     pub(crate) fn acting_as(&self, principal: Principal) -> Self {
         Self {
+            operation: None,
             outbound: self.outbound.clone(),
             principal,
             protocol: self.protocol,
@@ -407,5 +414,16 @@ impl NodeService {
             .await
             .map(|()| Ack)
             .map_err(|error| wire(&error))
+    }
+}
+
+impl Connection {
+    pub(crate) fn with_operation(&self, operation: Arc<crate::recovery::Operation>) -> Self {
+        let mut connection = self.acting_as(self.principal.clone());
+        connection.operation = Some(operation);
+        connection
+    }
+    pub(crate) fn operation(&self) -> Option<Arc<crate::recovery::Operation>> {
+        self.operation.clone()
     }
 }

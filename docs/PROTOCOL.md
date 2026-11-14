@@ -30,6 +30,43 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 20 (2026-11-14, milestone 12, provisional)
+
+### Resume interrupted active turns at startup (N5, ADR 0059)
+
+No new method, scope or public timeline event. Minimum remains 2.
+Both settings methods remain non-forwardable host administration. A fleet
+member envelope is refused even with Admin; the host's own paired device
+may use a direct or opaque encrypted relay connection under ordinary guards.
+Nested-field version checks do not grant fleet forwarding authority.
+
+- `node.settings { include_restart_recovery?: boolean }` retains its Read
+  guard. An explicit true requires protocol 20 at every decoding hop.
+- `NodeSettings` adds optional `restart_recovery: { enabled: boolean,
+  prompt: PromptText }`. Absence decodes as off and `Resume working.` for
+  compatibility; it does not prove that an older peer supports recovery.
+  A caller must opt into the explicit read and check peer capability.
+- `node.set_settings { restart_recovery?: { enabled?: boolean,
+  prompt?: PromptText } }` retains its Admin guard. Naming the patch, even
+  empty, requires protocol 20 through nested forward/relay/deliver calls.
+  Omitting either nested field preserves it. Parking/driver-only calls
+  retain their existing minimum versions and preserve the saved policy.
+- PromptText retains exact accepted whitespace and its 16 KiB UTF-8 bound.
+  Debug/diagnostics redact settings prompt content. Its actual submitted
+  turn is an ordinary persisted user message, not secret provider context.
+- Settings writes are node-owned after bounded FIFO admission, including
+  when the RPC response is cancelled. A post-save failure explicitly reports
+  that the file/policy changed but application or intent cleanup remains
+  incomplete; a lost response never proves the mutation was unsent.
+
+Schema 15 adds internal active-turn, stop-generation and consumed-intent
+projections; checkpoints have no EventSeq or public event encoding. Startup
+uses the ordinary resume and Start-only prompt paths with fresh current
+creator permission at each new admission. At most two unresolved attempts
+run, in oldest-turn/id order. An uncertain attempt is not automatically
+resent. The configured policy defaults off, with no new process flag or
+remote authority fallback. The node integrator assigns final numbering.
+
 ## Version 19 (2026-11-14, milestone 12)
 
 The track raises the current version once to 19; minimum remains 2.

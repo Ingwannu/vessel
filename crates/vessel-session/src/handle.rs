@@ -2,6 +2,9 @@
 //! sends the session is `input`'s.
 
 mod input;
+mod stopping;
+pub use input::PromptPermit;
+pub use stopping::SessionStop;
 
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -32,6 +35,11 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) id: SessionId,
+    pub(crate) journal: crate::journal::Control,
+    pub(crate) admission: Option<CancellationToken>,
+    /// Serialize only input enqueue and commit-before-stop effects. Never
+    /// held by the actor or by ordinary input awaiting its driver reply.
+    pub(crate) input_admission: Arc<tokio::sync::Mutex<()>>,
     /// Latest info, published by the actor.
     pub(crate) info: watch::Receiver<SessionInfo>,
     /// Recent records and the live stream. A `std` mutex: it is held only
@@ -123,6 +131,46 @@ fn current(route: &watch::Receiver<Route>) -> Result<AgentInput, SessionError> {
 pub struct SessionHandle(pub(crate) Arc<Shared>);
 
 impl SessionHandle {
+    /// Whether both handles refer to this exact run, rather than just its id.
+    #[must_use]
+    pub fn same_run(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
+    /// Current stop generation, read at an input's admission.
+    #[must_use]
+    pub fn restart_generation(&self) -> vessel_proto::restart::RestartGeneration {
+        self.0.journal.generation()
+    }
+
+    /// Restore a generation before the gated actor publishes anything.
+    ///
+    /// # Errors
+    /// This run already published a record.
+    pub fn initialise_restart_generation(
+        &self,
+        generation: vessel_proto::restart::RestartGeneration,
+    ) -> Result<(), crate::JournalError> {
+        self.0.journal.initialise(generation)
+    }
+
+    /// Record a bounded node diagnostic through this run's ordinary actor.
+    ///
+    /// # Errors
+    /// The session ended or moved before the diagnostic could be published.
+    pub async fn recovery_notice(&self, line: String) -> Result<(), SessionError> {
+        let route = self.structured("a conversation")?;
+        // Diagnostics do not carry arbitrarily large driver errors into a
+        // one-slot actor queue, and cannot inject terminal control sequences.
+        let line = line
+            .chars()
+            .filter(|character| !character.is_control())
+            .take(768)
+            .collect();
+        self.order(route, |reply| Control::Notice { line, reply })
+            .await
+    }
+
     /// The session's id.
     #[must_use]
     pub fn id(&self) -> SessionId {

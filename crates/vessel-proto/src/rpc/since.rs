@@ -79,7 +79,14 @@ impl Call {
             // cannot decode it (its guard compared a time instead).
             // Drivers came in 18 (ADR 0057): an older node would keep
             // running the agent over ACP and say nothing.
-            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
+            Self::SetNodeSettings(request) => request
+                .restart_recovery
+                .as_ref()
+                .map(|_| crate::restart::RESTART_RECOVERY_PROTOCOL.get())
+                .or_else(|| request.drivers.map(|_| 18)),
+            Self::GetNodeSettings(request) => request
+                .include_restart_recovery
+                .then_some(crate::restart::RESTART_RECOVERY_PROTOCOL.get()),
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -91,9 +98,9 @@ impl Call {
             // An older hop decodes optional fields before forwarding.
             // Preserve side links rather than silently creating a normal
             // session on a newer target. Pre-19 routing stays unchanged.
-            Self::Forward(request) => preserving_side_call(&request.call),
-            Self::Relay(request) => preserving_side_call(&request.call),
-            Self::Deliver(request) => preserving_side_call(&request.call),
+            Self::Forward(request) => preserving_new_fields(&request.call),
+            Self::Relay(request) => preserving_new_fields(&request.call),
+            Self::Deliver(request) => preserving_new_fields(&request.call),
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
@@ -234,7 +241,6 @@ impl Call {
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)
-            | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
@@ -251,7 +257,10 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
 }
 
 fn side_spec(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
+    spec.and_then(|spec| {
+        spec.side_question_of
+            .map(|_| crate::side_questions::SIDE_QUESTION_PROTOCOL.get())
+    })
 }
 
 fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
@@ -264,7 +273,7 @@ fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
 
 // New fields must survive every decoding hop, not just the final target.
 // A protocol-18 home would discard side_question_of from session.create.
-fn preserving_side_call(call: &Call) -> Option<u32> {
+fn preserving_new_fields(call: &Call) -> Option<u32> {
     let needed = call.since().get();
-    (needed >= 19).then_some(needed)
+    (needed >= crate::side_questions::SIDE_QUESTION_PROTOCOL.get()).then_some(needed)
 }

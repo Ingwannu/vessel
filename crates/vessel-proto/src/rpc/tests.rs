@@ -529,6 +529,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
     let parking = SetNodeSettings {
         park_after: Some(crate::parking::ParkAfter::Never),
         drivers: None,
+        restart_recovery: None,
     };
     assert_eq!(parking.into_call().since(), ProtocolVersion::new(12));
     let drivers = SetNodeSettings {
@@ -537,6 +538,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
             codex: Some(AgentDriver::Acp),
             ..SetAgentDrivers::default()
         }),
+        restart_recovery: None,
     };
     assert_eq!(drivers.into_call().since(), ProtocolVersion::new(18));
 }
@@ -974,4 +976,58 @@ fn where_a_session_came_from_is_optional_and_tagged() {
         serde_json::from_str::<SessionInfo>(&imported).unwrap(),
         info
     );
+}
+
+/// Recovery reads must not be silently stripped by an older forwarding hop.
+#[test]
+fn recovery_settings_read_and_patch_keep_their_requirement_at_every_hop() {
+    use crate::restart::{RESTART_RECOVERY_PROTOCOL, SetRestartRecovery};
+    use crate::settings::{GetNodeSettings, SetNodeSettings};
+    let explicit = GetNodeSettings {
+        include_restart_recovery: true,
+    }
+    .into_call();
+    assert_eq!(explicit.since(), RESTART_RECOVERY_PROTOCOL);
+    assert_eq!(
+        GetNodeSettings::default().into_call().since(),
+        ProtocolVersion::new(12)
+    );
+    assert_eq!(
+        serde_json::to_string(&GetNodeSettings::default()).unwrap(),
+        "{}"
+    );
+    let patch = SetNodeSettings {
+        restart_recovery: Some(SetRestartRecovery::default()),
+        ..SetNodeSettings::default()
+    }
+    .into_call();
+    assert_eq!(patch.since(), RESTART_RECOVERY_PROTOCOL);
+    for original in [explicit, patch] {
+        let origin = crate::Origin {
+            node: crate::NodeId::random(),
+            by: crate::OriginBy::Owner,
+            scopes: vec![Scope::Read, Scope::Admin],
+        };
+        let envelopes = [
+            Forward {
+                node: crate::NodeId::random(),
+                call: Box::new(original.clone()),
+            }
+            .into_call(),
+            RelayCall {
+                node: crate::NodeId::random(),
+                origin: origin.clone(),
+                call: Box::new(original.clone()),
+            }
+            .into_call(),
+            Deliver {
+                origin,
+                call: Box::new(original),
+            }
+            .into_call(),
+        ];
+        for forwarded in envelopes {
+            assert_eq!(forwarded.since(), RESTART_RECOVERY_PROTOCOL);
+        }
+    }
 }

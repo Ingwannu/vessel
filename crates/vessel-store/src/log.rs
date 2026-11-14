@@ -104,12 +104,16 @@ struct Projection {
     attention: Option<EventSeq>,
     plan: PlanMove,
     bytes: u64,
+    restart: Option<crate::restart::State>,
 }
 
 impl Projection {
     fn observe(&mut self, record: &EventRecord, stored_bytes: usize) {
         let stored_bytes = u64::try_from(stored_bytes).unwrap_or(u64::MAX);
         self.bytes = self.bytes.saturating_add(stored_bytes);
+        if let Some(restart) = &mut self.restart {
+            restart.observe(record);
+        }
         // The session runtime reads the same rule off the same records, so
         // a live session's unread and its stored row's agree.
         if record.event.asks_for_attention() {
@@ -186,7 +190,10 @@ pub(crate) fn append<'a>(
         .optional()?
         .ok_or(StoreError::UnknownSession(session))?;
     let mut expected = seq_from_sql(next)?;
-    let mut projection = Projection::default();
+    let mut projection = Projection {
+        restart: crate::restart::load(connection, session)?,
+        ..Projection::default()
+    };
     let mut insert = connection.prepare_cached(
         "INSERT INTO events (session_id, seq, at, event) VALUES (?1, ?2, ?3, ?4)",
     )?;
@@ -263,6 +270,9 @@ pub(crate) fn append<'a>(
             },
             !matches!(projection.plan, PlanMove::Unchanged),
         ])?;
+    if let Some(restart) = &projection.restart {
+        crate::restart::save(connection, session, restart)?;
+    }
     Ok(Appended { ended })
 }
 
@@ -348,6 +358,7 @@ pub(crate) fn prune_ended(
     let mut statement = connection.prepare_cached(&format!(
         "DELETE FROM sessions WHERE id IN (
              SELECT id FROM sessions WHERE live = 0 AND ended_at IS NOT NULL
+             AND NOT EXISTS(SELECT 1 FROM restart_state r WHERE r.session_id=sessions.id AND (r.pending_at IS NOT NULL OR r.claimed=1))
              {KEPT_FIRST}
              LIMIT -1 OFFSET ?1)
          RETURNING id"
