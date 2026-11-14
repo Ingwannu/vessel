@@ -8,8 +8,10 @@
 //!   so its slices change this directory, its fake in the testkit and
 //!   [`BUILT`], and no file another driver's worker edits.
 //! - What it implements: the seam of `crate::drivers`, as the ACP driver
-//!   (`crate::driver`) does: [`run`] drives one session over the agent's
-//!   process and [`history`] lists its conversations.
+//!   (`crate::driver`) does: [`launch`] shapes the agent's command for one
+//!   launch before it is spawned, [`run`] drives one session over the
+//!   agent's process and [`history`] lists its conversations (spawning its
+//!   own process, so a listing shapes its own command there).
 
 use std::path::Path;
 use std::time::Duration;
@@ -28,16 +30,41 @@ use crate::output::AgentOutput;
 /// Whether this driver runs sessions; true once its first slice lands.
 pub(crate) const BUILT: bool = false;
 
+/// What this driver's launch leaves to its session: nothing (the
+/// app-server takes a thread's start, resume and MCP servers over its
+/// protocol).
+#[derive(Debug, Default)]
+pub(crate) struct Launched;
+
+/// `command` shaped for one launch from `setup`, before it is spawned
+/// (`AgentProcess::spawn_with`), and what the session keeps of it: the
+/// identity for now.
+///
+/// # Errors
+/// None yet; a launch this driver cannot make is refused here, before the
+/// agent starts.
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "the seam every direct driver implements; this one refuses nothing yet"
+)]
+pub(crate) fn launch(
+    command: &CommandSpec,
+    _setup: &AgentSetup,
+) -> Result<(CommandSpec, Launched), AgentError> {
+    Ok((command.clone(), Launched))
+}
+
 /// Drive one session over the agent's stdio until it ends, as
 /// `crate::driver::run` does for ACP: apply `commands`, publish `outputs`
 /// (its handshake's options and abilities first), end with
-/// [`AgentOutput::Disconnected`].
+/// [`AgentOutput::Disconnected`]. `launched` lives as long as the session.
 pub(crate) async fn run(
     _stdin: ChildStdin,
     _stdout: ChildStdout,
     _commands: mpsc::Receiver<Command>,
     outputs: mpsc::Sender<AgentOutput>,
     _setup: AgentSetup,
+    _launched: Launched,
 ) {
     not_built(&outputs, Driver::CodexAppServer).await;
 }

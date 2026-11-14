@@ -21,7 +21,8 @@
 //!   environment and route exactly as an ACP launch has them
 //!   ([`launch_direct`](crate::launch_direct)). What a session adds
 //!   (resume, MCP configuration, permission flags) is the driver's to add
-//!   from `vessel-agent`'s `AgentSetup`, so this table does not change per
+//!   from `vessel-agent`'s `AgentSetup`, in the driver's `launch` step
+//!   before the agent is spawned, so this table does not change per
 //!   driver slice.
 
 use vessel_proc::CommandSpec;

@@ -18,6 +18,15 @@ const OUTPUTS: usize = 64;
 /// anyway, so a deep queue would only hide a stuck agent.
 const COMMANDS: usize = 16;
 
+/// One launch as its driver shaped it: what each direct driver keeps for
+/// the session's life (ADR 0057; its `launch`), handed to its `run`.
+enum Launch {
+    Acp,
+    Codex(crate::codex::Launched),
+    Claude(crate::claude::Launched),
+    Opencode(crate::opencode::Launched),
+}
+
 /// A running ACP agent (a harness or its adapter).
 ///
 /// Owned by one task (the session actor), which stops it and waits for it.
@@ -62,6 +71,29 @@ impl AgentProcess {
         if !driver.built() {
             return Err(AgentError::NoDriver(driver));
         }
+        // A direct driver shapes its own launch before anything starts:
+        // what its agent takes only at launch (Claude Code's resume, fork,
+        // permission route and MCP file; OpenCode's server password) comes
+        // from `setup` here, and a launch it cannot make is refused here.
+        // A driver that needs this step adds its arm to `Launch`; nothing
+        // else in this file changes (`docs/plans/agents-own-protocols.md`,
+        // "Frozen by slice 0").
+        let (shaped, launch) = match driver {
+            Driver::Acp => (None, Launch::Acp),
+            Driver::CodexAppServer => {
+                let (shaped, launched) = crate::codex::launch(command, &setup)?;
+                (Some(shaped), Launch::Codex(launched))
+            }
+            Driver::ClaudeStream => {
+                let (shaped, launched) = crate::claude::launch(command, &setup)?;
+                (Some(shaped), Launch::Claude(launched))
+            }
+            Driver::OpencodeHttp => {
+                let (shaped, launched) = crate::opencode::launch(command, &setup)?;
+                (Some(shaped), Launch::Opencode(launched))
+            }
+        };
+        let command = shaped.as_ref().unwrap_or(command);
         let Spawned {
             child,
             stdin,
@@ -72,28 +104,31 @@ impl AgentProcess {
         let (commands, command_receiver) = mpsc::channel(COMMANDS);
         drop(tokio::spawn(stderr::pump(stderr, outputs.clone())));
         let commands_in = command_receiver;
-        drop(match driver {
-            Driver::Acp => tokio::spawn(driver::run(stdin, stdout, commands_in, outputs, setup)),
-            Driver::CodexAppServer => tokio::spawn(crate::codex::run(
+        drop(match launch {
+            Launch::Acp => tokio::spawn(driver::run(stdin, stdout, commands_in, outputs, setup)),
+            Launch::Codex(launched) => tokio::spawn(crate::codex::run(
                 stdin,
                 stdout,
                 commands_in,
                 outputs,
                 setup,
+                launched,
             )),
-            Driver::ClaudeStream => tokio::spawn(crate::claude::run(
+            Launch::Claude(launched) => tokio::spawn(crate::claude::run(
                 stdin,
                 stdout,
                 commands_in,
                 outputs,
                 setup,
+                launched,
             )),
-            Driver::OpencodeHttp => tokio::spawn(crate::opencode::run(
+            Launch::Opencode(launched) => tokio::spawn(crate::opencode::run(
                 stdin,
                 stdout,
                 commands_in,
                 outputs,
                 setup,
+                launched,
             )),
         });
         tracing::debug!(pid = child.pid(), program = %command.program.display(), %driver, "agent spawned");

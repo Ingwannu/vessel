@@ -242,6 +242,7 @@ impl SessionRuntime {
             handshake_timeout: self.handshake_timeout(),
             questions,
             fork: None,
+            private_dir: self.private_dir(),
         };
         // The run begins: its first record is its stored log's next.
         info.status = SessionStatus::Starting;

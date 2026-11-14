@@ -109,6 +109,7 @@ mod support {
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
                     park_after: None,
+                    private_dir: None,
                 },
                 CancellationToken::new(),
             );

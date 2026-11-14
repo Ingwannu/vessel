@@ -11,6 +11,8 @@ mod claims;
 mod drivers;
 mod launch;
 mod parts;
+#[cfg(test)]
+mod private_dir;
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -143,6 +145,12 @@ impl SessionRuntime {
     /// How long an agent's handshake may take.
     pub(crate) const fn handshake_timeout(&self) -> Duration {
         self.config.agent_handshake_timeout
+    }
+
+    /// The node's private directory a session's launches carry
+    /// (`RuntimeConfig::private_dir`).
+    pub(crate) fn private_dir(&self) -> Option<std::path::PathBuf> {
+        self.config.private_dir.clone()
     }
 
     /// A session of this run, live or ended (until [`remove`](Self::remove)d).

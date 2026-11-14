@@ -137,6 +137,10 @@ pub(crate) enum Control {
     Park(ParkOrder),
     /// Take the conversation back to a turn's end (protocol 14, ADR 0052).
     Rewind(crate::forking::RewindOrder),
+    /// The private directory the actor's current launch carries (tests:
+    /// every launch site gives the node's, `RuntimeConfig::private_dir`).
+    #[cfg(test)]
+    PrivateDir(oneshot::Sender<Option<PathBuf>>),
 }
 
 /// Everything the actor needs to move.

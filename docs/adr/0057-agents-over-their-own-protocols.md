@@ -284,14 +284,23 @@ holds.
   checked, and whether it is offered (`selectable`, false for all three).
   `launch_direct` builds the command with the account, profile and route
   of an ACP launch; what a session adds (resume, MCP configuration,
-  permission flags) is the driver's to add from `AgentSetup`.
+  permission flags) is the driver's to add from `AgentSetup`, in its
+  `launch` step before the agent is spawned (below).
 - **The seam** is `vessel_agent::Driver` and three entries that take it:
   `AgentProcess::spawn_with`, `probe_with`, `history_with`. A direct
   driver is a module (`codex`, `claude`, `opencode`) with the ACP
-  driver's two entry points: `run(stdin, stdout, commands, outputs,
-  setup)` and `history(command, cwd, from, limit)`. A module whose
-  `BUILT` is false is refused before its agent starts
-  (`AgentError::NoDriver`, `unsupported`).
+  driver's two entry points, `run` and `history(command, cwd, from,
+  limit)`, and a third, `launch(command, setup) -> (command, Launched)`,
+  which shapes the agent's command for one launch before `spawn_with`
+  spawns it (added the same day: Claude Code takes resume, fork, its
+  permission route and its MCP file only on its command line, and
+  `OpenCode` needs its server's password set before it starts). `run`
+  gets the setup and the `Launched` and keeps it for the session's life.
+  `AgentSetup::private_dir` carries the node's owner-only MCP directory
+  to a session's launches (never to a probe or a listing), the only place
+  a driver writes a launch's private files, through the harness's
+  `McpFile`. A module whose `BUILT` is false is refused before its agent
+  starts (`AgentError::NoDriver`, `unsupported`).
 - **The choice** is the session runtime's (`runtime/drivers`), at a
   session's first launch, its start again, a probe and a listing: the
   node's setting, then whether the build offers the driver, then the
