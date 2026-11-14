@@ -1,6 +1,6 @@
 //! Reject new label metadata at existing wire entry points until assignment.
 //! This temporary node-side guard precedes writes/spawns; the shared
-//! required_protocol accessor will also reject it before client sends.
+//! `required_protocol` accessor will also reject it before client sends.
 
 use crate::error::ServiceError;
 use vessel_proto::automation::ScheduleTarget;

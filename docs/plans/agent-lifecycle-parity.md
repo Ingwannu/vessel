@@ -229,38 +229,35 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Integration checkpoint: the named node head is merged without rewriting
-  prior commits. Its usage ledger and shared compatibility cases remain.
-- Done: slice 1 contract and reviewed slice 2a validating types. Bounds,
+- Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
-- Slice 2b keeps creation/current labels separately in durable storage.
-  Its correction leaves `lifecycle_version::SINCE` unassigned (`None`),
-  hiding both maps at the current protocol in direct replies, lists,
-  subscriptions, saved/scheduled specs, transfers and forwarded replies.
-  Event pages have no label-bearing record until the later event slice.
-- Existing session/prompt/schedule creation and updates refuse labelled
-  specs before lookup, writes or spawning. Starting imports refuse labelled
-  metadata before placing files or starting a session. Storage and internal
-  services retain the metadata even while no peer can see it.
+- Implemented and locally gated: slice 2b keeps creation/current labels
+  separately in durable storage. `lifecycle_version::SINCE` is unassigned
+  (`None`); both maps are hidden at every protocol in direct replies,
+  lists, subscriptions, saved/scheduled specs, transfers and forwarding.
+  Event pages carry no label record until the later event slice.
+- Existing session/prompt/schedule inputs with labels are refused before
+  work. Starting imports refuse labelled metadata before placement or
+  starting a session; local sources are checked before export. Tests check
+  the unassigned-protocol reason and reopen the durable maps.
+- The corrective whole gate passed: Rust 1978 passed, none failed, 12 ignored;
+  TypeScript generation and diff, web checks, 417 unit tests and 62 browser
+  tests passed. Review of the corrective slice remains separate.
 - The shared `required_protocol()` accessor is owned by the protocol layer.
-  Until its integration, the node ingress guard provides the typed refusal;
-  no new registered call or client gating mechanism is introduced here.
-- `LABELS_SCHEMA` derives the provisional append from the head migration count;
-  integration assigns it. Existing rollback cases keep their original names;
-  the label-column rollback is separate and copies no ordinal.
-- Half-done: list filtering, actor patches/RPC/event, CLI and MCP ingress
-  remain protected drafts. They cannot register calls before the shared gate.
-- Verification: both prebuilds, the type/projection tests and RPC protocol
-  tests passed. A lost test-module path at merge was fixed; the remaining
-  checks run in the exact corrective commit's whole gate. No completed
-  whole-gate claim is made for this correction yet.
+  Until its integration, the node ingress guard supplies the typed refusal;
+  no new registered call or second client mechanism is introduced here.
+- `LABELS_SCHEMA` derives the provisional append from the head migration
+  count; integration assigns it. Existing rollback cases retain their
+  statements and expectations, preceded by the label-column rollback.
 - Separate refactor: the three legacy Profile/Via/Title text-column adapters
-  now use a consuming serde string deserializer. The same validating types
-  and typed column/source errors remain; quote/backslash, title trimming and
-  corrupt-column tests move with the adapter unchanged. `QUALITY.md` records
-  removal without guessing a new global debt count. No dependency is added.
-- The corrective label commit's whole gate is running on its own fixed tree;
-  this decoder refactor has not yet been compiled or gated separately.
-- Next: report the corrective gate, then gate/report this decoder refactor
-  separately before the remaining labels slices.
-  Windows, macOS and real harnesses remain unverified locally.
+  use a consuming serde string deserializer. The validating types and typed
+  column/source errors remain; the quote/backslash, title trimming and
+  corruption tests are unchanged. `QUALITY.md` records the removal without
+  guessing a new global debt count. No dependency is added.
+- Half-done: this decoder refactor needs narrow store checks and its own
+  whole Rust gate. Later filtering, actor patches, CLI and MCP remain
+  protected drafts. Unwired services may be staged under `cfg(test)` until
+  the shared accessor and call plumbing are ready; they are not a product
+  build claim.
+- Next: gate and report the independent decoder refactor, then the remaining
+  labels slices. Windows, macOS, native UI and real harnesses are unverified.
