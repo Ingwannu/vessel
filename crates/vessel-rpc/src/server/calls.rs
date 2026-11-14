@@ -103,15 +103,8 @@ where
         // Refused calls take the same path as answered ones, so their
         // answers keep the same ordering and cancellation rules.
         let task = self.tasks.spawn(async move {
-            let needs = call.since();
-            if needs > protocol {
-                let error = WireError::new(
-                    ErrorCode::Unsupported,
-                    format!(
-                        "`{}` as sent needs protocol {needs}; this connection speaks {protocol}",
-                        call.method().as_str()
-                    ),
-                );
+            if let Some(error) = protocol_refusal(call.method(), call.required_protocol(), protocol)
+            {
                 return (id, Outcome::Err(error));
             }
             let outcome = dispatch(&*handler, &*context, call).await;
@@ -314,5 +307,52 @@ fn decode(text: &str) -> Inbound {
             Ok(RequestHeader::Request { id }) => Inbound::Invalid { id, error },
             Ok(RequestHeader::Other) | Err(_) => Inbound::Garbage(error),
         },
+    }
+}
+
+/// Refuse an unassigned field before dispatch just as a newer assigned
+/// field is refused; a numeric stand-in would conflate these states.
+fn protocol_refusal(
+    method: vessel_proto::Method,
+    required: Option<ProtocolVersion>,
+    protocol: ProtocolVersion,
+) -> Option<WireError> {
+    let Some(needs) = required else {
+        return Some(WireError::new(
+            ErrorCode::Unsupported,
+            format!(
+                "`{}` uses a feature whose protocol version is not assigned",
+                method.as_str()
+            ),
+        ));
+    };
+    (needs > protocol).then(|| {
+        WireError::new(
+            ErrorCode::Unsupported,
+            format!(
+                "`{}` as sent needs protocol {needs}; this connection speaks {protocol}",
+                method.as_str()
+            ),
+        )
+    })
+}
+
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+
+    #[test]
+    fn unassigned_and_newer_calls_are_refused_before_dispatch() {
+        let method = vessel_proto::Method::NodeInfo;
+        let old = ProtocolVersion::new(4);
+        let pending = protocol_refusal(method, None, old).unwrap();
+        assert_eq!(pending.code, ErrorCode::Unsupported);
+        assert!(pending.message.contains("not assigned"));
+        let newer = ProtocolVersion::new(5);
+        let denied = protocol_refusal(method, Some(newer), old).unwrap();
+        assert_eq!(denied.code, ErrorCode::Unsupported);
+        assert!(denied.message.contains("needs protocol 5"));
+        assert!(protocol_refusal(method, Some(newer), newer).is_none());
+        assert!(protocol_refusal(method, Some(old), newer).is_none());
     }
 }
