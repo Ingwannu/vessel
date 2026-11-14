@@ -1,11 +1,14 @@
 # ADR 0064: Stopping, restarting and reconfiguring a node
 
-Status: accepted, 2026-11-14. The contract only. No command and no wire
-method is added by the commit that adds this file. Protocol 21 below is
-provisional: this tree speaks 20 (`crates/vessel-proto/src/node.rs`), and
-the integrator assigns the final number when the methods land.
-`docs/PROTOCOL.md` is updated in that same commit, not before, so the
-protocol document never describes a method the code does not serve.
+Status: proposed, 2026-11-14. The contract only. No command and no wire
+method is added by this file. The two new methods are gated on one named
+constant, `NODE_CONFIG_PROTOCOL`. Its value is the number given at merge;
+this decision does not choose one. Until that assignment the constant
+equals the base `PROTOCOL_VERSION`, which is 20
+(`crates/vessel-proto/src/node.rs`), and the integrator changes that one
+constant. `docs/PROTOCOL.md` is updated in the commit that registers the
+methods, not before, so the protocol document never describes a method
+the code does not serve.
 
 ## Purpose and intent
 
@@ -159,7 +162,7 @@ Constraints that the choice has to keep:
 - `node.stop` stays the one shutdown. A second stop method would be two
   facts (the rule against a repeated method list).
 - Nothing is signalled by process name. The owner record is not a pid to
-  kill once the lock is free.
+  kill once the lock is free, and it is not a program a restart executes.
 - A library does not read the environment or the service manager. The
   `vessel` binary does.
 - No new crate and no new dependency: the service managers are programs
@@ -200,10 +203,10 @@ Constraints that the choice has to keep:
 | `daemon status` | `vessel node status` | Already. |
 | `daemon stop` | `vessel node stop`, calling the existing `node.stop` | New command, no new method. See below. |
 | `daemon restart` | `vessel node restart` | New command, no new method. See below. |
-| `daemon reload` | `vessel node reload` | New method, provisional protocol 21. |
+| `daemon reload` | `vessel node reload` | New method. Number given at merge, gated on `NODE_CONFIG_PROTOCOL`. |
 | `daemon config get` | `vessel node config get` | `node.settings` (`read`). |
 | `daemon config set` | `vessel node config set` | `node.set_settings` (`admin`). |
-| `daemon config unset` | `vessel node config unset` | New method, provisional protocol 21. |
+| `daemon config unset` | `vessel node config unset` | New method. Same constant. |
 | `daemon pair` | `vessel node pair` | Already. |
 | `daemon set-password` | none | Stated below. |
 | `--home` | `--data-dir`, or a book entry | No new flag. |
@@ -213,10 +216,19 @@ Constraints that the choice has to keep:
 
 ### Keys
 
-A key is one of two variants, `park_after` and `drivers`, not a path
-string. The wire name is that variant. A third variant, `unknown`, exists
-so a newer peer's list still decodes; it is never applied and never
-selected by matching text.
+Every field of `SetNodeSettings` is a variant of one key enum, with the
+reload class decided in the ADR that adds the field: applied on reload,
+start-time (`restart_required`), or pinned by the launch
+(`override_controlled`). The enum is not a closed list of every settable
+key, and this decision does not keep one. The wire name is the variant.
+`unknown` exists so a newer peer's list still decodes; it is never
+applied and never selected by matching text.
+
+Slice 3 maps keys by exhaustively destructuring `SetNodeSettings`. A new
+field does not compile until the ADR that adds it has given the field a
+variant and a class, in that same commit. The fields in this tree today
+are `park_after` and `drivers`. A key another ADR adds is that ADR's,
+added at merge, and is not classed here as missing or refused.
 
 | Paseo key | Vessel | Class |
 | --- | --- | --- |
@@ -227,11 +239,11 @@ selected by matching text.
 | `daemon.trustedProxies` | `--trusted-proxy`, `--client-address-header` | **Start-time.** |
 | `daemon.hostnames` | the fixed `Host` checks of the web UI and the model proxy | **None.** Not a setting. |
 | `daemon.cors.allowedOrigins` | no CORS, by design of the web UI | **None.** |
-| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | MCP is stdio for every session | **None.** There is no switch. |
+| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | ADR 0065 adds `mcp` (`mcp.serve`, `mcp.inject`), added at merge | **That ADR's class.** A running session keeps the list it started with. Not classed as absent here. |
 | `daemon.usage.enabled` | none | **None.** |
-| `daemon.browserTools.enabled` | none | **None.** |
+| `daemon.browserTools.enabled` | ADR 0069 adds `browser_tools`, added at merge | **That ADR's class.** The field was read (off unless set). When a live change applies was not read, so this row assigns no class. |
 | `daemon.git.maxProcessesPerSecond`, `maxProcessConcurrency` | none | **None.** |
-| `daemon.autoArchiveAfterMerge` | none | **None.** |
+| `daemon.autoArchiveAfterMerge` | ADR 0066's later slice, added at merge if that slice adds a field | **That ADR's.** 0066 adds no `node.settings` key and defers the switch. Not classed as absent. |
 | `daemon.enableTerminalAgentHooks` | none | **None.** |
 | `daemon.appendSystemPrompt` | none | **None.** Fleet instructions are a different mechanism (ADR 0012). |
 | `daemon.terminalProfiles` | none (`agent_terminals` on a profile is not this list) | **None.** |
@@ -246,26 +258,28 @@ selected by matching text.
 | `agents.providers` | `vessel agents` and `profiles.toml` | **None** as a config key. |
 | `agents.resumeOnStartup`, `agents.resumePrompt` | a session live at stop becomes `Interrupted` and waits | **None.** Not added. Slice 4 tests the absence. |
 | `agents.catalogRefreshTimeoutMs` | `--agent-handshake-timeout` is a different limit | **Start-time**, and not that Paseo key. |
-| `agents.metadataGeneration` | a title is the first prompt line | **None.** |
+| `agents.metadataGeneration` | ADR 0062 adds `metadata`, added at merge | **That ADR's class.** Not applied to a running agent; the next generation reads the settings. Until that field lands, a title stays the first prompt line. Not classed as absent. |
 | `agents.skills.selection` | none (fleet sync is not this selection) | **None.** |
 | `features.dictation`, `features.voiceMode` | none | **None.** |
 | `features.webUi.*` | `vessel ui` | **None** as a node setting. |
 | `log.*` | `RUST_LOG`, stderr | **Start-time.** Not a config key. |
 | `$schema`, `version` | `settings.json` has neither | Not accepted. |
 
-`config set` or `config unset` of a name that is not `park_after` or
-`drivers` is a usage error before any call. The error names the flag when
-one exists (`bind`, `name`, `relay`, `trusted-proxy`, the handshake
-timeout, the LSP flags) and says the next start is what applies it. It
-does not write the value. A name with no flag and no feature
-(`plugins`, `browser_tools`, `password`, …) is refused as an unknown key,
-not stored.
+`config set` or `config unset` names variants of the key enum. A name
+that is not a variant is a usage error before any call. The error names
+the flag when one exists (`bind`, `name`, `relay`, `trusted-proxy`, the
+handshake timeout, the LSP flags) and says the next start is what applies
+it. It does not write the value. A name with no flag and no field is
+refused as an unknown key, not stored. `metadata`, `browser_tools` and
+`mcp` are not unknown and are not refused here: ADR 0062, ADR 0069 and
+ADR 0065 add them, at merge. This command does not implement those fields.
 
 ### Reload
 
-`node.reload` (wire `node.reload`, `Admin`, provisional protocol 21) takes
-an empty request and returns three lists of the key enum, in the order
-`park_after` then `drivers`:
+`node.reload` (wire `node.reload`, `Admin`, gated on
+`NODE_CONFIG_PROTOCOL`) takes an empty request and returns three lists of
+the key enum, in the enum's order. Today that order is `park_after` then
+`drivers`. A field added later joins where its ADR puts the variant:
 
 - `applied`: reloadable keys whose saved value changed and was applied;
 - `restart_required`: persisted keys that are start-time and differ from
@@ -273,8 +287,10 @@ an empty request and returns three lists of the key enum, in the order
 - `override_controlled`: keys a launch pin stops the file from changing.
 
 This track persists no start-time key, and a saved `park_after` wins over
-the flag, so the last two lists are empty. They are still returned, and
-tested empty, so a later key has a place that is not a silent omission.
+the flag, so for the keys this decision maps the last two lists are empty.
+They are still returned, and tested empty, so a later key has a place that
+is not a silent omission. A key another ADR adds reports the class that
+ADR decided; this reload does not drop it and does not reclassify it.
 Reload re-reads `settings.json`. A missing file means nothing is saved:
 the flags apply, and a key that thereby changes is `applied`. A file that
 does not parse is `invalid_request`, and the running settings stay. That
@@ -288,8 +304,9 @@ nothing more.
 
 ### Unset
 
-`node.unset_settings` (wire `node.unset_settings`, `Admin`, provisional
-protocol 21) names one or more keys. Each named saved value is removed, so
+`node.unset_settings` (wire `node.unset_settings`, `Admin`, gated on
+`NODE_CONFIG_PROTOCOL`) names one or more keys. Each named saved value is
+removed, so
 the flag or the default applies again, including to live sessions for
 `park_after` and to new sessions for `drivers`. The answer is the settings
 then in force. An empty list, a repeated key, or `unknown` is
@@ -307,11 +324,15 @@ local socket keep every scope, as they do today.
 
 ### Older and newer peers
 
-- A client that negotiated less than 21 does not send the two new methods.
-  The commands say the node is too old. `config get`, and `config set` of
-  `park_after` (since 12) or `drivers` (since 18), still work.
-- A node of 21 serving a client of 20 sees no new method. Old replies gain
-  no required field.
+- A client whose negotiated version is below `NODE_CONFIG_PROTOCOL` does
+  not send the two new methods. The commands say the node is too old.
+  `config get`, and `config set` of `park_after` (since 12) or `drivers`
+  (since 18), still work. Until the number is assigned, the constant
+  equals the base `PROTOCOL_VERSION`, so a matching version is not proof
+  the node has the methods. `unsupported` means it does not, and the
+  command says so.
+- A node that has the constant, serving a client below it, sees no new
+  method. Old replies gain no required field.
 - A reload or unset answer that carries `unknown` is shown as a setting
   this client does not know. It is not omitted from the list.
 
@@ -333,11 +354,15 @@ has closed, whichever it can see, with a deadline of 15 seconds
 into a failure.
 
 `--force` is only for a data directory on this machine. If the call does
-not finish, and `NodeLock::holder` reports a pid, that pid is signalled
-(`SIGTERM`, then `SIGKILL` after `--kill-timeout`, default 3 seconds). The
-signal is that pid, never a process found by name. A record whose lock is
-not held is stale and is not signalled. `--force` on a remote node, and
-`--force` with `--when-idle`, are usage errors.
+not finish, the process that holds the lock is signalled (`SIGTERM`, then
+`SIGKILL` after `--kill-timeout`, default 3 seconds). That process is the
+one "Whose executable" identifies, and only when it agrees with
+`NodeLock::holder`. The signal is that pid, never a process found by
+name, and never a pid taken from a record that disagrees. A record whose
+lock is not held is stale and is not signalled. `--force` on a remote
+node, and `--force` with `--when-idle`, are usage errors. On Windows, and
+on macOS when the holder cannot be confirmed, nothing is signalled; the
+refusals are below.
 
 A service is used only when the unit `vessel init --service` writes is
 present and its command contains this data directory as `--data-dir`. A
@@ -376,23 +401,126 @@ How it starts again:
 
 - A matching service unit: the service manager restarts that unit
   (`systemctl --user restart`, or the launchd kick that stops and starts
-  that label). The unit's command is the launch. For `--when-idle` the
-  manager is not told to restart while the process is alive; the CLI
-  starts the unit after the lock drops.
-- No such unit (a foreground `vessel node start`, or a node `vesseld
-  attach` started): the owner record gains the process's arguments, and
-  nothing from its environment. They are written by the node when it takes
-  the lock. Restart reads them only while the lock is held, checks that
-  the first argument is the recorded executable, that none contains a NUL,
-  and that `--data-dir` is this directory, then, after the lock drops,
-  spawns that executable with those arguments, detached. A record without
-  arguments is a refusal that names `vessel node start`, not a guess of
-  `--bind none`.
+  that label). The unit's command is the launch. The new process gets the
+  unit's environment, not the invoker's and not the stopped process's:
+  `PATH` as `vessel init --service` recorded it (`Environment=` in the
+  systemd unit, `EnvironmentVariables` in the plist) plus what the service
+  manager itself adds. For `--when-idle` the manager is not told to
+  restart while the process is alive; the CLI starts the unit after the
+  lock drops. A unit is used only when its text is the text this version
+  writes, so a rewritten unit is not what restart runs.
+- No such unit, on Linux: the CLI spawns the process that holds the lock,
+  after reading it while the lock is still held, then waiting until the
+  lock drops. It does not spawn a program named by `vesseld.owner`. See
+  below.
+- No such unit, on macOS or Windows: refused, with the words below. The
+  owner record is not run instead.
 - A node reached over SSH or a relay is not started again by this command.
   This machine has neither its service manager nor its executable. Stop
   still works, through `node.stop`, including from `vessel node update`.
   The next `vesseld attach` starts an SSH node, as ADR 0008. The error for
   `restart` says that.
+
+The process a foreground restart spawns runs as the invoking user and can
+do what that binary can do as that user. No token, key or relay secret is
+placed on its command line. An environment value is not copied into the
+owner file, a log or an error. A mismatched record, a remote node, macOS
+without a matching unit, and Windows are refusals, not a fallback.
+
+### Whose executable a restart runs
+
+`vesseld.owner` is a record the node writes. An agent running as the
+node's user can rewrite a file in the data directory. Comparing the
+record's executable with the record's first argument would compare two
+fields of the same file, and the next restart would run whatever that
+writer put there. Restart does not do that. `NodeOwner` does not grow an
+argument list. The owner file is not the program and not the arguments.
+
+While the lock is held, the program and the arguments are read from the
+process that holds the lock. The record's `executable` must be that same
+program. If it is not, restart refuses, spawns nothing, and the error is
+`the owner record does not match the process holding the lock`. The data
+directory's files are owner-only (0600 on Unix), which refuses a different
+OS user and does not refuse the node user, so the mode is not this check.
+
+- Linux: the holder is the process id of the `flock` writer on
+  `vesseld.lock` in `/proc/locks` (the lock file's device and inode), not
+  a pid taken from the record alone. The executable is `readlink` of
+  `/proc/<pid>/exe` (the standard library, no `unsafe`). The arguments are
+  `/proc/<pid>/cmdline`, split on NUL. `holder()`'s pid must be that same
+  pid. A disagreement is the refusal above: nothing is signalled and
+  nothing is spawned from the file's pid or the file's path.
+- The arguments must be non-empty, must include `--data-dir` of this
+  directory, and must contain no NUL inside a field. Otherwise the refusal
+  names `vessel node start` and does not guess `--bind none`.
+- macOS: there is no `/proc`. `proc_pidpath` would name the executable of
+  `holder()`'s pid, and calling it is `unsafe`, which this workspace
+  forbids. A matching launchd unit is still restarted by the service
+  manager, because the program is the unit this version wrote. With no
+  such unit, `vessel node restart` refuses with `restart cannot confirm
+  the running executable on this system`, and `--force` refuses with
+  `forced stop cannot confirm the process holding the lock on this
+  system`, rather than signalling or executing the record.
+- Slice 2 plants a different executable path in the record while the lock
+  is held. Restart refuses, and that path is not executed.
+
+### Environment, stdio and the process group
+
+Nothing from the stopped process's environment is written down. The
+environment can hold secrets and the homes an agent was signed in under
+(`PATH`, `HOME`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `VESSEL_*`,
+`RUST_LOG`). Recording it would store those in the data directory.
+
+A foreground restart is performed by the CLI, so the new process receives
+the invoker's environment, not the stopped process's. Paseo's
+`daemon restart` restarts the worker while "retaining its supervisor
+launch" (`packages/cli/src/commands/daemon/restart.ts`, line 21), and the
+result line says the supervisor launch was retained (line 118). Vessel
+has no supervisor. This is a stated difference: after a foreground
+restart a harness can be found, or signed in, as the invoker rather than
+as the process that was stopped. A person who needs the stopped process's
+environment starts again with `vessel node start` from that environment.
+A service restart differs again: the new process gets the unit's
+environment, above, which is the `PATH` captured at `vessel init
+--service` and not the invoker's whole environment.
+
+Stdio of a foreground restart is not the invoker's terminal. The first
+process may have been logging there. Stdin is null. Stdout and stderr are
+the data directory's node log, the file `vesseld attach` already opens.
+On Unix the child is started in a new process group, the detach
+`vesseld attach` uses (`process_group(0)` in `attach/start.rs`). It is
+not a new session: a second detach would be a second mechanism. The child
+is not in the CLI's process group, so the CLI's exit and that group's
+signals do not reach it.
+
+Slice 2 tests this with two markers that are not secrets. The stopped
+process has one, the invoker has the other. The owner file contains
+neither. A stand-in executable, built only for the test, records the
+environment it was given: the invoker's marker is present and the stopped
+process's is absent. The test does not print the environment. The
+stand-in's stdout is the node log. On Unix its process group id is its
+own pid.
+
+### Windows
+
+`vessel init --service` has no Windows unit. On that system it already
+reports that a service is not available yet and that the node is started
+with `vessel node start`. This decision does not add a unit.
+
+`vessel node stop` without `--force` is the RPC, on Windows as on Unix.
+`--force` sends `SIGTERM` and then `SIGKILL` only where those signals
+exist. Windows has neither, and this tree does not terminate an arbitrary
+process there. When the stop has not finished and a signal would have
+been sent, the command refuses with `forced stop is not available on
+Windows; the node was asked to stop and is still running`. It does not
+run `taskkill` and it does not take a dependency to call
+`TerminateProcess`.
+
+`vessel node restart` on Windows refuses, whether or not a service was
+expected, with `restart is not available on Windows; the running
+executable cannot be confirmed here, and the owner record is not run.
+Start the node with vessel node start`. There is no unit to restart and
+no `/proc` with which to confirm the holder.
 
 ### What a restart does to sessions
 
@@ -436,22 +564,28 @@ dropping it. Each refusal names what was wrong.
 
 ## Advantages, costs and effects
 
-Advantages: stop and restart work for the two ways a node on this machine
-is run, without a new protocol for stop and without signalling by name.
-Config changes are the settings the node already applies. An older client
-and an older node keep working.
+Advantages: on Linux, stop and restart work for a matching service unit
+and for a foreground process, without a new protocol for stop and without
+signalling by name. A matching launchd unit restarts the same way. Config
+changes are the settings the node already applies. An older client and an
+older node keep working.
 
-Costs: `restart_required` and `override_controlled` carry no keys until a
-later decision persists a start-time value. A remote node cannot be
-restarted from here. launchd agents written before the `KeepAlive` change
-are not rewritten, and a stop against one of them may come back; the
-command says so. `NodeOwner` grows an optional argument list, which older
-readers ignore and which a restart refuses to invent when it is absent.
-Two wire methods wait on protocol 21.
+Costs: `restart_required` and `override_controlled` carry no keys of this
+decision until a later decision persists a start-time value. A remote node
+cannot be restarted from here. launchd agents written before the
+`KeepAlive` change are not rewritten, and a stop against one of them may
+come back; the command says so. A foreground restart on macOS, and any
+restart on Windows, is a typed refusal, because the running executable
+cannot be confirmed there without `unsafe`. The foreground process gets
+the invoker's environment, not the stopped process's. Two wire methods
+wait on `NODE_CONFIG_PROTOCOL`, the number given at merge. `NodeOwner`
+does not grow a field.
 
 Effects on later slices: slice 2 is the commands `stop` and `restart`, the
-owner arguments, and the launchd template. Slice 3 is `config`, `reload`,
-`unset` and the protocol document. Slice 4 tests sessions across a stop
-and a restart and adds no resume behaviour. No crate boundary changes, so
-`docs/ARCHITECTURE.md` does not gain a row. The CLI's help is the
-user-facing text, updated with the command that adds it.
+live-executable check, the environment test, the tampered-record test and
+the launchd template. Slice 3 is `config`, `reload`, `unset`, the
+exhaustive `SetNodeSettings` mapping and the protocol document. Slice 4
+tests sessions across a stop and a restart and adds no resume behaviour.
+No crate boundary changes, so `docs/ARCHITECTURE.md` does not gain a row.
+The CLI's help is the user-facing text, updated with the command that
+adds it.

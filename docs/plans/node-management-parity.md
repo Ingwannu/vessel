@@ -6,13 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: Paseo's daemon commands, reload result and config keys read; Vessel's
-  `node.stop`, settings, service unit, attach start and lock read. ADR 0064
-  and this plan written. No code.
+- Done: ADR 0064 and this plan. The first docs slice was returned; this
+  commit answers it in the ADR. Status is proposed. A foreground restart
+  on Linux runs the lock holder's executable, not `vesseld.owner`, and
+  gets the invoker's environment. Sibling settings keys are cited and
+  added at merge. Windows refusals are stated. No code.
 - Half-done: nothing.
-- Next: slice 2, `vessel node stop` and `vessel node restart`, after this
-  commit's gate is green. Do not start it on a red gate. A review that
-  returns the ADR is fixed before slice 2.
+- Next: slice 2, after this commit's fast checks are green. A further
+  return is fixed before slice 2.
 
 ## Existing asset check
 
@@ -21,7 +22,7 @@ slice order. The docs commit adds both and no command.
 | `node.stop` (`now`, `when_idle`), `Admin`, protocol 3 | `crates/vessel-proto/src/rpc.rs`, `vessel-node/src/lifecycle.rs`, `shutdown.rs` | Modify the CLI only. Do not add a stop method. |
 | Live-session rule of `vessel node update` | `crates/vessel-cli/src/remote.rs` | Reuse for stop and restart. |
 | `node.settings` / `node.set_settings`, `settings.json` | `vessel-proto/src/settings.rs`, `vessel-node/src/settings.rs`, `vessel-store/src/settings_file.rs` | Extend with unset and reload. Do not add `config.json`. |
-| `vesseld.lock`, `vesseld.owner` | `vessel-store/src/lock.rs` | Modify the owner record with the arguments. Trust it only while the lock is held. |
+| `vesseld.lock`, `vesseld.owner` | `vessel-store/src/lock.rs` | Do not add an argument list and do not execute the record. On Linux, read the `flock` holder from `/proc/locks` and its executable from `/proc/<pid>/exe`. |
 | `vessel init --service` | `vessel-cli/src/init/service.rs` | Modify the launchd `KeepAlive`. Do not rewrite a unit whose text differs. |
 | `vesseld attach` start | `vessel-node/src/attach/start.rs` | Adopt its detach for a foreground restart. Do not guess `--bind none` when the arguments were not recorded. |
 | Device pairing, local token | ADR 0005, ADR 0010, `vessel node pair` | Adopt as the password's replacement. No password hash. |
@@ -54,10 +55,12 @@ Commands are registered in `packages/cli/src/commands/daemon/index.ts`
   `--force` local only, `--keep-terminals` incompatible with `--force`.
   Shutdown is an RPC (`shutdownServer`). `--force` may then kill that
   local process. A remote stop does not check the exit.
-- `restart` (`restart.ts` 6 to 18 and the loop that follows): supervisor
-  stays, worker pid must change, deadline 600s, `--kill-terminals` closes
-  them instead of keeping them. A remote restart has only what the
-  replacement reports.
+- `restart` (`restart.ts` 20 to 21, 25 to 26, 51 to 58, 101 to 118): the
+  command restarts the worker, "retaining its supervisor launch". The
+  supervisor is checked before the restart and again when the worker pid
+  differs; a replaced supervisor is `DAEMON_REPLACED`. Deadline default
+  600s. `--kill-terminals` closes them instead of keeping them. The human
+  line says the supervisor launch was retained.
 - `reload` (`reload.ts` 4 to 66): RPC `reloadDaemonConfig`. Human output
   lists restart-required paths and override-controlled paths, and the
   restart command.
@@ -120,16 +123,21 @@ Edge cases the slices have to keep a typed answer for:
 Recorded in ADR 0064's "Existing implementation". The gaps this plan
 closes are the missing commands `stop`, `restart`, `config` and `reload`,
 and a launchd unit that would undo a clean stop. The gaps it does not
-close are Paseo's features Vessel does not have (plugins, voice, browser
-tools, a daemon password, terminals that survive a restart, resume on
-startup). Those stay absent, named in the ADR's key table.
+close are Paseo's features this decision does not add (plugins, voice, a
+daemon password, terminals that survive a restart, resume on startup).
+Metadata, browser tools, MCP policy and auto-archive are ADR 0062, ADR
+0069, ADR 0065 and ADR 0066, added at merge, not gaps this plan closes
+or refuses.
 
 ## Slices
 
 ### Slice 1 (this commit)
 
-ADR 0064 and this plan. No code. Gate is the repository gate; nothing
-under `web/` changes, so the page's checks are not run.
+ADR 0064 and this plan, including the corrections after the first
+return. No code. The gate for this documents-only slice is the fast
+checks: `cargo fmt --all --check`, `node scripts/check-rust-size.mjs`
+and `node scripts/check-boundaries.mjs`. Clippy and `cargo test` are
+not run. Nothing under `web/` changes.
 
 ### Slice 2: `vessel node stop` and `vessel node restart`
 
@@ -145,26 +153,45 @@ the testkit's node, never a real agent and never the network:
   signal a stale owner file;
 - a matching unit is stopped or restarted through the stand-in
   `systemctl` / `launchctl` on `PATH`; a unit whose text differs is not;
-- foreground restart re-execs the recorded arguments and waits until a
-  new pid holds the lock;
-- a record with no arguments is a refusal;
+- foreground restart on Linux spawns `/proc/<pid>/exe` of the `flock`
+  holder, with that process's arguments, and waits until a new pid holds
+  the lock;
+- the spawned process's environment is the invoker's: a marker set only
+  on the stopped process is absent, a marker set only on the invoker is
+  present, neither marker is in the owner file, and the test does not
+  print the environment. Stdout is the node log. On Unix the child's
+  process group id is its own pid;
+- a record whose executable path was rewritten while the lock is held is
+  refused, and the planted path is not executed;
+- a process whose arguments were not read is a refusal that names
+  `vessel node start`;
 - restart when nothing is running is a refusal;
 - a remote target's restart is the refusal the ADR names; its stop still
-  calls `node.stop`.
+  calls `node.stop`;
+- the Windows sentences for `--force` and `restart`, and the macOS
+  sentence when the executable cannot be confirmed, are the ADR's words.
+  The stand-in executable exists only in the test, not in a product build.
 
 The launchd template change is in this slice, with the service unit test
 updated for `KeepAlive` only on a failed exit. No `sleep` as the wait.
 
 ### Slice 3: `config` and `reload`
 
-Provisional protocol 21, two methods, as the ADR. `PROTOCOL_VERSION` and
-`docs/PROTOCOL.md` move in this commit. Generated TypeScript is
-regenerated in the same commit (`web/src/wire/`), and the page checks run
-because the wire changed.
+Two methods, as the ADR. The number is given at merge. The code gates
+them on `NODE_CONFIG_PROTOCOL` and leaves `PROTOCOL_VERSION` at the base
+until that assignment; the constant then equals the base, and the
+integrator changes that one constant. `docs/PROTOCOL.md` is updated in
+this commit because the methods are registered. The mapping exhaustively
+destructures `SetNodeSettings`, so a new field does not compile until it
+has a variant and the reload class its own ADR decided. Generated
+TypeScript is regenerated in the same commit (`web/src/wire/`), and the
+page checks run because the wire changed.
 
 Tests: round trip; `admin` required to set, unset and reload; `read`
-enough to get; a node negotiated at 20 answers `unsupported` and the CLI
-does not send; unset clears the saved value so the flag applies; a bad
+enough to get; a peer negotiated below `NODE_CONFIG_PROTOCOL` answers
+`unsupported` and the CLI does not send; while the constant equals the
+base, `unsupported` is what tells the CLI the node lacks the method;
+unset clears the saved value so the flag applies; a bad
 `settings.json` on reload changes nothing; an unknown key is refused
 before a call; `restart_required` and `override_controlled` are empty;
 secrets are not in the output (the settings types have none, and the test
@@ -187,7 +214,15 @@ The ADR has the full table. The ones a review will look for:
 
 - no `set-password`: pair, revoke, or delete `token` and start again;
 - no `--home`: `--data-dir` or a book entry;
-- no dotted paths: two keys, unknown refused;
+- no dotted paths: a key is a variant of the settings enum; a name with
+  no variant is refused; `metadata`, `browser_tools` and `mcp` are ADR
+  0062, ADR 0069 and ADR 0065, added at merge;
+- a foreground restart runs the lock holder's executable and the
+  invoker's environment, not the owner file and not the stopped
+  process's environment;
+- Windows has no service unit; `--force` and `restart` refuse with the
+  ADR's sentences. macOS foreground restart refuses the same way when
+  the executable cannot be confirmed without `unsafe`;
 - stop asks before interrupting live sessions (ADR 0008), unlike Paseo;
 - no terminal keep, no resume-on-startup;
 - remote restart is refused; remote stop works;
