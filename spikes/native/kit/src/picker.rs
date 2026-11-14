@@ -707,27 +707,48 @@ pub fn combobox<V: 'static>(
             crate::motion::QUICK
         },
     );
-    let element = if compact {
+    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
+    // from a row of the features sheet.
+    Some(deferred(element).with_priority(3).into_any_element())
+}
+
+/// Where the list is drawn: below the compact width a sheet from the
+/// bottom over the dimmed page (a press on the dim closes it); wider, at
+/// its trigger on the caller's side.
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    compact: bool,
+    side: Side,
+    anchor: Option<Bounds<Pixels>>,
+    get: fn(&mut V) -> &mut ComboboxState,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
-        let size = window.viewport_size();
+        let viewport = window.viewport_size();
         let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
             get(view).close();
             cx.notify();
         });
-        anchored().position(point(px(0.0), px(0.0))).child(
-            div()
-                .w(size.width)
-                .h(size.height)
-                .flex()
-                .flex_col()
-                .justify_end()
-                .bg(rgba(0x0000_0073))
-                .on_mouse_down(MouseButton::Left, on_scrim)
-                .child(panel),
-        )
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(
+                div()
+                    .w(viewport.width)
+                    .h(viewport.height)
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .bg(rgba(0x0000_0073))
+                    .on_mouse_down(MouseButton::Left, on_scrim)
+                    .child(panel),
+            )
+            .into_any_element()
     } else {
         // Paseo's `offset(5)` from the trigger, on the caller's side.
-        let (at, corner, offset) = match (header.side, anchor) {
+        let (at, corner, offset) = match (side, anchor) {
             // Not drawn yet (the first frame): near the window's middle.
             (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
             (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
@@ -739,10 +760,8 @@ pub fn combobox<V: 'static>(
             .anchor(corner)
             .snap_to_window_with_margin(px(EDGE))
             .child(panel)
-    };
-    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
-    // from a row of the features sheet.
-    Some(deferred(element).with_priority(3).into_any_element())
+            .into_any_element()
+    }
 }
 
 fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
