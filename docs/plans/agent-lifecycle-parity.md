@@ -200,12 +200,13 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code. `PROTOCOL_VERSION` is
-  not changed. The number is `lifecycle::SINCE`, set at merge. Keys and
-  values refuse `char::is_control`, as `SessionTitle` does, including
-  C1; the contract's test names U+0085.
-- Half-done: nothing.
-- Next: slice 2, labels, starting at `vessel-proto` (`LabelKey`,
-  `lifecycle::SINCE`, and the `session.labels` row). Do not change
-  `PROTOCOL_VERSION`. Do not start reload or the log flags before labels
-  and the listing are in.
+- Done: slice 1, the ADR and this plan. Slice 2a adds only the validated
+  label types and their parser, atomic patch, logical-and filter and
+  bounded decoding tests. No wire field, call, store column or command
+  is enabled by this slice. No dependency or crate edge is added.
+- Half-done: slice 2b connects those types through the wire, store,
+  session actor, node, CLI and MCP. It must regenerate the wire types
+  and verify older peers before being reported.
+- Next: finish and gate slice 2b, then background (slice 3). The new
+  protocol constant and schema append land with 2b. Do not change
+  `PROTOCOL_VERSION`.
