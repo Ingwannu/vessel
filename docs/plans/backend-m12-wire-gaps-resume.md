@@ -45,7 +45,7 @@ human guidance; non-Admin still gets Forbidden without configuration detail.
 ## Current slice: file-seeded FakeForge (ADR 0060)
 
 Contract-first commits: `39df0f9c`, then assigned-number move `ef3fd425`.
-Implementation is gated and ready to commit; its V1 submission is pending.
+Gated implementation: `ba6702b3`. V1 review is pending; no PASS or merge is claimed.
 The separate feature-gated `vessel-forge-fixture` binary injects the real
 FakeForge through ForgeSetup.custom. Product vesseld has no fake selector,
 even with the feature enabled. No new wire, dependency edge or protocol bump.
@@ -146,13 +146,14 @@ path counts were 13 and 14; production permissions were unchanged.
 
 ## Finish and next order
 
-The whole gate, frozen inputs, compilation and final cleanup are verified.
-Commit implementation/docs, then record the source hash in an evidence
-checkpoint and submit one complete slice to V1 only; it forwards accepted
-work. Send the waiting PR-screen track the exact command/schema only after
-integration is confirmed. No ready-slice submission has been made for ADR
-0060 yet. The ADR remains proposed until review passes. Do not rerun the
-unchanged passing gate.
+Source `ba6702b3` is committed. The whole gate, frozen inputs, compilation
+and final cleanup are verified; this checkpoint records its evidence. Review
+is with V1, which forwards accepted work. Send the waiting PR-screen track
+the exact command/schema only after integration is confirmed. No PASS or
+integration is claimed for ADR 0060; it remains proposed until review passes.
+Do not rerun the unchanged passing gate. A complete private review report
+identifies the scratch logs, source pins, commands, shared script seams and
+limits above.
 
 Next is actual project-wide open PR listing without a live session, ADR 0061.
 The earlier claim that it was already upstream was withdrawn: pr.list still

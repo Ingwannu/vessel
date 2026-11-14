@@ -461,3 +461,10 @@ gate. That active run was retained unchanged and passed. The next whole gate
 must prebuild testkit bins and product vesseld in the same environment/slot,
 without changing any safety deadline or assertion. No unchanged passing gate
 is repeated for that procedural amendment.
+
+
+ADR 0060 gated implementation is `ba6702b3`; contract-first history is
+`39df0f9c` and `ef3fd425`. The resume checkpoint identifies exact logs and
+review status. V1 review/integration remain pending. The PR-screen consumer
+gets its command and seed contract only after merge confirmation. Actual
+project listing without a live session remains the next ADR 0061 slice.
