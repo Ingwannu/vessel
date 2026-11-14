@@ -225,12 +225,14 @@ impl Sessions {
         }
         self.agents.retire(id);
         self.models.retire(id);
-        // Nobody listening is fine: nothing needs to hear of this end.
-        let _listeners = self.ended.send(id);
         if let Err(error) = self.runtime.remove(id) {
             tracing::warn!(session = %id, %error, "cannot remove a finished session from the runtime");
         }
         self.forget(id);
+        // End listeners recheck find(). Publish only after both live
+        // entries are gone, or they can consume the only wake while still
+        // finding Live and wait for an end that will never be sent again.
+        let _listeners = self.ended.send(id);
     }
 
     /// Drop a session's durability entry; it is then found in the store.
