@@ -4,8 +4,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Row;
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessSessionId, OptionChoice, ProfileName, SessionBoard, SessionEvent,
-    SessionId, SessionInfo, SessionLabels, SessionSpec, SessionStatus, SessionTitle,
+    EventRecord, EventSeq, HarnessSessionId, OptionChoice, SessionBoard, SessionEvent, SessionId,
+    SessionInfo, SessionLabels, SessionSpec, SessionStatus,
 };
 
 use crate::config::ByteCount;
@@ -64,6 +64,22 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(
     })
 }
 
+// Bare text columns share their wire types' serde validators. Consume
+// the cell directly to retain Corrupt's column/source without a JSON tree
+// or an encode/decode round trip.
+fn decode_text<T: serde::de::DeserializeOwned>(
+    session: SessionId,
+    column: Column,
+    text: String,
+) -> Result<T, StoreError> {
+    let input = serde::de::value::StringDeserializer::<serde_json::Error>::new(text);
+    T::deserialize(input).map_err(|source| StoreError::Corrupt {
+        session,
+        column,
+        source,
+    })
+}
+
 /// The columns [`session_from_row`] expects, in order: the marks'
 /// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then attention and labels.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
@@ -90,16 +106,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     // nor another creator than the owner.
     info.profile = row
         .get::<_, Option<String>>(7)?
-        .map(|name| {
-            // Stored as the bare name; the name rule is the serde one.
-            serde_json::from_value::<ProfileName>(serde_json::Value::String(name)).map_err(
-                |source| StoreError::Corrupt {
-                    session: id,
-                    column: Column::Profile,
-                    source,
-                },
-            )
-        })
+        .map(|text| decode_text(id, Column::Profile, text))
         .transpose()?;
     if let Some(creator) = row.get::<_, Option<String>>(8)? {
         info.created_by = decode(id, Column::CreatedBy, &creator)?;
@@ -107,13 +114,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     // Schema 4: both `NULL` for this node's own sessions and older ones.
     info.via = row
         .get::<_, Option<String>>(9)?
-        .map(|node| {
-            decode(
-                id,
-                Column::Via,
-                &serde_json::Value::String(node).to_string(),
-            )
-        })
+        .map(|text| decode_text(id, Column::Via, text))
         .transpose()?;
     info.origin = row
         .get::<_, Option<String>>(10)?
@@ -128,15 +129,7 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
     // docs); `NULL` is none, as for every row stored before schema 6.
     info.title = row
         .get::<_, Option<String>>(12)?
-        .map(|title| {
-            // Stored as the bare text; the title rule is the serde one, so
-            // an edited row that breaks it is `Corrupt`, never a value.
-            decode::<SessionTitle>(
-                id,
-                Column::Title,
-                &serde_json::Value::String(title).to_string(),
-            )
-        })
+        .map(|text| decode_text(id, Column::Title, text))
         .transpose()?;
     // Schema 7: what the agent said it can do in its last handshake, so an
     // ended session says whether it can start again.
@@ -214,4 +207,44 @@ pub(crate) fn record_from_row(
         event,
     };
     Ok((record, text.len()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vessel_proto::{NodeId, ProfileName, SessionTitle};
+
+    #[test]
+    fn bare_text_keeps_quotes_and_backslashes_and_preserves_column_refusals() {
+        let session = SessionId::random();
+        let raw = r#"Review "main"\status"#;
+        let title: SessionTitle = decode_text(session, Column::Title, raw.to_owned()).unwrap();
+        assert_eq!(title.as_str(), raw);
+        // The title's own validator trims before checking controls; keep that contract.
+        let trimmed: SessionTitle =
+            decode_text(session, Column::Title, "  title\u{0085}".to_owned()).unwrap();
+        assert_eq!(trimmed.as_str(), "title");
+        let refused = [
+            (
+                Column::Profile,
+                decode_text::<ProfileName>(session, Column::Profile, String::new()).map(|_| ()),
+            ),
+            (
+                Column::Via,
+                decode_text::<NodeId>(session, Column::Via, "not-a-node".to_owned()).map(|_| ()),
+            ),
+            (
+                Column::Title,
+                decode_text::<SessionTitle>(session, Column::Title, "bad\u{0085}title".to_owned())
+                    .map(|_| ()),
+            ),
+        ];
+        for (expected, result) in refused {
+            assert!(
+                matches!(result, Err(StoreError::Corrupt { session: id, column, .. })
+                if id == session && column == expected),
+                "wrong refusal for {expected:?}: {result:?}"
+            );
+        }
+    }
 }

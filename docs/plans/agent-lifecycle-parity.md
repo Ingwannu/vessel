@@ -254,6 +254,13 @@ No row of the crate table changes.
   tests passed. A lost test-module path at merge was fixed; the remaining
   checks run in the exact corrective commit's whole gate. No completed
   whole-gate claim is made for this correction yet.
-- Next: finish the corrective gate and report it, then land the text-column
-  decoder refactor separately before the remaining labels slices.
+- Separate refactor: the three legacy Profile/Via/Title text-column adapters
+  now use a consuming serde string deserializer. The same validating types
+  and typed column/source errors remain; quote/backslash, title trimming and
+  corrupt-column tests move with the adapter unchanged. `QUALITY.md` records
+  removal without guessing a new global debt count. No dependency is added.
+- The corrective label commit's whole gate is running on its own fixed tree;
+  this decoder refactor has not yet been compiled or gated separately.
+- Next: report the corrective gate, then gate/report this decoder refactor
+  separately before the remaining labels slices.
   Windows, macOS and real harnesses remain unverified locally.
