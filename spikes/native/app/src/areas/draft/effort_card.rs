@@ -23,7 +23,9 @@
 //!   (`#ad7bf9` dark, `#924ff7` light) for the word and a bolt that is on;
 //!   the slider's fill and an "on" bolt below the top are Vessel's accent.
 //! - Differences, named: the word below the top stop is the ink, not the
-//!   accent (Vessel's teal accent on the dark card is too faint for text);
+//!   accent (Vessel's teal accent on the dark card is too faint for text),
+//!   and an "on" bolt on the dark card is the teal mixed halfway toward
+//!   the ink ([`accent_mark`]);
 //!   the card keeps Vessel's popup surface, edge and corners (the
 //!   reference's menu surface was not read); the bolt's tooltip has no
 //!   dimmed second line (the kit's tooltip is one style).
@@ -116,6 +118,20 @@ fn purple(tokens: &Tokens) -> Hsla {
         Scheme::Light => PURPLE_LIGHT,
     })
     .into()
+}
+
+/// The accent for a small mark (the bolt that is on): Vessel's teal on
+/// the light card; on the dark card the teal is 2.0:1 against it
+/// (measured, `surface2`), so it is mixed halfway toward the ink there
+/// (about 6:1). The slider's fill, a large area, keeps the teal.
+fn accent_mark(tokens: &Tokens) -> Hsla {
+    match tokens.scheme {
+        Scheme::Light => tokens.neutral.accent,
+        Scheme::Dark => tokens
+            .neutral
+            .accent
+            .blend(tokens.neutral.foreground.opacity(0.5)),
+    }
 }
 
 /// The step's word, as the agent says it.
@@ -478,7 +494,7 @@ fn title_row(
         let choice = fast.choose(!fast.on());
         let (which, colour) = match (fast.on(), title.at_maximum) {
             (true, true) => (Glyph::LightningFilled, purple(tokens)),
-            (true, false) => (Glyph::LightningFilled, neutral.accent),
+            (true, false) => (Glyph::LightningFilled, accent_mark(tokens)),
             (false, _) => (Glyph::Lightning, quiet),
         };
         let bolt = corner("effort-fast", which, BOLT, colour, tokens)
@@ -614,12 +630,28 @@ fn corner(
 }
 
 /// The usage warning over the title row, purple, a light band crossing it
-/// once (`view::slider::flair::shimmer`), one colour per character.
-fn warning(text: &str, since: f32, tokens: &Tokens) -> Div {
+/// once (`view::slider::flair::shimmer`): one run of text, each
+/// character's colour a highlight, so the words keep their shaping.
+fn warning(text: &'static str, since: f32, tokens: &Tokens) -> Div {
     let base = purple(tokens);
     let ink = tokens.neutral.foreground;
     let count = text.chars().count().max(1);
     let last = vessel_app_view::slider::float(count.saturating_sub(1).max(1));
+    let highlights: Vec<(std::ops::Range<usize>, gpui::HighlightStyle)> = text
+        .char_indices()
+        .enumerate()
+        .map(|(index, (start, character))| {
+            let at = vessel_app_view::slider::float(index).mul_add(last.recip(), 0.0);
+            let colour = base.blend(ink.opacity(flair::shimmer(at, since)));
+            (
+                start..start.saturating_add(character.len_utf8()),
+                gpui::HighlightStyle {
+                    color: Some(colour),
+                    ..gpui::HighlightStyle::default()
+                },
+            )
+        })
+        .collect();
     div()
         .absolute()
         .inset_0()
@@ -628,13 +660,8 @@ fn warning(text: &str, since: f32, tokens: &Tokens) -> Div {
         .justify_center()
         .type_(Type::Meta)
         .whitespace_nowrap()
-        .children(text.chars().enumerate().map(|(index, character)| {
-            let at = vessel_app_view::slider::float(index).mul_add(last.recip(), 0.0);
-            let light = flair::shimmer(at, since);
-            div()
-                .text_color(base.blend(ink.opacity(light)))
-                .child(character.to_string())
-        }))
+        .text_color(base)
+        .child(gpui::StyledText::new(text).with_highlights(highlights))
 }
 
 /// The kit's paint for `frame`.
