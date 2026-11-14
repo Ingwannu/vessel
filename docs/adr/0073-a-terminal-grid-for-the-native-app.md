@@ -136,8 +136,13 @@ is string shaping only.
 
 ## The choice
 
-`vte` 0.15, feature `std` only, is the parser, and only
-`vessel-app-view` may depend on it. The grid is new code in `view`:
+`vte` 0.15, without default features, is the parser, and only
+`vessel-app-view` may depend on it. Its `std` build keeps an OSC string
+in a `Vec` that grows for as long as the program writes one (`lib.rs`
+63–64, 547–551); without `std` the parser's own buffer is an `ArrayVec`
+of 1,024 bytes and bytes past it are dropped, so an endless OSC costs no
+memory (`view::terminal::parse`, `OSC_LIMIT`; `memchr` and `arrayvec`
+stay, they are not optional). The grid is new code in `view`:
 bytes in, cells out, keys and pastes back to bytes. No source from
 Alacritty, xterm or WezTerm is copied in. `unicode-width` 0.2.3, with
 its default `cjk` feature, is the width of a scalar; it is not given an

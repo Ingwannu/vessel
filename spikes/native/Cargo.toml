@@ -151,6 +151,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # NFD for find's folding of accents (MIT or Apache-2.0).
 unicode-normalization = "0.1"
+# VT parser only (ADR 0073), Apache-2.0 OR MIT. Without default features:
+# the `std` build keeps an OSC string in a Vec with no bound; without it
+# the parser's own buffer is capped (`terminal::parse::OSC_LIMIT`).
+vte = { version = "0.15.0", default-features = false }
 qrcode = { version = "0.14", default-features = false }
 
 [profile.release]

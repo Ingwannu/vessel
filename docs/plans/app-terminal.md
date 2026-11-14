@@ -168,7 +168,7 @@ buffer" (`en.ts` 2561; Korean "터미널 스크롤백" / "내장 터미널 버�
 | Shell create, rename, kill, follow, send | proto and `vessel-client` | Extend `link` with commands that call them. No new crate, no new method number. |
 | PTY | `vessel-pty` | Not used by the app. |
 | Page emulator | xterm.js | Not shareable. Its resize rule is already ported. |
-| Parser | none | Adopt `vte` 0.15, `std` only. Reject `alacritty_terminal` 0.26 (PTY stack, `home`, Apache-2.0 only, unstable grid) and a parser written or copied here. ADR 0073. |
+| Parser | none | Adopt `vte` 0.15 without default features (its `std` build has an unbounded OSC buffer). Reject `alacritty_terminal` 0.26 (PTY stack, `home`, Apache-2.0 only, unstable grid) and a parser written or copied here. ADR 0073. |
 | Scalar width | `unicode-width` 0.2.3 already in the native lock | Adopt as a direct dependency of `view`. Not an exclusive owner. |
 | Renderer | none | New kit control, later. It takes a snapshot; it does not import `view`. |
 

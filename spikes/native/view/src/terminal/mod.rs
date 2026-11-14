@@ -1,7 +1,9 @@
 //! A terminal session's view logic: keys and sizes sent in order, when a
-//! view may resize, what the frame says.
+//! view may resize, what the frame says, and the decoding of a program's
+//! bytes into typed actions (`parse`, ADR 0073).
 
 mod frame;
+pub mod parse;
 mod sender;
 
 pub use frame::{Liveness, ResizeRule, TerminalLog};
