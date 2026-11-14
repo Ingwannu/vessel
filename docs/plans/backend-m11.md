@@ -9278,3 +9278,19 @@ opens `in_vessel` instead of importing (`session.resume` for an ended
 one), and imports with `session.create { harness, profile, cwd: entry.cwd,
 title: entry.title, mode: structured { resume: entry.harness_session } }`;
 `conflict` means another session runs it.
+
+## Track A2: Daybreak for Codex (the owner's request, 2026-11-14)
+
+The owner asked for a Daybreak switch for Codex in the model detail
+settings (and a Fast switch for every agent that offers fast, which the
+agents already advertise as options: the lead draws it). Read without a
+prompt to a real agent: codex-acp 2.6.0 advertises no access programme,
+builds `turn/start` without `cyberAccessProgram`, reads a prompt's `_meta`
+only for file-change reports, and never sends `daybreakEnabled`; the
+Codex CLI it bundles (0.166.0) takes `cyberAccessProgram` on `turn/start`
+only (experimental) and has no configuration key for it, so neither `-c`
+nor `CODEX_CONFIG` can set it. Not possible through the adapter today;
+nothing is built. ADR 0055 records why, and how the node follows once the
+adapter carries it (an adapter option as any other; for a `_meta` field,
+one option `daybreak` with `off`/`blue`/`red`, per session, operate, not
+advertised where the adapter cannot carry it).
