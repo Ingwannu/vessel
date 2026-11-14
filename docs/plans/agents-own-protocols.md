@@ -314,3 +314,9 @@ checked against `/doc`.
   in AGENTS.md section 1, the one exception in section 8), in an empty
   environment but `PATH` with temporary homes, its output in a temporary
   directory, and says on standard error when it skips.
+- Codex slice 1, two more from the review: the loop takes commands
+  before the agent's lines, so a cancel (and, from slice 2, a
+  permission's answer) never waits for a streaming reply to end
+  (checked by a unit test that blocks the old order, and end to end with
+  a cancel mid-stream); and an answer to `turn/start` that fails or does
+  not read ends the turn failed, since only that answer names the turn.

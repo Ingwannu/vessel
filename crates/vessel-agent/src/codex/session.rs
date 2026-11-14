@@ -101,19 +101,7 @@ pub(super) async fn run(
 ) {
     let (lines, incoming) = mpsc::channel(INBOUND);
     drop(tokio::spawn(wire::read(stdout, lines)));
-    let mut session = Session {
-        out: Outgoing::start(stdin),
-        outputs,
-        setup,
-        next: 0,
-        pending: HashMap::new(),
-        thread: None,
-        turn: TurnState::Idle,
-        streamed: HashSet::new(),
-        total: TokenUsageBreakdown::default(),
-        before: TokenUsageBreakdown::default(),
-        context: None,
-    };
+    let mut session = Session::new(Outgoing::start(stdin), outputs, setup);
     let disconnect = session.drive(incoming, commands).await;
     session.close(disconnect).await;
 }
@@ -139,6 +127,22 @@ struct Session {
 }
 
 impl Session {
+    fn new(out: Outgoing, outputs: mpsc::Sender<AgentOutput>, setup: AgentSetup) -> Self {
+        Self {
+            out,
+            outputs,
+            setup,
+            next: 0,
+            pending: HashMap::new(),
+            thread: None,
+            turn: TurnState::Idle,
+            streamed: HashSet::new(),
+            total: TokenUsageBreakdown::default(),
+            before: TokenUsageBreakdown::default(),
+            context: None,
+        }
+    }
+
     /// Run until the connection ends; why it did.
     async fn drive(
         &mut self,
@@ -162,8 +166,19 @@ impl Session {
         let mut commanding = true;
         loop {
             let ready = self.thread.is_some();
+            // Commands first: while Codex streams, its lines are always
+            // ready, and a cancel (or a permission's answer) must not wait
+            // for the whole reply. It is safe because a turn ends only at
+            // its `turn/completed`, taken in order with its items (as the
+            // ACP driver's loop does).
             tokio::select! {
                 biased;
+                command = commands.recv(), if ready && commanding => match command {
+                    Some(command) => self.command(command).await,
+                    // Nobody sends any more; the agent's output is still
+                    // read until the owner stops it.
+                    None => commanding = false,
+                },
                 item = incoming.recv() => match item {
                     Some(Ok(message)) => {
                         if let Some(disconnect) = self.incoming(message).await {
@@ -176,12 +191,6 @@ impl Session {
                     Some(Err(Ended::Closed)) | None => {
                         return self.failed("the agent closed its connection".to_owned());
                     }
-                },
-                command = commands.recv(), if ready && commanding => match command {
-                    Some(command) => self.command(command).await,
-                    // Nobody sends any more; the agent's output is still
-                    // read until the owner stops it.
-                    None => commanding = false,
                 },
                 () = &mut handshake, if !ready => {
                     return handshake_failed(format!(
@@ -367,22 +376,18 @@ impl Session {
         None
     }
 
-    /// `turn/start` answered.
+    /// `turn/start` answered. The turn's id comes only from here, so an
+    /// answer that fails or does not read ends the turn failed: no
+    /// `turn/completed` could match it, and a cancel would wait for good.
     async fn turn_started(&mut self, answer: Result<Value, RpcError>) {
-        match answer.map(serde_json::from_value::<TurnStartResponse>) {
-            Ok(Ok(started)) => self.turn_is(started.turn.id).await,
-            Ok(Err(error)) => {
-                tracing::warn!(%error, "Codex's answer to turn/start did not read");
-            }
-            Err(error) => {
-                if self.turn != TurnState::Idle {
-                    self.turn = TurnState::Idle;
-                    self.emit(AgentEvent::TurnFailed {
-                        message: error.message,
-                    })
-                    .await;
-                }
-            }
+        let message = match answer.map(serde_json::from_value::<TurnStartResponse>) {
+            Ok(Ok(started)) => return self.turn_is(started.turn.id).await,
+            Ok(Err(error)) => format!("Codex's answer to turn/start did not read: {error}"),
+            Err(error) => error.message,
+        };
+        if self.turn != TurnState::Idle {
+            self.turn = TurnState::Idle;
+            self.emit(AgentEvent::TurnFailed { message }).await;
         }
     }
 
@@ -759,7 +764,63 @@ fn answer(reply: Reply, result: Result<(), InputError>) {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
+    use serde_json::json;
+    use tokio::sync::oneshot;
+    use vessel_proto::ResolvedMcpServers;
+
     use super::*;
+
+    /// A command is taken before the agent's lines already queued: while
+    /// Codex streams its lines are always ready, and a cancel must not wait
+    /// for the reply's end. Here the outputs hold one item and are not
+    /// read, so a loop that took the queued deltas first would block on
+    /// the second and never take the cancel.
+    #[tokio::test]
+    async fn a_command_is_taken_before_queued_agent_lines() {
+        let (out, mut written) = Outgoing::detached();
+        let (outputs, _unread) = mpsc::channel(1);
+        let setup = AgentSetup {
+            cwd: std::env::temp_dir(),
+            model: None,
+            resume: None,
+            options: Vec::new(),
+            mcp_servers: ResolvedMcpServers::new(),
+            handshake_timeout: Duration::from_secs(60),
+            questions: false,
+            fork: None,
+            private_dir: None,
+        };
+        let mut session = Session::new(out, outputs, setup);
+        session.thread = Some("thread".to_owned());
+        session.turn = TurnState::Running {
+            id: "turn".to_owned(),
+        };
+        let (lines, incoming) = mpsc::channel(256);
+        for _ in 0..100 {
+            let delta = Incoming::Notification {
+                method: "item/agentMessage/delta".to_owned(),
+                params: json!({"threadId": "thread", "turnId": "turn", "itemId": "m",
+                    "delta": "x"}),
+            };
+            lines.send(Ok(delta)).await.unwrap();
+        }
+        let (commands, taken) = mpsc::channel(4);
+        let (reply, answered) = oneshot::channel();
+        commands.send(Command::CancelTurn { reply }).await.unwrap();
+        let _driving = tokio::spawn(async move { session.drive(incoming, taken).await });
+        tokio::time::timeout(Duration::from_secs(10), answered)
+            .await
+            .expect("the cancel waited behind the agent's lines")
+            .unwrap()
+            .unwrap();
+        let initialize = written.recv().await.unwrap();
+        assert!(String::from_utf8_lossy(&initialize).contains("\"initialize\""));
+        let interrupt = written.recv().await.unwrap();
+        assert!(String::from_utf8_lossy(&interrupt).contains("\"turn/interrupt\""));
+        drop((lines, commands));
+    }
 
     #[test]
     fn the_version_is_the_user_agents_first_word_after_its_name() {

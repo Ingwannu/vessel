@@ -31,12 +31,19 @@
 //!       turn has no status);
 //!     - `other`: first completes another turn of the same thread (which
 //!       is not this session's), then as `plain`;
+//!     - `stream`: streams up to [`STREAM`] deltas without a pause, from a
+//!       thread of its own, until `turn/interrupt` stops it (then
+//!       `interrupted`; otherwise `completed`);
+//!     - `badstart`: answers `turn/start` with a turn that does not read
+//!       (no status) and says nothing more of it;
 //!     - `exit`: exits mid-turn.
 //!   - Any other request is "method not found" (`-32601`).
 //! - Anything else exits with code 2.
 
 use std::io::{BufRead as _, Write as _};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 
 use serde_json::{Value, json};
 
@@ -46,6 +53,14 @@ const VERSION: &str = "0.166.0";
 
 /// The id of the one approval request a turn may make.
 const APPROVAL: &str = "approval-1";
+
+/// The most deltas the `stream` scenario writes: far more than a cancel
+/// needs to arrive in, so a turn that ends `completed` was not cancelled
+/// in time.
+const STREAM: u32 = 200_000;
+
+/// The agent's output, shared with a streaming turn's thread.
+type Out = Arc<Mutex<std::io::Stdout>>;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -69,6 +84,8 @@ enum Waiting {
     Approval { turn: String },
     /// For an interrupt.
     Interrupt { turn: String },
+    /// For an interrupt, while a thread streams; set to stop it.
+    Streaming { stop: Arc<AtomicBool> },
 }
 
 struct Server {
@@ -76,7 +93,7 @@ struct Server {
     thread: Option<String>,
     turns: u32,
     waiting: Option<Waiting>,
-    out: std::io::Stdout,
+    out: Out,
 }
 
 impl Server {
@@ -86,7 +103,7 @@ impl Server {
             thread: None,
             turns: 0,
             waiting: None,
-            out: std::io::stdout(),
+            out: Arc::new(Mutex::new(std::io::stdout())),
         }
     }
 
@@ -139,8 +156,13 @@ impl Server {
             "turn/start" => self.turn(id, params),
             "turn/interrupt" => {
                 self.send(&json!({"id": id, "result": {}}))?;
-                if let Some(Waiting::Interrupt { turn }) = self.waiting.take() {
-                    self.completed(&turn, "interrupted", None)?;
+                match self.waiting.take() {
+                    Some(Waiting::Interrupt { turn }) => {
+                        self.completed(&turn, "interrupted", None)?;
+                    }
+                    // Its thread ends the turn.
+                    Some(Waiting::Streaming { stop }) => stop.store(true, Ordering::SeqCst),
+                    other @ (Some(Waiting::Approval { .. }) | None) => self.waiting = other,
                 }
                 Ok(())
             }
@@ -209,6 +231,11 @@ impl Server {
         self.turns = self.turns.saturating_add(1);
         let turn = format!("turn-{}", self.turns);
         let prompt = first_text(params);
+        if prompt.starts_with("badstart") {
+            // A turn without its status: the answer does not read, and
+            // nothing more is said of the turn.
+            return self.send(&json!({"id": id, "result": {"turn": {"id": turn}}}));
+        }
         self.send(&json!({"id": id, "result": {"turn": in_progress(&turn)}}))?;
         self.notify(
             "turn/started",
@@ -279,6 +306,18 @@ impl Server {
             "other" => {
                 self.completed("turn-of-another-client", "completed", None)?;
                 self.plain(&turn, &prompt)
+            }
+            "stream" => {
+                let stop = Arc::new(AtomicBool::new(false));
+                let streaming = Streaming {
+                    out: Arc::clone(&self.out),
+                    thread: self.thread(),
+                    turn: turn.clone(),
+                    stop: Arc::clone(&stop),
+                };
+                self.waiting = Some(Waiting::Streaming { stop });
+                drop(std::thread::spawn(move || streaming.run()));
+                Ok(())
             }
             "exit" => Err(Exit::Now),
             _ => self.plain(&turn, &prompt),
@@ -353,9 +392,48 @@ impl Server {
     }
 
     fn send(&mut self, message: &Value) -> Result<(), Exit> {
-        writeln!(self.out, "{message}")
-            .and_then(|()| self.out.flush())
-            .map_err(|_closed| Exit::Closed)
+        write_line(&self.out, message)
+    }
+}
+
+/// One line on the shared output.
+fn write_line(out: &Out, message: &Value) -> Result<(), Exit> {
+    let mut out = out.lock().unwrap_or_else(PoisonError::into_inner);
+    writeln!(out, "{message}")
+        .and_then(|()| out.flush())
+        .map_err(|_closed| Exit::Closed)
+}
+
+/// A turn streaming from a thread of its own (`stream`).
+struct Streaming {
+    out: Out,
+    thread: String,
+    turn: String,
+    stop: Arc<AtomicBool>,
+}
+
+impl Streaming {
+    fn run(self) {
+        let mut sent = 0;
+        while sent < STREAM && !self.stop.load(Ordering::SeqCst) {
+            let delta = json!({"method": "item/agentMessage/delta", "params": {
+                "threadId": self.thread, "turnId": self.turn, "itemId": "stream-1",
+                "delta": "x"}});
+            if write_line(&self.out, &delta).is_err() {
+                return;
+            }
+            sent = sent.saturating_add(1);
+        }
+        let status = if self.stop.load(Ordering::SeqCst) {
+            "interrupted"
+        } else {
+            "completed"
+        };
+        let _closed = write_line(
+            &self.out,
+            &json!({"method": "turn/completed", "params": {"threadId": self.thread,
+                "turn": {"id": self.turn, "items": [], "status": status, "error": null}}}),
+        );
     }
 }
 
