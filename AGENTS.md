@@ -12,17 +12,21 @@ each one's reason, its check, and how many places break it today.
 
 ## 1. Gate before claiming anything works
 
-Run all three, in this order, and paste the result summary in your report:
+Run these, in this order, and paste the result summary in your report:
 
 ```bash
 cargo fmt --all
+node scripts/check-rust-size.mjs     # file budget (docs/QUALITY.md M3)
+node scripts/check-boundaries.mjs    # crate map (docs/QUALITY.md M2)
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-CI runs exactly these on Linux, Windows and macOS for every push to `main`
-and `backend/**` and every pull request (the repository is public, so
-hosted runners cost nothing).
+The two scripts build nothing and take about a second, so a violation
+fails before the compile starts. CI runs exactly these on Linux, Windows
+and macOS (the two scripts on Linux; their answer is the same on every OS)
+for every push to `main` and `backend/**` and every pull request (the
+repository is public, so hosted runners cost nothing).
 
 Changes under `web/` (the web UI, ADR 0017) add its checks, which CI runs
 on Linux: in `web/`, `npm run lint`, `npm run typecheck`, `npm test`,
