@@ -32,14 +32,15 @@ vessel-rpc      -> proto
 vessel-proc     (process spawning, process groups, kill tree)
 vessel-harness  -> proto, proc
 vessel-pty      -> proc
-vessel-agent    -> proto, proc
+vessel-agent    -> proto, harness, proc   (harness: milestone 12)
 vessel-lsp      -> proto, proc            (milestone 6)
 vessel-workspace -> proto, proc           (milestone 11)
 vessel-session  -> proto, harness, pty, agent, proc (milestone 11)
 vessel-store    -> proto
 vessel-node     -> proto, rpc, harness, session, store, secure, relay,
                    fleet, client (milestone 4), lsp (milestone 6),
-                   llm (milestone 5), workspace, forge, proc (milestone 11)
+                   llm (milestone 5), workspace, forge, proc (milestone 11),
+                   agent (milestone 12)
 vessel-client   -> proto, rpc, secure, relay
 vessel-remote   -> proto, rpc, client      (milestone 2)
 vessel-secure   -> proto                   (milestone 3)
@@ -50,7 +51,8 @@ vessel-llm      -> proto                   (milestone 5)
 vessel-forge    -> proto, proc             (milestone 11)
 vessel-web      -> proto, client           (milestone 7)
 vessel-cli      -> proto, client, node, remote, mcp, harness, web
-vessel-testkit  (fake harness binaries for tests; dev-dependency only)
+vessel-testkit  -> proto (feature `authority-fixtures`, milestone 12)
+                (fake harness binaries for tests; dev-dependency only)
 ```
 
 Milestone 2 (2026-11-06) added `vessel-remote`, which runs the system
@@ -182,3 +184,23 @@ proc`, for the command a terminal runs (`CommandSpec`), the account's
 shell and the ports its trees listen on (`vessel_proc::listening`). Both
 are mechanism the crates already used through others; the node still
 decides who may open a terminal and where.
+
+Milestone 12 (recorded 2026-11-14, when `scripts/check-boundaries.mjs`
+began comparing `docs/ARCHITECTURE.md`'s table with the manifests; the
+first two edges had been in the manifests without this record):
+
+- `vessel-agent -> harness` (ADR 0057): a direct driver's private launch
+  file is written by `vessel-harness` (`claude_mcp_file`, `McpFile`), the
+  one owner of that format and of the file's checks.
+- `vessel-node -> agent` (2026-11-12, protocol 11's `agent.status`, ADR
+  0032): what a probe's handshake said of an agent reaches the node as the
+  agent crate's typed outcomes (`ProbeError`, `Disconnect`, `Refusal`)
+  instead of a string; the history, forking and side-question calls name
+  its inputs (`HistoryFrom`, `ForkFrom`, `PromptContext`). The node still
+  speaks no ACP: the session runtime runs the agent.
+- `vessel-testkit -> proto` (protocol 20): typed caller-authority fixtures,
+  optional behind the `authority-fixtures` feature, so the fake binaries
+  keep no wire dependency.
+
+From here the check holds the map: a manifest edge missing from the table,
+or a table edge missing from the manifests, fails the gate.
