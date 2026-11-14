@@ -235,6 +235,15 @@ screen's thread, folded in 0.5 ms; the fork's own rows show before it.
 Captures: `shots/m/100`–`109` (1280, 800 × 600, 390; both themes; en
 and ko; long, removed and archived origins).
 
+While the origin is read, a quiet loading row (the kit's skeleton, one
+line) sits above the "Forked from" line, so the turns do not appear
+without a cue on a slow link (`shots/m/110`, the node held with
+SIGSTOP). A read that fails for any reason other than NotFound (the
+connection lost, the node refusing) leaves the line and "The
+conversation it was forked from could not be read: … Open the session
+again to try again."; opening the session again, or another session
+and then this one, reads it again.
+
 ## Module layout (2026-11-14, the owner's word 44)
 
 `app/src/areas/conversation/` after the split (no behaviour change;
