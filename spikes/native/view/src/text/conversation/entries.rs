@@ -100,7 +100,7 @@ impl ConversationWords {
             (
                 SessionStatus::Starting
                 | SessionStatus::Running
-                | SessionStatus::Exited { code: None }
+                | SessionStatus::Exited { code: None, .. }
                 | SessionStatus::Failed { .. }
                 | SessionStatus::Interrupted,
                 Lang::En | Lang::Ko,

@@ -40,7 +40,7 @@ pub fn park_state(session: &SessionInfo) -> Option<ParkState> {
     }
     let parked = session.parked.as_ref()?;
     Some(match &parked.reason {
-        ParkReason::WakeFailed { message } => ParkState::ResumeFailed(message.clone()),
+        ParkReason::WakeFailed { message, .. } => ParkState::ResumeFailed(message.clone()),
         ParkReason::Idle | ParkReason::Asked | ParkReason::Unknown => ParkState::Released,
     })
 }

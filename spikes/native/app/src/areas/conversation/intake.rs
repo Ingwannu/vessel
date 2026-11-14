@@ -133,7 +133,7 @@ impl ConversationArea {
             return;
         };
         for record in records {
-            if let SessionEvent::Parked { reason } = &record.event {
+            if let SessionEvent::Parked { reason, .. } = &record.event {
                 info.parked = Some(Parked {
                     since: record.at,
                     reason: reason.clone(),
