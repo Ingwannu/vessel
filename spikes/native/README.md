@@ -258,7 +258,7 @@ Environment:
 
 ```bash
 # in the repository root: the node, the CLI and the fakes
-cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
+cargo build -p vessel-cli -p vessel-node -p vessel-testkit --features vessel-node/forge-fixture --bins
 # here: two nodes with fake agents and a book naming them
 scripts/fleet.sh start /tmp/fleet <the main workspace's target>/debug
 VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app
@@ -427,3 +427,52 @@ The wire-gap fixture also starts and reaps an isolated local node with no
 advertised direct/relay route. Its CLI pairing request must fail with setup
 guidance and empty stdout (no link or QR). This checks configured route
 absence; it makes no claim about another device's network reachability.
+
+
+The fleet's nodes use the separate `vessel-forge-fixture` executable (ADR
+0060), backed by the same `FakeForge` as node E2E tests. Product `vesseld`
+accepts no fake-forge option or environment selector, even with the feature
+built. Start a fresh scratch fleet; the prepare step makes eleven local git
+projects and `ROOT/forge-seed.json` before either node listens. Git fetch
+addresses use `forge.example.invalid`; push addresses are local bare repos.
+The restricted program directory contains only fake agents and explicit git,
+shell and env links. It does not discover installed coding agents.
+
+The generated seed is an executable example of the format: version 1,
+repositories of `{repo: {kind, host, path}, failure?, pulls}`; each pull is
+`{pull: <complete wire PullRequest>, merge?: normal|refused}`. `failure` may
+be `no_access`, `rate_limited`, `down` or `signed_out`. The whole file is
+validated before startup: 1 MiB, sixteen repositories, 128 pulls, matching
+repository/check summaries and bounded failing checks/merge methods. Invalid
+input has a safe category/location diagnostic without quoting file content.
+The file is read once. Restart a fresh fleet to change it.
+
+A standalone fixture node can be started explicitly with:
+
+```bash
+<target>/debug/vessel-forge-fixture --seed <root>/forge-seed.json \
+  --data-dir <root>/node --home <root>/home --programs <root>/bin \
+  --bind 127.0.0.1:0
+```
+
+Its stdout readiness line is `FIXTURE_READY <address>`. Advertising pairing
+requires an explicit loopback `--public ws://127.0.0.1:<port>` with a known
+bound port. Use the CLI pipe pairing described above; never type a link into
+a display by automation. The fleet already pairs an ordinary person, plus a
+read-only fixture, through those pipes.
+
+`scripts/forge-fixtures.py check` creates placed sessions without prompting
+an agent and reads PR facts through `vessel pr show --refresh`. It checks
+passing/failing/pending checks, approvals/changes requested, conflict/draft/
+unknown mergeability, empty/no-access/rate-limited states, refused merge with
+unchanged facts, and read-only reads/merge refusal. `ROOT/forge-fixtures.json`
+names every project/session; `ROOT/forge-shapes.txt` records the checked
+shapes. This exercises the real node and CLI, not HTTP, credential lookup,
+remote git merging, discussions or feedback content. Project-wide listing
+without sessions is a separate feature, not simulated here.
+
+Fleet shutdown verifies the saved PID's UID, executable, data directory and
+kernel start time, then signals a pinned Linux pidfd. An identity mismatch
+refuses shutdown instead of signalling an unrelated process. The scripts
+are Linux development helpers; the node fixture itself follows the node's
+cross-platform shutdown path.

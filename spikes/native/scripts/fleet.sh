@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A small fleet for trying the app: two real `vesseld` nodes in a scratch
+# A small fleet for trying the app: two real nodes with a file-seeded forge in a scratch
 # directory with the testkit's fake harnesses (`fake-acp` as the ACP
 # adapters, `fake-tui` as the CLIs), a node book naming them, and a few
 # structured sessions with a turn each. No real agent runs and nothing
@@ -15,7 +15,7 @@
 # serves pairing (`--public`), so `ROOT/pair.sh` prints a pairing link.
 #
 # Build the binaries first, in the repository root:
-#   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
+#   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --features vessel-node/forge-fixture --bins
 set -euo pipefail
 umask 077
 
@@ -23,14 +23,21 @@ command=${1:?start or stop}
 root=${2:?a scratch directory}
 
 if [ "$command" = stop ]; then
-  if [ -f "$root/pids" ]; then
-    while read -r pid; do kill "$pid" 2>/dev/null || true; done < "$root/pids"
-    rm -f "$root/pids"
-  fi
+  python3 "$(dirname "$0")/fleet-processes.py" stop "$root"
   exit 0
 fi
 
 target=${3:?the debug binaries directory}
+root=$(realpath -m "$root")
+target=$(realpath "$target")
+[ -x "$target/vessel-forge-fixture" ] || {
+  echo "fleet: build vessel-forge-fixture with --features vessel-node/forge-fixture first" >&2
+  exit 1
+}
+[ ! -e "$root/pids" ] && [ ! -e "$root/processes.json" ] || {
+  echo "fleet: stop the recorded fleet before starting it again" >&2
+  exit 1
+}
 mkdir -p "$root/bin" "$root/config" "$root/operator-config" "$root/work"
 for name in claude codex; do ln -sf "$target/fake-tui" "$root/bin/$name"; done
 # Claude Code's adapter offers what the real one sends (many models,
@@ -42,6 +49,8 @@ rm -f "$root/bin/claude-agent-acp"
 printf '#!/bin/sh\nFAKE_ACP_OPTIONS=real FAKE_ACP_STARTUP_LOG=1 exec "%s" "$@"\n' "$target/fake-acp" > "$root/bin/claude-agent-acp"
 chmod 755 "$root/bin/claude-agent-acp"
 ln -sf "$target/fake-acp" "$root/bin/codex-acp"
+# Explicit tools keep the restricted lookup from discovering a real agent.
+for tool in git sh bash env; do ln -sf "$(command -v "$tool")" "$root/bin/$tool"; done
 base_path="$root/bin:/usr/local/bin:/usr/bin:/bin"
 
 free_port() {
@@ -50,24 +59,29 @@ free_port() {
 
 python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
 python3 "$(dirname "$0")/wire-gaps-fixtures.py" prepare "$root" "$target"
+python3 "$(dirname "$0")/forge-fixtures.py" prepare "$root" "$target"
 
 : > "$root/pids"
+: > "$root/nodes"
+: > "$root/sessions"
 for name in laptop build-server; do
   port=$(free_port)
   data="$root/$name"
   home="$root/$name-home"
   mkdir -p "$home"
   # Both disposable nodes advertise loopback for CLI-only pairing.
-  extra=(--public "127.0.0.1:$port")
+  extra=(--public "ws://127.0.0.1:$port")
   env -i PATH="$base_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
-    "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
+    "$target/vessel-forge-fixture" --seed "$root/forge-seed.json" --home "$home" --programs "$root/bin" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
-  echo $! >> "$root/pids"
+  pid=$!
+  echo "$pid" >> "$root/pids"
   # The token is written before the node listens: wait for both.
   for _ in $(seq 1 300); do
     [ -f "$data/token" ] && (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null && break
     sleep 0.1
   done
+  python3 "$(dirname "$0")/fleet-processes.py" record "$root" "$pid" "$target/vessel-forge-fixture" "$data"
   echo "$name 127.0.0.1:$port" >> "$root/nodes"
   # The token book bootstraps invitations only; the app gets an actual
   # paired person's credential (Read/Operate/Admin), never an owner token.
@@ -98,7 +112,7 @@ start_session() { # node folder first-prompt
   cli --node "$1" send "$id" "$3" > /dev/null
   echo "$1 $id $2" >> "$root/sessions"
 }
-: > "$root/sessions"
+python3 "$(dirname "$0")/forge-fixtures.py" check "$root" "$target"
 start_session laptop vessel-client "entries 40"
 start_session laptop 한글-세션 "plain"
 start_session build-server ci-fixes "entries 12"

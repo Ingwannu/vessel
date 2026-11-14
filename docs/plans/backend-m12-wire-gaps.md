@@ -416,3 +416,48 @@ listing is the following slice, not claimed by this one.
 
 The coordinator assigned ADR 0060 to the fixture forge and ADR 0061 to the
 following project-wide PR listing. ADR 0059 belongs to restart recovery.
+
+
+ADR 0060 implementation uses `fake/seed` for typed, whole-file validation
+and `fake/behaviour` for the shared provider operations. The fixture node
+requires an explicit feature and separate executable. No product parser,
+wire contract, protocol version, external dependency or crate edge changes.
+The fleet prepares eleven local repositories and complete wire facts,
+creates real placed sessions, checks Read-only behavior and configured
+failures through the CLI, and retains a project/session manifest for screens.
+Concurrent open admission/insertion shares the fake state lock, so file
+fixtures cannot exceed their runtime pull bound. Shutdown records UID,
+executable, data path and start ticks and signals a pinned Linux pidfd.
+
+Preflight follows Paseo's `github-service.test.ts` injected program behavior
+and Vessel's existing `tests/e2e/forge.rs` provider injection. Reusing those
+assets avoids another simulator. No native/page screen is part of this slice;
+no HTTP, real credential, feedback-content or other-OS runtime proof is
+claimed. Feature Clippy and nine actual FakeForge tests passed. The four launcher
+tests passed from empty SSD data directories in 4.03 s, retaining the original
+90/20/20-second bounds. The product binary rejects --seed and ignores the
+hypothetical seed environment, including a feature-enabled build. Invalid
+seeds have no content in diagnostics; external exposure is refused before
+node data creation.
+
+Final whole root fmt, Clippy and literal cargo test --workspace passed:
+111 suites, 1,796 passed, zero failed, ten existing ignores. All 1,028 frozen
+Rust/Cargo inputs remained unchanged and forge/node were recompiled. The
+main log records beginning/end one-minute load 21.42/10.17 and available
+memory 15,155/17,498 MiB. Both previously failed CLI remote cases and canary
+passed in that whole run. Failed HDD attempts and their solo diagnostics are
+retained in the resume checkpoint, not treated as exceptions or waived.
+
+Feature build, full page E2E 62 and the complete CLI fleet passed. The only
+subsequent Rust change was restoring fresh startup in the new launcher test
+helper; product/forge/CLI/fleet runtime sources are unchanged. No new wire
+means no TypeScript regeneration. UID/GID 1000, 18 private paths at0600/0700,
+both verified fixture PIDs absent and no owned runtime; final SSD scratch is
+empty at0700. Production permissions are unchanged. Gated source review is
+pending with V1; no UI or other-OS runtime approval is claimed.
+
+The coordinator's nested-build amendment arrived during the final whole
+gate. That active run was retained unchanged and passed. The next whole gate
+must prebuild testkit bins and product vesseld in the same environment/slot,
+without changing any safety deadline or assertion. No unchanged passing gate
+is repeated for that procedural amendment.

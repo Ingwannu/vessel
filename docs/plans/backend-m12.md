@@ -451,6 +451,13 @@ do nothing); each is for a node track:
 | ~~A pairing link from a machine with no advertised address or relay~~ — built in `aea21c54` | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
 
+Development fleets can now seed PR facts without a forge account through
+ADR 0060's separate `vessel-forge-fixture` executable. The shipped node has
+no fake-provider selector. This enables checks/reviews/mergeability and
+failure fixtures on placed sessions; project-wide listing without a live
+session remains the missing row above (ADR 0061).
+
+
 ### Translations as data files (2026-11-13)
 
 The owner, the same afternoon: when a language is added later it must
@@ -623,3 +630,9 @@ do nothing); each is for a node track:
 | ~~A device's own scopes (only an admin can list devices)~~ — built in `3d486ff4` | every screen that offers an action | `device.self` returns this authenticated caller's grant, even without Read; unsupported remains unknown |
 | ~~A pairing link from a machine with no advertised address or relay~~ — built in `aea21c54` | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
+
+Development fleets can now seed PR facts without a forge account through
+ADR 0060's separate `vessel-forge-fixture` executable. The shipped node has
+no fake-provider selector. This enables checks/reviews/mergeability and
+failure fixtures on placed sessions; project-wide listing without a live
+session remains the missing row above (ADR 0061).

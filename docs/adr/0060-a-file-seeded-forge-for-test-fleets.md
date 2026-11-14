@@ -30,7 +30,7 @@ normal or refused (normal by default). The pull's summary.repo must equal
 its containing repository; summary.checks must equal checks.state. The head
 branch supplies FakeForge::put's branch, so it is not specified twice.
 Existing wire newtypes/enums validate identifiers, titles, URLs and states.
-Unknown seed fields/versions, duplicate repositories/pull numbers and
+Unknown seed wrapper fields/versions, duplicate repositories/pull numbers and
 inconsistent summaries refuse the whole file. No executable code or tokens
 are in the format; examples use reserved fixture hosts and local git pushes.
 
@@ -63,3 +63,13 @@ content. These keep their existing provider/integration tests. Fake facts
 and explicit failures are fixture behavior, not production/network proof.
 Tests exercise actual FakeForge trait methods, file bounds/diagnostic privacy,
 real node/CLI projection, and rejection of fixture flags by product vesseld.
+
+
+Launcher tests start the actual binary from empty isolated data directories.
+Their temporary databases and identity files use fast local test storage,
+separate from compiler output and retained logs; first startup creates a
+durable store with fsync. No bootstrap is moved out of the tested path.
+The 90-second safety net and 20-second child readiness/shutdown bounds remain
+unchanged. Build artifacts and retained evidence stay on cold storage; test
+scratch is emptied after execution. This keeps disk placement from turning
+provider-selection checks into a benchmark of competing compiler writes.
