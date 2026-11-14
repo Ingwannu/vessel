@@ -43,6 +43,7 @@ mod outline;
 mod permission;
 mod plan;
 mod question;
+mod question_step;
 mod rows;
 mod runs;
 mod usage;
@@ -68,6 +69,9 @@ pub use plan::{PlanActivity, all_pending, plan_activities};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
+};
+pub use question_step::{
+    Choice, Pick, box_is_other, choices, pick, picked, step_header, step_prompt, text_target, typed,
 };
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
