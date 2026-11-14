@@ -12,7 +12,7 @@ named below with its reason.
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
 | b | `/` the agent's commands | built (a running session's composer and the new chat's) |
-| c | Attach images and files | not started |
+| c | Attach images and files | rules, tray and uploads built (c1); the composer's pills, button, paste and drop next (c2); sent messages' pictures after (c3) |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | built |
 
@@ -327,3 +327,49 @@ Deliberate differences:
 
 Checked: the view's rules and the file's (round trip per composer,
 owner-only modes, a file set aside, a missing file) by tests.
+
+## Slice c: attachments
+
+Followed: Paseo `composer/index.tsx` (`renderAttachmentTray`, the image,
+file and labelled pills), `components/attachment-pill.tsx` (a body 48
+high, an image 48 by 48, a label 260 wide at most, the remove button 24
+across at the top left), `composer/input/input.tsx` (the attach button and
+its menu: an image, a file); for what Vessel's node needs, Vessel's own
+page (`web/src/data/attach.ts`, `tray.ts`, `upload.ts`), which settled the
+same node.
+
+The node already has every call (protocol 10, ADR 0025): `attachment.begin`,
+`write` and `finish` send a file in pieces to a live structured session,
+`attachment.read` reads one back, and a prompt names a sent file as a
+`ContentBlock::Attachment`. Nothing new on the wire.
+
+How it behaves (`view::composer::{attach, tray, trays}`, `link::attachments`):
+
+- A file's type follows its extension, the CLI's table; its kind is the
+  node's (`AttachmentKind::of`); its name is made one the node takes (no
+  `/ \ : * ? " < > |` or control character, no leading dot or space, not a
+  Windows device, at most 255 bytes cut before a short extension).
+- A file is checked when it is attached, or once the composer has a session
+  whose agent said what it takes: images and audio only for an agent that
+  takes them, nothing empty, nothing past the node's size for its kind, at
+  most 16 a prompt and 25 MiB of images and audio. A refused file stays as
+  a pill with its reason and stops Send until it is removed; removing a
+  file looks at the refused ones again.
+- Files are uploaded when Send is pressed, two at a time, each a piece at
+  a time from what the node says it has; an image whose first bytes are
+  not its type's is refused before anything is sent. A failed upload stops
+  Send; a retry goes on from what the node has, an upload the node dropped
+  is begun again, a file that changed or that the node judged wrong is not
+  tried again. The prompt goes, text first and then each file, when every
+  file is in.
+- Each composer keeps its tray while the app runs (a session's, the new
+  chat's), sixteen at most, the least recently used dropped first; the new
+  chat's becomes its session's once the session exists.
+
+Deliberate differences:
+
+- **Uploaded at Send.** Paseo keeps a picked file on the device and sends
+  it with the message in one call; Vessel's node takes a file only into a
+  live session, in pieces, before the prompt names it.
+- **Removing a file looks at the refused ones again** (the page keeps them
+  refused until its session changes).
