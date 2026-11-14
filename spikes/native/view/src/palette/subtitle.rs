@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::ops::Range;
 
-use crate::search::Query;
+use crate::matcher::Query;
 
 /// A node's displayed path, not a path interpreted by this client's OS.
 #[derive(Debug, Clone, PartialEq, Eq)]

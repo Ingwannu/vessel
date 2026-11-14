@@ -5,7 +5,7 @@
 use std::cmp::Ordering;
 
 use super::{PaletteEntry, PaletteGroup};
-use crate::search::{Query, Score};
+use crate::matcher::{Query, Score};
 
 type Group<'a, S, T> = (PaletteGroup, Vec<&'a PaletteEntry<S, T>>);
 

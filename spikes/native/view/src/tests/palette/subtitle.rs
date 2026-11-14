@@ -1,6 +1,6 @@
 //! UTF-8 offsets and one-field scoring are independent of rendered fonts.
+use crate::matcher::Query;
 use crate::palette::{DisplayPath, MarkedSubtitle, Subtitle};
-use crate::search::Query;
 
 #[test]
 fn whole_sentence_search_and_scores_are_preserved_after_semantic_split() {

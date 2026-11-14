@@ -48,7 +48,7 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
-The command palette's matching lives in the shared pure `view::search`
+The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
 their visible name/id fields. Each query token must match a visible label/subtitle or hidden

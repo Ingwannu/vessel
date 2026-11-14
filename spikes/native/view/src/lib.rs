@@ -25,6 +25,7 @@ mod links;
 pub mod machine_book;
 pub mod machines;
 pub mod mark_attributions;
+pub mod matcher;
 pub mod models;
 pub mod notices;
 mod options;

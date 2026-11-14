@@ -3,7 +3,7 @@
 //! ASCII, so this example's lowercase tie break makes no locale-collation
 //! claim; the provider catalog owns that rule.
 
-use vessel_app_view::search::Query;
+use vessel_app_view::matcher::Query;
 
 const ENTRIES: [(&str, &str); 6] = [
     ("kiro-cli", "Kiro CLI"),

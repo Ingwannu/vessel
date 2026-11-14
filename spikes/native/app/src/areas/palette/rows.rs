@@ -111,7 +111,7 @@ pub(super) fn subtitle(
     use vessel_app_kit::command::{CommandSubtitle, CommandText};
     use vessel_app_view::palette::{MarkedSubtitle, TextPart};
     let text = |part: TextPart| CommandText::new(part.text, part.marks);
-    match detail.marked(&vessel_app_view::search::Query::new(query)) {
+    match detail.marked(&vessel_app_view::matcher::Query::new(query)) {
         MarkedSubtitle::Plain(part) => CommandSubtitle::Text(text(part)),
         MarkedSubtitle::StatusPath { prefix, path } => CommandSubtitle::CodePath {
             prefix: Some(text(prefix)),

@@ -27,7 +27,7 @@ use chrono::{DateTime, Utc};
 use vessel_proto::SessionId;
 
 use crate::board::{Fleet, Reach};
-use crate::search;
+use crate::matcher;
 use crate::text::Lang;
 
 /// The palette's groups, in the order it lists them.
@@ -119,10 +119,10 @@ impl<S, T> PaletteEntry<S, T> {
     /// with subsequences confined to a word (Paseo's Command Center).
     #[must_use]
     pub fn found(&self, query: &str) -> bool {
-        self.score(&search::Query::new(query)).is_some()
+        self.score(&matcher::Query::new(query)).is_some()
     }
 
-    fn score(&self, query: &search::Query) -> Option<search::Score> {
+    fn score(&self, query: &matcher::Query) -> Option<matcher::Score> {
         let detail = self
             .detail
             .as_ref()
@@ -249,7 +249,7 @@ pub fn palette_groups<'a, S, T>(
 /// (Paseo's `findHighlightRanges`). Overlapping terms share one mark.
 #[must_use]
 pub fn marks(query: &str, text: &str) -> Vec<Range<usize>> {
-    search::Query::new(query).marks(text)
+    matcher::Query::new(query).marks(text)
 }
 
 /// The row the keyboard makes active after a search changed the rows
