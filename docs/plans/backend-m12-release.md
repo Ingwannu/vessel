@@ -904,6 +904,26 @@ never rebuilt.
     motion (software renderer) and used 0.4% of a core on its first
     screen.
 
+- **0.0.0.0.16**:
+  - Built from exactly `cb261b03`, the desktop lead's head (native gate
+    green there, 990 tests), checked out detached and run through
+    `cargo-slot` (slot 2 after 718 s in line, 5 jobs); this branch then
+    merged it.
+  - The set went into place at 17:14:45 UTC on 2026-11-14. It is not
+    published yet: the coordinator's smoke test comes first.
+  - Gemini's mark is now Google's own file from Google's CDN, embedded
+    byte for byte (27,794 bytes, the SHA-256 in
+    `docs/design/agent-marks/README.md`); three slices of it are in both
+    executables and none in 0.0.0.0.15's. No Apache-2.0 artwork is
+    embedded any more; `google-Apache-2.0.txt` still ships because it
+    still sits beside the marks (harmless, removable since `7151985e`).
+  - Sizes, with the change against 0.0.0.0.15: setup 13,159,965
+    (+318,032), exe 47,844,352 (+1,351,168), zip 19,220,192 (+519,485),
+    linux 84,708,968 (+1,559,768), tar.gz 29,425,441 (+534,755).
+  - The usual checks passed (the debuglink read from a copy; the dist
+    file's mtime unchanged). The shipped Linux build on Xvfb held its
+    motion and used 0.5% of a core on its first screen.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
