@@ -1105,7 +1105,11 @@ teardown: Array<ProjectCommand>,
 /**
  * Its scripts and services, in name order; left out when none.
  */
-scripts?: Array<ScriptEntry>, };
+scripts?: Array<ScriptEntry>, 
+/**
+ * Terminal commands covered by this approval (ADR 0066).
+ */
+terminals?: Array<FileTerminal>, };
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
@@ -2099,6 +2103,19 @@ content: FileContent, };
  * What a file is in the index or the working tree, against the other.
  */
 export type FileState = "unmodified" | "modified" | "added" | "deleted" | "renamed" | "copied" | "type_changed" | "untracked" | "conflicted" | "unknown";
+
+/**
+ * A shell command a person must see before approving a project's terminals.
+ */
+export type FileTerminal = { 
+/**
+ * The terminal's title; a blank file name is represented as absent.
+ */
+name?: SessionTitle | null, 
+/**
+ * Kept as validated text so approval covers exactly the shell input.
+ */
+command: ProjectCommand, };
 
 /**
  * A file as it was read or written: what a page shows, and the hash a
@@ -4960,6 +4977,10 @@ approved: boolean,
  * 0031); the digest covers them. Left out when there are none.
  */
 scripts?: Array<ScriptEntry>, 
+/**
+ * Terminal commands the client must show before approval (ADR 0066).
+ */
+terminals?: Array<FileTerminal>, 
 /**
  * The set last approved for this project, to show what changed
  * (protocol 11): only while this set is not approved, and only

@@ -16,6 +16,7 @@ mod connect;
 mod conversation;
 mod devices;
 mod error;
+mod file_terminals;
 mod fleet;
 mod forge;
 mod history;

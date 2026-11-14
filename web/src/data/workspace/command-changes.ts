@@ -30,6 +30,7 @@
 //   which it is to the digest.
 
 import type {
+  CommandSet,
   ProjectCommand,
   ProjectCommands,
   ScriptEntry,
@@ -190,27 +191,49 @@ export type Compared =
       scripts: readonly ScriptLine[];
     }
   /** No approved set is known to compare with. */
-  | { kind: "none" };
+  | { kind: "none" }
+  /** A partial comparison must never claim hidden terminal commands are unchanged. */
+  | { kind: "unsupported_terminals" };
 
 /** A set's lists, as both an approval and a listing carry them. */
-interface SetOf {
-  setup: readonly ProjectCommand[];
-  teardown: readonly ProjectCommand[];
-  scripts?: readonly ScriptEntry[];
+function setOf(commands: CommandSet): Required<CommandSet> {
+  // Required makes even an optional new wire field a compile error here.
+  return {
+    setup: commands.setup,
+    teardown: commands.teardown,
+    scripts: commands.scripts ?? [],
+    terminals: commands.terminals ?? [],
+  };
+}
+
+/** Refuse approval while a current or previous set contains commands this page cannot show. */
+export function approvalCoverage(
+  asked: ListedCommands,
+): "complete" | "unsupported_terminals" {
+  const last = asked.last_approved?.commands;
+  return setOf(asked).terminals.length > 0 ||
+    (last !== undefined && setOf(last).terminals.length > 0)
+    ? "unsupported_terminals"
+    : "complete";
 }
 
 /** `asked` against an approved set. */
 function against(
   asked: ListedCommands,
-  approved: SetOf,
+  approved: CommandSet,
   basis: ComparedWith,
 ): Compared {
+  const before = setOf(approved);
+  const after = setOf(asked);
+  if (before.terminals.length > 0 || after.terminals.length > 0) {
+    return { kind: "unsupported_terminals" };
+  }
   return {
     kind: "changed",
     against: basis,
-    setup: compareCommands(approved.setup, asked.setup),
-    teardown: compareCommands(approved.teardown, asked.teardown),
-    scripts: compareScripts(approved.scripts ?? [], asked.scripts ?? []),
+    setup: compareCommands(before.setup, after.setup),
+    teardown: compareCommands(before.teardown, after.teardown),
+    scripts: compareScripts(before.scripts, after.scripts),
   };
 }
 
@@ -221,6 +244,9 @@ export function compareApproved(
   asked: ListedCommands,
   folder: ProjectCommands | null,
 ): Compared {
+  if (approvalCoverage(asked) === "unsupported_terminals") {
+    return { kind: "unsupported_terminals" };
+  }
   const last = asked.last_approved ?? null;
   if (last !== null) {
     return against(asked, last.commands, {

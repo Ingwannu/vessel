@@ -8,7 +8,7 @@
 crates/vessel-agent/src/codex/asks.rs 612
 crates/vessel-agent/src/codex/session.rs 1036
 crates/vessel-agent/src/handshake.rs 522
-crates/vessel-cli/src/workspace.rs 530
+crates/vessel-cli/src/workspace.rs 529
 crates/vessel-client/src/client.rs 727
 crates/vessel-fleet/src/plan.rs 524
 crates/vessel-llm/src/client.rs 786

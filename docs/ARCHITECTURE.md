@@ -1347,3 +1347,14 @@ probe or automatic relay activation is performed. Existing Admin guards run
 first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
+
+## Staged project-file terminal contract (ADR 0066)
+
+`vessel-workspace::project_file::terminals` owns TOML terminal decoding and
+ordered digest fields; it starts no process. `vessel-proto::workspace`
+carries the validated commands into the existing approval snapshot.
+The node describes that snapshot through the existing project-command path;
+reply adaptation refuses it to peers without the assigned field version.
+The CLI's `file_terminals` formatter makes those commands visible. Runtime
+terminal creation, service-port assignment and health are later changes.
+No dependency edge, external dependency or store schema changes.
