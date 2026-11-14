@@ -239,7 +239,7 @@ added at merge, and is not classed here as missing or refused.
 | `daemon.trustedProxies` | `--trusted-proxy`, `--client-address-header` | **Start-time.** |
 | `daemon.hostnames` | the fixed `Host` checks of the web UI and the model proxy | **None.** Not a setting. |
 | `daemon.cors.allowedOrigins` | no CORS, by design of the web UI | **None.** |
-| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | ADR 0065 adds `mcp` (`mcp.serve`, `mcp.inject`), added at merge | **That ADR's class.** A running session keeps the list it started with. Not classed as absent here. |
+| `daemon.mcp.enabled`, `daemon.mcp.injectIntoAgents` | ADR 0065 adds one field `mcp`, added at merge | **That ADR's class.** `inject` and `policy` apply at the next session start (a running session keeps the list it started with). `serve` applies at once: the child process starts, or it is stopped (ADR 0065). Not classed as absent here. |
 | `daemon.usage.enabled` | none | **None.** |
 | `daemon.browserTools.enabled` | ADR 0069 adds `browser_tools`, added at merge | **That ADR's class.** The field was read (off unless set). When a live change applies was not read, so this row assigns no class. |
 | `daemon.git.maxProcessesPerSecond`, `maxProcessConcurrency` | none | **None.** |
@@ -273,6 +273,8 @@ it. It does not write the value. A name with no flag and no field is
 refused as an unknown key, not stored. `metadata`, `browser_tools` and
 `mcp` are not unknown and are not refused here: ADR 0062, ADR 0069 and
 ADR 0065 add them, at merge. This command does not implement those fields.
+`config set` names a whole field, not a dotted subpath. The pieces of
+`mcp` are ADR 0065's; this command does not invent a path syntax for them.
 
 ### Reload
 
@@ -378,15 +380,14 @@ is the explicit start. `systemctl stop` is not sent while a drain is in
 progress, because that signal would interrupt the sessions the drain is
 waiting for.
 
-On launchd the unit this version writes today has `KeepAlive` true, so a
-clean exit starts a new process and a stop would not stay stopped. Slice 2
-changes that template to keep alive only when the exit failed (the same
-rule as `Restart=on-failure`). A plist that still has `KeepAlive` true
-differs, so it is not rewritten and not unloaded. `node stop` then uses
-the RPC only and reports that the agent is set to start again on exit,
-with the undo line the plist already contains. A matching plist stays down
-after a clean exit. Unload, without the flag that disables the agent
-across logins, runs only after the lock is free.
+On launchd the unit this version writes keeps the agent alive only when
+the exit failed (`SuccessfulExit` false, the same rule as
+`Restart=on-failure`). A plist that still has `KeepAlive` true differs,
+so it is not rewritten and not unloaded. `node stop` then uses the RPC
+only and reports that the agent is set to start again on exit, with the
+undo line the plist already contains. A matching plist stays down after
+a clean exit. Unload, without the flag that disables the agent across
+logins, runs only after the lock is free.
 
 ### Restart
 

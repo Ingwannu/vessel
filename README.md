@@ -77,6 +77,11 @@ cargo build --release
 ./target/release/vessel log 3f2a > session.log
 ```
 
+The per-user service starts at login and restarts a failed process. A clean
+shutdown stays stopped. Existing service files are preserved; an older
+macOS agent with unconditional `KeepAlive` still starts again after a
+clean exit until you remove and recreate it with `vessel init --service`.
+
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
 

@@ -6,16 +6,15 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: ADR 0064 and this plan. Status is proposed. A foreground restart
-  on Linux runs the lock holder's executable, not `vesseld.owner`. When
-  `readlink` of `/proc/<pid>/exe` ends in ` (deleted)` because the file
-  was replaced, restart runs the regular file now at that path only if
-  the record still names it. A missing path is its own refusal. The
-  invoker's environment, the sibling settings keys and the Windows
-  refusals are stated. No code.
-- Half-done: nothing.
-- Next: slice 2, after this commit's fast checks are green. A further
-  return is fixed before slice 2.
+- Done: slice 1 contract, proposed status. Slice 2a changes the existing
+  launchd template to restart failed exits only; a test pins preservation
+  of older unconditional agents. No command is added in slice 2a.
+- Half-done: stop/restart command drafts have not passed compilation or
+  review. They are excluded from slice 2a and require revision: waits must
+  use events, inputs and errors must be typed, and refusal tests must
+  exercise commands rather than only compare strings.
+- Next: slice 2b implements graceful stop with live-session safeguards;
+  slice 2c adds verified forced cleanup and restart. Then slices 3 and 4.
 
 ## Existing asset check
 
@@ -143,6 +142,17 @@ not run. Nothing under `web/` changes.
 
 ### Slice 2: `vessel node stop` and `vessel node restart`
 
+Split into 2a (launchd clean-exit policy), 2b (graceful stop) and 2c
+(verified forced cleanup and restart), each with its own tests and gate.
+2a reuses `init/service.rs` and `write_once`: no dependency or crate edge
+is added. Standard-library rendering and the existing service manager
+are sufficient. Unlike Paseo's retained supervisor launch
+(`restart.ts` 20–21, 118), Vessel runs the node directly as a user service;
+clean exit must therefore stay stopped. This is the service difference
+already decided in ADR 0064. Linux's template and Windows's existing
+service refusal are unchanged. Runtime launchd behaviour requires macOS.
+
+
 As the ADR's Stop and Restart sections. Tests beside the command, with
 the testkit's node, never a real agent and never the network:
 
@@ -190,7 +200,10 @@ until that assignment; the constant then equals the base, and the
 integrator changes that one constant. `docs/PROTOCOL.md` is updated in
 this commit because the methods are registered. The mapping exhaustively
 destructures `SetNodeSettings`, so a new field does not compile until it
-has a variant and the reload class its own ADR decided. Generated
+has a variant and the reload class its own ADR decided. `config set`
+names that field, not a dotted subpath. `mcp.inject` and `mcp.policy`
+apply at the next session start; `mcp.serve` applies at once (ADR 0065,
+added at merge). This track does not define a syntax for those pieces. Generated
 TypeScript is regenerated in the same commit (`web/src/wire/`), and the
 page checks run because the wire changed.
 
