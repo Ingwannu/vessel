@@ -24,8 +24,8 @@ use vessel_app_view::terminal::Outgoing;
 use vessel_client::NodeClient;
 use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
-    ErrorCode, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
-    TerminalBytes, TerminalInput, TerminalSize,
+    ErrorCode, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput,
+    SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
 };
 use vessel_proto::{
     PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
@@ -75,6 +75,11 @@ pub enum Act {
     /// Start a parked session's agent again (`session.wake`, protocol 12):
     /// the session as it then stands, its `parked` cleared.
     Wake,
+    /// Take the conversation back to the end of the turn whose
+    /// `turn_ended` record is this one (`session.rewind`, protocol 14):
+    /// the session as it then stands; its `rewound` record follows in the
+    /// log.
+    Rewind(EventSeq),
 }
 
 /// Which act an answer is for.
@@ -108,6 +113,8 @@ pub enum ActKind {
     SetOption,
     /// A parked agent started again.
     Wake,
+    /// A rewind.
+    Rewind,
 }
 
 impl Act {
@@ -129,6 +136,7 @@ impl Act {
             Self::Conversation => ActKind::Conversation,
             Self::SetOption(_) => ActKind::SetOption,
             Self::Wake => ActKind::Wake,
+            Self::Rewind(_) => ActKind::Rewind,
         }
     }
 }
@@ -218,6 +226,10 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         Act::StartAgain => client.resume_session(session).await.map(boxed),
         Act::Wake => client
             .call(vessel_proto::parking::WakeSession { session })
+            .await
+            .map(boxed),
+        Act::Rewind(after) => client
+            .call(vessel_proto::forking::RewindSession { session, after })
             .await
             .map(boxed),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),

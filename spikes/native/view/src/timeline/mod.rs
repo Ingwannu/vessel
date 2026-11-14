@@ -45,6 +45,7 @@ mod permission;
 mod plan;
 mod question;
 mod question_step;
+mod rewind;
 mod rows;
 mod runs;
 mod usage;
@@ -75,6 +76,7 @@ pub use question::{
 pub use question_step::{
     Choice, Pick, box_is_other, choices, pick, picked, step_header, step_prompt, text_target, typed,
 };
+pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
 pub use usage::ModelUsage;

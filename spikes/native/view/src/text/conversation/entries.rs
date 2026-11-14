@@ -433,7 +433,7 @@ impl ConversationWords {
                     .unwrap_or(self.unseen_tool_call()),
                 &settled(&permission.request.options, permission.outcome.as_ref()),
             ),
-            EntryKind::TurnEnded { reason, usage } => self.turn_ended(*reason, usage.as_ref()),
+            EntryKind::TurnEnded { reason, usage, .. } => self.turn_ended(*reason, usage.as_ref()),
             // One sentence, without the JSON-RPC wrapper or the agent's
             // data; a usage limit's sentence alone (`timeline::failure`).
             EntryKind::TurnFailed { message } => {
