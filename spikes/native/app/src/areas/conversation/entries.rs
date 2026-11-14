@@ -53,6 +53,8 @@ pub(super) struct Paint<'a> {
     /// The machines' sessions: a forked session's first line names its
     /// source by its title.
     pub(super) fleet: &'a vessel_app_view::Fleet,
+    /// What a fork's first line has above or under it (`origin`).
+    pub(super) above: super::origin::Above<'a>,
 }
 
 /// Entry `index` as its row.
@@ -142,7 +144,7 @@ pub(super) fn entry(
             .text_color(paint.look.secondary)
             .child(line.clone())
             .into_any_element(),
-        EntryKind::Forked { from, .. } => meta(
+        EntryKind::Forked { from, .. } => super::origin::forked_line(
             paint,
             format!(
                 "{} · {}",

@@ -395,7 +395,7 @@ impl Shell {
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(row, Reveal::Nearest);
+            area.list.reveal(area.at(row), Reveal::Nearest);
         }
     }
 }

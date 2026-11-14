@@ -177,6 +177,7 @@ session (no tabs or workspaces).
 | --- | --- | --- |
 | R1 | the person's message's trailing row (time, rewind, copy); rewind to the turn end before it (`session.rewind`), the rewound message back in the composer; the entries rewound away drawn no more (they stay in the fold and the log: entries are never removed) | Paseo `UserMessage`, `RewindMenu` (conversation mode) |
 | F1 | the turn footer's fork menu; `session.fork` at that turn's end; the new session opened; its first line says where it came from | Paseo `AssistantForkMenu` (one target: a new session) |
+| F1b | the fork shows its origin's conversation up to the fork point above its first line, read-only, the line their divider; a removed origin leaves the line with a plain sentence | Paseo carries the context as a draft attachment only ("Chat history" / "Previous conversation"); ours draws the origin's real turns |
 | F2 | a fork that never had a conversation (`empty_fork`): its reason and Remove | ADR 0052 addendum (track A2) |
 
 Each slice: rules in `view` with tests, captures at 1280, 390 and
@@ -206,9 +207,33 @@ from here"); its menu's one row "Fork in a new session" asks
 kept: one target (a new session; Paseo's are a tab or a workspace);
 the menu closes when chosen and the mark stays locked until the answer
 (Paseo keeps the row pending); no fork from the working turn (the node
-refuses a whole-conversation fork while a turn runs); the fork shows
-only its own records (Paseo's draft carries the forked context; the
-agent holds ours).
+refuses a whole-conversation fork while a turn runs). The fork showed
+only its own records until F1b.
+
+F1b (2026-11-14, the coordinator: "a forked session that opens empty
+hides from the person exactly what the agent remembers"): once the
+fork's `forked` line is folded, the origin's log is read from its start
+with `session.read` (one act, `Act::Log`, page by page off the screen's
+thread) and kept up to the fork's record (`view::timeline::Until`; a
+whole-conversation fork, up to when it was made). It is folded as its
+own conversation (`origin.rs`: its own rows, runs and disclosures,
+reached through `Seat::ORIGIN`) and drawn as the list's first rows,
+the "Forked from" line under them as a divider. Inherited turns carry
+no rewind or fork mark; copy stays. The session area's list ops add
+the origin's row count (`ConversationArea::at`); find and the outline
+rail cover the fork's own turns. A removed origin leaves the line and
+"The conversation it was forked from was removed." What Paseo shows:
+no earlier turns; its fork is a draft whose composer holds one
+attachment pill, title "Chat history" (`activity-curator.ts`), subtitle
+"Previous conversation" (`attachment-pill-content.tsx`), the text the
+agent receives. Ours are the origin's real turns, as the agent has
+them. An archived origin's log is still on the node (`session.read`
+answers it), so its turns show as any other origin's; only a removed one
+(NotFound) leaves the line alone. Measured on the fake fleet (debug
+build): a long origin of 162 records (122 rows) read in 281 ms off the
+screen's thread, folded in 0.5 ms; the fork's own rows show before it.
+Captures: `shots/m/100`–`109` (1280, 800 × 600, 390; both themes; en
+and ko; long, removed and archived origins).
 
 ## Module layout (2026-11-14, the owner's word 44)
 
@@ -230,6 +255,7 @@ draws and wires.
 | `find.rs` / `find/bar.rs` | find's state, steps and keys / its bar; where it starts is `view::timeline::start_at` |
 | `rewind.rs` | the person's message's trailing row (time, undo, copy), the rewind menu, the act, the message back into the composer; where it can go is `view::timeline::rewind_point` |
 | `fork.rs` | the turn footer's fork mark and menu, the act, the new session listed and opened; where it can go is `view::timeline::fork_point` |
+| `origin.rs` | a fork's origin: read, folded as its own conversation, drawn as the list's first rows; the "Forked from" divider; where the read stops is `view::timeline::Until` |
 
 Moved to `view` with tests: `question_step` (choices, pick, typed,
 header, prompt, text target), `start_at`, `first_reply`.

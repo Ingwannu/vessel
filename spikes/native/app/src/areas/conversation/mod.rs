@@ -60,6 +60,7 @@ mod intake;
 mod look;
 mod meter;
 mod motion;
+mod origin;
 mod outline;
 mod permission;
 mod place;

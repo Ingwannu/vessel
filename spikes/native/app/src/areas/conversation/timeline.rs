@@ -92,11 +92,16 @@ pub(crate) fn rows(
         let paint = paint(shell, area, seat, tokens, window);
         return entries::empty(&paint).into_any_element();
     }
+    // A fork's origin's rows come first (`origin`).
+    let head = area.head();
     area.list
         .element(
             cx.processor(move |shell: &mut Shell, row: usize, window, cx| {
                 let tokens = vessel_app_kit::tokens(cx);
-                row_element(shell, seat, row, &tokens, window, cx)
+                match row.checked_sub(head) {
+                    Some(own) => row_element(shell, seat, own, &tokens, window, cx),
+                    None => row_element(shell, Seat::ORIGIN, row, &tokens, window, cx),
+                }
             }),
         )
         .into_any_element()
@@ -125,6 +130,7 @@ fn paint<'a>(
         forks: std::ptr::eq(area, &raw const shell.areas.conversation)
             .then_some((&area.timeline, &area.forking)),
         fleet: &shell.fleet,
+        above: area.above(),
     }
 }
 

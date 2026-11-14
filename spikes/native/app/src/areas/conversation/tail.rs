@@ -97,7 +97,7 @@ impl ConversationArea {
         if *shown == wanted {
             return;
         }
-        let start = self.rows.len();
+        let start = self.at(self.rows.len());
         self.list
             .splice(start..start.saturating_add(shown.len()), wanted.len());
         *shown = wanted;

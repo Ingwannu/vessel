@@ -15,8 +15,8 @@ use vessel_proto::{ErrorCode, EventSeq, SessionId, SessionInfo};
 
 use super::actions::{AgentLog, Confirm, MenuAction};
 use super::{
-    bench, find, fork, meter, outline, permission, question, queue, read, rename, rewind, search,
-    tail,
+    bench, find, fork, meter, origin, outline, permission, question, queue, read, rename, rewind,
+    search, tail,
 };
 
 /// What the shell does after an act's answer reached the conversation.
@@ -145,6 +145,8 @@ pub(crate) struct ConversationArea {
     pub(super) rewinding: rewind::Rewinding,
     /// A fork being chosen in a turn's footer, sent, or opening.
     pub(super) forking: fork::Forking,
+    /// A fork's origin, its turns the list's first rows (`origin`).
+    pub(crate) origin: origin::Origin,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -208,6 +210,7 @@ impl ConversationArea {
             read: read::ReadMarks::default(),
             rewinding: rewind::Rewinding::new(cx),
             forking: fork::Forking::new(cx),
+            origin: origin::Origin::None,
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),
@@ -250,6 +253,7 @@ impl ConversationArea {
         self.read = read::ReadMarks::default();
         self.rewinding.clear();
         self.forking.clear();
+        self.origin = origin::Origin::None;
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -310,7 +314,7 @@ impl ConversationArea {
         };
         self.reveal = None;
         if let Some(row) = self.rows.row_index(index, self.folds.as_ref(), &self.logs) {
-            self.list.reveal(row, Reveal::Top);
+            self.list.reveal(self.at(row), Reveal::Top);
         }
     }
 
@@ -326,7 +330,7 @@ impl ConversationArea {
         // was and its members come or go right after it. Splicing there
         // (not resetting the list) keeps the view where the person is.
         if let Some(row) = self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
-            let next = row.saturating_add(1);
+            let (row, next) = (self.at(row), self.at(row.saturating_add(1)));
             let gone = before.saturating_sub(after);
             self.list.splice(
                 next..next.saturating_add(gone),
@@ -334,7 +338,7 @@ impl ConversationArea {
             );
             self.list.changed(row..next);
         } else {
-            self.list.reset(after);
+            self.list.reset(self.at(after));
             self.tail_dropped();
         }
     }
@@ -345,6 +349,7 @@ impl ConversationArea {
             let _new = self.toggled.insert(entry);
         }
         if let Some(row) = self.rows.row_index(entry, self.folds.as_ref(), &self.logs) {
+            let row = self.at(row);
             self.list.changed(row..row.saturating_add(1));
         }
     }
