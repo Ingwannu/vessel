@@ -538,6 +538,10 @@ const FORWARDABLE: &[&str] = &[
     "agent.list",
     "agent.status",
     "usage.query",
+    // The inbox reads/marks forward; device-scoped push calls never do.
+    "inbox.list",
+    "inbox.get",
+    "inbox.mark",
     "schedule.preview",
     "schedule.list",
     "schedule.get",
@@ -1115,3 +1119,4 @@ fn typed_envelopes_require_the_inner_methods_and_fields() {
         expected
     );
 }
+mod envelope_versions;

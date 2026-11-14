@@ -667,6 +667,23 @@ async fn run_here(
         Call::UpdatePrompt(request) => {
             Reply::UpdatePrompt(guard.update_prompt(connection, request).await?)
         }
+        Call::ListInbox(request) => Reply::ListInbox(guard.list_inbox(connection, request).await?),
+        Call::GetInboxEntry(request) => {
+            Reply::GetInboxEntry(guard.get_inbox_entry(connection, request).await?)
+        }
+        Call::MarkInbox(request) => Reply::MarkInbox(guard.mark_inbox(connection, request).await?),
+        Call::GetPushKey(request) => {
+            Reply::GetPushKey(guard.get_push_key(connection, request).await?)
+        }
+        Call::SubscribePush(request) => {
+            Reply::SubscribePush(guard.subscribe_push(connection, request).await?)
+        }
+        Call::UnsubscribePush(request) => {
+            Reply::UnsubscribePush(guard.unsubscribe_push(connection, request).await?)
+        }
+        Call::ReportPushPresence(request) => {
+            Reply::ReportPushPresence(guard.report_push_presence(connection, request).await?)
+        }
         Call::DeletePrompt(request) => {
             Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
         }

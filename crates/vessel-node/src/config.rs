@@ -112,6 +112,11 @@ pub struct Config {
     /// 0032): its published index. https only, or plain http to this
     /// machine (what a test serves).
     pub registry_url: String,
+    /// Unit-test transport injection; never exists in an installed node.
+    #[cfg(test)]
+    pub(crate) push_test_origin: Option<url::Url>,
+    #[cfg(test)]
+    pub(crate) push_preparation: Option<std::sync::Arc<crate::push::Preparation>>,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -180,6 +185,10 @@ impl Config {
             forge: crate::ForgeSetup::default(),
             terminals: crate::TerminalsConfig::default(),
             registry_url: crate::catalogue::REGISTRY_URL.to_owned(),
+            #[cfg(test)]
+            push_test_origin: None,
+            #[cfg(test)]
+            push_preparation: None,
         }
     }
 }

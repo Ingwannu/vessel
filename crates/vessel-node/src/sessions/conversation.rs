@@ -145,3 +145,16 @@ impl Sessions {
         }
     }
 }
+
+impl Sessions {
+    pub(crate) async fn inbox_request(
+        &self,
+        id: SessionId,
+        request: vessel_proto::inbox::InboxRequest,
+    ) -> Result<Option<vessel_proto::inbox::InboxItem>, ServiceError> {
+        match self.find(id).await? {
+            Found::Live { handle, .. } => Ok(handle.inbox_request(request)?),
+            Found::Stored(_) => Ok(None),
+        }
+    }
+}

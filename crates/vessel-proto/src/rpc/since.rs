@@ -10,7 +10,8 @@ use super::Call;
 
 impl Call {
     /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
+    /// when it uses a field added since or wraps a newer inner call. Every
+    /// hop must decode the full typed call. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
     /// or invite a device with more scopes than asked), so the client checks
     /// this before sending. A request that gains a field adds a line here.
@@ -28,7 +29,7 @@ impl Call {
             // newer field before the target sees it (ADR 0044), as a
             // protocol-18 home would drop `session.create`'s
             // `side_question_of` and start a plain session (ADR 0045; N5,
-            // N3 and N2 each added this rule, merged here as one).
+            // N3, N2 and N1 each added this rule, merged here as one).
             Self::Forward(request) => Some(request.call.since().get()),
             Self::Relay(request) => Some(request.call.since().get()),
             Self::Deliver(request) => Some(request.call.since().get()),
@@ -236,6 +237,13 @@ impl Call {
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)

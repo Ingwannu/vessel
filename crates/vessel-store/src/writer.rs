@@ -114,6 +114,16 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done,
     },
+    /// Mark one exact inbox entry; a read never answers a request.
+    Inbox {
+        mark: vessel_proto::inbox::MarkInbox,
+        done: Done,
+    },
+    /// Device-scoped subscription changes; lease and scope checked atomically.
+    Push {
+        write: crate::push::PushWrite,
+        done: Done,
+    },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
         write: crate::workspace::WorkspaceWrite,
@@ -146,6 +156,8 @@ pub(crate) struct Setup {
     /// a watch keeps only the latest value and never fills, and the node
     /// looks for every worktree whose session is gone anyway.
     pub(crate) pruned: watch::Sender<u64>,
+    /// Coalesced wake-up after a committed attention event, never raw output.
+    pub(crate) inbox: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
     /// while the writer catches up, false once it waits on its queue with
     /// nothing behind.
@@ -187,6 +199,8 @@ fn after<T>(
 struct Effects {
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
+    /// A committed batch introduced attention.
+    attention: bool,
     /// A session ended, so retention may prune ended sessions.
     ended: bool,
     /// Sessions removed (deleted or pruned), whose attachment folders go
@@ -316,6 +330,9 @@ fn commit(
         for &session in &effects.removed {
             attachments::remove_folder(&setup.attachments, session);
         }
+        if effects.attention {
+            setup.inbox.send_replace(());
+        }
         if effects.pruned > 0 {
             // A count of events, so wrapping is harmless: readers only look
             // for a change.
@@ -339,12 +356,9 @@ fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Create { info, done } => {
-            let applied = isolated(transaction, |connection| {
-                log::create_session(connection, &info)
-            });
-            Answer::Done(done, applied)
-        }
+        Write::Create { info, done } => write_answer(transaction, done, |connection| {
+            log::create_session(connection, &info)
+        }),
         Write::Append {
             session,
             records,
@@ -409,18 +423,18 @@ fn apply(
             });
             Answer::Done(done, applied)
         }
-        Write::Workspace { write, done } => {
-            let applied = isolated(transaction, |connection| {
-                crate::workspace::apply(connection, &write)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Forge { write, done } => {
-            let applied = isolated(transaction, |connection| {
-                crate::forge::apply(connection, &write)
-            });
-            Answer::Done(done, applied)
-        }
+        Write::Inbox { mark, done } => write_answer(transaction, done, |connection| {
+            crate::inbox::mark(connection, &mark)
+        }),
+        Write::Push { write, done } => write_answer(transaction, done, |connection| {
+            crate::push::apply(connection, &write)
+        }),
+        Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
+            crate::workspace::apply(connection, &write)
+        }),
+        Write::Forge { write, done } => write_answer(transaction, done, |connection| {
+            crate::forge::apply(connection, &write)
+        }),
         Write::Automation { writes, done } => {
             let applied = isolated(transaction, |connection| {
                 writes
@@ -430,6 +444,16 @@ fn apply(
             Answer::Done(done, applied)
         }
     }
+}
+
+// State-only writes keep the same savepoint and acknowledgement boundary,
+// apart from the session writes that also drive retention.
+fn write_answer(
+    transaction: &mut Transaction<'_>,
+    done: Done,
+    operation: impl FnOnce(&Connection) -> Result<(), StoreError>,
+) -> Answer {
+    Answer::Done(done, isolated(transaction, operation))
 }
 
 /// Append a session's records and index them, in one savepoint. The
@@ -454,6 +478,9 @@ fn append(
     indexer.keep(session, advanced);
     let _first = effects.touched.insert(session);
     effects.ended |= now_ended;
+    effects.attention |= records
+        .iter()
+        .any(|record| record.event.asks_for_attention());
     Ok(())
 }
 

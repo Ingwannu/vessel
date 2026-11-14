@@ -2685,6 +2685,21 @@ profile?: ProfileName | null, };
 export type GetHover = AtPosition;
 
 /**
+ * Look up one exact current entry, including after it leaves a loaded page.
+ * An absent entry is resolved/withdrawn, not a successful duplicate answer.
+ */
+export type GetInboxEntry = { 
+/**
+ * Source the client is still showing or awaiting confirmation for.
+ */
+key: InboxKey, 
+/**
+ * Opt-in full live form. A single reply is capped at 15 MiB; larger
+ * content stays an explicit compact reference, never shortened choices.
+ */
+fetch?: InboxFetch, };
+
+/**
  * `fleet.manifest` (protocol 5): the home's current bundle. Needs `Sync`.
  */
 export type GetManifest = null;
@@ -2745,6 +2760,11 @@ session: SessionId,
  * otherwise the watcher's copy).
  */
 refresh: boolean, };
+
+/**
+ * Get the node's public VAPID identity, never its private key.
+ */
+export type GetPushKey = null;
 
 /**
  * `schedule.get`: one schedule. Needs `read`.
@@ -3242,6 +3262,153 @@ cwd?: string | null,
 start?: boolean, };
 
 /**
+ * A count of inbox entries, independent of the currently loaded page.
+ */
+export type InboxCount = number;
+
+/**
+ * Exact counts for the whole node, never inferred from a partial page.
+ */
+export type InboxCounts = { 
+/**
+ * Every current request and outcome, including read ones.
+ */
+total: InboxCount, 
+/**
+ * Requests waiting for a person's answer, including read ones.
+ */
+waiting: InboxCount, 
+/**
+ * Entries whose attention remains unread.
+ */
+unread: InboxCount, };
+
+/**
+ * A stable position in a node's inbox, never reused after removal.
+ */
+export type InboxCursor = number;
+
+/**
+ * Whether a tool's entire detail fits in an inbox page.
+ */
+export type InboxDetail = "complete" | "in_session";
+
+/**
+ * An entry and the session's current identifying metadata.
+ */
+export type InboxEntry = { 
+/**
+ * Page position, local to this node.
+ */
+cursor: InboxCursor, 
+/**
+ * Exact source record.
+ */
+key: InboxKey, 
+/**
+ * Current session title.
+ */
+title: SessionTitle | null, 
+/**
+ * Project, when the session was placed in one.
+ */
+project: ProjectId | null, 
+/**
+ * Current project name for a person, when the project still exists.
+ */
+project_name: ProjectName | null, 
+/**
+ * When attention was first requested.
+ */
+at: string, 
+/**
+ * Shared read state.
+ */
+read: InboxRead, 
+/**
+ * Request or outcome.
+ */
+item: InboxItem, };
+
+/**
+ * Whether a get is a cheap projection recheck or recovers one live form.
+ */
+export type InboxFetch = "summary" | "live_request";
+
+/**
+ * What needs attention. Unknown future kinds remain readable, not actionable.
+ */
+export type InboxItem = { "kind": "permission", 
+/**
+ * Request the session actor still owns.
+ */
+request: PermissionRequest, 
+/**
+ * Last announced tool state, when available.
+ */
+tool: ToolCall | null, 
+/**
+ * Large tool bodies stay in the session.
+ */
+detail: InboxDetail, } | { "kind": "question", 
+/**
+ * Request the session actor still owns.
+ */
+question: Question, } | { "kind": "in_session", 
+/**
+ * The request remains pending, and is never silently dropped.
+ */
+request: InboxRequest, } | { "kind": "finished" } | { "kind": "failed" } | { "kind": "limit" } | { "kind": "unknown" };
+
+/**
+ * The exact source record, also used to open the conversation at that point.
+ */
+export type InboxKey = { 
+/**
+ * Session owning the entry.
+ */
+session: SessionId, 
+/**
+ * Record that first asked for attention.
+ */
+seq: EventSeq, };
+
+/**
+ * At most sixteen entries, with an exclusive cursor for older entries.
+ */
+export type InboxPage = { 
+/**
+ * Whole-node counts, from the same read transaction as this page.
+ */
+counts: InboxCounts, 
+/**
+ * Entries, newest first.
+ */
+entries: Array<InboxEntry>, 
+/**
+ * Fetch the next page when present.
+ */
+next: InboxCursor | null, };
+
+/**
+ * Shared attention state; reading never resolves a request.
+ */
+export type InboxRead = "read" | "unread";
+
+/**
+ * A request whose unusually large form stays in its session.
+ */
+export type InboxRequest = { "kind": "permission", 
+/**
+ * The actor's request id.
+ */
+id: PermissionId, } | { "kind": "question", 
+/**
+ * The actor's request id.
+ */
+id: QuestionId, };
+
+/**
  * Calls to the symbol at a saved source position.
  */
 export type IncomingCalls = AtPosition;
@@ -3579,6 +3746,15 @@ ignored: boolean, };
 export type ListHarnesses = null;
 
 /**
+ * A bounded descending page. Omitted cursor starts at the newest entry.
+ */
+export type ListInbox = { 
+/**
+ * Exclusive upper bound, returned as `next` by the preceding page.
+ */
+before: InboxCursor | null, };
+
+/**
  * `fleet.members` (protocol 5): the home's members and what each last
  * reported. Needs `Admin`.
  */
@@ -3781,6 +3957,19 @@ files: { [key in BundlePath]: BundleFile },
  * The MCP servers.
  */
 mcp: { [key in McpServerName]: McpTransport<ConfigValue> }, };
+
+/**
+ * Change shared read attention for exactly one current entry.
+ */
+export type MarkInbox = { 
+/**
+ * Exact source, so an old mark never consumes newer attention.
+ */
+key: InboxKey, 
+/**
+ * New shared state.
+ */
+read: InboxRead, };
 
 /**
  * `session.mark`: set a mark. Needs `operate`.
@@ -5186,6 +5375,48 @@ remote?: RemoteName | null,
  * Make the pushed branch the upstream.
  */
 set_upstream: boolean, };
+
+/**
+ * Whether this report corresponds to a person's input.
+ */
+export type PushActivity = "active" | "unchanged";
+
+/**
+ * Web Push authentication material; Debug cannot print its secret bytes.
+ */
+export type PushAuth = string;
+
+/**
+ * A browser-issued HTTPS capability. Never log or navigate to it.
+ */
+export type PushEndpoint = string;
+
+/**
+ * What the person is looking at, without disclosing any content.
+ */
+export type PushFocus = { "focus": "session", 
+/**
+ * Session this device is viewing.
+ */
+session: SessionId, } | { "focus": "elsewhere" } | { "focus": "background" };
+
+/**
+ * The public identity passed to the browser's pushManager.subscribe.
+ */
+export type PushKey = { 
+/**
+ * Uncompressed P-256 point, base64url without padding.
+ */
+key: PushPublicKey, };
+
+/**
+ * Confirmation of the node's lease. Renew by subscribing again.
+ */
+export type PushLease = { 
+/**
+ * Subscription stops receiving after this time, even across restart.
+ */
+expires_at: string, };
 
 /**
  * `git.push`'s answer.
@@ -7752,6 +7983,15 @@ session: SessionId,
 from: EventSeq, };
 
 /**
+ * Replace or renew this paired device's single subscription.
+ */
+export type SubscribePush = { 
+/**
+ * Browser subscription, with no caller-supplied device identity.
+ */
+subscription: PushSubscription, };
+
+/**
  * `terminal.subscribe`: a terminal's records from `from`, then live ones,
  * as `ServerFrame::Event` frames; ended with `session.unsubscribe`.
  */
@@ -8412,6 +8652,11 @@ export type Unsubscribe = {
  * Which subscription.
  */
 subscription: SubscriptionId, };
+
+/**
+ * Stop push to this paired device alone.
+ */
+export type UnsubscribePush = null;
 
 /**
  * `prompt.update`: change a saved prompt (its project stays). Needs
