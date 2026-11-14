@@ -221,16 +221,30 @@ are decoded once; duplicates are refused rather than taking the last value.
 The API retains any u32 sequence so the stream can return `TooLong`, while
 finish-budget decoding refuses values over five minutes.
 
+## Review correction: authoritative versions and bounds
+
+Decision: modify existing types. `SINCE` uses `ProtocolVersion` and aliases
+`PROTOCOL_VERSION` until the integrator assigns its permanent version. No
+second numeric protocol value can drift from the base. The input bounds
+have one definition shared by validation and error formatting; byte-to-KiB
+conversion also has one definition. The refusal text and accepted inputs
+stay the same. No new dependency or wire method is added.
+
 ## Resume point
 
-Done: slice 1, reviewed ADR and contract. Slice 2a adds bounded audio wire
-values with edge tests. These values are not connected to `Call`/`Reply`
-yet, so existing peer bytes and generated TypeScript remain unchanged.
-`PROTOCOL_VERSION` stays unchanged; the merge assigns `dictation::SINCE`.
+Done: slice 1, reviewed ADR and contract; slice 2a values-only implementation
+in `6a0d3e21`, with five edge tests. The implementation has no callable RPC,
+settings field, stream task or provider. Generated wire bytes are unchanged.
 
-Half-done: the previous implementation draft is preserved outside the
-repository for comparison. Its settings, service, endpoint and actor have
-not passed a gate and are not claimed as implemented.
+Review of 2a returned its bare version and repeated bounds. This commit
+corrects both: a typed base-version reference and named bounds used in
+checks and diagnostics. It also clarifies why the public accessors exist.
+The correction must pass its exact-commit gate and be reported for review.
 
-Next: gate and report 2a, then build 2b and 2c. Do not link local models or
-open a microphone. The CLI file client follows those parts.
+Half-done: the previous settings/service draft remains outside the repository
+for comparison, uncompiled and unreviewed. It must not be treated as a
+finished implementation.
+
+Next: gate and report this correction, then continue settings and service
+implementation in reviewable parts. Do not link local models or open a
+microphone. The CLI file client follows the node service.

@@ -107,5 +107,5 @@ fn sequence_and_finish_budget_have_distinct_boundary_policies() {
         300_000
     );
     assert!(serde_json::from_str::<WithinMs>("300001").is_err());
-    assert!(SINCE <= crate::PROTOCOL_VERSION.get());
+    assert!(SINCE <= crate::PROTOCOL_VERSION);
 }

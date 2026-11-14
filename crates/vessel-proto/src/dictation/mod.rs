@@ -1,4 +1,4 @@
-//! Composer dictation (ADR 0067).
+//! Validated dictation wire values (ADR 0067), without stream state, providers or I/O.
 //!
 //! The merge assigns the protocol number by changing [`SINCE`]. This branch
 //! keeps it at the base version so a method's `since` is never newer than
@@ -17,17 +17,27 @@ mod error;
 pub use error::DictationDecodeError;
 
 /// First protocol version with these calls. The merge changes this number.
-pub const SINCE: u32 = 20;
+pub const SINCE: crate::ProtocolVersion = crate::PROTOCOL_VERSION;
+
+// Bounds are shared with diagnostic formatting so a refusal cannot name a
+// different limit from the one that rejected the input.
+const MIN_ID_CHARS: usize = 1;
+const MAX_ID_CHARS: usize = 64;
+const MIN_RATE: u32 = 8_000;
+const MAX_RATE: u32 = 48_000;
+const MAX_FINISH_MS: u32 = 300_000;
+const PCM_SAMPLE_BYTES: usize = std::mem::size_of::<i16>();
+const KIB_BYTES: usize = 1024;
 
 /// Longest PCM16 chunk. One second at 48 kHz is 96 000 bytes, so this also
 /// holds a second at every accepted rate.
-const MAX_CHUNK_BYTES: usize = 256 * 1024;
+const MAX_CHUNK_BYTES: usize = 256 * KIB_BYTES;
 
 /// Last sequence a stream accepts. 1800 one-second chunks is 30 minutes.
 pub const MAX_SEQ: ChunkSeq = ChunkSeq::new(1_799);
 
 /// Longest transcript the node will return.
-const MAX_TRANSCRIPT_BYTES: usize = 64 * 1024;
+const MAX_TRANSCRIPT_BYTES: usize = 64 * KIB_BYTES;
 
 /// A dictation stream. One to 64 characters of `[A-Za-z0-9_-]`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -35,7 +45,7 @@ const MAX_TRANSCRIPT_BYTES: usize = 64 * 1024;
 pub struct DictationId(String);
 
 impl DictationId {
-    /// The id as text.
+    /// Encode the validated token at an output or correlation boundary.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
@@ -46,7 +56,7 @@ impl FromStr for DictationId {
     type Err = DictationDecodeError;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        let ok = (1..=64).contains(&text.len())
+        let ok = (MIN_ID_CHARS..=MAX_ID_CHARS).contains(&text.len())
             && text
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-');
@@ -76,14 +86,14 @@ impl SampleRate {
     /// # Errors
     /// Rates outside 8–48 kHz cannot be used for dictation.
     pub fn new(rate: u32) -> Result<Self, DictationDecodeError> {
-        if (8_000..=48_000).contains(&rate) {
+        if (MIN_RATE..=MAX_RATE).contains(&rate) {
             Ok(Self(rate))
         } else {
             Err(DictationDecodeError::RateRange)
         }
     }
 
-    /// The rate as a number of samples per second.
+    /// Encode validated Hertz in provider audio metadata.
     #[must_use]
     pub const fn get(self) -> u32 {
         self.0
@@ -98,7 +108,7 @@ pub struct Pcm16Mono {
 }
 
 impl Pcm16Mono {
-    /// The sample rate.
+    /// Give resampling code a validated input rate.
     #[must_use]
     pub const fn rate(self) -> SampleRate {
         self.rate
@@ -165,13 +175,13 @@ impl DictationPcm {
         }
     }
 
-    /// The samples.
+    /// Let codecs borrow the samples without duplicating their buffer.
     #[must_use]
     pub fn as_slice(&self) -> &[u8] {
         &self.0
     }
 
-    /// The samples, for the node to keep in the stream.
+    /// Transfer the validated buffer to audio processing without copying it.
     #[must_use]
     pub fn into_bytes(self) -> Bytes {
         self.0
@@ -179,7 +189,9 @@ impl DictationPcm {
 }
 
 fn accepted(bytes: &[u8]) -> bool {
-    bytes.len() >= 2 && bytes.len() <= MAX_CHUNK_BYTES && bytes.len().is_multiple_of(2)
+    bytes.len() >= PCM_SAMPLE_BYTES
+        && bytes.len() <= MAX_CHUNK_BYTES
+        && bytes.len().is_multiple_of(PCM_SAMPLE_BYTES)
 }
 
 impl Serialize for DictationPcm {
@@ -209,7 +221,7 @@ impl ChunkSeq {
         Self(seq)
     }
 
-    /// The index.
+    /// Compare or encode a position at the stream boundary.
     #[must_use]
     pub const fn get(self) -> u32 {
         self.0
@@ -226,10 +238,14 @@ impl WithinMs {
     /// A budget the node computed, capped at five minutes.
     #[must_use]
     pub const fn new(ms: u32) -> Self {
-        Self(if ms > 300_000 { 300_000 } else { ms })
+        Self(if ms > MAX_FINISH_MS {
+            MAX_FINISH_MS
+        } else {
+            ms
+        })
     }
 
-    /// The milliseconds.
+    /// Construct a deadline timer from the bounded wire budget.
     #[must_use]
     pub const fn get(self) -> u32 {
         self.0
@@ -242,7 +258,7 @@ impl WithinMs {
 pub struct Transcript(String);
 
 impl Transcript {
-    /// The text.
+    /// Expose text to an explicit output or rendering boundary.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
@@ -296,7 +312,7 @@ impl TryFrom<u32> for WithinMs {
     type Error = DictationDecodeError;
 
     fn try_from(ms: u32) -> Result<Self, Self::Error> {
-        if ms <= 300_000 {
+        if ms <= MAX_FINISH_MS {
             Ok(Self(ms))
         } else {
             Err(DictationDecodeError::Budget)
