@@ -31,10 +31,12 @@ mod options;
 pub mod pairing;
 pub mod palette;
 pub mod prefs;
+pub mod search;
 pub mod session;
 pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;
+pub mod slider;
 pub mod sync;
 pub mod terminal;
 #[cfg(test)]

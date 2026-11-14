@@ -37,6 +37,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -323,6 +324,9 @@ pub enum Command {
         /// What is asked.
         ask: workspace::Ask,
     },
+    /// Search one machine's messages (`session.search`); answered by
+    /// [`Event::Searched`].
+    Search(search::Ask),
 }
 
 /// What the link reports.
@@ -416,6 +420,8 @@ pub enum Event {
         /// The answer, with what was asked.
         answer: workspace::Answer,
     },
+    /// A machine answered a search ([`Command::Search`]).
+    Searched(search::Answer),
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -624,6 +630,7 @@ impl State {
                 act,
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
+            Command::Search(ask) => self.search(ask),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
                 match saved {

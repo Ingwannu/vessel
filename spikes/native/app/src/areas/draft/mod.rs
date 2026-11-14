@@ -287,7 +287,7 @@ impl Shell {
         match outcome {
             Ok(options) => {
                 // Which ids an agent sends, for the effort table
-                // (`view::effort::KNOWN`): ids, categories and kinds only.
+                // (`view::effort::ROLES`): ids, categories and kinds only.
                 let shape: Vec<String> = options
                     .iter()
                     .map(|option| match &option.kind {

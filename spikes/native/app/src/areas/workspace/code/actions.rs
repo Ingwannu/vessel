@@ -231,6 +231,7 @@ impl Shell {
                 };
                 composer.set_text(&text, window, cx);
                 composer.focus(window, cx);
+                self.code_handed_to_composer(window);
             }
             Action::Delete => {
                 let actions = &mut self.areas.workspace.code.files.actions;

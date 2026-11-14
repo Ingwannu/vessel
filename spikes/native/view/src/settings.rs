@@ -74,10 +74,23 @@ impl Section {
     }
 
     /// The section an address names, exactly (`Machines` and `fleet` name
-    /// none).
+    /// none; nor does a section not shown).
     #[must_use]
     pub fn of(slug: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|section| section.slug() == slug)
+        Self::ALL
+            .into_iter()
+            .filter(|section| section.shown())
+            .find(|section| section.slug() == slug)
+    }
+
+    /// Whether the section is listed and can be opened. Sync is not, for
+    /// now (the coordinator, 2026-11-14): on a real node its page said a
+    /// paired admin device lacked permission, because it asked for the
+    /// member protocol's reads; until it says the truth on a standalone,
+    /// home, member and protocol 11 machine, nothing shown may mislead.
+    #[must_use]
+    pub const fn shown(self) -> bool {
+        !matches!(self, Self::Sync)
     }
 
     /// The group it is listed under.
@@ -133,7 +146,7 @@ impl Group {
     pub fn sections(self) -> Vec<Section> {
         Section::ALL
             .into_iter()
-            .filter(|section| section.group() == self)
+            .filter(|section| section.group() == self && section.shown())
             .collect()
     }
 }

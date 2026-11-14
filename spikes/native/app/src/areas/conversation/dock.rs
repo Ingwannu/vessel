@@ -1,7 +1,8 @@
 //! The slot above the session's composer card, in the card's column: what
-//! the conversation shows over the composer: a question the agent asks
-//! (Paseo's question card), and the queue of prompts waiting for the turn
-//! to end (Paseo's `composer/queue`).
+//! the conversation shows over the composer: an ended session's banner
+//! (the page's), a question the agent asks (Paseo's question card), and
+//! the queue of prompts waiting for the turn to end (Paseo's
+//! `composer/queue`).
 //!
 //! [Decision Log]
 //! - Purpose: the composer card is the composer track's; what waits to be
@@ -20,8 +21,8 @@ use vessel_app_kit::ui::{
 use super::{Place, SessionPlace};
 use crate::shell::Shell;
 
-/// What shows right above the composer card; `None`: nothing. A
-/// permission the agent waits for, a question it asks ([`requests`]),
+/// What shows right above the composer card; `None`: nothing. An ended
+/// session's banner (`ended`), a permission the agent waits for, a question it asks ([`requests`]),
 /// then the queue of prompts waiting their turn (`queue`), nearest the
 /// card.
 pub(crate) fn dock(
@@ -30,15 +31,17 @@ pub(crate) fn dock(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    let ended = super::ended::banner(shell, tokens, window, cx);
     let requests = requests::<SessionPlace>(shell, tokens, window, cx);
     let queue = super::queue::queue(shell, tokens, window, cx);
-    if requests.is_empty() && queue.is_none() {
+    if ended.is_none() && requests.is_empty() && queue.is_none() {
         return None;
     }
     Some(
         div()
             .flex()
             .flex_col()
+            .children(ended.map(|banner| div().pb(px(8.0)).child(banner)))
             .children(
                 requests
                     .into_iter()

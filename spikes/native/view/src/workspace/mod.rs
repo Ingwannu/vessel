@@ -16,6 +16,7 @@ pub mod file_tree;
 pub mod find;
 pub mod git;
 pub mod git_quick;
+pub mod marks;
 pub mod pace;
 pub mod place;
 pub mod problem;
