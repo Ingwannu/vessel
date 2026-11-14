@@ -453,7 +453,7 @@ impl Render for Shell {
                                     .children(self.updated.as_ref().map(|updated| {
                                         areas::about::updated(self, updated, &tokens, cx)
                                     }))
-                                    .child(frame)
+                                    .child(page::arriving(self, frame))
                                     .children(
                                         self.notice.clone().map(|notice| {
                                             self.foot(notice, &tokens, touch)
@@ -473,3 +473,4 @@ impl Render for Shell {
 
 #[cfg(test)]
 pub(crate) mod language_tests;
+mod page;
