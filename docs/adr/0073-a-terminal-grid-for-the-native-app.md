@@ -188,7 +188,12 @@ Bounds:
 - Scrollback is that preferences field: default 10,000, allowed 0
   through 1,000,000. Lines are kept as output arrives; the oldest line
   is dropped when the count is passed, which is the bound, not a
-  discarded command. The node's ring is unchanged (4,096 records, 1
+  discarded command. History is also bounded by cells: a line keeps no
+  trailing unprinted cells, and past 8 Mi cells in all the oldest line
+  goes, whichever bound comes first (at the setting's maximum and the
+  grid's widest, lines alone would be a billion cells; at the default a
+  line would have to average over 800 printed cells for the cell bound
+  to come first). The node's ring is unchanged (4,096 records, 1
   MiB): a reconnect cannot show bytes the node has already dropped.
 - One feed applies at most 16 KiB, the PTY's read size, and reports how
   many bytes it consumed. The rest stays with the caller. A frame feeds
@@ -203,8 +208,13 @@ Bounds:
   records that arrived meanwhile follow it. The model is plain data, so
   it can be built off the UI thread; `view` still does no I/O (the app
   reads, `view` parses).
-- The empty size is refused. Anything else the wire can hold (`u16`,
-  and the wire's 80×24 when nobody has resized) is a size. Resize of
+- The empty size is refused, and so is a size over 1,024 columns or
+  512 rows (`TerminalError::TooLarge`): two screens are kept, so the
+  largest size bounds a terminal's memory before any byte is read (a 4K
+  screen at the smallest code face is about 550 × 150). A size the node
+  reports past the bounds (the wire holds `u16`) is drawn at the bounds
+  (`GridSize::within`); the wire's 80×24 when nobody has resized is a
+  size. Resize of
   the model is immediate. The screen waits 100 ms of an unchanged
   measurement before asking, and only a view that has focus and has
   typed sends it (`ResizeRule`, already).

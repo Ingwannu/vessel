@@ -186,8 +186,11 @@ match to decide a mode. `vte`'s callbacks are the decoding edge; past
 them the model holds enums.
 
 **Counts.** `ScrollbackLines`, 0 through 1,000,000, default 10,000.
-`CellCount`, a non-zero `u16`. `GridSize { cols, rows }`, default 80×24.
-Zero on either axis is `TerminalError::Empty`, and nothing is resized.
+`GridSize { cols, rows }`, default 80×24, at most 1,024 × 512.
+Zero on either axis is `TerminalError::Empty`, over the bounds
+`TerminalError::TooLarge`, and nothing is resized; `GridSize::within`
+draws a node's larger size at the bounds. History is also capped at
+8 Mi cells (lines keep no trailing blanks).
 `FeedBudget` is 16 × 1024 bytes, the PTY read.
 
 **Cells.** A cell is a scalar (or the continuation of the previous
@@ -264,7 +267,9 @@ buffer has a stated bound and no input reaches a panic. The model is
 taken from the inherited draft in slices of a few hundred lines, each
 reviewed (V2) and gated: the parser's state machine around `vte`; the
 grid and scrollback; attributes and colours; wide and combining cells;
-the answered-query set. Each slice's tests include hostile input
+reflow of soft-wrapped lines on a width change (after wide cells, since
+a wide pair never splits across lines; until then a resize cuts or pads
+each row); the answered-query set. Each slice's tests include hostile input
 (unterminated sequences, huge parameters and counts, overlong OSC and
 DCS strings, scroll regions outside the grid, zero and enormous sizes)
 and a fuzz-style test over random bytes with a fixed seed. T1's screen
@@ -345,8 +350,17 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   "Untrusted input" above, each against this contract (find wraps;
   replies only from the closed set, in the drawn colours; the hand-over
   is `replay`; sends split at 64 KiB with the paste rules).
-- Next: the parser slice, then grid and scrollback, attributes and
-  colours, wide and combining cells, the answered set; then T1's
+- P1, the parser (`view/src/terminal/parse/`), f3406a18: V2 passed the
+  source (2026-11-14); its gate runs with P2. P2, the grid and
+  scrollback (`view/src/terminal/grid/`, `size.rs`, `model.rs`): two
+  screens, history bounded by lines and cells, the cursor and modes,
+  DECSTBM, tabs, the CUx/ED/EL/IL/DL/ICH/DCH/ECH/SU/SD family, the
+  alternate screen as xterm.js keeps it, resize without reflow;
+  `TerminalModel::replay`. Its saved-cursor test found a P1 defect: `vte` sends a
+  bare `CSI s` as one parameter of 0, so the empty-list check never
+  held (fixed with a test).
+- Next: attributes and colours, wide and combining cells, reflow, the
+  answered set; then T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the
