@@ -30,6 +30,72 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
+
+N2 proposed 19; side questions took 19 and `device.self` 20 at the merge.
+
+`usage.query` requires `read`. `QueryUsage` selects the machine, an
+agent/profile or a session, and a rolling day/week (or all retained
+samples of a session). `after` pages the session's samples by exclusive
+event sequence. Totals are independent of that cursor. At most 100 samples
+and 256 agent/profile groups are returned. Optional counts stay absent
+when the agent did not report them. Cache counts are not added again to
+input or total tokens. Cost units are never combined.
+
+`UsageReport` declares accounting start, age retention and incomplete
+coverage. `cost_visibility` distinguishes no reported cost from cost
+withheld because the caller lacks `operate`. That withholding covers
+totals, groups and individual cost samples in this new call. Existing
+session/event calls retain their earlier cost visibility contract.
+Agents may query only their own session on its own machine; delegated
+calls apply the destination's existing scope intersection. A machine or
+agent query with the session period/cursor is `invalid_request`, a missing
+session `not_found`, a scope/ownership refusal `forbidden`.
+
+The minimum protocol remains 2. No event kind changed. `ContextUsage`
+adds optional `observation: current|replayed` metadata in protocol 21;
+`current` is the omitted default. The runtime marks reports received during
+conversation loading, including a move, wake or rewind whose Ready is
+consumed. Replayed costs establish baselines/gaps without spending a
+historical increase. Older peers receive their original context report
+without the metadata, including through forwarded conversation replies.
+New calls are refused
+by the existing negotiated-version guard on an older node; an old client
+continues reading the existing ACP reports in the conversation log.
+
+Cost timing and optional-field coverage (ADR 0042): `current_costs` is the
+session's latest cumulative agent report, independent of the requested
+rolling period. Increment samples carry `since`; an interval crossing the
+period boundary contributes an unaccounted-cost notice, never its whole
+charge to that period. Existing/resumed/unknown counters produce baseline
+samples until their increments can be observed. `optional_reports` counts
+turns reporting each cache/reasoning field; their sums are reported
+subtotals, with missing turns explicitly distinguishable.
+
+A read-only session page can have no visible samples and still have a
+`next` cursor: the page contained only costs. Clients continue while
+`next` exists and do not interpret an empty page as end-of-history.
+
+For `UsageScope::Agent`, an omitted profile includes every recorded profile
+of that agent. A supplied name restricts the historical profile recorded
+with the sample. Account quota lookup is a different scope: its default
+profile identifies a configured login, never an aggregate of accounts.
+
+Usage scans admit at most two queued or running blocking jobs per node;
+excess calls receive `unavailable` with advice to retry shortly. Cancellation
+does not release admission until the blocking job finishes. Cost arithmetic
+uses exact decimal inputs and integer accumulation. Final sums or increments
+that cannot survive the finite wire number's decimal spelling are omitted.
+For an omitted unit sum, `unaccounted_costs` counts every contributing cost
+sample, rather than silently presenting a rounded subtotal.
+
+The negotiated version requirement for a typed fleet envelope includes its
+inner call's method and fields, recursively, for forward, relay and deliver
+(version 20's one rule; N2 added the same).
+An older intermediate peer refuses `usage.query` before sending or dispatch,
+even when a forced envelope targets that peer itself. Older supported
+envelopes retain their existing requirement and dispatch behavior.
+
 ## Version 20 (2026-11-14, milestone 12): caller authority (N3, ADR 0044)
 
 - `device.self {}` returns `DeviceSelf { device?: DeviceId, scopes: Scope[] }`.

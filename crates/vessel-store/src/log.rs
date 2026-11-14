@@ -54,6 +54,7 @@ pub(crate) fn create_session(
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
     }
+    crate::usage::initialize_cost(connection, info)?;
     Ok(())
 }
 
@@ -205,6 +206,8 @@ pub(crate) fn append<'a>(
             time_to_sql(record.at)?,
             event
         ])?;
+        crate::usage::note_profile(connection, session, record)?;
+        crate::usage::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
         // before its counter would wrap.
@@ -263,6 +266,7 @@ pub(crate) fn append<'a>(
             },
             !matches!(projection.plan, PlanMove::Unchanged),
         ])?;
+    crate::usage::prune(connection, Utc::now())?;
     Ok(Appended { ended })
 }
 

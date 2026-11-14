@@ -63,6 +63,7 @@ mod stream;
 mod tests;
 mod token;
 mod url;
+mod usage;
 mod ws;
 
 pub use address::{

@@ -127,3 +127,9 @@ mod transfers_across;
 mod waiting;
 #[cfg(test)]
 mod workspace;
+
+#[cfg(test)]
+mod usage;
+
+#[cfg(test)]
+mod usage_replay;
