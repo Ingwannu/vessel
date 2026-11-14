@@ -446,8 +446,15 @@ pub(crate) fn updated(
         .bg(tokens.bg_well)
         .border_b_1()
         .border_color(tokens.border_faint)
+        // `min_w` 0 on the words: GPUI measures a text's least width
+        // unwrapped, so a long line of notes widened the banner past a
+        // window that was not maximised and the frame cut it, Dismiss
+        // with it (the owner's word 40); now the notes wrap and Dismiss
+        // keeps its width.
         .child(
             div()
+                .flex_1()
+                .min_w(px(0.0))
                 .flex()
                 .flex_col()
                 .gap(px(4.0))
@@ -465,12 +472,13 @@ pub(crate) fn updated(
                 ),
         )
         .child(
-            button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
+            div().flex_none().child(
+                button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
                 |this, _event, _window, cx| {
                     this.updated = None;
                     cx.notify();
                 },
-            )),
+            ))),
         )
 }
 

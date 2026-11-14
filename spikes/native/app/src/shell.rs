@@ -358,7 +358,9 @@ impl Shell {
         // The tooltip on the words only, so it sits above them, not
         // above the middle of the full-width foot.
         let (tips, place) = &self.foot_tips;
-        let words = div().id("foot").flex_none().child(notice);
+        // Its own width while it fits, wrapping when the window is
+        // narrower (it did not shrink and was cut; the owner's word 40).
+        let words = div().id("foot").flex_initial().min_w(px(0.0)).child(notice);
         areas::common::foot(
             div().flex().child(tips.on(words, place, detail, touch)),
             tokens,
