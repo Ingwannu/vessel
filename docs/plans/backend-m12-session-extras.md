@@ -860,7 +860,7 @@ Finish and submit this row's node/client/CLI slice before starting another.
 The next assigned node contract is startup recovery, following Paseo's
 `agents.resumeOnStartup` and `agents.resumePrompt` behaviour. Read the
 reference restart-recovery module and its actual defaults before proposing
-the contract; obtain a new ADR number before implementation. Define which
+the contract in allocated ADR 0059. Define which
 in-turn sessions qualify, excluding parked, archived and person-stopped
 sessions, ordering and a startup concurrency bound, and observable failures
 when an agent cannot resume. Clean-stop and kill recovery need fake-agent
@@ -869,3 +869,19 @@ tests. This is a node.settings feature, not an app screen.
 Delivered files/HTML (row 4, ADR 0047) remains pending after that newly
 prioritized contract. App screens, page work, conversation/composer
 registration and the old native WIP are outside this session's scope.
+
+### Resume checkpoint after the row 2 submission
+
+Implementation and local gate: af6d166df9fb0ce12caae54002497ceafea27aa4.
+V1 received its immutable implementation review request, including the
+reference paths, full logs, source pin, earlier failures and exact retries,
+authority boundaries and screen API handoff. V1 implementation PASS and
+node integration are still pending; do not infer them from the local gate.
+No additional source changes or unchanged-tree gate rerun are needed while
+awaiting that review. The intentionally untracked web dependency/bundle
+links and both ignored Cargo build configurations must remain uncommitted.
+
+Next after review: ADR 0059 startup recovery contract and reference defaults,
+then its node/settings/CLI/fake-agent slice; delivered files/HTML ADR 0047
+remains later. No app screen or other branch merge has been started.
+No owned build, fake fleet or display remains running at this checkpoint.
