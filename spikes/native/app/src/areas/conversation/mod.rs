@@ -50,6 +50,7 @@ pub(crate) mod dock;
 mod ended;
 mod entries;
 mod find;
+mod footer;
 mod look;
 mod meter;
 mod outline;
@@ -60,6 +61,7 @@ mod queue;
 mod read;
 mod rename;
 pub(crate) mod search;
+mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
 mod tool;
@@ -288,6 +290,9 @@ pub(crate) struct ConversationArea {
     again_refused: Option<(Option<ErrorCode>, String)>,
     /// The palette's message search (kept when another session shows).
     pub(crate) search: search::Searching,
+    /// The rows after the entries: the message sent and not yet
+    /// recorded, the working footer.
+    tail: tail::Tail,
     /// The session's machine is not connected (records stopped, or an act,
     /// a prompt or an input found no connection): the transport's words.
     /// Said once, in the bar, in the app's words; these only in the line's
@@ -358,6 +363,7 @@ impl ConversationArea {
             restarting: false,
             again_refused: None,
             search: search::Searching::default(),
+            tail: tail::Tail::default(),
             lost: None,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
@@ -454,6 +460,17 @@ impl ConversationArea {
     /// the session's records are folded from its first again
     /// ([`Self::take`]). Asks the node nothing.
     pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        // The session shown opened again (started again after it ended,
+        // or chosen again): what it shows stays, and the records read
+        // again from its start add only what is new (Paseo's agent reopens
+        // its conversation; nothing is reloaded).
+        if self
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.machine == machine && shown.session == session)
+        {
+            return;
+        }
         self.clear();
         self.shown = Some(Shown {
             machine: machine.to_owned(),
@@ -495,6 +512,7 @@ impl ConversationArea {
         self.toggled.clear();
         self.rows = Rows::All(0);
         self.list.reset(0);
+        self.tail = tail::Tail::default();
         self.info = None;
         self.refused = None;
         self.restarting = false;
@@ -567,6 +585,7 @@ impl ConversationArea {
         if change.is_empty(self.timeline.entries().len()) {
             return false;
         }
+        self.tail_took(change.added_from);
         if self.folds.is_some() {
             self.folds = Some(Folds::of(self.timeline.entries()));
         }
@@ -605,17 +624,17 @@ impl ConversationArea {
         // Only the run's own rows change: its lead's row stays where it
         // was and its members come or go right after it. Splicing there
         // (not resetting the list) keeps the view where the person is.
-        match self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
-            Some(row) => {
-                let next = row.saturating_add(1);
-                let gone = before.saturating_sub(after);
-                self.list.splice(
-                    next..next.saturating_add(gone),
-                    after.saturating_sub(before),
-                );
-                self.list.changed(row..next);
-            }
-            None => self.list.reset(after),
+        if let Some(row) = self.rows.row_index(lead, self.folds.as_ref(), &self.logs) {
+            let next = row.saturating_add(1);
+            let gone = before.saturating_sub(after);
+            self.list.splice(
+                next..next.saturating_add(gone),
+                after.saturating_sub(before),
+            );
+            self.list.changed(row..next);
+        } else {
+            self.list.reset(after);
+            self.tail_dropped();
         }
     }
 
@@ -700,6 +719,7 @@ impl Shell {
         area.open_runs.clear();
         area.rows_again();
         area.list.reset(area.rows.len());
+        area.tail_dropped();
     }
 
     /// Records of the session followed.

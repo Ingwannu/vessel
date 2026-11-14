@@ -423,4 +423,3 @@ pub(crate) fn nav_row(
 }
 
 use vessel_app_kit::ui::FluentBuilder as _;
-

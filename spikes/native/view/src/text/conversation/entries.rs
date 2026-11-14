@@ -184,6 +184,17 @@ impl ConversationWords {
         }
     }
 
+    /// A finished turn's footer: how long the turn worked (Paseo's
+    /// `message.turnFooter.workedFor`), `duration` as Paseo writes it
+    /// (14s, 2m 5s, 1h 3m).
+    #[must_use]
+    pub fn worked_for(&self, duration: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Worked for {duration}"),
+            Lang::Ko => format!("작업 시간 {duration}"),
+        }
+    }
+
     /// The timeline's line for a permission request: how it ended, then
     /// what it was about.
     #[must_use]

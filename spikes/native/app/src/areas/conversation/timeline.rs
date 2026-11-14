@@ -14,10 +14,11 @@ use vessel_app_kit::{
     lines_box, menu,
 };
 use vessel_app_view::session::is_live;
-use vessel_app_view::timeline::Logs;
+use vessel_app_view::timeline::{EntryKind, Logs};
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
+use super::tail::TailRow;
 use super::{Confirm, ConversationArea, Seat};
 use crate::shell::Shell;
 
@@ -30,6 +31,7 @@ pub(crate) fn timeline(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     super::read::check(shell, window, cx);
+    super::tail::sync(shell, window, cx);
     let list = rows(shell, Seat::SESSION, tokens, window, cx);
     if shell.areas.conversation.timeline.entries().is_empty() {
         return list;
@@ -109,6 +111,7 @@ fn paint<'a>(
             .as_ref()
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
         seat,
+        entries: area.timeline.entries(),
     }
 }
 
@@ -126,12 +129,26 @@ fn row_element(
         return div().into_any_element();
     };
     let paint = paint(shell, area, seat, tokens, window);
+    if let Some(tail) = area.tail_row(row) {
+        return lane(match tail {
+            TailRow::Pending(text) => {
+                entries::pending(&paint, area.timeline.entries().len(), &text)
+            }
+            TailRow::Working(since) => super::footer::working(&paint, since),
+        });
+    }
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
     };
     let Some(entry) = area.timeline.entries().get(index) else {
         return div().into_any_element();
     };
+    // Lifecycle and accounting lines are not drawn: Paseo's stream holds
+    // messages, thoughts, tools, plans and questions; the session's state
+    // is the header's, its usage the context meter's (slice M).
+    if quiet(&entry.kind) {
+        return div().into_any_element();
+    }
     // A run of the agent's own log lines is one row at its first line
     // (never collapsed into rows of their own: `view::timeline::logs`).
     if let Some(run) = area.logs.run_of(index).filter(|run| run.lead == index) {
@@ -199,6 +216,21 @@ fn open(area: &ConversationArea, index: usize) -> bool {
         .and_then(|entry| entry.kind.as_tool())
         .is_some_and(|tool| tool.working() && !area.timeline.asks_permission(&tool.id));
     default != area.toggled.contains(&index)
+}
+
+/// The entries the conversation keeps but does not draw (the owner's
+/// report on 0.0.0.0.13; Paseo's stream has no such lines): the
+/// session's status changes (its state is the header's chip), the agent
+/// being ready, released or resumed (the header's), and model calls (the
+/// gateway's accounting).
+const fn quiet(kind: &EntryKind) -> bool {
+    matches!(
+        kind,
+        EntryKind::Status { .. }
+            | EntryKind::Ready { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Model(_)
+    )
 }
 
 /// A row in the session's one chat column (the session area's: the

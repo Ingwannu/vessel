@@ -29,12 +29,12 @@
 //!   Paseo's button is plain words; the page's restore mark is not drawn
 //!   because the kit's button takes words only. The phone padding follows
 //!   the app's phone width (768), not Paseo's 600.
-//! - The same banner serves a live session whose released agent could
-//!   not be resumed (protocol 12, ADR 0038): "The agent could not be
-//!   resumed", the node's words, and Try again (`session.wake`); Paseo
-//!   leaves such an agent closed and to be tried again. A released agent
-//!   that has not failed has no banner: the next send resumes it, as in
-//!   Paseo, and the bar says it is released.
+//! - Slice M (the owner on 0.0.0.0.13: sending as in Paseo): an ended
+//!   session that can go on has no banner at all; the next message
+//!   starts it again underneath and shows at once (`tail`). The banner is
+//!   left for an archived session (Paseo's archived callout) and for one
+//!   whose agent cannot go on. A released agent's failed resume is the
+//!   header's chip; the next send retries, as Paseo's closed agent does.
 //! - Cost: a send typed into an ended session's composer still starts it
 //!   again (the lead's composer); the banner says what the agent can do,
 //!   and the composer's own line under the conversation says what sending
@@ -48,22 +48,10 @@ use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, button_with_kind,
 };
 use vessel_app_link::Act;
-use vessel_app_view::session::{
-    MarkAction, ParkState, can_start_again, is_archived, is_live, park_state,
-};
+use vessel_app_view::session::{MarkAction, can_start_again, is_archived, is_live};
 use vessel_proto::SessionMode;
 
 use crate::shell::Shell;
-
-/// What the banner's button does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Again {
-    /// Start an ended session again (`session.resume`).
-    Start,
-    /// Start a parked session's agent again after a failed resume
-    /// (`session.wake`).
-    Wake,
-}
 
 /// The banner over the composer card while the session shown has ended,
 /// or while its released agent could not be resumed; `None` otherwise or
@@ -81,43 +69,45 @@ pub(super) fn banner(
     }
     let words = shell.t.lang.conversation();
     let neutral = tokens.neutral;
-    let (heading, line, again) = if is_live(info) {
-        // Live: only a released agent whose resume failed has a banner (a
-        // released one resumes on the next send, as in Paseo).
-        let Some(ParkState::ResumeFailed(why)) = park_state(info) else {
-            return None;
-        };
-        (words.resume_failed_heading(), why, Some(Again::Wake))
-    } else {
-        let can = can_start_again(info);
-        (
-            words.ended_heading(is_archived(info)),
-            words.ended_line(can).to_owned(),
-            can.then_some(Again::Start),
-        )
-    };
+    // Slice M (the owner, 2026-11-14: as in Paseo, the next message
+    // starts an ended agent again): a session that ended and can go on has
+    // no card; the person sends and the message shows at once. An archived
+    // one keeps Paseo's archived callout, and one whose agent cannot go on
+    // says so, since nothing sent there would be answered. A failed resume
+    // of a released agent is the header's to say; the next send retries.
+    if is_live(info) {
+        return None;
+    }
+    let can = can_start_again(info);
+    let archived = is_archived(info);
+    if can && !archived {
+        return None;
+    }
+    let (heading, line, again) = (
+        words.ended_heading(archived),
+        words.ended_line(can).to_owned(),
+        can,
+    );
     let narrow = breakpoint::phone(window);
     let state = if area.restarting {
         ButtonState::Disabled
     } else {
         ButtonState::Enabled
     };
-    let button = again.map(|again| {
-        let (id, label) = match again {
-            Again::Start => (
-                "ended-start-again",
-                words.mark_action(MarkAction::StartAgain),
-            ),
-            Again::Wake => ("parked-resume", words.resume_again()),
-        };
-        button_with_kind(id, label, ButtonKind::Secondary, state, tokens)
-            .flex_none()
-            .when(state == ButtonState::Enabled, |button| {
-                button.on_click(cx.listener(move |shell, _event, _window, cx| match again {
-                    Again::Start => shell.conversation_start_again(cx),
-                    Again::Wake => shell.conversation_wake(cx),
-                }))
-            })
+    let button = again.then(|| {
+        button_with_kind(
+            "ended-start-again",
+            words.mark_action(MarkAction::StartAgain),
+            ButtonKind::Secondary,
+            state,
+            tokens,
+        )
+        .flex_none()
+        .when(state == ButtonState::Enabled, |button| {
+            button.on_click(cx.listener(|shell, _event, _window, cx| {
+                shell.conversation_start_again(cx);
+            }))
+        })
     });
     let text = div()
         .flex_1()
@@ -185,24 +175,13 @@ impl Shell {
     /// Start the session shown again (the banner's button, the menu's
     /// row): once, until the node answers.
     pub(super) fn conversation_start_again(&mut self, cx: &mut Context<'_, Self>) {
-        self.conversation_restart(Act::StartAgain, cx);
-    }
-
-    /// Resume the session shown's released agent after a failed resume
-    /// (the banner's Try again): once, until the node answers.
-    fn conversation_wake(&mut self, cx: &mut Context<'_, Self>) {
-        self.conversation_restart(Act::Wake, cx);
-    }
-
-    /// Send `act` (start again, or wake) unless one is on its way.
-    fn conversation_restart(&mut self, act: Act, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
         if area.restarting {
             return;
         }
         area.restarting = true;
         area.again_refused = None;
-        self.act(act);
+        self.act(Act::StartAgain);
         cx.notify();
     }
 }

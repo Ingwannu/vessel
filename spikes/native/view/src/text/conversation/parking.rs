@@ -55,19 +55,4 @@ impl ConversationWords {
             "유휴 상태라 에이전트를 해제했습니다. 메시지를 보내면 다시 이어집니다.",
         )
     }
-
-    /// The banner's heading when resuming the agent failed.
-    #[must_use]
-    pub const fn resume_failed_heading(&self) -> &'static str {
-        self.either(
-            "The agent could not be resumed",
-            "에이전트를 다시 잇지 못했습니다",
-        )
-    }
-
-    /// The banner's button that tries again (`session.wake`).
-    #[must_use]
-    pub const fn resume_again(&self) -> &'static str {
-        self.either("Try again", "다시 시도")
-    }
 }

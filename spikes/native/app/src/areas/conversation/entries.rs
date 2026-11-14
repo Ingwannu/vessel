@@ -33,6 +33,8 @@ pub(super) struct Paint<'a> {
     pub(super) find: Option<Marking<'a>>,
     /// Where the conversation drawn is kept: its rows' toggles change it.
     pub(super) seat: Seat,
+    /// The conversation's entries (a turn's footer reads its turn).
+    pub(super) entries: &'a [Entry],
 }
 
 /// Entry `index` as its row.
@@ -104,8 +106,10 @@ pub(super) fn entry(
                 &settled(&permission.request.options, permission.outcome.as_ref()),
             ),
         ),
-        EntryKind::TurnEnded { reason, usage } => {
-            divider(paint, words.turn_ended(*reason, usage.as_ref()), false)
+        // Paseo's turn footer: the reply's copy button and how long the
+        // turn worked; the turn's tokens are the context meter's.
+        EntryKind::TurnEnded { reason, .. } => {
+            super::footer::completed(paint, index, *reason, window, cx)
         }
         EntryKind::TurnFailed { .. } => divider(paint, words.spoken(entry), true),
         EntryKind::Log { line } => div()
@@ -135,6 +139,23 @@ pub(super) fn id(index: usize) -> u64 {
 
 /// A person's prompt or steer: GOAT's bubble on the right, 70% of the
 /// lane at most, on the message surface; its corner word above it.
+/// The person's message the moment it is sent, before the node records
+/// it (Paseo's pending `UserMessage`): drawn as the message it becomes,
+/// at `index`, the entry it will be.
+pub(super) fn pending(paint: &Paint<'_>, index: usize, text: &str) -> AnyElement {
+    person(
+        paint,
+        index,
+        &Prompt {
+            text: text.to_owned(),
+            replayed: false,
+            turn: 0,
+            attachments: Vec::new(),
+        },
+        None,
+    )
+}
+
 fn person(paint: &Paint<'_>, index: usize, prompt: &Prompt, corner: Option<String>) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
     let files = (!prompt.attachments.is_empty()).then(|| {
