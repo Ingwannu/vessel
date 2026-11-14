@@ -111,6 +111,59 @@ pub fn inline(drawing: Arc<Drawing>, logical: gpui::Size<Pixels>) -> impl gpui::
     .h(logical.height)
 }
 
+/// Shapes laid out in whole device pixels from the box's own origin,
+/// snapped to the device grid, and made for the scale they are drawn at
+/// (`make` gets the scale and returns points and stroke widths in device
+/// pixels): a glyph whose straight strokes must cover whole device rows at
+/// 1.25 and 1.5 as at 1 and 2 (the window controls).
+pub fn snapped(
+    logical: gpui::Size<Pixels>,
+    ink: gpui::Hsla,
+    make: impl Fn(f32) -> Vec<Shape> + 'static,
+) -> impl gpui::IntoElement {
+    canvas(
+        |_, _, _| {},
+        move |bounds, (), window, cx| {
+            let scale = window.scale_factor();
+            let origin = (
+                device_float(f32::from(bounds.origin.x), scale),
+                device_float(f32::from(bounds.origin.y), scale),
+            );
+            let drawing = Drawing {
+                shapes: make(scale)
+                    .into_iter()
+                    .map(|shape| to_logical(shape, origin, scale))
+                    .collect(),
+                ink,
+            };
+            paint(&drawing, window, cx);
+        },
+    )
+    .flex_none()
+    .w(logical.width)
+    .h(logical.height)
+}
+
+/// A logical coordinate's nearest whole device pixel, as a float.
+#[expect(clippy::float_arithmetic, reason = "points to device pixels")]
+fn device_float(logical: f32, scale: f32) -> f32 {
+    (logical * scale).round()
+}
+
+/// A shape in device pixels from a device origin, in logical points.
+#[expect(clippy::float_arithmetic, reason = "device pixels back to points")]
+fn to_logical(shape: Shape, (ox, oy): (f32, f32), scale: f32) -> Shape {
+    Shape {
+        points: shape
+            .points
+            .into_iter()
+            .map(|(x, y)| ((ox + x) / scale, (oy + y) / scale))
+            .collect(),
+        stroke: shape.stroke.map(|width| width / scale),
+        ..shape
+    }
+}
+
 #[expect(clippy::float_arithmetic, reason = "a translation")]
 fn moved(drawing: &Drawing, (dx, dy): (f32, f32)) -> Drawing {
     Drawing {

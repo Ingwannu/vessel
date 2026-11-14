@@ -35,6 +35,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod frame;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -56,6 +57,7 @@ pub mod tooltip;
 pub mod vector;
 pub mod virtual_list;
 mod widgets;
+pub mod window_glyph;
 
 use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
 

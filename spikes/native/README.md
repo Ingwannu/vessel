@@ -296,6 +296,19 @@ the journey, and `brand::avatar(…)` draws an agent message's avatar. The
 journey's frames come from one 1/30 s timer; reduced motion and a software
 renderer show its end at once.
 
+`kit::window_glyph` draws the title bar's minimise, maximise, restore and
+close glyphs in the mark's line language (one line, round ends, corners on
+half a pitch, the back stroke broken one gap short of the front one) at 9
+points, in whole device pixels at every scale: the line `⌊scale + ¼⌋`
+pixels (1, 1, 1, 2), the gap at least two, straight strokes on whole rows
+through `vector::snapped`. The cells, their fills and their hit areas stay
+the chrome's. `kit::frame::panel_edges` draws the content panel's edge as
+two lines one pitch apart (one at a phone's width) with GPUI quads whose
+boxes and widths are whole device pixels; it sits in a parent that does not
+clip and replaces the panel's own border. `kit/examples/window_glyphs.rs`
+is the audit sheet: every glyph in the bar's four states and the two-line
+edge, captured at 1, 1.25, 1.5 and 2 (`GPUI_X11_SCALE_FACTOR`).
+
 ## Why GPUI, and which
 
 ADR 0035: the app is native, drawn as Zed draws its own; Zed's framework
