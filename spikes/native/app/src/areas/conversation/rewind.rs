@@ -17,20 +17,25 @@
 //!   failure. The composer is set on the frame after the answer, which
 //!   has a window (`restore`).
 //! - Differences, kept: one mode, the conversation (the node does not put
-//!   files back); no tooltip on the undo mark yet (the kit's tooltips need
-//!   a state per mark).
+//!   files back).
+//! - Tooltip: the kit's, one per screen, with a place per message kept
+//!   here (the mark is redrawn each frame; the tooltip must find where it
+//!   was last drawn).
 
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use chrono::{DateTime, Local, Utc};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
+use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
-    AnyElement, App, Context, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, Styled,
-    Window, div, px,
+    AnyElement, App, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, Stateful,
+    Styled, Window, div, px,
 };
-use vessel_app_kit::{CopyLook, MenuHandlers, MenuItem, MenuState, Tokens, copy_button};
+use vessel_app_kit::{CopyLook, MenuHandlers, MenuItem, MenuState, Tokens, Tooltips, copy_button};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind};
 use vessel_app_view::timeline::rewind_point;
 use vessel_proto::EventSeq;
@@ -51,6 +56,10 @@ pub(crate) struct Rewinding {
     pending: Option<usize>,
     /// A rewound message's words, to go back into the composer.
     restore: Option<String>,
+    /// The undo marks' tooltip (one shown at a time).
+    pub(super) tips: Tooltips,
+    /// Where each message's undo mark was last drawn, by entry.
+    places: RefCell<HashMap<usize, Place>>,
 }
 
 /// The message a rewind menu is for.
@@ -76,7 +85,15 @@ impl Rewinding {
             target: None,
             pending: None,
             restore: None,
+            tips: Tooltips::new(),
+            places: RefCell::default(),
         }
+    }
+
+    /// The undo mark's place for the message at `entry`, kept across
+    /// frames so its tooltip stays where the mark is.
+    fn place(&self, entry: usize) -> Place {
+        Rc::clone(self.places.borrow_mut().entry(entry).or_default())
     }
 
     /// Whether a rewound message waits to go back into the composer.
@@ -90,6 +107,8 @@ impl Rewinding {
         self.target = None;
         self.pending = None;
         self.restore = None;
+        self.tips = Tooltips::new();
+        self.places.borrow_mut().clear();
     }
 }
 
@@ -133,13 +152,24 @@ pub(super) fn with_row(
                 .child(paint.words.when(at, Local::now().fixed_offset())),
         )
         .children(after.map(|after| {
-            undo(
+            let mark = undo(
                 paint.tokens,
                 index,
                 (after, text.to_owned()),
                 rewinding.pending.is_some(),
                 cx,
-            )
+            );
+            // Paseo's tooltip on the mark ("Rewind to this message"),
+            // the kit's; none on a phone (no pointer).
+            rewinding
+                .tips
+                .on(
+                    mark,
+                    &rewinding.place(index),
+                    paint.words.rewind_tooltip(),
+                    narrow,
+                )
+                .into_any_element()
         }))
         .child(copy_button(
             ElementId::NamedInteger("person-copy".into(), id(index)),
@@ -170,7 +200,7 @@ fn undo(
     (after, text): (EventSeq, String),
     locked: bool,
     cx: &mut Context<'_, Shell>,
-) -> AnyElement {
+) -> Stateful<Div> {
     let neutral = tokens.neutral;
     div()
         .id(ElementId::NamedInteger("rewind".into(), id(index)))
@@ -200,7 +230,6 @@ fn undo(
                 )
         })
         .child(glyph(Glyph::Undo2, 16.0, neutral.foreground_muted))
-        .into_any_element()
 }
 
 /// The rewind menu's rows: Paseo's warning (shown, not chosen), then the

@@ -186,9 +186,10 @@ R1 done (2026-11-14; 9b8eadfb, 92ef3ed9, ba96e64a): on the fake fleet a
 rewind to the first turn's end left the second turn behind (no longer
 drawn, nor on the outline rail, nor found), the node logged "rewound to
 record 21", and the message went back into the empty composer.
-Differences from Paseo, kept: one mode (the conversation); no tooltip on
-the undo mark yet; the row's height is kept while it is hidden (Paseo's
-trailing row also keeps its place). The fake agent names a point only
+Differences from Paseo, kept: one mode (the conversation); the row's
+height is kept while it is hidden (Paseo's trailing row also keeps its
+place). The undo mark's tooltip ("Rewind to this message", the kit's
+tooltip; none on a phone, as Paseo's) followed R1 on 2026-11-14. The fake agent names a point only
 for its `plain` reply, so the fleet's other sessions offer no rewind.
 
 ## Module layout (2026-11-14, the owner's word 44)

@@ -326,6 +326,8 @@ pub(crate) fn overlays(
         narrow,
         cx,
     ));
+    // The undo mark's tooltip ("Rewind to this message").
+    floating.extend(area.rewinding.tips.render(tokens));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(
         "session-actions",
