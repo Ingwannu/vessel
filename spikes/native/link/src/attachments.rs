@@ -22,7 +22,7 @@
 
 use vessel_app_view::composer::tray::{Again, Begun, ItemKey, Origin, Problem};
 use vessel_proto::conversation::MimeType;
-use vessel_proto::{AttachmentName, AttachmentRef, Delivery, SessionId};
+use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionChoice, SessionId};
 
 // The task needs tokio's files and the node's connection, which a browser
 // has not.
@@ -30,6 +30,33 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, SessionId};
 mod send;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use send::{content, spawn};
+
+/// What a composer's files ask of the link (one command, so the link's
+/// command loop stays one screen of dispatch).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Files {
+    /// Send a file to its session beside the other commands; each step
+    /// answered `Event::Upload`.
+    Send(Attach),
+    /// Start a conversation without its first prompt, which follows once
+    /// its files are in; answered `Event::Started` (or `Event::Failed`).
+    Create(Create),
+    /// A prompt with the files already sent for it.
+    Prompt(WithFiles),
+}
+
+/// A conversation to start whose first prompt waits for its files.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Create {
+    /// The machine.
+    pub machine: String,
+    /// The agent.
+    pub harness: HarnessRef,
+    /// The folder on the machine; `None` for its home.
+    pub folder: Option<String>,
+    /// The agent's options to start with.
+    pub options: Vec<OptionChoice>,
+}
 
 /// One file to send.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -111,13 +111,17 @@ impl Link {
                 self.emit(Event::Records { session, records });
             }
             Command::Prompt { session, text, .. }
-            | Command::PromptFiles(crate::attachments::WithFiles { session, text, .. }) => {
+            | Command::Files(crate::attachments::Files::Prompt(crate::attachments::WithFiles {
+                session,
+                text,
+                ..
+            })) => {
                 let records = self.demo.borrow_mut().prompt(&session, &text, now);
                 self.emit(Event::Records { session, records });
                 self.emit(Event::Sent { session });
             }
             // A browser has no files to send yet (track P's row c).
-            Command::Attach(attach) => self.emit(Event::Upload {
+            Command::Files(crate::attachments::Files::Send(attach)) => self.emit(Event::Upload {
                 session: attach.session,
                 key: attach.key,
                 step: crate::attachments::Step::Failed {
@@ -127,6 +131,9 @@ impl Link {
                     again: vessel_app_view::composer::tray::Again::Never,
                 },
             }),
+            Command::Files(crate::attachments::Files::Create(_)) => self.emit(Event::Failed(
+                "The browser's demo takes no files".to_owned(),
+            )),
             Command::Start {
                 machine,
                 harness,

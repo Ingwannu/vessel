@@ -277,12 +277,9 @@ pub enum Command {
     /// Keep the composers' drafts on this device (written on the blocking
     /// pool; nothing is answered). A browser keeps none.
     SaveDrafts(vessel_app_view::composer::drafts::Drafts),
-    /// Send a composer's file to its session, beside the other commands;
-    /// each step answered [`Event::Upload`] (track P's row c).
-    Attach(attachments::Attach),
-    /// Send a prompt with the files already sent for it (queued when a
-    /// turn runs).
-    PromptFiles(attachments::WithFiles),
+    /// What a composer's files ask (track P's row c): a file sent, a
+    /// conversation started for them, the prompt that names them.
+    Files(attachments::Files),
     /// Keep `harness`'s `/` commands, as a session of it on `machine`
     /// reported them, on this device for the next run (its options' file;
     /// nothing is answered). A browser keeps none.
@@ -664,7 +661,8 @@ impl State {
                 prompt,
                 options,
             } => {
-                self.start(&machine, harness, folder, prompt, options).await;
+                self.start(&machine, harness, folder, Some(prompt), options)
+                    .await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
             Command::KeepCommands {
@@ -673,8 +671,7 @@ impl State {
                 commands,
             } => self.keep_commands(&machine, harness, commands),
             Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
-            Command::Attach(attach) => self.attach(attach),
-            Command::PromptFiles(prompt) => self.prompt_files(prompt).await,
+            Command::Files(files) => self.files(files).await,
             Command::Resume {
                 machine,
                 session,

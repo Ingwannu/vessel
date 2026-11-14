@@ -13,14 +13,15 @@ use vessel_app_view::Card;
 use crate::{Event, LinkError, State, attachments};
 
 impl State {
-    /// Create a conversation and send its first prompt: `session.prompt`
+    /// Create a conversation and send its first prompt (none when it
+    /// waits for its files, track P's row c): `session.prompt`
     /// where the node speaks protocol 10, `session.send` before it.
     pub(super) async fn start(
         &mut self,
         machine: &str,
         harness: HarnessRef,
         folder: Option<String>,
-        prompt: String,
+        prompt: Option<String>,
         options: Vec<OptionChoice>,
     ) {
         let started = async {
@@ -38,16 +39,18 @@ impl State {
                 .create_session(spec)
                 .await
                 .map_err(|error| LinkError::Call(error.to_string()))?;
-            let content = vec![ContentBlock::Text { text: prompt }];
-            let sent = if client.protocol() >= ProtocolVersion::new(10) {
-                client
-                    .prompt(info.id, content, Delivery::Start)
-                    .await
-                    .map(|_delivered| ())
-            } else {
-                client.send(info.id, SessionInput::Prompt { content }).await
-            };
-            sent.map_err(|error| LinkError::Call(error.to_string()))?;
+            if let Some(prompt) = prompt {
+                let content = vec![ContentBlock::Text { text: prompt }];
+                let sent = if client.protocol() >= ProtocolVersion::new(10) {
+                    client
+                        .prompt(info.id, content, Delivery::Start)
+                        .await
+                        .map(|_delivered| ())
+                } else {
+                    client.send(info.id, SessionInput::Prompt { content }).await
+                };
+                sent.map_err(|error| LinkError::Call(error.to_string()))?;
+            }
             Ok::<_, LinkError>(Card::from_session(machine, &info))
         }
         .await;
@@ -60,9 +63,26 @@ impl State {
         }
     }
 
+    /// What a composer's files ask (track P's row c).
+    pub(super) async fn files(&mut self, files: attachments::Files) {
+        match files {
+            attachments::Files::Send(attach) => self.attach(attach),
+            attachments::Files::Create(create) => {
+                let attachments::Create {
+                    machine,
+                    harness,
+                    folder,
+                    options,
+                } = create;
+                self.start(&machine, harness, folder, None, options).await;
+            }
+            attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
+        }
+    }
+
     /// Send a composer's file beside the other commands
     /// (`attachments::spawn`).
-    pub(super) fn attach(&self, attach: attachments::Attach) {
+    fn attach(&self, attach: attachments::Attach) {
         let client = self
             .client(&attach.machine)
             .cloned()
@@ -114,7 +134,7 @@ impl State {
     }
 
     /// A prompt with its files (track P's row c).
-    pub(super) async fn prompt_files(&self, prompt: attachments::WithFiles) {
+    async fn prompt_files(&self, prompt: attachments::WithFiles) {
         let content = attachments::content(prompt.text, prompt.attachments);
         self.deliver(&prompt.machine, prompt.session, content, prompt.delivery)
             .await;
