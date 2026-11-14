@@ -154,7 +154,7 @@ impl Shell {
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
             Answer::Read { ask, result } => self.file_read(&ask, result),
             Answer::Found { ask, result } => self.files_found(&ask, result),
-            Answer::Grepped { result, .. } => self.files_grepped(result),
+            Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             // Track G1's and the later slices' answers: nothing of this
             // track asks them yet.

@@ -63,9 +63,14 @@ pub(super) struct Search {
     key: SearchKey,
     pub(super) results: Results,
     pub(super) list: VirtualList,
-    /// How many characters the last search in files looked for: each
+    /// How many characters the search in files shown looked for: each
     /// line's mark runs that far from the node's column.
     pub(super) width: u32,
+    /// The query last sent, `None` once the field was emptied, refused or
+    /// switched: an answer to any other query is late and dropped (the
+    /// node replaces an older find only when a newer one is sent, so a
+    /// search refused or cleared on this side still gets its answer).
+    asked: Option<String>,
 }
 
 impl Search {
@@ -84,6 +89,7 @@ impl Search {
             results: Results::Idle,
             list: VirtualList::new(false),
             width: 0,
+            asked: None,
         }
     }
 
@@ -101,6 +107,7 @@ impl Shell {
         let search = &mut self.areas.workspace.code.files.search;
         if text.trim().is_empty() {
             search.results = Results::Idle;
+            search.asked = None;
             search.list.reset(0);
         } else if search.mode == Mode::Name {
             self.run_search(text);
@@ -124,27 +131,22 @@ impl Shell {
             return;
         };
         let search = &mut panel.files.search;
+        // What is sent, trimmed for a name (a find's spaces mean nothing)
+        // and as typed for a search in files (its spaces are searched).
+        let sent = match search.mode {
+            Mode::Name => text.trim(),
+            Mode::Content => text,
+        };
         let ask = match search.mode {
-            Mode::Name => {
-                let Ok(query) = text.trim().parse() else {
-                    search.results = Results::Refused;
-                    search.list.reset(0);
-                    return;
-                };
+            Mode::Name => sent.parse().map(|query| {
                 FileAsk::Find(FindFiles {
                     root,
                     query,
                     key: Some(search.key),
                     limit: Some(FIND_LIMIT),
                 })
-            }
-            Mode::Content => {
-                let Ok(query) = text.parse() else {
-                    search.results = Results::Refused;
-                    search.list.reset(0);
-                    return;
-                };
-                search.width = u32::try_from(text.chars().count()).unwrap_or(u32::MAX);
+            }),
+            Mode::Content => sent.parse().map(|query| {
                 FileAsk::Grep(SearchFiles {
                     root,
                     query,
@@ -153,8 +155,15 @@ impl Shell {
                     dir: None,
                     limit: Some(200),
                 })
-            }
+            }),
         };
+        let Ok(ask) = ask else {
+            search.results = Results::Refused;
+            search.asked = None;
+            search.list.reset(0);
+            return;
+        };
+        search.asked = Some(sent.to_owned());
         search.results = Results::Loading;
         search.list.reset(0);
         self.ask(&machine, Ask::File(ask));
@@ -180,6 +189,7 @@ impl Shell {
         let search = &mut self.areas.workspace.code.files.search;
         let text = search.field.text(cx);
         search.results = Results::Idle;
+        search.asked = None;
         search.list.reset(0);
         if mode == Mode::Name && !text.trim().is_empty() {
             self.run_search(&text);
@@ -196,7 +206,10 @@ impl Shell {
     ) {
         let words = self.words();
         let search = &mut self.areas.workspace.code.files.search;
-        if ask.key != Some(search.key) || search.mode != Mode::Name {
+        if ask.key != Some(search.key)
+            || search.mode != Mode::Name
+            || search.asked.as_deref() != Some(ask.query.as_str())
+        {
             return;
         }
         search.results = match result {
@@ -211,13 +224,15 @@ impl Shell {
     /// Lines found in files.
     pub(in crate::areas::workspace) fn files_grepped(
         &mut self,
+        ask: &SearchFiles,
         result: Result<GrepResult, Problem>,
     ) {
         let words = self.words();
         let search = &mut self.areas.workspace.code.files.search;
-        if search.mode != Mode::Content {
+        if search.mode != Mode::Content || search.asked.as_deref() != Some(ask.query.as_str()) {
             return;
         }
+        search.width = u32::try_from(ask.query.as_str().chars().count()).unwrap_or(u32::MAX);
         search.results = match result {
             Ok(grepped) => Results::Grepped(grepped),
             Err(problem) => Results::Failed(words.problem(&problem)),

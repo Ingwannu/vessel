@@ -134,7 +134,11 @@ tab's refresh button reads the open tab again.
 The Files tab searches: a file by its name as it is typed (`file.find`,
 keyed so a newer search stops an older one) or lines inside files on
 Enter (`file.grep`, literal, smart case), the two chosen by a segmented
-control beside the field; a hit opens the file at its line. A line
+control beside the field; a hit opens the file at its line. An answer
+to any query but the one last sent is dropped: the node replaces an
+older find only when a newer one is sent, so after the field is
+emptied, refused as typed or switched, a late answer would otherwise
+show results the field no longer asks for. A line
 over the results says how many were found, and when the machine
 stopped early (a find over part of a large folder, a search in files
 past its 200 lines) it says so and asks for a narrower search. What
