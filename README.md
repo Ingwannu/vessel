@@ -132,8 +132,10 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
   restarts and applied at once; `vesseld --park-after` is the value of a
   node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
-  answer, its queue moves, or someone follows it (a page that has it
-  open, `vessel attach`). The next prompt, option change or `vessel
+  answer or its queue moves. Someone following it (a page that has it
+  open, `vessel attach`) does not keep it awake, as in Paseo: the
+  follower sees it parked and its next prompt wakes it. The next prompt,
+  option change or `vessel
   session wake` starts it again on the same conversation; `vessel
   sessions` says `(parked)`. Only an agent whose adapter can load a
   conversation again (ACP `loadSession`) is parked; what it left running
