@@ -34,6 +34,27 @@ use super::{Open, menu::issue_alert, name};
 /// Before the first measure: a card's width less its insets, the label
 /// "Branch" and the default-branch warning.
 const COMMIT_NAME_ESTIMATE: f32 = 280.0;
+
+/// A file row: the code face's 20-point line and 4 above and below.
+const FILE_ROW: f32 = 28.0;
+
+/// GOAT's `max-h-44`: the list grows with its files up to 176 points (the
+/// kit's frame is that tall whatever it holds; one file left a tall
+/// empty box that pushed the message out of an 800 by 600 window).
+const FILES_MOST: f32 = 176.0;
+
+/// Below this window height the list stops at three rows, so the message
+/// and the actions stay in view without scrolling (the owner's word 40:
+/// nothing is cut at small window sizes).
+const SHORT_WINDOW: f32 = 720.0;
+
+/// The list's height for `count` files in a window `tall` points high:
+/// its rows and its frame's insets (`spacing::S1` above and below).
+fn files_height(count: usize, tall: f32) -> f32 {
+    let most_rows: usize = if tall < SHORT_WINDOW { 3 } else { 6 };
+    let rows = u16::try_from(count.min(most_rows)).map_or(0.0, f32::from);
+    FILE_ROW.mul_add(rows, spacing::S2).min(FILES_MOST)
+}
 use crate::shell::Shell;
 
 impl Shell {
@@ -228,7 +249,7 @@ fn summary(
         .child({
             // One line in the code face, cut in its middle; the whole name
             // in a tooltip when cut (`name.rs`). GOAT's medium weight.
-            let room = name::room(&git.commit_branch_room, 1.0, COMMIT_NAME_ESTIMATE);
+            let room = name::room(&git.commit_branch_room, 1.0, COMMIT_NAME_ESTIMATE, window);
             let shown = name::one_line(window, &header.name, Type::MonoBody, room);
             let element = div()
                 .id("git-commit-branch")
@@ -273,6 +294,10 @@ fn summary(
             .into_any_element()
     } else {
         form_summary::files(tokens)
+            .h(px(files_height(
+                count,
+                f32::from(window.viewport_size().height),
+            )))
             .p(px(spacing::S1))
             .child(git.files.element(cx.processor(
                 move |shell: &mut Shell, index: usize, window, cx| {

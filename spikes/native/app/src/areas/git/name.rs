@@ -17,8 +17,11 @@
 //!   before the first measure, the caller's estimate.
 //! - Why: the coordinator's rule for a path applies to a branch, the
 //!   reference's one line kept.
-//! - Cost: one frame may use the estimate; the window redraws within a
-//!   frame or two (focus, the caret's blink, the five-second refresh).
+//! - Cost: the first frame uses the estimate, and asks for one more
+//!   frame so the measured room replaces it at once (the phone's capture
+//!   showed the estimate's cut, end-truncated again by the box, until the
+//!   five-second refresh redrew). One frame, once per probe: nothing
+//!   repeats while the screen is still.
 
 use vessel_app_kit::Type;
 use vessel_app_kit::fonts::elide_middle;
@@ -42,9 +45,14 @@ pub(super) fn one_line(window: &Window, name: &str, face: Type, room: f32) -> On
 }
 
 /// The room for a name in the box `place` measured, less `chrome` (the
-/// box's own insets and glyphs); `estimate` until it has been measured.
-pub(super) fn room(place: &Place, chrome: f32, estimate: f32) -> f32 {
-    place.get().map_or(estimate, |bounds| {
-        chrome.mul_add(-1.0, f32::from(bounds.size.width))
-    })
+/// box's own insets and glyphs); `estimate` until it has been measured,
+/// with the next frame asked for so the measure is used at once.
+pub(super) fn room(place: &Place, chrome: f32, estimate: f32, window: &Window) -> f32 {
+    place.get().map_or_else(
+        || {
+            window.request_animation_frame();
+            estimate
+        },
+        |bounds| chrome.mul_add(-1.0, f32::from(bounds.size.width)),
+    )
 }

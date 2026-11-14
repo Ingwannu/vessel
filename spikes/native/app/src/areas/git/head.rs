@@ -135,7 +135,7 @@ fn row(
     // The name is one line cut in its middle (`name.rs`); when cut, the
     // tooltip carries the whole name instead.
     let estimate = HEAD_ESTIMATE.mul_add(-1.0, f32::from(width));
-    let room = name::room(&git.branch_room, TRIGGER_CHROME, estimate);
+    let room = name::room(&git.branch_room, TRIGGER_CHROME, estimate, window);
     let shown = name::one_line(window, &header.name, Type::Meta, room);
     let trigger = trigger(
         "git-branch",

@@ -225,7 +225,7 @@ fn row(
                 .children(subject.branch.map(|branch| {
                     // The branch it was saved on: one line, cut in its
                     // middle (`name.rs`), never broken inside the message.
-                    let room = name::room(&shell.areas.git.stash_room, 1.0, STASH_ROOM_ESTIMATE);
+                    let room = name::room(&shell.areas.git.stash_room, 1.0, STASH_ROOM_ESTIMATE, window);
                     div()
                         .type_(Type::Mono)
                         .text_color(neutral.foreground_muted)
