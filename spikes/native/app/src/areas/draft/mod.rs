@@ -451,6 +451,7 @@ impl Shell {
         draft.chosen = false;
         draft.composer.clear(window, cx);
         self.begin_pending(machine, agent_name(&harness), text, cx);
+        self.brand.sent();
         self.route = Route::Session;
         cx.notify();
     }
@@ -582,7 +583,9 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .gap(px(12.0))
-        .child(vessel_app_kit::mark(40.0, tokens))
+        // The brand's drawing measures the heading, the card and the
+        // pickers (worker B's `brand.rs`); it is the mark, drawn large.
+        .on_children_prepainted(shell.brand.new_session(0))
         .child(
             div()
                 .type_(Type::Title)

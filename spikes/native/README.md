@@ -58,6 +58,9 @@ app/src/
   chrome.rs        what is in the title bar (the mark and label; the update's status at the right)
   update.rs        the updater (track R's crate) on the shell: its state followed, check now,
                    automatic or only when asked, restart into a new build, "Updated to …" once
+  brand.rs         the brand's drawing behind the content panel (ADR 0059): the screens report
+                   their boxes while laid out, the backdrop draws the same frame; the first
+                   message's journey; brand/avatar.rs, the agent message's avatar
   areas/
     mod.rs         one `mod` line and one field of `Areas` per area
     common.rs      pieces several areas draw (a frame's title, its foot, a session's colour)
@@ -265,6 +268,33 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   buttons the kit's; carets and marks are the kit's vector glyphs
   (`assets::Glyph`), never characters. Controls take their colours from
   `tokens.neutral` (Paseo's scale); the accent is the brand's.
+
+### The brand's drawing (ADR 0059)
+
+`view::brand` decides the mark's large multiline drawing without a toolkit:
+the measured ratios (`ratios`), offset lines with concentric turns, loops
+and the star (`geometry`), where each screen's drawing goes and how it
+steps down as the window narrows (`layout`), the first message's journey
+(`motion`: 300 ms move, 150 ms star to circle, 150 ms the agent's mark, the
+slider's measured values and curve), and the shapes the kit paints. Its
+tests place the drawing over the real screens' measured boxes (1280, 1920
+and 390 wide) and check it never comes within 12 points of text.
+
+`kit::vector` paints shapes it is given (points with a stroke or a fill,
+a share of one theme ink) as the agent marks are painted: rasterised at
+exactly the device pixels they cover and drawn 1:1, cached by content
+(twelve rasters; one pushed out is dropped from GPUI's atlas).
+`vector::drawing` makes its shapes at paint time, so a backdrop can use
+boxes the content measured in the same frame; `vector::inline` draws in a
+box of its own (the avatar).
+
+`app::brand` is the shell's `brand`: the new session's column gives
+`on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
+composer's card and the pickers after `skip` children), the session's body
+gives `shell.brand.session(viewport, column)`, `shell.brand.sent()` starts
+the journey, and `brand::avatar(…)` draws an agent message's avatar. The
+journey's frames come from one 1/30 s timer; reduced motion and a software
+renderer show its end at once.
 
 ## Why GPUI, and which
 

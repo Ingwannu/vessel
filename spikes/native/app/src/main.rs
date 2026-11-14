@@ -17,6 +17,7 @@
 mod agent_mark;
 mod areas;
 pub mod badge;
+mod brand;
 mod chrome;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]

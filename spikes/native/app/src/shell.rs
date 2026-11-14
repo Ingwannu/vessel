@@ -65,6 +65,8 @@ pub(crate) struct Shell {
     /// At a phone's width, the sidebar's sheet is open, over what was on
     /// screen when it opened: going anywhere else closes it.
     sidebar_sheet: Option<(Route, Option<vessel_proto::SessionId>)>,
+    /// The brand's drawing behind the content (worker B's `brand.rs`).
+    pub(crate) brand: crate::brand::Brand,
 }
 
 impl Shell {
@@ -95,6 +97,7 @@ impl Shell {
             language,
             fleet: Fleet::default(),
             route: Route::Draft,
+            brand: crate::brand::Brand::default(),
             areas,
             prefs,
             notice,
@@ -436,6 +439,8 @@ impl Render for Shell {
                                     .border_color(tokens.border_faint)
                                     .rounded(px(vessel_app_kit::theme::radius::R5))
                                     .overflow_hidden()
+                                    .relative()
+                                    .child(self.brand.backdrop(&tokens))
                                     .children(self.updated.as_ref().map(|updated| {
                                         areas::about::updated(self, updated, &tokens, cx)
                                     }))
