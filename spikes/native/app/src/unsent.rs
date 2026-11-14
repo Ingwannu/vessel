@@ -114,7 +114,19 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
+        Command::Prompt { session, text, .. }
+        | Command::PromptFiles(vessel_app_link::attachments::WithFiles { session, text, .. }) => {
+            return Settle::Prompt { session, text };
+        }
+        // A file the link never took: failed, to be tried again.
+        Command::Attach(attach) => Event::Upload {
+            session: attach.session,
+            key: attach.key,
+            step: vessel_app_link::attachments::Step::Failed {
+                problem: vessel_app_view::composer::tray::Problem::Node(said()),
+                again: vessel_app_view::composer::tray::Again::Restart,
+            },
+        },
         Command::Open { .. }
         | Command::Stop { .. }
         | Command::Answer { .. }

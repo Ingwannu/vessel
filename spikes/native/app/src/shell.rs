@@ -262,6 +262,7 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
+            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

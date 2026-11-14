@@ -10,6 +10,7 @@
 //! The rules are `vessel_app_view::composer`'s; this only wires them to
 //! the shell, the link and the toasts.
 
+mod attach;
 mod drafts;
 pub(crate) mod modes;
 pub(crate) mod offers;
@@ -25,6 +26,7 @@ pub(crate) use slash::{draft_menu, draft_text, menu, text};
 use vessel_app_view::composer::drafts::Drafts;
 use vessel_app_view::composer::recall::Recall;
 use vessel_app_view::composer::running::InFlight;
+use vessel_app_view::composer::trays::Trays;
 use vessel_app_view::offers::Offers;
 
 /// The composer's own state.
@@ -47,6 +49,8 @@ pub(crate) struct ComposerArea {
     pub(crate) saving: bool,
     /// The sent message Up and Down show in the session composer, if one.
     pub(crate) recall: Recall,
+    /// Each composer's attached files.
+    pub(crate) trays: Trays,
 }
 
 impl ComposerArea {
