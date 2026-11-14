@@ -27,7 +27,7 @@ engine (none).
 | Reuse | The create path, unchanged when the registry is empty. The hook names and wait bits from Paseo. The lesson's host: a helper process, later |
 | Not an extension of | The automation hook type. A plugin id is not a `HookId`, and a rewrite of a create spec is not an HTTP delivery |
 | Outside | Node, as a possible later helper; a Wasm runtime, as a possible later sandbox. Neither is adopted. No licence or size is claimed, because nothing is added |
-| Decision | New, when the ADR is accepted: crate `vessel-plugin`, called by `vessel-node`. Modify `create_session` only. Do not modify the shared create path's checks |
+| Decision | New, when the ADR is accepted: crate `vessel-plugin`, called by `vessel-node`. Insert the two calls in `create_starting`. Do not reorder the checks already in that function |
 
 ## Slice 1, after the ADR is accepted
 
@@ -36,10 +36,16 @@ The contract is the "Slice 1" section of ADR 0068. Short form:
 - Fourteen hook names, Paseo's wait bits, byte order of the plugin
   id then registration order, 30 seconds on a waiting hook.
 - Only `agent.create.before` and `agent.create.after` are called,
-  and only from `create_session`.
-- Before may replace `title` and `harness`. A change to `cwd`,
-  `place`, `profile` or `mode` is a `Conflict` that names the
-  plugin and the hook, and later handlers do not run.
+  from `create_starting`. The RPC, a schedule, a fork and a new
+  side question pass through them. An import (an origin is set)
+  and a rewind do not.
+- Before is the first step, before the draining check and
+  `refuse_installing`. It may replace `title` and `harness`. A
+  change to `cwd`, `place`, `profile` or `mode`, or a handler
+  error, is `InvalidRequest`. The message names the plugin and
+  the hook, and later handlers do not run.
+- A 30-second timeout is `Unavailable`, with the same names in
+  the message. It is not `InvalidRequest`.
 - After is not awaited. Its failure is logged and the session
   stays.
 - Empty registry: create is unchanged. No new wire method, so no
@@ -80,14 +86,16 @@ are separate decisions. They are not implied by slice 4.
   Corrected in place: no protocol number is taken (a later call
   gets the number given at merge), no settings key is listed, the
   helper's reach and the Windows path are written, test handlers
-  are `cfg(test)` only. No code. No crate.
-- Half-done: nothing in code. The ADR is proposed.
-- Next: wait for the review of ADR 0068. Do not start the crate.
-  A returned document is fixed before any code.
-- Not verified: Paseo's scheduler and side-agent paths against
-  `agent.create.before`; the field-by-field provider schemas; the
+  are `cfg(test)` only. Corrected again: both create hooks sit
+  on `create_starting`, before the checks that read the spec, and
+  import and rewind are the skips, with the reasons in the ADR.
+  A refusal is `InvalidRequest`. A timeout is `Unavailable`. No
+  code. No crate.
+- Half-done: nothing in code. The ADR is still proposed.
+- Next: wait for the review of this revision. Do not start the
+  crate. A returned document is fixed before any code.
+- Not verified: Paseo's scheduler implementation and the provider
+  `forkSession` body; the field-by-field provider schemas; the
   app's client-bundle loader; whether `localeCompare` and byte
-  order differ for any id the schema rejects (they are not compared
-  here for characters outside that alphabet). The create path's
-  grant check was not re-read beyond `refuse_installing` and the
-  fact that the replaced spec goes through `create`.
+  order differ for any id the schema accepts (they are not
+  compared here). The body of `agents.reserve` was not read.

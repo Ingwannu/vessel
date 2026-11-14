@@ -108,46 +108,115 @@ number. `PROTOCOL_VERSION` stays at the base this branch was cut
 from; this record does not set it. A later slice that adds a call
 or a field takes the number given at merge, and gates that call on
 one named constant of this track so the integrator changes one
-line. An empty registry leaves `session.create` as it is.
+line. An empty registry leaves `create_starting` as it is.
 
 The registry knows all fourteen hook names and the wait bit from
 Paseo's table, so a fifteenth name does not compile and a match
-cannot use `_`. Slice 1 *calls* two of them, and only from the
-RPC `session.create` path (`create_session`), before it calls the
-shared create:
+cannot use `_`. Slice 1 *calls* two of them, from the shared
+create, `create_starting`
+(`crates/vessel-node/src/service/sessions.rs` lines 114 to 125).
 
-- `agent.create.before`, waiting.
-- `agent.create.after`, not waiting.
+- `agent.create.before`, waiting. It is the first step of that
+  function.
+- `agent.create.after`, not waiting. It runs only after
+  `sessions.create` has returned the session and the claim and
+  the watch that already follow a successful create have run.
+  The RPC does not wait for it. A failed create does not start it.
 
 Not called in this slice, though the names exist: the workspace
 hooks, both worktree hooks, `agent.open.before`, close, archive,
-turn and permission. Import, a schedule's run, a fork, a rewind
-and a side question do not go through `create_session`, so they
-do not fire these two. Paseo's hook document says import and
-resume do not fire `agent.create.after`
-(`public-docs/plugins/hooks.md` line 252). The scheduler's and
-the side-agent's call sites were not read, so this record does
-not say whether they fire `agent.create.before`. Skipping them
-here is narrower than "every create", and the reason is that
-those paths were not read.
+turn and permission.
+
+Paseo fires both hooks inside `createAgentInternal`. That is the
+only path `createAgent` takes (`agent-manager.ts` lines 1348 to
+1353). The before hook runs for every config that is not
+`internal` (lines 1363 to 1370). The after hook runs for every
+agent that is not `internal` (lines 1408 to 1411). Vessel's
+`create_starting` is the same kind of shared path. The RPC
+`create_session` already reaches it (`create`, then `create_as`,
+then `create_core_as`, lines 53 to 106). A schedule's run reaches
+it through `create_as` (`service/scheduled.rs` line 138). A fork
+reaches it directly (`service/forking.rs` lines 12 to 16 and
+line 43). A side question that has to create a session reaches it
+through `create_core_as` (`service/side_questions.rs` line 114).
+Calling the hooks only from `create_session` left those out. The
+call moves onto `create_starting`.
+
+`agent.create.before` runs before the checks that read the spec.
+Those checks stay in the order they have now, after the hook: the
+draining refusal, `refuse_installing` on `spec.harness` (line
+125), `place`, the grant, and the credential (`agents.reserve`).
+A harness the hook replaced is what `refuse_installing` reads.
+The body of `agents.reserve` was not read, so this record does
+not say the grant inspects the harness. Slice 1 adds no second
+authorization.
+
+Paseo calls `assertAcceptingAgentRegistrations` before the hook
+(`agent-manager.ts` line 1361). Vessel runs the hook and then the
+draining check. That is a stated difference. The reason is that
+the hook is one insertion at the top, and the checks that already
+exist keep their order. A draining node still refuses and stores
+nothing. The replacement is discarded with that refusal.
+
+These creates do not fire either hook:
+
+- An import that starts a session passes an origin
+  (`service/transfers.rs` lines 126 to 128) and so enters
+  `create_starting`. The hooks do not run when that origin is
+  set. Paseo's import path, `importProviderSessionInternal`,
+  never calls the lifecycle (`agent-manager.ts` lines 1555 to
+  1612). The hook document says import and resume do not fire
+  `agent.create.after` (`public-docs/plugins/hooks.md` line 252).
+- A rewind does not create a session (`service/forking.rs` lines
+  48 to 59). That is the resume case in the same sentence.
+
+Paseo also skips `config.internal`. Those agents are ephemeral
+system tasks and are not persisted (`agent-manager.ts` lines
+4263 to 4265). The generators that set `internal: true` are the
+branch-name generator (`worktree-branch-name-generator.ts` lines
+126 to 129) and the git-metadata generator
+(`git-metadata-generator.ts` lines 224 to 227). Both reach
+`createAgent` through `generateStructuredAgentResponse`
+(`agent-response-loop.ts` line 359), so the skip inside
+`createAgentInternal` covers them. Vessel has no
+`config.internal` and no generator session. The only callers of
+`create_starting`, `create_as` and `create_core_as` in this tree
+are the RPC, the import, the schedule, the fork and the side
+question. A side question is not one of those generators. It is
+a person's persisted session (ADR 0045). Paseo has no side
+surface (that record). A new side is created with no origin, so
+both hooks run. Reusing an existing side does not create
+(`service/side_questions.rs` lines 71 to 73) and does not fire
+them. A later generator session, if one is added, skips both
+hooks for the reason Paseo skips `internal`: it is the node's
+own ephemeral task, and a plugin must not rewrite it.
+
+A fork fires both hooks. Vessel's fork is a new session on this
+path. Paseo's provider `forkSession` was not read. A search of
+the server files whose names contain `fork` found no
+`createAgent(` call. If Paseo's fork does not go through
+`createAgent`, Vessel's fork runs a hook Paseo's does not. The
+reason to run it here is the one in `forking.rs`: a fork is a
+session its caller creates, with the same refusals as any
+session. Paseo's scheduler implementation was not read. Any
+Paseo create that does call `createAgent` still passes the hook
+above, unless the config is `internal`. Vessel's schedule run
+calls `create_as`, so it fires.
 
 `agent.create.before` receives a snapshot of the spec the caller
 sent, after nothing else has been reserved: no session id yet
 (Paseo's create-before has none either), no credential, no model
 token. The handler may replace `title` and `harness`. `cwd`,
 `place`, `profile` and `mode` are read-only; a result that changes
-one is a refusal, and later handlers of this hook do not run.
-Returning nothing keeps the request. There is no deep merge.
+one is a refusal (`InvalidRequest`, below), and later handlers of
+this hook do not run. Returning nothing keeps the request. There
+is no deep merge.
 
-The replaced spec is what `create` receives. `create_starting`
-calls `refuse_installing` on `spec.harness`
-(`crates/vessel-node/src/service/sessions.rs` line 125, read).
-The body of `agents.reserve` was not read, so this record does
-not say the grant inspects the harness. Slice 1 adds no second
-authorization. Fields Paseo can change and this request does not
-have (model, saved environment, MCP servers, system prompt, tool
-policy, provider options) are absent from the type, not dropped
-on the floor. Adding one later adds a field.
+The replaced spec is what the rest of `create_starting` receives.
+Fields Paseo can change and this request does not have (model,
+saved environment, MCP servers, system prompt, tool policy,
+provider options) are absent from the type, not dropped on the
+floor. Adding one later adds a field.
 
 Order is the plugin id's UTF-8 bytes, then registration order.
 Paseo sorts with `localeCompare` and no locale argument
@@ -164,12 +233,37 @@ call, not by the registry sleeping. The deadline is the same
 number as `REQUEST_TIMEOUT_MS` (`runtime.ts` line 41). On a
 timeout the handler's cancellation token is cancelled, the
 operation fails, and later handlers do not run. That token is
-not a POSIX signal. A handler error fails the same way. The wire
-error is the existing `ErrorCode::Conflict` and a message that
-names the plugin id and the hook. It does not include the spec's
-directory, an environment value, or a credential. No new
-`ErrorDetail` until a client has to branch on the reason; the
-message is for a person.
+not a POSIX signal. A handler error also fails the operation
+and stops later handlers. The two failures are not the same code.
+
+A refusal uses `ErrorCode::InvalidRequest`. A refusal is a
+handler that returns an error, or a result that changes `cwd`,
+`place`, `profile` or `mode`. `InvalidRequest` is a malformed
+request, or arguments that were invalid
+(`crates/vessel-proto/src/error.rs` lines 17 to 18). A client
+must not retry it. `Forbidden` means the caller lacks
+the method's scope (lines 21 to 22). A plugin rule is not that
+scope, and a client that treats `Forbidden` as a missing grant
+would ask for a grant change. `Conflict` means the target is in
+the wrong state (lines 27 to 28). No session exists yet, so
+there is no such target.
+
+A timeout is `ErrorCode::Unavailable`. That code's comment says
+retrying later may work (lines 36 to 37). A hook that did not
+answer is that case, not a conflict with state. Paseo's timeout
+rejects with a string that names the plugin and the RPC type
+(`runtime.ts` line 730). A waiting handler's throw is rethrown
+(`lifecycle/index.ts` lines 313 to 317). Vessel does not copy
+the handler's text onto the wire. The message names the plugin
+id and the hook, and, when a read-only field changed, that
+field's name. It does not include the spec's directory, an
+environment value, a credential, or the handler's own text. A
+handler's text can carry a path or a secret. No new `ErrorCode`
+and no new `ErrorDetail`. The code tells a timeout from a
+refusal. The message is for a person. A client cannot tell a
+thrown refusal from a read-only field change without the
+message; both refuse the create and neither is a retry. A later
+additive detail can split those two.
 
 `agent.create.after` runs only after the session exists. It is not
 awaited by the RPC. Its error is logged with the plugin id and the
@@ -250,21 +344,23 @@ Advantages. The hook names and the wait bits match Paseo, so a
 later helper does not rename them. An empty registry is invisible
 to today's clients and to older peers. A refusal names what
 failed. The crate boundary keeps the rules out of `vessel-node`'s
-session file except for the one call.
+session file except for the two calls.
 
 Costs. A Paseo plugin does not run. A screen, a theme, a slash
 command, a provider and a usage source do not exist yet. Create
 hooks do not see model, environment or MCP servers, so the
 examples that set a Codex sandbox option or inject a server have
 nothing to set. `agent.open.before` is not called, so a launch-only
-environment cannot be added. Schedules and side questions are not
-covered. `Conflict` is a coarser code than a dedicated reason; a
-client cannot branch on "a plugin refused" until a later additive
-detail.
+environment cannot be added. An import and a rewind do not run
+these hooks. A schedule, a fork and a new side question do. A
+client tells a timeout (`Unavailable`) from a refusal
+(`InvalidRequest`) by the code. It cannot tell a thrown refusal
+from a read-only field change without the message. No
+`ErrorDetail` is added for that split.
 
-Effects on other work. The code commit touches `vessel-node`'s
-`create_session` and adds a crate. It must not reorder the checks
-inside the shared create path. It must not log the spec. Reviews
+Effects on other work. The code commit inserts the two calls in
+`create_starting` and adds a crate. It must not reorder the
+checks that already run there. It must not log the spec. Reviews
 of that commit gate the tests listed in the plan, not this record.
 
 What this record does not decide: the helper's framing, the

@@ -467,7 +467,12 @@ checked, not as code to copy: `lifecycle-logger`,
 The bodies of `session.ts` (the workspace create hook is one call
 in a very large file), both provider schemas' fields, the ACP
 transformer internals, the compiler's import fence beyond the
-platform line, the app's client-bundle loader, the e2e specs, and
-whether a scheduled or side agent in Paseo goes through
-`agent.create.before`. The create call that was read skips
-`config.internal` only. Those gaps are named again in the plan.
+platform line, the app's client-bundle loader, and the e2e specs.
+Paseo's scheduler implementation was not read, and the provider
+`forkSession` body was not read. `createAgent` itself was read:
+it always enters `createAgentInternal`, which skips
+`config.internal` only (`agent-manager.ts` lines 1348 to 1370).
+The generators that set that flag were read
+(`worktree-branch-name-generator.ts` lines 126 to 129,
+`git-metadata-generator.ts` lines 224 to 227). Those gaps are
+named again in the plan.
