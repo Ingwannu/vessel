@@ -8,8 +8,9 @@
 //! - Purpose: see what an agent changed and read the code it works on
 //!   beside the conversation, without leaving the session.
 //! - Constraint: the session screen is the lead's and its bar track C's:
-//!   the panel is drawn through two slots (`code_panel` beside the
-//!   conversation column, `code_toggle` in the bar's actions). The
+//!   the panel is drawn through two slots (`code_beside`, the session
+//!   screen with the panel beside its conversation column, and
+//!   `code_toggle` in the bar's actions). The
 //!   session's root is not on its card: the panel reads the session
 //!   (`session.get`) when it opens on one.
 //! - Alternatives: diffs opened in a pane of their own (Paseo's desktop
@@ -22,9 +23,16 @@
 //! - Cost: the panel follows the open session only while it is open;
 //!   reopening it reads the session again (one call).
 
+mod actions;
+mod actions_view;
+mod change_rows;
 mod changes;
 mod files;
+mod found;
 mod frame;
+mod search;
+mod tree;
+mod viewer;
 
 use std::collections::{HashMap, HashSet};
 
@@ -37,7 +45,7 @@ use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
-pub(crate) use frame::{code_panel, code_toggle};
+pub(crate) use frame::{code_beside, code_toggle};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;
@@ -67,6 +75,8 @@ struct Target {
     machine: String,
     session: SessionId,
     place: Place,
+    /// The session's folder on the machine, for "Copy path".
+    cwd: Option<std::path::PathBuf>,
 }
 
 /// A comparison's files.
@@ -93,6 +103,10 @@ struct Viewer {
     path: RelPath,
     text: Shown,
     list: VirtualList,
+    /// The line to bring to the top once read (from 1: a search's hit).
+    goto: Option<u32>,
+    /// The lines chosen for the composer (from 0, first and last).
+    chosen: Option<(usize, usize)>,
 }
 
 /// What a file shows.
@@ -114,6 +128,8 @@ struct Files {
     rows: Vec<TreeRow>,
     list: VirtualList,
     viewer: Option<Viewer>,
+    search: search::Search,
+    actions: actions::Actions,
 }
 
 /// The panel's state.
@@ -124,6 +140,18 @@ pub(crate) struct CodePanel {
     target: Option<Target>,
     changes: Changes,
     files: Files,
+    /// Its width beside the conversation (dragged at its left edge).
+    width: vessel_app_kit::ui::Pixels,
+    /// Tabs whose content a git write changed while they were not shown:
+    /// read again when next shown.
+    stale: Stale,
+}
+
+/// Which tabs are to be read again when shown.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Stale {
+    changes: bool,
+    files: bool,
 }
 
 impl CodePanel {
@@ -147,8 +175,42 @@ impl CodePanel {
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 viewer: None,
+                search: search::Search::new(window, cx),
+                actions: actions::Actions::new(cx),
             },
+            width: frame::WIDTH,
+            stale: Stale::default(),
         }
+    }
+
+    /// The machine was renamed in the book: the panel goes on under the
+    /// new name.
+    pub(in crate::areas::workspace) fn machine_renamed(&mut self, from: &str, to: &str) {
+        if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
+            to.clone_into(&mut target.machine);
+        }
+    }
+
+    /// The machine was forgotten: nothing of it is shown or read again.
+    pub(in crate::areas::workspace) fn machine_forgot(&mut self, name: &str) {
+        if self
+            .target
+            .as_ref()
+            .is_some_and(|target| target.machine == name)
+        {
+            self.target = None;
+            self.changes.summary = Summary::Loading;
+            self.changes.states.clear();
+            self.changes.relist();
+            self.files.listings.clear();
+            self.files.viewer = None;
+            self.files.relist();
+        }
+    }
+
+    /// The session's folder on the machine, when it said.
+    fn cwd(&self) -> Option<&std::path::Path> {
+        self.target.as_ref()?.cwd.as_deref()
     }
 
     /// The root shown, when the session is in one.
@@ -175,8 +237,49 @@ impl Changes {
 impl Files {
     fn relist(&mut self) {
         self.rows = tree_rows(&self.listings, &self.open);
-        self.list.reset(self.rows.len());
+        self.list.reset(self.row_count());
     }
+
+    /// The list's rows: the tree's, and the row a name is typed in.
+    fn row_count(&self) -> usize {
+        let extra = self
+            .actions
+            .editing
+            .as_ref()
+            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
+            .is_some_and(|(_, replaces)| !replaces);
+        self.rows.len().saturating_add(usize::from(extra))
+    }
+
+    /// What list row `index` draws: the typed name's row (at its depth),
+    /// or the tree's row at an index.
+    fn slot(&self, index: usize) -> Slot {
+        let Some((at, replaces)) = self
+            .actions
+            .editing
+            .as_ref()
+            .and_then(|editing| actions::edit_slot(&self.rows, &editing.kind))
+        else {
+            return Slot::Row(index);
+        };
+        if index == at {
+            let depth = self.rows.get(at).map_or(0, TreeRow::depth);
+            return Slot::Edit(depth);
+        }
+        if index > at && !replaces {
+            return Slot::Row(index.saturating_sub(1));
+        }
+        Slot::Row(index)
+    }
+}
+
+/// What a row of the tree's list draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Slot {
+    /// The tree's row at this index.
+    Row(usize),
+    /// The row a name is typed in, at this depth.
+    Edit(usize),
 }
 
 impl Shell {
@@ -186,12 +289,34 @@ impl Shell {
         Some((open.machine.clone(), open.session))
     }
 
-    /// Open or close the panel.
-    pub(crate) fn toggle_code(&mut self, cx: &mut Context<'_, Self>) {
+    /// Open or close the panel; opening it says the search field's words
+    /// in the person's language (the field is made before the language is
+    /// known). The bar's toggle and track S2's "toggle inspector"
+    /// shortcut both call this; with no session open it does nothing (the
+    /// panel is a session's), as the toggle is not drawn then. At a
+    /// phone's width the panel it opens takes the whole screen, as from the
+    /// toggle.
+    /// Something was put in the session's composer from the panel: at a
+    /// phone's width the panel covers the composer, so it closes and the
+    /// composer is seen with what was added (Paseo's compact layout closes
+    /// its Explorer sheet when a choice goes to the main pane); beside the
+    /// conversation it stays.
+    fn code_handed_to_composer(&mut self, window: &Window) {
+        if vessel_app_kit::breakpoint::phone(window) {
+            self.areas.workspace.code.open = false;
+        }
+    }
+
+    pub(crate) fn toggle_code(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.session.open.is_none() {
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         panel.open = !panel.open;
         if panel.open {
+            self.search_words(window, cx);
             self.code_follow();
+            let _asked = self.code_reread_shown();
         }
         cx.notify();
     }
@@ -217,7 +342,10 @@ impl Shell {
             machine: machine.clone(),
             session,
             place: Place::Reading,
+            cwd: None,
         });
+        // A new session is read whole: nothing it shows is stale.
+        panel.stale = Stale::default();
         panel.changes.summary = Summary::Loading;
         panel.changes.states.clear();
         panel.changes.closed.clear();
@@ -244,17 +372,68 @@ impl Shell {
         else {
             return;
         };
-        target.place = match result {
-            Ok(info) => session_root(&info).map_or(Place::Outside, Place::Root),
-            Err(problem) => Place::Failed(words.problem(&problem)),
+        target.place = match &result {
+            Ok(info) => session_root(info).map_or(Place::Outside, Place::Root),
+            Err(problem) => Place::Failed(words.problem(problem)),
         };
+        target.cwd = result.ok().and_then(|info| info.spec.cwd);
         self.code_read_tab();
     }
 
-    /// Read what the chosen tab shows, if not read yet.
+    /// Track G1's call after a git write it made succeeded (a commit, a
+    /// switch, a stash, a discard): when the panel shows `root` on
+    /// `machine`, the tab shown is read again, what it shows staying until
+    /// the new answers replace it (no flash of an empty panel); a tab not
+    /// shown, or the whole panel while closed, is read again when it is
+    /// next shown. Another machine or root: nothing.
+    pub(crate) fn code_git_changed(
+        &mut self,
+        machine: &str,
+        root: &WorkspaceRoot,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let panel = &mut self.areas.workspace.code;
+        if panel.root() != Some((machine, root)) {
+            return;
+        }
+        panel.stale = Stale {
+            changes: true,
+            files: true,
+        };
+        if panel.open {
+            let _asked = self.code_reread_shown();
+        }
+        cx.notify();
+    }
+
+    /// Read the shown tab again if a git write changed it while hidden;
+    /// `true` when it was asked again.
+    fn code_reread_shown(&mut self) -> bool {
+        let panel = &mut self.areas.workspace.code;
+        match panel.tab {
+            Tab::Changes if panel.stale.changes => {
+                panel.stale.changes = false;
+                self.reread_changes();
+                true
+            }
+            Tab::Files if panel.stale.files => {
+                panel.stale.files = false;
+                self.reread_files();
+                true
+            }
+            Tab::Changes | Tab::Files => false,
+        }
+    }
+
+    /// Read what the chosen tab shows, if not read yet, or again when a
+    /// git write changed it while it was hidden.
     fn code_read_tab(&mut self) {
+        let reread = self.code_reread_shown();
         match self.areas.workspace.code.tab {
+            // Asked again already: a second ask would answer twice.
+            Tab::Changes if reread => {}
             Tab::Changes => self.read_changes(),
+            // A root never listed is not among the folders read again.
             Tab::Files => self.read_folder(&RelPath::root()),
         }
     }

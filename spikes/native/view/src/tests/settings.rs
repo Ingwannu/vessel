@@ -16,10 +16,18 @@ fn reads_a_section_from_an_address_and_nothing_else() {
 #[test]
 fn puts_every_section_under_exactly_one_heading_in_the_lists_order() {
     let grouped: Vec<Section> = Group::ALL.into_iter().flat_map(Group::sections).collect();
-    assert_eq!(grouped, Section::ALL);
-    for section in Section::ALL {
+    let shown: Vec<Section> = Section::ALL
+        .into_iter()
+        .filter(|section| section.shown())
+        .collect();
+    assert_eq!(grouped, shown);
+    for section in shown {
         assert!(section.group().sections().contains(&section));
     }
+    // Sync is held back until its page is right on every kind of node.
+    assert!(!Section::Sync.shown());
+    assert!(!grouped.contains(&Section::Sync));
+    assert_eq!(Section::of("sync"), None);
 }
 
 #[test]

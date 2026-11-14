@@ -110,3 +110,20 @@ Item 4 after the cut: the Fast switch row at the top of the detail list
 (the same state as the bolt). Daybreak is not drawn: the node advertises
 nothing for it (ADR 0055); if a patched adapter comes, the option is
 `daybreak` with `off` / `blue` / `red`.
+
+## Status (2026-11-14)
+
+Built: `view::slider` (geometry, motion, flair, state; tests),
+`view::effort::{ROLES, Effort::maximum}`, `kit::slider` (draws a frame,
+reports the pointer, wheel and keys; frames only while moving),
+`app::areas::draft::effort_card` (the card and its title row). Measured
+on the fake fleet (debug build, software Vulkan): the open card at the
+top stop costs about two cores; closed, about 1 % (nothing ticks).
+
+Named differences: the fill is Vessel's teal accent (an "on" bolt on the
+dark card is the teal mixed halfway to the ink: the teal is 2.0:1 there);
+the word below the top stop is the ink; the field is sampled every 2
+points and painted as one image (the luminosity blend computed per
+sample in sRGB); the warning's shimmer is a colour per character in one
+text run; the bolt's tooltip has no dimmed second line; a hovered stop
+grows without darkening; no keyboard focus ring on the thumb yet.

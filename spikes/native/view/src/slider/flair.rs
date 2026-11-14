@@ -300,38 +300,65 @@ const HOLD: f32 = 0.96;
 /// The grain's strength.
 const GRAIN: f32 = 0.012;
 
-/// The field's colour at `u` across the fill (0 at its start, 1 at its
-/// full width) and `v` up it (0 at the bottom), `time` seconds in;
-/// `grain` a number from -1 to 1 for this sample.
+/// The field at one moment: each blob's centre and weight, worked out
+/// once per frame (a frame samples it a thousand times or more).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Field {
+    blobs: [((f32, f32), f32); 12],
+}
+
+impl Field {
+    /// The field `time` seconds in.
+    #[must_use]
+    pub fn at(time: f32) -> Self {
+        let blobs = BLOBS.map(
+            |((cx, cy), (rx, ry), (fx, fy), sine_x, pulse, sine_pulse)| {
+                let (wave_x, wave_y) = if sine_x {
+                    ((time * PACE * fx).sin(), (time * PACE * fy).cos())
+                } else {
+                    ((time * PACE * fx).cos(), (time * PACE * fy).sin())
+                };
+                let beat = if sine_pulse {
+                    (time * pulse).sin()
+                } else {
+                    (time * pulse).cos()
+                };
+                (
+                    ((cx + wave_x * rx) * STRETCH, cy + wave_y * ry),
+                    0.7 + 0.3 * beat,
+                )
+            },
+        );
+        Self { blobs }
+    }
+
+    /// The colour at `u` across the fill (0 at its start, 1 at its full
+    /// width) and `v` up it (0 at the bottom); `grain` a number from -1
+    /// to 1 for this sample.
+    #[must_use]
+    pub fn colour(&self, u: f32, v: f32, grain: f32) -> Rgb {
+        let point = (u * STRETCH, 0.40 + v * 0.18);
+        let mut sum = [0.0_f32; 3];
+        let mut total = 0.0_f32;
+        for (((cx, cy), pulse), colour) in self.blobs.iter().zip(COLOURS) {
+            let (dx, dy) = (point.0 - cx, point.1 - cy);
+            let weight = (-(dx * dx + dy * dy) * 12.0).exp() * pulse;
+            total += weight;
+            for (channel, value) in sum.iter_mut().zip(colour) {
+                *channel += value * weight;
+            }
+        }
+        let total = total.max(1e-4);
+        let mean = sum.map(|channel| channel / total);
+        let held = mix_rgb(mean, COLOURS[3], HOLD);
+        held.map(|channel| channel.clamp(0.0, 1.0).powf(0.9) + grain * GRAIN)
+    }
+}
+
+/// The field's colour at `u`, `v`, `time` seconds in ([`Field`]).
 #[must_use]
 pub fn field(u: f32, v: f32, time: f32, grain: f32) -> Rgb {
-    let point = (u * STRETCH, 0.40 + v * 0.18);
-    let mut sum = [0.0_f32; 3];
-    let mut total = 0.0_f32;
-    for (blob, colour) in BLOBS.iter().zip(COLOURS) {
-        let &((cx, cy), (rx, ry), (fx, fy), sine_x, pulse, sine_pulse) = blob;
-        let (wave_x, wave_y) = if sine_x {
-            ((time * PACE * fx).sin(), (time * PACE * fy).cos())
-        } else {
-            ((time * PACE * fx).cos(), (time * PACE * fy).sin())
-        };
-        let centre = ((cx + wave_x * rx) * STRETCH, cy + wave_y * ry);
-        let (dx, dy) = (point.0 - centre.0, point.1 - centre.1);
-        let beat = if sine_pulse {
-            (time * pulse).sin()
-        } else {
-            (time * pulse).cos()
-        };
-        let weight = (-(dx * dx + dy * dy) * 12.0).exp() * (0.7 + 0.3 * beat);
-        total += weight;
-        for (channel, value) in sum.iter_mut().zip(colour) {
-            *channel += value * weight;
-        }
-    }
-    let total = total.max(1e-4);
-    let mean = sum.map(|channel| channel / total);
-    let held = mix_rgb(mean, COLOURS[3], HOLD);
-    held.map(|channel| channel.clamp(0.0, 1.0).powf(0.9) + grain * GRAIN)
+    Field::at(time).colour(u, v, grain)
 }
 
 /// The gradient under the field at `x` (0 to 1 across the fill): blue

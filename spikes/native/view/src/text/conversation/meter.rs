@@ -59,6 +59,15 @@ impl ConversationWords {
         self.either("Compact context", "컨텍스트 압축")
     }
 
+    /// Under the meter card's compact button once the session has ended.
+    #[must_use]
+    pub const fn meter_compact_ended(&self) -> &'static str {
+        self.either(
+            "Compacting needs the session running.",
+            "세션이 실행 중일 때만 압축할 수 있습니다.",
+        )
+    }
+
     /// Under the meter card's compact button while a turn runs.
     #[must_use]
     pub const fn meter_compact_busy(&self) -> &'static str {

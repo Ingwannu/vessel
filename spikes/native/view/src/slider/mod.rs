@@ -27,6 +27,7 @@
 
 pub mod flair;
 pub mod motion;
+pub mod state;
 #[cfg(test)]
 mod tests;
 

@@ -25,6 +25,7 @@ mod meter;
 mod numbers;
 mod permission;
 mod question;
+mod search;
 mod session;
 mod terminal;
 

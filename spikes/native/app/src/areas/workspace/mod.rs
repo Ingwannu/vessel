@@ -9,6 +9,7 @@
 //! their words are `Lang::workspace()`'s.
 
 mod approval;
+mod book;
 mod code;
 mod detail;
 mod place;
@@ -29,7 +30,7 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
-pub(crate) use code::{code_panel, code_toggle};
+pub(crate) use code::{code_beside, code_toggle};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::projects as sidebar_projects;
@@ -152,16 +153,16 @@ impl Shell {
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
             Answer::Read { ask, result } => self.file_read(&ask, result),
+            Answer::Found { ask, result } => self.files_found(&ask, result),
+            Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
+            Answer::PathChanged { change, result } => self.path_changed(&change, result),
             // Track G1's and the later slices' answers: nothing of this
             // track asks them yet.
             Answer::Status { .. }
             | Answer::Log { .. }
             | Answer::Stashes { .. }
             | Answer::Git { .. }
-            | Answer::Saved { .. }
-            | Answer::Found { .. }
-            | Answer::Grepped { .. }
-            | Answer::PathChanged { .. } => {}
+            | Answer::Saved { .. } => {}
         }
         cx.notify();
     }
