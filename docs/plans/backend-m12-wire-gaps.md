@@ -344,3 +344,13 @@ and an owner/agent/delegated response fixture. The fixture script sets umask
 permission change belongs to this slice. Protocol 19 is provisional; the
 integrator assigns the final number, and the only new wire method is
 `device.self` with the request/response above. MIN_PROTOCOL_VERSION is 2.
+
+## Row 4 contract before code
+
+Amend ADR 0044 first. Reuse Devices::make_invitation and effective advertised
+Routes; refuse before minting when neither direct nor relay exists, including
+an empty tracked override. Preserve explicitly supplied callback routes.
+New typed detail: DeviceInvite { reason: DeviceInviteError::NoRoutes } on
+ErrorCode::Conflict, with setup guidance; existing device.invite method and
+client/CLI calls remain unchanged. See the ADR for rejected alternatives,
+old-peer fallback and required fixtures. No native screen work is included.

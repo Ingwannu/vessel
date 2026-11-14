@@ -122,3 +122,46 @@ CLI: `vessel node devices self`, branching before Admin-only device listing.
 The fake fleet uses CLI pipes for pairing, a person-scoped app book separate
 from its bootstrap operator book, plus Read-only and Sync-only self queries.
 No native screen or page component belongs to this slice.
+
+## Row 4 amendment: refuse an invitation without a route (2026-11-14)
+
+Status: proposed; new typed error detail provisionally belongs to protocol
+19, alongside row 3 on this branch. Existing device.invite stays available
+from its original version; the refusal applies to older clients too.
+
+[Decision Log]
+- Purpose: never issue a public single-use link that names no place to dial.
+- Existing assets: Devices owns advertised Routes from --public/--relay,
+  make_invitation is the shared issuer, and tracked fleet callbacks can
+  supply their own routes. The CLI already prints a link only after success.
+  WireError.detail has a forward-compatible Unknown branch.
+- Alternatives: let the screen reject the returned link, guess a bind
+  address, probe a route over the network, or enable a relay automatically.
+  The first still mints a useless credential; a wildcard/loopback bind is
+  not an operator's advertised address; probing cannot prove another
+  device's connectivity; enabling a network service needs an explicit choice.
+- Choice: validate the effective routes before randomness, encoding, pending
+  invitation admission or storage. Either a configured direct route or a
+  relay suffices. The same rule applies to tracked invitations, using their
+  explicitly supplied routes when present, not the public node defaults.
+  A missing route yields Conflict with ErrorDetail::DeviceInvite containing
+  DeviceInviteError::NoRoutes. Its message says to configure a reachable
+  --public address or --relay before making another invitation. No automatic
+  configuration, address inference or reachability probe is performed.
+- Why: the node owns both the trust-bearing link and its configuration, so
+  it can refuse before minting material. Like Paseo's pairing-offer.ts and
+  CLI daemon/pair.ts, absence of a configured pairing route is an explicit
+  refusal with setup guidance. Vessel additionally supports direct routes.
+- Consequences: a configured but offline/unreachable route still produces
+  an invitation; this checks advertised configuration, not remote network
+  reachability. Guards still run first, so a caller without Admin receives
+  Forbidden without learning pairing configuration. Older clients ignore
+  unknown detail and retain the same actionable Conflict message. Typed
+  clients decode unknown future reasons explicitly. No new call, scope,
+  dependency, state file or minimum protocol version is needed.
+
+Fixtures cover no direct/relay, direct only, relay only, both, tracked
+callbacks overriding empty defaults, explicit empty override refusing, no
+pending invitation after refusal, whole typed errors and old-peer decoding.
+Real node/client and CLI checks require empty stdout on refusal, preserving
+the node's device rows; fake-fleet checks never print an invitation.
