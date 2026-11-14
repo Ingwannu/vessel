@@ -17,20 +17,25 @@ pub struct ServicePort(NonZeroU16);
 #[derive(Debug, thiserror::Error)]
 pub enum InvalidServicePort {
     /// Zero asks the operating system to allocate; it is not an allocated port.
-    #[error("a service port is between 1 and 65535, not zero")]
+    #[error("a service port is between {min} and {max}, not zero", min = ServicePort::MIN, max = ServicePort::MAX)]
     Zero,
     /// Allocator output accepts decimal digits only, without a sign or a fraction.
     #[error("a service port must contain only ASCII decimal digits")]
     Digits,
     /// The integer parser's cause is retained, including overflow.
-    #[error("a service port must fit between 1 and 65535")]
+    #[error("a service port must fit between {min} and {max}", min = ServicePort::MIN, max = ServicePort::MAX)]
     Number(#[source] ParseIntError),
     /// A file's signed integer is outside the TCP port representation.
-    #[error("a service port must fit between 1 and 65535")]
+    #[error("a service port must fit between {min} and {max}", min = ServicePort::MIN, max = ServicePort::MAX)]
     Range(#[source] TryFromIntError),
 }
 
 impl ServicePort {
+    /// The first nonzero TCP port, shared by validation and refusal messages.
+    pub const MIN: Self = Self(NonZeroU16::MIN);
+    /// The largest TCP port, tied to the representation's bound.
+    pub const MAX: Self = Self(NonZeroU16::MAX);
+
     /// The port number for a socket API, after validation at the input edge.
     #[must_use]
     pub const fn get(self) -> u16 {
@@ -86,34 +91,56 @@ mod tests {
 
     #[test]
     fn construction_and_wire_decode_enforce_the_same_tcp_bounds() {
-        for number in [1_u16, 65_535] {
+        for boundary in [ServicePort::MIN, ServicePort::MAX] {
+            let number = boundary.get();
             let port = ServicePort::try_from(number).unwrap();
             assert_eq!(port.get(), number);
             let json = serde_json::to_string(&port).unwrap();
             assert_eq!(json, number.to_string());
             assert_eq!(serde_json::from_str::<ServicePort>(&json).unwrap(), port);
         }
-        assert!(ServicePort::try_from(0_u16).is_err());
-        for invalid in ["0", "-1", "65536", "1.5", "\"1\""] {
-            assert!(serde_json::from_str::<ServicePort>(invalid).is_err());
+        let below = ServicePort::MIN
+            .get()
+            .checked_sub(ServicePort::MIN.get())
+            .unwrap();
+        let above = i64::from(ServicePort::MAX.get()) + i64::from(ServicePort::MIN.get());
+        assert!(ServicePort::try_from(below).is_err());
+        for invalid in [
+            below.to_string(),
+            above.to_string(),
+            "-7".into(),
+            "7.7".into(),
+            "\"7\"".into(),
+        ] {
+            assert!(serde_json::from_str::<ServicePort>(&invalid).is_err());
         }
     }
 
     #[test]
     fn allocator_text_is_decimal_and_canonical_without_a_leading_sign() {
-        assert_eq!("0000001".parse::<ServicePort>().unwrap().to_string(), "1");
-        for invalid in ["", "+1", "-1", "1.0", "１", " 1", "1 ", "0", "65536"] {
+        let padded = format!("000000{}", ServicePort::MIN);
+        assert_eq!(padded.parse::<ServicePort>().unwrap(), ServicePort::MIN);
+        for invalid in ["", "+7", "-7", "7.0", "７", " 7", "7 "] {
             assert!(invalid.parse::<ServicePort>().is_err(), "{invalid:?}");
+        }
+        let below = ServicePort::MIN
+            .get()
+            .checked_sub(ServicePort::MIN.get())
+            .unwrap();
+        let above = i64::from(ServicePort::MAX.get()) + i64::from(ServicePort::MIN.get());
+        for invalid in [below.to_string(), above.to_string()] {
+            assert!(invalid.parse::<ServicePort>().is_err());
         }
     }
 
     #[test]
     fn numeric_conversion_errors_keep_their_causes() {
-        for number in [-1_i64, 65_536] {
+        let above = i64::from(ServicePort::MAX.get()) + i64::from(ServicePort::MIN.get());
+        for number in [-i64::from(ServicePort::MIN.get()), above] {
             let error = ServicePort::try_from(number).unwrap_err();
             assert!(error.source().unwrap().is::<TryFromIntError>());
         }
-        let error = "65536".parse::<ServicePort>().unwrap_err();
+        let error = above.to_string().parse::<ServicePort>().unwrap_err();
         assert!(error.source().unwrap().is::<ParseIntError>());
     }
 }

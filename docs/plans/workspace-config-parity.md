@@ -173,7 +173,9 @@ shown and a partial comparison cannot claim the commands are unchanged.
   the web refusal now and its later terminal display/comparison.
 - In progress: 2b begins with validated `ServicePort` and `PortRange`
   values. They are not yet fields of a request, reply or project file;
-  parsing, digests and execution are unchanged. The existing serde
+  parsing, digests and execution are unchanged. Bounds and refusal text
+  share constants so a diagnostic cannot drift from the accepted grammar.
+  The existing serde
   conversion pattern is reused; the observed-listener DTO is a separate
   fact, not a declared or allocated service port.
 - Then: add the executable path and nonempty allocation block, followed by
