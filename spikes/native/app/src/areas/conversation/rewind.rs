@@ -29,6 +29,7 @@ use std::rc::Rc;
 use chrono::{DateTime, Local, Utc};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
@@ -45,6 +46,9 @@ use crate::shell::Shell;
 
 /// The trailing row's height (Paseo's 24-point icon buttons).
 const ROW: f32 = 24.0;
+
+/// The undo mark's corners (Paseo's `borderRadius.md`).
+const RADIUS: f32 = 6.0;
 
 /// A rewind being chosen or sent.
 pub(crate) struct Rewinding {
@@ -140,7 +144,7 @@ pub(super) fn with_row(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(4.0))
+        .gap(px(spacing::S1))
         .h(px(ROW))
         .when(!narrow && !held, |row| {
             row.invisible().group_hover(group.clone(), Styled::visible)
@@ -186,7 +190,7 @@ pub(super) fn with_row(
         .flex()
         .flex_col()
         .items_end()
-        .gap(px(2.0))
+        .gap(px(spacing::S0_5))
         .child(bubble)
         .child(row)
         .into_any_element()
@@ -208,7 +212,7 @@ fn undo(
         .flex()
         .items_center()
         .justify_center()
-        .rounded(px(6.0))
+        .rounded(px(RADIUS))
         .when(locked, |mark| mark.opacity(0.5))
         .when(!locked, |mark| {
             mark.cursor_pointer()
