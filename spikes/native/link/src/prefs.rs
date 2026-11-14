@@ -293,7 +293,7 @@ impl Prefs {
 /// `dir` and its missing parents, made owner-only (0700) when the app
 /// makes them; a folder that exists keeps its mode.
 #[cfg(all(unix, not(target_arch = "wasm32")))]
-fn private_dir(dir: &Path) -> std::io::Result<()> {
+pub(crate) fn private_dir(dir: &Path) -> std::io::Result<()> {
     use std::os::unix::fs::DirBuilderExt as _;
 
     std::fs::DirBuilder::new()
@@ -303,13 +303,13 @@ fn private_dir(dir: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(all(not(unix), not(target_arch = "wasm32")))]
-fn private_dir(dir: &Path) -> std::io::Result<()> {
+pub(crate) fn private_dir(dir: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)
 }
 
 /// A new file at `path`, owner-only (0600) whatever the umask.
 #[cfg(all(unix, not(target_arch = "wasm32")))]
-fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
     use std::os::unix::fs::OpenOptionsExt as _;
 
     std::fs::OpenOptions::new()
@@ -320,7 +320,7 @@ fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
 }
 
 #[cfg(all(not(unix), not(target_arch = "wasm32")))]
-fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)

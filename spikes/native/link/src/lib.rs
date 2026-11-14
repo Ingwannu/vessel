@@ -25,6 +25,10 @@
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+// The agents' lists kept between runs (owner word 28); a browser keeps
+// none yet (no files).
+#[cfg(not(target_arch = "wasm32"))]
+mod offers;
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
@@ -398,6 +402,16 @@ pub enum Event {
         /// Its options in its order, or the words of the failure.
         outcome: Result<Vec<SessionOption>, String>,
     },
+    /// A machine connected: the lists its agents gave last time, kept on
+    /// this device (newest first), to show until they answer again. Sent
+    /// before the fleet that has the machine online, only when there are
+    /// any.
+    OptionsKept {
+        /// The machine.
+        machine: String,
+        /// Each agent's list.
+        lists: Vec<(HarnessRef, Vec<SessionOption>)>,
+    },
     /// Something failed; the words to show.
     Failed(String),
     /// The session's machine is not connected any more (its records
@@ -459,6 +473,7 @@ impl Link {
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -522,6 +537,10 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    /// The agents' lists kept between runs, by node: read before the first
+    /// connection, written when an answer differs (on the blocking pool;
+    /// the lock is held only there and for a lookup at connect).
+    offers: std::sync::Arc<std::sync::Mutex<offers::Store>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -536,6 +555,16 @@ struct Connected {
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
+        // The kept lists first, so the first connection hands them over.
+        let path = offers::Store::default_path();
+        match tokio::task::spawn_blocking(move || offers::Store::load(path)).await {
+            Ok(store) => {
+                if let Ok(mut kept) = self.offers.lock() {
+                    *kept = store;
+                }
+            }
+            Err(error) => tracing::warn!(%error, "the kept agent lists were not read"),
+        }
         self.reload().await;
         let mut tick = tokio::time::interval(REFRESH);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -670,9 +699,14 @@ impl State {
         let mut machines = Vec::with_capacity(book.len());
         for (name, entry) in book {
             let name = name.as_str().to_owned();
-            let reach = match self.clients.get(&name) {
-                Some(connected) => Ok(connected.clone()),
-                None => self.connect(&entry).await,
+            let reach = if let Some(connected) = self.clients.get(&name) {
+                Ok(connected.clone())
+            } else {
+                let reach = self.connect(&entry).await;
+                if let Ok(connected) = &reach {
+                    self.hand_kept(&name, &connected.client).await;
+                }
+                reach
             };
             let machine = match reach {
                 Ok(connected) => match connected.client.sessions().await {
@@ -735,6 +769,28 @@ impl State {
         Ok(Connected { client, agents })
     }
 
+    /// A machine just connected: the lists its agents gave last time, if
+    /// any are kept ([`Event::OptionsKept`]).
+    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
+        let node = &client.node().id;
+        let lists: Vec<(HarnessRef, Vec<SessionOption>)> = match self.offers.lock() {
+            Ok(store) => store
+                .for_node(node)
+                .into_iter()
+                .filter(|kept| kept.profile.is_none())
+                .map(|kept| (kept.agent.clone(), kept.options.clone()))
+                .collect(),
+            Err(_poisoned) => Vec::new(),
+        };
+        if !lists.is_empty() {
+            self.emit(Event::OptionsKept {
+                machine: machine.to_owned(),
+                lists,
+            })
+            .await;
+        }
+    }
+
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
         self.clients
             .get(machine)
@@ -795,13 +851,25 @@ impl State {
     fn options(&self, machine: String, harness: HarnessRef) {
         let client = self.client(&machine).cloned();
         let events = self.events.clone();
+        let store = std::sync::Arc::clone(&self.offers);
         drop(tokio::spawn(async move {
             let outcome = match client {
-                Ok(client) => client
-                    .harness_options(harness.clone(), None)
-                    .await
-                    .map(|offered| offered.options)
-                    .map_err(|error| error.to_string()),
+                Ok(client) => {
+                    let answer = client.harness_options(harness.clone(), None).await;
+                    if let Ok(offered) = &answer {
+                        keep_offers(
+                            store,
+                            client.node().id,
+                            harness.clone(),
+                            offered.options.clone(),
+                            offered.probed_at,
+                        )
+                        .await;
+                    }
+                    answer
+                        .map(|offered| offered.options)
+                        .map_err(|error| error.to_string())
+                }
                 Err(error) => Err(error.to_string()),
             };
             let _closed = events
@@ -915,6 +983,34 @@ impl State {
             ))
             .await;
         }
+    }
+}
+
+/// Keep an agent's answer on this device, written only when it differs
+/// from the kept one; a write that fails is logged (the list is a cache).
+#[cfg(not(target_arch = "wasm32"))]
+async fn keep_offers(
+    store: std::sync::Arc<std::sync::Mutex<offers::Store>>,
+    node: vessel_proto::NodeId,
+    harness: HarnessRef,
+    options: Vec<SessionOption>,
+    at: chrono::DateTime<Utc>,
+) {
+    let kept = tokio::task::spawn_blocking(move || {
+        let mut store = store
+            .lock()
+            .map_err(|_poisoned| std::io::Error::other("the kept lists' lock is poisoned"))?;
+        if store.keep(node, harness, None, options, at) {
+            store.save()
+        } else {
+            Ok(())
+        }
+    })
+    .await;
+    match kept {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "an agent's list could not be kept"),
+        Err(error) => tracing::warn!(%error, "an agent's list was not kept"),
     }
 }
 

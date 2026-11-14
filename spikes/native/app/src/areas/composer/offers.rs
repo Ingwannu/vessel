@@ -1,0 +1,140 @@
+//! The agents' lists the controls draw (owner word 28): read from
+//! `vessel_app_view::offers` (what is shown, when to ask), asked for
+//! through the link, handed over from the link's file at connect. The
+//! draft's model, effort and permissions controls, its model list's agent
+//! rows and a running session's model list read from here (`offered`,
+//! `offer_options`) rather than keeping answers of their own.
+
+use std::time::Instant;
+
+use vessel_app_link::Command;
+use vessel_app_view::Fleet;
+use vessel_app_view::offers::{Arrival, OfferKey, Offered, Why};
+use vessel_proto::{HarnessRef, SessionOption};
+
+use crate::shell::Shell;
+
+impl Shell {
+    /// What a control shows for `agent` on `machine` now.
+    pub(crate) fn offered(&self, machine: &str, agent: &HarnessRef) -> Offered<'_> {
+        self.areas
+            .composer
+            .offers
+            .offered(&OfferKey::new(machine, agent.clone()))
+    }
+
+    /// `agent`'s list on `machine`, however current, if there is one.
+    pub(crate) fn offer_options(
+        &self,
+        machine: &str,
+        agent: &HarnessRef,
+    ) -> Option<&[SessionOption]> {
+        self.areas
+            .composer
+            .offers
+            .options(&OfferKey::new(machine, agent.clone()))
+    }
+
+    /// Whether the store has anything for `agent` on `machine` (a list, or
+    /// a request or an answer of this run).
+    pub(crate) fn offers_known(&self, machine: &str, agent: &HarnessRef) -> bool {
+        self.areas
+            .composer
+            .offers
+            .known(&OfferKey::new(machine, agent.clone()))
+    }
+
+    /// Whether a request for `agent` on `machine` is in flight.
+    pub(crate) fn offers_asking(&self, machine: &str, agent: &HarnessRef) -> bool {
+        self.areas
+            .composer
+            .offers
+            .asking(&OfferKey::new(machine, agent.clone()), Instant::now())
+    }
+
+    /// Ask `agent` on `machine` what it offers, for `why`, unless the
+    /// store says not now (one request in flight, a recent answer).
+    pub(crate) fn want_offers(&mut self, machine: String, agent: HarnessRef, why: Why) {
+        let key = OfferKey::new(machine, agent);
+        if self.areas.composer.offers.want(&key, why, Instant::now()) {
+            tracing::debug!(machine = %key.machine, agent = ?key.agent, ?why, "asking an agent's options");
+            self.command(Command::Options {
+                machine: key.machine,
+                harness: key.agent,
+            });
+        }
+    }
+
+    /// An agent's answer: laid over the list when one of the draft's
+    /// lists is open, else taken as sent; a failure keeps the list there
+    /// is, said once as not fresh.
+    pub(crate) fn offers_arrived(
+        &mut self,
+        machine: String,
+        harness: HarnessRef,
+        outcome: Result<Vec<SessionOption>, String>,
+    ) {
+        if let Err(why) = &outcome {
+            tracing::info!(%machine, agent = ?harness, %why, "an agent's options could not be read");
+        }
+        let open = self.offer_list_open();
+        let arrival = self.areas.composer.offers.answered(
+            OfferKey::new(machine, harness),
+            outcome,
+            open,
+            Instant::now(),
+        );
+        tracing::debug!(?arrival, open, "an agent's options arrived");
+    }
+
+    /// The link's kept lists for a machine that just connected: shown at
+    /// once where there is nothing newer, then each asked again.
+    pub(crate) fn offers_kept(
+        &mut self,
+        machine: &str,
+        lists: Vec<(HarnessRef, Vec<SessionOption>)>,
+    ) {
+        for (agent, options) in lists {
+            let key = OfferKey::new(machine, agent.clone());
+            if self.areas.composer.offers.kept(key, options) == Arrival::Changed {
+                tracing::debug!(%machine, ?agent, "a kept list shown");
+            }
+            self.want_offers(machine.to_owned(), agent, Why::Connect);
+        }
+    }
+
+    /// The fleet was read again: a machine whose agents changed has its
+    /// kept lists asked again (a machine that connected is the link's
+    /// hand-over, [`Shell::offers_kept`]).
+    pub(crate) fn offers_fleet(&mut self, earlier: &Fleet) {
+        let changed: Vec<String> = self
+            .fleet
+            .machines
+            .iter()
+            .filter(|machine| {
+                earlier
+                    .machines
+                    .iter()
+                    .find(|was| was.name == machine.name)
+                    .is_some_and(|was| was.agents != machine.agents && !was.agents.is_empty())
+            })
+            .map(|machine| machine.name.clone())
+            .collect();
+        for machine in changed {
+            for agent in self.areas.composer.offers.agents_on(&machine) {
+                self.want_offers(machine.clone(), agent, Why::AgentsChanged);
+            }
+        }
+    }
+
+    /// Whether one of the draft's option lists is open (an answer is then
+    /// laid over what it shows, so nothing under the pointer moves).
+    fn offer_list_open(&self) -> bool {
+        let lists = &self.areas.draft.lists;
+        lists.model.is_open()
+            || lists.thinking.is_open()
+            || lists.mode.is_open()
+            || lists.features.is_open()
+            || self.areas.draft.effort.open
+    }
+}

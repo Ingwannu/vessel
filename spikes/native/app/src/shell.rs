@@ -202,7 +202,8 @@ impl Shell {
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::Fleet(fleet) => {
-                self.fleet = fleet;
+                let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;
                     // With no machine there is nothing to type to: pairing
@@ -246,6 +247,7 @@ impl Shell {
                 harness,
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
+            Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
