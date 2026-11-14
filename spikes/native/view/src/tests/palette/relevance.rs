@@ -2,7 +2,7 @@
 //! targets differ; query text, field roles and ordering do not.
 
 use super::{Entry, Theme};
-use crate::palette::{PaletteEntry, PaletteGroup, PaletteTarget, palette_groups};
+use crate::palette::{PaletteEntry, PaletteGroup, PaletteTarget, Subtitle, palette_groups};
 
 fn entry(id: &str, title: &str, group: PaletteGroup, hidden: Option<&str>) -> Entry {
     PaletteEntry {
@@ -116,7 +116,7 @@ fn a_better_tier_outranks_a_more_recent_subsequence() {
         PaletteGroup::Sessions,
         None,
     );
-    weaker.detail = Some("fix/updating-messages".to_owned());
+    weaker.detail = Some(Subtitle::Plain("fix/updating-messages".to_owned()));
     weaker.activity_at = Some("2026-10-18T11:59:00Z".parse().unwrap());
     let mut whole = entry(
         "whole-word",

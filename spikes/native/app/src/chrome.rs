@@ -55,6 +55,8 @@ pub(crate) fn title_bar(
                         cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
                     )
         })
+        // The palette's search mark (track S's, `areas::palette::entry`).
+        .child(crate::areas::palette::title_trigger(shell, tokens, cx))
         // The mark in the text's colour at the text's size, beside the name
         // (docs/design/brand/README.md: "In the interface").
         .child(vessel_app_kit::mark_mono(14.0, tokens.text_primary))

@@ -102,3 +102,20 @@ pub(super) fn keys_of(target: &Target, shell: &Shell) -> Vec<SharedString> {
         })
         .unwrap_or_default()
 }
+
+/// Map semantic view text into the shared control; no typography lives here.
+pub(super) fn subtitle(
+    detail: &vessel_app_view::palette::Subtitle,
+    query: &str,
+) -> vessel_app_kit::command::CommandSubtitle {
+    use vessel_app_kit::command::{CommandSubtitle, CommandText};
+    use vessel_app_view::palette::{MarkedSubtitle, TextPart};
+    let text = |part: TextPart| CommandText::new(part.text, part.marks);
+    match detail.marked(&vessel_app_view::search::Query::new(query)) {
+        MarkedSubtitle::Plain(part) => CommandSubtitle::Text(text(part)),
+        MarkedSubtitle::StatusPath { prefix, path } => CommandSubtitle::CodePath {
+            prefix: Some(text(prefix)),
+            path: text(path),
+        },
+    }
+}

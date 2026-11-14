@@ -10,14 +10,17 @@
 //! still a placeholder would be a dead end), and machines only once
 //! Settings › Machines is drawn.
 
+mod entry;
 mod rows;
 
-use rows::{child_at, glyph_of, ids, keys_of};
+pub(crate) use entry::{sidebar_row, title_trigger};
+
+use rows::{child_at, glyph_of, ids, keys_of, subtitle};
 
 use gpui::{FocusHandle, ScrollHandle};
 use vessel_app_kit::command::{
-    CommandFrame, CommandKey, CommandMatches, CommandRow, command_empty, command_frame,
-    command_heading, command_row_matched,
+    CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandRowParts, CommandState,
+    CommandText, command_empty, command_frame_animated, command_heading, command_row_parts,
 };
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
@@ -44,8 +47,8 @@ type Target = PaletteTarget<Section, Theme>;
 
 /// The palette's state.
 pub(crate) struct PaletteArea {
-    /// Whether it is on screen.
-    open: bool,
+    /// Persistent shared modal/snap-sheet motion.
+    motion: CommandState,
     /// Its search.
     search: TextField,
     /// What the search holds.
@@ -60,9 +63,15 @@ pub(crate) struct PaletteArea {
 }
 
 impl PaletteArea {
+    /// Whether it is open for input (a closing phone sheet may still be
+    /// drawn while this is false).
+    pub(crate) const fn is_open(&self) -> bool {
+        self.motion.is_open()
+    }
+
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            open: false,
+            motion: CommandState::default(),
             search: TextField::with_change(
                 "",
                 |_, _, _, _| {},
@@ -84,9 +93,12 @@ impl Shell {
     pub(crate) fn open_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let placeholder = self.t.lang.palette().placeholder;
         let palette = &mut self.areas.palette;
-        if !palette.open {
+        if !palette.motion.is_open() {
             palette.prior = window.focused(cx);
-            palette.open = true;
+            palette.motion.present();
+            palette
+                .scroll
+                .set_offset(vessel_app_kit::ui::point(px(0.0), px(0.0)));
             palette.query.clear();
             palette.cursor.reset();
             palette.search.set_placeholder(placeholder, window, cx);
@@ -99,13 +111,17 @@ impl Shell {
     /// Close the palette; the keys go back where they were.
     fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let palette = &mut self.areas.palette;
-        if !palette.open {
+        if !palette.motion.is_open() {
             return;
         }
-        palette.open = false;
+        palette.motion.close();
+        palette.query.clear();
+        palette.search.clear(window, cx);
         palette.cursor.reset();
         if let Some(prior) = palette.prior.take() {
             prior.focus(window, cx);
+        } else {
+            window.blur(cx);
         }
         cx.notify();
     }
@@ -236,11 +252,16 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    if !shell.areas.palette.open {
+    let compact = f32::from(window.viewport_size().width) < picker::COMPACT;
+    let motion = shell.areas.palette.motion.sample(
+        compact,
+        window.viewport_size().height,
+        cx.reduce_motion(),
+    );
+    if motion.hidden {
         return None;
     }
     let all = shell.palette_all();
-    let compact = f32::from(window.viewport_size().width) < picker::COMPACT;
     let words = shell.t.lang.palette();
     let theme = shell.prefs.settings.appearance.theme;
     let query = shell.areas.palette.query.as_str();
@@ -255,28 +276,22 @@ pub(crate) fn render(
         for (at, (group, entries)) in groups.iter().enumerate() {
             children.push(command_heading(words.group(*group), at == 0, tokens).into_any_element());
             for entry in entries {
-                let row = CommandRow {
+                let row = CommandRowParts {
                     glyph: Some(glyph_of(&entry.target)),
-                    title: entry.label.clone().into(),
-                    subtitle: entry.detail.clone().map(Into::into),
+                    title: CommandText::new(entry.label.clone(), marks(query, &entry.label)),
+                    subtitle: entry.detail.as_ref().map(|detail| subtitle(detail, query)),
                     keys: keys_of(&entry.target, shell),
                     checked: matches!(entry.target, PaletteTarget::Theme(shown) if shown == theme),
                     active: active == Some(entry.id.as_str()),
-                    ..CommandRow::default()
-                };
-                let matches = CommandMatches {
-                    title: marks(query, &entry.label),
-                    subtitle: entry
-                        .detail
-                        .as_deref()
-                        .map_or_else(Vec::new, |detail| marks(query, detail)),
                 };
                 let target = entry.target.clone();
                 let id = SharedString::from(format!("palette-{}", entry.id));
                 children.push(
-                    command_row_matched(id, row, matches, compact, tokens)
+                    command_row_parts(id, row, compact, tokens)
                         .on_click(cx.listener(move |shell, _event, window, cx| {
-                            shell.run_palette(target.clone(), window, cx);
+                            if shell.areas.palette.motion.is_open() {
+                                shell.run_palette(target.clone(), window, cx);
+                            }
                         }))
                         .into_any_element(),
                 );
@@ -292,14 +307,21 @@ pub(crate) fn render(
             .into_any_element()
     };
     let search = palette.search.bare(tokens, cx);
-    Some(command_frame(
+    Some(command_frame_animated(
         CommandFrame {
             search,
             list,
             compact,
         },
-        Shell::palette_key,
-        Shell::close_palette,
+        CommandAnimation {
+            state: &palette.motion,
+            scroll: &palette.scroll,
+            motion,
+        },
+        CommandHandlers {
+            on_key: Shell::palette_key,
+            close: Shell::close_palette,
+        },
         tokens,
         window,
         cx,

@@ -14,6 +14,9 @@
 
 mod cursor;
 mod ranking;
+mod subtitle;
+
+pub use subtitle::{DisplayPath, MarkedSubtitle, Subtitle, TextPart};
 
 pub use cursor::{Direction, PaletteCursor};
 
@@ -87,7 +90,7 @@ pub struct PaletteEntry<S, T> {
     /// What it says.
     pub label: String,
     /// Muted, after the label: a session's state and folder.
-    pub detail: Option<String>,
+    pub detail: Option<Subtitle>,
     /// Searched with the label, not shown (a session's full id).
     pub keywords: Option<String>,
     /// Its group.
@@ -120,10 +123,12 @@ impl<S, T> PaletteEntry<S, T> {
     }
 
     fn score(&self, query: &search::Query) -> Option<search::Score> {
-        query.score(
-            &[&self.label, self.detail.as_deref().unwrap_or_default()],
-            self.keywords.as_deref(),
-        )
+        let detail = self
+            .detail
+            .as_ref()
+            .map(Subtitle::search_text)
+            .unwrap_or_default();
+        query.score(&[&self.label, &detail], self.keywords.as_deref())
     }
 }
 
@@ -171,13 +176,13 @@ pub fn palette_entries<S: Copy, T: Copy>(
     });
     let sidebar = lang.sidebar();
     let machines = fleet.machines.iter().map(|machine| PaletteEntry {
-        detail: Some(
+        detail: Some(Subtitle::Plain(
             match machine.reach {
                 Reach::Online => sidebar.connected,
                 Reach::Unreachable(_) => sidebar.offline,
             }
             .to_owned(),
-        ),
+        )),
         ..PaletteEntry::new(
             format!("machine-{}", machine.name),
             machine.name.clone(),
@@ -196,11 +201,10 @@ pub fn palette_entries<S: Copy, T: Copy>(
     let text = lang.text();
     let sessions = cards.into_iter().map(|card| PaletteEntry {
         activity_at: Some(card.detail.active_at),
-        detail: Some(format!(
-            "{} · {}",
-            text.phrase(&card.detail.process),
-            card.detail.cwd.as_deref().unwrap_or("~")
-        )),
+        detail: Some(Subtitle::StatusPath {
+            status: text.phrase(&card.detail.process),
+            path: DisplayPath::new(card.detail.cwd.as_deref().unwrap_or("~")),
+        }),
         keywords: Some(card.session.to_string()),
         ..PaletteEntry::new(
             format!("session-{}-{}", card.machine, card.session),

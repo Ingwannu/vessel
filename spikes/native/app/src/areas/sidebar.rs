@@ -102,6 +102,8 @@ pub(crate) fn render(
             .on_click(cx.listener(move |this, _event, window, cx| this.go(route, window, cx))),
         );
     }
+    // Paseo's Search row, after the pages (track S's, `areas::palette`).
+    nav = nav.child(crate::areas::palette::sidebar_row(shell, tokens, touch, cx));
     let mut machines = div().flex().flex_col().gap(px(14.0));
     for machine in &shell.fleet.machines {
         machines = machines.child(machine_rows(machine, shell, tokens, touch, cx));

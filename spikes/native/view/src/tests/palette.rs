@@ -10,6 +10,7 @@ use crate::palette::{
 };
 
 mod relevance;
+mod subtitle;
 
 /// Settings' sections as the frame names them (the page's
 /// `SETTINGS_SECTIONS`).
@@ -134,7 +135,14 @@ fn opens_a_session_at_its_route_and_finds_it_by_its_full_id() {
             structured: true,
         }
     );
-    assert_eq!(entry.detail.as_deref(), Some("running · /w/api"));
+    assert_eq!(
+        entry
+            .detail
+            .as_ref()
+            .map(crate::palette::Subtitle::search_text)
+            .as_deref(),
+        Some("running · /w/api")
+    );
     assert!(entry.found(&full));
 }
 
@@ -144,7 +152,7 @@ fn opens_a_machines_detail_in_settings_in_the_pages_words() {
     let entry = in_group(&all, PaletteGroup::Machines)[0];
     assert_eq!(entry.label, "laptop");
     assert_eq!(entry.target, PaletteTarget::Machine("laptop".to_owned()));
-    let detail = entry.detail.as_deref().unwrap();
+    let detail = entry.detail.as_ref().unwrap().search_text();
     assert!(
         !detail.contains("ws:") && !detail.contains("node"),
         "{detail}"
