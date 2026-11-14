@@ -5,9 +5,10 @@ Status: proposed, 2026-11-14.
 ## Context
 
 The node now exposes features absent from the browser page. A parallel
-native client does not remove the browser client: ADRs 0017, 0020, 0035
-and 0036 retain the existing local bridge and page until a connected
-replacement proves equivalent. Milestone 11's feature union and milestone
+native client does not remove the browser client: ADR 0017 defines the
+local bridge, and ADR 0036 retains the page until a connected replacement
+proves equivalent. ADR 0035 chose the native client; ADR 0020 was never
+accepted and is retained only as the historical proposal it replaced. Milestone 11's feature union and milestone
 12's feature/gap rows are the scope, not a request for another visual system.
 
 The source inventory and exact reference ranges are in

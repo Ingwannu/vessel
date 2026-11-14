@@ -4,8 +4,9 @@ Status: proposed inventory and implementation order, 2026-11-14. ADR 0075.
 
 ## Scope and evidence
 
-The browser client remains `web/` behind the local bridge (ADRs 0017, 0020,
-0035, 0036). This track changes no native source and adds no protocol.
+The browser client remains `web/` behind the local bridge (ADR 0017),
+retained under ADR 0036 while ADR 0035's native client develops. ADR 0020
+was never accepted and is historical, replaced by ADR 0035. This track changes no native source and adds no protocol.
 Node/page snapshot: `7f87d41c` (protocol 21); native source snapshot:
 `1fc0f66a`; Paseo 0.15.4: `1c00b365`. Native working drafts and unrelated
 branches are excluded: presence in a branch is not an integrated screen.
@@ -151,7 +152,7 @@ assignments as current implementation proof.
 | m12:362 / Composer (F26–F32) | attachment.*, file.find, advertised commands | compose/prompt-box.tsx; session/composer.tsx | composer/{drafts,offers,slash}.rs | [P02](#reference-p02) [P16](#reference-p16) [P17](#reference-p17) | Check edge cases; retain existing attachment/draft/recall behavior. |
 | m12:363 / Agents/defaults (F35–F40) | harness.list/options; agent.status/list/catalogue/install | machines/agents-section.tsx; settings/models.tsx | settings/agents.rs; Models unregistered | [P03](#reference-p03) [P24](#reference-p24) | Registry editing/install progress and exact readiness; route editing is not implied. |
 | m12:364 / Approvals/inbox (F41–F43,F81) | session.send; inbox calls absent on base | session/permission-dock.tsx; board/lane.tsx | conversation/permission.rs; no inbox registered | [P06](#reference-p06) [P07](#reference-p07) | Durable fleet inbox and inline decisions after node merge. |
-| m12:365 / Projects/git/PRs (F44–F55,F84) | project.*, worktree.*, git.*, file.*, pr.* | projects/projects-section.tsx; workspace/panel.tsx | workspace/code/mod.rs; git/mod.rs; pulls/mod.rs | [P18](#reference-p18) [P19](#reference-p19) [P20](#reference-p20) [P21](#reference-p21) [P22](#reference-p22) | PR create/facts/merge/list; turn checkpoints still require node behavior. |
+| m12:365 / Projects/git/PRs (F44–F55,F84) | project.*, worktree.*, git.*, file.*, pr.* | projects/projects-section.tsx; workspace/panel.tsx | workspace/code/mod.rs; git/mod.rs; pulls/mod.rs | [P18](#reference-p18) [P19](#reference-p19) [P20](#reference-p20) [P21](#reference-p21) [P22](#reference-p22) | PR create/facts/merge and explicitly partial watched-session list; project-wide enumeration and turn checkpoints still require node behavior. |
 | m12:366 / Scripts/services/ports/browser (F58,F61–F62) | script.list/run/restart; port.list; no browser calls | projects/script-list.tsx approval list only | No execution/browser panel registered | [P23](#reference-p23) [P41](#reference-p41) | Run/service/port controls; browser blocked until assigned wire. |
 | m12:367 / Machines/devices/sync (F63–F69) | device.*; fleet.status/published/join/leave/sync | machines/machines-section.tsx; settings/{devices-section,sync-section}.tsx | pair/render.rs; settings/{devices,sync}.rs | [P24](#reference-p24) | Wire existing fleet Admin actions and self-scopes; no credential exposure. |
 | m12:368 / Automation (F75–F78) | schedule.*; prompt.*; hooks absent | No automation route | No schedule renderer in pinned settings/sections.rs | [P25](#reference-p25) | Largest unimplemented ready family: list then edit/preview/actions/runs; hooks wait. |
@@ -169,7 +170,7 @@ here means the checked base supplies the contract, not that a page was drawn.
 
 | Source rows / feature | Node has it: calls | Page has it: file | Native app has it | Paseo web/app source | What the page lacks |
 | --- | --- | --- | --- | --- | --- |
-| m12:444,617 / PRs without a live session | pr.list project scope; verify requested project | No PR route; workspace/git-bar.tsx seam | pulls/mod.rs session dialog only | [P21](#reference-p21) | Project-aware list, exact coverage label. |
+| m12:444,617 / PRs without a live session | Not available: pr.list {} returns bounded watched-session entries only | No PR route; workspace/git-bar.tsx seam | pulls/mod.rs session dialog only | [P21](#reference-p21) | Project/no-live-session enumeration waits for its separately assigned node contract to merge. A partial watched-session list must be labelled exactly. |
 | m12:445,618 / Webhook control/listener | Not on this base | No webhook route | No registered hook UI | [P25](#reference-p25) | Blocked; a schedule list is not webhook support. |
 | m12:446,619 / Machine timezone | node.info timezone | No schedule UI; data/nodes.ts transports info | Schedule renderer absent in pinned head | [P25](#reference-p25) | Use node timezone in future cadence/preview, never browser timezone by accident. |
 | m12:447,620 / Preview next runs | schedule.preview | No schedule form | Schedule renderer absent in pinned head | [P25](#reference-p25) | Editor must use server preview; no client cron approximation. |
@@ -212,7 +213,7 @@ fake-fleet browser flow; split further at a real seam when it grows.
 | C1 | Schedules list in human words | Data wrapper/formatting + a list route using current rows; 250–350 lines | Host/status/due/ended target/empty/error; real scheduled item visible, reload retains it | Existing schedule.list/get/runs; no new wire |
 | C2 | Schedule create/edit with server preview | Draft model and dialog; 250–350 lines | Cadence bounds, node timezone/DST preview, refusal; create/edit on fake node and compare returned next runs | Existing schedule.preview/create/update |
 | C3 | Pause/resume/run/delete and runs | Actions and bounded run rows; 200–300 lines | Busy/forbidden/changed/failed run; action changes real node state, reload verifies it | Existing calls; same scopes as node |
-| D1 | PR list/facts then actions | Split read list/facts, create, merge into ≤350-line slices | Project without live session, stale/error/read-only; actual isolated local forge fixture, no live forge | Existing pr calls; fixture support verified first |
+| D1 | Watched-session PR list/facts then actions | Split partial read list/facts, create, merge into ≤350-line slices | Watched-session coverage label, stale/error/read-only and bounded omissions; actual isolated forge fixture, no live forge | Existing pr.list {} / session-bound pr.get/open/merge only; project/no-live-session acceptance waits for the separately assigned project-enumeration contract to merge |
 | E1 | Search/history/lifecycle | One feature per ≤300-line slice: global search; history import; fork; park/wake; rewind | Real bounded cursors and capability refusal, navigation to actual record, no invented file rollback | Existing base calls only |
 | F1 | Sibling shells/scripts/ports | Split tabs/lifecycle, scripts/services, port navigation into ≤350-line slices | Own fake terminal bytes/end state, setup approval, port limits, strict URLs; no live preview access | Existing terminal/script/port calls |
 | G1 | Agent setup/defaults and exact settings parity | Separate catalog/readiness/install/defaults/wording slices, each ≤350 lines | Long/none/error/read-only states and real fixture installer; no credentials entered or copied by page | Existing calls; no unassigned wire |
@@ -484,3 +485,22 @@ not a declaration that the entire file was behaviorally audited.
 ### Reference p44
 
 `packages/app/src/usage/queries.ts:134–160` — Fetch only connected supported enabled hosts; explicit refresh.
+
+## Inventory source-review correction
+
+The first source review returned the PR-list dependency: on the pinned
+node, `ListPullRequests {}` (`crates/vessel-proto/src/forge/calls.rs:18–21`)
+is forwarded to the watcher (`crates/vessel-node/src/service/forge.rs:31–36`),
+which enumerates its held session map and truncates to its watch bound
+(`crates/vessel-node/src/forge/watcher.rs:432–445`). Filtering those entries
+cannot discover unobserved project PRs. The wire-gap row and D1 now agree
+with F84: a labelled watched-session partial list is ready, project/no-live-
+session coverage is held for the separately assigned node extension after
+merge. This page track adds no replacement wire or client-side discovery.
+
+ADR 0020 is historical and was never accepted; current page retention is
+ADR 0036, with the native choice in ADR 0035. The correction changes only
+these inventory/history documents. A1's assigned usage-query scope is
+unchanged. Documentation correction review is pending; no feature code
+was written before correcting the returned contract. No UI/runtime or
+whole-table behavioral parity approval is implied.
