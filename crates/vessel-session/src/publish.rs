@@ -83,6 +83,12 @@ impl Publisher {
         self.next
     }
 
+    /// Borrow only during the actor's comparison, before its durable
+    /// publish await, so a conditional title change stays in actor order.
+    pub(crate) fn current(&self) -> watch::Ref<'_, SessionInfo> {
+        self.info.borrow()
+    }
+
     /// The session it publishes for.
     pub(crate) fn session(&self) -> SessionId {
         self.shared.id
