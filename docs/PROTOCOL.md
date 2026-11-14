@@ -1659,3 +1659,15 @@ Nodes speak 2..=3. Version 3 only adds, so version 2 peers keep working.
 
 REST routes and one websocket per session stream. Replaced entirely by
 version 2.
+
+## Staged project-file terminal approvals (ADR 0066)
+
+`CommandSet` and `ProjectCommands::Listed` gain a default-empty `terminals`
+list (`FileTerminal`: optional validated title, validated command). No call
+is added. The version is assigned at integration through
+`workspace::PROJECT_FILE_KEYS`, currently `None`; `PROTOCOL_VERSION` stays
+unchanged. Until assigned, any set naming terminals is returned as `invalid`
+on every negotiated connection. This also covers a terminal-bearing prior
+approval and script/worktree approval replies. Older nodes omit the field;
+new readers treat omission as no terminal commands. Parsing and approval are
+staged ahead of automatic terminal creation, which is not implemented yet.

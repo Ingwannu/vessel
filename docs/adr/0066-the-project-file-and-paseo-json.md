@@ -64,8 +64,9 @@ found beside `vessel.toml` is itself a file Vessel executes.
      `vessel.toml`, which is then the set the approval shows.
 - The choice: alternative 4. The key table below is the contract for the
   keys Vessel still lacks. A key that can start a process enters the
-  digest in the same change that starts running it, as version 3, and
-  only a file that names such a key leaves versions 1 and 2.
+  digest before any execution path honors it, as version 3; the staged
+  parser/approval change may precede execution. Only a file that names
+  such a key leaves versions 1 and 2.
 - Why this and not the others: alternatives 1 to 3 each give an agent a
   second place to name a program. "Only when `vessel.toml` is absent" is
   the common case of a Paseo repository, so it is "always, until someone
@@ -93,23 +94,38 @@ found beside `vessel.toml` is itself a file Vessel executes.
   decision's work. Auto-archive and opening an external editor are not
   keys of `paseo.json`; they are not given a `vessel.toml` key here.
 
+### Implementation stages
+
+The initial change was too large to review with its runtime as one slice.
+The parser and approval contract therefore land first, with execution still
+absent and the protocol assignment still `None`. This extends the timing
+of the original digest decision: a key enters version 3 **before** any
+execution path can honor it, rather than requiring parser and execution in
+one commit. An earlier approval can become unusable during this staged
+period; no newly parsed command runs. The alternative was one large change
+covering parsing, approval, process startup, ports and health. Small staged
+changes keep each rule reviewable while the unassigned protocol refuses a
+set clients cannot yet fully show. The final encoding and runtime contract
+below are unchanged.
+
 ### The table
 
 Same meaning: the behaviour already matches, under the differences ADR
 0027 and ADR 0031 already state (TOML, the 64 KiB bound, empty commands
 refused rather than dropped, `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`
 and `VESSEL_BRANCH` rather than Paseo's `PASEO_*` names). Renamed: the
-fact exists under another name. Missing: not parsed as a command yet.
+fact exists under another name. Missing: runtime parity is not implemented. The terminal decoder and approval
+contract are staged in slice 2a; the remaining keys still are not parsed.
 Ignored: kept by Paseo, not a command, not approved, not implemented.
 
 | `paseo.json` | What Paseo does | `vessel.toml` | Class |
 | --- | --- | --- | --- |
 | `worktree.setup` | A string or a list of strings. Blank entries are dropped. Each remaining string is one shell command, in order, in the worktree; the first failure stops the rest. Read from the worktree's file on disk (`runWorktreeSetupCommands`). A separate check compares setup with `HEAD` and only warns. | `[worktree] setup`, already | Same meaning. Vessel reads the blob at the commit a worktree is created from, and the worktree's file when setup is run again (ADR 0027), which is stricter than the working tree. |
 | `worktree.teardown` | The same shape, run before the worktree directory is removed. | `[worktree] teardown`, already | Same meaning |
-| `worktree.terminals` | A list of `{ name?, command }`. Opened only after setup has succeeded (`worktree-session.ts` runs setup, then `runWorktreeAutoTerminals`). Each is an interactive shell; the command is written to it as input plus a carriage return, after the first output or 1.5 s. A bad entry is skipped. One that fails to open is logged and does not undo the worktree. | `[[worktree.terminals]]` with `command` and optional `name`. Not parsed yet. | Missing. Contract below. |
+| `worktree.terminals` | A list of `{ name?, command }`. Opened only after setup has succeeded (`worktree-session.ts` runs setup, then `runWorktreeAutoTerminals`). Each is an interactive shell; the command is written to it as input plus a carriage return, after the first output or 1.5 s. A bad entry is skipped. One that fails to open is logged and does not undo the worktree. | `[[worktree.terminals]]` with `command` and optional `name`. Parsing and approval are staged in slice 2a. | Runtime missing: automatic opening follows in another slice. Contract below. |
 | `worktree.servicePorts.range` | Inclusive `"start-end"`, each end from 1 to 65535, start not above end. Used when the service names no port of its own. A project block replaces the daemon-wide `worktrees.servicePorts`; there is no merge. | `[worktree.service_ports] range`. Not parsed yet. | Missing, and renamed (`service_ports`). |
 | `worktree.servicePorts.portScript` | A path of an executable, never a shell line. Run with four arguments (script name, workspace id, branch or empty, worktree path) and the same values in the environment. 10 s, at most 1024 bytes of output, which must be one TCP port. It wins over `range` in the same block. A port it returns may already be in use; a port already reserved for another service of this workspace is refused. | `[worktree.service_ports] port_script`. Not parsed yet. | Missing, and renamed (`port_script`). It stays an executable path, not a shell string. |
-| `scripts.<name>.command` | A string. A command that is not a string, or blank, drops that script. | `[scripts.<name>] command` or `[services.<name>] command`, already | Same meaning for a string. A non-string is a syntax error of the whole file (TOML), not a skipped script. |
+| `scripts.<name>.command` | A string. A command that is not a string, or blank, drops that script. | `[scripts.<name>] command` or `[services.<name>] command`, already | Same command role. Paseo trims the command; Vessel retains its existing script text to preserve version 2 approvals. A non-string is a syntax error of the whole file, not a skipped script. |
 | `scripts.<name>.type` | The string `service` marks a supervised long-running process. Anything else, including a missing type, is a one-shot script. | The table: `[scripts.<name>]` or `[services.<name>]` (ADR 0031) | Renamed. The kind is where the name is written, not a field. |
 | `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Not parsed yet. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores it; a person who wrote it meant it. |
 | `scripts.<name>` other keys | Kept (`passthrough`) and not read by the runner. | Unknown keys inside an entry stay ignored, and stay out of the digest, while they start nothing. | Ignored. `dir` is Vessel's own (ADR 0031); Paseo has no `dir`. |
@@ -136,11 +152,13 @@ Not keys of `paseo.json`, so they are not rows and they get no
 
 ### The contract for the missing keys
 
-These keys are specified here and not implemented here. Until the code
-lands, a file that contains them still parses, the keys are still
-ignored, and the digest is still version 1 or 2. The implementation
-that starts honouring them is the change that switches that file to
-version 3.
+The contract below spans several implementation slices. Slice 2a parses
+terminal declarations and covers them in version 3 approval snapshots;
+it does not open them. Port keys remain ignored until their parser lands.
+A file without a parsed new key keeps its version 1 or 2 digest. Every
+slice that starts honouring another key includes it in version 3 before
+that key can cause execution. The unassigned protocol gate refuses
+terminal-bearing approval snapshots on negotiated connections meanwhile.
 
 ```toml
 [worktree]
@@ -276,6 +294,14 @@ starts, as ADR 0031 already does for a script. The terminal is that
 ADR's Windows shell (`pwsh.exe`, then `powershell.exe`, then
 `cmd.exe`). A failure to start is a typed error, not a skipped entry.
 
+Named-script whitespace is an existing difference retained here. Paseo's
+`getScriptConfigs` trims `command` (`utils/worktree.ts:331-337`). Vessel's
+existing `ProjectCommand` parser validates but retains those bytes, which
+version 2 approvals already cover. Trimming existing scripts now would
+invalidate those approvals without any new key. Terminal declarations are
+new, so their decoder follows Paseo's trimming before the existing command
+and title validators; this includes JavaScript's BOM/NEL distinction.
+
 ### Setup progress, and why it is not a slice
 
 Paseo, after a worktree exists, emits `workspace_setup_progress` with
@@ -352,5 +378,6 @@ approval; that send is its own decision.
   above, in the same change as the tests of the digest and of a refusal.
 - No dependency is added. No crate edge changes. `docs/ARCHITECTURE.md`
   is unchanged until an edge does.
-- Not done here: parsing the new keys, allocating a port, probing
-  health, archiving a workspace after a merge, and opening an editor.
+- Staged in slice 2a: terminal parsing and its approval snapshot. Not done:
+  parsing port keys, opening terminals, allocating a port, probing health,
+  archiving a workspace after a merge, and opening an editor.

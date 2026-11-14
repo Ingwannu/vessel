@@ -1,6 +1,6 @@
 # Project configuration, as Paseo's
 
-Status: slice 1 decided, not implemented past the decision. ADR 0066.
+Status: slice 1 reviewed; slice 2 is split into independently reviewed changes. ADR 0066.
 
 ## What Paseo does
 
@@ -58,7 +58,7 @@ Not in `paseo.json`:
   are a later slice.
 - `worktrees.root` is the daemon file.
 
-## What Vessel already has
+## Vessel before this track
 
 `crates/vessel-workspace/src/project_file.rs` and `project_file/scripts.rs`:
 `vessel.toml`, setup, teardown, scripts, services, `dir`, digest versions
@@ -93,7 +93,7 @@ crates while writing ADR 0066.
    digest). The wire number is given at merge. The code, when it lands,
    gates the fields on one constant and does not change
    `PROTOCOL_VERSION` until that merge. No code yet.
-2. **Next.** Parse the missing keys, put them in the version 3 digest,
+2. **In progress.** Parse the missing keys, put them in the version 3 digest,
    open the terminals after a successful setup, allocate a service port,
    report health. Tests beside those rules. A file with none of the new
    keys keeps digest version 1 or 2 byte for byte. Wire fields are
@@ -116,17 +116,52 @@ panel is not a slice: Paseo pushes `workspace_setup_progress`, and Vessel
 already has `WorktreeInfo.setup` plus `worktree.output` (ADR 0066).
 Adding a second push is not one of this track's slices.
 
+## Slice 2a: terminal approval contract
+
+Reference read again before implementation:
+
+- `packages/server/src/utils/worktree.ts:285-316`: file order, commands
+  trimmed, blank commands skipped, names trimmed and blank names absent.
+- `packages/server/src/server/worktree-bootstrap.ts:271-343`: readiness
+  on first output or the 1.5 s deadline, carriage return, concurrent opens.
+- `packages/server/src/server/worktree-session.ts:549-597`: terminals
+  follow completed setup; setup failure bypasses them.
+- `packages/protocol/src/paseo-config-schema.ts:74-97`: tolerant decoder.
+
+Decision: modify the existing `ProjectFile`, approved `CommandSet`, reply
+adaptation, and CLI rendering. Reuse `ProjectCommand`, `SessionTitle`, the
+existing SHA-256 encoding and serde; no external dependency or crate edge.
+One terminal decoder owns the new list; a second project file would split
+approval. It uses JavaScript whitespace trimming before existing validators:
+BOM is trimmed and NEL is kept, unlike plain Rust `str::trim`. Differences remain ADR 0066's: TOML only, entire-file refusal,
+32 terminals and bounded titles, and sequential opens when execution lands.
+
+This change parses only `[[worktree.terminals]]`, includes it in the
+approval snapshot and displays it in the CLI formatter. It does **not**
+open terminals. Port keys, allocation, health, and automatic opening follow
+in separate changes. Version 3 already writes the empty service-port fields
+and the empty port slot per script, so completing those keys will not
+change a terminal-only file's digest. Fixed byte-encoding vectors pin
+versions 1, 2 and 3, independently of the implementation.
+
+`PROJECT_FILE_KEYS: Option<ProtocolVersion>` is `None` until integration
+assigns the number and clients can display the complete set. No sentinel
+and no `PROTOCOL_VERSION` bump. All negotiated peers currently receive
+`invalid` for a set with terminals (or a previous approval with terminals),
+including script list/run/restart approval replies and worktree creation.
+Tests also exercise the assigned-threshold branch with a synthetic version.
+An older node's absent terminal list decodes as empty. Existing files without
+terminals retain their old bytes and normal approval path.
+
 ## Resume point
 
-- Done: ADR 0066 and this plan, then the review's document fixes, then
-  the shared-rule pass (no protocol number in the document, metadata
-  tables cited as ADR 0062 and added at merge, reach and credentials of
-  `port_script` and the opened terminals, Windows without signals). No
-  code. Digest versions 1 and 2 are unchanged. `paseo.json` is not read.
-- Half-done: nothing. The contract is written and not parsed.
-- Next: slice 2, in `project_file` and the node that runs setup and
-  starts a service. Do not start slice 3 or 4 in that change. Gate new
-  fields on one constant. Do not write a protocol number, and do not
-  change `PROTOCOL_VERSION`.
-- The slice report names the commit the gate was run on. This file does
-  not copy that log.
+- Done: slice 1's reviewed ADR and follow-up amendments.
+- Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
+  compatibility and CLI rendering. The slice's validation results belong in
+  its review report; no runtime behaviour is implied by parsing these keys.
+- Half-done: automatic terminal execution is absent; port keys remain ignored
+  as before. `paseo.json` is not read.
+- Next: resolve any gate or review findings first; add the port contract in
+  2b, then runtime with approval and lifecycle tests. Keep changes small.
+- Still unverified: Windows, actual shells, and negotiated support after
+  the integrator assigns the protocol number.

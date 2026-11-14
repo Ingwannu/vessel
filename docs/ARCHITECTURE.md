@@ -1260,3 +1260,14 @@ projection, with the CLI branching before Admin-only listing.
 `vessel-testkit` optionally depends on proto for `authority-fixtures`, enabled
 only by node tests, to share concrete `DeviceSelf` fixtures. Ordinary fake
 binaries keep that feature off. No new external crate or schema is needed.
+
+## Staged project-file terminal contract (ADR 0066)
+
+`vessel-workspace::project_file::terminals` owns TOML terminal decoding and
+ordered digest fields; it starts no process. `vessel-proto::workspace`
+carries the validated commands into the existing approval snapshot.
+The node describes that snapshot through the existing project-command path;
+reply adaptation refuses it to peers without the assigned field version.
+The CLI's `file_terminals` formatter makes those commands visible. Runtime
+terminal creation, service-port assignment and health are later changes.
+No dependency edge, external dependency or store schema changes.
