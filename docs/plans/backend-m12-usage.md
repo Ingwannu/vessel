@@ -626,3 +626,45 @@ This checkpoint does not claim a clean whole gate or integration readiness.
 The earlier accounting stack still has its disclosed grant fixture gate hold;
 a standalone pass did not erase that whole-run failure. No vendor, real-login,
 macOS runtime or native screen check was performed.
+
+#### First whole limits run and correction
+
+The frozen `6fb685d0` whole run executed 110 Rust sections: 1,840 passed,
+four failed, ten ignored. Fmt, whole Clippy and two TypeScript checks passed;
+web lint, types, 417 unit tests, bundle, fresh binaries and all 62 browser tests
+passed. Contemporary selected-input pre/post identities matched, and served
+assets matched the bundle. The five recorded browser-fleet processes ended.
+The whole Rust failure is retained, not described as an integration pass.
+
+Two failures are this slice's tests: the fixed forwardable-method list omitted
+the two new intentional methods, and doing a move after a fake rewind hit the
+correct filename guard for its deliberately non-file-safe fake id. The
+correction adds precisely those expected methods and tests rewind last, after
+the successful move; no production guard, assertion or deadline is relaxed.
+Two existing remote tests timed out during node startup. Their logs stopped
+after migration, before the quota owner starts; cause and integration
+disposition are unverified. All previously named grant cases passed in this
+new run, without erasing their earlier failure record.
+
+Source review also adds the reference's OpenCode provider check: account
+lookup remains supported, while session lookup requires current native
+OpenAI model evidence before any login read and rechecks it afterwards.
+Absent/ambiguous model evidence is not guessed. The new correction and provider
+regressions await their focused and whole runs.
+
+#### Correction focus and next whole gate
+
+After the fixture-order and pinned-method corrections, relevant all-target
+Clippy passed. The full harness/node/proto library run passed 451 tests;
+all nine limits real-node tests passed, including the OpenCode model-provider
+guard before credential access. Each previously failing remote test passed
+once alone on SSD temporary storage (35.83 s and 16.27 s), with unchanged
+timeouts and assertions. This does not erase the earlier whole-run failures.
+
+The following compatibility cleanup centralizes usage methods and replay
+provenance on one named boundary; its final number is assigned at merge.
+That cleanup awaits the next whole run. The next gate uses SSD test data,
+records load/memory before and after, and prebuilds both testkit binaries and
+`vesseld` in the same environment and enclosing build slot before tests.
+It retains contemporary selected-source pre/post identities. The whole gate
+and review are pending; no integration-ready pass is claimed.

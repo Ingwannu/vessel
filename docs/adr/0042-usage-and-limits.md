@@ -1,6 +1,6 @@
 # ADR 0042: Reported usage and account limits
 
-Status: accepted for implementation, 2026-11-13 (milestone 12, track N2).
+Status: proposed (milestone 12).
 
 ## Context
 
@@ -289,3 +289,22 @@ cache lookup; it also keeps existing launch futures within their stack-size
 bound without weakening tests. Equality compares the captured values rather
 than allocation identity. The tradeoff is one allocation per resolved binding;
 credential contents remain ephemeral and outside that allocation.
+
+A multi-provider agent's saved login is not evidence of its current provider.
+OpenCode account lookup reads its saved OpenAI OAuth login; session lookup
+additionally requires exactly one current model selection with the native
+`openai/` prefix, as Paseo's Codex source `sessionRoutes` does. Missing or
+ambiguous evidence is unassociated, and a known different provider is refused.
+The node checks the existing in-memory agent options before local credential
+I/O and again after waiting for the probe, including cached reads and parked
+sessions. A concurrent provider change cannot publish that account's report as
+facts of the changed session. This adds no prompt, credential discovery or
+model default inference; account lookup remains independently available.
+
+### Compatibility integration
+
+The accounting query, account-limit methods and replay provenance share the
+named usage protocol boundary in `vessel-proto::usage`. The final number is
+given at merge. The method table accepts constant expressions so changing
+that one boundary cannot accidentally leave replay provenance behind. This
+changes no wire shape or supported behavior at the current boundary.

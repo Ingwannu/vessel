@@ -59,7 +59,7 @@ impl NodeService {
                     .get(session)
                     .await
                     .map_err(|error| super::wire(&error))?;
-                let binding = associated(self.sessions.limit_association(session));
+                let binding = self.session_limit_binding(session).await;
                 let account = binding.as_ref().map_or(
                     LimitAccount {
                         harness: info.spec.harness,
@@ -73,7 +73,7 @@ impl NodeService {
         let before = binding.clone();
         let mut report = self.limits.read(account, binding, request.refresh).await?;
         if let Some(session) = session
-            && associated(self.sessions.limit_association(session)) != before
+            && self.session_limit_binding(session).await != before
         {
             return Err(WireError::new(
                 ErrorCode::Conflict,
@@ -85,6 +85,27 @@ impl NodeService {
             redact(&mut report.state);
         }
         Ok(report)
+    }
+    // The saved OpenAI store of a multi-provider agent belongs to a session
+    // only while its current model identifies OpenAI. Recheck on both sides
+    // of awaiting a probe, just as for a concurrently moved profile.
+    async fn session_limit_binding(
+        &self,
+        session: vessel_proto::SessionId,
+    ) -> Result<LimitBinding, LimitFailure> {
+        let binding = associated(self.sessions.limit_association(session));
+        if let Ok(chosen) = &binding
+            && chosen.requires_model_evidence()
+        {
+            // An absent/ended/moving options snapshot cannot prove a provider;
+            // use the typed unavailable association instead of a default model.
+            let options = match self.sessions.options(session).await {
+                Ok(options) => options,
+                Err(_unavailable) => return Err(LimitFailure::Unassociated),
+            };
+            chosen.check_session_model(&options)?;
+        }
+        binding
     }
     pub(crate) async fn set_usage_lookup(
         &self,

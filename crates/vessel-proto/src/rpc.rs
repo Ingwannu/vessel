@@ -379,11 +379,11 @@ rpc_methods! {
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     /// Latest saved-sign-in limits; explicit refresh additionally needs operate.
-    GetUsageLimits / get_usage_limits / "usage.limits" [Read, 19]: crate::limits::GetUsageLimits => crate::limits::UsageLimits;
+    GetUsageLimits / get_usage_limits / "usage.limits" [Read, crate::usage::USAGE_PROTOCOL_VERSION.get()]: crate::limits::GetUsageLimits => crate::limits::UsageLimits;
     /// Persist this machine's credential-use policy; administrator only.
-    SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, 19]: crate::limits::SetUsageLookup => crate::limits::ExternalLookup;
+    SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, crate::usage::USAGE_PROTOCOL_VERSION.get()]: crate::limits::SetUsageLookup => crate::limits::ExternalLookup;
     /// Reported tokens and permitted costs (protocol 19, ADR 0042).
-    QueryUsage / query_usage / "usage.query" [Read, 19]: crate::usage::QueryUsage => crate::usage::UsageReport;
+    QueryUsage / query_usage / "usage.query" [Read, crate::usage::USAGE_PROTOCOL_VERSION.get()]: crate::usage::QueryUsage => crate::usage::UsageReport;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;

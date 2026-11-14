@@ -1,35 +1,46 @@
 # Usage: node continuation
 
-Accounting is committed through 8ab23bda with results fe11c7dd and contract
-68dd9bb8. V1 resolved the source findings, including recursive envelope version
-checks, but the stack remains WIP/GATE HOLD: the actual whole run had 1,808
-passes, one grant reinstall safety-net failure and ten ignored tests. Its
-standalone pass is not a waiver. Only the coordinator/integrator can decide
-that unresolved outcome. Old missing source provenance remains disclosed.
+The accounting stack is committed through 8ab23bda/results fe11c7dd; V1
+resolved its source findings but withheld integration approval after the
+actual whole run's grant failure. That earlier outcome remains disclosed.
 
-This checkpoint implements opt-in saved-login limits in proto, harness,
-session launch association, node, store policy, client, CLI and testkit. The
-new calls are usage.limits and usage.lookup, provisionally protocol19, with
-no new event/database schema. Off is the default. Credentials stay local to
-the running machine; no real credential or vendor endpoint was read in checks.
+Opt-in saved-login limits are committed in 166db0f1 and the fixture-size
+correction 6fb685d0. The first whole quota run had 1,840 Rust passes, four
+failures and ten ignored tests; web lint/types, 417 unit tests, bundle and
+all 62 headless browser tests passed, with matching contemporary input pins
+and served asset hashes. The whole Rust failure is retained.
 
-Focused all-target Clippy passed for the nine relevant crates. Forty-three
-focused tests and both TypeScript generation checks passed. The full workspace,
-web lint/types/unit/bundle and all headless browser tests are pending at this
-checkpoint. A rewind continuity assertion added after focus and the policy
-file's mode/bound test still need that whole run. Do not infer approval from
-source presence or focused checks. The track plan records the acceptance and
-consumer contract. Full-gate results must identify the exact frozen commit
-and contemporary selected-input pre/post records, with changed crates rebuilt.
+The current correction fixes the method-list expectation and tests rewind
+after a successful move, preserving the native-id filename guard. Session
+lookup now requires current OpenAI model evidence for OpenCode before any
+login read and rechecks it afterwards; account lookup stays independent.
+Relevant all-target Clippy, 451 full library tests and all nine limits e2e
+tests passed. Both earlier remote startup failures passed once alone on SSD
+with unchanged assertions/deadlines (35.83 s, 16.27 s). This is scoped evidence,
+not a whole-gate waiver.
 
-Consumers call usage.query for retained totals, usage.limits for sanitized
-cached or explicitly refreshed account facts, and usage.lookup with admin
-permission for the credential-use policy. Refresh needs operate; a read-only
-viewer cannot see balances. Session selection uses its actual live launch
-binding; stored sessions refuse to guess. Snapshots stay bounded in memory.
+A final compatibility cleanup names the shared usage method/replay boundary
+for integration renumbering; the final number is assigned at merge. It and
+the whole correction await a new immutable whole run: SSD temporary data,
+load/memory records, one enclosing build slot, both prescribed testkit and
+vesseld prebuilds before tests, then fmt/Clippy/whole Rust/TypeScript and all
+web checks including the complete headless suite. Preserve contemporaneous
+selected-input pins, actual changed-crate compilation, bundle freshness and
+own fake-process cleanup. Submit the actual immutable result packet to V1;
+do not infer integration approval from this checkpoint.
+
+Consumers call usage.query for retained totals; usage.limits for cached or
+explicitly refreshed sanitized account facts; usage.lookup with admin scope
+for the default-off credential-use policy. Refresh requires operate. Session
+lookup follows the actual launch binding and current provider evidence;
+stored sessions refuse to guess. Credentials remain local, snapshots bounded
+in memory, credit balances withheld from read-only viewers. The two added
+calls are usage.limits and usage.lookup; no further event or database schema
+change beyond the accounting stack.
 
 Automatic wait/resume and account switching remain unfinished acceptance.
 Native screens, controls and page work belong to other tracks. Actual vendor
-accounts, real credential stores and platform Keychain behavior are unverified.
-No deployment, live service/permission change or repository push. Provisional
-version/schema collisions and shared scope integration remain integrator-owned.
+accounts, real credential stores, platform Keychain behavior and non-Linux
+runtime behavior are unverified. No live service/permission/deployment change
+or push. Version/schema collisions and shared scope integration remain with
+the integrator. Continue from this file and the track plan.

@@ -159,7 +159,7 @@ impl UsageObservation {
 
 impl ContextUsage {
     pub(crate) fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        (protocol < crate::ProtocolVersion::new(19)
+        (protocol < crate::usage::USAGE_PROTOCOL_VERSION
             && self.observation == UsageObservation::Replayed)
             .then(|| Self {
                 observation: UsageObservation::Current,

@@ -15,7 +15,7 @@
 macro_rules! rpc_methods {
     ($(
         $(#[$doc:meta])*
-        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $since:literal] : $request:ty => $response:ty;
+        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $since:expr] : $request:ty => $response:ty;
     )*) => {
         /// Every RPC method.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

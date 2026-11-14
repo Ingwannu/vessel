@@ -1238,3 +1238,9 @@ and an optional latest known future reset. Paid-use permission suppresses that
 notice. It neither diagnoses why a turn stopped nor implements automatic
 continuation. Native screens and persistent wait/switch recovery remain outside
 this node slice.
+
+For a multi-provider agent, `LimitBinding::check_session_model` keeps native
+provider-format knowledge in the harness. The node asks the existing cached
+options channel before a session probe and rechecks after it. An unknown or
+changed provider cannot attribute the saved OpenAI account to that session;
+the explicitly selected account scope remains available independently.

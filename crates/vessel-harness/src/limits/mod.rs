@@ -10,6 +10,7 @@ mod decode;
 mod environment;
 mod http;
 mod keychain;
+mod model;
 mod number;
 use crate::{HarnessEnv, Profile};
 use chrono::{DateTime, Utc};

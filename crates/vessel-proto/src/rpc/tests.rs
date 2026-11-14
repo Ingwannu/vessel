@@ -456,6 +456,8 @@ const FORWARDABLE: &[&str] = &[
     "port.list",
     "agent.list",
     "agent.status",
+    "usage.limits",
+    "usage.lookup",
     "usage.query",
     "schedule.preview",
     "schedule.list",
@@ -1002,7 +1004,7 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
     ] {
         assert_eq!(serde_json::to_string(&call).unwrap(), json);
         assert_eq!(serde_json::from_str::<Call>(json).unwrap(), call);
-        assert_eq!(call.since(), ProtocolVersion::new(19));
+        assert_eq!(call.since(), crate::usage::USAGE_PROTOCOL_VERSION);
     }
     let json = r#"{"policy":"on","account":{"harness":"codex","profile":null},"source":"codex","state":{"state":"failed","reason":"rate_limited","retained":null,"retry_at":"2026-06-01T12:00:00Z"},"cost_visibility":"withheld","notice":null}"#;
     let report: UsageLimits = serde_json::from_str(json).unwrap();

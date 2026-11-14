@@ -153,7 +153,6 @@ async fn only_a_successful_profile_move_changes_the_sessions_saved_login_binding
             ),
             ErrorCode::InvalidRequest
         );
-        rewind_preserving_login(&owner, session, &seen).await;
         let unchanged = owner.usage_limits(request()).await.unwrap();
         assert_eq!(unchanged.account.profile.unwrap().as_str(), "source");
         assert!(matches!(unchanged.state, AccountLimitState::Ready { .. }));
@@ -163,7 +162,7 @@ async fn only_a_successful_profile_move_changes_the_sessions_saved_login_binding
             .await
             .unwrap();
         let moved = owner.usage_limits(request()).await.unwrap();
-        assert_eq!(moved.account.profile.unwrap().as_str(), "target");
+        assert_eq!(moved.account.profile.as_ref().unwrap().as_str(), "target");
         assert_eq!(
             moved.state,
             AccountLimitState::Failed {
@@ -172,6 +171,9 @@ async fn only_a_successful_profile_move_changes_the_sessions_saved_login_binding
                 retry_at: None
             }
         );
+        // A fake fork id deliberately cannot name an agent file. Rewind last:
+        // the quota association check must not weaken the file-name guard.
+        rewind_preserving_login(&owner, session, &seen, &moved).await;
         node.stop().await.unwrap();
     })
     .await;
@@ -230,6 +232,7 @@ async fn rewind_preserving_login(
     owner: &vessel_client::NodeClient,
     session: vessel_proto::SessionId,
     seen: &[vessel_proto::EventRecord],
+    expected: &UsageLimits,
 ) {
     let after = seen
         .iter()
@@ -255,8 +258,7 @@ async fn rewind_preserving_login(
         })
         .await
         .unwrap();
-    assert_eq!(reply.account.profile.unwrap().as_str(), "source");
-    assert!(matches!(reply.state, AccountLimitState::Ready { .. }));
+    assert_eq!(&reply, expected);
 }
 
 async fn saved_transcript(
