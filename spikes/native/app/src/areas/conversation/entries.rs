@@ -20,7 +20,9 @@ use vessel_proto::{Question, QuestionOutcome};
 
 use super::Seat;
 use super::find::Marking;
-use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
+use super::look::{
+    AVATAR, AVATAR_GAP, BUBBLE_RADIUS, BUBBLE_SHARE, CORNER, Look, WORK_LINE, WORK_SIZE,
+};
 use super::tool;
 use crate::shell::Shell;
 
@@ -35,6 +37,8 @@ pub(super) struct Paint<'a> {
     pub(super) seat: Seat,
     /// The conversation's entries (a turn's footer reads its turn).
     pub(super) entries: &'a [Entry],
+    /// The session's agent: its mark in a reply's avatar.
+    pub(super) agent: Option<&'a vessel_proto::HarnessRef>,
 }
 
 /// Entry `index` as its row.
@@ -188,12 +192,15 @@ fn person(paint: &Paint<'_>, index: usize, prompt: &Prompt, corner: Option<Strin
                 .child(word)
         }))
         .child(
+            // Paseo's `UserMessage` bubble: 16 inside, radius 16 but the
+            // corner toward its writer at 4, `surface3`, as wide as the
+            // column needs.
             div()
                 .max_w(relative(BUBBLE_SHARE))
                 .min_w(px(0.0))
-                .px(px(16.0))
-                .py(px(10.0))
+                .p(px(16.0))
                 .rounded(px(BUBBLE_RADIUS))
+                .rounded_tr(px(CORNER))
                 .bg(paint.look.message)
                 .flex()
                 .flex_col()
@@ -431,9 +438,20 @@ fn message(
         spans: &spans,
         current: find.current_in(index),
     });
-    div()
-        .px(px(4.0))
-        .py(px(2.0))
+    // The owner's reply bubble (slice M; Paseo's reply has none): the
+    // person's bubble mirrored, its corner toward the agent at 4, on its
+    // own surface with a hairline, as wide as the column so a code block
+    // or a table scrolls inside it; the agent's mark in a circle beside a
+    // turn's first reply, its place kept beside the rest so they line up.
+    let bubble = div()
+        .flex_1()
+        .min_w(px(0.0))
+        .p(px(16.0))
+        .rounded(px(BUBBLE_RADIUS))
+        .rounded_tl(px(CORNER))
+        .bg(paint.look.reply)
+        .border_1()
+        .border_color(paint.look.border)
         .type_(Type::Body)
         .text_color(paint.tokens.neutral.foreground)
         .child(chat_markdown(
@@ -444,6 +462,56 @@ fn message(
             paint.tokens,
             window,
             cx,
-        ))
+        ));
+    div()
+        .flex()
+        .flex_row()
+        .items_start()
+        .gap(px(AVATAR_GAP))
+        .child(
+            div()
+                .flex_none()
+                .w(px(AVATAR))
+                .children(first_reply(paint.entries, index).then(|| avatar(paint))),
+        )
+        .child(bubble)
         .into_any_element()
+}
+
+/// The circle beside a turn's first reply with the session's agent's mark
+/// in it (the owner's, slice M). Worker B's star-to-circle morph is to be
+/// mounted here for the first reply after a session starts.
+fn avatar(paint: &Paint<'_>) -> Div {
+    div()
+        .size(px(AVATAR))
+        .rounded_full()
+        .flex()
+        .items_center()
+        .justify_center()
+        .bg(paint.tokens.neutral.surface2)
+        .border_1()
+        .border_color(paint.look.border)
+        .child(crate::agent_mark::mark(
+            paint.agent,
+            vessel_app_kit::agent_mark::Size::Sixteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            paint.tokens,
+        ))
+}
+
+/// Whether the message at `index` is the first reply of its turn: no
+/// reply since the person's last message.
+fn first_reply(entries: &[Entry], index: usize) -> bool {
+    entries.get(..index).is_none_or(|before| {
+        before
+            .iter()
+            .rev()
+            .find(|entry| {
+                matches!(
+                    entry.kind,
+                    EntryKind::Message { .. } | EntryKind::Prompt(_) | EntryKind::Steer { .. }
+                )
+            })
+            .is_none_or(|entry| !matches!(entry.kind, EntryKind::Message { .. }))
+    })
 }

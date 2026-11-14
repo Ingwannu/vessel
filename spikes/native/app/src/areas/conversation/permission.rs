@@ -330,6 +330,7 @@ fn body(
         find: None,
         seat,
         entries: &[],
+        agent: None,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

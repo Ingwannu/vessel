@@ -112,6 +112,7 @@ fn paint<'a>(
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
         seat,
         entries: area.timeline.entries(),
+        agent: area.info.as_deref().map(|info| &info.spec.harness),
     }
 }
 
@@ -132,7 +133,17 @@ fn row_element(
     if let Some(tail) = area.tail_row(row) {
         return lane(match tail {
             TailRow::Pending(text) => {
-                entries::pending(&paint, area.timeline.entries().len(), &text)
+                let index = area.timeline.entries().len();
+                let row = entries::pending(&paint, index, &text);
+                if area.pending_fresh() {
+                    super::motion::arrive(
+                        ElementId::NamedInteger("pending-arrive".into(), id(index)),
+                        super::motion::FAST,
+                        row,
+                    )
+                } else {
+                    row
+                }
             }
             TailRow::Working(since) => super::footer::working(&paint, since),
         });
@@ -193,14 +204,21 @@ fn row_element(
         ));
     }
     if run.is_none() || run_open {
-        content = content.child(entries::entry(
-            &paint,
-            index,
-            entry,
-            open(area, index),
-            window,
-            cx,
-        ));
+        let drawn = entries::entry(&paint, index, entry, open(area, index), window, cx);
+        // A reply that just came grows in (`motion`).
+        let arriving = matches!(entry.kind, EntryKind::Message { .. })
+            && area
+                .fresh
+                .is_some_and(|(from, at)| index >= from && at.elapsed() < super::motion::FRESH);
+        content = content.child(if arriving {
+            super::motion::arrive(
+                ElementId::NamedInteger("reply-arrive".into(), id(index)),
+                super::motion::SLOW,
+                drawn,
+            )
+        } else {
+            drawn
+        });
     }
     lane(content.into_any_element())
 }

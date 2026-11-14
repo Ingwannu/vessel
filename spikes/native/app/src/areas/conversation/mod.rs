@@ -53,6 +53,7 @@ mod find;
 mod footer;
 mod look;
 mod meter;
+mod motion;
 mod outline;
 mod permission;
 mod plan;
@@ -293,6 +294,9 @@ pub(crate) struct ConversationArea {
     /// The rows after the entries: the message sent and not yet
     /// recorded, the working footer.
     tail: tail::Tail,
+    /// The first entry of the last batch that came while the session was
+    /// shown, and when: its replies grow in (`motion`).
+    fresh: Option<(usize, std::time::Instant)>,
     /// The session's machine is not connected (records stopped, or an act,
     /// a prompt or an input found no connection): the transport's words.
     /// Said once, in the bar, in the app's words; these only in the line's
@@ -364,6 +368,7 @@ impl ConversationArea {
             again_refused: None,
             search: search::Searching::default(),
             tail: tail::Tail::default(),
+            fresh: None,
             lost: None,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
@@ -513,6 +518,7 @@ impl ConversationArea {
         self.rows = Rows::All(0);
         self.list.reset(0);
         self.tail = tail::Tail::default();
+        self.fresh = None;
         self.info = None;
         self.refused = None;
         self.restarting = false;
@@ -586,6 +592,10 @@ impl ConversationArea {
             return false;
         }
         self.tail_took(change.added_from);
+        // A batch after the first read: what it brings arrives on screen.
+        if change.added_from > 0 {
+            self.fresh = Some((change.added_from, std::time::Instant::now()));
+        }
         if self.folds.is_some() {
             self.folds = Some(Folds::of(self.timeline.entries()));
         }

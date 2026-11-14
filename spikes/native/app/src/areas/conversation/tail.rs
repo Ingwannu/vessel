@@ -49,6 +49,8 @@ pub(super) enum TailRow {
 pub(crate) struct Tail {
     /// The message sent and not yet recorded.
     pending: Option<String>,
+    /// When it was sent: it arrives on screen (`motion`).
+    pending_at: Option<std::time::Instant>,
     /// The rows the list holds now, after the entries' rows.
     shown: RefCell<Vec<TailRow>>,
     /// A redraw is due for the working footer's elapsed time.
@@ -91,6 +93,13 @@ impl ConversationArea {
         self.list
             .splice(start..start.saturating_add(shown.len()), wanted.len());
         *shown = wanted;
+    }
+
+    /// Whether the pending message was sent just now.
+    pub(super) fn pending_fresh(&self) -> bool {
+        self.tail
+            .pending_at
+            .is_some_and(|at| at.elapsed() < super::motion::FRESH)
     }
 
     /// The tail row at list row `row`, when it is one.
@@ -163,6 +172,7 @@ impl Shell {
             return;
         }
         self.areas.conversation.tail.pending = Some(text.to_owned());
+        self.areas.conversation.tail.pending_at = Some(std::time::Instant::now());
         cx.notify();
     }
 
