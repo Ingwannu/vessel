@@ -338,6 +338,15 @@ impl ConversationArea {
         }
     }
 
+    /// Whether a permission request waits for the person's answer: one in
+    /// the log read, or one the node says waits whose record the log no
+    /// longer holds (the card over the composer shows either). Send's
+    /// Queue interrupts behind it (`view::session::send_delivery`).
+    pub(crate) fn permission_waits(&self) -> bool {
+        self.timeline.waiting_permissions() > 0
+            || !self.timeline.unseen_permissions(&self.live).is_empty()
+    }
+
     /// The rows again, after the entries, the folds or the open runs
     /// changed.
     pub(super) fn rows_again(&mut self) {

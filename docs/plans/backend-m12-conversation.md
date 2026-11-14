@@ -128,6 +128,27 @@ motion, a software renderer) GPUI draws both at their end at once. The
 working footer's elapsed time is drawn again once a second while a turn
 runs, and not otherwise.
 
+## Send while a turn runs: Paseo's rules (2026-11-14, the owner's word 45)
+
+`view::session::send_delivery` decides how a plain send goes, from
+Settings' Default send and three facts (a turn runs, the agent takes a
+message mid-turn, a permission waits). Paseo's rules, its cases as the
+tests in `view/src/tests/delivery.rs`:
+
+| Default send | No turn running | Turn running | Permission waiting |
+| --- | --- | --- | --- |
+| Steer (the default now, Paseo's `storage.ts`) | starts a turn | joins the turn; replaces it when the agent cannot steer (Paseo's server, `steerOrReplaceActiveTurn`) | joins the turn |
+| Queue | starts a turn | waits in the queue | interrupts (Paseo's `resolveActiveSendBehavior`: a queued message would be stranded behind the request) |
+| Interrupt | starts a turn | stops the turn, starts the next | stops the turn, starts the next |
+
+Differences from before: the default was Queue, and a Steer the agent
+could not take waited in the queue. A send that does not wait in the
+queue shows in the conversation at once (the tail; a steered message
+settles on its steer record). Settings' notes under Default send say
+the new rules; the setting's page is track E3's. An install that saved
+"queue" before keeps it (the preferences store every field, so a saved
+default cannot be told from a choice).
+
 ## Module layout (2026-11-14, the owner's word 44)
 
 `app/src/areas/conversation/` after the split (no behaviour change;
