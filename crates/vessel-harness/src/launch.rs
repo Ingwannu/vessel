@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_proc::CommandSpec;
-use vessel_proto::{McpServerName, ResolvedMcpServers, SessionMode, SessionSpec};
+use vessel_proto::{HarnessKind, McpServerName, ResolvedMcpServers, SessionMode, SessionSpec};
 
 use crate::added::AddedAgent;
 use crate::direct::Direct;
@@ -14,7 +14,7 @@ use crate::env::HarnessEnv;
 use crate::error::HarnessError;
 use crate::harnesses::{Structured, descriptor};
 use crate::lookup::Lookup;
-use crate::mcp::{McpError, McpFile, TerminalMcp};
+use crate::mcp::{EncodeProblem, McpError, McpFile, TerminalMcp};
 use crate::profile::{Base, Profile, same_variable};
 use crate::routing::{ModelProxy, Routed};
 
@@ -118,6 +118,46 @@ pub fn launch_direct(
     };
     let none = ResolvedMcpServers::new();
     launch_over(lookup, env, spec, profile, proxy, &none, None, Some(direct))
+}
+
+/// Claude Code's MCP configuration file for `servers`, to be written in
+/// `dir`, and the one argument naming it (`--mcp-config=<file>`): the
+/// file a terminal session of Claude Code gets ([`launch`]), for its
+/// direct driver (ADR 0057), so the servers reach Claude Code in one
+/// format through one writer, values never on the command line. `None`
+/// without servers. Write it ([`McpFile::write`], which checks `dir`) right
+/// before the agent starts and keep the guard for the session's life.
+///
+/// # Errors
+/// [`HarnessError::Mcp`] when a server cannot be written for Claude Code,
+/// [`HarnessError::McpFile`] when no file name can be drawn.
+pub fn claude_mcp_file(
+    servers: &ResolvedMcpServers,
+    dir: &Path,
+) -> Result<Option<(OsString, McpFile)>, HarnessError> {
+    let Some(first) = servers.keys().next() else {
+        return Ok(None);
+    };
+    // Claude Code's form is the file alone (`harnesses::claude`); a form
+    // with anything else would lose it here, so it is refused, as is a
+    // descriptor without one (neither happens: a test holds the form).
+    let not_a_file = || {
+        HarnessError::Mcp(McpError::Encode {
+            server: first.clone(),
+            problem: EncodeProblem::Unserialisable,
+        })
+    };
+    let render = descriptor(HarnessKind::ClaudeCode)
+        .terminal_mcp
+        .ok_or_else(not_a_file)?;
+    let TerminalMcp { args, env, file } = render(servers)?;
+    let (true, true, Some(form)) = (args.is_empty(), env.is_empty(), file) else {
+        return Err(not_a_file());
+    };
+    let mut argument = OsString::from(form.flag);
+    let file = McpFile::new(form, dir).map_err(|error| HarnessError::McpFile(Arc::new(error)))?;
+    argument.push(file.path());
+    Ok(Some((argument, file)))
 }
 
 /// [`launch`], over `direct`'s protocol when given.
@@ -480,7 +520,7 @@ mod tests {
     /// inherits.
     #[test]
     fn a_variable_the_harness_inherits_keeps_its_value() {
-        let plain = Profile::default_for(vessel_proto::HarnessKind::Codex);
+        let plain = Profile::default_for(HarnessKind::Codex);
         assert_eq!(
             check(&[("DOCS_TOKEN", "mine")], &plain),
             Err(shared("DOCS_TOKEN"))
@@ -500,7 +540,7 @@ mod tests {
 
     #[test]
     fn variables_that_steer_the_harness_are_refused() {
-        let plain = Profile::default_for(vessel_proto::HarnessKind::Codex);
+        let plain = Profile::default_for(HarnessKind::Codex);
         for name in [
             "PATH",
             "Path",
@@ -550,10 +590,7 @@ mod tests {
                     env: BTreeMap::new(),
                 },
             )]);
-            for harness in [
-                vessel_proto::HarnessKind::ClaudeCode,
-                vessel_proto::HarnessKind::Codex,
-            ] {
+            for harness in [HarnessKind::ClaudeCode, HarnessKind::Codex] {
                 let render = descriptor(harness).terminal_mcp.unwrap();
                 assert_eq!(
                     render(&servers).unwrap_err(),

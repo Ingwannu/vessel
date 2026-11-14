@@ -80,7 +80,7 @@ pub use discover::{discover, discover_added};
 pub use env::HarnessEnv;
 pub use error::HarnessError;
 pub use home::{home, login_check};
-pub use launch::{Launch, launch, launch_direct};
+pub use launch::{Launch, claude_mcp_file, launch, launch_direct};
 pub use layout::{HarnessLayout, layout};
 pub use login_status::{LoginStatus, MAX_STATUS_OUTPUT, read_login_status};
 pub use lookup::Lookup;
