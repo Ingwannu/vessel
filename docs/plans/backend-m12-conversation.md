@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), an ended or archived session's banner first in the slot over the composer (`ended`), the look (`look`), the scroll bench (`bench`) |
 
 Other areas use the conversation through seams, each one call:
 
@@ -36,6 +36,8 @@ Other areas use the conversation through seams, each one call:
 | Find from the shortcuts | the app's rebindable shortcuts (track S2) | `Shell::conversation_find(window, cx)`: opens the find bar in the session shown, or gives its field the keys again; nothing when no session shows. The area's own Mod+F observer goes once the shortcuts bind Find (one press opening twice does no harm meanwhile) |
 | A machine renamed or forgotten | Settings › Machines (track E2), once the node book took the edit; a failed edit calls nothing | `Shell::conversation_machine_renamed(from, to, cx)`: the session shown on `from` follows the new name, so its acts go to it; `Shell::conversation_machine_forgotten(name, cx)`: a session shown on it is closed here, its state dropped, nothing stopped or deleted on the machine. Another area's own conversation (a side question, the inbox) is that area's to follow |
 | A session's usage line and a limit notice | usage and limits (track N2), drawn by its own renderer | two lines it adds first in the slot over the composer (`dock.rs`'s `dock`, before the requests): its session line (the node's totals for the session shown: tokens, cache, the cost the agent reported), then its limit notice; both read the session shown (`shell.areas.conversation.shown`: machine and session) and return `Option<AnyElement>`, and the slot shows when either does. A turn's own token count stays on this area's turn divider, and the context meter stays this area's |
+| A session marked unread elsewhere | a sidebar row's or a board card's "Mark as unread" (track S2) | `Shell::conversation_marked_unread(machine, session)`, called as the mark is sent: when it is the session shown, the open screen does not mark it read again until a record comes after what it shows; another session, nothing. The Session actions menu here is its first caller |
+| Whether an ended session can go on | the composer (the lead's), to offer no send when it cannot | `Shell::conversation_cannot_resume()`: the session shown has ended and its agent cannot pick up where it left off (the banner says so and has no Start again); `false` while it runs, can start again, or is not yet described |
 | Open at a record | the inbox opening a session at what it lists | after the session area opened the session, `Shell::conversation_reveal(seq, cx)`: the record's entry is brought to the top once it is read, the first row when the log starts after it |
 
 Tests: `view/tests/page/` replays the page's own cases (72 in the page
@@ -95,6 +97,9 @@ Paseo screen it follows.
 | `plan/02-plans-open-en-dark-1280`, `plan/06-plans-open-en-light-1280`, `plan/07-plans-open-en-dark-390`, `plan/05-created-open-ko-dark-1280` | a row opened: the plan as it stood then, Paseo's `TaskListRow`s (done struck through, extra muted; under way in the running blue; to do muted rings); the "Created" row holds the four steps it was made with | Paseo `components/task-list-row.tsx` |
 | `plan/m-01-amber-en-dark-1280`, `plan/m-02-card-amber-en-dark-1280`, `plan/m-04-red-card-ko-light-1280`, `plan/m-05-room-en-dark-390` | the context meter left of the send button (the fleet's `context-*` sessions, fake-acp's `usage <tokens>`): Paseo's ring at 75% in amber, at 95% in red, at 0.6% in the muted ink; its card: "Context window", the share used, used and maximum tokens, the session's cost, GOAT's "Compact context" | Paseo `components/context-window-meter.tsx`, `context-window-details.tsx`; GOAT `chat/ContextWindowMeter.tsx` |
 | `plan/m-03-compact-sent-running-en-dark-1280`, `plan/m-06-room-card-en-dark-390`, `plan/m-07-closed-by-press-outside-390` | Compact sent as the agent's `/compact`; while that turn runs the card holds the button, faded, with its reason; on a phone the card opens on a press and closes on a press outside | GOAT's disabled compact with its reason; Paseo's press-to-open on touch |
+| `ended/01-ended-en-dark-1280`, `ended/05-ended-ko-light-1280`, `ended/06-archived-ko-light-1280`, `ended/07-ended-en-light-390` | an ended session (the fleet's `context-ended`, stopped after its turn) and an archived one: "Session ended" or "Session archived", whether the agent can go on, Start again at the right, first over the composer card; on a phone the line wraps beside the button. The lead's own line above it ("This session has ended. Sending starts it again…") goes in its merge | the page's `ended-banner.tsx`; Paseo `components/archived-agent-callout.tsx` (surface1, a hairline of borderAccent, radius 16, 12 by 16 on a phone and 16 by 24 wider, a secondary button) |
+| `ended/03-starting-en-dark-1280`, `ended/04-started-en-dark-1280` | Start again pressed: the session runs again and the conversation goes on with its new records (the node ends a follow at the final status, so the session area follows it afresh); the banner goes | the page's `marks.run("start-again")` |
+| `ended/02-meter-ended-en-dark-1280`, `ended/08-meter-ended-ko-dark-390` | the meter card on an ended session: "Compact context" disabled with "Compacting needs the session running." (a prompt there would start the session again, not compact it) | GOAT `ChatView.tsx` `compactDisabledReason` |
 | `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
@@ -105,6 +110,11 @@ Paseo screen it follows.
   two never disagree.
 - **The phone's width.** The kit's breakpoint is 768 (the lead's); Paseo's
   compact layout starts under 600.
+- **The ended banner.** The page's words and Start again in Paseo's
+  archived-agent callout. Paseo centres one line ("This agent is
+  archived" and Unarchive); this keeps the page's heading and line at
+  the left and its Start again at the right. The page's button has a
+  restore mark; the kit's button takes words only, so it has none.
 - **Korean line breaks.** A Hangul word may break between syllables, as
   in GOAT (its chat Markdown sets no `word-break: keep-all`).
 - **Code blocks** (`kit/src/chat_markdown.rs`): the language sits beside
@@ -321,13 +331,6 @@ done yet:
 - **The turn's usage line** and a limit notice are track N2's, in the
   two lines it adds over the composer (the seams above); the turn's own
   token count stays on its divider.
-- **Pin, archive, unread**: read marks go (`read`: the page's
-  `use-read-marks.ts`, the view's rule); left: an archived or ended
-  session's banner (the page's `ended-banner.tsx`) and the pinned state
-  in the bar. Only this area's menu marks the session shown unread now;
-  another area doing so before any read mark went (a session with
-  nothing asking for attention) would be marked read again at once, so
-  such an area needs the hold this menu sets (`read_held`, one seam).
 - **Chat settings** (Settings › Chat, track E2 draws the page): always
   expand reasoning, the outline shown or not, collapse whole turns; each
   needs a preference and its rule here.
@@ -336,7 +339,7 @@ done yet:
   running, a wake button when waking failed, the `parked` and `woken`
   marks in the timeline); then rewind, fork, import and handoff as A2
   sends them.
-- Then: the branch chip rail, the ended banner, the
+- Then: the branch chip rail, the
   inspector's Summary, the terminal view (§7), stream banners; copying a
   message and a conversation (a tool's text and a code block have their
   copy button); a screen-reader buffer; export.
