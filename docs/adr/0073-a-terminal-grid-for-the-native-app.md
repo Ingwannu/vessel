@@ -1,10 +1,11 @@
 # ADR 0073: A terminal grid for the native app
 
-Status: accepted, 2026-11-14 (milestone 12, the native app,
-`docs/plans/app-terminal.md`). No new wire. A terminal session's bytes
-stay `TerminalInput` / `SessionEvent::Terminal` (ADR 0003); a shell
-beside a session stays protocol 11 (ADR 0031). The parser is `vte`
-0.15, reserved to `vessel-app-view` in `spikes/native/README.md`.
+Status: proposed, 2026-11-14 (milestone 12, the native app,
+`docs/plans/app-terminal.md`). No new wire and no number to be given at
+merge: a session's bytes stay `TerminalInput` / `SessionEvent::Terminal`
+(ADR 0003), and a shell uses the calls ADR 0031 already records. The
+parser is `vte` 0.15, reserved to `vessel-app-view` in
+`spikes/native/README.md`.
 
 ## Purpose and intent
 
@@ -42,9 +43,22 @@ cell drawing in the kit.
 renderer cannot import `view`. The app is the only crate that sees both.
 Library code takes no `unsafe` (the workspace forbids it); a dependency
 may, inside itself. A new dependency is named here with its licence, its
-size and why the standard library does not do the job. No protocol
-field is added: the proto crate is shared, and mouse reports, resize
-intent and a file-upload call are not on the wire today.
+size and why the standard library does not do the job. No call and no
+field are added, so there is no number to give at merge. Mouse reports,
+resize intent and a file upload are not added either.
+
+This ADR adds no `node.settings` key. Paseo keeps the scrollback count
+in the app, not on the daemon (`storage.ts` lines 54–56, read). A
+settings track that persists the count adds its own key at merge; that
+key is not listed here.
+
+The grid reaches nothing outside the process it is called in. It does
+not start a program, listen, or read a credential. The bytes are the
+ones the link already received. A path paste returns text and does not
+upload. Tests are `#[cfg(test)]` byte fixtures; no fake answers in a
+product build. This track does not use signals, systemd or launchd, so
+there is no Windows path to add for them. Quoting a Windows-shaped path
+is string shaping only.
 
 ## Alternatives considered
 
@@ -162,8 +176,8 @@ is not smuggled in as a copy.
 ## Advantages, costs and effects
 
 - The app can draw a session's terminal and a shell from one model.
-  Create, rename, kill and the follow are calls the node already has.
-  No protocol number is taken.
+  Create, rename, kill and the follow are calls the node already has
+  (ADR 0031). Nothing new is numbered at merge.
 - `view` grows a `vte` dependency (57,487 bytes, plus `memchr` through
   its default feature) and a direct `unicode-width` dependency the lock
   already has. Neither crate is vendored. Their `unsafe`, if any, stays
@@ -202,6 +216,13 @@ is not smuggled in as a copy.
   profiles (a name, a command, arguments, per host) are not added.
 - Find walks the grid in `view` (case-insensitive, not a regular
   expression, next and previous, at most 20,000 highlights and a
-  `limited` flag when the count is past that). The kit draws the marks
-  later. Terminal activity hooks, the tablet key bar and the phone
-  renderer are out of this decision.
+  `limited` flag when the count is past that: `FIND_HIGHLIGHT_LIMIT`
+  and `emitFindResult`, read). Next and previous stop at the ends.
+  Whether Paseo's search wraps was not read, so the model does not
+  invent a wrap. The kit draws the marks later. Terminal activity
+  hooks, the tablet key bar and the phone renderer are out of this
+  decision.
+- The key names Paseo accepts are in `terminal-keys.ts` lines 20–47
+  (read). The bytes those names become on the PTY were not read. The
+  grid's tests pin the bytes this model sends; they are not claimed as
+  a copy of Paseo's until those bytes are read.

@@ -80,8 +80,8 @@ is quoted, and on a non-Windows path the characters
 
 **Keys.** The DOM names Paseo treats as keys are Enter, Tab, Backspace,
 Escape, the arrows, Home, End, Insert, Delete, Page Up/Down and F1–F12
-(`packages/app/src/utils/terminal-keys.ts` lines 20–47). The encoding
-that reaches the PTY is xterm's, not a table in that file.
+(`packages/app/src/utils/terminal-keys.ts` lines 20–47, read). The
+bytes those names become on the PTY were not read in that file.
 
 ## What Vessel already does
 
@@ -127,7 +127,7 @@ them the model holds enums.
 
 **Counts.** `ScrollbackLines`, 0 through 1,000,000, default 10,000.
 `CellCount`, a non-zero `u16`. `GridSize { cols, rows }`, default 80×24.
-Zero on either axis is `GridError::Empty`, and nothing is resized.
+Zero on either axis is `TerminalError::Empty`, and nothing is resized.
 `FeedBudget` is 16 × 1024 bytes, the PTY read.
 
 **Cells.** A cell is a scalar (or the continuation of the previous
@@ -148,7 +148,8 @@ according to the mode the program set. `snapshot()` is a plain value
 (columns, rows, visible cells, cursor, selection, a generation that
 changes when the grid does). `find` / `find_next` / `find_previous` /
 `clear_find`: literal, case-insensitive, at most 20,000 highlights,
-`limited` when the count is past that.
+`limited` when the count is past that. Next and previous stop at the
+ends (whether Paseo's search wraps was not read).
 
 **Replies and unknown sequences.** A sequence the fixtures do not name
 is ignored. The bytes after it are still applied. A query a local
@@ -158,7 +159,7 @@ order with keys.
 
 **Path paste.** `quote_path` produces the bytes Paseo would paste for a
 path that contains none of `` ` $ | & > ~ # ! ^ * ; < ``. A path that
-contains one is `PathError::Refused`, naming the path only by the fact
+contains one is `TerminalError::Path`, naming the path only by the fact
 of the refusal (the message must not need the path to be useful, and
 must not echo a secret; a path is not a secret, but the error names the
 rule, not a rewritten path). Windows-shaped paths (`A:\`, `\\`) are
@@ -172,8 +173,9 @@ with the cursor's cell.
 
 **Link (slice 3).** A shell's follow is `follow_terminal` on the testkit's
 fake, never a real shell. Input, replies and resizes go through one
-`TerminalSender` per view. Create, rename and kill call the existing
-protocol 11 methods. A script or a service does not take input
+`TerminalSender` per view. Create, rename and kill call the methods ADR 0031 already records.
+This track adds no call, so no number is given at merge. A script or a
+service does not take input
 (`TerminalKind::takes_input`). Resize is still `ResizeRule`: focused and
 typed. No claim token is added to the wire.
 
@@ -201,11 +203,11 @@ grid, and that an unchanged generation draws nothing), not described.
 
 ## Resume point
 
-- Done: ADR 0073 and this contract. `vte` is reserved to
-  `vessel-app-view` in `spikes/native/README.md`. No code, no dependency
-  added yet.
-- Half-done: nothing.
-- Next: the grid in `view/src/terminal/`, `vte` 0.15 (`std` only) and
-  `unicode-width` 0.2.3 (default features) on that crate, fixtures as
-  above, then the native gate. Do not start `link` or `kit` in that
-  commit.
+- Done: ADR 0073 (status proposed) and this contract. `vte` is reserved
+  to `vessel-app-view` in `spikes/native/README.md`. No settings key, no
+  new call, no number at merge.
+- Half-done: nothing in the commits. A draft of `types.rs` and `grid.rs`
+  may sit uncommitted in the worktree; it is not part of a commit until
+  the parser, keys, paste, find and tests build with it.
+- Next: finish that grid, then the native gate once, in one slot. Do not
+  start `link` or `kit` in that commit.
