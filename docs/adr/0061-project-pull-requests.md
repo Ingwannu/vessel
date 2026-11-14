@@ -1,6 +1,6 @@
 # ADR 0061: Open pull requests of a project without a session
 
-Status: proposed.
+Status: accepted contract; value and callable delivery are separate stages.
 Amends ADR 0029's session-only discovery, not its watch or write rules.
 
 ## Context and existing assets
