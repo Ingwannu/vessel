@@ -3,8 +3,9 @@
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
-    Context, Div, FluentBuilder as _, InteractiveElement as _, MouseButton, MouseDownEvent,
-    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, div, px, svg,
+    Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _, MouseButton,
+    MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _,
+    div, px, svg,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::shortcuts::{
@@ -129,11 +130,19 @@ fn keys(shell: &Shell, action: Action, tokens: &Tokens) -> Div {
         .flex_row()
         .items_center()
         .gap(px(spacing::S2))
-        .children(
-            bindings
-                .iter()
-                .map(|chords| vessel_app_kit::command::key_badges(chords, tokens)),
-        )
+        .children(bindings.iter().enumerate().flat_map(|(at, chords)| {
+            // Two keys read as two: G M, or G F (not G M G F).
+            let or = (at > 0).then(|| {
+                div()
+                    .type_(Type::Meta)
+                    .text_color(tokens.neutral.foreground_muted)
+                    .child(shell.t.lang.shortcuts().or)
+                    .into_any_element()
+            });
+            or.into_iter().chain(std::iter::once(
+                vessel_app_kit::command::key_badges(chords, tokens).into_any_element(),
+            ))
+        }))
 }
 
 /// While recording: the key pressed, or the prompt; under it why the
