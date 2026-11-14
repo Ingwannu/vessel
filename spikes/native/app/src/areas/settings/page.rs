@@ -120,16 +120,6 @@ pub(crate) fn compact_header(
     )
 }
 
-/// The page of a section not drawn yet: one quiet sentence.
-pub(crate) fn elsewhere(text: &str, tokens: &Tokens) -> AnyElement {
-    div()
-        .px(px(4.0))
-        .type_(Type::Body)
-        .text_color(tokens.neutral.foreground_muted)
-        .child(text.to_owned())
-        .into_any_element()
-}
-
 /// Paseo's `DesktopBackHeader`/`ScreenHeader`, or `CompactHeader` on touch.
 /// Detail navigation stays outside the body, as `ProviderDiagnosticSheet`'s
 /// header does; ordinary `PageLayout` headings keep their existing geometry.

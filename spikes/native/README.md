@@ -142,9 +142,12 @@ The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
 
-Settings sections register their renderer in `settings::content` and their
-presence in `settings::drawn`; the latter controls navigation, so a page
-must appear in both. State and event slots are added only when needed.
+Settings lists Paseo's sections in Paseo's two groups and order
+(`view::settings`: App, then the chosen machine's, Paseo's Host, headed by
+the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
+section registers its renderer once, in `settings::sections::page`; a
+section without one is not listed (no placeholder pages), so the list and
+the pages cannot disagree. State and event slots are added only when needed.
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
@@ -298,6 +301,12 @@ caller-owned back callback). Ordinary page calls pass None; detail headers
 use the same shared `kit::screen_header` frame as other areas. The existing
 `compact_header` wrapper supplies its navigation callback to that renderer,
 so ordinary and detail navigation keep one compact look.
+
+Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
+consumed at16 for pointer and20 for compact settings navigation.
+Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
+`Glyph::Boxes` (Providers): original drawings on the same grid after
+Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
 
 ### Rules every screen follows
 

@@ -89,6 +89,12 @@ pub enum Glyph {
     CalendarClock,
     /// A folder.
     Folder,
+    /// A project: a folder holding a branch (Paseo's `FolderGit2`, an
+    /// original drawing on the shared 24-unit line grid).
+    FolderGit,
+    /// The agents a machine can run: three stacked boxes (Paseo's
+    /// `Boxes`, an original drawing on the shared 24-unit line grid).
+    Boxes,
     /// A machine.
     Machine,
     /// Three dots: a menu of more actions (the Session actions).
@@ -102,6 +108,8 @@ pub enum Glyph {
     Copy,
     /// Appearance (a painter's palette, Paseo's `Palette`).
     Palette,
+    /// Diagnostics: an original stethoscope on the shared 24-unit line grid.
+    Stethoscope,
     /// Shortcuts (a keyboard, Paseo's `Keyboard`).
     Keyboard,
     /// Notifications (a bell, Paseo's `Bell`).
@@ -179,7 +187,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 73] = [
+const ALL: [Glyph; 76] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -211,12 +219,15 @@ const ALL: [Glyph; 73] = [
     Glyph::SquareCheck,
     Glyph::CalendarClock,
     Glyph::Folder,
+    Glyph::FolderGit,
+    Glyph::Boxes,
     Glyph::Machine,
     Glyph::More,
     Glyph::Sliders,
     Glyph::Gear,
     Glyph::Copy,
     Glyph::Palette,
+    Glyph::Stethoscope,
     Glyph::Keyboard,
     Glyph::Bell,
     Glyph::Sparkles,
@@ -303,12 +314,15 @@ impl Glyph {
             Self::SquareCheck => "kit/square-check.svg",
             Self::CalendarClock => "kit/calendar-clock.svg",
             Self::Folder => "kit/folder.svg",
+            Self::FolderGit => "kit/folder-git.svg",
+            Self::Boxes => "kit/boxes.svg",
             Self::Machine => "kit/machine.svg",
             Self::More => "kit/more.svg",
             Self::Sliders => "kit/sliders.svg",
             Self::Gear => "kit/gear.svg",
             Self::Copy => "kit/copy.svg",
             Self::Palette => "kit/palette.svg",
+            Self::Stethoscope => "kit/stethoscope.svg",
             Self::Keyboard => "kit/keyboard.svg",
             Self::Bell => "kit/bell.svg",
             Self::Sparkles => "kit/sparkles.svg",
@@ -440,6 +454,16 @@ impl Glyph {
             Self::Folder => line_glyph!(
                 r#"<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>"#
             ),
+            // The kit's folder left open at its lower right for a branch:
+            // two commits, the trunk and the branch joining it.
+            Self::FolderGit => line_glyph!(
+                r#"<path d="M10 19H5.5A2.5 2.5 0 0 1 3 16.5v-9A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5V12"/><circle cx="14" cy="13" r="1.75"/><circle cx="19.25" cy="18.25" r="1.75"/><path d="M14 14.75V21M17.5 18.25a3.5 3.5 0 0 1-3.5-3.5"/>"#
+            ),
+            // Three isometric boxes, one resting on two; every edge stays
+            // inside 2.25 to 21.75 so a 16-point glyph keeps a clear rim.
+            Self::Boxes => line_glyph!(
+                r#"<path d="M12 3l4 2.25v4.5L12 12l-4-2.25v-4.5zM8 12l4 2.25v4.5L8 21l-4-2.25v-4.5zM16 12l4 2.25v4.5L16 21l-4-2.25v-4.5z"/><path d="M8 5.25l4 2.25 4-2.25M12 7.5V12M4 14.25l4 2.25 4-2.25M8 16.5V21M12 14.25l4 2.25 4-2.25M16 16.5V21"/>"#
+            ),
             Self::Machine => line_glyph!(
                 r#"<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>"#
             ),
@@ -467,6 +491,10 @@ impl Glyph {
             ),
             Self::Palette => line_glyph!(
                 r#"<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4a4.6 4.6 0 0 0 4.6-4.6C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>"#
+            ),
+            // Original tubing/earpiece drawing in the kit's 24/1.5 line style.
+            Self::Stethoscope => line_glyph!(
+                r#"<path d="M5 3.75v5a4.25 4.25 0 0 0 8.5 0v-5M3.5 4.5h3M12 4.5h3M9.25 13v3a4.625 4.625 0 0 0 9.25 0v-2.25"/><circle cx="18.5" cy="11.5" r="2.25"/>"#
             ),
             Self::Keyboard => line_glyph!(
                 r#"<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>"#
@@ -860,5 +888,86 @@ mod transfer_glyph_tests {
         }
         assert_eq!(Glyph::ArrowUp.path(), "kit/arrow-up.svg");
         assert_eq!(Glyph::Update.path(), "kit/update.svg");
+    }
+}
+
+#[cfg(test)]
+mod diagnostics_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    #[test]
+    fn stethoscope_loads_and_clears_edges_at_both_sidebar_sizes() {
+        let glyph = Glyph::Stethoscope;
+        assert_eq!(glyph.path(), "kit/stethoscope.svg");
+        assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+        assert_eq!(
+            Assets.list(glyph.path()).unwrap(),
+            vec![gpui::SharedString::from(glyph.path())]
+        );
+        let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+        let tree = resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+        for size in [16_u16, 20, 24] {
+            let side = u32::from(size);
+            let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::from_scale(
+                    f32::from(size) / 24.0,
+                    f32::from(size) / 24.0,
+                ),
+                &mut pixels.as_mut(),
+            );
+            let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+            assert!(image.pixels().any(|pixel| pixel.0[3] > 0));
+            let edge = side.checked_sub(1).unwrap();
+            for at in 0..side {
+                for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                    assert_eq!(image.get_pixel(x, y).0[3], 0);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod settings_nav_glyph_tests {
+    use super::{Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+
+    /// Settings' list draws these at 16 (pointer) and 20 (compact), as
+    /// Paseo's `densityIconSize("md")`; each paints and keeps its rim clear.
+    #[test]
+    fn project_and_provider_glyphs_paint_unclipped_at_both_list_sizes() {
+        for (glyph, path) in [
+            (Glyph::FolderGit, "kit/folder-git.svg"),
+            (Glyph::Boxes, "kit/boxes.svg"),
+        ] {
+            assert_eq!(glyph.path(), path);
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let tree =
+                resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();
+            for size in [16_u16, 20, 24] {
+                let side = u32::from(size);
+                let scale = f32::from(size).mul_add(24.0_f32.recip(), 0.0);
+                let mut pixels = resvg::tiny_skia::Pixmap::new(side, side).unwrap();
+                resvg::render(
+                    &tree,
+                    resvg::tiny_skia::Transform::from_scale(scale, scale),
+                    &mut pixels.as_mut(),
+                );
+                let image = image::RgbaImage::from_raw(side, side, pixels.take()).unwrap();
+                assert!(
+                    image.pixels().any(|pixel| pixel.0[3] > 0),
+                    "{path} at {size}"
+                );
+                let edge = side.checked_sub(1).unwrap();
+                for at in 0..side {
+                    for (x, y) in [(at, 0), (at, edge), (0, at), (edge, at)] {
+                        assert_eq!(image.get_pixel(x, y).0[3], 0, "{path} at {size}");
+                    }
+                }
+            }
+        }
     }
 }
