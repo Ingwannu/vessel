@@ -45,7 +45,7 @@ use vessel_app_view::workspace::root::session_root;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 use vessel_proto::{SessionId, SessionInfo};
 
-pub(crate) use frame::{code_beside, code_toggle};
+pub(crate) use frame::{code_beside, code_toggle, frame_row};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;

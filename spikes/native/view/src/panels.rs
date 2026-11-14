@@ -58,11 +58,14 @@ impl Limits {
     /// its least when the room is too small for both.
     #[must_use]
     pub fn width(self, asked: Option<f32>, room: f32) -> f32 {
-        let roomy = self
-            .beside
-            .mul_add(-1.0, room)
-            .min(self.most)
-            .max(self.least);
+        self.width_leaving(asked, room, self.beside)
+    }
+
+    /// [`Self::width`], leaving `beside` instead of the panel's own (the
+    /// sidebar leaves more while the code panel is out, [`sidebar_leaves`]).
+    #[must_use]
+    pub fn width_leaving(self, asked: Option<f32>, room: f32, beside: f32) -> f32 {
+        let roomy = beside.mul_add(-1.0, room).min(self.most).max(self.least);
         asked.unwrap_or(self.default).min(roomy).max(self.least)
     }
 
@@ -82,9 +85,63 @@ impl Limits {
     }
 }
 
+/// Where the code panel is drawn on a desktop window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Placement {
+    /// Beside the conversation, each keeping its least width.
+    Beside,
+    /// Over the conversation, at the row's right (Paseo's explorer on its
+    /// compact layout, `presentation={isMobile ? "overlay" : "dock"}`).
+    Over,
+}
+
+/// Where the code panel goes when the row, with the sidebar at its least,
+/// is `row` points wide: beside the conversation when the row holds the
+/// panel's least and the conversation's least, over it otherwise.
+///
+/// The 0.0.0.0.16 smoke test at 800 x 600: each panel kept its own least
+/// and together they left the conversation 190 points (110 with the
+/// sidebar dragged to 360), one character a line. Paseo shows the
+/// sidebar only when the content keeps its minimum beside it
+/// (`canDesktopAppSidebarShare`) and lays the explorer over the workspace
+/// on its compact layout; here the conversation always keeps its least.
+#[must_use]
+pub fn code_placement(row: f32) -> Placement {
+    if row >= CODE_PANEL.least.mul_add(1.0, CODE_PANEL.beside) {
+        Placement::Beside
+    } else {
+        Placement::Over
+    }
+}
+
+/// What the sidebar leaves beside it: the centre's least with no code
+/// panel out; the panel's least and the conversation's while the panel is
+/// beside the conversation; the conversation's while it is over it. The
+/// sidebar gives way first (down to its least), so the conversation does
+/// not.
+#[must_use]
+pub fn sidebar_leaves(panel: Option<Placement>) -> f32 {
+    match panel {
+        None => SIDEBAR.beside,
+        Some(Placement::Beside) => CODE_PANEL.least.mul_add(1.0, CODE_PANEL.beside),
+        Some(Placement::Over) => CODE_PANEL.beside,
+    }
+}
+
+/// The code panel's width over the conversation: as asked (the default
+/// when `None`), never wider than the row, at least its own least where
+/// the row has it.
+#[must_use]
+pub fn over_width(asked: Option<f32>, row: f32) -> f32 {
+    asked
+        .unwrap_or(CODE_PANEL.default)
+        .max(CODE_PANEL.least)
+        .min(row)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CODE_PANEL, SIDEBAR};
+    use super::{CODE_PANEL, Placement, SIDEBAR, code_placement, over_width, sidebar_leaves};
 
     fn near(a: f32, b: f32) -> bool {
         a.mul_add(1.0, b.mul_add(-1.0, 0.0)).abs() < 1e-3
@@ -118,5 +175,36 @@ mod tests {
         assert_eq!(SIDEBAR.kept(264.2), None);
         assert_eq!(CODE_PANEL.kept(440.0), None);
         assert_eq!(CODE_PANEL.kept(512.6), Some(513));
+    }
+
+    /// The 0.0.0.0.16 smoke test: at 800 points both panels at their
+    /// widest stored widths left the conversation 110 points. Now the
+    /// panel goes over the conversation there, the sidebar leaves the
+    /// conversation its 480, and at 1024 both fit beside it.
+    #[test]
+    fn a_narrow_window_keeps_the_conversation_s_least() {
+        // 800 less the frame's 12 and the sidebar's least: 588.
+        assert_eq!(code_placement(588.0), Placement::Over);
+        // 1024 less 12 and 200: 812, room for 320 and 480.
+        assert_eq!(code_placement(812.0), Placement::Beside);
+        assert_eq!(code_placement(800.0), Placement::Beside);
+        assert!(near(sidebar_leaves(None), 400.0));
+        assert!(near(sidebar_leaves(Some(Placement::Beside)), 800.0));
+        assert!(near(sidebar_leaves(Some(Placement::Over)), 480.0));
+        // The sidebar stored at its widest (600) at 800 with the panel
+        // over the conversation: 800 - 12 - 480 = 308.
+        let sidebar =
+            SIDEBAR.width_leaving(Some(600.0), 788.0, sidebar_leaves(Some(Placement::Over)));
+        assert!(near(sidebar, 308.0), "{sidebar}");
+        // At 1024 with the panel beside: 1012 - 800 = 212, then the row
+        // (800) gives the panel its least and the conversation its 480.
+        let sidebar =
+            SIDEBAR.width_leaving(Some(600.0), 1012.0, sidebar_leaves(Some(Placement::Beside)));
+        assert!(near(sidebar, 212.0), "{sidebar}");
+        assert!(near(CODE_PANEL.width(Some(1600.0), 800.0), 320.0));
+        // Over the conversation, the panel is as asked, never past the row.
+        assert!(near(over_width(Some(1600.0), 480.0), 480.0));
+        assert!(near(over_width(None, 480.0), 440.0));
+        assert!(near(over_width(Some(100.0), 480.0), 320.0));
     }
 }

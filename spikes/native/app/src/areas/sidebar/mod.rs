@@ -247,7 +247,11 @@ pub(crate) fn frame(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let width = PANEL.width(shell, f32::from(window.viewport_size().width));
+    // What it leaves depends on the code panel (`panels::sidebar_leaves`):
+    // the sidebar gives way before the conversation does.
+    let leaves = vessel_app_view::panels::sidebar_leaves(shell.code_placement(window));
+    let room = crate::areas::workspace::frame_row(f32::from(window.viewport_size().width));
+    let width = PANEL.width_leaving(shell, room, leaves);
     div()
         .relative()
         .flex_shrink_0()

@@ -30,7 +30,7 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
-pub(crate) use code::{code_beside, code_toggle};
+pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::projects as sidebar_projects;
