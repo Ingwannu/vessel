@@ -7,6 +7,8 @@ a design question is unclear, that file wins.
 Code quality is the first priority, ahead of speed and ahead of feature count.
 A smaller feature set with a clean structure beats a larger one that has to be
 rewritten. Every rule below is enforced in review; "it compiles" is not the bar.
+Section 12 lists the strict rules in one line each; `docs/QUALITY.md` gives
+each one's reason, its check, and how many places break it today.
 
 ## 1. Gate before claiming anything works
 
@@ -73,35 +75,23 @@ The goal is that the compiler, not a reviewer, catches mistakes.
 
 ## 3. Modules: one job each, one direction of dependency
 
-Crate map and allowed dependency direction (arrows point at what a crate may
-depend on). Do not add an edge without updating `docs/ARCHITECTURE.md`.
-
-```
-vessel-proto    (wire types, ids, Request trait, Handler; no I/O, no tokio)
-vessel-rpc      -> proto           (frames over any transport, correlation)
-vessel-proc     (command specs, process groups, kill tree)
-vessel-harness  -> proto, proc     (one module per harness: discovery, launch)
-vessel-pty      -> proc            (terminal sessions in a PTY)
-vessel-agent    -> proto, proc     (ACP client; ACP types never leave it)
-vessel-session  -> proto, harness, pty, agent   (session actors, seq, fan-out)
-vessel-store    -> proto           (data dir, identity, token, SQLite log)
-vessel-node     -> proto, rpc, harness, session, store   (daemon assembly)
-vessel-client   -> proto, rpc      (typed client; no clap, no printing)
-vessel-web      -> proto, client      (`vessel ui`: loopback server, bridge)
-vessel-cli      -> proto, client, node, web   (the `vessel` binary)
-vessel-testkit  (fake harness binaries; dev-dependency only)
-```
-
-ADR 0001 records why; `docs/plans/backend-m1.md` says who owns which crate.
+The crate map is the table in `docs/ARCHITECTURE.md` ("Crates"): each
+workspace crate's job and the `vessel-*` crates it may depend on, and the
+external crates that have one owner. ADR 0001 records why each edge exists.
+Adding an edge is a row change there and a paragraph in ADR 0001, in the
+same commit; `scripts/check-boundaries.mjs` fails on any difference between
+the table and the manifests (QUALITY M2).
 
 - No cycles, no reaching into another crate's internals, no "utils" or
   "common" grab-bag crate or module. If two crates need the same thing, it
   belongs to the lower crate whose job it is.
 - Visibility: private by default, `pub(crate)` next, `pub` only for the
   crate's deliberate API. Every `pub` item is documented.
-- Split modules by responsibility, not by size. As a smell, a file over ~400
-  lines or a function over ~60 lines needs a reason. A module's top doc comment
-  says what it owns and what it must not do.
+- Split modules by responsibility, not by size. Size is the signal: a file
+  over 500 lines of product code fails `scripts/check-rust-size.mjs` unless
+  it is on its shrinking list, and a function over 60 lines needs a reason
+  (QUALITY M3, M4). A module's top doc comment says what it owns and what it
+  must not do.
 - Wire types live only in `vessel-proto`. A client never depends on
   `vessel-node` internals to talk to a node.
 - Harness-specific knowledge (argv, env, output format, resume flags) lives only
@@ -229,3 +219,90 @@ ADR 0001 records why; `docs/plans/backend-m1.md` says who owns which crate.
   CI log can be read by anyone. Never put credentials, customer data,
   internal host names or addresses, or private repository paths in any of
   them; describe the operator's setup in general terms instead.
+
+## 12. The strict rules, one line each
+
+Each line is a rule review cites by its identifier. `docs/QUALITY.md` gives
+its reason, its check (a lint, a script, or review where no tool can tell)
+and the number of places that break it today; "holds" there means a check in
+the gate finds nothing. A rule with open violations is still the rule: no
+change adds one (P4).
+
+Rust types:
+
+- **T1** Ids, names, kinds, states, paths, durations, sizes, counts and
+  versions crossing a module boundary are newtypes or enums, never a bare
+  `String`, `u64` or `bool`.
+- **T2** Parse external text once, at its crate's edge, with validating
+  constructors; carry the parsed type, never the raw form.
+- **T3** No `match` on a string to decide behaviour, except to decode
+  external text into an enum at its edge.
+- **T4** No `_ =>` arm on the workspace's own enums.
+- **T5** No `#[non_exhaustive]` on an enum another workspace crate matches
+  or on a wire type; the wire's forward compatibility is an `Unknown`
+  variant and the protocol version.
+- **T6** No `serde_json::Value`/`Map` outside a decoding edge whose header
+  says why; opaque payloads are `RawJson`.
+- **T7** No numeric `as`: `From`, `TryFrom`, or a clamped helper with an
+  `#[expect]` and reason.
+- **T8** Checked or saturating arithmetic, and the code says which.
+- **T9** No `bool` parameter or field whose meaning the call site does not
+  show; a two-variant enum instead.
+- **T10** Borrow over clone; fan-out data is `Arc`/`Bytes`.
+- **T11** Private, then `pub(crate)`, then `pub`; a type with an invariant
+  has private fields and a validating constructor.
+- **T12** A result that matters is `#[must_use]` and is used.
+- **T13** `Option` and `Result`, never a sentinel value.
+- **T14** Enums or generics for closed sets; `dyn` only at an open
+  extension point, with a comment.
+
+Errors and failure:
+
+- **E1** One `thiserror` enum per library crate; no `anyhow`, no
+  `Box<dyn Error>`, no `String` errors.
+- **E2** Errors keep their source; the wire mapping happens once.
+- **E3** No `unwrap`, `expect`, `panic!`, `unreachable!`, `todo!` or
+  panicking index outside tests, but an `expect` whose reason proves it.
+- **E4** No `unsafe`.
+- **E5** No `dbg!`, `println!` or `eprintln!` in product code.
+- **E6** `#[expect(lint, reason)]` on the smallest item; never `#[allow]`,
+  never file-wide.
+- **E7** Library code reads no environment, home or current directory and
+  never exits; no `sleep` to wait for something.
+
+Modules:
+
+- **M1** One responsibility per crate, module and file, named by its `//!`
+  header; no `utils`/`common`/`helpers` module.
+- **M2** `docs/ARCHITECTURE.md`'s crate table is the dependency law;
+  `scripts/check-boundaries.mjs` holds it.
+- **M3** At most 500 lines of product code per file; the listed exceptions
+  only shrink.
+- **M4** At most 60 lines per function, or an `#[expect]` saying the length
+  is the point.
+- **M5** One fact in one place: no repeated block of 12+ lines, no method
+  list restated per crate.
+- **M6** Every `pub` item documented, saying why it exists.
+- **M7** Tests beside the rule they test, in the same commit as the rule.
+- **M8** (native app) Spacing, colour, type and radii from the kit's
+  tokens, never literals.
+
+The page's TypeScript:
+
+- **S1** The strict `tsconfig` flags stay on, for the page and its scripts.
+- **S2** No `any`, no `!`, no assertion but `as const`; no lint switched
+  off in a comment.
+- **S3** Kinds are discriminated unions, switched exhaustively.
+- **S4** Ids are branded by `src/bridge/ids.ts` only.
+- **S5** `src/wire/` is generated, never edited.
+- **S6** Layers one way; 300 lines per file, 400 per stylesheet.
+
+Process:
+
+- **P1** Every commit passes the gate of section 1.
+- **P2** A refactor commit changes no behaviour and no test expectation.
+- **P3** Reports state measurements, not adjectives.
+- **P4** Debt only shrinks: no new violation, and a new check lands with
+  zero failures.
+- **P5** Every Cargo workspace in the repository is gated in CI.
+- **P6** Review refuses what `docs/QUALITY.md` lists under P6.

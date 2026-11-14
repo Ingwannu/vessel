@@ -1125,7 +1125,9 @@ automatic failure screenshots are disabled.
 ## Layout
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for every crate and how they
-depend on each other, [docs/adr/](docs/adr/) for why, and
+depend on each other, [docs/adr/](docs/adr/) for why,
+[docs/QUALITY.md](docs/QUALITY.md) for the rules every change is held to and
+where the code stands against them, and
 [docs/LESSONS.md](docs/LESSONS.md) for what Vessel takes from Zed and Paseo.
 
 ## Development
