@@ -32,8 +32,9 @@ use vessel_app_view::timeline::EntryKind;
 use super::ConversationArea;
 use crate::shell::Shell;
 
-/// How often the working footer's elapsed time is drawn again.
-const TICK: Duration = Duration::from_secs(1);
+/// How long after the working footer's elapsed time changes it is drawn
+/// again: past the boundary, so the label read then is the new one.
+const PAST: Duration = Duration::from_millis(20);
 
 /// A row after the entries.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -162,29 +163,56 @@ impl ConversationArea {
     }
 }
 
-/// Keep the list's tail as wanted; while the agent works, draw again in a
-/// second for its elapsed time.
+/// Keep the list's tail as wanted; while the agent works, draw again when
+/// its elapsed time next reads differently.
+///
+/// [Decision Log]
+/// - Purpose: the footer's time ("42s", "3m 5s", "2h 14m") was drawn again
+///   every second by notifying the shell, which draws the whole window: a
+///   session working for hours drew 60 frames a minute for one change, 20 %
+///   of a core on a software renderer (track F's measure, 2026-11-14).
+/// - Choice: wake when the label changes (`next_change`: the next second
+///   under an hour, the next minute after) and draw only the timeline's
+///   region (`crate::region`), not the shell's other parts.
+/// - Cost: under an hour the label shows seconds, so it still draws once a
+///   second, as Paseo's footer does.
 pub(super) fn sync(shell: &Shell, window: &Window, cx: &mut Context<'_, Shell>) {
     let area = &shell.areas.conversation;
     let running = shell.areas.session.conversation.turn_running();
     area.sync_tail(running);
-    let working = area
-        .tail
-        .shown
-        .borrow()
-        .iter()
-        .any(|row| matches!(row, TailRow::Working(Some(_))));
-    if working && !area.tail.ticking.get() {
-        area.tail.ticking.set(true);
-        cx.spawn_in(window, async move |this, cx| {
-            cx.background_executor().timer(TICK).await;
-            let _gone = this.update(cx, |shell, cx| {
-                shell.areas.conversation.tail.ticking.set(false);
-                cx.notify();
-            });
-        })
-        .detach();
+    let since = area.tail.shown.borrow().iter().find_map(|row| match row {
+        TailRow::Working(Some(since)) => Some(*since),
+        TailRow::Working(None) | TailRow::Pending(_) => None,
+    });
+    let Some(since) = since else {
+        return;
+    };
+    if area.tail.ticking.replace(true) {
+        return;
     }
+    let wait = next_change(since, Utc::now()).saturating_add(PAST);
+    cx.spawn_in(window, async move |this, cx| {
+        cx.background_executor().timer(wait).await;
+        let _gone = this.update(cx, |shell, cx| {
+            shell.areas.conversation.tail.ticking.set(false);
+            match shell.areas.regions.timeline.clone() {
+                Some(region) => region.update(cx, |_region, cx| cx.notify()),
+                None => cx.notify(),
+            }
+        });
+    })
+    .detach();
+}
+
+/// How long from `now` until the footer's elapsed time since `since`
+/// reads differently (`footer::duration_label`): seconds are shown under
+/// an hour, minutes after.
+fn next_change(since: DateTime<Utc>, now: DateTime<Utc>) -> Duration {
+    const HOUR_MS: i64 = 3_600_000;
+    let elapsed = now.signed_duration_since(since).num_milliseconds().max(0);
+    let step: i64 = if elapsed < HOUR_MS { 1_000 } else { 60_000 };
+    let left = step.saturating_sub(elapsed.rem_euclid(step));
+    Duration::from_millis(u64::try_from(left).unwrap_or(1_000))
 }
 
 impl Shell {
@@ -206,5 +234,33 @@ impl Shell {
     /// composer has its words back.
     pub(crate) fn conversation_send_failed(&mut self) {
         self.areas.conversation.tail.pending = None;
+    }
+}
+
+#[cfg(test)]
+mod tick_tests {
+    use chrono::{TimeZone as _, Utc};
+
+    use super::next_change;
+
+    /// The footer is drawn again when its label changes: each second under
+    /// an hour, each minute after (a session working for hours drew every
+    /// second for a label that changed once a minute).
+    #[test]
+    fn the_footer_wakes_when_its_label_changes() {
+        let since = Utc.with_ymd_and_hms(2026, 11, 14, 0, 0, 0).unwrap();
+        let at = |ms: i64| since + chrono::Duration::milliseconds(ms);
+        assert_eq!(next_change(since, at(1_250)).as_millis(), 750);
+        assert_eq!(next_change(since, at(59_000)).as_millis(), 1_000);
+        assert_eq!(next_change(since, at(3_600_000)).as_millis(), 60_000);
+        assert_eq!(
+            next_change(since, at(3_600_000 + 15_500)).as_millis(),
+            44_500
+        );
+        assert_eq!(
+            next_change(since, at(-5_000)).as_millis(),
+            1_000,
+            "a clock behind the node's"
+        );
     }
 }
