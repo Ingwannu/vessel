@@ -230,3 +230,14 @@ existing ratchet limits are lowered. No dependency is added. The whole
 gate runs against the committed foundation before it is reported. The
 node-head merge preserves the integrated tables and tests; the combined
 whole gate remains owed before either the foundation or provenance closes.
+
+### Node-head gate correction
+
+The first merged whole gate stopped at Clippy, before tests: the integrated
+comparison classifier needed the new refusal pattern combined with its
+existing identical-result patterns, and the integrated store rollback fixture
+had displaced a rename event's required origin initializer. The correction
+restores only that field and combines the patterns. Existing head SQL,
+test expectations, deadlines and production migration behavior stay unchanged.
+The corrected committed tree still owes the whole gate before either slice
+is reported as complete.
