@@ -482,3 +482,12 @@ lockfiles and tool versions are recorded. External dependency-cache and OS
 contents, build outputs and test artifacts are outside that selection.
 This does not reconstruct the preceding run's missing attestation. Review
 and new verification are pending. No quota implementation is included.
+
+The compatibility correction passed selected all-target Clippy and six
+library regressions (protocol 4, client 1, RPC server 1). Its actual pre/post
+selected-input manifests matched at immutable source commit `09b89440`,
+including the two local build configurations and embedded bundle. This
+is a new execution record for the changed correction, not an attestation
+for the earlier accounting run. The remaining preexisting test comment
+now describes the common maximum-version rule; its assertions are kept.
+Latest whole-workspace and web verification remain pending.
