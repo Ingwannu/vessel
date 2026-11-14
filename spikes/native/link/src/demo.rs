@@ -257,6 +257,7 @@ impl Demo {
                     content: ContentBlock::Text { text: reply },
                 },
                 AgentEvent::TurnEnded {
+                    point: None,
                     reason: StopReason::EndTurn,
                     usage: None,
                 },
@@ -299,6 +300,7 @@ impl Demo {
                     },
                 },
                 AgentEvent::TurnEnded {
+                    point: None,
                     reason: StopReason::EndTurn,
                     usage: None,
                 },
@@ -505,6 +507,7 @@ fn first_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
             content: text(SUMMARY),
         },
         AgentEvent::TurnEnded {
+            point: None,
             reason: StopReason::EndTurn,
             usage: None,
         },
@@ -552,6 +555,7 @@ fn hangul_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
                 ),
             },
             AgentEvent::TurnEnded {
+                point: None,
                 reason: StopReason::EndTurn,
                 usage: None,
             },
@@ -568,6 +572,7 @@ fn long_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
             }
         } else if index % 4 == 3 {
             AgentEvent::TurnEnded {
+                point: None,
                 reason: StopReason::EndTurn,
                 usage: None,
             }

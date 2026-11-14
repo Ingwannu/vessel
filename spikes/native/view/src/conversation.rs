@@ -210,7 +210,11 @@ impl Conversation {
             | SessionEvent::UsageChanged { .. }
             // Parking (protocol 12, ADR 0038) is not drawn yet.
             | SessionEvent::Parked { .. }
-            | SessionEvent::Woken => {}
+            | SessionEvent::Woken
+            // Protocol 14's fork and rewind records: taken, not drawn yet
+            // (the app's rewind and fork are a later slice).
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
 
@@ -283,7 +287,7 @@ impl Conversation {
         let notice = match status {
             SessionStatus::Starting | SessionStatus::Running => return,
             SessionStatus::Exited { .. } => Notice::Ended,
-            SessionStatus::Failed { message } => Notice::Failed(message.clone()),
+            SessionStatus::Failed { message, .. } => Notice::Failed(message.clone()),
             SessionStatus::Interrupted => Notice::Interrupted,
         };
         self.turn_running = false;

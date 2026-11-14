@@ -51,3 +51,9 @@ tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = { version = "0.1", features = ["log"] }
 # The page's language from `navigator.languages`.
 sys-locale = { version = "0.3", features = ["js"] }
+
+[dev-dependencies]
+# Headless input/state regression checks; the kit uses the same test platform.
+gpui = { workspace = true, features = ["test-support"] }
+# `Link::detached`: the tests that fill the link's queue (`unsent.rs`).
+vessel-app-link = { workspace = true, features = ["testing"] }

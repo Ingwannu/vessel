@@ -5,7 +5,7 @@
 //! does; a first turn that fails with the agent alive; a schedule of an
 //! agent added by its command (track G) while its secret is missing and
 //! once it is removed; a heartbeat does not survive its session started
-//! again.
+//! again; a spec kept for later is bounded.
 //!
 //! Unix only, as `meeting` is: the shell is `/bin/sh`.
 
@@ -345,6 +345,24 @@ async fn ended(client: &NodeClient, session: SessionId) {
     let mut stream = client.follow(session, EventSeq::ZERO).await.unwrap();
     read_until(&mut stream, &mut Vec::new(), |record| {
         status_of(record).is_some_and(|status| !status.is_live())
+    })
+    .await;
+}
+
+/// A spec kept for later is bounded as the prompt beside it is: a folder
+/// of 20 KiB is refused at creation (the join's code review, finding 5).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_spec_kept_for_later_is_bounded() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture.start().await;
+        let owner = fixture.connect(&node).await;
+        let spec = structured_spec(&fixture, None).with_cwd(fixture.cwd().join("x".repeat(20_000)));
+        let refused = owner
+            .create_schedule(hourly(new_session(spec), "plain"), false)
+            .await;
+        assert_eq!(code(refused), ErrorCode::InvalidRequest);
+        node.stop().await.unwrap();
     })
     .await;
 }

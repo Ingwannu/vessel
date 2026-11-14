@@ -79,6 +79,30 @@ makes the feature invisible to older peers, who see a prompt take a
 moment longer. One timer per actor, reset only when it fires, costs
 nothing per event.
 
+## The setting (2b, 2026-11-13)
+
+Paseo turns idle cleanup on and off from a card in a host's settings,
+kept by the daemon and applied at once; a flag alone left parking out of
+the app. `node.settings` (read) answers the settings in force and
+`node.set_settings` (admin) changes them: `park_after` is `never` or
+`idle { minutes }` (1 to 10,080; a longer time would be a new `kind`,
+since an older client refuses a number out of its range). Neither is
+forwardable: they are the node's own administration, as `node.stop` is.
+What a person changed is kept in `settings.json` in the data directory
+(only what was changed, owner-only, replaced atomically) and wins over
+`--park-after` at start, field by field, so a service started with the
+flag does not undo a change at its next restart; the node logs when it
+does. A file that cannot be read or parsed, or a saved choice this build
+does not know, leaves the flag's value. A change is written first and
+applied after, under one lock; a change that changes nothing writes
+nothing. Applied live: the session runtime holds the value in a watch,
+and every structured session's actor re-arms its idle timer from its
+last activity when it changes (one idle for longer than a new, shorter
+time is parked at once; off disarms the timers, and parked sessions stay
+parked until something wakes them). Unlike Paseo, the node does not tell
+connected clients that the setting changed; a client reads it when it
+shows it.
+
 ## Consequences
 
 - An agent's background work (a shell it left running, a dev server) is

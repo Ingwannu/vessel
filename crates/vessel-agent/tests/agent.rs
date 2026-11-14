@@ -42,6 +42,7 @@ mod support {
             mcp_servers: vessel_proto::ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions: false,
+            fork: None,
         }
     }
 
@@ -214,6 +215,7 @@ async fn a_full_turn_with_a_permission_round_trip() {
                     resume: true,
                     image: true,
                     audio: false,
+                    fork: true,
                 })
             }
         );
@@ -250,7 +252,8 @@ async fn a_full_turn_with_a_permission_round_trip() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
 
@@ -412,7 +415,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
 
@@ -423,7 +427,8 @@ async fn cancelling_withdraws_pending_permissions_and_ends_the_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         // Cancelling with no turn running is a no-op.
@@ -466,6 +471,7 @@ async fn resuming_loads_the_session_and_replays_its_history() {
                     resume: true,
                     image: true,
                     audio: false,
+                    fork: true,
                 })
             })
         );
@@ -611,7 +617,8 @@ async fn cancel_gets_through_a_flood_of_updates() {
             end,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         cancelled.await.unwrap().unwrap();
@@ -635,7 +642,8 @@ async fn entries_sends_updates_of_kinds_in_turn() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         let turn = after(&agent.events, &started);
@@ -769,7 +777,8 @@ async fn a_permission_request_arriving_after_a_cancel_is_answered_cancelled() {
             agent.until(turn_over).await,
             AgentEvent::TurnEnded {
                 reason: StopReason::Cancelled,
-                usage: None
+                usage: None,
+                point: None,
             }
         );
         for event in &agent.events {
@@ -903,6 +912,47 @@ async fn http_servers_are_left_out_for_an_agent_without_http() {
             .map(|server| server["name"].as_str().unwrap())
             .collect();
         assert_eq!(names, ["docs"]);
+    })
+    .await;
+}
+
+/// A fork its check refuses, or that cannot be checked because the agent
+/// cannot load it, is deleted from the agent's history on the same
+/// connection (protocol 14): it is not left as a conversation nobody holds.
+#[tokio::test]
+async fn a_refused_fork_is_deleted_from_the_agents_history() {
+    within(async {
+        for (switch, refused) in [
+            ("FAKE_ACP_FORK_IGNORES_POINT", true),
+            ("FAKE_ACP_LOAD_FAILS", false),
+        ] {
+            let command = vessel_proc::CommandSpec::new(vessel_testkit::Fake::Acp.path().unwrap())
+                .env(switch, "1");
+            let mut agent = Agent::start_with(
+                &command,
+                AgentSetup {
+                    fork: Some(Box::new(vessel_agent::ForkFrom {
+                        session: HarnessSessionId::new("fake-session-1"),
+                        point: Some(vessel_proto::AgentMessageId::new("msg-1")),
+                    })),
+                    ..setup(None)
+                },
+            );
+            let disconnect = agent.until_end().await;
+            let Disconnect::Handshake { fork_refused, .. } = &disconnect else {
+                panic!("{switch}: {disconnect:?}");
+            };
+            assert_eq!(fork_refused.is_some(), refused, "{switch}: {disconnect:?}");
+            assert!(
+                agent
+                    .log
+                    .iter()
+                    .any(|line| line.starts_with("fake-acp: deleted fork~fake-session-1~")),
+                "{switch}: {:?}",
+                agent.log
+            );
+            assert!(!agent.events.iter().any(ready), "{switch}");
+        }
     })
     .await;
 }

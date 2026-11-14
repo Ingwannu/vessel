@@ -253,6 +253,7 @@ mod tests {
         resume: false,
         image: true,
         audio: false,
+        fork: false,
     };
 
     #[test]

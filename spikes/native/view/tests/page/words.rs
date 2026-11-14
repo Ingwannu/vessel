@@ -4,7 +4,7 @@
 
 use serde_json::json;
 use vessel_app_view::timeline::{
-    Entry, EntryKind, Fullness, Settled, answers_of, meter_of, settled,
+    Entry, EntryKind, Fullness, PlanActivity, Settled, answers_of, meter_of, settled,
 };
 use vessel_app_view::{meter_tokens, short_tokens};
 use vessel_proto::{ContextUsage, PermissionOption, PermissionOutcome, TurnUsage};
@@ -63,8 +63,26 @@ fn an_entry_as_a_line_says_what_the_row_shows_without_its_markup() {
             { "content": "b", "priority": "low", "status": "pending" }
         ]))
         .unwrap(),
+        activity: PlanActivity::Created { count: 2 },
     });
     assert_eq!(EN.spoken(&plan), "Plan · 1 of 2 done");
+    // A plan row's words, Paseo's.
+    assert_eq!(
+        EN.plan_activity(&PlanActivity::Created { count: 4 }),
+        "Created 4 tasks"
+    );
+    assert_eq!(
+        EN.plan_activity(&PlanActivity::Created { count: 1 }),
+        "Created 1 task"
+    );
+    assert_eq!(
+        KO.plan_activity(&PlanActivity::Created { count: 4 }),
+        "작업 4개 생성"
+    );
+    assert_eq!(
+        KO.plan_activity(&PlanActivity::Completed("a".to_owned())),
+        "완료됨"
+    );
     // The same entries in Korean.
     assert_eq!(KO.spoken(&running), "Read status.rs · 진행 중");
     assert_eq!(KO.spoken(&plan), "계획 · 2개 중 1개 완료");

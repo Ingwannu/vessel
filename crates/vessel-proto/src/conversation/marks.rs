@@ -129,7 +129,9 @@ impl SessionEvent {
             // A parked agent waits on nobody; a failed wake answered the
             // call that asked for it.
             | Self::Parked { .. }
-            | Self::Woken => false,
+            | Self::Woken
+            | Self::Forked { .. }
+            | Self::Rewound { .. } => false,
         }
     }
 }
@@ -283,6 +285,7 @@ mod tests {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
                 usage: None,
+                point: None,
             },
         };
         assert!(ended.asks_for_attention());

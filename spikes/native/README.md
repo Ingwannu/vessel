@@ -17,9 +17,9 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 | Crate | Owns | Must not |
 | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels | use any UI toolkit |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
-| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::Text`) |
+| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) |
 
 ```
 app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text field, Markdown only)
@@ -31,6 +31,16 @@ app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text fiel
 Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
 replaced without touching them.
+
+Settings' agent discovery remains in `view::agent_status` (the page's
+fixtures). `agent_status::readiness` separately describes the node's
+installation, conversation support and authentication facts from
+`agent.status` (ADR 0032). Unknown sign-in is never inferred from a
+successful handshake; installer offers target only the missing part.
+Its row explanation includes a typed short badge and keeps the machine's
+diagnostic separate from translated instructions. Sign-in help is typed
+as labelled account, command and method steps, so a screen can copy the
+exact node-provided command without inventing a login flow.
 
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
@@ -83,15 +93,14 @@ app/src/
    inputs, same outputs; fixture files used by path, not copied).
 2. Its node calls in `link`: a `Command` variant, an `Event` variant
    when it answers, the call in `State::handle`.
-3. Its words in `view/src/text/<area>.rs`, a file of its own: a struct
-   `<Area>Words` with one field per sentence, an `EN` and a `KO`
-   constant of it (a sentence missing from one language does not
-   compile), sentences with values as methods matching on the language,
-   and `impl Lang { pub const fn <area>(self) -> &'static <Area>Words }`;
-   one `mod` line in `view/src/text/mod.rs`. `Lang` is the one switch
-   (the system's language or `VESSEL_APP_LANG`); the shell holds it
-   (`shell.t` is the lead's `Text`; `shell.t.lang` is the switch for any
-   area's words: `shell.t.lang.conversation()`).
+3. Its words in `view/locales/{en,ko}/<area>.ftl`, both languages with
+   the same variables and context comments. The English file generates
+   the typed API; use `shell.words.<area>()` for the prepared catalog.
+   Format messages with values in view when their data changes, retain
+   typed data to retranslate an existing outcome, and borrow plain labels
+   when rendering. Follow [the translation guide](view/locales/README.md).
+   An active area's existing Rust table stays with its owner until its
+   coordinated migration; `shell.t` adapts those remaining areas together.
 4. Its screen in `app/src/areas/<area>.rs` or `app/src/areas/<area>/`:
    a state type (fields: `TextField`s, choices), an `impl Shell` block
    for what a person does there (methods on the shell, so a click reaches
@@ -103,10 +112,35 @@ app/src/
    sidebar lists it. An event from the link for it: one arm in
    `Shell::on_event` calling the area's method.
 
+Settings areas with nested pages can supply a scroll identity at the
+`scroll_id` slot next to their content registration. Agents uses one for
+its machine list and one per agent detail; a detail’s offset therefore
+cannot hide a different page’s title. Other sections retain their existing
+scroll identity. This is the frame’s one outer scroller, not an area-local
+parallel page layout.
+
 The Devices page keeps invitation text outside text fields: only an
 explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
-state and stale-response tests live in `view/src/devices/`.
+state and stale-response tests live in `view/src/devices/`. Device rows
+have one access/last-use hint; exact pairing/last-use dates and all scopes
+stay in their tooltip. Ordinary paired rows have no repeated state badge.
+The area's `devices/row.rs` composes the shared row/button so a wrapped
+badge/action group retains its trailing edge; its bounds cases live beside
+it (verification status is in the G4 notes).
+
+Settings sections register their renderer in `settings::content` and their
+presence in `settings::drawn`; the latter controls navigation, so a page
+must appear in both. State and event slots are added only when needed.
+
+Sync is read-only: `link::sync` projects manifests into names and metadata
+before a UI event exists. Partial failures remain explicit; secret values
+and tool transport settings have no field in its screen model. Local
+commands use the kit's `settings::code_row` and trailing copy button; the
+app never executes them. Member rows keep one compact version/report hint;
+conflict paths and the received-copy suffix live only in the following
+alert. The home row's actual composition has a GPUI bounds regression in
+`app/src/areas/settings/sync/frame/tests.rs` (no app shell or node starts).
 
 ### Adding a kit control
 
@@ -122,17 +156,19 @@ card, a row with its title and hint at the left and its control at the
 right, and Paseo's switch; buttons are `kit::button` (accent) and
 `kit::outline_button` (Paseo's outline).
 
+
 The kit's `qr.rs` draws a supplied module matrix on a white tile in both
 themes, with a four-module quiet zone. `view::devices::qr` encodes with
 `qrcode` 0.14 (MIT OR Apache-2.0, default features off); neither layer
 writes a matrix or a link. QR and text share the invitation reveal gate.
 
-`kit::button_with_kind` is the filled entry: typed primary, secondary and
-destructive kinds plus enabled/disabled state. Destructive fill/border use
-`neutral.destructive`, text its separate `destructive_foreground`; hover
-keeps the palette, pressed is 85% and disabled 50%. Disabled callers attach
-no handler. The existing bool `button` delegates and stays until the lead
-retires it after moving its callers.
+`kit::button_with_kind` is the shared entry: typed primary, secondary,
+destructive and ghost kinds plus enabled/disabled state. Destructive fill
+and border use `neutral.destructive`, text its separate foreground. Ghost
+has transparent fill/border and muted text, turning foreground on hover;
+filled kinds set no hover override. Pressed is 85% and disabled 50%.
+Disabled callers attach no handler. The existing bool `button` delegates
+and stays until the lead retires it after moving its callers.
 
 `kit::breakpoint::TOUCH_TARGET` is the shared minimum touch target;
 screens take gaps and insets from `kit::theme::spacing`.
@@ -140,6 +176,13 @@ screens take gaps and insets from `kit::theme::spacing`.
 `kit::assets::Glyph::CalendarClock` is the shared scheduling mark: an
 original calendar and clock on the kit's 24-unit, 1.5-stroke line grid.
 Navigation and empty states use this one registered vector.
+
+`PanelLeft` is the desktop sidebar mark. `MenuCompact` is the compact
+sidebar's original 16×12 vector: two full bars and one half bar, each 1.5
+high. Its filled round rectangles keep the painted footprint exact; legacy
+`Menu` and `PanelRight` are unchanged.
+`Upload` and `Download` are the shared transfer arrows/trays for push/pull,
+with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 
 
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
@@ -151,12 +194,17 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+Provider error detail follows Paseo's fixed palette red[300] through
+`Tokens::status().red_300`; its semantic status dot still uses the ordinary
+status error signal. Areas use the shared token rather than a local colour.
+
 `kit/alert.rs` supplies Paseo's five notice variants and four density sizes,
 with optional title, wrapping description and an indented action. It uses
 existing semantic/neutral colours and palette blue 300 / amber 500 in
 `theme/status.rs`; a notice has no focus or click behaviour. Pure logic
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
+
 
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
@@ -195,10 +243,38 @@ been installed or compiled. The app still uses the static compatibility
 frame and plain captions. The control's gate does not prove consuming
 palette behavior, and the old captures do not prove the new APIs.
 
+`kit::settings::section_with_trailing` is the shared section head with an
+optional trailing action (Paseo’s `SettingsSection`); `section` delegates
+with no action. Areas supply the action’s state and tooltip, rather than
+copying the heading/card gap into another header. `row_with_content` is
+its row frame for custom contents (such as a provider’s mark and inline
+status); ordinary `row_at` delegates to the same padding, border and
+compact wrapping frame.
+
+`kit::skeleton::pulse` owns one mounted animation phase. Its draw closure
+receives one `Opacity` to pass to every `shape`; only the neutral surface2
+shapes fade, leaving cards and borders solid. Callers supply typed shape
+sizes/corner steps and compose existing settings/card frames. The pulse
+stops scheduling frames when unmounted; reduced motion follows GPUI.
+
 `TextField::form_multiline` uses the same input state and form shell as
 the kit's existing fields: Enter starts a line, Mod+Enter submits, and
 after twelve lines the editor scrolls. Its marked-text regression also
 exercises the composer; platform input-method support remains shared.
+
+`kit::screen_header::frame` is the shared screen/back-header renderer:
+`Content { title, leading, actions }` and typed desktop/compact density.
+The ordinary header and compact callback entry points delegate to it.
+Navigation controls/actions are already wired by the caller; the kit owns
+no route, sidebar state, titlebar or window drag. Desktop title is 14/300;
+compact is one-line 16/500 with a 44-point menu button. Chrome integration
+and avoiding duplicate sidebar toggles stay with the desktop lead.
+
+The settings page accepts one optional `page::DetailHeader` (title and
+caller-owned back callback). Ordinary page calls pass None; detail headers
+use the same shared `kit::screen_header` frame as other areas. The existing
+`compact_header` wrapper supplies its navigation callback to that renderer,
+so ordinary and detail navigation keep one compact look.
 
 ### Rules every screen follows
 
@@ -206,7 +282,7 @@ exercises the composer; platform input-method support remains shared.
 keys in the constant names (`S0_5`, `S1`, …) and values in logical points.
 Its exact-value test keeps every step comparable with `styles/theme.ts`.
 
-- Words through `view/src/text/` only; English and Korean together.
+- Words through `view/locales/` (or an active area's remaining `view/src/text/` table); English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
   generic family anywhere.
@@ -306,7 +382,7 @@ Environment:
 cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 # here: two nodes with fake agents and a book naming them
 scripts/fleet.sh start /tmp/fleet <the main workspace's target>/debug
-VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app
+(umask 077; VESSEL_CONFIG_DIR=/tmp/fleet/config cargo run -p vessel-app)
 /tmp/fleet/pair.sh                # a pairing link for `laptop`
 scripts/fleet.sh stop /tmp/fleet
 ```
@@ -326,7 +402,15 @@ Settings also has checked shapes (`scripts/settings-fixtures.py`): many
 paired devices, long and Korean names, a never-seen and a revoked device;
 a home bundle with instructions, skills and MCP names; a synthetic member
 behind version zero with kept edits. These fixture reports do not run a
-real member sync loop. The second machine has no paired devices.
+real member sync loop. The second machine has no paired devices. Sync
+shapes include a current long-name member, a Korean unreported member, an executable skill and
+present/missing/local-only secret names. `settings-fixtures.py empty ROOT`
+makes the disposable second node an instructions-only home (no servers);
+`settings-fixtures.py files-empty ROOT` makes it a server-only home (no files).
+Both provide empty member and secret lists. The server-only shape names an
+empty skills directory; a home naming neither an instructions file nor a
+skills directory is refused. That shape exercises an unavailable publication;
+`standalone ROOT` returns it to the default no-home shape.
 
 Normal-build captures always mask the invitation. Revealed-state model
 checks use inert, test-only invitations in `view/src/tests/devices.rs`;
@@ -365,6 +449,21 @@ these shapes are missing. It refuses a book outside disposable loopback
 endpoints or an adapter that is not the real-shape fake. This tests shell
 layout against node data rather than hand-built screen rows.
 
+The fleet also checks Agents and Models shapes (`scripts/agent-fixtures.sh`):
+an added agent with a long name and argument, a definition whose program
+is missing, Codex signed out, a failed status check, agent-supplied sign-in
+steps, a missing Codex adapter on `build-server`, and a long model route.
+Each node has its own fake program directory. Its `npm`, `npx` and `uvx`
+never download or execute packages. To hold an app-started install for a
+capture, create a FIFO at `<fleet>/<machine>-home/install-gate` before
+pressing Install. Write `fail` to it to release exit 7, or `success` for
+success. The fake installer prints its output but changes no installation.
+The fleet uses private scratch directories (`umask 077`); run it as the
+same development account that runs the app. Opening the registry allows
+the node’s ordinary public catalogue fetch; all other fixture traffic is
+local. The current SDK cannot exercise older/newer-agent readiness over
+the wire; see `docs/plans/backend-m12-agents.md` for the source boundary.
+
 On a machine without a display: an Xvfb of your own on a free display
 number, Mesa's software Vulkan, and ImageMagick's `import`:
 
@@ -380,7 +479,7 @@ Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
 by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
 screen of that size.
 
-## Translation engine (staged, ADR 0039)
+## Translation files (ADR 0039)
 
 `view::localization` sits beside the legacy tables. Its host build script
 reads `view/locales/<tag>/<area>.ftl`, validates the Fluent AST, and generates
@@ -414,10 +513,27 @@ places. Patterns currently receive minute precision. Dynamic formatting is
 performed when data changes, before painting. ICU4X is not a dependency of
 this formatting layer; ADR 0039 retains its rejected measured cost.
 
-No existing area has moved in the mechanism slice. Area owners keep their
-Rust tables until the coordinator accepts the engine and its first migration;
-the first migrated area will supply the contributor model. The pseudo-locale
-is tested in this slice; normal-screen captures follow that migration.
+Pairing is the first complete migrated area: its two dialogs, name/link
+errors and successful status use `view/locales/{en,ko}/pairing.ftl`. Other
+owners keep their area tables until their own migration. The shared machine
+file-fault sentence still belongs to its table, including when pairing shows it.
+General's Language row uses System first, then each embedded language's own
+name. Its typed preference goes through `Prefs::prefer`; labels, retained
+field placeholders and pairing outcomes update at once, without restarting
+or clearing typed input. `VESSEL_APP_LANG` wins over that preference.
+
+For a normal app run against your private fake fleet, use
+`VESSEL_APP_LANG=en-XA` to check expanded pseudo-language strings; the
+pseudo-language is never offered as a saved choice. Unset that override
+when checking the General row's live language change.
+
+Add a string to `en/<area>.ftl` and `ko/<area>.ftl`, with context comments
+and the same variables, then use the generated accessor in its caller.
+A whole sentence is one message; use selectors instead of joining pieces,
+and mark short buttons/badges in the comments. Counts are numbers, never
+formatted strings. Prepare plain strings before painting and format dynamic
+messages only when their data changes. See [the translator guide](view/locales/README.md)
+for exact steps, supported grammar/formatting, and the area migration recipe.
 
 
 ### Add a language
@@ -451,11 +567,75 @@ Without `--root`, the report also reads the compiled shipped-language list.
 Core validation supports partial candidates and English fallback; the
 released-catalog test requires every shipped catalog to be complete.
 
+### Browser-only wording capture
+
+The browser-unsupported pairing sentence has a Linux display-test harness:
+it feeds that typed result to the actual pairing renderer after the normal
+offer reader succeeds. It proves the sentence and layout, not that a browser
+transport runs. It is compiled only into tests; the installed app has no
+preview option or event override. The ordinary gate reports this explicit
+display test as ignored.
+
+On your private Xvfb, prepare a protected file containing only the pairing
+link line from your private fleet (`pair.sh` output), set
+`VESSEL_TEST_PAIR_LINK_FILE` to it and `VESSEL_CONFIG_DIR` to an isolated,
+empty capture config, then run from this workspace:
+
+```bash
+VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
+  VESSEL_APP_SIZE=390x844 cargo test -- --ignored --exact \
+  pairing_browser_words_capture --test-threads=1
+```
+
+Dismiss the pairing dialog with Escape, then close the window to finish the
+test. Remove the protected
+link file and stop your private display/fleet by their PIDs. Connection,
+storage and name-error captures use the normal app and real isolated failure
+paths, without this harness.
+
 ## A release
 
 `spikes/release/build.sh` (the release track's) builds every artifact of
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
+
+### Official agent artwork (ADR 0048)
+
+`kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
+constants carry reviewed vendor vectors, `Size` the requested logical
+size, and `Space` the surface's existing room. Unlike `glyph`, it preserves
+colours. A brand minimum/clear space that does not fit produces the bot
+fallback. No URL or SVG from the wire reaches this control. Source hashes,
+terms and permission requirements are in `docs/design/agent-marks/README.md`.
+
+`agent_mark::GITHUB` is shared artwork for Copilot identification and
+GitHub forge pages. `forge_mark(Forge::GitHub, size, tokens)` supplies the
+second typed use without a second copy. An agent mark's identity still
+belongs to `view`; the kit knows no node or session. The Invertocat's agent
+use requires explicit GitHub Copilot wording in the same row or tooltip
+(ADR 0048). Every mark, Gemini's gradient spark included, is a vector
+rasterised at the device pixels it lands on (`agent_mark/raster.rs`);
+none goes through GPUI's `img()`, which stretched a once-rasterised
+texture and broke the marks at 1.25 and 1.5. The sharpness sheet
+`kit/examples/mark_sharpness.rs` is the check.
+
+The artwork picker header requests 16-point ink and reserves the official
+image viewport width, rather than its rows' common 32-point column. A long header title follows the reference's
+single-line ellipsis. Disabled artwork retains its approved colour/opacity;
+the words and controls are muted separately. Enter validates the current
+row's availability and bounds before dispatch. The 44-point touch model
+pill holds OpenCode's 32 × 36 clear-space box; the short pointer pill and
+inline spots use Generic. A Settings ProviderRow needs a fitted adapter,
+not an unconstrained 36-high child inside its padded content band.
+
+`view::AgentMark::of` maps only typed node identities; `app::agent_mark`
+adapts them to kit artwork once. The draft, sidebar and board call that
+adapter. Added agents retain Generic even if their labels mention a brand.
+Settings › About lists vendor sources, trademark terms and the Gemini
+spark's separate software licence. For long-name capture fixtures,
+after `scripts/fleet.sh start ROOT TARGET`, run
+`bash scripts/mark-fixtures.sh ROOT TARGET`; it checks the node's saved
+bilingual titles and full custom-agent labels before captures.
 
 Machine management uses `view::machine_book` for validated names, edit outcomes
 and safe localized failures, and `link::machines` for the CLI's existing node
@@ -472,3 +652,45 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+The fake fleet also checks N3's node timezone and schedule preview through
+`wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
+and an impossible-expression refusal. No schedule is saved by this check.
+
+The reviewed settings controls from G3's 263d4a5/70bcfd5 supply the section
+trailing slot and shared custom-content frame. Integration keeps the
+lead's code_row and hint-face delegation; its private row_faced delegates
+to that same frame. G3's 64167097 supplies red_300 unchanged in both themes
+for ProviderRow error detail; semantic danger/status signals stay put.
+
+`agent_mark::settings_mark(art, Size::Sixteen, SettingsRowEdge, tokens)`
+fits reviewed artwork inside the unchanged shared settings row frame.
+Its 24/23-high first/following layout slot uses the existing padding for
+OpenCode's 32 × 36 quiet box; the image's integer edges and name baselines
+are checked against the previous Chevron 14/Bot 16 composition. Generic
+keeps that setting row's foreground colour. The kit still imports no view.
+The standalone mark audit accepts `VESSEL_MARK_SCENE=pills`, `settings`
+or `settings-errors` for the real pill_parts and shared-frame fit fixtures.
+The measured reference ink and per-brand boxes are in the artwork source
+record. No restricted vendor original is bundled by those fixtures.
+
+For an initial Agents-loading capture, a FIFO named `discovery-gate` in a
+fake node's scratch home holds fake Codex's version probe until the node's
+own five-second bound ends it. Remove the FIFO before ordinary probes.
+The fleet checks this fixture in an isolated scratch home using `timeout`.
+
+The disposable settings fixture also checks read-only and session-access
+device rows. For an already-seeded fake fleet, `settings-fixtures.py
+row-access <fixture-root>` updates only its named inert records; fresh
+`fleet.sh` runs seed those scopes directly.
+
+It also joins the build server to the Settings fixture's laptop home,
+checks leave and standalone refusal, revokes that temporary identity, then
+joins with a long member label and waits for the real apply/report. The
+existing behind/conflict report remains a synthetic Settings fixture.
+Only disposable harness homes receive files. A real Read-only pairing is
+stored as `laptop` in the separate `ROOT/readonly-config` book (select it
+with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
+identities and is refused sync/leave. `node pair --read-only` creates that
+credential through the same public invitation RPC; no credential or link is
+written to the fixture report.

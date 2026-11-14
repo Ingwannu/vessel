@@ -519,6 +519,7 @@ impl WorkspaceWords for Ko {
                 "머신에 연결할 수 없습니다. 머신이 켜져 있고 노드가 실행 중인지 확인하세요."
                     .to_owned()
             }
+            Problem::Unsent => "보내지 못했습니다. 다시 시도하세요.".to_owned(),
         }
     }
 

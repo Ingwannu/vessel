@@ -149,7 +149,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                 if self.service {
                     self.log.service(state);
                 }
-                break SessionStatus::Failed { message };
+                break SessionStatus::failed(message);
             }
             if self.service {
                 self.log.service(ServiceState::Starting { attempt });
@@ -170,9 +170,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     break self.stopped(code);
                 }
                 Ended::Spawn if !self.service => {
-                    break SessionStatus::Failed {
-                        message: "the command could not be started".to_owned(),
-                    };
+                    break SessionStatus::failed("the command could not be started");
                 }
                 Ended::Exited(code) if !self.service => break SessionStatus::Exited { code },
                 Ended::Spawn | Ended::Exited(_) => {}
@@ -194,7 +192,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     };
                     let message = state.summary();
                     self.log.service(state);
-                    break SessionStatus::Failed { message };
+                    break SessionStatus::failed(message);
                 }
                 Retry::After(delay) => delay,
             };

@@ -15,9 +15,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{FindMarks, FindPalette, Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{
-    Entry, EntryKind, Prompt, answered_lines, plan_progress, settled, spans_of,
-};
+use vessel_app_view::timeline::{Entry, EntryKind, Prompt, answered_lines, settled, spans_of};
 use vessel_proto::{Question, QuestionOutcome};
 
 use super::Seat;
@@ -86,10 +84,9 @@ pub(super) fn entry(
         EntryKind::Question {
             question,
             outcome: Some(outcome),
-        } => question_card(paint, question, outcome),
-        EntryKind::Plan { entries } => {
-            let (done, total) = plan_progress(entries);
-            meta(paint, words.plan_line(done, total))
+        } => question_card(paint, index, question, outcome),
+        EntryKind::Plan { entries, activity } => {
+            super::plan::row(paint, index, (entries, activity), open, cx)
         }
         // While it waits its card is over the composer, with the command
         // in its box: here only a quiet line, so the command is not read
@@ -282,7 +279,12 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
 /// A settled question in the timeline: what the agent asked, each answer
 /// by its field (the page's answered card, `question-entry.tsx`), and how
 /// it was settled.
-fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutcome) -> AnyElement {
+fn question_card(
+    paint: &Paint<'_>,
+    index: usize,
+    question: &Question,
+    outcome: &QuestionOutcome,
+) -> AnyElement {
     let words = paint.words;
     let lines = answered_lines(question, outcome, words.question_yes_no());
     div()
@@ -298,7 +300,9 @@ fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutco
             div()
                 .type_(Type::Body)
                 .text_color(paint.tokens.neutral.foreground)
-                .child(question.message.clone()),
+                // What find searches in a question (`view::timeline::find`),
+                // marked as a person's message is.
+                .child(marked_text(paint, index, &question.message)),
         )
         .children(lines.into_iter().map(|line| {
             div()

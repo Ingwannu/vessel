@@ -23,13 +23,16 @@
 //! - A setting is shown once something reads it ([`applied`]); the send
 //!   shortcut is read by both composers ([`apply_composer`]).
 
+mod agents;
 mod appearance;
 mod book;
 mod choices;
 mod devices;
 mod general;
+mod language;
 mod nav;
-mod page;
+pub(crate) mod page;
+mod sync;
 
 use vessel_app_kit::select::{self, Anchor};
 use vessel_app_kit::ui::{
@@ -68,7 +71,11 @@ pub(crate) struct SettingsState {
     pub(crate) anchors: Anchors,
     /// The last change the store refused, in words.
     pub(crate) refused: Option<String>,
+    pub(crate) agents: agents::AgentSettings,
+
     pub(crate) devices: devices::Devices,
+    language: language::State,
+    pub(crate) sync: sync::SyncState,
 }
 
 impl SettingsState {
@@ -82,7 +89,11 @@ impl SettingsState {
             open: None,
             anchors: Anchors::default(),
             refused: None,
+            agents: agents::AgentSettings::new(window, cx),
+
             devices: devices::Devices::new(window, cx),
+            language: language::State::new(window, cx),
+            sync: sync::SyncState::new(),
         }
     }
 
@@ -138,6 +149,7 @@ impl Shell {
         state.pushed = section.is_some();
         state.refused = None;
         self.go(Route::Settings, window, cx);
+        self.agent_load(false, cx);
     }
 
     /// Show `section` (from the list).
@@ -150,6 +162,7 @@ impl Shell {
         };
         state.pushed = true;
         state.refused = None;
+        self.agent_load(false, cx);
         cx.notify();
     }
 
@@ -178,11 +191,29 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Prepare before persisting: a catalog failure leaves the displayed
+        // choice and the saved choice in agreement, and never occurs in paint.
+        let language = if let PreferenceChange::Language(preference) = change {
+            match self.language.prepare(*preference) {
+                Ok(words) => Some(words),
+                Err(error) => {
+                    tracing::error!(%error, "the embedded translations could not change");
+                    return;
+                }
+            }
+        } else {
+            None
+        };
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
                 self.command(Command::SavePrefs(self.prefs.clone()));
                 match change {
+                    PreferenceChange::Language(_) => {
+                        if let Some(words) = language {
+                            self.apply_language(words, window, cx);
+                        }
+                    }
                     PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
                     PreferenceChange::InterfaceSize(_) | PreferenceChange::CodeSize(_) => {
@@ -227,6 +258,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.areas.settings.language.close();
         let state = &mut self.areas.settings;
         let drawn = state.anchors.of(list).get();
         let at = match list {
@@ -257,6 +289,7 @@ impl Shell {
                 // The row after the machines: adding one.
                 None => self.go(Route::Pair, window, cx),
             }
+            self.agent_load(false, cx);
             cx.notify();
         } else if let Some(change) = choices::change(list, index) {
             self.prefer(&change, window, cx);
@@ -351,7 +384,7 @@ pub(crate) fn render(
         let section = state.section;
         let words = shell.t.lang.settings();
         let title = words.section(section);
-        let body = content(section, shell, tokens, phone, cx)
+        let body = content(section, shell, tokens, phone, window, cx)
             .unwrap_or_else(|| page::elsewhere(words.elsewhere, tokens));
         let body = div()
             .flex()
@@ -366,7 +399,17 @@ pub(crate) fn render(
             }))
             .child(body)
             .into_any_element();
-        page::layout(title, body, phone, tokens, cx).into_any_element()
+        let scroll_id = if section == Section::Agents {
+            agents::scroll_id(shell)
+        } else {
+            "settings-page".into()
+        };
+        let detail = if section == Section::Agents {
+            agents::header(shell)
+        } else {
+            None
+        };
+        page::layout(title, body, phone, scroll_id, detail, tokens, cx).into_any_element()
     };
     div()
         .size_full()
@@ -374,7 +417,9 @@ pub(crate) fn render(
         .flex_col()
         .child(body)
         .children(list(shell, tokens, phone, window, cx))
+        .children(language::picker(shell, tokens, window, cx))
         .children(crate::areas::about::dialogs(shell, tokens, window, cx))
+        .children(agents::dialogs(shell, tokens, window, cx))
         .children(devices::dialogs(shell, tokens, window, cx))
 }
 
@@ -390,7 +435,9 @@ pub(crate) const fn drawn(section: Section) -> bool {
             | Section::Appearance
             | Section::About
             | Section::Projects
+            | Section::Agents
             | Section::Devices
+            | Section::Sync
     )
 }
 
@@ -418,11 +465,14 @@ fn content(
     shell: &Shell,
     tokens: &Tokens,
     phone: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     match section {
+        Section::Agents => Some(agents::render(shell, tokens, phone, window, cx)),
         Section::General => Some(general::render(shell, tokens, phone, cx)),
         Section::Devices => Some(devices::render(shell, tokens, phone, cx)),
+        Section::Sync => Some(sync::render(shell, tokens, phone, window, cx)),
         Section::Appearance => Some(appearance::render(shell, tokens, phone, cx)),
         Section::About => Some(crate::areas::about::content(shell, tokens, phone, cx)),
         Section::Projects => Some(crate::areas::workspace::projects_content(
@@ -430,12 +480,7 @@ fn content(
         )),
         // Shortcuts and Notifications are track S's; the per-machine
         // sections are this track's next slice.
-        Section::Shortcuts
-        | Section::Notifications
-        | Section::Agents
-        | Section::Models
-        | Section::Machines
-        | Section::Sync => None,
+        Section::Shortcuts | Section::Notifications | Section::Models | Section::Machines => None,
     }
 }
 

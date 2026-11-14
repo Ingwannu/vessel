@@ -10,8 +10,8 @@ use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
-    Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, Side, Tokens,
@@ -192,6 +192,16 @@ impl Shell {
             // Isolation's two rows need no search (Paseo's has none).
             Picker::Thinking | Picker::Features | Picker::Isolation => None,
         };
+        let leading = (which == Picker::Model)
+            .then(|| {
+                self.areas
+                    .draft
+                    .browsing
+                    .as_ref()
+                    .map(crate::agent_mark::leading)
+            })
+            .flatten();
+        list_of(self, which).set_header_leading(leading);
         list_of(self, which).open(search, window, cx);
         cx.notify();
     }
@@ -251,16 +261,24 @@ pub(super) fn controls(
         // cuts the model's.
         .overflow_hidden()
         .child(draft.features.measure());
-    let parts = super::effort_card::pill_parts(
+    let mut parts = super::effort_card::pill_parts(
         &words,
         caret,
         density.agent_label(),
         density.effort_label(),
     );
+    if !words.fast {
+        parts.agent_mark = draft.agent.as_ref().and_then(crate::agent_mark::of);
+    }
     let open = lists.model.is_open() || draft.effort.open;
     let pill = vessel_app_kit::pill_parts("pick-model", parts, open, touch, tokens)
         .relative()
         .child(lists.model.anchor())
+        // Tooltips are absent on touch; the effort card still needs the
+        // trigger's measured bounds there to open from the model pill.
+        .when(touch, |pill| {
+            pill.child(vessel_app_kit::picker::anchor_probe(&draft.features.places[0]))
+        })
         .on_click(cx.listener(|this, _event, window, cx| this.press_model_control(window, cx)));
     let hint = shell.t.lang.options().hint_model;
     row = row.child(
@@ -619,10 +637,11 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
                     let mut row = ComboRow::new(words.default_model);
                     row.checked = shell.areas.draft.agent.as_ref() == Some(&agent);
                     built.rows.push(row);
-                    built.meanings.push(Meaning::Agent(agent, None));
+                    built.meanings.push(Meaning::Agent(agent.clone(), None));
                 }
             }
         }
+        mark_model_rows(&mut built.rows, first_model, &agent);
         heading_after_options(on_top, first_model, words.model, built);
         return;
     }
@@ -648,6 +667,7 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
                 );
                 for row in &mut rows.rows {
                     row.heading = None;
+                    row.leading = Some(crate::agent_mark::leading(&agent.harness));
                     row.checked =
                         row.checked && shell.areas.draft.agent.as_ref() == Some(&agent.harness);
                 }
@@ -664,6 +684,12 @@ fn model_rows(shell: &Shell, online: &[&Machine], query: &str, built: &mut Built
         built.meanings.push(Meaning::Browse(agent.harness.clone()));
     }
     heading_after_options(on_top, first_model, words.model, built);
+}
+
+fn mark_model_rows(rows: &mut [ComboRow], first: usize, agent: &HarnessRef) {
+    for row in rows.iter_mut().skip(first) {
+        row.leading = Some(crate::agent_mark::leading(agent));
+    }
 }
 
 /// Under the options at the top, the models' heading.
@@ -750,7 +776,7 @@ fn value_words<'a>(id: &str, name: &'a str, default: &'a str) -> &'a str {
 fn agent_row(shell: &Shell, machine: &str, agent: &Agent) -> ComboRow {
     let words = shell.t.lang.options();
     let mut row = ComboRow::new(agent.name.clone());
-    row.leading = Some(Leading::Glyph(Glyph::Bot));
+    row.leading = Some(crate::agent_mark::leading(&agent.harness));
     row.checked = shell.areas.draft.agent.as_ref() == Some(&agent.harness);
     if agent.unavailable.is_some() {
         // The app's own short words, not the node's sentence (which a
@@ -972,6 +998,7 @@ fn chose(
             if let Some(machine) = shell.areas.draft.machine.clone() {
                 shell.probe_agent((machine, agent.clone()), false);
             }
+            list_of(shell, which).set_header_leading(Some(crate::agent_mark::leading(&agent)));
             shell.areas.draft.browsing = Some(agent);
             let words = shell.t.lang.options();
             list_of(shell, which).reset_query(words.search_models, window, cx);
@@ -1045,6 +1072,7 @@ pub(super) fn open_list(
                 let back: vessel_app_kit::picker::Back<Shell> = Rc::new(
                     |shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>| {
                         if shell.areas.draft.browsing.take().is_some() {
+                            list_of(shell, Picker::Model).set_header_leading(None);
                             let words = shell.t.lang.options();
                             list_of(shell, Picker::Model).reset_query(
                                 words.search_all_models,

@@ -23,15 +23,24 @@
 //!   steer's); remove; a grip to drag a row before another (the node's
 //!   `move`, named by entry). A held queue says why and offers resume and
 //!   clear.
-//! - Not yet: the queue's own keys (GOAT's arrow keys on the grip, its
-//!   steer shortcut); attachments of a queued message are not shown.
+//! - Keys, GOAT's: a click on the grip gives it the keys, and the arrow
+//!   keys then move its row one place (the node's `move`), the grip
+//!   keeping the keys as the row moves; the grip shows it has them in the
+//!   foreground on `surface2`. GOAT's steer shortcut (Mod+Shift+Enter)
+//!   and its edit of the latest message (Alt+Up from the composer's
+//!   start) are the app's shortcuts' (track S2's registry), which call
+//!   [`Shell::conversation_steer_next`] and
+//!   [`Shell::conversation_edit_latest_queued`].
+//! - Not yet: a queued message's attachments show as their names in its
+//!   text (`[name]`), not as GOAT's thumbnails, which need the node's
+//!   files read.
 
 use gpui::AppContext as _;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::ui::{
-    AnyElement, App, Context, Entity, FluentBuilder as _, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, SharedString, Stateful,
+    AnyElement, App, Context, Div, Entity, FluentBuilder as _, InteractiveElement as _,
+    IntoElement, KeyDownEvent, MouseButton, ParentElement as _, Render, SharedString, Stateful,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint, popup};
@@ -103,9 +112,81 @@ fn text_of(prompt: &QueuedPrompt) -> String {
 }
 
 impl Shell {
+    /// Refresh the retained edit's hint without touching its text or keys.
+    pub(crate) fn refresh_queue_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(edit) = &self.areas.conversation.queue_edit {
+            edit.field
+                .set_placeholder(self.t.lang.conversation().queue_edit(), window, cx);
+        }
+    }
+
     /// Ask the node to change the queue of the session shown.
     fn queue_change(&self, change: QueueChange) {
         self.act(Act::Queue(change));
+    }
+
+    /// Send the first queued message (GOAT's `thread.steerQueuedMessage`,
+    /// Mod+Shift+Enter by default, in the app's shortcuts): into the
+    /// running turn when the agent takes a steer, as a turn of its own
+    /// when none runs; never in place of a running turn. Whether one
+    /// went.
+    #[expect(
+        dead_code,
+        reason = "the app's shortcuts (track S2) bind it; remove with their first call"
+    )]
+    pub(crate) fn conversation_steer_next(&self) -> bool {
+        let facts = self.areas.conversation.timeline.facts();
+        let Some(first) = facts.queue.as_ref().and_then(|queue| queue.entries.first()) else {
+            return false;
+        };
+        let running = self.areas.session.conversation.turn_running();
+        let delivery = if !running {
+            Delivery::Start
+        } else if facts
+            .abilities
+            .as_ref()
+            .is_some_and(|abilities| abilities.steer)
+        {
+            Delivery::Steer
+        } else {
+            return false;
+        };
+        self.queue_change(QueueChange::SendNow {
+            entry: first.id,
+            delivery,
+        });
+        true
+    }
+
+    /// Edit the latest queued message in its row (GOAT's
+    /// `thread.editQueuedMessage`, Alt+Up from the composer's start, in
+    /// the app's shortcuts); not while another is edited. Whether one
+    /// opened.
+    #[expect(
+        dead_code,
+        reason = "the app's shortcuts (track S2) bind it; remove with their first call"
+    )]
+    pub(crate) fn conversation_edit_latest_queued(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let area = &self.areas.conversation;
+        if area.queue_edit.is_some() {
+            return false;
+        }
+        let Some(latest) = area
+            .timeline
+            .facts()
+            .queue
+            .as_ref()
+            .and_then(|queue| queue.entries.last())
+            .cloned()
+        else {
+            return false;
+        };
+        self.queue_edit(&latest, window, cx);
+        true
     }
 
     /// Edit `prompt` in its row.
@@ -157,7 +238,7 @@ impl Shell {
 pub(super) fn queue(
     shell: &Shell,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
@@ -206,21 +287,63 @@ pub(super) fn queue(
                 )),
             ),
     );
-    for prompt in &queue.entries {
-        track = track.child(row(shell, prompt, running, steers, tokens, narrow, cx));
+    for (at, prompt) in queue.entries.iter().enumerate() {
+        // Where the arrow keys move it: before the one above, or before
+        // the one after the next (the end past the last), as GOAT does.
+        let moves = Moves {
+            up: at
+                .checked_sub(1)
+                .and_then(|above| queue.entries.get(above))
+                .map_or(Move::Stay, |above| Move::Before(above.id)),
+            down: if at.saturating_add(1) < queue.entries.len() {
+                queue
+                    .entries
+                    .get(at.saturating_add(2))
+                    .map_or(Move::End, |after| Move::Before(after.id))
+            } else {
+                Move::Stay
+            },
+        };
+        track = track.child(row(
+            shell,
+            prompt,
+            (running, steers),
+            moves,
+            tokens,
+            (narrow, window),
+            cx,
+        ));
     }
     // The slot puts it in the composer's column, at the card's width.
     Some(track.pb(px(8.0)).into_any_element())
+}
+
+/// Where a row's grip moves it by an arrow key.
+#[derive(Debug, Clone, Copy)]
+enum Move {
+    /// It is at that end already.
+    Stay,
+    /// Before this entry.
+    Before(QueueEntryId),
+    /// To the end.
+    End,
+}
+
+/// Where the up and down arrows move a row.
+#[derive(Debug, Clone, Copy)]
+struct Moves {
+    up: Move,
+    down: Move,
 }
 
 /// One waiting message: Paseo's row, GOAT's actions.
 fn row(
     shell: &Shell,
     prompt: &QueuedPrompt,
-    running: bool,
-    steers: bool,
+    (running, steers): (bool, bool),
+    moves: Moves,
     tokens: &Tokens,
-    narrow: bool,
+    (narrow, window): (bool, &mut Window),
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
@@ -233,22 +356,16 @@ fn row(
         .as_ref()
         .filter(|edit| edit.entry == entry);
     let side = if narrow { BUTTON_NARROW } else { BUTTON };
-    let dragged = Dragged {
-        entry,
-        text: text.clone().into(),
-        tokens: *tokens,
-    };
-    let grip = div()
-        .id(SharedString::from(format!("queue-grip-{entry}")))
-        .flex_none()
-        .cursor_grab()
-        .child(glyph(Glyph::Grip, 14.0, neutral.foreground_extra_muted))
-        .on_drag(
-            dragged,
-            |dragged, _offset, _window, cx: &mut App| -> Entity<DragPreview> {
-                cx.new(|_| DragPreview(dragged.clone()))
-            },
-        );
+    let grip = grip(
+        Dragged {
+            entry,
+            text: text.clone().into(),
+            tokens: *tokens,
+        },
+        moves,
+        window,
+        cx,
+    );
     let body = body(editing, text, tokens, narrow, cx);
     let actions = actions(prompt, editing.is_none(), running, steers, side, tokens, cx);
     let drop_line = neutral.foreground_extra_muted;
@@ -293,6 +410,67 @@ fn row(
             .child(actions)
             .into_any_element()
     }
+}
+
+/// A row's grip: dragged before another row; given the keys by a click,
+/// its arrow keys move the row one place (GOAT's), and it shows it has
+/// them in the foreground on `surface2`.
+fn grip(
+    dragged: Dragged,
+    moves: Moves,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
+    let neutral = dragged.tokens.neutral;
+    let entry = dragged.entry;
+    let grip_id = SharedString::from(format!("queue-grip-{entry}"));
+    // The grip's keys outlive a frame and follow the entry as it moves.
+    let focus = window
+        .use_keyed_state(grip_id.clone(), cx, |_, cx| cx.focus_handle())
+        .read(cx)
+        .clone();
+    let keyed = focus.is_focused(window);
+    div()
+        .id(grip_id)
+        .flex_none()
+        .rounded(px(4.0))
+        .cursor_grab()
+        .track_focus(&focus)
+        .when(keyed, |grip| grip.bg(neutral.surface2))
+        .child(glyph(
+            Glyph::Grip,
+            14.0,
+            if keyed {
+                neutral.foreground
+            } else {
+                neutral.foreground_extra_muted
+            },
+        ))
+        .on_mouse_down(MouseButton::Left, move |_event, window, cx| {
+            window.focus(&focus, cx);
+        })
+        .on_key_down(
+            cx.listener(move |shell, event: &KeyDownEvent, _window, cx| {
+                let before = match event.keystroke.key.as_str() {
+                    "up" => moves.up,
+                    "down" => moves.down,
+                    _ => return,
+                };
+                cx.stop_propagation();
+                let before = match before {
+                    Move::Stay => return,
+                    Move::Before(other) => Some(other),
+                    Move::End => None,
+                };
+                shell.queue_change(QueueChange::Move { entry, before });
+            }),
+        )
+        .on_drag(
+            dragged,
+            |dragged, _offset, _window, cx: &mut App| -> Entity<DragPreview> {
+                cx.new(|_| DragPreview(dragged.clone()))
+            },
+        )
 }
 
 /// A row's text, or the field it is edited in (the kit's field, so it
@@ -399,7 +577,7 @@ fn round(
     accent: bool,
     side: f32,
     tokens: &Tokens,
-) -> Stateful<vessel_app_kit::ui::Div> {
+) -> Stateful<Div> {
     let neutral = tokens.neutral;
     let (fill, ink) = if accent {
         (neutral.accent, neutral.accent_foreground)
@@ -422,11 +600,7 @@ fn round(
 }
 
 /// A small text button in the queue's heading.
-fn text_button(
-    id: &'static str,
-    label: &'static str,
-    tokens: &Tokens,
-) -> Stateful<vessel_app_kit::ui::Div> {
+fn text_button(id: &'static str, label: &'static str, tokens: &Tokens) -> Stateful<Div> {
     let neutral = tokens.neutral;
     div()
         .id(id)
@@ -438,3 +612,6 @@ fn text_button(
         .hover(move |style| style.bg(neutral.surface2).text_color(neutral.foreground))
         .child(label)
 }
+
+#[cfg(test)]
+mod language_tests;

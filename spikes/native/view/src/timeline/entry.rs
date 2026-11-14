@@ -12,6 +12,8 @@ use vessel_proto::{
     ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnUsage,
 };
 
+use super::plan::PlanActivity;
+
 /// What names an entry for as long as it lives: the record that made it,
 /// or, for an entry later records change in place, the protocol's id for
 /// it. The page writes these as `r12`, `tcall-1`, `p<uuid>`, `q<uuid>`.
@@ -25,6 +27,14 @@ pub enum EntryKey {
     Permission(PermissionId),
     /// A question, by the node's id.
     Question(QuestionId),
+    /// A row of a plan update: one record can say several things changed
+    /// (a step done, the next started), each its own row.
+    Plan {
+        /// The record.
+        seq: EventSeq,
+        /// Which of its rows, from 0.
+        step: u32,
+    },
 }
 
 /// One entry of the timeline.
@@ -200,10 +210,13 @@ pub enum EntryKind {
     },
     /// A tool call.
     Tool(ToolView),
-    /// The agent's plan at that point.
+    /// The agent's plan at that point, and what changed in it (Paseo's
+    /// task activity, `plan.rs`).
     Plan {
         /// Its steps.
         entries: Vec<PlanEntry>,
+        /// What changed.
+        activity: PlanActivity,
     },
     /// A permission request.
     Permission(Permission),

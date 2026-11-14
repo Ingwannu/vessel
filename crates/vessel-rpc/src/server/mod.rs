@@ -183,6 +183,7 @@ where
             return Err(ServeError::Rejected(error));
         };
         let node = self.node.borrow().clone();
+        let node = node.for_protocol(protocol).unwrap_or(node);
         let welcome = ServerFrame::Welcome(Welcome { protocol, node });
         send_now(&mut sink, &welcome).await?;
         tracing::debug!(

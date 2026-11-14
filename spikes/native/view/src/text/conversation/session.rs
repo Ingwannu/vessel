@@ -542,7 +542,7 @@ fn git_operation(operation: GitOperation) -> &'static str {
 }
 
 /// An amount in its unit: "$0.50" for dollars, "12.5 credits" else.
-fn cost_label(amount: f64, unit: &str) -> String {
+pub(super) fn cost_label(amount: f64, unit: &str) -> String {
     if unit.eq_ignore_ascii_case("usd") {
         format!("${amount:.2}")
     } else {

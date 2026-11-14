@@ -37,6 +37,9 @@ jiff = { workspace = true, features = ["tz-system"] }
 # vesseld names its node.
 hostname.workspace = true
 qrcode.workspace = true
+# Retain the typed error from encoding a confirmed invitation for fleet.join.
+# Previously test-only; this reuses the same workspace-pinned dependency.
+serde_json.workspace = true
 # A scratch directory for a release download (`vessel node install`).
 tempfile.workspace = true
 thiserror.workspace = true
@@ -55,8 +58,6 @@ futures-util.workspace = true
 hmac.workspace = true
 sha2.workspace = true
 tokio-tungstenite.workspace = true
-# `vessel mcp` speaks JSON-RPC lines; its test reads them.
-serde_json.workspace = true
 tempfile.workspace = true
 # An in-process relay for `vessel nodes add --pair` end to end.
 vessel-relay.workspace = true

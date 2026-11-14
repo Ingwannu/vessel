@@ -268,3 +268,65 @@ async fn secrets_come_from_stdin_and_are_never_shown() {
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn selected_machine_fleet_controls_use_the_wire() {
+    within(async {
+        let temp = tempfile::tempdir().unwrap();
+        let home = RelayedHome::start(&temp.path().join("home-claude")).await;
+        init_home(
+            &home.fixture,
+            &temp.path().join("sources"),
+            &temp.path().join("home-claude"),
+        )
+        .await;
+        let target = temp.path().join("member-codex");
+        std::fs::create_dir_all(&target).unwrap();
+        let member = Fixture::start_with(|config, _| {
+            config.name = Some("wire-cli-member".to_owned());
+            config.fleet.targets = FleetTargets::Only(vec![(HarnessKind::Codex, target.clone())]);
+        })
+        .await;
+        let invited = home.fixture.vessel(&["fleet", "invite"], b"").await;
+        assert!(invited.ok, "invitation failed");
+        let joined = member
+            .vessel(
+                &["fleet", "join", "--yes", "--grant", "none"],
+                invited.stdout.as_bytes(),
+            )
+            .await;
+        assert!(joined.ok, "{}", joined.stderr);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
+            let credential =
+                std::fs::metadata(member.data().join("fleet/member.credential")).unwrap();
+            assert_eq!(credential.permissions().mode() & 0o777, 0o600);
+            assert_eq!(
+                credential.uid(),
+                std::fs::metadata(member.data()).unwrap().uid()
+            );
+        }
+        let status = member.vessel(&["fleet", "status"], b"").await;
+        assert!(status.ok, "{}", status.stderr);
+        assert!(matches!(
+            member.owner().await.fleet_status().await.unwrap().role,
+            vessel_proto::FleetRole::Member { .. }
+        ));
+        let requested = member.vessel(&["fleet", "sync"], b"").await;
+        assert!(requested.ok, "{}", requested.stderr);
+        assert_eq!(
+            requested.stderr,
+            "sync requested; use fleet status on this machine to see what was applied\n"
+        );
+        let left = member.vessel(&["fleet", "leave"], b"").await;
+        assert!(left.ok, "{}", left.stderr);
+        let status = member.vessel(&["fleet", "status"], b"").await;
+        assert!(status.ok, "{}", status.stderr);
+        assert_eq!(status.stdout.lines().next(), Some("role  no fleet"));
+        assert!(!member.data().join("fleet/member.json").exists());
+        member.stop().await;
+        home.stop().await;
+    })
+    .await;
+}

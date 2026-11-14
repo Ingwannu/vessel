@@ -55,7 +55,9 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
         | SessionEvent::CommandsChanged { .. }
         | SessionEvent::UsageChanged { .. }
         | SessionEvent::Parked { .. }
-        | SessionEvent::Woken => Said::Nothing,
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => Said::Nothing,
     }
 }
 
@@ -108,6 +110,7 @@ mod tests {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
                 usage: None,
+                point: None,
             },
         };
         assert_eq!(said(&end), Said::Ends);

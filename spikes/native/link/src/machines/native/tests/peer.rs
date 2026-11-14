@@ -68,6 +68,7 @@ pub(super) async fn connect(name: &str) -> Peer {
         started_at: chrono::DateTime::UNIX_EPOCH,
         state: NodeState::Serving,
         public_key: None,
+        timezone: None,
     };
     let calls = Arc::new(Mutex::new(Vec::new()));
     let recording = Arc::clone(&calls);

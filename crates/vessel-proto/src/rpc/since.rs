@@ -23,6 +23,7 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
             // permissions mode the caller did not ask for) and unnamed.
@@ -203,6 +204,10 @@ impl Call {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
@@ -218,7 +223,11 @@ impl Call {
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
-            | Self::WakeSession(_) => None,
+            | Self::WakeSession(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_)
+            | Self::ForkSession(_)
+            | Self::RewindSession(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

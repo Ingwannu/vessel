@@ -27,6 +27,7 @@ mod support {
             mcp_servers: vessel_proto::ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions: false,
+            fork: None,
         }
     }
 
@@ -69,6 +70,7 @@ async fn the_handshake_says_what_the_agent_can_do() {
                 resume: true,
                 image: true,
                 audio: false,
+                fork: true,
             })
         );
         agent.signal(Signal::Terminate).unwrap();
@@ -141,7 +143,8 @@ async fn commands_context_and_a_turns_tokens_are_reported() {
             usage[0].cost.as_ref().map(|cost| cost.unit.as_str()),
             Some("USD")
         );
-        let Some(AgentOutput::Event(AgentEvent::TurnEnded { reason, usage })) = seen.last() else {
+        let Some(AgentOutput::Event(AgentEvent::TurnEnded { reason, usage, .. })) = seen.last()
+        else {
             panic!("{seen:?}");
         };
         assert_eq!(*reason, StopReason::EndTurn);

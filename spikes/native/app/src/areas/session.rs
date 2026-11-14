@@ -371,6 +371,20 @@ impl Shell {
         view.resume_error = Some(why);
     }
 
+    /// A prompt the link did not take: its text back in the composer of
+    /// the session it was typed in (the composer emptied when it was
+    /// sent).
+    pub(crate) fn prompt_unsent(&mut self, session: SessionId, text: String) {
+        let view = &mut self.areas.session;
+        if view
+            .open
+            .as_ref()
+            .is_some_and(|open| open.session == session)
+        {
+            *view.restore.borrow_mut() = Some(text);
+        }
+    }
+
     /// Stop the open session's running turn.
     pub(crate) fn stop_turn(&mut self, cx: &mut Context<'_, Self>) {
         if let Some(open) = &self.areas.session.open {
@@ -563,7 +577,16 @@ fn composer(
     column(
         vessel_app_kit::composer_card(tokens, touch)
             .child(field.element(tokens, touch, cx))
-            .child(div().flex().flex_row().justify_end().child(button)),
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_end()
+                    .gap(px(8.0))
+                    .children(super::conversation::meter(shell, tokens, window, cx))
+                    .child(button),
+            ),
     )
     .pb(px(12.0))
 }

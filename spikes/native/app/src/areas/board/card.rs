@@ -274,21 +274,12 @@ fn title_row(
         .flex_row()
         .items_center()
         .gap(px(10.0))
-        .child(
-            div()
-                .flex()
-                .flex_none()
-                .items_center()
-                .justify_center()
-                .size(px(18.0))
-                .rounded(px(5.0))
-                .bg(neutral.surface3)
-                .text_size(px(11.0))
-                .line_height(px(14.0))
-                .font_weight(FontWeight::SEMIBOLD)
-                .text_color(neutral.foreground_muted)
-                .child(card.letter().to_string()),
-        )
+        .child(crate::agent_mark::mark(
+            card.detail.harness.as_ref(),
+            vessel_app_kit::agent_mark::Size::Fourteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            tokens,
+        ))
         .child(
             div()
                 .flex_1()

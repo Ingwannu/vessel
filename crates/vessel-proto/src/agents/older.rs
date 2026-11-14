@@ -99,7 +99,9 @@ impl Reply {
             | Self::ResumeSession(info)
             | Self::MarkSession(info)
             | Self::ParkSession(info)
-            | Self::WakeSession(info) => one(info),
+            | Self::WakeSession(info)
+            | Self::ForkSession(info)
+            | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
@@ -112,6 +114,8 @@ impl Reply {
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
             | Self::NodeInfo(_)
+            | Self::GetNodeSettings(_)
+            | Self::SetNodeSettings(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::ReadEvents(_)
@@ -236,6 +240,11 @@ impl Reply {
             // method, which a node refuses on an older connection before it
             // runs (the client does not send it either), so an older peer
             // is never handed one. A run names its session by id.
+            | Self::JoinFleet(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
