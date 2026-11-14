@@ -50,6 +50,7 @@ async fn the_conversation_holds_what_the_agent_reported() {
                 resume: true,
                 image: true,
                 audio: false,
+                fork: true,
             })
         );
         let names: Vec<&str> = started.commands.iter().map(|c| c.name.as_str()).collect();

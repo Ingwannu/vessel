@@ -8,7 +8,13 @@ import {
   type SendState,
 } from "./delivery";
 
-const STEERS = { steer: true, resume: true, image: true, audio: false };
+const STEERS = {
+  steer: true,
+  resume: true,
+  image: true,
+  audio: false,
+  fork: false,
+};
 
 const RUNNING: SendState = {
   protocol: 10,

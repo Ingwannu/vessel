@@ -241,6 +241,7 @@ impl Member {
     fn follow(&self, connector: MemoryConnector) {
         let pacing = Pacing {
             pull_every: Duration::from_secs(3600),
+            manual: Arc::default(),
             backoff: Backoff {
                 first: Duration::from_millis(20),
                 max: Duration::from_millis(200),
@@ -264,6 +265,69 @@ impl Member {
             self.stop.clone(),
         )));
     }
+}
+
+/// A real authenticated connection completed at the shutdown boundary.
+/// Returning it after cancellation exercises the cached connection cleanup,
+/// rather than a mock of the member loop or its filesystem effects.
+struct StopOnConnect {
+    inner: MemoryConnector,
+    stop: CancellationToken,
+}
+
+impl Connector for StopOnConnect {
+    type Error = Failed;
+
+    async fn connect(&self, client: ClientInfo) -> Result<NodeClient, Failed> {
+        let connected = self.inner.connect(client).await?;
+        self.stop.cancel();
+        Ok(connected)
+    }
+}
+
+#[tokio::test]
+async fn a_cancelled_connection_starts_no_pull_and_drops_the_cached_home() {
+    let home = Home::start().await;
+    let member = Member::new().await;
+    let credential = home.pair(Some(vec![Scope::Sync])).await;
+    let connector = StopOnConnect {
+        inner: home.connector(credential),
+        stop: member.stop.clone(),
+    };
+    let membership = member::Membership {
+        home: vessel_proto::NodeId::random(),
+        key: *vessel_secure::NodeKeypair::generate().unwrap().public(),
+        relays: Vec::new(),
+        direct: Vec::new(),
+        joined_at: chrono::Utc::now(),
+        grant: Vec::new(),
+    };
+    member::run(
+        connector,
+        membership,
+        Arc::clone(&member.local),
+        Arc::clone(&member.links),
+        Pacing {
+            pull_every: Duration::from_secs(3600),
+            manual: Arc::default(),
+            backoff: Backoff::default(),
+        },
+        member.stop.clone(),
+    )
+    .await;
+    assert!(!member.codex("AGENTS.md").exists());
+    assert_eq!(member.local.state.get().generation, None);
+    assert_eq!(
+        member
+            .links
+            .call_home(vessel_proto::ListSessions)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::Unavailable,
+        "a stopped pull loop must not leave its authenticated home cached"
+    );
+    home.node.stop().await.unwrap();
 }
 
 #[tokio::test]

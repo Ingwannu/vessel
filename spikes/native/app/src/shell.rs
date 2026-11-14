@@ -26,6 +26,8 @@ pub(crate) struct Shell {
     unsent: mpsc::UnboundedSender<vessel_app_link::Unsent>,
     /// Every word on screen, in the person's language.
     pub(crate) t: &'static Text,
+    pub(crate) words: &'static vessel_app_view::localization::Translator,
+    pub(crate) language: crate::language::Language,
     pub(crate) fleet: Fleet,
     pub(crate) route: Route,
     pub(crate) areas: Areas,
@@ -66,7 +68,13 @@ pub(crate) struct Shell {
 }
 
 impl Shell {
-    pub(crate) fn new(t: &'static Text, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn new(
+        prefs: Prefs,
+        language: crate::language::Language,
+        words: &'static vessel_app_view::localization::Translator,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Self {
         let areas = Areas::new(window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
@@ -82,11 +90,13 @@ impl Shell {
         let mut shell = Self {
             link,
             unsent,
-            t,
+            t: vessel_app_view::Lang::from_tag(words.locale().tag()).text(),
+            words,
+            language,
             fleet: Fleet::default(),
             route: Route::Draft,
             areas,
-            prefs: Prefs::load(),
+            prefs,
             notice,
             notice_detail: None,
             foot_tips: (
@@ -160,6 +170,18 @@ impl Shell {
             .request_devices(machine, ticket, ask)
     }
 
+    /// Checked read-only dispatch settles a full or closed command queue.
+    pub(crate) fn sync_send(
+        &self,
+        machine: vessel_app_view::devices::MachineKey,
+        ticket: vessel_app_view::devices::Ticket,
+    ) -> Result<(), vessel_app_view::sync::Problem> {
+        self.link
+            .as_ref()
+            .ok_or(vessel_app_view::sync::Problem::Offline)?
+            .request_sync(machine, ticket)
+    }
+
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
@@ -178,6 +200,7 @@ impl Shell {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
+            Event::Sync(answer) => self.sync_answer(answer),
             Event::Fleet(fleet) => {
                 self.fleet = fleet;
                 if !self.loaded {
@@ -192,7 +215,15 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                if self.route == Route::Settings {
+                    self.agent_load(false, cx);
+                }
             }
+            Event::Agents {
+                machine,
+                request,
+                answer,
+            } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => self.records(&session, &records, cx),
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}
@@ -326,6 +357,7 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         self.settle_devices(window);
+        self.settle_sync(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and
@@ -412,3 +444,6 @@ impl Render for Shell {
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
+
+#[cfg(test)]
+pub(crate) mod language_tests;

@@ -241,7 +241,9 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::CommandsChanged { .. }
         | SessionEvent::UsageChanged { .. }
         | SessionEvent::Parked { .. }
-        | SessionEvent::Woken => None,
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => None,
     }
 }
 
@@ -303,6 +305,7 @@ async fn status_follows_the_acp_handshake() {
                             resume: true,
                             image: true,
                             audio: false,
+                            fork: true,
                         })
                     }
                 },
@@ -376,7 +379,8 @@ async fn a_turn_with_a_permission_round_trip() {
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
-                    usage: None
+                    usage: None,
+                    point: None,
                 }
             }
         );
@@ -442,7 +446,7 @@ async fn a_model_the_agent_does_not_offer_fails_the_session() {
             .unwrap();
         let stored = collect(created.durable);
         let mut follower = Follower::new(&created.handle);
-        let SessionStatus::Failed { message } = follower.until_end().await else {
+        let SessionStatus::Failed { message, .. } = follower.until_end().await else {
             panic!("a failed handshake fails the session");
         };
         assert!(

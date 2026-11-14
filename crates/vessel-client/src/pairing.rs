@@ -289,6 +289,7 @@ mod tests {
             started_at: chrono::DateTime::UNIX_EPOCH,
             state: vessel_proto::NodeState::Serving,
             public_key: key,
+            timezone: None,
         }
     }
 

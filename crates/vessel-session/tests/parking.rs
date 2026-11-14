@@ -263,3 +263,30 @@ async fn a_followed_session_is_not_parked() {
     }))
     .await;
 }
+
+/// The node's setting changes while sessions run (protocol 12,
+/// `node.settings`): a runtime that never parked starts parking, and a
+/// session idle since its turn ended is parked without a new period.
+#[tokio::test]
+async fn a_changed_setting_applies_to_live_sessions() {
+    within(Box::pin(async {
+        let fixture = Fixture::new();
+        assert_eq!(fixture.runtime.park_after(), None);
+        let handle = fixture.start(structured(Vec::new())).await;
+        let mut log = Log::of(&handle);
+        handle.send(prompt("plain")).await.unwrap();
+        log.turn_over().await;
+        drop(log);
+        fixture
+            .runtime
+            .set_park_after(Some(Duration::from_millis(100)));
+        parked(&handle, true).await;
+        assert_eq!(
+            handle.info().parked.map(|parked| parked.reason),
+            Some(ParkReason::Idle)
+        );
+        handle.kill();
+        let _end = handle.ended().await;
+    }))
+    .await;
+}

@@ -30,6 +30,116 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 15 (2026-11-13, milestone 12, N3 row 2)
+
+Nodes speak 2..=15. Track N3 built its fleet controls as part of its
+protocol 12 and asked for them to share the preview's 13; on the node line
+13 and 14 were already published without these calls, so they are 15:
+a client refuses them locally on an older node (`unsupported`, "needs
+protocol 15") rather than sending a method that node cannot decode. No
+event and no record; `ErrorDetail::FleetControl` is a new kind that a
+13 or 14 client reads as `unknown`, and an older one skips with `detail`.
+
+`fleet.join { link, grant }` (Admin) redeems one single-use invitation and
+returns `JoinedFleet { home }` only after persisting the selected machine's
+membership. `fleet.leave {}` (Admin) removes membership and its credential,
+keeping materialized files; already left succeeds. `fleet.sync {}` (Admin)
+returns Ack when accepted by the existing loop, not when applied. These
+mutations cannot be forwarded or used by an agent. A disconnected join may
+have redeemed its invitation; clients never automatically retry it.
+`fleet.status {}` (Read) returns `FleetSyncStatus { role, local, members? }`.
+`role` is standalone, home or member (home id and join time). `local` is last
+applied generation/time, home contact time, relative conflict paths and typed
+problem categories; history can predate the current join. Only the home's
+own authenticated owner/paired Admin sees per-member device reports.
+Read-only and delegated reads omit `members`; they never receive credentials,
+secret names, absolute destination paths or arbitrary local error text.
+Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
+
+## Version 14 (2026-11-13, milestone 11's track A2, on milestone 12's node line)
+
+Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
+protocol 12; on the node line N3's schedule preview had taken 13 first,
+and a client built at 13 has no variant for the two new records, so they
+and the two calls are 14 here. A client sends neither call to an older
+node (`Call::since`); a node refuses them on an older connection
+(`unsupported`, "needs protocol 14").
+
+### Forking and rewinding (track A2, ADR 0052)
+
+Two methods, two fields, two records; types in `vessel_proto::forking`
+and `vessel_proto::agent`.
+
+- `AgentAbilities.fork`: the agent advertised `session/fork` (ACP's
+  unstable `sessionCapabilities.fork`). Absent from older nodes; a fork's
+  own handshake decides.
+- `TurnEnded.point?: TurnPoint { message, conversation }`: where a fork
+  or a rewind can start; set when the turn's last agent message carried
+  an id (ACP `messageId`, at most 256 bytes) and nothing but the turn's
+  end followed it. `conversation` is the agent's conversation the turn is
+  in. Absent otherwise, and in records written before 14.
+- `session.fork { session, after? }` (operate, forwardable): a new session
+  of the caller's continuing `session`'s conversation after the turn
+  whose `turn_ended` record is `after`, or as it is now (refused
+  `conflict` while a turn runs). Answers the new session at creation, as
+  `session.create` does; it runs in the source's folder with the
+  source's current choices. Answering at creation is deliberate: the
+  check needs the agent started and a replay read, longer than a call
+  should hold. A fork whose agent does not fork at the point ends
+  `failed { message: "the agent did not fork at the chosen point",
+  empty_fork: true }`.
+- `SessionStatus::Failed.empty_fork` (since 14, absent when false): a
+  fork that never held a conversation (its agent refused the fork, could
+  not load it for the check, or did not start). Nothing can be resumed;
+  a client offers to remove it (`session.delete`).
+- The fork the agent made for a refused check is deleted from the
+  agent's own history on the same connection (ACP `session/delete`,
+  which both installed adapters offer: Claude's deletes the transcript,
+  Codex's archives the thread). An agent that does not offer
+  `session/delete` keeps it, and nothing else removes it: Vessel never
+  writes another program's files, so it lists in that agent's history
+  (`agent.history`) as a conversation no session holds.
+- `session.rewind { session, after }` (operate, ownership-checked,
+  forwardable): the session goes back to the end of that turn; between
+  turns (`conflict` otherwise); a parked session is woken first. Answers
+  the session, its `harness_session` the new conversation.
+- Errors of both: `not_found` (no such session or record), `unsupported`
+  (a terminal session, a record that is not a turn's end with a point,
+  an agent that cannot fork or did not fork at the chosen point),
+  `spawn_failed` (the agent did not start; for a rewind the old
+  conversation goes on).
+- A rewind whose fork fails and whose old conversation then does not
+  start again either (the agent cannot load any conversation) answers
+  `spawn_failed`, and the session ends `failed` ("the rewind failed and
+  the agent could not start the conversation again (...); resume the
+  session to go on from before the rewind"): no agent is left running,
+  and its `harness_session` is the one it had, so `session.resume` goes
+  on from before the rewind.
+- Records (`since 14`; a version 2-13 client gets a `vessel:` log line):
+  `forked { from, after? }`, a fork's first record after `starting`;
+  `rewound { after, harness_session, files_changed }`: the records
+  between `after` and it are no longer the conversation (they stay in the
+  log), the agent's conversation from now on, and how many tool calls left
+  behind edited, deleted or moved files (not put back).
+
+## Version 13 (2026-11-13, milestone 12, N3)
+
+Nodes speak 2..=13; the minimum is unchanged. Additive N3 calls are gated at
+13. `NodeInfo.timezone` is an optional IANA name, absent when detection fails
+or from old nodes, and omitted on negotiated older connections.
+
+`schedule.preview` (Read) takes `cadence`, optional UTC `after`, and bounded
+`count` (1–10, default 5). It returns `after`, the effective `cadence` (an
+interval's resolved anchor), and exactly `count` next UTC `runs`. Reuse the
+returned cadence when saving. No schedule or session is created. Errors
+are `invalid_request` with optional typed `detail: { kind: schedule_preview,
+reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
+or `unavailable` for the bounded worker pool. Existing errors omit detail;
+future unknown detail kinds decode as unknown. Clients never parse messages.
+The optional error `detail` is additive and is not stripped from older
+connections: older error decoders ignore unknown fields. The error code and
+message remain sufficient for those peers.
+
 ## Version 12 (2026-11-13, milestone 11, wave 2's second half)
 
 Nodes speak 2..=12. Track A2's (`docs/plans/backend-m11.md`, "Track A2:
@@ -92,6 +202,13 @@ Two methods, one optional field, two records; types in
   cancel do not wake it.
 - The node parks idle sessions on its own after `--park-after` minutes
   (60 by default; 0 never), never one that someone follows live.
+- `node.settings {}` (read) answers `NodeSettings { park_after }` in force;
+  `node.set_settings { park_after? }` (admin) changes what it names and
+  answers the same. `ParkAfter` (tagged `kind`): `never`, `idle { minutes
+  }` (1 to 10,080), `unknown` (a newer node's; refused in a change,
+  `invalid_request`). Neither is forwardable. A change is kept across
+  restarts (`settings.json`) and wins over `--park-after`; it applies to
+  live sessions at once. A node older than 12 answers `unsupported`.
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 

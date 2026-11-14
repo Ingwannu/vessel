@@ -30,7 +30,7 @@ use gpui::{
 };
 
 use crate::fonts::Type;
-use crate::theme::Tokens;
+use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 
 /// The switch: on or off; `enabled` false fades it; `touch` sizes it for
@@ -110,18 +110,49 @@ const MOTION_MS: u64 = 180;
 /// A settings section: its small title, then `card`.
 #[must_use]
 pub fn section(title: impl Into<SharedString>, card: Div, tokens: &Tokens) -> Div {
+    section_with_trailing(title, card, None, tokens)
+}
+
+/// A settings section with an optional action at the end of its heading.
+///
+/// [Decision Log]
+/// - Purpose: Refresh/Add belong beside the title, as in Paseo's
+///   `components/settings/headings/settings-section.tsx`.
+/// - Constraint: existing callers must retain their title/card geometry.
+/// - Alternatives: each area draws another section head.
+/// - Choice: one trailing slot; the existing section delegates with None.
+/// - Why: the title's inset and its gap above the card stay shared.
+/// - Cost: callers own their action's state, size and tooltip.
+#[must_use]
+pub fn section_with_trailing(
+    title: impl Into<SharedString>,
+    card: Div,
+    trailing: Option<AnyElement>,
+    tokens: &Tokens,
+) -> Div {
+    let mut head = div()
+        .flex()
+        .items_center()
+        .justify_between()
+        .gap(px(spacing::S2))
+        .mb(px(spacing::S3))
+        .ml(px(spacing::S1))
+        .child(
+            div().flex().items_center().gap(px(spacing::S2)).child(
+                div()
+                    .type_(Type::Meta)
+                    .text_color(tokens.neutral.foreground_muted)
+                    .child(title.into()),
+            ),
+        );
+    if let Some(trailing) = trailing {
+        head = head.child(div().flex_none().child(trailing));
+    }
     div()
         .flex()
         .flex_col()
-        .mb(px(24.0))
-        .child(
-            div()
-                .mb(px(12.0))
-                .ml(px(4.0))
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(title.into()),
-        )
+        .mb(px(spacing::S6))
+        .child(head)
         .child(card)
 }
 
@@ -258,16 +289,48 @@ fn row_faced(
                 .child(error),
         );
     }
+    row_with_content(words.into_any_element(), control, first, compact, tokens)
+}
+
+/// On a phone, a settings row's content box is the window's width less
+/// this: the page's margin, the card's hairline and the row's padding, each
+/// side (measured on a 390-point window: a 306-point content box, the card
+/// at 27–366). A value given a set width there (a path cut to fit) uses it.
+pub const PHONE_ROW_INSET: f32 = 84.0;
+
+/// The shared settings row frame around custom content, with an optional
+/// trailing control. The content owns its title/description arrangement.
+///
+/// [Decision Log]
+/// - Purpose: Paseo provider rows combine marks, inline state and counts;
+///   a string-only title cannot represent those contents.
+/// - Constraint: ordinary setting rows keep the same frame and geometry.
+/// - Alternatives: copy the padding/border into each area; widen `row_at`'s
+///   title type and break callers accepting borrowed strings.
+/// - Choice: `row_at` delegates to this frame; custom rows supply content.
+/// - Why: styles/settings.ts's row is still implemented once.
+/// - Cost: custom content owns its sizing, semantics and interaction.
+#[must_use]
+pub fn row_with_content(
+    content: AnyElement,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    tokens: &Tokens,
+) -> Div {
+    let neutral = tokens.neutral;
     div()
         .flex()
         .flex_row()
         .items_center()
         .justify_between()
-        // Paseo's row content keeps 12 from its control (`marginRight`).
-        .gap(px(12.0))
+        .gap(px(spacing::S3))
         .when(compact, Styled::flex_wrap)
-        .p(px(16.0))
+        .p(px(spacing::S4))
         .when(!first, |row| row.border_t_1().border_color(neutral.border))
-        .child(words)
+        .child(content)
         .children(control)
 }
+
+#[cfg(test)]
+mod tests;

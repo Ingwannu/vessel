@@ -8632,3 +8632,513 @@ running session (the composer stays enabled: a prompt wakes it); the
 `parked` and `woken` records are timeline marks; `session.wake` is a
 button for a session whose wake failed (`reason: wake_failed` carries
 the message).
+
+## Track A2: contract, 3. Rewind and fork, only where the agent can
+
+**What the references do** (read 2026-11-13 in their sources and in the
+two installed adapters, `claude-agent-acp` 0.100.0 and `codex-acp`
+2.6.0).
+
+| | agent-orchestrator | GOAT | Paseo |
+| --- | --- | --- | --- |
+| Fork, Claude and other ACP agents | the current head only, ACP `session/fork` (offered when the handshake advertises `sessionCapabilities.fork`); a fork at a turn is refused ("ACP has no turn-anchored fork") and replaced by a fresh session with up to 24 KiB of transcript as context | Claude through its SDK (`forkSession` with `upToMessageId`); generic ACP: the head only | Claude through its SDK (`forkSession` with `upToMessageId`); a "fork into a new tab" carries the history as a text attachment, not a fork |
+| Fork, Codex | its native app-server: `thread/fork { lastTurnId }` | `thread/fork { lastTurnId }`, then a rollback | `thread/fork { beforeTurnId }` |
+| Rewind | Codex only, native `thread/rollback { numTurns }`; destructive | in place: Claude's SDK `resumeSessionAt`, Codex `thread/rollback`, OpenCode `session.revert`; generic ACP: a reset | Claude: a fork at the message, then the session swapped to it (the old one kept on disk); Codex: a fork then a rollback; OpenCode: `session.revert` |
+| Files | never restored | its own git checkpoints, only in an isolated worktree | Claude's `rewindFiles`, OpenCode's revert |
+| The old branch | kept and switchable (edit) | kept | kept on disk |
+
+What reaches Vessel is ACP, and over ACP:
+
+- **No adapter rewinds in place.** Neither `claude-agent-acp` nor
+  `codex-acp` has a rollback, revert or truncation method; the only way
+  back is a fork.
+- **Both fork at a point.** Both advertise `sessionCapabilities.fork` and
+  read an anchor in the request's `_meta`: `jetbrains.air.fork { version:
+  1, messageId }`, `messageId` being the ACP id of an agent message (the
+  one `agent_message_chunk` carries). Claude forks through its SDK up to
+  that message; Codex forks after the turn that holds it. An id neither
+  finds is an error (`invalid_params`), not a silent head fork. The anchor
+  is advertised nowhere: an agent that does not read it forks the whole
+  conversation without saying so.
+- **Files cannot be restored over ACP** (Claude's `rewindFiles` is used
+  only for a dry run). Vessel does not restore them either; ADR 0052
+  says why.
+
+**What Vessel offers.** Both only for a structured session whose agent
+advertised `sessionCapabilities.fork` (a new ability, `fork`) and has a
+harness session id:
+
+- **Fork**: a new session that continues the conversation as it was at a
+  point, the original untouched.
+- **Rewind**: the same session goes back to a point; what came after
+  stays in its log, marked as left behind, and its agent continues from
+  the point. The agent's own copy of the longer conversation stays in its
+  history (as with Paseo's Claude rewind).
+
+**The point.** A point is the end of a turn: `after: EventSeq`, any record
+of a turn that ended (its `turn_ended` record, typically). Vessel sends
+the id of that turn's last agent message as the anchor. A point inside a
+turn is not offered: Claude would cut between a tool call and its result,
+and Codex keeps the whole turn anyway. Without `after`, a fork is of the
+whole conversation (ACP's head fork; refused while a turn runs). A
+rewind always has a point. A turn whose last agent message is followed
+by a tool call (the agent ended on a tool) is not a point either: the
+fork would cut the call from its message.
+
+- To have message ids, `AgentEvent::MessageChunk` gains `message?:
+  AgentMessageId` (the chunk's ACP `messageId`, absent when the agent
+  sends none, and in records written before 12). A turn with no agent
+  message id (an older record, an agent that sends none, a reply of only
+  tool calls) is not a point: `unsupported`.
+- "Edit from here" on a prompt is a rewind to the turn before it, and
+  the client puts the prompt back in the composer. A rewind to before the
+  first prompt is not offered (that is a new session).
+
+**Checked, not trusted.** Because an agent may ignore the anchor, Vessel
+checks every anchored fork: after `session/fork` answers, it starts the
+agent again on the new conversation with `session/load` and reads the
+replay; the last agent message id of the replay must be the anchor. If it
+is not (or the replay has no ids), the fork fails `unsupported` ("the
+agent did not fork at the point") and nothing changes: a new session is
+not created; a rewound session keeps its old conversation. The check
+costs one more agent start (a few seconds) on an operation a person asks
+for by hand. A head fork is not checked (any fork of the head is right).
+
+**Fork** (`session.fork { session, after?, place? }`, operate,
+ownership-checked on the source; answers the new `SessionInfo`):
+
+- The new session is the caller's, as a `session.create` of theirs
+  would be (creator, an agent's limits and credential), with the
+  source's harness, current profile (whose home holds the transcript),
+  working directory (or `place`, resolved as `session.create` resolves
+  it, a new worktree for the fork), and current choices, titled "<source
+  title> (fork)". Its agent is started with ACP `session/fork` on the
+  source's harness session id instead of `session/new`, then checked as
+  above.
+- Its log starts with a `forked { from: SessionId, after?: EventSeq }`
+  record. The earlier conversation is not copied: a client shows the
+  source's records up to `after` above the fork's own (the source may be
+  read for as long as it exists); its agent has it whatever happens to
+  the source. Search finds the earlier messages in the source.
+- The source may be live, parked, ended or archived; it is never woken
+  or started (the fork runs in the new session's own process). A fork on
+  another node or under another profile is not offered (a copy, then a
+  fork, does that).
+- An agent creating a fork counts toward its eight live sessions.
+
+**Rewind** (`session.rewind { session, after }`, operate,
+ownership-checked; answers `SessionInfo`):
+
+- Only between turns: `conflict` while a turn runs, something waits on
+  an answer, the queue moves, or the session is starting or moving. A
+  parked session is rewound without being woken first (the fork and the
+  check start its agent).
+- The actor holds input as for a move, stops the agent, starts it with
+  `session/fork` at the point, checks it, and continues on the fork's
+  harness session id. On any failure it starts the agent again on the
+  old conversation (as a failed move does) and answers the error; the
+  log then has no `rewound` record.
+- The log gets `rewound { after: EventSeq }`: records after `after` and
+  before this one are no longer the conversation. They stay readable and
+  searchable. The queue is kept as it was.
+- Files are not restored; the reply and the record say nothing about
+  them, and the docs say so.
+
+**Types and calls** (protocol 12, no new version):
+
+- `AgentAbilities.fork` (from `sessionCapabilities.fork`; ACP's unstable
+  `session/fork`: the crate's `unstable_session_fork` feature gives the
+  v1 `ForkSessionRequest` a request impl, so the v1 connection sends it
+  as it sends `session/load`).
+- `AgentEvent::MessageChunk.message?`, `AgentMessageId` (a handle alias,
+  at most 256 bytes; a longer one is dropped).
+- `session.fork` (`ForkSession { session, after?, place? }`) and
+  `session.rewind` (`RewindSession { session, after }`), `since 12`,
+  forwardable, allowed through `vessel-web`'s bridge and to agents on
+  sessions they may operate.
+- Records `forked { from, after? }` and `rewound { after }`, `since 12`;
+  a version 2 to 11 client gets a `vessel:` log line for each.
+- Errors: `unsupported` (no `fork` ability, no harness session id, no
+  point there, the check failed), `conflict` (as above), `not_found`
+  (`after` is not a record of the session), `spawn_failed` (the agent did
+  not start or `session/fork` failed).
+
+**Older peers.** Fields and records as above; an older node is never
+asked (`Call::since`). A source session's records from before 12 have no
+message ids, so they offer head forks only.
+
+**Bounds.** A fork or rewind waits for at most two agent handshakes
+(each bounded by the handshake timeout). One fork or rewind at a time per
+session (the actor's control channel). No copy of records.
+
+**CLI and agents.** `vessel session fork ID [--after SEQ]` with the
+place flags `vessel run` takes (prints the new session), `vessel session
+rewind ID --after SEQ`;
+`vessel log` shows both records (a fork's says which session and record
+its history is in). Agent tools: `fork_session` and
+`rewind_session`.
+
+**Not offered, and why**: a point inside a turn (above); restoring
+files (no ACP surface; Vessel's own checkpoints would be a feature of
+the worktree track); a rewind that deletes what came after (the agent
+keeps it; Vessel keeps its records); switching back to a left branch
+(a fork from the session's old point does that); forks of terminal
+sessions.
+
+ADR 0052 records the choice.
+
+## Track A2: contract, 2b. Parking as a node setting (the coordinator, 2026-11-13)
+
+Parking is not usable from the app while its only control is `vesseld
+--park-after`. Paseo has a card in a host's settings
+(`packages/app/src/screens/settings/idle-runtime-cleanup-card.tsx`): one
+switch, "host-wide, persisted, and applied live by the daemon", read and
+changed through the daemon's config (`patchConfig({ idleRuntimeCleanup
+})`, `server/daemon-config-store.ts`), the card hidden when the host does
+not offer the setting.
+
+**What Vessel adds** (protocol 12, ADR 0038's terms, no schema change):
+
+- `NodeSettings { park_after: ParkAfter }`, `ParkAfter` (tagged `kind`):
+  `never`, `idle { minutes }` (1 to 10,080, a week), `unknown` (a newer
+  node's; never accepted in a change). One type for the wire and the
+  file, so a later setting is one more field.
+- `node.settings {}` (read, `since 12`, forwardable as `node.info` is):
+  the settings in force. A read-only device sees them.
+- `node.set_settings { park_after? }` (admin, `since 12`, not
+  forwardable: the node's own administration, as `profile.reload` and
+  `node.stop` are): changes what it names, answers the settings in
+  force. `invalid` for minutes out of range or `unknown`.
+- **Kept** in the data directory as `settings.json` (owner-only, replaced
+  atomically, as `agents.toml` is), written before the change is applied,
+  so a failed write changes nothing (`internal`) and the value survives a
+  restart. At start a saved value wins over `--park-after` (the flag is
+  the value of a node that has none saved; a service started with the
+  flag would otherwise undo every change at its next restart); a file
+  that does not parse is logged and set aside, and the flag's value used.
+- **Applied live**: the session runtime holds the value in a watch; each
+  structured session's actor reads it whenever it arms its idle timer
+  and re-arms when it changes (a session idle for longer than a new,
+  shorter time is parked at once). Off: no timer is armed; parked
+  sessions stay parked until something wakes them.
+- **CLI**: `vessel node settings` prints them; `vessel node settings
+  --park-after MINUTES|never` changes them (admin).
+- **Older peers**: a client older than 12 never asks; a client asking a
+  node older than 12 gets `unsupported`, and hides the card (as Paseo
+  hides it when the host lacks the feature). Agents: neither call (agents
+  hold no `admin`; the read is not in their policy either).
+
+ADR 0038 gains a paragraph; `PROTOCOL.md` and `README.md` say the same.
+
+### 2b. The setting: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) found no blocker, five
+should-fix and five minor points. Taken (the code and ADR 0038's "The
+setting" are the amended design):
+
+1. **One lock over write and apply** (two changes at once would leave the
+   file and the sessions disagreeing), the write in a blocking task, as
+   `agent.add` holds its lock.
+2. **The flag is bounded** (`0..=10080` when parsed), so it never runs a
+   time `node.settings` cannot say.
+3. **The file keeps only what a person changed** (every field optional,
+   the wire's `SetNodeSettings`), laid over the flags; a saved `unknown`
+   (a newer build's, read after a downgrade) means the flag's value; a
+   file that cannot be read or parsed is logged and left for the next
+   change to replace.
+4. **The flag is an `Option`**, so the node knows it was given and logs
+   when a saved value overrides it.
+5. **The setting's receiver is the actor's own field**, beside `parking`
+   (the `select` borrows both), its arm before the timer's and not gated
+   on `ready`; a park already under way finishes.
+6. **Neither call is forwardable** (no caller needs another node's; the
+   web bridge connects to each node). An agent may read the setting, as
+   it reads `node.info`; the change needs `admin`, which no agent holds.
+   `GetNodeSettings {}` with braces, as `ListAgents {}`. The range of
+   `idle` is fixed; a longer time would be a new `kind`. A change that
+   changes nothing writes nothing.
+
+Not taken: telling connected clients when the setting changes (Paseo's
+`daemon_config_changed`); a client reads it when it shows it.
+
+### 2b. Parking as a node setting (built 2026-11-13)
+
+- **Wire**: `node.settings` (read) and `node.set_settings` (admin), `since
+  12`, not forwardable, through `vessel-web`'s bridge; `NodeSettings`,
+  `SetNodeSettings`, `ParkAfter`, `IdleMinutes`.
+- **Store**: `settings.json` (`DataDir::read_settings`/`write_settings`).
+- **Session runtime**: `SessionRuntime::park_after`/`set_park_after`, a
+  watch every structured actor follows (`Parking::set_after`).
+- **Node**: `settings` (in force = saved over the flag; one lock; write
+  then apply), `service/settings`; `vesseld --park-after` bounded and
+  optional (`Config::park_after_given`).
+- **CLI**: `vessel node settings [--park-after MINUTES|never]`.
+
+**Checked**: the proto's (the forms of `park_after`, out of range
+refused, a newer kind read as `unknown`); the store's (read back, a bad
+file says why); the session runtime's (a runtime that never parked starts
+parking a live idle session when the setting changes); the node's end to
+end (the flag's value with nothing saved; a change answered, read back,
+kept across a restart with the same flag and winning over it; `unknown`
+refused; an empty change; an agent reading it and refused the change,
+which changes nothing).
+
+**For the settings screen** (E2): Paseo's
+`packages/app/src/screens/settings/idle-runtime-cleanup-card.tsx` (a
+switch, hidden when the host lacks the setting). Vessel: read
+`node.settings` when the card shows; on/off maps to `idle { minutes: 60
+}` / `never` (a minutes field is optional beyond Paseo); hide the card
+on `unsupported` or `invalid_request` (a node older than 12); a device
+without `admin` gets `forbidden` on a change.
+
+
+### 3. Rewind and fork: the contract's review (2026-11-13)
+
+An independent reviewer (read-only, Opus) read the contract against
+Vessel's code and both installed adapters. Every claim about the
+adapters held (both advertise `fork`, both read the same anchor, an
+unknown id is `invalid_params`; Claude cuts at the last entry of that API
+message id, Codex keeps the whole turn; live and replayed ids agree:
+Claude's API message id, Codex's item id). Three blockers, seven
+should-fix, a few minor points. What changed; where this section and the
+contract disagree, this one holds:
+
+1. **Blocker: a rewind was lost by the next move, resume, export or
+   fork**, which read the harness session id from the last `ready`
+   (`SessionInfo.harness_session` and the store's column), and a
+   restarted agent's `ready` is dropped with its replay. `rewound`
+   carries the new `harness_session`; the store's projection and the
+   session's info take it from there as from `ready` (the column exists:
+   no schema change), and the actor's launch resumes it.
+2. **Blocker: "no new session if the check fails"** contradicted
+   creation, which answers once the actor starts. `session.fork` answers
+   at creation, as `session.create` does; a failed check ends the fork
+   `failed` ("the agent did not fork at the point"). The fork's actor
+   drops the load's replay and publishes its first `ready`, as a session
+   started again does.
+3. **Blocker: `place`** would put a Claude fork's transcript in the
+   source's project folder (the SDK writes it there) where a later move
+   or export of the fork, which looks under the fork's own folder, would
+   not find it. Dropped: a fork runs in the source's folder.
+4. **The check can pass a wrong fork**: (a) when the turns after the
+   point have no agent message (cancelled, failed, tool-only), a head
+   fork's last agent message is the anchor too: the check also requires
+   that no user message follows the anchor's in the replay; (b) Claude's
+   TodoWrite and Task tools arrive as `plan`, not as a tool call, and a
+   final message of only thinking: a point is a turn whose last agent
+   message is followed by nothing but usage and the turn's end (a thought,
+   a plan, a tool call or its update disqualify it). The check takes the
+   last id seen, skipping chunks without one (Codex's notices).
+5. **Simpler, taken**: the point is the turn's, not every chunk's:
+   `TurnEnded.point?: AgentMessageId`, set by `vessel-agent`'s driver
+   when the rule above holds; chunks carry no id. One rule, one place;
+   records stay the size they were.
+6. **A parked session is woken first**, then rewound, as a move does.
+7. **A failed check in a rewind** stops the fork's agent (it is alive and
+   ready) before the old conversation starts again, with the session's
+   current choices.
+8. **Branch switching**: a fork or rewind at a point uses the harness
+   session id in force when that turn ended (the last `ready` or
+   `rewound` before it), so a fork from a point a rewind left behind
+   takes the old conversation, which still holds it.
+9. **Errors**: the agent's `invalid_params` on an anchored fork is
+   `unsupported`; a profile removed since is `not_found` naming it; an
+   agent whose fork handshake does not advertise `fork` is `unsupported`
+   (sessions started before 12 stored no `fork` ability: the fork's own
+   handshake decides).
+10. **Retention** prunes a session's oldest records first, the fork's
+    `forked` record with them (only past 64 MiB of a session's log);
+    said in the docs, not kept elsewhere.
+11. **Not offered, listed**: merging a fork back (GOAT); a fork that
+    carries the transcript as context for agents without `fork`
+    (agent-orchestrator, Paseo); a failed turn as a point (its last
+    message may be cut); restoring files. `rewound.files_changed` (new):
+    how many tool calls left behind edited, deleted or moved files, so a
+    client can warn that the files were not put back.
+12. **The fork's creation** goes through `session.create`'s own path
+    (draining and installing refusals, the caller's profile grant, an
+    agent's limits and its `vessel` credential, a routed profile's model
+    token, the forge's watch); its MCP servers are resolved for it, never
+    copied from the source's launch.
+
+**One start for the check**: `session/fork` then `session/load` of the
+fork on the same connection, as the reviewer suggested: both adapters
+load a session that is already open (`claude-agent-acp`'s `loadSession`
+reads the transcript again and replays it; `codex-acp` reattaches and
+replays), so a fork costs one agent start, not two.
+
+### 3. Rewind and fork (built 2026-11-13)
+
+Protocol 12 (no new version), no schema change, ADR 0052. The design is
+the contract as its review amended it (above).
+
+Renumbered when the node integrator merged it on milestone 12's node
+line (`backend/m12-node`): protocol 13 there was already N3's schedule
+preview, and an app built at 13 has no variant for `forked` and
+`rewound`, so the two calls and the two records are `since 14` (a
+version 2-13 client reads the `vessel:` lines); `TurnEnded.point` and
+`AgentAbilities.fork` are optional fields older clients skip. What
+follows is as built on this branch, at 12.
+
+- **Wire**: `session.fork` and `session.rewind` (operate, `since 12`,
+  forwardable, through `vessel-web`'s bridge and to agents),
+  `ForkSession`, `RewindSession`, `AgentAbilities.fork`, `AgentMessageId`
+  (a handle alias), `TurnEnded.point?: TurnPoint { message, conversation
+  }`, the records `forked { from, after? }` and `rewound { after,
+  harness_session, files_changed }` with `vessel:` log lines for versions
+  2 to 11.
+- **Agent** (`vessel-agent`): the crate's `unstable_session_fork`;
+  `AgentSetup.fork` (`ForkFrom`); the handshake's `session/fork` with the
+  anchor in `_meta.jetbrains.air.fork`, then, for a point, `session/load`
+  of the fork on the same connection; the driver's `tail` (the last agent
+  message, what followed it): a turn's point at `TurnDone`, and the check
+  of a fork's replay at `Started` (`ForkRefusal::NotAtPoint`).
+- **Session runtime**: `LaunchOptions.fork` (`ForkStart`): the fork's
+  `forked` record first, its check's replay dropped, the fork cleared at
+  `ready`; `forking` (the actor's rewind: input held, the agent stopped
+  and started on the fork, the old conversation again on any failure,
+  `rewound` with the new id); `SessionHandle::rewind`; `RewindRefusal`,
+  `ForkRefused`, `RewindFailed`.
+- **Store**: the projection takes `rewound.harness_session` as it takes
+  `ready`'s.
+- **Node**: `service/forking` (the point from the `turn_ended` record;
+  the fork through `create_starting`, `session.create`'s path; the
+  rewind's count of file changes left behind from the stored records).
+- **CLI**: `vessel session fork ID [--after SEQ]`, `vessel session rewind
+  ID --after SEQ`; `vessel log` says `fork or rewind --after N` on a turn's
+  end that has a point, and shows both records.
+- **Agents**: `fork_session`, `rewind_session` (45 tools).
+- **`fake-acp`**: message ids on `plain`'s reply, `session/fork` reading
+  the anchor as the real adapters do (`FAKE_ACP_NO_FORK`,
+  `FAKE_ACP_FORK_IGNORES_POINT`), a fork's replay ending where it was
+  made.
+
+**Checked**: the driver's tail (a point only when nothing followed the
+message; an id too long; a replay that a user message follows); the
+node's end to end with the fake agent: a fork after the first of two
+turns runs on `fork~<conversation>~<message>`, its log starts with
+`forked`, the check's replay is not in it, the source untouched, and a
+fork of the whole conversation; a rewind to the first turn answers the
+new conversation, logs `rewound`, and goes on there, and a fork from the
+second turn, which the rewind left behind, still takes the old
+conversation; an agent that ignores the point: the rewind refused
+`unsupported` with the old conversation going on and no `rewound`, and a
+fork of it ending `failed` "did not fork at the point"; a record that is
+not a turn's end (`unsupported`), one that does not exist (`not_found`),
+a running turn (`conflict` for a rewind and a whole fork), an agent
+without `session/fork` (`unsupported`, and the session goes on).
+
+**Not built, and why**: the reviewer's list (merging back, a transcript
+carried as context, a failed turn as a point, files); checking a real
+`codex-acp` fork end to end (the adapter keeps item ids in `thread/fork`
+per its source, not run here: no prompt to a real agent tonight).
+
+**For the conversation track** (C): Paseo's rewind is
+`packages/app/src/components/rewind/rewind-menu.tsx` and
+`composer-restore.tsx`, from a message's actions (`components/message.tsx`;
+`agent.rewind.request`, server `agent/rewind/rewind.ts`), and GOAT's "Edit from here"
+(`apps/web/src/components/chat/useTimelineRewind.ts`). Vessel: a turn's
+end with `point` offers "Fork from here" (`session.fork { after: seq }`)
+and "Rewind to here" (`session.rewind`); "Edit from here" on a prompt is
+a rewind to the turn before it with the prompt back in the composer; a
+fork's view shows its source's records up to `after` above its own
+(`forked`); a `rewound` record folds the records between `after` and it,
+and says `files_changed` when it is not 0.
+
+## Track A2: contract, 4. Import from the agent's own history
+
+**What the references do.**
+
+| | Paseo | agent-orchestrator | GOAT |
+| --- | --- | --- | --- |
+| What is listed | each provider's recent sessions, newest first, 20 a page; a search scans up to 500; sessions already imported left out (and counted); a provider's error listed beside the others | the agents' own history, read by a reader per harness (Claude Code, Codex, OpenCode and nine others), and a first-run offer (`BE/service/sessionimport/*`, `FE/components/SessionImportDialog.tsx`) | Claude Code, Codex and Pi conversations, 200 messages each within a time window, from the welcome wizard (`apps/server/src/project/AgentSessionImporter.ts`) |
+| How, for an ACP agent | a probe process: `initialize`; nothing unless `sessionCapabilities.list`; `session/list` paged by cursor (filtered by `cwd`); for each, with `loadSession`, `session/load` to read its first and last prompts as previews, within 60 s for the whole listing; a session with no conversation is dropped (`server/agent/providers/acp-agent.ts`, `listImportableSessions`) | its own readers of each harness's files | its own reader of each harness's files |
+| A listed session | id, folder, title, first and last prompt previews, last activity (`ImportableProviderSession`) | | |
+| Import | `importProviderSession`: the agent resumes the provider session and its timeline is read in (`server/agent/import-sessions.ts`) | a session that resumes it | a thread with the messages copied in |
+
+Vessel follows Paseo's ACP path: the agent lists its own conversations,
+so no reader of another program's files is kept (agent-orchestrator's
+and GOAT's break when a harness changes its format; ACP's `session/list`
+is the agent's own answer).
+
+**What Vessel already has.** `session.create` with `SessionMode::Structured
+{ resume: Some(id) }` starts the agent with `session/load` of that
+conversation, and a new session's actor keeps the load's replay as its
+records: the history becomes the session's log (`vessel run --structured
+--resume ID`). What is missing is the list.
+
+**What Vessel adds** (protocol 12, ADR 0053, no schema change):
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (read; not
+  forwardable; refused to agents: an account's other conversations are
+  not the fleet's sessions): a page of the agent's own conversations, as
+  the agent lists them over ACP. The node starts the agent as a probe
+  does (`vessel_agent`, in the probe directory, under the profile's
+  account), `initialize`, and asks `session/list { cwd?, cursor? }`;
+  `unsupported` when the agent does not advertise
+  `sessionCapabilities.list` (or `loadSession`, without which an import
+  could not load it). One page per call: the agent's own page size; the
+  node passes its `nextCursor` on as an opaque string.
+- `AgentHistoryPage { conversations: [HistoryEntry], next? }`;
+  `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?:
+  SessionId }`: `in_vessel` names the newest Vessel session already on
+  that conversation (from the node's sessions' `harness_session`), so a
+  client opens it instead of importing it twice. Titles are cut at a
+  title's bound; an entry with a relative `cwd` is left out.
+- No previews: Paseo loads every listed conversation (seconds each, up
+  to 60 s a listing) to show its first and last prompts; Vessel shows the
+  agent's title and time, and the import shows the whole conversation.
+  (Previews could come later from one `session/load` per entry a person
+  expands.)
+- **Import** is `session.create` with `resume` and the entry's `cwd` (a
+  client builds it from the entry); a folder that does not exist on the
+  node is `invalid_request` as for any session. The new session's log
+  starts with the conversation's replay; `SessionInfo.origin` is not
+  changed (an import from the agent's history is this node's own
+  session).
+- **Bounds**: one listing at a time per profile (a second waits); the
+  probe's handshake timeout bounds it; at most 200 entries kept from one
+  page.
+- **CLI**: `vessel history [AGENT] [--profile P] [--cwd DIR] [--more
+  CURSOR]` prints each conversation (id, folder, title, time, "in vessel
+  <id>"); `vessel run AGENT --structured --resume ID --cwd DIR` imports
+  (exists).
+- **Older peers**: `since 12`; nothing reaches an older peer.
+
+ADR 0053 records the choice.
+
+### 3. Rewind and fork: after the integrator's read (2026-11-13)
+
+Merged on the node line as protocol 14 (13 is N3's, published in the
+app), and taken into this branch with the line before slice 4. The
+integrator raised two points; the coordinator decided them:
+
+1. **A rewind whose old conversation does not start again either** left
+   only a warning: the agent gone, the session `running` until the loop
+   saw the agent reaped, then `exited` with no reason. Now it ends in one
+   state: `failed`, with "the rewind failed and the agent could not start
+   the conversation again (...); resume the session to go on from before
+   the rewind", its `harness_session` the one it had (no `ready` or
+   `rewound` was logged), no agent running, and the call answers
+   `spawn_failed` with the same sentence. Not parked: a wake would try
+   the same start again with nobody asking. Test: a profile whose agent
+   cannot load any conversation (`FAKE_ACP_LOAD_FAILS`) makes the fork's
+   check and the restart both fail
+   (`a_rewind_that_cannot_start_any_conversation_ends_the_session_failed`).
+2. **A fork the check refuses** stays answered at creation (the check
+   needs the agent started and a replay; holding the call that long is
+   worse). Its status says it in a person's words ("the agent did not
+   fork at the chosen point", not the transport's "the ACP handshake
+   failed: ..."), and `SessionStatus::Failed.empty_fork` (since 14,
+   absent when false) says it is a fork that never held a conversation,
+   so a screen offers to remove it; `vessel` prints that `vessel session
+   delete` removes it. The fork the agent made is deleted from its
+   history on the same connection (ACP `session/delete`; both installed
+   adapters advertise `sessionCapabilities.delete`: Claude's deletes the
+   transcript through its SDK, Codex's archives the thread), for a
+   refused check and for a fork that could not be loaded for it. An agent
+   without `session/delete` keeps it, and nothing else removes it (Vessel
+   does not write another program's files); PROTOCOL.md says so. Tests:
+   at the agent, both cases delete the fork (`fake-acp` says `deleted
+   <id>` on stderr); end to end, the refused fork's status, `empty_fork`,
+   the deletion line in its log and no conversation on it.

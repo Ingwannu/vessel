@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
+use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
 use vessel_proto::{
     EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
 };
@@ -115,8 +116,26 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             let text = render::node_status(&node, &sessions, env!("CARGO_PKG_VERSION"));
             Ok(io::out(text.as_bytes()).await?)
         }
-        NodeCommand::Pair { label, ttl } => devices::pair(target, label, ttl).await,
+        NodeCommand::Pair {
+            label,
+            ttl,
+            read_only,
+        } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
+        NodeCommand::Settings { park_after } => {
+            let client = connect(target).await?.client;
+            let settings = match park_after {
+                Some(park_after) => {
+                    client
+                        .call(SetNodeSettings {
+                            park_after: Some(park_after),
+                        })
+                        .await?
+                }
+                None => client.call(GetNodeSettings {}).await?,
+            };
+            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+        }
     }
 }
 

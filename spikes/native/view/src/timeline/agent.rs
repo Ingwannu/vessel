@@ -97,7 +97,9 @@ impl Timeline {
                     permission.outcome = Some(outcome.clone());
                 }
             }
-            AgentEvent::TurnEnded { reason, usage } => {
+            // `point` (protocol 14, where a rewind can return to) is the
+            // later rewind slice's.
+            AgentEvent::TurnEnded { reason, usage, .. } => {
                 self.turn = None;
                 self.attention = Some(record.seq);
                 self.facts.turn_usage = *usage;

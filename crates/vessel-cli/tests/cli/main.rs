@@ -180,7 +180,11 @@ async fn a_piped_prompt_shows_the_whole_reply_then_detaches() {
         assert!(attach.stdout.contains("> plain"), "{}", attach.stdout);
         assert!(attach.stdout.contains("echo: plain"), "{}", attach.stdout);
         assert!(
-            attach.stdout.contains("[turn ended: done]"),
+            // `plain`'s reply carries a message id: its turn's end is a
+            // point a fork or a rewind can start at (protocol 14).
+            attach
+                .stdout
+                .contains("[turn ended: done; fork or rewind --after "),
             "{}",
             attach.stdout
         );

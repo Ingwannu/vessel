@@ -52,6 +52,19 @@ impl Sandbox {
         .expect("git is usable")
     }
 
+    /// The node's `Git` as [`git`](Self::git) makes it, running `program`
+    /// instead of the `git` on `PATH` (a test's wrapper around it).
+    pub(crate) async fn git_through(&self, program: PathBuf) -> Git {
+        Git::probe(Some(GitSetup {
+            program,
+            no_hooks: self.temp.path().join("no-hooks"),
+            env: self.env.clone(),
+        }))
+        .await
+        .git
+        .expect("git is usable through the wrapper")
+    }
+
     /// A new repository `name` with one commit of `README.md`.
     pub(crate) fn repo(&self, name: &str) -> PathBuf {
         let dir = self.temp.path().join(name);

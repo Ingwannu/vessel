@@ -197,6 +197,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        | Method::GetFleetStatus
+        | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
         | Method::CreateSchedule
@@ -214,7 +219,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
         | Method::ParkSession
-        | Method::WakeSession => true,
+        | Method::WakeSession
+        // Protocol 12: the node's settings (the change needs `admin`).
+        | Method::GetNodeSettings
+        | Method::SetNodeSettings
+        // Protocol 14: forking and rewinding a session (ADR 0052).
+        | Method::ForkSession
+        | Method::RewindSession => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

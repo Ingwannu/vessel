@@ -3,7 +3,8 @@
 # directory with the testkit's fake harnesses (`fake-acp` as the ACP
 # adapters, `fake-tui` as the CLIs), a node book naming them, and a few
 # structured sessions with a turn each. No real agent runs and nothing
-# leaves the machine: every process has a scratch home, the nodes listen
+# leaves the machine unless a person opens the public agent registry:
+# every process has a scratch home, the nodes listen
 # on loopback ports the system picks. The same setup as the page's
 # end-to-end fleet (web/e2e/fleet.ts), in shell.
 #
@@ -17,6 +18,8 @@
 # Build the binaries first, in the repository root:
 #   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 set -euo pipefail
+umask 077
+source "$(dirname "${BASH_SOURCE[0]}")/agent-fixtures.sh"
 
 command=${1:?start or stop}
 root=${2:?a scratch directory}
@@ -48,6 +51,7 @@ free_port() {
 }
 
 python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" prepare "$root" "$target"
 
 : > "$root/pids"
 for name in laptop build-server; do
@@ -55,9 +59,12 @@ for name in laptop build-server; do
   data="$root/$name"
   home="$root/$name-home"
   mkdir -p "$home"
+  agent_fixture_bin "$root" "$target" "$name"
+  agent_fixture_config "$data"
+  node_path="$root/$name-bin:/usr/bin:/bin"
   extra=()
   if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
-  env -i PATH="$base_path" HOME="$home" RUST_LOG=info \
+  env -i PATH="$node_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
@@ -76,6 +83,10 @@ python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
 }
+
+# The schedule preview is real node behaviour, not a client calculation.
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" check "$root" "$target"
+agent_fixture_seed "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the
 # first line of the first prompt), one of them in Hangul.

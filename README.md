@@ -99,6 +99,8 @@ vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, 
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
 vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
+vessel session fork 3f2a --after 120         # a new session continuing the conversation from that turn's end
+vessel session rewind 3f2a --after 120       # take this session back to that turn's end
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
@@ -117,8 +119,16 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - `vessel sessions` shows each session's marks. `archive` stops a live
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
+- Forking and rewinding (protocol 14) start at a turn's end: `vessel log`
+  shows the number on its `turn ended` line. Only agents that can fork
+  their conversation (Claude Code and Codex through their ACP adapters
+  do); Vessel checks that the fork ends where it asked and refuses it
+  otherwise. A rewind keeps what came after in the log, and does not put
+  files back (it says how many changes it left).
 - An idle agent is parked (protocol 12): after an hour without activity
-  (`vesseld --park-after MINUTES`, 0 never) its process is stopped while
+  (`vessel node settings --park-after MINUTES|never`, kept across
+  restarts and applied at once; `vesseld --park-after` is the value of a
+  node where nobody changed it) its process is stopped while
   the session stays running, unless a turn runs, something waits on an
   answer, its queue moves, or someone follows it (a page that has it
   open, `vessel attach`). The next prompt, option change or `vessel
@@ -499,6 +509,7 @@ vessel schedule create --name nightly --cron "0 9 * * 1-5" --tz Asia/Seoul \
   --harness claude --project app --prompt "Look at last night's failures"
 vessel schedule create --every 30m --session 3f2a --prompt-file check.md
 vessel schedule list
+vessel schedule preview --cron "0 9 * * 1-5" --tz Asia/Seoul --count 5
 vessel schedule runs nightly                # what each run came to
 vessel schedule run nightly                 # once now
 vessel schedule edit nightly --cron "0 8 * * 1-5"
@@ -1196,3 +1207,11 @@ slot), shut down after five idle minutes, and retry after crashes with
 backoff. Documents, diagnostics, queues and output
 sizes are bounded. To exercise this repository through a real rust-analyzer
 and an isolated agent MCP connection, run `python3 docs/smoke/m6-lsp.py`.
+
+A schedule preview is calculated on the target node without saving or
+starting work (`vessel schedule preview --every 30m`, or `--cron` with an
+optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;
+if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
+reproducible preview; `--count` is 1–10. API callers reuse the returned
+cadence when saving so an interval keeps its preview anchor. `vessel status`
+also reports the node's time zone. ADR 0033 defines the daylight-saving rules.

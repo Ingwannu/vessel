@@ -11,7 +11,7 @@
 //! - Constraint: a file written by a newer Vessel may hold a value this one
 //!   does not know (a theme, a size past the range); the page then shows
 //!   the default for that one setting and keeps the rest.
-//! - Choice: the bridge's types and JSON, field for field; every field is
+//! - Choice: the bridge's types and JSON, plus this app's language choice; every field is
 //!   read on its own and falls back to its default when it does not parse
 //!   ([`lenient`]), as the page's first paint does. A change is one
 //!   [`PreferenceChange`], applied by [`Preferences::changed`] with the
@@ -24,6 +24,7 @@
 mod appearance;
 mod change;
 mod keys;
+mod language;
 mod send;
 
 use std::cmp::Ordering;
@@ -103,6 +104,9 @@ where
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Preferences {
+    /// The app language, or the operating system when System.
+    #[serde(deserialize_with = "lenient")]
+    pub language: crate::localization::LanguagePreference,
     /// How the app looks.
     #[serde(deserialize_with = "lenient")]
     pub appearance: Appearance,

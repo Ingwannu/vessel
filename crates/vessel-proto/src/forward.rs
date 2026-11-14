@@ -382,6 +382,8 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetFleetStatus
+            | Self::PreviewSchedule
             | Self::ListSchedules
             | Self::GetSchedule
             | Self::CreateSchedule
@@ -401,7 +403,10 @@ impl Method {
             | Self::SearchMessages
             // Parking acts on a session as a prompt does.
             | Self::ParkSession
-            | Self::WakeSession => true,
+            | Self::WakeSession
+            // Forking and rewinding act on a session as a prompt does.
+            | Self::ForkSession
+            | Self::RewindSession => true,
             // Protocol 11: adding and removing an agent is the node's own
             // administration, by its owner or its own devices (ADR 0032).
             Self::AddAgent
@@ -410,6 +415,10 @@ impl Method {
             | Self::ReadInstall
             | Self::RemoveAgent
             | Self::StopNode
+            // The node's settings (protocol 12): its own administration,
+            // read and changed by its owner and its own devices.
+            | Self::GetNodeSettings
+            | Self::SetNodeSettings
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice
@@ -429,6 +438,9 @@ impl Method {
             | Self::WatchFleet
             | Self::ReportApplied
             | Self::ListMembers
+            | Self::JoinFleet
+            | Self::LeaveFleet
+            | Self::SyncFleet
             | Self::Subscribe
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,

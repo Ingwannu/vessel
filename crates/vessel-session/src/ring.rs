@@ -192,7 +192,9 @@ fn weight(record: &EventRecord) -> usize {
         | SessionEvent::CommandsChanged { .. }
         | SessionEvent::UsageChanged { .. }
         | SessionEvent::Parked { .. }
-        | SessionEvent::Woken => 64,
+        | SessionEvent::Woken
+        | SessionEvent::Forked { .. }
+        | SessionEvent::Rewound { .. } => 64,
     }
 }
 
