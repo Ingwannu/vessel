@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import uuid
 
 
 def prepare(root: Path, _target: Path) -> None:
@@ -19,9 +20,12 @@ def check(root: Path, target: Path) -> None:
     env = {"PATH": os.environ["PATH"], "HOME": str(root),
            "VESSEL_CONFIG_DIR": str(root / "config"), "TZ": "UTC"}
     readonly_env = {**env, "VESSEL_CONFIG_DIR": str(root / "readonly-config")}
-    def call(*args: str, node: str = "laptop", data: str = "", readonly: bool = False) -> subprocess.CompletedProcess[str]:
+    def call(*args: str, node: str = "laptop", data: str = "", readonly: bool = False, config: str | None = None) -> subprocess.CompletedProcess[str]:
+        selected = readonly_env if readonly else env
+        if config is not None:
+            selected = {**env, "VESSEL_CONFIG_DIR": str(root / config)}
         return subprocess.run([str(target / "vessel"), "--node", node, *args],
-                              env=readonly_env if readonly else env, input=data, capture_output=True, text=True,
+                              env=selected, input=data, capture_output=True, text=True,
                               timeout=30, check=False)
     status = call("status")
     assert status.returncode == 0, "fake node status refused"
@@ -38,15 +42,35 @@ def check(root: Path, target: Path) -> None:
     assert viewer_zone.stdout == "2026-01-05T09:00:00+00:00\n", "default CLI zone not used"
     bad = call("schedule", "preview", "--cron", "0 0 30 2 *", "--tz", "UTC")
     assert bad.returncode != 0, "impossible schedule did not refuse"
-    def success(*args: str, node: str = "laptop", data: str = "", readonly: bool = False) -> str:
-        result = call(*args, node=node, data=data, readonly=readonly)
+    def success(*args: str, node: str = "laptop", data: str = "", readonly: bool = False, config: str | None = None) -> str:
+        result = call(*args, node=node, data=data, readonly=readonly, config=config)
         # Invitation output is deliberately never included in a failure.
         assert result.returncode == 0, f"wire fixture refused {args[0]} {args[1]}"
         return result.stdout
 
+    def pipe_invitation(sender: list[str], receiver: list[str], receive_env: dict[str, str]) -> None:
+        # Never materialize a pairing link in a string, argument or log.
+        # Popen owns the producer PID until reaped, including error cleanup.
+        producer = subprocess.Popen([str(target / "vessel"), *sender], env=env,
+                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        try:
+            assert producer.stdout is not None
+            paired = subprocess.run([str(target / "vessel"), *receiver], env=receive_env,
+                                    stdin=producer.stdout, capture_output=True, timeout=30,
+                                    check=False)
+            producer.stdout.close()
+            sent = producer.wait(timeout=30)
+            assert sent == 0 and paired.returncode == 0, "invitation pipe refused"
+        finally:
+            if producer.stdout is not None:
+                producer.stdout.close()
+            if producer.poll() is None:
+                producer.kill()
+                producer.wait()
+
     def join(label: str) -> None:
-        link = success("fleet", "invite", "--label", label)
-        success("fleet", "join", "--yes", "--grant", "none", node="build-server", data=link)
+        pipe_invitation(["--node", "laptop", "fleet", "invite", "--label", label],
+                        ["--node", "build-server", "fleet", "join", "--yes", "--grant", "none"], env)
 
     assert success("fleet", "status").splitlines()[0] == "role  home", "home role missing"
     assert success("fleet", "status", node="build-server").splitlines()[0] == "role  no fleet", "standalone role missing"
@@ -71,21 +95,38 @@ def check(root: Path, target: Path) -> None:
             break
         assert time.monotonic() < deadline, "real member apply/report did not arrive"
         time.sleep(0.1)  # Fixture deadline, never production coordination.
-    readonly_link = success("node", "pair", "--read-only", "--label", "Read-only Sync fixture")
-    # A separate book avoids duplicate identities/shadowing in the normal
-    # fleet. Select readonly-config when capturing restricted UI states.
-    paired = subprocess.run([str(target / "vessel"), "nodes", "add", "laptop", "--pair", "--yes"],
-                            env=readonly_env, input=readonly_link, text=True, capture_output=True,
-                            timeout=30, check=False)
-    assert paired.returncode == 0, "read-only fixture pairing refused"
+    # Separate books avoid duplicate identities/shadowing in the app book.
+    pipe_invitation(["--node", "laptop", "node", "pair", "--read-only", "--label", "Read-only Sync fixture"],
+                    ["nodes", "add", "laptop", "--pair", "--yes"], readonly_env)
     readonly = success("fleet", "status", readonly=True)
     assert readonly.splitlines()[0] == "role  home", "read-only role missing"
     assert label not in readonly and "build-server" not in readonly, "read-only leaked member identities"
     assert call("fleet", "sync", readonly=True).returncode != 0, "read-only sync was permitted"
     assert call("fleet", "leave", readonly=True).returncode != 0, "read-only leave was permitted"
+    for name in ["laptop", "build-server"]:
+        own = success("node", "devices", "self", node=name).splitlines()
+        assert len(own) == 2 and own[1] == "scopes  read, operate, admin", "person grant shape missing"
+        assert own[0].startswith("device  "), "paired self identity label missing"
+        uuid.UUID(own[0].removeprefix("device  "))
+    assert success("node", "devices", "self", config="operator-config") == (
+        "device  none\nscopes  read, operate, admin, sync, relay\n"), "owner self grant missing"
+    read_self = success("node", "devices", "self", readonly=True).splitlines()
+    assert len(read_self) == 2 and read_self[1] == "scopes  read", "read-only self grant missing"
+    assert read_self[0].startswith("device  "), "reader self identity label missing"
+    uuid.UUID(read_self[0].removeprefix("device  "))
+    sync_env = {**env, "VESSEL_CONFIG_DIR": str(root / "sync-only-config")}
+    pipe_invitation(["--node", "laptop", "fleet", "invite", "--label", "Sync-only self fixture"],
+                    ["nodes", "add", "laptop", "--pair", "--yes"], sync_env)
+    sync_self = success("node", "devices", "self", config="sync-only-config").splitlines()
+    assert len(sync_self) == 2 and sync_self[1] == "scopes  sync", "self without Read refused or widened"
+    assert sync_self[0].startswith("device  "), "no-Read self identity label missing"
+    uuid.UUID(sync_self[0].removeprefix("device  "))
+    assert call("status", config="sync-only-config").returncode != 0, "self granted Read"
+    assert call("node", "devices", config="sync-only-config").returncode != 0, "self granted Admin"
     (root / "wire-gap-shapes.txt").write_text(
         "timezone, ten runs, CLI zone, impossible expression: checked\n"
-        "fleet home/member/standalone, join/leave/sync, applied reports, read-only refusal: checked\n")
+        "fleet home/member/standalone, join/leave/sync, applied reports, read-only refusal: checked\n"
+        "self: paired person, local owner, reader and no-Read caller; no widened grant: checked\n")
 
 
 if __name__ == "__main__":
@@ -97,6 +138,9 @@ if __name__ == "__main__":
         sys.exit(1)
     except subprocess.TimeoutExpired:
         print(f"wire-gaps check failed: {action}: fixture command timed out", file=sys.stderr)
+        sys.exit(1)
+    except ValueError:
+        print("wire-gaps check failed: self identity shape invalid", file=sys.stderr)
         sys.exit(1)
     except OSError:
         print(f"wire-gaps check failed: {action}: fixture I/O failed", file=sys.stderr)

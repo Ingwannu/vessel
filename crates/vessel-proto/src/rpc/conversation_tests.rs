@@ -112,9 +112,24 @@ fn the_new_calls_need_protocol_ten() {
         assert_eq!(method.since(), V10, "{method:?}");
         assert!(method.forwardable(), "{method:?}");
     }
-    assert_eq!(Method::GetConversation.scope(), Scope::Read);
-    assert_eq!(Method::ReadAttachment.scope(), Scope::Read);
-    assert_eq!(Method::DeleteSession.scope(), Scope::Operate);
+    assert_eq!(
+        Method::GetConversation
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Read
+    );
+    assert_eq!(
+        Method::ReadAttachment
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Read
+    );
+    assert_eq!(
+        Method::DeleteSession
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Operate
+    );
 }
 
 #[test]

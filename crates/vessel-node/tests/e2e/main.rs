@@ -27,6 +27,8 @@ mod conversation;
 #[cfg(test)]
 mod crowd;
 #[cfg(test)]
+mod device_self;
+#[cfg(test)]
 mod fleet;
 #[cfg(test)]
 mod fleet_control;

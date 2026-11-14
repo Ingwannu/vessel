@@ -414,3 +414,11 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+The wire-gap fixture also checks `vessel node devices self`: the normal
+`config` book is paired through CLI pipes with a person's Read/Operate/Admin
+grant. `operator-config` bootstraps those invitations with local tokens and
+is never the app's book. `readonly-config` holds Read; `sync-only-config`
+can inspect its own grant without Read, but cannot read status or list
+devices. Both disposable nodes advertise loopback routes for that pairing.
+No link is typed into a display, placed in arguments or printed in checks.

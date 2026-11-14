@@ -5,7 +5,10 @@ Resumed 2026-11-14. The previous credit stop is superseded: node-side rows
 `b981f5f2`, protocol 18. Baseline gate passed: 110 suites / 1,771 passed /
 0 failed / 10 ignored, page units 417 and full Playwright 62. See the new
 row 3 contract and the final sections below; older checkpoints are history.
-Row 3 ADR is recorded before implementation. No row 3 code is built yet.
+Row 3 contract-first ADR is `5cff884e`; implementation is built. Whole root
+gate passed: 110 suites / 1,781 passed / 0 failed / 10 ignored. Final page
+E2E passed all 62, and the complete CLI fake fleet passed. Source hashes
+were unchanged during the gate. Implementation review is pending with V1.
 Review goes to V1 only; it forwards accepted work to the node integrator.
 Do not message the integrator or lead directly unless answering them.
 Keep project=vessel and machine cargo slots; every gate runs detached.
@@ -264,3 +267,53 @@ integration (`187dc847`) at a clean boundary and keep every N3 addition at 13,
 minimum unchanged. No new bump, no merge during this stop-limited session.
 G4 waits for reviewed row 2 calls/status, plus future rows 3/4. All other
 consumer waits and unimplemented rows 3-7 listed above remain unchanged.
+
+## Current row 3 handoff (supersedes earlier checkpoints)
+
+Contract-first commit: `5cff884e`. Implementation is the commit containing
+this checkpoint; its hash is added in the following documentation checkpoint.
+The node baseline is `b981f5f2`; rows 1 and 2 are integrated upstream at 13
+and 15, with fleet.published at 16. The upstream PR-without-session feature
+already exists at 13: verify its contract when reaching row 5, do not duplicate
+it. This slice provisionally adds protocol 19; MIN_PROTOCOL_VERSION stays 2.
+
+New call: `GetDeviceSelf {}` / `device.self` -> `DeviceSelf { device?:
+DeviceId, scopes: Vec<Scope> }`. Client `NodeClient::device_self()`, CLI
+`vessel node devices self`. Only a direct paired principal gets its own id;
+owner/agent/delegated return none. Scope projection uses the same admitted
+principal as the guard, including clipped/intersected/empty/no-Read grants.
+Unavailable stays unknown. The method metadata now expresses authenticated
+calls without an additional scope, and typed envelope version admission
+includes inner methods and fields. See ADR 0044 and the implementation plan.
+
+Final root: fmt, whole clippy, whole workspace test all passed, 110 suites /
+1,781 passed / 0 failed / 10 ignored (RUST_TEST_THREADS=2). TS generators both
+passed; page lint/typecheck, 417 units, build, and all 62 E2E passed. The full
+fake fleet passed CLI-only paired-person, reader and Sync-only authority
+checks plus existing schedule/fleet/conversation shapes. All seven changed
+crates have recorded compilation lines; all frozen Rust inputs are unchanged.
+Failure history, including three earlier model timer failures, is recorded
+in the implementation plan; no timeout, assertion or lint was weakened.
+
+Logs in this track's scratch directory, under `resumed/`:
+- `row3-final-{fmt,clippy,test,build,e2e,fleet}.log`, exit marker is zero.
+- `row3-final-{inputs,root-summary}.json`: 110/1781/0/10, unchanged inputs.
+- `row3-compilation-evidence.json`, `row3-typescript.log`, `row3-wire-tests.log`.
+- `row3-web-{lint,types,test,build}.log`.
+- `row3-model-diagnostic.{json,log}`, `row3-baseline-model.{json,log}`,
+  `row3-partial2-lib.log`: the earlier diagnostic failures, not waived.
+- `row3-shared-native.diff`: complete hunks of the three shared fixture files.
+- `row3-permissions-cleanup.json`: UID/GID 1000, 13 private books/token/
+  credential paths checked at 0600/0700, two verified fixture node PIDs
+  stopped and absent. Fixture umask 077 is new; production permissions are
+  unchanged. No native screen or other-OS runtime validation is claimed.
+
+Review destination is V1; it forwards accepted work to the node integrator
+and other waiting screen tracks. Every action surface, G4 Devices/Sync and
+N1 inbox need this exact call. Review has not been approved by this note.
+Next row is row 4: no-route public invitation refusal, ADR first, before
+minting an invitation, with a typed actionable error and old-peer behavior.
+Then verify integrated row 5, implement registry/version-state row 6, then
+hook row 7 only after reading ADR 0034 whole and deciding ADR 0043's security
+questions. No new native/page screen work, no direct message to integrator
+or lead unless answering them, no preview pairing or real-agent prompts.

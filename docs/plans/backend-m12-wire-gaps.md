@@ -295,3 +295,52 @@ froze all 165 built assets using the supported VESSEL_WEB_DIST override,
 then ran the full gate without asset mutation. No failure was waived and no
 product source changed to force a pass. No new feature code preceded the
 clean baseline. Keep assets stable during every subsequent Rust gate.
+
+Row 3 typed testkit authority fixtures enable an optional dependency on the
+already-pinned workspace `vessel-proto`, only with `authority-fixtures`
+(the node's dev-dependency). This keeps response fixtures typed without
+hand-written wire strings, while ordinary fake binary builds keep their
+existing dependency cost. It creates no cycle or external dependency.
+
+## Row 3 implementation and verification
+
+New request `GetDeviceSelf {}` (`device.self`) returns `DeviceSelf { device?,
+scopes }`; `NodeClient::device_self()` and `vessel node devices self` use it.
+Only a directly authenticated paired device gets its own id. Owner, agent
+and delegated responses omit the id and expose the admitted principal's
+canonical effective scopes, including an explicitly empty grant. Scopes are
+required in the response; no unavailable-query fallback infers authority.
+Ownership, agent limits and policy remain separate enforcement boundaries.
+
+The generated method table now represents an additional scope as
+`Option<Scope>`: only this method is explicitly Authenticated/None, with no
+anonymous principal. All prior methods keep their Some(scope). Envelope
+version admission includes the inner typed method and fields, so older hops
+refuse before dropping a field or dispatching an unknown call. Direct and
+forwarded old-peer fixtures cover the boundary.
+
+Root fmt, whole clippy and literal whole workspace tests passed: 110 suites,
+1,781 passed, zero failed, ten ignored, with RUST_TEST_THREADS=2. All three
+new real-node E2E tests passed in that run. TS generation passed both
+libraries; targeted protocol/RPC checks passed 182/34. Page lint, typecheck,
+417 units and build passed; all 62 page E2E and the complete CLI fake fleet
+passed. UID/GID 1000, 13 private paths checked at 0600/0700, both verified
+fixture node PIDs stopped and absent. The resume checkpoint records logs.
+Rust source hashes were unchanged throughout the full gate.
+
+Earlier targeted node units, using default test concurrency, failed three
+existing model proxy timer tests: a_full_proxy_makes_room_by_closing_tokenless_connections,
+a_harness_that_stops_reading_ends_its_call, and
+a_head_cut_off_by_its_deadline_is_answered_408. One isolated diagnostic per
+test reproduced the first failure and passed the other two; the old baseline
+binary passed the first in its isolated diagnostic. No cause is claimed from
+that comparison. All three passed in the final whole workspace run. No
+assertion, deadline or lint was weakened; these failures were not waived.
+
+Shared native changes are fixture-only: private operator bootstrap book,
+paired person app book, CLI-pipe pairing, Read-only and Sync-only self checks,
+and an owner/agent/delegated response fixture. The fixture script sets umask
+077 so newly created credential books stay private. No screen or production
+permission change belongs to this slice. Protocol 19 is provisional; the
+integrator assigns the final number, and the only new wire method is
+`device.self` with the request/response above. MIN_PROTOCOL_VERSION is 2.

@@ -82,6 +82,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::ReadEvents
         | Method::StopNode
         | Method::InviteDevice
+        | Method::GetDeviceSelf
         | Method::ListDevices
         | Method::RevokeDevice
         | Method::ListProfiles

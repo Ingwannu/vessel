@@ -123,6 +123,7 @@ impl Reply {
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
             | Self::InviteDevice(_)
+            | Self::GetDeviceSelf(_)
             | Self::ListDevices(_)
             | Self::RevokeDevice(_)
             | Self::GetManifest(_)

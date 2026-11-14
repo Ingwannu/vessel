@@ -45,6 +45,7 @@ pub mod compose;
 mod connector;
 mod conversation;
 mod credential;
+mod device_self;
 mod error;
 pub mod file_fault;
 mod fleet_control;

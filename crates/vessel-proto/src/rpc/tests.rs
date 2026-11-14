@@ -23,10 +23,10 @@ fn unit_requests_round_trip() {
 }
 
 #[test]
-fn every_method_declares_a_scope_and_admin_is_rare() {
+fn every_method_declares_authority_and_admin_is_rare() {
     let admin: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.scope() == Scope::Admin)
+        .filter(|method| method.scope() == Some(Scope::Admin))
         .map(|method| method.as_str())
         .collect();
     assert_eq!(
@@ -56,8 +56,18 @@ fn every_method_declares_a_scope_and_admin_is_rare() {
             "node.set_settings"
         ]
     );
-    assert_eq!(Method::SendInput.scope(), Scope::Operate);
-    assert_eq!(Method::ReadEvents.scope(), Scope::Read);
+    assert_eq!(
+        Method::SendInput
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Operate
+    );
+    assert_eq!(
+        Method::ReadEvents
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Read
+    );
 }
 
 #[test]
@@ -127,7 +137,12 @@ fn every_method_knows_its_first_version() {
     let v9: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == V9)
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(
         v9,
@@ -174,7 +189,11 @@ fn every_method_knows_its_first_version() {
         } else {
             Scope::Operate
         };
-        assert_eq!(method.scope(), expected, "{method:?}");
+        assert_eq!(
+            method.scope().expect("legacy method requires a scope"),
+            expected,
+            "{method:?}"
+        );
     }
 }
 
@@ -232,7 +251,12 @@ fn protocol_eleven_methods_know_their_version_and_scope() {
     let eleven: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(11))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(eleven, PROTOCOL_ELEVEN);
 }
@@ -251,7 +275,12 @@ fn protocol_twelve_methods_know_their_version_and_scope() {
     let twelve: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(12))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(twelve, PROTOCOL_TWELVE);
 }
@@ -269,7 +298,12 @@ fn protocol_fourteen_methods_know_their_version_and_scope() {
     let fourteen: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(14))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(fourteen, PROTOCOL_FOURTEEN);
 }
@@ -288,7 +322,12 @@ fn protocol_fifteen_methods_know_their_version_and_scope() {
     let fifteen: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(15))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(fifteen, PROTOCOL_FIFTEEN);
 }
@@ -301,7 +340,12 @@ fn protocol_sixteen_methods_know_their_version_and_scope() {
     let sixteen: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(16))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(sixteen, PROTOCOL_SIXTEEN);
 }
@@ -315,7 +359,12 @@ fn protocol_seventeen_methods_know_their_version_and_scope() {
     let seventeen: Vec<_> = Method::ALL
         .iter()
         .filter(|method| method.since() == ProtocolVersion::new(17))
-        .map(|method| (method.as_str(), method.scope()))
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
         .collect();
     assert_eq!(seventeen, PROTOCOL_SEVENTEEN);
 }
@@ -326,13 +375,23 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
     // when its owner asked; `relay` opens nothing but passing calls on.
     for method in Method::ALL {
         assert_eq!(
-            method.scope() == Scope::Relay,
+            method.scope() == Some(Scope::Relay),
             *method == Method::Relay,
             "{method:?}"
         );
     }
-    assert_eq!(Method::Forward.scope(), Scope::Read);
-    assert_eq!(Method::Deliver.scope(), Scope::Read);
+    assert_eq!(
+        Method::Forward
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Read
+    );
+    assert_eq!(
+        Method::Deliver
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Read
+    );
     // Every secret row is `admin`, and no row returns a value.
     for method in [
         Method::SetSecret,
@@ -340,12 +399,31 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
         Method::DeleteSecret,
         Method::CopySecret,
     ] {
-        assert_eq!(method.scope(), Scope::Admin, "{method:?}");
+        assert_eq!(
+            method.scope().expect("legacy method requires a scope"),
+            Scope::Admin,
+            "{method:?}"
+        );
     }
     // Memory is kept per account on purpose: moving it is `admin`.
-    assert_eq!(Method::ExportMemory.scope(), Scope::Admin);
-    assert_eq!(Method::ImportMemory.scope(), Scope::Admin);
-    assert_eq!(Method::ExportSession.scope(), Scope::Operate);
+    assert_eq!(
+        Method::ExportMemory
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Admin
+    );
+    assert_eq!(
+        Method::ImportMemory
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Admin
+    );
+    assert_eq!(
+        Method::ExportSession
+            .scope()
+            .expect("legacy method requires a scope"),
+        Scope::Operate
+    );
 }
 
 /// What other nodes may ask here (`Method::forwardable` says why each
@@ -359,6 +437,7 @@ const FORWARDABLE: &[&str] = &[
     "session.send",
     "session.kill",
     "session.read",
+    "device.self",
     "profile.list",
     "session.move_profile",
     "fleet.status",
@@ -511,8 +590,8 @@ fn a_forwarded_call_nests_its_inner_call() {
         "{json}"
     );
     assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);
-    // The envelope needs 6 on this connection; the inner call is checked
-    // where it is delivered.
+    // Both the envelope and this inner request need 6. Every typed hop
+    // must know an inner method and its fields before re-encoding them.
     assert_eq!(call.since(), V6);
     assert_eq!(inner.since(), V6);
 }
@@ -970,5 +1049,64 @@ fn where_a_session_came_from_is_optional_and_tagged() {
     assert_eq!(
         serde_json::from_str::<SessionInfo>(&imported).unwrap(),
         info
+    );
+}
+
+#[test]
+fn self_inspection_is_the_only_authentication_only_method() {
+    let unscoped: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.scope().is_none())
+        .copied()
+        .collect();
+    assert_eq!(unscoped, [Method::GetDeviceSelf]);
+    assert!(Method::GetDeviceSelf.forwardable());
+}
+
+#[test]
+fn typed_envelopes_require_the_inner_methods_and_fields() {
+    let query = crate::GetDeviceSelf {}.into_call();
+    let since = query.since();
+    let origin = crate::Origin {
+        node: crate::NodeId::random(),
+        by: crate::OriginBy::Owner,
+        scopes: vec![Scope::Read],
+    };
+    for envelope in [
+        Forward {
+            node: crate::NodeId::random(),
+            call: Box::new(query.clone()),
+        }
+        .into_call(),
+        RelayCall {
+            node: crate::NodeId::random(),
+            call: Box::new(query.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        Deliver {
+            call: Box::new(query),
+            origin,
+        }
+        .into_call(),
+    ] {
+        assert_eq!(envelope.since(), since);
+    }
+    let prompt = PromptSession {
+        session: crate::SessionId::random(),
+        content: vec![],
+        delivery: crate::Delivery::Queue,
+        notify: true,
+    }
+    .into_call();
+    let expected = prompt.since();
+    assert_eq!(
+        Forward {
+            node: crate::NodeId::random(),
+            call: Box::new(prompt)
+        }
+        .into_call()
+        .since(),
+        expected
     );
 }

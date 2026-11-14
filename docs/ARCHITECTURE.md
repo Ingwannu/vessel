@@ -1161,3 +1161,23 @@ available, and `fleet sync` always addresses the selected node (ADR 0044).
 The CLI's existing test-only `serde_json` dependency is now a normal one:
 encoding the already-confirmed invitation uses the protocol's formatter and
 retains its concrete error source rather than inventing a string error.
+
+## Caller authority query (N3 row 3, provisionally protocol 19)
+
+`device.self` projects the guard's admitted principal: a paired caller's own
+id and canonical effective scopes, or no device id for owner, agent and
+delegated calls. It performs no I/O and sends at most five scope values.
+`Method::scope` explicitly returns None for authentication without an extra
+scope; the generated guard remains the single admission check, with every
+legacy method retaining its scope. This is not anonymous access. Ownership,
+agent limits and profile policy remain separate checks (ADR 0044).
+
+Typed envelopes require their inner call's wire version as every hop decodes
+and re-encodes it. Clients and servers refuse old direct or routed hops
+before execution. No scope fallback is inferred for an unavailable query.
+`NodeClient::device_self` and `vessel node devices self` expose the same
+projection, with the CLI branching before Admin-only listing.
+
+`vessel-testkit` optionally depends on proto for `authority-fixtures`, enabled
+only by node tests, to share concrete `DeviceSelf` fixtures. Ordinary fake
+binaries keep that feature off. No new external crate or schema is needed.

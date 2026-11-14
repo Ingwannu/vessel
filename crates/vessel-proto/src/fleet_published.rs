@@ -110,7 +110,10 @@ mod tests {
     fn published_is_admin_not_forwarded_and_of_protocol_sixteen() {
         let call = GetPublished {}.into_call();
         let method = call.method();
-        assert_eq!(method.scope(), Scope::Admin);
+        assert_eq!(
+            method.scope().expect("legacy method requires a scope"),
+            Scope::Admin
+        );
         assert!(!method.forwardable());
         assert_eq!(call.since(), ProtocolVersion::new(16));
         let encoded = serde_json::to_string(&call).unwrap();

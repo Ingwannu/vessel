@@ -129,6 +129,8 @@ rpc_methods! {
     StopNode / stop_node / "node.stop" [Admin, 3]: StopNode => Ack;
     /// Make a pairing invitation (protocol 4).
     InviteDevice / invite_device / "device.invite" [Admin, 4]: InviteDevice => Invitation;
+    /// Inspect this authenticated connection's own effective grant.
+    GetDeviceSelf / device_self / "device.self" [Authenticated, 19]: crate::GetDeviceSelf => crate::DeviceSelf;
     /// List paired devices (protocol 4).
     ListDevices / list_devices / "device.list" [Admin, 4]: ListDevices => Vec<DeviceInfo>;
     /// Revoke a device and close its connections (protocol 4).

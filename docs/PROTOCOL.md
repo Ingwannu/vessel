@@ -30,6 +30,25 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 19 (provisional, 2026-11-14): caller authority
+
+- `device.self {}` returns `DeviceSelf { device?: DeviceId, scopes: Scope[] }`.
+  Authentication is required without an extra scope, so a caller without
+  Read can inspect its own grant. Unknown request fields are refused. Only
+  a directly paired caller gets its own id; owner/agent/delegated calls omit
+  it. Scopes are canonical, capped by the existing five-value universe, and
+  reflect the same principal checked by the guard, including agent clipping
+  and delegated intersection. No database or lifecycle policy changes.
+- This is an additive call, with minimum protocol still 2. Old direct and
+  routed hops refuse before send/dispatch. Typed envelopes now include the
+  inner call's method/field version in their requirement, since every hop
+  decodes and re-encodes it; an old hop must not drop an unknown field.
+- Method metadata's Rust `scope()` is optional: None explicitly means an
+  authenticated call with no additional grant, not anonymous access. Every
+  legacy method retains Some(scope). Scopes do not replace ownership,
+  profile policy or agent limits. Unsupported self queries remain unknown
+  authority to the caller, never an inferred full or read-only grant.
+
 ## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
 
 Nodes speak 2..=18. No method, no event, no record: one field of the

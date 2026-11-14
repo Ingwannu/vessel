@@ -333,6 +333,14 @@ impl Handler for Fake {
         ))
     }
 
+    async fn device_self(
+        &self,
+        _context: &Self::Context,
+        request: vessel_proto::GetDeviceSelf,
+    ) -> Result<vessel_proto::DeviceSelf, WireError> {
+        self.unsupported(request)
+    }
+
     async fn list_devices(
         &self,
         _context: &Context,

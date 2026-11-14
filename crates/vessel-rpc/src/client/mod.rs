@@ -71,6 +71,7 @@ impl Unary for ReadEvents {}
 impl Unary for Unsubscribe {}
 impl Unary for StopNode {}
 impl Unary for InviteDevice {}
+impl Unary for vessel_proto::GetDeviceSelf {}
 impl Unary for ListDevices {}
 impl Unary for RevokeDevice {}
 impl Unary for ListProfiles {}
@@ -285,6 +286,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::Unsubscribe
         | Method::StopNode
         | Method::InviteDevice
+        | Method::GetDeviceSelf
         | Method::ListDevices
         | Method::RevokeDevice
         | Method::ListProfiles

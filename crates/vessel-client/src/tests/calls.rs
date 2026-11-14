@@ -169,3 +169,41 @@ async fn agent_history_is_refused_locally_before_protocol_17() {
     drop(client);
     assert!(old_node.await.unwrap().is_none(), "nothing was sent");
 }
+
+#[tokio::test]
+async fn self_authority_is_refused_locally_on_an_older_direct_or_routed_connection() {
+    use vessel_proto::{GetDeviceSelf, Request as _};
+    let previous =
+        ProtocolVersion::new(GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap());
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: previous,
+                    node: node(),
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    assert!(matches!(
+        client.device_self().await,
+        Err(vessel_rpc::CallError::NotInProtocol { .. })
+    ));
+    assert!(matches!(
+        client.call_on(NodeId::random(), GetDeviceSelf {}).await,
+        Err(vessel_rpc::CallError::NotInProtocol { .. })
+    ));
+    drop(client);
+    assert!(
+        old_node.await.unwrap().is_none(),
+        "no query was sent and no authority was guessed"
+    );
+}

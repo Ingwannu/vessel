@@ -17,6 +17,7 @@
 # Build the binaries first, in the repository root:
 #   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 set -euo pipefail
+umask 077
 
 command=${1:?start or stop}
 root=${2:?a scratch directory}
@@ -30,7 +31,7 @@ if [ "$command" = stop ]; then
 fi
 
 target=${3:?the debug binaries directory}
-mkdir -p "$root/bin" "$root/config" "$root/work"
+mkdir -p "$root/bin" "$root/config" "$root/operator-config" "$root/work"
 for name in claude codex; do ln -sf "$target/fake-tui" "$root/bin/$name"; done
 # Claude Code's adapter offers what the real one sends (many models,
 # subagents with descriptions of several lines, long and Korean names, an
@@ -56,8 +57,8 @@ for name in laptop build-server; do
   data="$root/$name"
   home="$root/$name-home"
   mkdir -p "$home"
-  extra=()
-  if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
+  # Both disposable nodes advertise loopback for CLI-only pairing.
+  extra=(--public "127.0.0.1:$port")
   env -i PATH="$base_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
@@ -68,8 +69,15 @@ for name in laptop build-server; do
     sleep 0.1
   done
   echo "$name 127.0.0.1:$port" >> "$root/nodes"
-  env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
+  # The token book bootstraps invitations only; the app gets an actual
+  # paired person's credential (Read/Operate/Admin), never an owner token.
+  env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/operator-config" \
     "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
+  env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/operator-config" \
+    "$target/vessel" --node "$name" node pair --label "Fleet app client" \
+    2> "$root/$name-pair.stderr" | \
+    env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
+      "$target/vessel" nodes add "$name" --pair --yes
 done
 
 python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"

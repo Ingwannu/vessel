@@ -168,6 +168,7 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetDeviceSelf
         | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules

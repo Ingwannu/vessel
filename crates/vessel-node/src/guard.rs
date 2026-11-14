@@ -176,6 +176,7 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::GetDeviceSelf,
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
     // The node's settings: no session's.
@@ -342,6 +343,7 @@ guarded! {
     unsubscribe: Unsubscribe => Ack;
     stop_node: StopNode => Ack;
     invite_device: InviteDevice => Invitation;
+    device_self: vessel_proto::GetDeviceSelf => vessel_proto::DeviceSelf;
     list_devices: ListDevices => Vec<DeviceInfo>;
     revoke_device: RevokeDevice => Ack;
     list_profiles: ListProfiles => Vec<ProfileInfo>;

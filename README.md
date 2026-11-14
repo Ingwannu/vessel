@@ -335,6 +335,7 @@ vessel nodes add gpu-box --pair
 vessel --node gpu-box run claude
 # later, on the node (or from any admin device)
 vessel node devices
+vessel node devices self                  # this connection's own grant; no Read/Admin needed
 vessel node devices revoke 3fa9       # its open connections close
 ```
 

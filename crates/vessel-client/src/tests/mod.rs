@@ -279,6 +279,14 @@ impl Handler for FakeNode {
         ))
     }
 
+    async fn device_self(
+        &self,
+        _context: &Self::Context,
+        _request: vessel_proto::GetDeviceSelf,
+    ) -> Result<vessel_proto::DeviceSelf, WireError> {
+        Err(unsupported())
+    }
+
     async fn list_devices(
         &self,
         _context: &Context,
