@@ -16,3 +16,7 @@ composer-option-refused = { $reason ->
 # 목록이 저장해 둔 마지막 목록이고, 기기에 다시 묻지 못했을 때 목록 맨 위에
 # 흐리게 보이는 한 줄. 목록은 그대로 쓸 수 있다.
 composer-offers-stale = 이 목록을 새로 받지 못해 최신이 아닐 수 있습니다.
+
+# `/` 메뉴에서 입력한 글자에 맞는 명령이 없거나, 에이전트가 아직 명령을
+# 알리지 않았을 때의 한 줄. Paseo의 agentAutocomplete.noCommands.
+composer-commands-empty = 명령을 찾을 수 없습니다

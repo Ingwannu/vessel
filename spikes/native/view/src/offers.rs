@@ -1,6 +1,7 @@
 //! What an agent on a machine offers (its options: models, efforts,
-//! permissions modes, on/off options), kept so a control opens on the last
-//! list at once and refreshed behind it (owner word 28: "keep it, refresh
+//! permissions modes, on/off options; and its `/` commands, as its last
+//! session reported them), kept so a control or the `/` menu opens on the
+//! last list at once and refreshed behind it (owner word 28: "keep it, refresh
 //! it in the background, and show it the moment it is clicked").
 //!
 //! [Decision Log]
@@ -47,7 +48,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use vessel_proto::{HarnessRef, OptionKind, OptionValue, SessionOption};
+use vessel_proto::{AgentCommand, HarnessRef, OptionKind, OptionValue, SessionOption};
 
 /// After a good answer, opening a control does not ask again for this
 /// long (the node's own copy lasts ten minutes, so a sooner ask only reads
@@ -161,6 +162,9 @@ struct Entry {
     asked: Option<Instant>,
     /// When the last answer came, and whether it was a list.
     answered: Option<(Instant, bool)>,
+    /// The agent's `/` commands as a session of it last reported them
+    /// (`harness.options` carries none), or as kept from an earlier run.
+    commands: Option<Vec<AgentCommand>>,
 }
 
 /// Every agent's list the app knows, by machine and agent.
@@ -251,16 +255,51 @@ impl Offers {
         ask
     }
 
-    /// A list kept from an earlier run, handed over at connect. Taken only
-    /// when there is no list yet: an answer of this run is newer.
-    pub fn kept(&mut self, key: OfferKey, options: Vec<SessionOption>) -> Arrival {
+    /// What was kept from an earlier run, handed over at connect: the
+    /// options, the commands, or both. Each is taken only when there is
+    /// none yet: what this run heard is newer.
+    pub fn kept(
+        &mut self,
+        key: OfferKey,
+        options: Option<Vec<SessionOption>>,
+        commands: Option<Vec<AgentCommand>>,
+    ) -> Arrival {
         let entry = self.entries.entry(key).or_default();
-        if entry.copy.is_some() {
-            return Arrival::Same;
+        let mut arrival = Arrival::Same;
+        if let Some(options) = options
+            && entry.copy.is_none()
+        {
+            entry.copy = Some((options, Freshness::Kept));
+            entry.failed = None;
+            arrival = Arrival::Changed;
         }
-        entry.copy = Some((options, Freshness::Kept));
-        entry.failed = None;
-        Arrival::Changed
+        if let Some(commands) = commands
+            && entry.commands.is_none()
+        {
+            entry.commands = Some(commands);
+            arrival = Arrival::Changed;
+        }
+        arrival
+    }
+
+    /// The `/` commands of `key`'s agent as last known, if any.
+    #[must_use]
+    pub fn commands(&self, key: &OfferKey) -> Option<&[AgentCommand]> {
+        self.entries
+            .get(key)
+            .and_then(|entry| entry.commands.as_deref())
+    }
+
+    /// A session of `key`'s agent reported its commands: `true` when they
+    /// differ from what was known (then they are to be kept on the
+    /// device too).
+    pub fn commands_reported(&mut self, key: OfferKey, commands: &[AgentCommand]) -> bool {
+        let entry = self.entries.entry(key).or_default();
+        if entry.commands.as_deref() == Some(commands) {
+            return false;
+        }
+        entry.commands = Some(commands.to_vec());
+        true
     }
 
     /// The agent's answer for `key` at `now`. `open`: a list showing it is
@@ -317,7 +356,9 @@ impl Offers {
         let mut agents: Vec<HarnessRef> = self
             .entries
             .iter()
-            .filter(|(key, entry)| key.machine == machine && entry.copy.is_some())
+            .filter(|(key, entry)| {
+                key.machine == machine && (entry.copy.is_some() || entry.commands.is_some())
+            })
             .map(|(key, _)| key.agent.clone())
             .collect();
         agents.sort_by_key(|agent| format!("{agent:?}"));

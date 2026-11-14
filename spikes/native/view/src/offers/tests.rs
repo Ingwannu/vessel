@@ -5,8 +5,8 @@
 use std::time::{Duration, Instant};
 
 use vessel_proto::{
-    HarnessKind, HarnessRef, OptionCategory, OptionId, OptionKind, OptionValue, OptionValueId,
-    SessionOption,
+    AgentCommand, HarnessKind, HarnessRef, OptionCategory, OptionId, OptionKind, OptionValue,
+    OptionValueId, SessionOption,
 };
 
 use super::*;
@@ -395,7 +395,10 @@ fn a_kept_list_is_shown_at_once_and_refreshed_in_place() {
     let mut offers = Offers::default();
     let now = Instant::now();
     let kept = vec![models("a", &["a", "b"])];
-    assert_eq!(offers.kept(key(), kept.clone()), Arrival::Changed);
+    assert_eq!(
+        offers.kept(key(), Some(kept.clone()), None),
+        Arrival::Changed
+    );
     assert_eq!(
         offers.offered(&key()),
         Offered::Ready {
@@ -427,7 +430,7 @@ fn a_kept_list_is_shown_at_once_and_refreshed_in_place() {
 fn a_closed_list_takes_the_agents_order() {
     let mut offers = Offers::default();
     let now = Instant::now();
-    let _kept = offers.kept(key(), vec![models("a", &["a", "b"])]);
+    let _kept = offers.kept(key(), Some(vec![models("a", &["a", "b"])]), None);
     let fresh = vec![models("a", &["b", "a"])];
     assert_eq!(
         offers.answered(key(), Ok(fresh.clone()), None, now),
@@ -441,7 +444,7 @@ fn the_same_answer_is_same_and_confirms_the_list() {
     let mut offers = Offers::default();
     let now = Instant::now();
     let list = vec![models("a", &["a", "b"])];
-    let _kept = offers.kept(key(), list.clone());
+    let _kept = offers.kept(key(), Some(list.clone()), None);
     assert_eq!(
         offers.answered(key(), Ok(list.clone()), None, now),
         Arrival::Same
@@ -460,7 +463,7 @@ fn a_failed_refresh_keeps_the_list_marked_stale_until_one_succeeds() {
     let mut offers = Offers::default();
     let now = Instant::now();
     let list = vec![models("a", &["a", "b"])];
-    let _kept = offers.kept(key(), list.clone());
+    let _kept = offers.kept(key(), Some(list.clone()), None);
     assert_eq!(
         offers.answered(key(), Err("unreachable".to_owned()), None, now),
         Arrival::KeptStale
@@ -507,7 +510,10 @@ fn a_kept_list_never_replaces_an_answer_of_this_run() {
     let now = Instant::now();
     let fresh = vec![models("b", &["b"])];
     let _first = offers.answered(key(), Ok(fresh.clone()), None, now);
-    assert_eq!(offers.kept(key(), vec![models("a", &["a"])]), Arrival::Same);
+    assert_eq!(
+        offers.kept(key(), Some(vec![models("a", &["a"])]), None),
+        Arrival::Same
+    );
     assert_eq!(offers.options(&key()), Some(fresh.as_slice()));
 }
 
@@ -573,11 +579,11 @@ fn a_request_never_answered_stops_holding_back_after_its_timeout() {
 fn lists_follow_a_renamed_machine_and_leave_with_a_forgotten_one() {
     let mut offers = Offers::default();
     let list = vec![models("a", &["a"])];
-    let _kept = offers.kept(key(), list.clone());
+    let _kept = offers.kept(key(), Some(list.clone()), None);
     let codex = OfferKey::new("laptop", HarnessRef::Known(HarnessKind::Codex));
-    let _other = offers.kept(codex, list.clone());
+    let _other = offers.kept(codex, Some(list.clone()), None);
     let elsewhere = OfferKey::new("desk", HarnessRef::Known(HarnessKind::Codex));
-    let _desk = offers.kept(elsewhere.clone(), list.clone());
+    let _desk = offers.kept(elsewhere.clone(), Some(list.clone()), None);
     assert_eq!(offers.agents_on("laptop").len(), 2);
     offers.renamed("laptop", "studio");
     assert_eq!(offers.options(&key()), None);
@@ -607,7 +613,7 @@ fn two_machines_never_see_each_others_lists() {
 fn a_kept_pick_the_agent_stopped_offering_falls_back_to_the_agents_value() {
     let mut offers = Offers::default();
     let now = Instant::now();
-    let _kept = offers.kept(key(), vec![models("a", &["a", "b"])]);
+    let _kept = offers.kept(key(), Some(vec![models("a", &["a", "b"])]), None);
     let mut picks = crate::Picks::default();
     picks.pick(vessel_proto::OptionChoice {
         id: OptionId::new("model"),
@@ -631,4 +637,49 @@ fn a_kept_pick_the_agent_stopped_offering_falls_back_to_the_agents_value() {
         crate::choices_for(options, &picks).is_empty(),
         "nothing sent for it"
     );
+}
+
+fn command(name: &str) -> AgentCommand {
+    AgentCommand {
+        name: name.parse().unwrap(),
+        description: format!("{name}, as the agent says"),
+        hint: None,
+    }
+}
+
+#[test]
+fn an_agents_commands_are_kept_beside_its_options_and_reported_ones_win() {
+    let mut offers = Offers::default();
+    assert_eq!(offers.commands(&key()), None, "none known yet");
+    // Kept from an earlier run: shown before any session reports.
+    let kept = vec![command("review"), command("compact")];
+    assert_eq!(
+        offers.kept(key(), None, Some(kept.clone())),
+        Arrival::Changed
+    );
+    assert_eq!(offers.commands(&key()), Some(kept.as_slice()));
+    assert!(
+        offers.options(&key()).is_none(),
+        "commands alone are no list"
+    );
+    assert_eq!(offers.offered(&key()), Offered::Loading);
+    // A session reports the same: nothing to keep again.
+    assert!(!offers.commands_reported(key(), &kept));
+    // It reports others: they replace the kept ones and are to be kept.
+    let reported = vec![command("review"), command("init")];
+    assert!(offers.commands_reported(key(), &reported));
+    assert_eq!(offers.commands(&key()), Some(reported.as_slice()));
+    // A later hand-over does not undo what this run heard.
+    assert_eq!(offers.kept(key(), None, Some(kept)), Arrival::Same);
+    assert_eq!(offers.commands(&key()), Some(reported.as_slice()));
+    // An agent with commands counts as one the machine's connection asks.
+    assert_eq!(offers.agents_on("laptop").len(), 1);
+}
+
+#[test]
+fn an_agent_that_offers_no_commands_is_known_to_offer_none() {
+    let mut offers = Offers::default();
+    assert!(offers.commands_reported(key(), &[]));
+    assert_eq!(offers.commands(&key()), Some(&[][..]));
+    assert!(!offers.commands_reported(key(), &[]));
 }

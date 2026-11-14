@@ -24,3 +24,7 @@ composer-option-refused = { $reason ->
 # list shown is the last one kept and asking the machine again failed. One
 # sentence; the list still works.
 composer-offers-stale = This list couldn't be refreshed, so it may be out of date.
+
+# The `/` menu's one line when no command answers what is typed, or the
+# agent has offered none (yet). Paseo's agentAutocomplete.noCommands.
+composer-commands-empty = No commands found
