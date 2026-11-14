@@ -162,8 +162,8 @@ shown and a partial comparison cannot claim the commands are unchanged.
 - Done: slice 1's reviewed ADR and follow-up amendments; slice 2a's
   reviewed terminal approval contract and exhaustive web refusal.
 - Integration: node baseline `a365d295` is merged with both architecture
-  texts preserved. The merged head's whole gate is pending; the earlier
-  protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
+  texts preserved. Its root and web gates passed with no waiver or retry;
+  the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
   unassigned.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
@@ -183,7 +183,11 @@ shown and a partial comparison cannot claim the commands are unchanged.
   The existing serde
   conversion pattern is reused; the observed-listener DTO is a separate
   fact, not a declared or allocated service port.
-- Then: add the executable path and nonempty allocation block, followed by
+- Next value contract: the portable absolute executable path described in
+  ADR 0066. Both raw grammars are decoded without filesystem access or
+  native normalization; native invocation remains a later typed check.
+- Then: add the nonempty allocation block and project-relative program
+  path, followed by
   the file parser, digest, approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.

@@ -244,6 +244,44 @@ does not accept a loopback bind. Both fields are digested when the block
 is present, even though `port_script` wins at run time: editing the
 unused range is still a change to the set a person approved.
 
+#### Absolute executable paths across clients
+
+- Purpose and intent: a client must be able to read the approved path of a
+  node on another operating system. Decoding a Windows node's approval on
+  Unix must not turn a valid path into a transport error.
+- Existing constraints: `RelPath` supplies the relative-path rules. An
+  absolute path has the same byte bound (`RelPath::MAX_BYTES`), no NUL,
+  and no empty, dot or parent component. These are lexical rules; neither
+  parsing nor hashing may touch the filesystem.
+- Alternatives considered: use the decoder host's `Path::is_absolute`;
+  keep unrestricted text; or validate the raw text against both supported
+  path grammars. The first is host dependent, and `Path::components`
+  normalizes away forbidden empty and dot components. Unrestricted text
+  would move validation into every execution path.
+- Choice: `ExecPath` owns private text and records whether its lexical
+  shape is valid for Unix, Windows, or both. Serialization uses that text
+  unchanged. At invocation the node accepts its own grammar or returns a
+  typed platform refusal before spawning; accepting a remote path for
+  inspection does not make that path executable on the local machine.
+- Windows grammar: drive plus root, UNC server/share, and verbatim and
+  device namespace roots follow the forms described by Rust's
+  [path prefixes](https://doc.rust-lang.org/std/path/enum.Prefix.html).
+  A root must be followed by a program component. Ordinary Windows paths
+  use either separator; verbatim paths use backslashes. Unix uses `/`;
+  a backslash there may be a literal filename character. Each grammar
+  checks the original components, before normalization.
+- Why this choice: the same decoder can carry a remote node's literal
+  approval text without changing its meaning according to the client's
+  host. Rust's [path documentation](https://doc.rust-lang.org/std/path/struct.Path.html#method.components)
+  explains why a native component iterator cannot enforce this contract.
+- Costs and effects: a well-formed foreign path can be inspected but is
+  refused at invocation on an incompatible node. Filesystem existence,
+  executable format and symlink resolution remain execution checks;
+  approval still does not pin the file's bytes. An absolute Windows UNC
+  path can reach a network share with the node user's credentials, just
+  as an absolute local path can reach an executable outside the project.
+  No new dependency or crate edge is needed.
+
 The service's environment, when it is started, gains `VESSEL_PORT` for
 its own port and `VESSEL_SERVICE_<NAME>_PORT` for every service in the
 file, itself included. `<NAME>` is Paseo's `normalizeServiceEnvName`
