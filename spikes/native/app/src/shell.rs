@@ -246,8 +246,9 @@ impl Shell {
                 self.records(&session, &records, cx);
                 // Track P: a session's reported `/` commands kept for its agent.
                 self.offers_commands_seen();
+                self.composer_files_seen(cx);
             }
-            Event::Started(card) => self.started(&card, cx),
+            Event::Started(card) => self.started_with_files(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),

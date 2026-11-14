@@ -69,7 +69,7 @@ impl Areas {
             shortcuts: shortcuts::ShortcutListener::new(cx),
             sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
-            composer: composer::ComposerArea::default(),
+            composer: composer::ComposerArea::new(cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, window, cx);
