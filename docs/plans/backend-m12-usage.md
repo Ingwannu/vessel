@@ -546,3 +546,13 @@ unverified. No service, live file permission or deployment changed.
 The fake UI served the current static JavaScript and favicon byte for byte.
 All five recorded fake-fleet processes were gone after teardown; no virtual
 display was started. Both local Cargo build configurations remain local.
+
+### Quota continuation contract (implementation pending)
+
+ADR 0042 now fixes the next node contract: cached `usage.limits` reads,
+operate-only explicit refresh, admin-only `usage.lookup`, a launch-pinned
+session association, current-profile account selection, token-wide vendor
+cooldown and cancellation-safe ownership of every blocking phase. No new
+wire or executable implementation is included in this contract commit.
+The next implementation must prove these boundaries against synthetic
+vendor-shaped testkit data; live credentials and endpoints remain excluded.
