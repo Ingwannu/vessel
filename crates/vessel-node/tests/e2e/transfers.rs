@@ -143,7 +143,6 @@ impl Source {
     async fn start(fixture: &Fixture, client: &NodeClient, alt: &Path) -> Self {
         let mut spec = structured_spec(fixture, None);
         spec.profile = Some(name("claude-alt"));
-        spec.labels = serde_json::from_str(r#"{"env":"transfer"}"#).unwrap();
         let id = client.create_session(spec).await.unwrap().id;
         let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
         let mut seen = Vec::new();
@@ -297,11 +296,6 @@ async fn resumed(
     let copy = imported.session.unwrap();
     assert_eq!(copy.profile, Some(name("claude-work")));
     assert_eq!(copy.title, Some(moved_title()), "it keeps its name");
-    assert_eq!(
-        copy.labels.summary(),
-        "env=transfer",
-        "labels copy with the conversation"
-    );
     assert_eq!(
         copy.origin,
         Some(SessionOrigin::Imported {

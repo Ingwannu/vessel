@@ -2,7 +2,8 @@
 
 Labels, a background listing, a live reload, and selectors on `vessel log`.
 The decision is ADR 0063. The protocol number is the one given at merge.
-Calls and fields are gated on `lifecycle_version::SINCE`; this branch does not
+Calls and fields use `lifecycle_version::SINCE: Option<ProtocolVersion>`,
+which remains `None` until integration; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
@@ -150,10 +151,8 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 No external crate. The standard library and the types above hold the
 bounds, the map and the timestamps.
 
-The existing row decoder also reuses each wire type's serde validator for
-bare text columns through a consuming string deserializer. This retains
-column-specific corruption errors without JSON tree adapters, and keeps
-the session row mapping short as the current-label column is added.
+The legacy text-column decoder cleanup is a separate refactor, with its
+own review and quality-inventory update. It is not part of label behavior.
 
 The larger creation payload is boxed only inside the existing RPC driver's
 command queue, matching its already boxed session subject. A small command
@@ -204,11 +203,11 @@ No row of the crate table changes.
 
 ## Tests the contract requires
 
-- A key of 64 scalars is kept; 65, empty, U+0000, the C1 character
+- A key at `LabelKey::MAX_CHARS` is kept; one scalar over it, empty, U+0000, the C1 character
   U+0085, `=`, and `vessel.` are `invalid_request` and write nothing.
-- A value of 256 is kept; 257, a newline, or U+0085 is refused. An empty
+- A value at `LabelValue::MAX_CHARS` is kept; one scalar over it, a newline, or U+0085 is refused. An empty
   value is kept.
-- The 33rd label is refused and the previous 32 stay.
+- Adding beyond `SessionLabels::MAX` is refused and the previous map stays.
 - A patch changes the keys it names and no other. `{}` is refused.
 - `session.list` with two pairs returns only a session that has both.
   `params: null` still decodes.
@@ -231,25 +230,30 @@ No row of the crate table changes.
 ## Resume point
 
 - Integration checkpoint: the named node head is merged without rewriting
-  prior commits. Its usage ledger migration and existing compatibility cases
-  remain; the provisional labels migration follows the head migration list.
-  The unassigned-protocol correction and extracted decoder refactor are next;
-  the merged code is not yet verified by a whole gate.
-
-- Done: slice 1 contract; slice 2a validating types and its review
-  corrections: `labels.rs` owns only validated labels and map operations;
-  bound messages use constants; the command-line refusal lands with its
-  parser. Discovery requests and the version floor have separate modules.
-- Slice 2b adds only creation/current fields, their separate storage,
-  import copying and older-peer projections for every nested session and
-  template. `lifecycle_version::SINCE` stays at the base pending assignment at
-  merge; `PROTOCOL_VERSION` stays unchanged. No new call or event yet.
-- Focused verification passed for creation/restart/import, both old-peer
-  directions and nested reply projections, typed stored metadata and legacy
-  text-column decoding. Wire declarations are generated. The whole commit
-  gate is next; the focused checks are not a whole-workspace claim.
-- Half-done: subsequent label slices remain drafts: 2c list filtering,
-  2d actor-serialized patches and their RPC/event, 2e CLI and MCP ingress.
-  Each has its own tests; no later feature is enabled by this slice.
-- Next: gate and report 2b, then finish 2c through 2e, before background.
+  prior commits. Its usage ledger and shared compatibility cases remain.
+- Done: slice 1 contract and reviewed slice 2a validating types. Bounds,
+  diagnostics and boundary tests use each type's named constants.
+- Slice 2b keeps creation/current labels separately in durable storage.
+  Its correction leaves `lifecycle_version::SINCE` unassigned (`None`),
+  hiding both maps at the current protocol in direct replies, lists,
+  subscriptions, saved/scheduled specs, transfers and forwarded replies.
+  Event pages have no label-bearing record until the later event slice.
+- Existing session/prompt/schedule creation and updates refuse labelled
+  specs before lookup, writes or spawning. Starting imports refuse labelled
+  metadata before placing files or starting a session. Storage and internal
+  services retain the metadata even while no peer can see it.
+- The shared `required_protocol()` accessor is owned by the protocol layer.
+  Until its integration, the node ingress guard provides the typed refusal;
+  no new registered call or client gating mechanism is introduced here.
+- `LABELS_SCHEMA` derives the provisional append from the head migration count;
+  integration assigns it. Existing rollback cases keep their original names;
+  the label-column rollback is separate and copies no ordinal.
+- Half-done: list filtering, actor patches/RPC/event, CLI and MCP ingress
+  remain protected drafts. They cannot register calls before the shared gate.
+- Verification: both prebuilds, the type/projection tests and RPC protocol
+  tests passed. A lost test-module path at merge was fixed; the remaining
+  checks run in the exact corrective commit's whole gate. No completed
+  whole-gate claim is made for this correction yet.
+- Next: finish the corrective gate and report it, then land the text-column
+  decoder refactor separately before the remaining labels slices.
   Windows, macOS and real harnesses remain unverified locally.

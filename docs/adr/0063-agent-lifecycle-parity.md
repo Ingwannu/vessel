@@ -50,7 +50,7 @@ written below.
 - Agents may call `session.rename` and `session.create`. They may not
   call a method until `workspace/policy.rs` names them. Every new method
   also has to decide `forwardable`, `Call::since`, and `Reply::for_protocol`.
-- The store's schema is 14. A migration is appended, never edited.
+- The store's migration list is authoritative. A migration is appended, never edited.
   `PROTOCOL_VERSION` stays that base. Minimum stays 2. `lifecycle_version::SINCE`
   is the only new version this track names, and its value is assigned
   at merge.
@@ -90,16 +90,31 @@ next schema append (when the code lands) stores the current labels and
 the listing. `PROTOCOL.md` is updated in the commit that the integrator
 uses to publish the number, not in this one.
 
+### Protocol assignment
+
+`lifecycle_version::SINCE` is `Option<ProtocolVersion>` and remains `None`
+until all documented client consumers can validate, show and edit metadata.
+Unassigned fields are omitted for every peer, including the current version;
+after assignment, only peers at or above the assigned version receive them.
+Both current and creation maps remain in durable storage independently.
+
+The shared `required_protocol()` gate will refuse unassigned calls and fields
+before sending and at dispatch. Until that accessor is integrated, existing
+session/prompt/schedule inputs carrying labels receive a typed `unsupported`
+refusal at the node before work. A starting import has the same guard on its
+source metadata before export/placement. No new method is registered meanwhile.
+This explicit refusal avoids silently accepting data that no client can see.
+
 ### Labels
 
 A label is a `LabelKey` and a `LabelValue`. A key is trimmed, then 1 to
-64 Unicode scalars, containing neither `=` nor any character for which
-`char::is_control` is true. A value is not trimmed, 0 to 256 scalars,
+`LabelKey::MAX_CHARS` Unicode scalars, containing neither `=` nor any character for which
+`char::is_control` is true. A value is not trimmed, at most `LabelValue::MAX_CHARS` scalars,
 and likewise contains no character for which `char::is_control` is true.
 That is the same refusal `SessionTitle` already uses
 (`crates/vessel-proto/src/title.rs`, `FromStr`): every control,
 including the C1 controls U+0080 to U+009F. A
-session holds at most 32, in a `SessionLabels` map ordered by key. A
+session holds at most `SessionLabels::MAX`, in a `SessionLabels` map ordered by key. A
 key starting with `vessel.` is reserved and refused. Anything else is
 `invalid_request` naming the key, before a session is created or a row
 written.
@@ -142,7 +157,8 @@ field. The node includes background sessions in that peer's list and
 rewrites each `SessionInfo` so the listing reads `shown` and the labels
 are absent. A current client does not send `scope: all`, a label
 filter, a background listing or any labels to an older node
-(`Call::since` is `lifecycle_version::SINCE` when any of those is present).
+(the shared `required_protocol()` accessor returns the assigned threshold,
+or `None` while the feature is unassigned).
 `params: null` keeps decoding as the default request.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
@@ -258,10 +274,11 @@ Vessel does not copy it.
 
 - Labels have no maximum in Paseo's schema (`messages.ts:915`,
   `labels: z.record(z.string(), z.string()).default({})`). Vessel caps a
-  key at 64 scalars, a value at 256, and a session at 32, and refuses
+  key at `LabelKey::MAX_CHARS`, a value at `LabelValue::MAX_CHARS`,
+  and a session at `SessionLabels::MAX`, and refuses
   `=` and every character for which `char::is_control` is true, the same
   check `SessionTitle` uses, including the C1 controls. Reason: a pairing
-  label is already bounded at 64 scalars, and an unbounded map is a reply
+  label already has its own scalar bound, and an unbounded map is a reply
   the other list calls refuse rather than cut. A control the title
   refuses must not reach the same list through a label.
 - Paseo's wire map is raw strings (`messages.ts:915,993`), and run
@@ -331,8 +348,7 @@ and a listing fit the title's split between "what was asked" and "what
 is true now". Reload fits the stop and `session/load` a move and a wake
 already trust, without taking over their failure rules. The log's new
 flags sit on the printer, so the protocol does not grow a second read.
-The bounds are a floor Paseo does not have: a pairing label is already
-64 scalars, and an unbounded map would be a reply past the budget the
+The bounds are a floor Paseo does not have: a pairing label already has a scalar bound, and an unbounded map would be a reply past the budget the
 other list calls refuse rather than truncate.
 
 ## Advantages, costs and effects

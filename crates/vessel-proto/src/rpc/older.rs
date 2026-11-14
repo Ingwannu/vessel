@@ -143,6 +143,7 @@ impl Reply {
             Self::ForkSession(session) => info(session).map(Self::ForkSession),
             Self::RewindSession(session) => info(session).map(Self::RewindSession),
             Self::ExportSession(value) => labels::exported(value, protocol).map(Self::ExportSession),
+            Self::ExportMemory(value) => labels::exported(value, protocol).map(Self::ExportMemory),
             Self::ImportSession(value) => labels::imported(value, protocol).map(Self::ImportSession),
             Self::ListPrompts(value) => labels::prompts(value, protocol).map(Self::ListPrompts),
             Self::CreatePrompt(value) => labels::prompt(value, protocol).map(Self::CreatePrompt),
@@ -172,7 +173,6 @@ impl Reply {
             | Self::ListPeers(_)
             | Self::ListNodes(_)
             | Self::ForgetNode(_)
-            | Self::ExportMemory(_)
             | Self::ImportMemory(_)
             | Self::ReadTransfer(_)
             | Self::CloseTransfer(_)
@@ -297,11 +297,20 @@ fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<Forwarded>
 
 impl SessionInfo {
     /// This session as a peer speaking `protocol` reads it, or `None` when
-    /// it needs no change. Older peers receive neither label map; version
+    /// it needs no change. Unassigned or older peers receive neither label map; version
     /// 8-9 peers also keep an ended session in their archive placement.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        let strip = protocol.get() < crate::lifecycle_version::SINCE
+        self.for_protocol_with_labels(protocol, crate::lifecycle_version::SINCE)
+    }
+
+    /// One projection rule also exercised with a synthetic assigned threshold.
+    pub(crate) fn for_protocol_with_labels(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        let strip = !crate::lifecycle_version::visible(assigned, protocol)
             && (!self.labels.is_empty() || !self.spec.labels.is_empty());
         let archive = protocol < ENDED_OUTSIDE_THE_ARCHIVE && !self.status.is_live();
         if !strip && !archive {
@@ -419,5 +428,20 @@ mod tests {
                 event: AgentEvent::HarnessLog { .. }
             }
         ));
+    }
+    #[test]
+    fn an_assigned_label_threshold_keeps_both_maps_only_for_supported_peers() {
+        let labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+        let mut info = exited();
+        info.labels = labels;
+        info.spec.labels = info.labels.clone();
+        let peer = crate::PROTOCOL_VERSION;
+        let hidden = info.for_protocol(peer).unwrap();
+        assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
+        assert!(info.for_protocol_with_labels(peer, Some(peer)).is_none());
+        let older = ProtocolVersion::new(peer.get().saturating_sub(1));
+        let hidden = info.for_protocol_with_labels(older, Some(peer)).unwrap();
+        assert!(hidden.labels.is_empty() && hidden.spec.labels.is_empty());
+        assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }
 }

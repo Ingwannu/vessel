@@ -118,6 +118,9 @@ pub(crate) enum ServiceError {
     /// Side creation inherits a spec or returns an existing side; it cannot apply overrides.
     #[error("creation labels cannot override a side question's inherited spec")]
     SideCreationLabels,
+    /// No protocol has published the label metadata yet.
+    #[error("session labels have no assigned protocol version")]
+    LabelsUnassigned,
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -431,7 +434,9 @@ impl ServiceError {
             | Self::UnknownRoute { .. }
             | Self::ProfileHarness { .. } => ErrorCode::InvalidRequest,
             Self::DidNotStart { .. } => ErrorCode::SpawnFailed,
-            Self::MoveRoute { .. } | Self::NotAPoint { .. } => ErrorCode::Unsupported,
+            Self::MoveRoute { .. } | Self::NotAPoint { .. } | Self::LabelsUnassigned => {
+                ErrorCode::Unsupported
+            }
             Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),

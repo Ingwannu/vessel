@@ -55,9 +55,12 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields
-                    .max(added(Some(&spec.harness)))
-                    .max((!spec.labels.is_empty()).then_some(crate::lifecycle_version::SINCE))
+                fields.max(added(Some(&spec.harness))).max(
+                    (!spec.labels.is_empty())
+                        .then_some(crate::lifecycle_version::SINCE)
+                        .flatten()
+                        .map(ProtocolVersion::get),
+                )
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -259,9 +262,12 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
 
 fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
     spec.and_then(|spec| {
-        spec.side_question_of
-            .map(|_| 19)
-            .max((!spec.labels.is_empty()).then_some(crate::lifecycle_version::SINCE))
+        spec.side_question_of.map(|_| 19).max(
+            (!spec.labels.is_empty())
+                .then_some(crate::lifecycle_version::SINCE)
+                .flatten()
+                .map(ProtocolVersion::get),
+        )
     })
 }
 

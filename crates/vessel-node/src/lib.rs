@@ -77,6 +77,7 @@ mod guard;
 mod identity;
 mod install;
 mod ipc;
+mod label_ingress;
 mod lifecycle;
 mod lsp;
 mod lsp_config;

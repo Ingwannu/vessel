@@ -55,6 +55,7 @@ impl NodeService {
         connection: &Connection,
         request: CreateSession,
     ) -> Result<SessionInfo, WireError> {
+        crate::label_ingress::spec(&request.spec)?;
         self.create(connection, request.spec, None).await
     }
 

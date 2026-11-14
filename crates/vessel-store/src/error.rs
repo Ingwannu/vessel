@@ -50,7 +50,7 @@ pub enum Column {
     Queue,
     /// The bounded latest plan (schema 14, ADR 0045).
     LatestPlan,
-    /// `sessions.labels` (a `SessionLabels`, schema 15, ADR 0063).
+    /// `sessions.labels` (a `SessionLabels`, the labels migration, ADR 0063).
     Labels,
 }
 

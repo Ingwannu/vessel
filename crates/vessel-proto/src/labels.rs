@@ -1,10 +1,10 @@
 //! Validated session labels and bounded map operations (ADR 0063).
 //! Wire versioning, discovery requests and session lifecycle belong elsewhere.
 //!
-//! A key is trimmed, one to 64 scalars, with no `=` and no character for
-//! which `char::is_control` is true (the same refusal as [`SessionTitle`],
-//! including C1). A value is not trimmed, at most 256 scalars, same control
-//! rule. A session holds at most 32. The `vessel.` prefix is reserved.
+//! Keys are trimmed and use [`LabelKey::MAX_CHARS`]; values retain their
+//! whitespace and use [`LabelValue::MAX_CHARS`]. Both reject control
+//! characters, including C1. The map cap is [`SessionLabels::MAX`]. Keys
+//! cannot contain `=` and the `vessel.` prefix is reserved.
 //!
 //! [`SessionTitle`]: crate::title::SessionTitle
 
@@ -300,14 +300,21 @@ mod tests {
 
     #[test]
     fn bounds_equals_and_the_reserved_prefix_are_refused() {
-        assert!("한".repeat(64).parse::<LabelKey>().is_ok());
+        assert!("한".repeat(LabelKey::MAX_CHARS).parse::<LabelKey>().is_ok());
         assert!(matches!(
-            "a".repeat(65).parse::<LabelKey>(),
+            "a".repeat(LabelKey::MAX_CHARS.saturating_add(1))
+                .parse::<LabelKey>(),
             Err(InvalidLabel::KeyTooLong)
         ));
-        assert!("값".repeat(256).parse::<LabelValue>().is_ok());
+        assert!(
+            "값"
+                .repeat(LabelValue::MAX_CHARS)
+                .parse::<LabelValue>()
+                .is_ok()
+        );
         assert!(matches!(
-            "v".repeat(257).parse::<LabelValue>(),
+            "v".repeat(LabelValue::MAX_CHARS.saturating_add(1))
+                .parse::<LabelValue>(),
             Err(InvalidLabel::ValueTooLong)
         ));
         assert!(matches!(
@@ -322,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn a_patch_replaces_named_keys_and_refuses_an_empty_one_or_a_33rd() {
+    fn a_patch_replaces_named_keys_and_refuses_empty_or_overflow() {
         let current = labels(&[("a", "1"), ("b", "2")]);
         let patched = current.apply(&labels(&[("b", "3"), ("c", "4")])).unwrap();
         assert_eq!(patched, labels(&[("a", "1"), ("b", "3"), ("c", "4")]));
@@ -332,27 +339,27 @@ mod tests {
         );
         assert_eq!(InvalidLabel::Empty.to_string(), "nothing to update");
         let mut full = SessionLabels::new();
-        for index in 0..32 {
+        for index in 0..SessionLabels::MAX {
             full.insert(
                 format!("k{index:02}").parse().unwrap(),
                 "v".parse().unwrap(),
             )
             .unwrap();
         }
-        assert_eq!(full.0.len(), 32);
+        assert_eq!(full.0.len(), SessionLabels::MAX);
         let before = full.clone();
         let err = full.apply(&labels(&[("new", "x")])).unwrap_err();
         assert!(matches!(err, InvalidLabel::TooMany));
         assert_eq!(full, before);
         full.insert("k00".parse().unwrap(), "z".parse().unwrap())
             .unwrap();
-        assert_eq!(full.0.len(), 32);
+        assert_eq!(full.0.len(), SessionLabels::MAX);
     }
 
     #[test]
-    fn thirty_three_labels_do_not_decode_and_a_filter_is_a_logical_and() {
+    fn overflow_does_not_decode_and_a_filter_is_a_logical_and() {
         let mut object = serde_json::Map::new();
-        for index in 0..33 {
+        for index in 0..SessionLabels::MAX.saturating_add(1) {
             let _replaced = object.insert(
                 format!("k{index:02}"),
                 serde_json::Value::String("v".to_owned()),

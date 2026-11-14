@@ -1316,7 +1316,8 @@ RPC, external dependency, persistent state or ownership rule is introduced.
 `vessel-proto::labels` validates the bounded label map before creation.
 `SessionSpec.labels` retains what creation asked; `SessionInfo.labels`
 starts with it, while the store keeps a distinct current-label column.
-Import copies that current map. Older peers receive infos without labels,
+Import copies that current map. While the protocol is unassigned, every peer
+receives infos without labels; after assignment, older peers do,
 including nested transfer replies and saved/scheduled session specs. One
-version constant is assigned at integration; no dependency edge changes.
+optional version constant is assigned at integration; no dependency edge changes.
 Filtering and patch/event ingress follow in the next slices.

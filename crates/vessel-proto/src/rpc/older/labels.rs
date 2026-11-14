@@ -1,11 +1,13 @@
 //! Rewrites label metadata nested in transfers and reusable session specs.
-//! The reply encoder is the only caller; storage and current peers keep it.
+//! The reply encoder is the only caller; storage keeps it independently of protocol assignment.
 
 use crate::automation::{PromptList, SavedPrompt, ScheduleInfo, ScheduleList, ScheduleTarget};
 use crate::{ProtocolVersion, SessionImported, SessionSpec, TransferDetail, TransferManifest};
 
 fn spec(value: &SessionSpec, protocol: ProtocolVersion) -> Option<SessionSpec> {
-    (protocol.get() < crate::lifecycle_version::SINCE && !value.labels.is_empty()).then(|| {
+    (!crate::lifecycle_version::visible(crate::lifecycle_version::SINCE, protocol)
+        && !value.labels.is_empty())
+    .then(|| {
         let mut older = value.clone();
         older.labels.clear();
         older
@@ -111,24 +113,24 @@ mod tests {
 
     fn assert_older(reply: &Reply) {
         assert!(serde_json::to_string(reply).unwrap().contains("labels"));
-        let older = ProtocolVersion::new(crate::lifecycle_version::SINCE.checked_sub(1).unwrap());
+        let older = crate::PROTOCOL_VERSION;
         let projected = reply.for_protocol(older).unwrap();
         assert!(
             !serde_json::to_string(&projected)
                 .unwrap()
                 .contains("labels")
         );
-        assert!(
-            reply
-                .for_protocol(ProtocolVersion::new(crate::lifecycle_version::SINCE))
-                .is_none()
-        );
     }
 
     #[test]
-    fn every_existing_session_reply_strips_both_label_maps() {
+    fn every_info_reply_hides_unassigned_labels_at_the_current_protocol() {
         let info = info();
         for reply in [
+            Reply::ListSessions(vec![info.clone()]),
+            Reply::Subscribe(crate::Subscribed {
+                subscription: crate::SubscriptionId::new(1),
+                info: info.clone(),
+            }),
             Reply::GetSession(info.clone()),
             Reply::CreateSession(info.clone()),
             Reply::MoveProfile(info.clone()),
@@ -147,10 +149,10 @@ mod tests {
     }
 
     #[test]
-    fn transfer_metadata_is_also_rewritten() {
+    fn both_transfer_replies_hide_unassigned_labels_at_the_current_protocol() {
         let info = info();
         let harness_session = HarnessSessionId::new("fake-session");
-        assert_older(&Reply::ExportSession(TransferManifest {
+        let manifest = TransferManifest {
             transfer: TransferId::random(),
             files: std::collections::BTreeMap::new(),
             detail: TransferDetail::Session {
@@ -159,7 +161,10 @@ mod tests {
                 cwd: "/work".into(),
                 options: Vec::new(),
             },
-        }));
+        };
+        assert_older(&Reply::ExportSession(manifest.clone()));
+        assert_older(&Reply::ExportMemory(manifest));
+
         assert_older(&Reply::ImportSession(SessionImported {
             harness_session,
             profile: None,
@@ -170,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn saved_and_scheduled_specs_do_not_leak_new_fields_to_old_peers() {
+    fn saved_and_scheduled_specs_hide_unassigned_labels_at_the_current_protocol() {
         let spec = info().spec;
         let saved = SavedPrompt {
             id: crate::SavedPromptId::random(),
@@ -197,7 +202,10 @@ mod tests {
             definition: crate::automation::ScheduleDefinition {
                 name: None,
                 cadence: crate::automation::Cadence::Every {
-                    seconds: crate::automation::EverySeconds::try_from(60).unwrap(),
+                    seconds: crate::automation::EverySeconds::try_from(
+                        crate::automation::EverySeconds::MIN,
+                    )
+                    .unwrap(),
                     anchor: None,
                 },
                 target: ScheduleTarget::NewSession {
@@ -228,6 +236,23 @@ mod tests {
             Reply::ResumeSchedule(schedule.clone()),
             Reply::ListSchedules(ScheduleList {
                 schedules: vec![schedule],
+            }),
+        ] {
+            assert_older(&reply);
+        }
+    }
+    #[test]
+    fn forwarded_relayed_and_delivered_lists_hide_unassigned_labels() {
+        let list = Reply::ListSessions(vec![info()]);
+        for reply in [
+            Reply::Forward(crate::Forwarded {
+                reply: Box::new(list.clone()),
+            }),
+            Reply::Relay(crate::Forwarded {
+                reply: Box::new(list.clone()),
+            }),
+            Reply::Deliver(crate::Forwarded {
+                reply: Box::new(list),
             }),
         ] {
             assert_older(&reply);

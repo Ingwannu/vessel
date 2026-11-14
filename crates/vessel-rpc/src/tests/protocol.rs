@@ -281,73 +281,11 @@ fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
     ]
 }
 
-fn labeled_creation_calls() -> [Call; 2] {
-    let labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
-    let call = CreateSession {
-        spec: spec().with_labels(labels),
-    }
-    .into_call();
-    [
-        call.clone(),
-        vessel_proto::Forward {
-            node: NodeId::random(),
-            call: Box::new(call),
-        }
-        .into_call(),
-    ]
-}
-
-#[tokio::test]
-async fn creation_labels_are_refused_before_an_older_server_dispatches() {
-    let previous = vessel_proto::lifecycle_version::SINCE
-        .checked_sub(1)
-        .unwrap();
-    let (mut raw, mut served) = raw_client(previous).await;
-    for (index, call) in labeled_creation_calls().into_iter().enumerate() {
-        let response = call_raw(&mut raw, u64::try_from(index).unwrap(), call).await;
-        assert_eq!(refusal(&response).code, ErrorCode::Unsupported);
-    }
-    assert!(served.seen.try_recv().is_err());
-}
-
-#[tokio::test]
-async fn creation_labels_are_never_sent_to_an_older_node() {
-    let previous = vessel_proto::lifecycle_version::SINCE
-        .checked_sub(1)
-        .unwrap();
-    let (client, mut server_end) = older_node(ProtocolVersion::new(previous)).await;
-    for call in labeled_creation_calls() {
-        let call = UnaryCall::try_from(call).unwrap();
-        assert!(matches!(
-            client.call_any(call).await,
-            Err(CallError::NotInProtocol { .. })
-        ));
-    }
-    // A permitted call is a barrier: it must be the first frame after Hello.
-    let permitted = async {
-        let request: ClientFrame =
-            serde_json::from_str(&server_end.next().await.unwrap().unwrap()).unwrap();
-        let ClientFrame::Request { id, call } = request else {
-            panic!("expected node info");
-        };
-        assert_eq!(call, GetNode.into_call());
-        let response = ServerFrame::Response {
-            id,
-            outcome: Outcome::Ok(vessel_proto::Reply::NodeInfo(node())),
-        };
-        server_end
-            .send(serde_json::to_string(&response).unwrap())
-            .await
-            .unwrap();
-    };
-    let (reply, ()) = tokio::join!(client.call(GetNode), permitted);
-    let _node = reply.unwrap();
-}
-
 #[tokio::test]
 async fn malformed_creation_labels_are_refused_before_dispatch() {
-    let (mut raw, mut served) = raw_client(vessel_proto::lifecycle_version::SINCE).await;
-    let too_many: std::collections::BTreeMap<_, _> = (0..33)
+    let (mut raw, mut served) = raw_client(vessel_proto::PROTOCOL_VERSION.get()).await;
+    let too_many: std::collections::BTreeMap<_, _> = (0..vessel_proto::SessionLabels::MAX
+        .saturating_add(1))
         .map(|index| (format!("key{index}"), "value"))
         .collect();
     let maps = [
@@ -356,7 +294,7 @@ async fn malformed_creation_labels_are_refused_before_dispatch() {
         serde_json::json!({"a=b": "v"}),
         serde_json::json!({"\u{0085}": "v"}),
         serde_json::json!({"a": "\u{0085}"}),
-        serde_json::json!({"a": "x".repeat(257)}),
+        serde_json::json!({"a": "x".repeat(vessel_proto::LabelValue::MAX_CHARS.saturating_add(1))}),
         serde_json::json!({"a": null}),
         serde_json::json!(too_many),
     ];
