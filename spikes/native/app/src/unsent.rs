@@ -27,7 +27,9 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
+use vessel_app_link::attachments::{Files, Step, WithFiles};
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
+use vessel_app_view::composer::tray::{self, Again};
 use vessel_app_view::machine_book::Failure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::{ErrorCode, SessionId};
@@ -76,7 +78,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
         }
-        Command::Start { .. } => Event::Failed(said()),
+        Command::Start { .. } | Command::Files(Files::Create(_)) => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
             harness,
@@ -115,16 +117,16 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         }),
         Command::Prompt { session, text, .. }
-        | Command::PromptFiles(vessel_app_link::attachments::WithFiles { session, text, .. }) => {
+        | Command::Files(Files::Prompt(WithFiles { session, text, .. })) => {
             return Settle::Prompt { session, text };
         }
         // A file the link never took: failed, to be tried again.
-        Command::Attach(attach) => Event::Upload {
+        Command::Files(Files::Send(attach)) => Event::Upload {
             session: attach.session,
             key: attach.key,
-            step: vessel_app_link::attachments::Step::Failed {
-                problem: vessel_app_view::composer::tray::Problem::Node(said()),
-                again: vessel_app_view::composer::tray::Again::Restart,
+            step: Step::Failed {
+                problem: tray::Problem::Node(said()),
+                again: Again::Restart,
             },
         },
         Command::Open { .. }
