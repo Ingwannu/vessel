@@ -176,6 +176,8 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::GetDeviceSelf,
+    vessel_proto::usage::QueryUsage,
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
     // The node's settings: no session's.
@@ -215,6 +217,9 @@ untargeted!(
     ListSessions,
     GetSession,
     CreateSession,
+    vessel_proto::side_questions::OpenSideQuestion,
+    vessel_proto::side_questions::PromptSideQuestion,
+    vessel_proto::side_questions::ResetSideQuestion,
     ReadEvents,
     Subscribe,
     Unsubscribe,
@@ -330,11 +335,15 @@ untargeted!(
 );
 
 guarded! {
+    query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
     node_info: GetNode => NodeInfo;
     list_harnesses: ListHarnesses => Vec<Harness>;
     list_sessions: ListSessions => Vec<SessionInfo>;
     get_session: GetSession => SessionInfo;
     create_session: CreateSession => SessionInfo;
+    open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
+    prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
+    reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
     send_input: SendInput => Ack;
     kill_session: KillSession => Ack;
     read_events: ReadEvents => EventPage;
@@ -342,6 +351,7 @@ guarded! {
     unsubscribe: Unsubscribe => Ack;
     stop_node: StopNode => Ack;
     invite_device: InviteDevice => Invitation;
+    device_self: vessel_proto::GetDeviceSelf => vessel_proto::DeviceSelf;
     list_devices: ListDevices => Vec<DeviceInfo>;
     revoke_device: RevokeDevice => Ack;
     list_profiles: ListProfiles => Vec<ProfileInfo>;

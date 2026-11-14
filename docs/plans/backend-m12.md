@@ -443,12 +443,12 @@ do nothing); each is for a node track:
 |---|---|---|
 | Open pull requests of a project with no live session (`pr.list` walks watched sessions only) | the pull request page | the page is "pull requests of this machine's sessions" and says so |
 | The webhook calls (`hook.*`): ADR 0034 has the types and the store, not the calls, the listener or the CLI | schedules | no webhook screen |
-| A machine's time zone | schedules | a rule's own zone and the viewer's zone, each named |
-| The next runs of an expression before it is saved | the schedule editor | a preview computed in the app with the node's library and the node's test cases; the lasting fix is one implementation both call |
-| Fleet join, leave and "sync now" over the wire (the CLI does them in the data directory), and a member's applied state | Settings › Sync | read-only, with the command to run |
+| ~~A machine's time zone~~ — built in `f81798c3`, integrated by `187dc847` at 13 | schedules | node timezone is available; older peers omit it |
+| ~~The next runs of an expression before it is saved~~ — built in `f81798c3`, integrated by `187dc847` at 13 | the schedule editor | `schedule.preview` uses the scheduler's own Due implementation |
+| ~~Fleet join, leave and sync now over the wire, and applied state~~ — final source `caaea148`, integrated by `ff2981f2` at 15 | Settings › Sync | Admin controls and bounded Read status are available; app integration is separate |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
-| A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
-| A pairing link from a machine with no public address and no relay: `device.invite` succeeds and the link leads nowhere | Settings › Devices | the app refuses to show such a link and says what to set up |
+| ~~A device's own scopes (only an admin can list devices)~~ — built in `3d486ff4` | every screen that offers an action | `device.self` returns this authenticated caller's grant, even without Read; unsupported remains unknown |
+| ~~A pairing link from a machine with no advertised address or relay~~ — row 4 implementation, hash in the N3 resume checkpoint | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
 
 ### Translations as data files (2026-11-13)
@@ -620,6 +620,6 @@ do nothing); each is for a node track:
 | ~~The next runs of an expression before it is saved~~ | the schedule editor | N3 row 1: `schedule.preview`; shared scheduler calculation, returned cadence reused on save; `f81798c3`; V1 source/contract passed, integrated in `187dc847` |
 | ~~Fleet join, leave and "sync now" over the wire, and a member's applied state~~ | Settings › Sync | N3 row 2: `2ced8723` + `caaea148`; root gate 1,666/0/9, real fleet checked. V1 passed; integrated on `backend/m12-node` as protocol 15 (13 and 14 were already published without it); the screens are G4's |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
-| A device's own scopes (only an admin can list devices) | every screen that offers an action | the action is offered and the node's refusal is worded; known read-only hides it |
-| A pairing link from a machine with no public address and no relay: `device.invite` succeeds and the link leads nowhere | Settings › Devices | the app refuses to show such a link and says what to set up |
+| ~~A device's own scopes (only an admin can list devices)~~ — built in `3d486ff4` | every screen that offers an action | `device.self` returns this authenticated caller's grant, even without Read; unsupported remains unknown |
+| ~~A pairing link from a machine with no advertised address or relay~~ — row 4 implementation, hash in the N3 resume checkpoint | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |

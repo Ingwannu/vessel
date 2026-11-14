@@ -46,12 +46,14 @@ pub mod search;
 mod secret;
 mod session;
 pub mod settings;
+pub mod side_questions;
 mod terminal;
 pub mod terminals;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
+pub mod usage;
 pub mod workspace;
 
 pub use agent::{
@@ -67,8 +69,9 @@ pub use conversation::{
     QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
 };
 pub use device::{
-    DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
-    PreambleReply, RefusalReason, RevokeDevice, Scope,
+    DeviceInfo, DeviceInviteError, DeviceSecret, DeviceSelf, GetDeviceSelf, Invitation,
+    InvitationSecret, InviteDevice, ListDevices, Preamble, PreambleReply, RefusalReason,
+    RevokeDevice, Scope,
 };
 pub use error::{ErrorCode, ErrorDetail, WireError};
 pub use event::{EventRecord, SessionEvent};

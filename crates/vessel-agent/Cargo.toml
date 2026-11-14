@@ -8,6 +8,10 @@ license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
+# A direct driver writes its agent's private launch file through the
+# harness's own writer (`vessel_harness::claude_mcp_file`, `McpFile`), so
+# the format and the file's checks have one owner (ADR 0057).
+vessel-harness.workspace = true
 vessel-proc.workspace = true
 vessel-proto.workspace = true
 
@@ -18,8 +22,13 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "rt", "sync", "time"] }
 tracing.workspace = true
+# Claude Code's conversation ids: a new one minted for `--session-id`, a
+# resumed one checked before it reaches `--resume` (ADR 0057).
+uuid.workspace = true
 
 [dev-dependencies]
+# Temporary homes and owner-only directories (the Codex contract test, the
+# Claude driver's MCP file tests).
 tempfile.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
 vessel-testkit.workspace = true

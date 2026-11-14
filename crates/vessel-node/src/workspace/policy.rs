@@ -154,6 +154,11 @@ const fn refused(method: Method) -> bool {
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
+        // Side-question policy refuses agents before reading a parent;
+        // its typed reason belongs to that domain, not file/git policy.
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::GetProject
         | Method::ProjectCommands
         | Method::ListWorktrees
@@ -168,6 +173,7 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetDeviceSelf
         | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules
@@ -179,6 +185,7 @@ const fn refused(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt

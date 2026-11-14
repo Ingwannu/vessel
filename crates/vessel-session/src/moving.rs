@@ -131,6 +131,7 @@ pub(crate) enum Control {
     /// Boxed: the rest are small, and they are many.
     Move(Box<MoveOrder>),
     Deliver(Deliver),
+    SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),
     Cancel(Cancel),
     /// Park or wake the agent (protocol 12).

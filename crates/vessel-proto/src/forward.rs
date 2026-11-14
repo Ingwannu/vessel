@@ -280,6 +280,9 @@ impl Method {
             | Self::ListHarnesses
             | Self::ListSessions
             | Self::GetSession
+            | Self::OpenSideQuestion
+            | Self::PromptSideQuestion
+            | Self::ResetSideQuestion
             | Self::CreateSession
             | Self::SendInput
             | Self::KillSession
@@ -387,6 +390,7 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetDeviceSelf
             | Self::GetFleetStatus
             | Self::PreviewSchedule
             | Self::ListSchedules
@@ -400,6 +404,7 @@ impl Method {
             | Self::ListRuns
             // Saved prompts: readable from another node; written only on
             // their own (the service refuses a delegated writer).
+            | Self::QueryUsage
             | Self::ListPrompts
             | Self::CreatePrompt
             | Self::UpdatePrompt

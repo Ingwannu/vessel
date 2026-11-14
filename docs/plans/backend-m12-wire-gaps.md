@@ -276,3 +276,125 @@ ownership or permission change. Owned fixture processes were stopped by PID.
 No native screen or other-OS runtime claim is made. See the resume note for
 log names, pending review and consumers. No new slice or branch merge followed
 the credit-stop instruction.
+
+## Row 3: self authority, contract before code
+
+ADR 0044's 2026-11-14 amendment defines the query, authentication-only method
+metadata, canonical scopes, identity privacy, old-hop version gate and CLI.
+Protocol 20 on the node line (provisionally 19 on `b981f5f2`; N5's side questions took 19 when both merged, 2026-11-14).
+The final report names the new call/fields so the integrator can renumber.
+Existing fleet controls are already merged at 15, fleet.published at 16.
+
+Baseline verification before new feature work: whole fmt/clippy passed;
+110 suites, 1,771 Rust tests passed, zero failed, ten ignored. Page lint,
+typecheck, 417 units, build and all 62 Playwright cases passed. Logs are
+`resumed/base2-*` in this track's scratch folder. The first baseline attempt
+passed 1,771 tests but failed compiling the web doctest because this worker
+rebuilt the bundle during the Rust gate. The corrected execution first
+froze all 165 built assets using the supported VESSEL_WEB_DIST override,
+then ran the full gate without asset mutation. No failure was waived and no
+product source changed to force a pass. No new feature code preceded the
+clean baseline. Keep assets stable during every subsequent Rust gate.
+
+Row 3 typed testkit authority fixtures enable an optional dependency on the
+already-pinned workspace `vessel-proto`, only with `authority-fixtures`
+(the node's dev-dependency). This keeps response fixtures typed without
+hand-written wire strings, while ordinary fake binary builds keep their
+existing dependency cost. It creates no cycle or external dependency.
+
+## Row 3 implementation and verification (`3d486ff4`)
+
+New request `GetDeviceSelf {}` (`device.self`) returns `DeviceSelf { device?,
+scopes }`; `NodeClient::device_self()` and `vessel node devices self` use it.
+Only a directly authenticated paired device gets its own id. Owner, agent
+and delegated responses omit the id and expose the admitted principal's
+canonical effective scopes, including an explicitly empty grant. Scopes are
+required in the response; no unavailable-query fallback infers authority.
+Ownership, agent limits and policy remain separate enforcement boundaries.
+
+The generated method table now represents an additional scope as
+`Option<Scope>`: only this method is explicitly Authenticated/None, with no
+anonymous principal. All prior methods keep their Some(scope). Envelope
+version admission includes the inner typed method and fields, so older hops
+refuse before dropping a field or dispatching an unknown call. Direct and
+forwarded old-peer fixtures cover the boundary.
+
+Root fmt, whole clippy and literal whole workspace tests passed: 110 suites,
+1,781 passed, zero failed, ten ignored, with RUST_TEST_THREADS=2. All three
+new real-node E2E tests passed in that run. TS generation passed both
+libraries; targeted protocol/RPC checks passed 182/34. Page lint, typecheck,
+417 units and build passed; all 62 page E2E and the complete CLI fake fleet
+passed. UID/GID 1000, 13 private paths checked at 0600/0700, both verified
+fixture node PIDs stopped and absent. The resume checkpoint records logs.
+Rust source hashes were unchanged throughout the full gate.
+
+Earlier targeted node units, using default test concurrency, failed three
+existing model proxy timer tests: a_full_proxy_makes_room_by_closing_tokenless_connections,
+a_harness_that_stops_reading_ends_its_call, and
+a_head_cut_off_by_its_deadline_is_answered_408. One isolated diagnostic per
+test reproduced the first failure and passed the other two; the old baseline
+binary passed the first in its isolated diagnostic. No cause is claimed from
+that comparison. All three passed in the final whole workspace run. No
+assertion, deadline or lint was weakened; these failures were not waived.
+
+Shared native changes are fixture-only: private operator bootstrap book,
+paired person app book, CLI-pipe pairing, Read-only and Sync-only self checks,
+and an owner/agent/delegated response fixture. The fixture script sets umask
+077 so newly created credential books stay private. No screen or production
+permission change belongs to this slice. The integrator assigned protocol
+20 (N5 took 19 at the same merge), and the only new wire method is
+`device.self` with the request/response above. MIN_PROTOCOL_VERSION is 2.
+
+## Row 4 contract before code
+
+Amend ADR 0044 first. Reuse Devices::make_invitation and effective advertised
+Routes; refuse before minting when neither direct nor relay exists, including
+an empty tracked override. Preserve explicitly supplied callback routes.
+New typed detail: DeviceInvite { reason: DeviceInviteError::NoRoutes } on
+ErrorCode::Conflict, with setup guidance; existing device.invite method and
+client/CLI calls remain unchanged. See the ADR for rejected alternatives,
+old-peer fallback and required fixtures. No native screen work is included.
+
+Row 4 implementation shares route selection for public and tracked issuance;
+no bind-address inference, network probing or relay configuration is added.
+The client keeps the existing invite calls and typed remote error; its API
+documents the new Conflict reason. A future/unknown detail remains readable,
+and a protocol-4 connection to the updated node gets the same guidance.
+Older server behavior itself is not changed by a new client's version.
+Existing in-memory fleet and CLI offer-inspection tests now explicitly
+advertise their fabricated route; no assertion or safety timeout is relaxed.
+The fake fleet's no-route fixture uses only the fake binary PATH, scratch
+home/data/config and a local ephemeral listener, and reaps its exact child.
+
+The first whole row 4 run stopped at node E2E: 173 passed, two failed.
+Both legacy fixtures issued an empty-route invitation and rewrote it to the
+live listener afterward: callback's member-without-relay guidance case and
+secure's frozen-direct-route keepalive case. Their preparation now advertises
+an explicit placeholder, retaining the existing live-route replacement and
+all assertions/timeouts. All other completed suites passed, including 215
+node units and the new current/old-peer no-route cases. The source remained
+frozen throughout that failed attempt; prepared fixes were installed with
+current timestamps only after it exited. A changed-source full root gate
+follows; no clean final result is claimed at this checkpoint.
+
+## Row 4 final verification
+
+The changed-source fmt, whole Clippy and literal whole workspace tests passed:
+110 suites, 1,786 passed, zero failed, ten ignored (RUST_TEST_THREADS=2).
+Node units 215 and node E2E 175 passed, including both corrected legacy
+fixtures. The two source files fixed after the first whole failure are the
+only differing Rust inputs between attempts. All 1,022 final Rust inputs
+remained unchanged during the passing gate; changed crates were recompiled.
+Both TS generators, page lint/typecheck, 417 units and build passed; all
+62 page E2E passed in 5.1 minutes. No page scenario was skipped. The complete
+CLI fake fleet passed, including an isolated real no-route node's exact
+setup guidance and empty stdout. Its child was reaped; both main node PIDs
+were verified, signalled and absent, with no owned runtime left. UID/GID 1000,
+14 private book/token/credential paths checked at 0600/0700. No production
+permission change, native screen or other-OS runtime approval is claimed.
+Logs and pending review are recorded in the current resume checkpoint.
+
+Next priority is the file-seeded FakeForge fleet node, then actual project
+PR listing (row 5), registry/version states (row 6), and hooks (row 7). The
+fake backend must be test-only; shipped vesseld may honor no fake backend
+switch or flag. Its ADR and seed contract are not decided by this slice.

@@ -149,15 +149,12 @@ async fn read_some(stream: impl AsyncRead + Unpin) -> Vec<u8> {
 #[cfg(test)]
 #[cfg(unix)]
 mod tests {
-    use std::os::unix::fs::PermissionsExt;
-
     use super::*;
 
     /// A stand-in `gh` that answers as the real one does.
     fn fake(dir: &std::path::Path, script: &str) -> Gh {
         let program = dir.join("gh");
-        std::fs::write(&program, format!("#!/bin/sh\n{script}\n")).unwrap();
-        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+        vessel_testkit::write_executable(&program, &format!("#!/bin/sh\n{script}\n")).unwrap();
         Gh::new(program, dir.to_path_buf())
     }
 

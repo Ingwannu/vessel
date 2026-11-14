@@ -30,6 +30,156 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 21 (2026-11-14, milestone 12): reported usage (N2, ADR 0042)
+
+N2 proposed 19; side questions took 19 and `device.self` 20 at the merge.
+
+`usage.query` requires `read`. `QueryUsage` selects the machine, an
+agent/profile or a session, and a rolling day/week (or all retained
+samples of a session). `after` pages the session's samples by exclusive
+event sequence. Totals are independent of that cursor. At most 100 samples
+and 256 agent/profile groups are returned. Optional counts stay absent
+when the agent did not report them. Cache counts are not added again to
+input or total tokens. Cost units are never combined.
+
+`UsageReport` declares accounting start, age retention and incomplete
+coverage. `cost_visibility` distinguishes no reported cost from cost
+withheld because the caller lacks `operate`. That withholding covers
+totals, groups and individual cost samples in this new call. Existing
+session/event calls retain their earlier cost visibility contract.
+Agents may query only their own session on its own machine; delegated
+calls apply the destination's existing scope intersection. A machine or
+agent query with the session period/cursor is `invalid_request`, a missing
+session `not_found`, a scope/ownership refusal `forbidden`.
+
+The minimum protocol remains 2. No event kind changed. `ContextUsage`
+adds optional `observation: current|replayed` metadata in protocol 21;
+`current` is the omitted default. The runtime marks reports received during
+conversation loading, including a move, wake or rewind whose Ready is
+consumed. Replayed costs establish baselines/gaps without spending a
+historical increase. Older peers receive their original context report
+without the metadata, including through forwarded conversation replies.
+New calls are refused
+by the existing negotiated-version guard on an older node; an old client
+continues reading the existing ACP reports in the conversation log.
+
+Cost timing and optional-field coverage (ADR 0042): `current_costs` is the
+session's latest cumulative agent report, independent of the requested
+rolling period. Increment samples carry `since`; an interval crossing the
+period boundary contributes an unaccounted-cost notice, never its whole
+charge to that period. Existing/resumed/unknown counters produce baseline
+samples until their increments can be observed. `optional_reports` counts
+turns reporting each cache/reasoning field; their sums are reported
+subtotals, with missing turns explicitly distinguishable.
+
+A read-only session page can have no visible samples and still have a
+`next` cursor: the page contained only costs. Clients continue while
+`next` exists and do not interpret an empty page as end-of-history.
+
+For `UsageScope::Agent`, an omitted profile includes every recorded profile
+of that agent. A supplied name restricts the historical profile recorded
+with the sample. Account quota lookup is a different scope: its default
+profile identifies a configured login, never an aggregate of accounts.
+
+Usage scans admit at most two queued or running blocking jobs per node;
+excess calls receive `unavailable` with advice to retry shortly. Cancellation
+does not release admission until the blocking job finishes. Cost arithmetic
+uses exact decimal inputs and integer accumulation. Final sums or increments
+that cannot survive the finite wire number's decimal spelling are omitted.
+For an omitted unit sum, `unaccounted_costs` counts every contributing cost
+sample, rather than silently presenting a rounded subtotal.
+
+The negotiated version requirement for a typed fleet envelope includes its
+inner call's method and fields, recursively, for forward, relay and deliver
+(version 20's one rule; N2 added the same).
+An older intermediate peer refuses `usage.query` before sending or dispatch,
+even when a forced envelope targets that peer itself. Older supported
+envelopes retain their existing requirement and dispatch behavior.
+
+## Version 20 (2026-11-14, milestone 12): caller authority (N3, ADR 0044)
+
+- `device.self {}` returns `DeviceSelf { device?: DeviceId, scopes: Scope[] }`.
+  Authentication is required without an extra scope, so a caller without
+  Read can inspect its own grant. Unknown request fields are refused. Only
+  a directly paired caller gets its own id; owner/agent/delegated calls omit
+  it. Scopes are canonical, capped by the existing five-value universe, and
+  reflect the same principal checked by the guard, including agent clipping
+  and delegated intersection. No database or lifecycle policy changes.
+- This is an additive call, with minimum protocol still 2. Old direct and
+  routed hops refuse before send/dispatch. Typed envelopes now include the
+  inner call's method/field version in their requirement, since every hop
+  decodes and re-encodes it; an old hop must not drop an unknown field
+  (version 19's side link needed the same, and the line keeps this one
+  general rule for both).
+- Method metadata's Rust `scope()` is optional: None explicitly means an
+  authenticated call with no additional grant, not anonymous access. Every
+  legacy method retains Some(scope). Scopes do not replace ownership,
+  profile policy or agent limits. Unsupported self queries remain unknown
+  authority to the caller, never an inferred full or read-only grant.
+
+### Pairing setup refusal (N3 row 4, ADR 0044)
+
+`device.invite` retains its original method/version and Admin requirement.
+If neither a direct address nor a relay is advertised, the node refuses
+before creating invitation material: Conflict with optional detail
+`{ kind: "device_invite", reason: "no_routes" }`. `DeviceInviteError` also
+has an explicit Unknown future reason. The human message says to configure
+a reachable --public address or --relay, then create another invitation.
+The same refusal is sent on older negotiated connections: their decoders
+ignore unknown detail and retain the message. A configured route is not a
+remote connectivity proof; callback invitations use their effective override.
+An older node can retain its previous behavior; this refusal guarantees the
+behavior of the updated node, not a retroactive change to an older server.
+
+## Version 19 (2026-11-14, milestone 12)
+
+The track raises the current version once to 19; minimum remains 2.
+
+### Side questions (N5, ADR 0045)
+
+- `SessionSpec.side_question_of?: SessionId` links a separate structured
+  conversation to a local parent. It never resumes the parent's native id.
+  Ordinary creation naming this field uses the same serialized open/reuse
+  operation and inherits the parent's current configuration.
+- `session.side_open { session } -> SessionInfo`: reuse the newest
+  unarchived side, including an ended/interrupted one, or start a new side.
+  Opening never implicitly resumes an ended side.
+- `session.side_prompt { session, question: PromptText } -> Delivered`:
+  refresh the parent context and start a turn in the named side. A live
+  parked side wakes first; a failed wake consumes only that request. Busy
+  or ended sides are conflict. General prompt and queue operations refuse
+  sides, including scheduled and tracked prompts; old clients can read
+  them but must update or use `vessel session side` to ask.
+- `session.side_reset { session, side } -> SessionInfo`: serialized
+  expected-id replacement. A stale side is conflict. Deletion failure
+  creates nothing; creation failure after deletion leaves the old side
+  gone. Opening again retries; no rollback is promised.
+- All three calls need read and operate. Direct and delegated agents are
+  refused; delegated people retain the usual scope intersection. Calls
+  can cross the fleet and the existing encrypted relay. Neither questions
+  nor answers are written into the parent conversation.
+- Context uses current status/attention, an independent latest-plan
+  projection (schema 14; twenty steps, 1,200 characters each), and a
+  labelled partial tail of at most 128 records. Snapshots are at most
+  24 KiB in UTF-8 including metadata and markers; complete serialized ACP requests at
+  most 48 KiB, including prefixes, JSON escaping and the request envelope.
+  TurnStarted retains only the question; context is transient provider
+  input carried atomically with it. Native slash questions are refused
+  explicitly rather than moved behind a context prefix. Question text uses the existing 16 KiB `PromptText`.
+- Parent deletion leaves existing side logs readable but prevents new
+  questions/resume. Reset inherits current profile/model/choices; an
+  existing side keeps its own configuration. Imports clear node-local
+  parent links. Saved/scheduled templates refuse side specs.
+- A parent rewind clears its plan projection and limits the partial
+  transcript to records after the latest rewind, so discarded future
+  messages cannot be presented as current. A new plan report replaces
+  the cleared projection. Generic session.fork refuses side sources;
+  side_reset is the supported start-over path.
+- All direct and currently supported nested session specs require
+  protocol 19 when they name a side link, so old nodes cannot silently
+  ignore it. The optional field is ignored by older apps. No new events
+  or stand-ins are required.
+
 ## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
 
 Nodes speak 2..=18. No method, no event, no record: one field of the

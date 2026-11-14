@@ -95,6 +95,7 @@ mod service;
 mod sessions;
 mod settings;
 mod shutdown;
+mod side_questions;
 mod subscribe;
 mod terminals;
 mod tidying;

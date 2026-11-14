@@ -74,8 +74,27 @@ the coordinator and the other driver's worker before it is made.
   session runtime on a new session, a fork, a start again and a move (a
   wake and a rewind reuse the session's launch), and `None` for a probe;
   a driver writes there only through `vessel_harness::McpFile`.
+- **Launch refusals** (2026-11-14, agreed with the coordinator and A2):
+  `AgentError::Refused(LaunchRefusal)`, what a direct driver's `launch`
+  returns for a launch it cannot honour, before anything is spawned:
+  `Option` (a choice it does not offer: `invalid_request`), `Fork` (a
+  fork it cannot make: the session answers `ForkRefused`, the adapters'
+  `unsupported`), `Conversation` (an id the agent cannot have made:
+  `invalid_request`), `NoPrivateDir` and `Mcp` (the private file:
+  `spawn_failed`). `McpFile::write` checks its directory at every write
+  on Unix (a directory of the writer's, owner-only, not a link, the same
+  across the create); Windows relies on the data directory's ACL.
+  Codex moves its fork refusal into `codex::launch` in its next slice.
+- **A side question's context** (2026-11-14, with N5's side questions,
+  protocol 19, ADR 0045): `Command::Prompt` carries `context`. A direct
+  driver carries it (first, only to the agent, never kept for a later
+  prompt, the request bounded by `PROMPT_BYTES` before anything is sent,
+  `ContextLimit` past it) or refuses the prompt typed before sending
+  (`InputError::ContextNotTaken`, `unsupported`); it never drops it. The
+  Claude driver carries it; Codex refuses it until A2's next commit
+  carries it.
 - `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
-  `VersionFit`, `launch_direct`, `version_check`.
+  `VersionFit`, `launch_direct`, `version_check`, `claude_mcp_file`.
 - `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,
   `SetAgentDrivers`.
 
@@ -191,21 +210,73 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
    frame with usage. Cancel is the `interrupt` control frame where the
    contract holds, otherwise stopping the process and resuming.
    `fake_claude_stream` replays frames from the SDK's declared types.
+   As built (2026-11-14, `BUILT` stays false until slice 2):
+   - `launch` adds only enumerated flags, checked ids and a path:
+     `--include-partial-messages`, `--permission-prompt-tool=stdio`,
+     `--disallowedTools=AskUserQuestion` (always, until slice 2 makes it
+     follow `setup.questions`), `--session-id=<new UUID>` or
+     `--resume=<UUID>` (anything else refused: `--resume` would read a
+     name or a path), `--permission-mode=<mode>` always, from one
+     exhaustive match: Paseo's five (`plan`, `default`, `acceptEdits`,
+     `auto`, `bypassPermissions`) with Paseo's default `auto` for a
+     session that chose none, so the node always knows the mode and a
+     setting in the person's Claude folder never picks it (a stated
+     difference from the ACP path); `dontAsk` is accepted, not offered;
+     under Bedrock or Vertex `auto` is refused before spawning and the
+     default is `default`, as Paseo does; only `bypassPermissions` adds
+     `--allow-dangerously-skip-permissions`), `--model=<id>`,
+     `--mcp-config=<file>` in
+     the node's private directory (`vessel_harness::claude_mcp_file`).
+     Value flags use `=`. Nothing is added to the environment. A fork, an
+     option other than the mode, or MCP servers without the private
+     directory are refused before spawning (`LaunchRefusal`).
+   - The session opens the control protocol (`initialize`) within the
+     handshake time and is ready with the launched conversation; a CLI
+     that does not answer fails the handshake (slice 2 adds the MCP-tool
+     fallback for that case). Text and reasoning come from the stream,
+     a message never streamed from its whole frame, tool calls from whole
+     frames, their results from `user` frames, the turn's end from
+     `result`; a subagent's frames are left out until slice 5.
+   - The floor: every `can_use_tool` is denied, with a line in the log; a
+     control request it does not serve or cannot read is refused and the
+     turn is interrupted and ends failed, saying why; a `result` that does
+     not read ends the turn; a line that is not JSON ends the connection.
+   - Attachments and opaque blocks are refused (`AttachmentNotTaken`,
+     `InvalidContent`); steering is `CannotSteer`; options are empty.
+   - The contract test (`claude::contract`, ignored unless
+     `VESSEL_CLAUDE_SDK_TYPES` names the installed SDK's `sdk.d.ts`) checks
+     every type, field and literal the wire uses against the SDK's
+     declarations, and its `claudeCodeVersion` against `direct`'s.
 2. **Permissions and questions.**
    - Every tool request comes through `can_use_tool` (`--permission-prompt-
      tool stdio`), with its suggestions as the agent's choices.
-   - `AskUserQuestion` becomes a question.
+   - `AskUserQuestion` becomes a question; plan approval (`ExitPlanMode`)
+     as Paseo shows it.
    - `--allow-dangerously-skip-permissions` is passed only for a bypass
      session.
    - After this slice the setting may select `direct` for Claude Code.
 3. **Options.** Model, effort, fast and permission mode, changed live
    with `set_model` and `set_permission_mode`, or by restarting with
-   `--resume` where the contract fails.
+   `--resume` where the contract fails. As Paseo has them: the models
+   from `initialize`'s list, each gated by its minimum Claude Code version
+   (Opus 5.5 2.1.280, Sonnet 5.5 2.1.284, Haiku 5.5 2.1.293) against
+   `init`'s `claude_code_version`; efforts low to max and `ultracode`;
+   fast with `apply_flag_settings`; a live switch into bypass restarts
+   with `--resume`, since only a launch for a bypass session carries the
+   skip-permissions flag (a stated difference: Paseo always passes it).
+   Steering (a prompt into the running turn) and images (jpeg, png, gif,
+   webp) come here too.
 4. **History, rewind, fork.** `--fork-session`, and resuming at a message.
-   `rewind_files` restores files, which ADR 0052 could not.
+   `rewind_files` restores files, which ADR 0052 could not; it needs
+   `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING` at launch, the one
+   variable the launch's allow-list then admits.
 5. **The rest.** `probe`, the sign-in check (`claude auth status`, already
-   used), context usage, subagent transcripts, MCP servers
-   (`--mcp-config`, as today).
+   used), context usage, subagent transcripts and text, an interrupt that
+   spares background tasks, slash commands, MCP servers (`--mcp-config`,
+   built in slice 1). Usage from the stream's own `rate_limit_event`
+   frames: never from the agent's credential files, which Paseo's usage
+   plugin reads (a stated difference, the credential invariant). No
+   system-prompt append (Paseo sends one).
 
 ## OpenCode (third)
 
@@ -267,7 +338,26 @@ checked against `/doc`.
     thread's approvals.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
-    follows 2.1.246);
+    follows 2.1.246): `initialize` answered before any prompt and what
+    its answer holds; `interrupt` and the `result` an interrupted turn
+    writes (its subtype, whether `stop_reason` is null);
+  - that `--session-id` gives `init` the same id, and `--resume` keeps
+    it (the driver logs a difference, never follows it);
+  - that `--permission-prompt-tool=stdio` sends every tool request as
+    `can_use_tool` in every mode but bypass, that a denial lets the turn
+    go on, and that a refused unknown request (an elicitation) stops
+    nothing on the CLI's side but the request;
+  - a wake before the session's first turn: Claude Code writes the
+    transcript only once a turn starts, so `--resume=<launched id>` may
+    find no conversation (A2's read). What the CLI does then is not
+    guessed; the driver fails the handshake at once when the CLI exits
+    before it is ready, naming the resume (tested with the fake), so the
+    wake fails typed and the session stays parked to be tried again;
+  - whether prompts the node sends should carry `origin: {kind: human}`
+    (the SDK asks hosts wrapping keyboard input to say so; scheduled
+    prompts are not typed by a person);
+  - a synthetic or local message (`/context`) shown once, and a
+    subagent's frames;
   - `can_use_tool` payloads and suggestions;
   - `rewind_files` on real file history.
 - **OpenCode**:

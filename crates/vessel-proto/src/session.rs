@@ -108,6 +108,10 @@ pub struct SessionSpec {
     /// sessions have no place.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub place: Option<Box<SessionPlace>>,
+    /// A separate side conversation of this node-local parent (protocol 19).
+    /// Never a shared native conversation id. Defaults absent for older peers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub side_question_of: Option<SessionId>,
     /// How to drive it.
     #[serde(flatten)]
     pub mode: SessionMode,
@@ -124,6 +128,7 @@ impl SessionSpec {
             profile: None,
             title: None,
             place: None,
+            side_question_of: None,
             mode,
         }
     }

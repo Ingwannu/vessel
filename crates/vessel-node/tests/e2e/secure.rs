@@ -145,6 +145,14 @@ pub(crate) fn direct_route(node: &Node) -> RouteUrl {
     format!("ws://{}", node.address().unwrap()).parse().unwrap()
 }
 
+/// Advertise a placeholder pairing route. A node with none refuses to
+/// invite (ADR 0044, row 4), and a fixture's listener is ephemeral, so a
+/// test that pairs a device starts its node with this and replaces the
+/// offer's routes with [`direct_route`] before using it.
+pub(crate) fn advertise_placeholder_route(config: &mut vessel_node::Config) {
+    config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+}
+
 /// A loopback address nothing listens on.
 pub(crate) async fn closed_route() -> RouteUrl {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -495,7 +503,12 @@ async fn a_frozen_direct_route_is_dropped_by_keepalive_and_the_attach_resumes() 
             silence: Duration::from_secs(1),
         };
         let fixture = Fixture::new();
-        let node = fixture.start_with(|config| config.keepalive = fast).await;
+        let node = fixture
+            .start_with(|config| {
+                config.keepalive = fast;
+                advertise_placeholder_route(config);
+            })
+            .await;
         let owner = fixture.connect(&node).await;
         let mut offer = invite(&owner, 600).await;
         offer.direct = vec![direct_route(&node)];

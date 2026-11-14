@@ -23,9 +23,15 @@ mod callback;
 #[cfg(test)]
 mod catalogue;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod crowd;
+#[cfg(test)]
+mod device_invite;
+#[cfg(test)]
+mod device_self;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
@@ -102,6 +108,8 @@ mod secrets_across;
 #[cfg(test)]
 mod secure;
 #[cfg(test)]
+mod side_questions;
+#[cfg(test)]
 mod status;
 #[cfg(test)]
 mod structured;
@@ -122,3 +130,9 @@ mod transfers_across;
 mod waiting;
 #[cfg(test)]
 mod workspace;
+
+#[cfg(test)]
+mod usage;
+
+#[cfg(test)]
+mod usage_replay;

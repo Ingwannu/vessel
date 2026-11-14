@@ -85,6 +85,13 @@ mod support {
             ));
             // Not canonicalised: Windows would make it a `\\?\` path, which
             // `cmd.exe` cannot run a `.cmd` shim from inside a console.
+            // Owner-only, as the node's MCP directory is: a terminal test
+            // writes its MCP file here, and `McpFile::write` refuses a
+            // directory open to others.
+            let mut builder = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            let _owner_only = std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+            builder.create(&dir).unwrap();
             let bin = dir.join("bin");
             std::fs::create_dir_all(&bin).unwrap();
             let tui = Fake::Tui.path().unwrap();
