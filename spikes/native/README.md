@@ -218,12 +218,19 @@ The kit validates ranges and merges overlaps; matching/ranking stay in
 while their prose prefixes use the interface caption metrics.
 
 A host opts into persistent `CommandState` and `command_frame_animated`
-for RNW's 250 ms desktop fade and the shared `sheet::snap` 60/90% stops,
-pan-down dismissal and content-scroll handoff. The static entry point and
-existing edge-sheet API remain available. The host presents and samples
+for RNW's 250 ms desktop entering fade and the shared `sheet::snap`
+60/90% stops, pan-down dismissal and content-scroll handoff. The static
+entry point and existing edge-sheet API remain available. The desktop
+panel has no exit animation: Paseo's Command Center unmounts its Modal
+at close (`command-center.tsx`, `if (!state.open) return null`), so only
+the entering curve runs. The compact sheet closes with its spring, and
+its backdrop keeps input until it is gone, as `sheet-backdrop.web.tsx`
+keeps its target until the portal dismisses. `CommandState::is_open` is
+the logical state (input and focus); the host presents and samples
 state, restores prior focus once at close, and stops drawing only when
-`CommandMotion::hidden` becomes true. Direct dragging remains available
-with the App's reduced-motion flag; springs/fades finish immediately.
+`CommandMotion::hidden` becomes true. A zero-height window waits for a
+resize instead of requesting frames. Direct dragging remains available
+with the App's reduced-motion flag; springs and fades finish at once.
 The App supplies this flag. On Linux/FreeBSD its portal follower reads and
 subscribes to the system preference; `VESSEL_APP_REDUCE_MOTION=1` or `0`
 forces the flag for one execution and skips that follower. Nothing is
@@ -234,14 +241,7 @@ GPUI provides pointer coordinates and native capture, but no recognizer
 velocity: a bounded 100 ms/eight-sample history supplies release velocity.
 The shared spring follows the installed Reanimated helper (including its
 64 ms delayed-frame cap); its numeric fixtures were sampled from that
-helper. The current control consumes pointer input while exiting.
-Self-review found an outstanding parity error: Command Center conditionally
-unmounts its desktop Modal, so only its entering fade runs. The current
-desktop exit fade must be removed; compact sheet dismissal retains its
-spring and modal backdrop target. This correction is prepared but has not
-been installed or compiled. The app still uses the static compatibility
-frame and plain captions. The control's gate does not prove consuming
-palette behavior, and the old captures do not prove the new APIs.
+helper.
 
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates

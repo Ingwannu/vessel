@@ -173,7 +173,9 @@ fn draw<V: 'static>(
     let scrim = scrim.when(!frame.compact, |scrim| {
         scrim.opacity(animation.map_or(1.0, |a| a.motion.opacity))
     });
-    let scrim = scrim.when(closing, |scrim| scrim.child(block_exit_input()));
+    let scrim = scrim.when(closing && frame.compact, |scrim| {
+        scrim.child(block_exit_input())
+    });
     // Over a dialog (at 2), under a tooltip (at 4).
     deferred(
         anchored()
@@ -217,9 +219,9 @@ fn handle(
             },
         )
 }
-/// RNW disables exiting content. GPUI has no subtree pointer-events:none;
-/// consume pointer input during the brief exit so stale rows cannot run.
-/// Focus is already returned by the host; this never captures keyboard focus.
+/// The compact backdrop keeps its target until portal dismissal, as
+/// sheet-backdrop.web does. Consume outgoing row input during that spring;
+/// desktop close unmounts immediately. Focus is already returned by the host.
 fn block_exit_input() -> AnyElement {
     canvas(
         |_, _, _| (),

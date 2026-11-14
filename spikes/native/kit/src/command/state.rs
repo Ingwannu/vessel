@@ -1,5 +1,6 @@
-//! Frame lifetime is separate from the owner's open flag: an exit keeps
-//! painting while the owner can restore focus once, before running an action.
+//! Logical visibility and the last painted compact frame have different
+//! lifetimes. Closing stops input ownership immediately; the sheet can keep
+//! painting while its owner restores focus once before running an action.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -7,7 +8,7 @@ use std::time::Instant;
 
 use gpui::Pixels;
 
-use crate::sheet::snap::motion::Fade;
+use crate::sheet::snap::motion::fade_in;
 use crate::sheet::snap::{self, Movement};
 
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +16,7 @@ enum Phase {
     Hidden,
     Enter(Instant),
     Shown,
-    Exit { started: Instant },
+    Exit,
 }
 
 /// Persistent motion for one command palette. Its gesture handles share sheet state.
@@ -60,32 +61,53 @@ impl CommandState {
     /// Start exit once. The owner restores its previous focus now, not
     /// a second time when the final animation frame disappears.
     pub fn close(&mut self) {
-        if matches!(self.phase, Phase::Hidden | Phase::Exit { .. }) {
+        if matches!(self.phase, Phase::Hidden | Phase::Exit) {
             return;
         }
         let now = Instant::now();
-        self.phase = Phase::Exit { started: now };
+        self.phase = Phase::Exit;
         self.sheet.borrow_mut().close(now);
+    }
+
+    /// Logical visibility for input and focus ownership. A closing compact
+    /// sheet may still paint while this is false.
+    #[must_use]
+    pub const fn is_open(&self) -> bool {
+        matches!(self.phase, Phase::Enter(_) | Phase::Shown)
     }
 
     /// Whether an open command should reset a palette that is exiting.
     #[must_use]
     pub const fn closing(&self) -> bool {
-        matches!(self.phase, Phase::Exit { .. })
+        matches!(self.phase, Phase::Exit)
     }
 
     /// Sample before drawing. The existing App reduced-motion flag is
     /// supplied by the renderer; this control does not read OS settings.
     #[must_use]
     pub fn sample(&mut self, compact: bool, height: Pixels, reduced: bool) -> CommandMotion {
-        let now = Instant::now();
+        self.sample_at(compact, height, reduced, Instant::now())
+    }
+
+    fn sample_at(
+        &mut self,
+        compact: bool,
+        height: Pixels,
+        reduced: bool,
+        now: Instant,
+    ) -> CommandMotion {
         let opacity = self.opacity(now, reduced);
         let closing = self.closing();
-        let mut hidden = matches!(self.phase, Phase::Hidden) || (closing && opacity <= 0.0);
-        let mut animating = matches!(self.phase, Phase::Enter(_) | Phase::Exit { .. });
+        let mut hidden = matches!(self.phase, Phase::Hidden) || (closing && !compact);
+        let mut animating = matches!(self.phase, Phase::Enter(_) | Phase::Exit);
         let sheet = if compact {
             match self.sheet.borrow_mut().frame(height, now, reduced) {
-                snap::Frame::PendingLayout => None,
+                snap::Frame::PendingLayout => {
+                    // A zero-size window needs a resize, not an animation
+                    // loop that keeps requesting frames without geometry.
+                    animating = false;
+                    None
+                }
                 snap::Frame::Closed => {
                     hidden = true;
                     animating = false;
@@ -115,18 +137,17 @@ impl CommandState {
 
     fn opacity(&mut self, now: Instant, reduced: bool) -> f32 {
         match self.phase {
-            Phase::Hidden => 0.0,
+            // Hidden, or closing: the desktop Command Center unmounts
+            // before RNW can run its exit curve; compact dismissal is the
+            // sheet's spring, not this fade.
+            Phase::Hidden | Phase::Exit => 0.0,
             Phase::Shown => 1.0,
             Phase::Enter(started) => {
-                let progress = Fade::In.progress(now.saturating_duration_since(started), reduced);
+                let progress = fade_in(now.saturating_duration_since(started), reduced);
                 if progress >= 1.0 {
                     self.phase = Phase::Shown;
                 }
                 progress
-            }
-            Phase::Exit { started } => {
-                let progress = Fade::Out.progress(now.saturating_duration_since(started), reduced);
-                progress.mul_add(-1.0, 1.0)
             }
         }
     }
@@ -139,25 +160,20 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn desktop_fade_finishes_and_reopening_resets_the_compact_stop() {
+    fn desktop_fades_in_and_closes_immediately_then_reopens_compact() {
         let mut state = CommandState::default();
+        assert!(!state.is_open());
         state.present();
-        state.phase = Phase::Enter(
-            Instant::now()
-                .checked_sub(Duration::from_millis(125))
-                .unwrap(),
-        );
-        let entering = state.sample(false, px(1000.0), false);
+        assert!(state.is_open());
+        let now = Instant::now();
+        state.phase = Phase::Enter(now.checked_sub(Duration::from_millis(125)).unwrap());
+        let entering = state.sample_at(false, px(1000.0), false, now);
         assert!(entering.opacity > 0.5 && entering.opacity < 1.0);
         assert!(entering.animating && !entering.hidden);
         state.close();
         assert!(state.closing());
-        state.phase = Phase::Exit {
-            started: Instant::now()
-                .checked_sub(Duration::from_millis(251))
-                .unwrap(),
-        };
-        let ended = state.sample(false, px(1000.0), false);
+        assert!(!state.is_open());
+        let ended = state.sample_at(false, px(1000.0), false, now);
         assert!(ended.hidden && !ended.animating);
         state.present();
         let reopened = state.sample(true, px(1000.0), true);
@@ -165,5 +181,17 @@ mod tests {
         assert_eq!(reopened.sheet.unwrap().height, px(600.0));
         state.close();
         assert!(state.sample(true, px(1000.0), true).hidden);
+    }
+
+    #[test]
+    fn zero_viewport_waits_for_layout_without_requesting_frames() {
+        let mut state = CommandState::default();
+        state.present();
+        let now = Instant::now();
+        let pending = state.sample_at(true, px(0.0), false, now);
+        assert!(!pending.hidden && !pending.animating && pending.sheet.is_none());
+        let resized = state.sample_at(true, px(1000.0), true, now);
+        assert!(!resized.hidden && !resized.animating);
+        assert_eq!(resized.sheet.unwrap().height, px(600.0));
     }
 }

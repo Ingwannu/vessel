@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{point, px};
 
-use super::motion::{Fade, Spring, SpringValue};
+use super::motion::{Spring, SpringValue, fade_in};
 use super::{Frame, Geometry, Movement, Origin, Release, State, Stop};
 
 fn visible(state: &mut State, now: Instant, reduced: bool) -> Geometry {
@@ -317,21 +317,12 @@ fn spring_values_match_samples_from_the_actual_reanimated_helper() {
 }
 
 #[test]
-fn fades_have_reference_endpoints_curves_and_reduced_motion_completion() {
-    for fade in [Fade::In, Fade::Out] {
-        assert_eq!(
-            fade.progress(Duration::ZERO, false).to_bits(),
-            0.0_f32.to_bits()
-        );
-        assert_eq!(
-            fade.progress(Duration::from_millis(250), false).to_bits(),
-            1.0_f32.to_bits()
-        );
-        assert_eq!(
-            fade.progress(Duration::ZERO, true).to_bits(),
-            1.0_f32.to_bits()
-        );
-    }
-    assert!(Fade::In.progress(Duration::from_millis(125), false) > 0.5);
-    assert!(Fade::Out.progress(Duration::from_millis(125), false) < 0.5);
+fn entering_fade_has_reference_endpoints_curve_and_reduced_completion() {
+    assert_eq!(fade_in(Duration::ZERO, false).to_bits(), 0.0_f32.to_bits());
+    assert_eq!(
+        fade_in(Duration::from_millis(250), false).to_bits(),
+        1.0_f32.to_bits()
+    );
+    assert_eq!(fade_in(Duration::ZERO, true).to_bits(), 1.0_f32.to_bits());
+    assert!(fade_in(Duration::from_millis(125), false) > 0.5);
 }

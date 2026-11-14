@@ -137,29 +137,19 @@ fn energy(displacement: f32, velocity: f32) -> f32 {
         .mul_add(500.0, velocity.mul_add(velocity, 0.0).mul_add(1.5, 0.0))
 }
 
-/// RNW's `ModalAnimation` duration, shared by both fade directions.
+/// RNW's `ModalAnimation` entering duration.
 pub(crate) const FADE: Duration = Duration::from_millis(250);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Fade {
-    In,
-    Out,
-}
-
-impl Fade {
-    /// Interpolation, including the reference's distinct enter/exit curves.
-    pub(crate) fn progress(self, elapsed: Duration, reduced: bool) -> f32 {
-        if reduced || elapsed >= FADE {
-            return 1.0;
-        }
-        let progress = elapsed
-            .as_secs_f32()
-            .mul_add(FADE.as_secs_f32().recip(), 0.0);
-        match self {
-            Self::In => bezier(progress, (0.215, 0.61), (0.355, 1.0)),
-            Self::Out => bezier(progress, (0.47, 0.0), (0.745, 0.715)),
-        }
+/// Command Center mounts a visible Modal and unmounts it at close, so
+/// only the entering curve runs there (command-center.tsx945–949).
+pub(crate) fn fade_in(elapsed: Duration, reduced: bool) -> f32 {
+    if reduced || elapsed >= FADE {
+        return 1.0;
     }
+    let progress = elapsed
+        .as_secs_f32()
+        .mul_add(FADE.as_secs_f32().recip(), 0.0);
+    bezier(progress, (0.215, 0.61), (0.355, 1.0))
 }
 
 /// Invert the curve's time axis before evaluating opacity. Using a
