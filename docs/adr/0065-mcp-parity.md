@@ -1,22 +1,29 @@
 # ADR 0065: MCP parity — the tool catalogue, per-kind policy, and HTTP
 
-Status: accepted, 2026-11-14. This records the contract. No code in
-this commit. The plan is `docs/plans/mcp-parity.md`. It extends ADR
-0013 (an agent principal, a credential per session, grants that only
-shrink) and does not widen what that principal may call. Protocol 21
-below is provisional: the node integrator assigns the final number
-when the fields land. `docs/PROTOCOL.md` is updated in that slice,
-not here. `docs/ARCHITECTURE.md` does not change: no new crate edge.
+Status: proposed, 2026-11-14. Not accepted. This records the
+contract. No code in this commit. The plan is
+`docs/plans/mcp-parity.md`. It extends ADR 0013 (an agent principal,
+a credential per session, grants that only shrink) and does not widen
+what that principal may call. The protocol number for the new
+settings fields, and for a read of pending permissions if one is
+added, is given at merge. This document does not choose it.
+`PROTOCOL_VERSION` stays 20, the base of this branch. Those additions
+are gated on one constant, `MCP_PARITY`, in `vessel-proto`: the
+integrator sets that constant and no other line. The constant is not
+in the code of this commit. `docs/PROTOCOL.md` is updated in the
+slice that adds the fields, not here. `docs/ARCHITECTURE.md` does not
+change: no new crate edge.
 
 ## Purpose and intent
 
 Paseo serves its own tools over HTTP and decides, per provider, which
 of them an agent is given. Vessel attaches `vessel mcp` on stdio to
 every session and advertises every tool. The intent is the same
-catalogue, the same moment of decision (session start), and an HTTP
-listener a person can turn off, without a second authority that can
-do more than the stdio server already can with that session's
-credential.
+catalogue and the same moment of decision (session start), and an
+HTTP listener a person can turn on. No agent is given that listener
+in this milestone, so injection stays on stdio. The listener is not a
+second authority: it cannot do more than the stdio server already can
+with that session's credential.
 
 ## Existing implementation and constraints
 
@@ -65,6 +72,30 @@ credential.
   protection on the MCP transport is off (`enableDnsRebindingProtection:
   false`); a separate host allowlist can allow every host. CORS
   reflects a configured origin, including `*`.
+- Both MCP switches and `agents.providers` are reloadable.
+  `RELOADABLE_PATHS` lists `daemon.mcp.enabled` and
+  `daemon.mcp.injectIntoAgents` (`daemon-config-store.ts`, lines 184
+  and 185) and `agents.providers` (line 202). `reload` is line 484.
+  The diff loop inside `reloadPersisted` was not re-read for this
+  record; a path in that list being applied on reload is ADR 0064's
+  reading of the same file. `prepareSessionConfig` (lines 5538 to
+  5550) builds the launch config and passes a null MCP URL when the
+  tools are off, so a session already launched is not rewritten here.
+- `paseo permit allow` with no request id allows every pending
+  request of that agent. `allow.ts` line 84 says that if no reqId is
+  provided, allow all by default, and lines 130 to 132 treat a
+  missing id and `--all` as the same. The comment calls `--all` an
+  explicit alias for clarity. `paseo permit deny` does not follow
+  that default: `deny.ts` lines 29 to 35 throw when both the id and
+  `--all` are absent, with the message "Request ID is required
+  unless --all is specified". `--all` then denies every pending
+  request of that agent (lines 67 to 68).
+- The settings row is the host page's Orchestration card
+  (`host-page.tsx` line 294, `PaseoToolsCard`). The English title is
+  "Enable Paseo tools" and the hint is "Agents will be able to manage
+  worktrees, agents and schedules" (`en.ts` lines 2918 to 2921). The
+  switch writes `{ mcp: { injectIntoAgents } }`
+  (`paseo-tools-card.tsx` line 15).
 - ADR 0013 already refused that shape: a claimed id, one token for
   every agent, and tools with no ownership check. Those refusals
   stand. This ADR does not reopen them.
@@ -158,7 +189,7 @@ the tool would widen what a session can do.
 | `update_agent` | — | missing | `session.rename` and `session.set_option` are `operate` on a session the caller owns. No labels. Not the caller's own session. |
 | `get_agent_activity` | `read_conversation`, `read_events` | differs | Vessel returns the conversation or the log, not a curated digest. No second summary that can drop a line. |
 | `set_agent_mode` | — | missing | `session.set_option` on a session the caller owns. Not its own session: that would be a new grant. |
-| `list_pending_permissions` | — | missing | No call lists them. A new read call may, provisional protocol 21, and only what `session.read` already returns to that principal. An agent is not given the owner's inbox. |
+| `list_pending_permissions` | — | missing | No call lists them. A new read call may, gated on `MCP_PARITY` (the number is given at merge), and only what `session.read` already returns to that principal. An agent is not given the owner's inbox. |
 | `respond_to_permission` | `answer_permission` | differs | Vessel takes the option id, or a refusal. The caller must own the session. Paseo's free-form `updatedInput` is not added. |
 | `list_terminals` | `list_terminals` | differs | Vessel: terminals that caller opened, and only where the profile gate allows (ADR 0031). |
 | `create_terminal` | `create_terminal` | differs | Beside the caller's session or one it started. Not an arbitrary cwd. |
@@ -189,33 +220,65 @@ Vessel tools with no Paseo counterpart stay: `wait_turn`,
 `answer_question`, `resume_session`, `search_sessions`,
 `fork_session`, `rewind_session`, `get_pull_request`,
 `open_pull_request`, `list_saved_prompts`, `list_ports`,
+`vessel_lsp_definition`, `vessel_lsp_references`, `vessel_lsp_hover`,
+`vessel_lsp_implementations`, `vessel_lsp_type_definition`,
+`vessel_lsp_incoming_calls`, `vessel_lsp_outgoing_calls`,
 `vessel_lsp_workspace_symbols`, `vessel_lsp_document_symbols`,
-`vessel_lsp_diagnostics`. They are part of the catalogue the policy
-filters. Nothing here removes one.
+`vessel_lsp_diagnostics` (`crates/vessel-mcp/src/tools/lsp.rs`, the
+list in `tools`). They are part of the catalogue the policy filters.
+Nothing here removes one.
 
 A missing row is added only by calling a method the principal can
 already call, with that method's scope and ownership. A refused row
 is not added. A new method, if `list_pending_permissions` needs one,
-is read-scoped, additive, and provisional protocol 21; it is not
-registered in this commit.
+is read-scoped and additive, and it is gated on `MCP_PARITY`; it is
+not registered in this commit. The number is given at merge.
 
 ### Policy, per agent kind
 
-Paseo's shape, not a three-way mode.
+Paseo's shape, not a three-way mode. One top-level key on
+`node.settings`, named `mcp`. It is not three keys. ADR 0064's closed
+key enum is `park_after` and `drivers` today, and it classes
+`daemon.mcp.enabled` and `daemon.mcp.injectIntoAgents` as **None**
+("there is no switch"). That row is not edited in this tree. At merge
+the enum gains three variants, all **reloadable**, none start-time,
+and none pinned by a launch flag, so a reload does not put them in
+`restart_required` or `override_controlled`:
 
-- `mcp.inject` (Paseo's `daemon.mcp.injectIntoAgents`). Default
-  **false**, including when the field is absent, so a node that has
-  never set it matches Paseo. Cost, accepted: a new session stops
-  receiving `vessel mcp` until a person turns inject on. That is
-  what Paseo does on a fresh install. Sessions already running keep
-  the server they were given.
-- `mcp.serve` (Paseo's `daemon.mcp.enabled`). Default **true** when
-  absent. This is the HTTP listener below, not the stdio attachment.
-- Per kind, keyed by `HarnessRef` (a custom agent is its own key,
-  not the kind it extends): `enabled` (default true) and `disabled`,
-  a denylist of tool ids. Absent means every catalogue tool, which
-  is Paseo's absent `paseoTools`. `enabled: false` attaches no
-  server, which is Paseo's none. There is no allowlist.
+| Variant | Paseo path | What "applied" means |
+| --- | --- | --- |
+| `mcp_inject` | `daemon.mcp.injectIntoAgents` (`RELOADABLE_PATHS` line 185) | The next session start: create, resume, and a profile move that restarts the harness. A session already running keeps the server it was given. |
+| `mcp_serve` | `daemon.mcp.enabled` (line 184) | At once. The supervised child starts, or it is stopped and nothing is left listening. |
+| `mcp_policy` | `agents.providers` (line 202), the `paseoTools` field only | The next session start of that harness. A running session keeps the list it started with. |
+
+`agents.providers` stays **None** as a config key of its own (ADR
+0064). The denylist lives under `mcp_policy`. `config set` and
+`config unset` name these variants. Until the enum gains them, ADR
+0064 refuses a name other than `park_after` or `drivers`, and this
+track does not store the value through that refusal.
+
+- `mcp.inject` (Paseo's `daemon.mcp.injectIntoAgents`). A directory
+  this build creates stores **false** before it creates `node.id`.
+  That is Paseo's fresh install (`config.ts` line 554, `?? false`).
+  A directory that already has `node.id` is not a fresh install: see
+  the migration below. A session already running keeps its server.
+- `mcp.serve` (Paseo's `daemon.mcp.enabled`). Default **false**,
+  including when the field is absent inside a `mcp` object that is
+  present. Stated difference from Paseo's `?? true` (`config.ts` line
+  552). Paseo's true is the injection transport, on the listener the
+  daemon already has. Vessel's listener is a separate child, and no
+  agent is given it in this milestone, so an absent choice does not
+  open a port.
+- `mcp.policy` is a list of `{ harness, enabled, disabled }`, not a
+  JSON object keyed by harness. `HarnessRef` for an added agent is
+  itself an object (`{"added":"<name>"}`, `agents/name.rs` lines 101
+  to 103), so it cannot be an object key and still keep that wire
+  form. A known harness stays its existing string (`"claude-code"`,
+  `"codex"`, `"gemini"`, `"open-code"`). An added agent is its own
+  entry, not the kind it extends. `enabled` defaults to true.
+  `disabled` is a denylist of tool ids. A harness with no entry is
+  every catalogue tool, which is Paseo's absent `paseoTools`.
+  `enabled: false` attaches no server. There is no allowlist.
 - Inject off wins over a per-kind policy, as Paseo's global switch
   does. The per-kind policy is still stored.
 - Resolved at start, at resume, and when a profile move restarts the
@@ -231,15 +294,103 @@ A name only a newer build knows is the enum's `Unknown` on read, is
 written back unchanged, and disables nothing here (the driver
 pattern, ADR 0057). It is not `#[non_exhaustive]`.
 
+### What false inject takes off a new session
+
+The node keeps running schedules and heartbeats it already stored
+(ADR 0033: the scheduler is the node's, not the tool's). A person
+keeps every call. A session that is already running keeps the server
+it was given. A **new** session with inject false is not given
+`vessel mcp`, so its agent loses every tool that server advertises:
+
+- Sessions: `list_nodes`, `list_sessions`, `send_input`,
+  `answer_permission`, `read_events`, `wait_turn`, `kill_session`,
+  `create_session`.
+- Conversation: `read_conversation`, `change_queue`, `answer_question`,
+  `resume_session`, `archive_session`. Search: `search_sessions`.
+  Fork: `fork_session`, `rewind_session`.
+- Workspace, which is the agent's path into ADR 0027: `list_projects`,
+  `list_worktrees`, `create_worktree`. Forge: `get_pull_request`,
+  `open_pull_request`.
+- Terminals: `create_terminal`, `list_terminals`, `read_terminal`,
+  `write_terminal`, `close_terminal`, `list_ports`.
+- Automation: `create_schedule`, `create_heartbeat`, `list_schedules`,
+  `schedule_runs`, `pause_schedule`, `resume_schedule`,
+  `delete_schedule`, `list_saved_prompts`. Without `create_heartbeat`
+  a new session cannot start a heartbeat (ADR 0033's one exception
+  that lets an agent prompt its own session). Without `send_input` it
+  cannot ask to be told about a turn it started (ADR 0033, decision
+  6). Notices the node has already queued are not cancelled.
+- The ten LSP tools named above.
+
+An upgraded directory does not lose these until a person turns inject
+off. A fresh directory starts without them, which is Paseo's fresh
+install.
+
+### Where a person turns inject on
+
+`vessel node config set mcp_inject true`. The value is a JSON boolean.
+The command is ADR 0064's, and it accepts the name only once that
+enum has the variant. The same change is `node.set_settings` with
+`mcp.inject`, admin, once the field exists. `config unset mcp_inject`
+stores false; it does not delete the `mcp` key. See migration.
+
+The app row is the one Paseo puts on the host page's Orchestration
+card. Paseo's English title is "Enable Paseo tools" (`en.ts` line
+2919) and the hint is "Agents will be able to manage worktrees,
+agents and schedules" (line 2920). Vessel's title is "Enable Vessel
+tools". Stated difference: the tools belong to Vessel, and the title
+would otherwise name the other product. The hint is Paseo's sentence.
+The switch is bound to `mcp.inject`. This track does not draw the
+screen. This branch's native tree has no such row; the settings track
+draws it from this name.
+
+### Migration
+
+`settings.json` has no protocol number (ADR 0038). ADR 0064 does not
+accept `version`. Absence of `mcp` cannot mean both "fresh" and
+"upgraded". The applying slice looks at whether `node.id` is already
+in the data directory (`data_dir.rs` lines 6 to 7) **before** this
+start creates it. The check is the file's presence. It does not open
+`node.key` or `token`.
+
+- `node.id` is absent. This start is creating the directory. Before
+  it creates `node.id`, it writes `mcp` with `inject: false` and
+  `serve: false`, and no policy entries. `park_after` and `drivers`
+  stay absent, so they keep following their flags (ADR 0038). A
+  failure to write refuses the start with that write error, and
+  `node.id` is not created, so the next start is still a creation
+  and not an upgrade.
+- `node.id` is present and the saved settings have no `mcp` key. This
+  directory already ran Vessel, which attaches `vessel mcp` to every
+  session (ADR 0013). Before any session is launched, the node writes
+  `inject: true` and `serve: false` and leaves every other saved
+  field. A failure to write refuses the start. Sessions are not
+  launched on an unstored decision.
+- `mcp` is present. Missing `inject` or `serve` inside it is false.
+  That is not a second migration.
+
+Unset of `mcp_inject` or `mcp_serve` stores false inside the object.
+It does not remove `mcp`. Stated difference from ADR 0064's unset of
+`park_after`, which deletes the key so the flag returns: `mcp.inject`
+has no flag, and a deleted key on a directory that already has
+`node.id` is the upgrade signal. Unset's effect is still the fresh
+default. Unset of `mcp_policy` removes the list, so every harness is
+the absent policy. Deleting `settings.json` and restarting a
+directory that still has `node.id` takes the upgrade path again, so
+inject comes back on. A person who wanted it off sets it off again.
+
 `node.set_settings` carries the change field by field, admin, as it
-does for parking and drivers. A client that sets `mcp` or a kind
-policy speaks provisional protocol 21 (`Call::since`). An older node
-would ignore the field and the client would think it had landed, so
-the client does not send it. An older client omits the fields; the
-node leaves them. A reply to a peer that negotiated less than 21
-omits them (`for_protocol`), so the old peer neither sees nor clears
-them. Absent on the wire means the defaults above, not "all tools
-injected".
+does for parking and drivers. A client that sets `mcp` speaks
+`MCP_PARITY` (`Call::since`). The number is given at merge. An older
+node would ignore the field and the client would think it had landed,
+so the client does not send it below that constant. An older client
+omits the fields; the node leaves them. A reply to a peer that
+negotiated less than `MCP_PARITY` omits them (`for_protocol`), so the
+old peer neither sees nor clears them. Absent on the wire means the
+defaults of a present object (inject false, serve false, no policy
+entries), not "all tools injected". The upgrade write is a start-up
+write of an explicit `true`, not an absent field that old peers must
+read.
 
 `NodeSettings` and `SetNodeSettings` drop `Copy` in the slice that
 adds the fields: a denylist is owned data. Call sites that copied
@@ -249,12 +400,23 @@ them clone, in that same slice. No `serde_json::Value`.
 
 A second front of the same server, not a second authority.
 
-- The node supervises one `vessel mcp` child while `mcp.serve` is
-  on, and stops that process group when it is off or the node stops.
-  Off means nothing is listening, not a route that answers 404.
-  The child holds no credential in its environment, on its command
-  line, or in a file the node writes for it. Each request brings its
-  own.
+- No agent receives this endpoint in this milestone. The consumer is
+  none yet. Injection stays `vessel mcp` on stdio. `mcp.serve`
+  therefore defaults off: Paseo's `daemon.mcp.enabled` defaults true
+  because HTTP is how it injects, and that costs no extra listener
+  (`config.ts` line 552). Vessel's listener is a child nobody is
+  given, so the default does not open it.
+- While `mcp.serve` is on, the node supervises one `vessel mcp` child
+  and stops it when the setting goes off or the node stops. Off means
+  nothing is listening, not a route that answers 404. The child is a
+  `vessel-proc` child: stopping it signals the process group on Unix
+  and terminates that child's job on Windows (`child.rs` lines 113 to
+  137; `lib.rs` lines 28 to 31). It is not a systemd unit and not a
+  launchd agent. A failure to start it is that crate's spawn error,
+  `mcp_serve` is not applied, and nothing is left listening. The
+  error names no secret: the child holds none in its environment, on
+  its command line, or in a file the node writes for it. Each request
+  brings its own.
 - Bind `127.0.0.1` only, port chosen by the kernel, never the node's
   websocket port and never a non-loopback address. The bound port is
   not a secret; it may be told to a client that already holds `read`.
@@ -268,9 +430,17 @@ A second front of the same server, not a second authority.
   not set an MCP session id.
 - Admission is `AgentAuth`: the session id and the session secret,
   the same pair the stdio server sends as the socket's first frame.
-  The secret travels in `Authorization: Bearer`, the session id in
-  one header named for that id, never in the URL, never in a trailer
-  the access log prints. The node token is not accepted. A daemon
+  The secret travels in `Authorization: Bearer`. The session id
+  travels in the header `Vessel-Session`, one value, the session id's
+  `Display` text (a UUID). A missing header, an empty value, a value
+  that does not parse, or more than one value is the same refusal as
+  a bad bearer. The name is not `Mcp-Session-Id`. The response does
+  not set a transport session id, and the header that carries the
+  Vessel session has to be one a test can tell apart from that.
+  rmcp's own header constant was not read for this commit. The header
+  is never in the
+  URL and never in a trailer the access log prints. The node token
+  is not accepted. A daemon
   password is not accepted. There is no anonymous mode. The compare
   is the socket's compare, constant time, and unknown, wrong and
   ended are the same refusal. The connection that then runs is that
@@ -284,8 +454,22 @@ A second front of the same server, not a second authority.
   The MCP transport's own rebinding check, if the feature has one,
   stays on.
 - The secret is never logged, never put in an error, never copied
-  into a test failure. A debug flag that prints `Authorization` is
-  not added.
+  into a test failure, and never written into the data directory's
+  `mcp/` files. Those files are terminal MCP configuration (ADR 0012,
+  `data_dir.rs` lines 20 to 21), not this credential. A debug flag
+  that prints `Authorization` is not added.
+- This milestone does not hand the URL, the header or the secret to
+  any agent. A later milestone that names a consumer passes three
+  things in that agent's MCP server config, in memory only, the way
+  Paseo passes `headers.Authorization` (`runtime-mcp-config.ts` lines
+  49 to 53) and not the way it puts the caller id in the query: the
+  URL `http://127.0.0.1:<port>/mcp/agents` with no query and no
+  userinfo, `Authorization: Bearer` holding the session secret, and
+  `Vessel-Session` holding the session id. Nothing in this milestone
+  writes that config. Until a consumer is named, turning serve on
+  opens a port that no agent has been told about. The setting exists
+  so that later change is the default and the handoff, not a second
+  design.
 - When the slice turns HTTP on, it enables `rmcp`'s existing feature
   `transport-streamable-http-server` (rmcp 3.9.0, Apache-2.0, already
   in the workspace) and no other feature of it. `auth` stays off.
@@ -296,20 +480,38 @@ A second front of the same server, not a second authority.
 
 Stdio does not go away. A session that is given tools still gets
 `vessel mcp` on stdio, with the credential in that server's
-environment as ADR 0013 placed it. HTTP is how a client that speaks
-HTTP reaches the same catalogue with the same credential. Inject
-off attaches neither.
+environment as ADR 0013 placed it (`VESSEL_AGENT_SECRET` in that
+child's environment, not on a command line). No agent is switched
+from stdio to HTTP here. Inject off attaches neither. What the
+listener can reach, when it is on, is the calls that session's
+principal can already make. What refuses a request is a non-loopback
+bind (it is not offered), a query string, a `Host` or `Origin` that
+fails the checks above, a missing or bad `Vessel-Session`, a bad
+bearer, the node token, a daemon password, or no credential.
 
 ### `vessel permit`
 
 Not in this commit. When it is built: `vessel permit ls`,
 `vessel permit allow`, `vessel permit deny`, for the person invoking
 the CLI (the owner principal), over the calls the owner can already
-make. `ls` is the pending list above. `allow` and `deny` take one
-session and one request, or `--all` for that session's pending
-requests, not every session on the node. Deny takes an optional
-reason. Nothing in the arguments is a secret. An agent is not given
-this command's reach; the agent keeps `answer_permission`.
+make. `ls` is the pending list above. The session argument is one
+session, never every session on the node.
+
+`allow` with no request id answers every pending request of that
+session. `--all` is the same act. That is Paseo's allow (`allow.ts`
+lines 84 and 130 to 132): a missing id allows all, and `--all` is an
+alias. `deny` with no request id and no `--all` is a usage error
+before any call, and the message is Paseo's: "Request ID is required
+unless --all is specified" (`deny.ts` lines 29 to 35). `--all` denies
+every pending request of that session (lines 67 to 68). One request
+id answers that request only. The two commands are not given the same
+default. Paseo already split them, and a missing argument that denied
+every pending request would be the accident `deny.ts` already
+refuses.
+
+Deny takes an optional reason. Nothing in the arguments is a secret.
+An agent is not given this command's reach; the agent keeps
+`answer_permission`.
 
 ## Why this and not the others
 
@@ -328,20 +530,26 @@ this command's reach; the agent keeps `answer_permission`.
 - Loopback, a refused query string, and an origin check are there
   because an HTTP port is reachable by a browser on the same machine
   and a URL is not a safe place for a secret.
+- Serve defaults off because this milestone names no agent that would
+  receive the endpoint. Inject stays on for a directory that already
+  has `node.id`, because taking the tools off every upgraded node
+  would stop the agent paths ADR 0033 and ADR 0027 already ship.
 
 ## Advantages, costs and effects
 
 - Advantages. One catalogue, one principal, one admission compare.
   Policy is data on `node.settings`, so an older peer keeps working.
   A person can turn the tools off per kind without a code change.
-- Costs. Inject defaults to false. After the slice that applies it,
-  a new session has no `vessel` tools until `mcp.inject` is set.
-  That is Paseo's default, and it is a behaviour change from ADR
-  0013's "attached to every session". Running sessions are not
-  rewritten. `NodeSettings` stops being `Copy`. HTTP is a process
-  to supervise. `rmcp`'s HTTP feature pulls its own HTTP crates
-  (measured in that slice). Pending permissions need a read call
-  the protocol does not have yet.
+- Costs. A fresh directory stores inject false, so its new sessions
+  have no `vessel` tools until a person turns `mcp.inject` on. That
+  is Paseo's fresh install, and it is a behaviour change from ADR
+  0013 for a directory this build creates. An upgraded directory is
+  written `inject: true` once, so the change does not land on it by
+  absence. Running sessions are not rewritten. `NodeSettings` stops
+  being `Copy`. HTTP is a process to supervise, and it is off until
+  a person turns it on. `rmcp`'s HTTP feature pulls its own HTTP
+  crates (measured in that slice). Pending permissions need a read
+  call the protocol does not have yet.
 - Effects. No crate edge, so `docs/ARCHITECTURE.md` and ADR 0001 are
   unchanged. No method is registered here. Browser tools, scripts,
   workspace archive and rename, `schedule.run`, and a self-mode
@@ -352,5 +560,7 @@ this command's reach; the agent keeps `answer_permission`.
 
 The table was read from Paseo's registry and from `vessel-mcp`'s
 tool list. It was not executed against a daemon. HTTP was not
-bound. The gate for this commit is the repository gate on a
-docs-only tree.
+bound. `reloadPersisted`'s diff loop was not re-read. This commit
+changes documents only, so its check is `cargo fmt --all --check`,
+the size script and the boundary script. Clippy and the tests are
+not part of that check.
