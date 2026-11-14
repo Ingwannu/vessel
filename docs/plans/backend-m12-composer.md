@@ -178,6 +178,13 @@ Deliberate differences:
 - **No timer.** Paseo's snapshot also updates by a pushed event from its
   daemon; Vessel's node has none for an agent's options, so the refresh
   moments are the ones above.
+- **No folder in the key.** Paseo keys a snapshot by host and folder (a
+  provider's list may follow a project's settings); `harness.options`
+  takes no folder, so a list is the agent's on that node whatever the
+  folder.
+- **Opening the effort card** does not refresh by itself (its file is the
+  lead's); opening the model list from it, or any other option list,
+  does.
 
 Seams in others' files: `app/src/areas/draft/mod.rs` and `pickers.rs` (the
 lead's) read and ask the store in place of their own answers (`Probe` is

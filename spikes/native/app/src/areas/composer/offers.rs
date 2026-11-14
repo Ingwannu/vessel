@@ -2,14 +2,15 @@
 //! `vessel_app_view::offers` (what is shown, when to ask), asked for
 //! through the link, handed over from the link's file at connect. The
 //! draft's model, effort and permissions controls, its model list's agent
-//! rows and a running session's model list read from here (`offered`,
-//! `offer_options`) rather than keeping answers of their own.
+//! rows and Settings › Agents' defaults read from here (`offered`,
+//! `offer_options`) rather than keeping answers of their own; a running
+//! session's controls stay its own report.
 
 use std::time::Instant;
 
 use vessel_app_link::Command;
-use vessel_app_view::Fleet;
 use vessel_app_view::offers::{Arrival, OfferKey, Offered, Why};
+use vessel_app_view::{Fleet, Reach};
 use vessel_proto::{HarnessRef, SessionOption};
 
 use crate::shell::Shell;
@@ -103,20 +104,24 @@ impl Shell {
         }
     }
 
-    /// The fleet was read again: a machine whose agents changed has its
-    /// kept lists asked again (a machine that connected is the link's
-    /// hand-over, [`Shell::offers_kept`]).
+    /// The fleet was read again: a machine online before and now whose
+    /// agents changed has its lists asked again (a machine that connected
+    /// is the link's hand-over, [`Shell::offers_kept`]; one that went
+    /// offline cannot answer, and its lists stay as they are).
     pub(crate) fn offers_fleet(&mut self, earlier: &Fleet) {
         let changed: Vec<String> = self
             .fleet
             .machines
             .iter()
             .filter(|machine| {
-                earlier
-                    .machines
-                    .iter()
-                    .find(|was| was.name == machine.name)
-                    .is_some_and(|was| was.agents != machine.agents && !was.agents.is_empty())
+                matches!(machine.reach, Reach::Online)
+                    && earlier
+                        .machines
+                        .iter()
+                        .find(|was| was.name == machine.name)
+                        .is_some_and(|was| {
+                            matches!(was.reach, Reach::Online) && was.agents != machine.agents
+                        })
             })
             .map(|machine| machine.name.clone())
             .collect();

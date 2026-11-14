@@ -523,3 +523,29 @@ fn two_machines_never_see_each_others_lists() {
     assert_eq!(offers.offered(&desk), Offered::Loading);
     assert!(offers.should_ask(&desk, Why::Open, now));
 }
+
+/// Paseo's `resolveEffectiveComposerModeId`: a remembered choice the agent
+/// no longer offers falls back to what is shown, and what is sent matches
+/// it. Here what is shown is the agent's own value, and nothing is sent
+/// for the vanished pick.
+#[test]
+fn a_kept_pick_the_agent_stopped_offering_falls_back_to_the_agents_value() {
+    let mut offers = Offers::default();
+    let now = Instant::now();
+    let _kept = offers.kept(key(), vec![models("a", &["a", "b"])]);
+    let mut picks = crate::Picks::default();
+    picks.pick(vessel_proto::OptionChoice {
+        id: OptionId::new("model"),
+        value: vessel_proto::ChoiceValue::Select {
+            value: OptionValueId::new("b"),
+        },
+    });
+    let shown = crate::with_picks(offers.options(&key()).unwrap_or_default(), &picks);
+    assert_eq!(current_of(&shown, "model").as_deref(), Some("b"));
+    // The agent drops "b" while the pick is kept.
+    let _answer = offers.answered(key(), Ok(vec![models("a", &["a", "c"])]), true, now);
+    let options = offers.options(&key()).unwrap_or_default();
+    let shown = crate::with_picks(options, &picks);
+    assert_eq!(current_of(&shown, "model").as_deref(), Some("a"));
+    assert!(crate::choices_for(options, &picks).is_empty(), "nothing sent for it");
+}

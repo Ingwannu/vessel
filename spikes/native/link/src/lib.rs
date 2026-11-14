@@ -856,15 +856,16 @@ impl State {
             let outcome = match client {
                 Ok(client) => {
                     let answer = client.harness_options(harness.clone(), None).await;
+                    // Kept beside the answer, not before it: the disk
+                    // never delays what the app shows.
                     if let Ok(offered) = &answer {
-                        keep_offers(
+                        drop(tokio::spawn(keep_offers(
                             store,
                             client.node().id,
                             harness.clone(),
                             offered.options.clone(),
                             offered.probed_at,
-                        )
-                        .await;
+                        )));
                     }
                     answer
                         .map(|offered| offered.options)
