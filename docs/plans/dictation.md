@@ -1,0 +1,198 @@
+# Dictation
+
+Node-side speech to text, following Paseo's composer dictation. ADR 0067
+is the contract. Protocol 21 in that ADR is provisional.
+
+## What Paseo does
+
+Read for ADR 0067. Paths are Paseo's packages, not a machine.
+
+### Wire
+
+`packages/protocol/src/messages.ts`
+
+- Client to daemon, 1713–1736: `dictation_stream_start { dictationId,
+  format }`, `dictation_stream_chunk { dictationId, seq, audio, format }`
+  (`seq` a non-negative integer, `audio` base64), `dictation_stream_finish
+  { dictationId, finalSeq }`, `dictation_stream_cancel { dictationId }`.
+  `format` is a free string. The comment's example is
+  `audio/pcm;rate=16000;bits=16`.
+- Daemon to client, 3569–3611: `dictation_stream_ack { ackSeq }` (`ackSeq`
+  any integer; the stream starts at -1), `dictation_stream_finish_accepted
+  { timeoutMs }`, `dictation_stream_partial { text }`,
+  `dictation_stream_final { text, debugRecordingPath? }`,
+  `dictation_stream_error { error, retryable, reasonCode?, missingModelIds?,
+  debugRecordingPath? }`.
+
+Scopes, `packages/server/src/server/authorization/operation-permissions.ts`:
+every dictation message is `workspace.write` (84–87, 319–323). Local model
+list is `daemon.read`; download and delete are `daemon.manage` (186–188,
+425–427).
+
+Routing, `packages/server/src/server/session/voice/index.ts` 1–218: the
+messages belong to the requesting socket. The socket closing cancels the
+voice source. A second socket has its own map, so the same `dictationId`
+on two sockets does not collide.
+
+Client, `packages/app/src/dictation/dictation-stream-sender.ts`: chunks
+are sent without waiting, at most 128 per flush turn (line 5). A
+reconnect starts a new id and resends from seq 0 (test at
+`dictation-stream-sender.test.ts` 132). Ids are `msg_<epoch>_<random>`
+(`packages/app/src/types/stream.ts` 36–38). The web microphone emits
+16 kHz PCM16, about one second a chunk, format
+`audio/pcm;rate=16000;bits=16`
+(`packages/app/src/hooks/use-dictation.shared.ts` 34,
+`use-dictation-audio-source.web.ts` 190–194).
+
+### Stream
+
+`packages/server/src/server/dictation/dictation-stream-manager.ts`
+
+- 17–27: mono, 16-bit. Final timeout default 10_000 ms, cap 300_000. Plus
+  15_000 per pending segment, 1_500 per pending audio second, 250 per
+  missing seq. Auto-commit default 15 seconds. Silence peak default 300,
+  overridable by `PASEO_DICTATION_SILENCE_PEAK_THRESHOLD`.
+- 179–340 `handleStart`: replaces any stream with the same id. No
+  provider: error "Dictation STT not configured", not retryable. Rate
+  from the format, default 16_000 (`packages/server/src/server/speech/audio.ts`
+  80–91); a non-positive rate fails. Resamples to the provider's rate.
+  Prompt default at 188–190, overridable by
+  `PASEO_DICTATION_TRANSCRIPTION_PROMPT`. On connect, ack `-1`.
+- 343–406 `handleChunk`: unknown id fails retryable. Format must match.
+  `seq` below the next to forward is only re-acked. Gaps are buffered
+  with no cap. Odd PCM lengths fail later inside the peak helper, not
+  at the door. Debug audio is appended when the debug writer exists.
+- 408–482 `handleFinish`: no chunk yet fails at once, retryable. Then
+  the budgeted timeout.
+- 486–488 `handleCancel`: drops the stream, no error message.
+- 630–648: a 15 second block quieter than the peak is cleared, not
+  committed. The same on the finish tail (664–690).
+- 748–770 and 787–800: final text is committed segments joined with a
+  space and trimmed. Empty audio still produces a final empty string.
+- Language default `"en"` (155). Tests: unset config is English; blank
+  `PASEO_DICTATION_LANGUAGE` is unset; the variable beats the setting
+  (`dictation-stream-manager.test.ts` 169–214).
+
+There is no cap on streams, chunk bytes, buffered gaps, or total audio.
+
+### Providers
+
+`packages/server/src/server/speech/speech-provider.ts` 43–70: a session
+takes PCM16 at `requiredSampleRate`, then `connect`, `appendPcm16`,
+`commit`, `clear`, `close`. Events: `committed`, `transcript`, `error`.
+
+Endpoint, `providers/openai/stt.ts`: required rate 24_000 (89). Audio is
+written to a temp WAV and deleted in `finally` (204–268). Model default
+`whisper-1` (228). Confidence default `-3.0` (232). Log-probabilities
+only for `gpt-4o-transcribe` and `gpt-4o-mini-transcribe` (229–231).
+The dictation manager does not look at `isLowConfidence`; the text is
+returned either way (manager 283–301).
+
+Config, `providers/openai/config.ts` 45–82: key from the saved config,
+else `OPENAI_STT_API_KEY`, else `OPENAI_API_KEY`. No key means no
+endpoint config. Base URL from the config, else `OPENAI_STT_BASE_URL`,
+else `OPENAI_BASE_URL`. Model: `STT_MODEL` then the saved model.
+
+### Settings
+
+`packages/server/src/server/speech/speech-config-resolver.ts` 47–48:
+dictation on by default, voice mode off by default. Provider default
+`local` (34–37). Enabled flag and provider can be overridden by
+`PASEO_DICTATION_ENABLED` and `PASEO_DICTATION_STT_PROVIDER` (82–90).
+
+`providers/local/config.ts` 29 and 60: language default `en`; local STT
+model default is the catalog entry with `defaultFor: "stt"`.
+
+`providers/local/sherpa/model-catalog.ts` 259–267: that entry is
+`parakeet-tdt-0.6b-v2-int8`, archive 482_468_385 bytes. The other
+speech-to-text archive sizes are at 273, 282, 291, 300, 309, 318, 327,
+336, 354. Download and delete are out of this track's first slices.
+
+Read path redacts the key to `hasApiKey`
+(`speech-settings.ts` 96–102). A patch stores `apiKey` in the daemon
+config (`persisted-config.ts` 99–118).
+
+### Debug files
+
+`packages/server/src/server/agent/recordings-debug.ts` 8–24: debug is
+off unless `PASEO_DICTATION_DEBUG` is `1`, `true`, `yes`, or `on`.
+`DICTATION_DEBUG_AUDIO_DIR`, if set, is used even when that flag is
+off, by `dictation-debug.ts` 20–27. The combined WAV is written only
+when the flag is on (manager 503–508).
+
+## What Vessel already has
+
+| Need | Where | Decision |
+| --- | --- | --- |
+| A method table with scope and `since` | `crates/vessel-proto/src/rpc.rs` | Modify: five rows. Not a new frame. |
+| Base64 bytes | `TerminalBytes` | New type `DictationPcm`. Same encoding, so the two cannot be swapped. |
+| Settings object, omitted at the default | `settings.rs`, `vessel-node` `settings` | Modify: one optional `dictation`. |
+| Secret storage, redacted | `secret.set` since 6 | Reuse. The key is never a settings field. |
+| Agent refusal, exhaustive | `vessel-node` `workspace/policy.rs` | Modify: five arms, refused. |
+| Forwarding, exhaustive | `Method::forwardable` | Modify: five arms, not forwardable. |
+| HTTPS | `reqwest` in the workspace, used by `vessel-llm` | Reuse from `vessel-node`. Not a new crate. `vessel-llm` is the chat proxy and does not gain an audio API. |
+| A speech crate | none | Not adopted. No new `vessel-*` edge. |
+
+Checked against `docs/ARCHITECTURE.md`'s crate table. This slice changes
+no edge, so the table and ADR 0001 stay as they are. The implementation
+slice still adds no `vessel-*` edge.
+
+## Slices
+
+| Slice | What | State |
+| --- | --- | --- |
+| 1 | ADR 0067 and this plan. No code, no protocol bump, no dependency. | this commit |
+| 2 | The five methods, the stream, a fake provider, the endpoint provider against a loopback HTTP fake, settings, the secret name. Gate on that commit. | next |
+| 3 | `vessel dictate <file>` as a client of those methods. Then stop. | after 2 |
+
+Local models and a microphone in the app wait for review. They are
+specified in the ADR so a later slice does not invent a second contract.
+
+## Stated differences
+
+Each one is in ADR 0067 with its reason. Short list:
+
+- Acks are the chunk call's reply. Readiness is the start reply. No
+  `-1`.
+- Partials and the final are replies to `dictation.next`, not a new
+  server frame and not a session event.
+- Audio is never written. Paseo's debug directory and the endpoint's
+  temp WAV are not implemented.
+- The key is a node secret. Readers with `read` learn present or
+  absent, not the name and not the value.
+- No environment overrides. Defaults match Paseo with those variables
+  unset.
+- Caps Paseo does not have: chunk 256 KiB, seq through 8_191, reorder
+  32 or 1 MiB, 30 minutes of audio, 2 commits in flight (further
+  chunks wait), 2 streams per connection, 8 on the node, transcript
+  64 KiB.
+- `local` is the stored default and `start` fails `LocalNotBuilt`
+  until an engine is linked. It does not silently switch to the
+  endpoint.
+- Agents are refused. Paseo's `workspace.write` would allow an
+  agent-scoped client. Not forwardable.
+- An id is node-wide among live streams. Paseo isolates ids per
+  socket. A second connection using a live id is `conflict`.
+- Replacing a stream tells a waiting `next` (`Replaced`). Paseo drops
+  it with no message.
+- Empty finish fails the finish call itself. Paseo pushes a stream
+  error.
+- Confidence is thousandths, an integer. Low confidence does not hide
+  text, matching the dictation manager (it never reads the flag).
+- Voice mode, TTS, and model download are not in these slices.
+
+## Resume point
+
+Done: Paseo read as cited above. Vessel's RPC, settings, secrets,
+forwarding and agent refusal read. ADR 0067 written. No code.
+
+Half-done: nothing.
+
+Next: slice 2, on this branch, after this docs commit. Do not take a
+protocol number other than the one the integrator assigns if 21 has
+been taken. Do not add `sherpa-onnx`. Do not open a microphone.
+
+Gate: run on the docs commit before it is reported. The numbers and
+the log paths are in that report. They are not copied back into this
+file, because a second commit only to record them would need the gate
+again.
