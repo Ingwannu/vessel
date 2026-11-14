@@ -189,6 +189,24 @@ fn insert(
     request: Option<&str>,
     item: &InboxItem,
 ) -> Result<(), StoreError> {
+    // A follower can mark a published record before persistence drains it,
+    // and archiving waits for publication to end, not for that drain. Read
+    // the keeper's marks in this append transaction rather than recreating
+    // attention from defaults after an earlier mark already committed.
+    let marks = connection
+        .query_row(
+            &format!(
+                "SELECT {} FROM sessions WHERE id=?1",
+                crate::marks::MARK_COLUMNS
+            ),
+            [session.to_string()],
+            |row| crate::marks::StoredMarks::from_row(row, 0),
+        )?
+        .kept()?;
+    if marks.is_archived() {
+        return Ok(());
+    }
+    let seen = !marks.marks(Some(record.seq)).unread;
     let mut item = bounded(item)?;
     if matches!(
         item,
@@ -205,14 +223,15 @@ fn insert(
         }
     }
     let _rows = connection.execute(
-        "INSERT INTO inbox(session,seq,at,request,waiting,item) VALUES(?1,?2,?3,?4,?5,?6)",
+        "INSERT INTO inbox(session,seq,at,request,waiting,item,seen) VALUES(?1,?2,?3,?4,?5,?6,?7)",
         params![
             session.to_string(),
             seq_to_sql(record.seq)?,
             time_to_sql(record.at)?,
             request,
             item.waiting(),
-            encode(&item)?
+            encode(&item)?,
+            seen,
         ],
     )?;
     // Only outcomes are evicted. The actor's existing 64-per-kind pending

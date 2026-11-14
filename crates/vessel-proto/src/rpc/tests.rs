@@ -515,8 +515,7 @@ fn a_forwarded_call_nests_its_inner_call() {
         "{json}"
     );
     assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);
-    // The envelope needs 6 on this connection; the inner call is checked
-    // where it is delivered.
+    // Both this envelope and this particular inner call need version 6.
     assert_eq!(call.since(), V6);
     assert_eq!(inner.since(), V6);
 }
@@ -976,3 +975,5 @@ fn where_a_session_came_from_is_optional_and_tagged() {
         info
     );
 }
+
+mod envelope_versions;

@@ -1261,8 +1261,12 @@ every method.)
   with its delivering device's scopes intersected with `origin.scopes`,
   and applies ownership and the agent limits to the origin. Subscriptions
   and the envelope's own methods cannot be forwarded
-  (`Method::forwardable`). A call needs protocol 6 on the connection it is
-  sent on; the inner call's version is checked where it is delivered.
+  (`Method::forwardable`). Each connection must understand the envelope
+  (at least protocol 6) and the full inner call, including newer fields:
+  `Call::since` recursively takes their maximum. Both client and server
+  check this before sending or dispatching, including a forward to the
+  welcomed node itself. Thus the protocol 19 inbox cannot cross a hop
+  negotiated at 18, even when that hop is also the final target.
 - Fleet: `fleet.grant { link }` (sync) hands the home a pairing link made
   on the member, so the home holds a credential there (a member's node
   sends it when it connects, with the scopes chosen at join, `read` and

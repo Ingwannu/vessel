@@ -295,3 +295,15 @@ Immutable acceptance implementation: `34986852e42a344bc10a949d6da0028ea6cbc861`.
 The subsequent handoff note changes documentation only; compiled inputs remain
 identical to the final successful consuming source manifest. Complete-slice
 review is with V1 before node integration.
+
+### Review correction checkpoint
+
+The follow-up reuses recursive envelope version gating, stored marks at inbox
+insertion, and exact attempted push-lease identity after HTTP. Focused rules
+and real writer/HTTP barriers passed; whole fmt/clippy pass. The subsequent
+whole test stopped at an unchanged CLI canary timeout (182 passed / one failed
+across seven completed binaries), and fresh web E2E ended 60/2. The existing
+model-call assertion rejects the production formatter's valid seconds unit;
+the terminal-link case stopped before link handling at session creation. Their
+owner decisions and full validation remain pending. The node-only resume note
+records exact boundaries; no correction or UI approval is claimed.

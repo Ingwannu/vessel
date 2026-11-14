@@ -136,3 +136,20 @@ Paseo: `packages/server/src/server/agent-attention-policy.ts`,
 `packages/app/src/utils/agent-attention.ts`, `packages/cli/src/commands/permit/`.
 GOAT: `apps/web/src/components/decisions/DecisionInbox.tsx` and
 `apps/web/src/components/decisions/useDecisionInbox.ts`.
+
+## Marks ahead of persistence
+
+The runtime may publish attention before its durable channel drains. Archive
+waits for publication to end; it does not serialize that drain. Therefore each
+inbox insert reads the stored session marks in its append transaction. An
+archived session admits no new entry. Other entries inherit read state through
+`KeptMarks::marks(Some(source_seq))`, including explicit unread and the kept
+exclusive read watermark. Read marks update existing entries with that same
+kept watermark, even when an older read clears an explicit unread mark. The
+backfill uses this same insertion rule. A second mark engine or a wait for all
+persistence would add ordering and latency without strengthening this keeper.
+
+Every fleet hop must decode its full typed call. The common recursive
+`Call::since` rule applies to the inbox too; checking only the envelope's
+version would expose protocol 18 relays to protocol 19 methods. No scope or
+forwardability policy changes with this correction.

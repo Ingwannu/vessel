@@ -1236,6 +1236,9 @@ question; `--decline` uses the existing request's decline path. `vessel inbox
 read ENTRY` and `unread ENTRY` share attention with other devices without
 answering the request. Entry numbers are stable for their lifetime; a request
 answered elsewhere disappears, so list again if a number is no longer current.
+Session read-through and archive also apply when a published event reaches
+storage later: an already-read source stays read, and archived attention stays
+out of the inbox.
 
 Protocol 19 also defines paired-device Web Push registration for a future
 phone/browser host. The node owns its VAPID identity, encrypts only a generic

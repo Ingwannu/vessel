@@ -6,7 +6,7 @@ use crate::{
     writer::Write,
 };
 use chrono::{DateTime, Utc};
-use vessel_proto::{DeviceId, push::PushSubscription};
+use vessel_proto::DeviceId;
 impl Store {
     /// Register/renew a paired device's lease; at most 64 subscriptions.
     ///
@@ -26,17 +26,25 @@ impl Store {
         })
         .await
     }
-    /// Remove a subscription, optionally only if it is still the one sent.
+    /// Explicitly unsubscribe this device, regardless of its current lease.
     ///
     /// # Errors
     /// The database write failed.
-    pub async fn remove_push(
-        &self,
-        device: DeviceId,
-        expected: Option<PushSubscription>,
-    ) -> Result<(), StoreError> {
+    pub async fn remove_push(&self, device: DeviceId) -> Result<(), StoreError> {
         self.write(|done| Write::Push {
-            write: PushWrite::Remove { device, expected },
+            write: PushWrite::Remove { device },
+            done,
+        })
+        .await
+    }
+    /// Remove only the exact lease whose HTTP attempt returned 404/410.
+    /// Renewing the same capability with a later expiry keeps the new lease.
+    ///
+    /// # Errors
+    /// The database write failed.
+    pub async fn expire_push(&self, stored: StoredPush) -> Result<(), StoreError> {
+        self.write(|done| Write::Push {
+            write: PushWrite::Expire(Box::new(stored)),
             done,
         })
         .await

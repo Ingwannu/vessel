@@ -10,7 +10,8 @@ use super::Call;
 
 impl Call {
     /// The protocol version this call needs: its method's, or a later one
-    /// when it uses a field added since. A node that predates a field would
+    /// when it uses a field added since or wraps a newer inner call. Every
+    /// hop must decode the full typed call. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
     /// or invite a device with more scopes than asked), so the client checks
     /// this before sending. A request that gains a field adds a line here.
@@ -23,6 +24,11 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            // Every hop decodes the typed inner call, including newer fields.
+            // Checking only the final target lets an older relay misdecode it.
+            Self::Forward(request) => Some(request.call.since().get()),
+            Self::Relay(request) => Some(request.call.since().get()),
+            Self::Deliver(request) => Some(request.call.since().get()),
             Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
@@ -99,11 +105,6 @@ impl Call {
             | Self::WatchFleet(_)
             | Self::ReportApplied(_)
             | Self::ListMembers(_)
-            // The inner call of an envelope is checked against the target's
-            // protocol where it is delivered, not against this connection.
-            | Self::Forward(_)
-            | Self::Relay(_)
-            | Self::Deliver(_)
             | Self::GrantHome(_)
             | Self::GetCallback(_)
             | Self::ForgetNode(_)

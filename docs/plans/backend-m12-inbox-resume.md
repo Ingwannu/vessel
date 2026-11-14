@@ -197,3 +197,67 @@ approval of the fleet prerequisite is not approval of this complete slice.
   integrator. The prerequisite's independent PASS does not substitute for
   review of the inbox/push implementation. No further native work is assigned
   to this track in the resumed scope.
+
+## Review correction batch
+
+V1 returned implementation `34986852` / notes `27962002` despite the recorded
+green commands. The original commits remain immutable. The follow-up fixes
+three source boundaries together:
+
+- Fleet envelopes recursively require the maximum of envelope and full inner
+  call versions. Inbox calls cannot be sent over an 18 hop through a version
+  6 envelope, even when forwarding to that welcomed node itself. Direct typed
+  calls, call-on-self and all three envelope types have exact local refusal
+  and no-frame tests. Forced raw frames check exact refusal before dispatch;
+  old supported calls and supported inbox envelopes still reach the handler.
+- Inbox insertion reads the stored session marks in its own append transaction:
+  archived sessions cannot recreate entries; already-read delayed sources
+  inherit the exclusive watermark and explicit unread semantics. Backfill
+  reuses that rule. Ordered real SQLite commits and an async Store producer
+  barrier cover delayed requests/final status, exact counts, lookup and both
+  push candidate selection and final admission. This is the store boundary,
+  not an instrumented actor-persistence scheduling test.
+- A late 404/410 matches the attempted device, subscription and expiry. Explicit
+  unsubscribe remains unconditional. Real loopback HTTP responses are held
+  until same-capability renewal commits, then completion and exact stored
+  expiry prove whether that lease survived or the current attempt was removed.
+
+The correction changes no wire shape, scope, schema or protocol number. The
+shared recursive rule is the same one used by the other node tracks; it does
+not integrate their authority methods or scope representation. New validation
+is recorded only after the changed-tree gate finishes; the old 1,820/62 results
+are evidence for the returned tree, not for this correction.
+
+## Correction validation checkpoint
+
+The correction's whole formatter and whole workspace/all-target clippy check
+pass. The whole test run stopped in the unchanged CLI canary's 60-second
+safety net: seven completed binaries, 182 passed, one failed, none ignored;
+CLI integration was 40 passed / one failed. All three inbox CLI cases passed,
+including full selected-form recovery after pruning. The canary source is
+identical to the pre-correction and integrated node-line versions. A timeout
+alone does not establish whether the cause is load or a blocked operation.
+The proposed static phase diagnostics remain outside the repository while the
+file's owner decides; no deadline, assertion or non-vacuity check was changed.
+
+Fresh-binary web E2E completed 60 passed / two failed. Every page/theme case,
+including the earlier theme-paint failure, passed. The terminal-link case
+stopped in session creation before its link assertions (the URL did not change;
+the terminal button was disabled); its cause remains unresolved. The model-call
+case received a valid `1.0 s` duration while its assertion accepts only `ms`.
+The production duration function and its existing unit tests explicitly support
+seconds and minutes. Directly invoking that unchanged function confirms the
+boundary at 1,000 ms. This is evidence of the assertion's unit mismatch, not
+proof that every failure is unrelated to the inbox change.
+
+All web source and these pre-existing test files remain unchanged. Runtime
+binary identities stayed stable through E2E; the fake fleet was stopped and its
+state removed. No native screen, real agent or hosted push service was used.
+The slice remains returned pending owner decisions, a complete changed-tree
+root gate, full E2E and renewed immutable review. Neither the earlier green
+commands nor these partial results are a correction PASS.
+
+The new direct push refusal case, which the stopped whole run had not reached,
+was subsequently executed once on this same frozen source and passed. The
+checkpoint is deliberately `wip:`: owner decisions and complete validation
+remain outstanding, and the proposed canary diagnostics are not installed.

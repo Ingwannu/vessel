@@ -163,9 +163,7 @@ impl Push {
         match prepared.send().await? {
             Delivered::Accepted => {}
             Delivered::Gone => {
-                self.store
-                    .remove_push(stored.device, Some(stored.subscription))
-                    .await?;
+                self.store.expire_push(stored).await?;
             }
             Delivered::Refused => tracing::warn!(
                 reason = "service_refused",

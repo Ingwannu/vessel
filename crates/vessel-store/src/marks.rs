@@ -69,7 +69,11 @@ pub(crate) fn mark(
         Mark::Archive => {
             let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [&id])?;
         }
-        Mark::Read { through } => {
+        Mark::Read { .. } => {
+            // A late read can clear an explicit unread mark while keeping
+            // a farther watermark from a prior read. Apply that kept value
+            // to existing rows, just as delayed inserts inherit it.
+            let through = kept.read.unwrap_or(EventSeq::ZERO);
             let _rows = connection.execute(
                 "UPDATE inbox SET seen=1 WHERE session=?1 AND seq<?2",
                 params![id, seq_to_sql(through)?],

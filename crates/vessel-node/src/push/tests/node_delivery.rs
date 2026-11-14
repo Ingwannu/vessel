@@ -38,6 +38,7 @@ async fn step<T>(name: &'static str, future: impl Future<Output = T>) -> T {
 struct Received {
     headers: HeaderMap,
     body: Bytes,
+    reply: Option<tokio::sync::oneshot::Sender<()>>,
 }
 struct Receiver {
     url: url::Url,
@@ -50,6 +51,12 @@ impl Receiver {
         Self::with_headers(status, HeaderMap::new()).await
     }
     async fn with_headers(status: StatusCode, response_headers: HeaderMap) -> Self {
+        Self::serve(status, response_headers, false).await
+    }
+    async fn delayed(status: StatusCode) -> Self {
+        Self::serve(status, HeaderMap::new(), true).await
+    }
+    async fn serve(status: StatusCode, response_headers: HeaderMap, delayed: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}/push", listener.local_addr().unwrap())
             .parse()
@@ -63,7 +70,23 @@ impl Receiver {
                           headers: HeaderMap,
                           body: Bytes| async move {
                         let response_headers = response_headers.clone();
-                        outbox.send(Received { headers, body }).await.unwrap();
+                        let (reply, released) = if delayed {
+                            let (reply, released) = tokio::sync::oneshot::channel();
+                            (Some(reply), Some(released))
+                        } else {
+                            (None, None)
+                        };
+                        outbox
+                            .send(Received {
+                                headers,
+                                body,
+                                reply,
+                            })
+                            .await
+                            .unwrap();
+                        if let Some(released) = released {
+                            released.await.unwrap();
+                        }
                         (status, response_headers)
                     },
                 ),
@@ -349,3 +372,5 @@ async fn private_numeric_and_localhost_endpoints_never_reach_http_preparation() 
 mod cancellation;
 
 mod restart;
+
+mod renewed_lease;

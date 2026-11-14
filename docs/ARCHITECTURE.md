@@ -1071,7 +1071,10 @@ projects attention in the log append transaction (`inbox`, bounded `tools`),
 keeps paired-device leases (`push`) and the independent owner-only VAPID
 identity (`push_key`, `push-vapid.key`). The migration backfills retained
 ended-session outcomes once; startup recovery withdraws interrupted requests.
-Neither projection nor read marking creates another answer validator.
+Each attention insert reads the stored session marks in that same transaction:
+archive blocks delayed attention, and delayed records inherit the kept read
+watermark and explicit unread mark. Backfill uses the identical rule. Neither
+projection nor read marking creates another answer validator.
 
 `vessel-node::service::{inbox,push}` checks principals; existing session calls
 still enforce Operate and first answer wins. The node enriches a page with
@@ -1080,7 +1083,10 @@ coalesces a burst, rechecks current authority/read state/presence and encrypts
 only a fixed generic payload. `crypto`/`vapid` use web-push-native and RustCrypto
 p256; `delivery` pins public DNS addresses and sends over existing reqwest /
 rustls, with redirects/proxies off. The relay sees only the existing encrypted
-transport. No phone UI or hosted push account is introduced.
+transport. A late HTTP 404/410 removes only the attempted device, capability
+and exact lease expiry; renewing the same capability survives that response.
+Explicit unsubscribe remains unconditional. No phone UI or hosted push account
+is introduced.
 
 `vessel-client::{inbox,push}` exposes those calls, and `vessel inbox` lists,
 shows one selected live form, answers and marks selected-node entries. CLI answers reuse

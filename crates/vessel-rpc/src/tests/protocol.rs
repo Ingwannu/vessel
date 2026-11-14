@@ -7,6 +7,11 @@ use super::*;
 
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
+    let (client, served, _) = raw_client_with_node(version).await;
+    (client, served)
+}
+
+async fn raw_client_with_node(version: u32) -> (MemoryTransport, Served, NodeId) {
     let (mut client_end, server_end) = pair();
     let served = serve(server_end);
     let version = ProtocolVersion::new(version);
@@ -26,7 +31,7 @@ async fn raw_client(version: u32) -> (MemoryTransport, Served) {
         panic!("expected a welcome, got {welcome}");
     };
     assert_eq!(welcome.protocol, version);
-    (client_end, served)
+    (client_end, served, welcome.node.id)
 }
 
 /// Send one call and return the text of the next frame.
@@ -154,3 +159,5 @@ async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
     assert_eq!(error.code, ErrorCode::Unsupported);
     assert!(served.seen.try_recv().is_err());
 }
+
+mod inbox;

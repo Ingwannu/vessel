@@ -169,3 +169,5 @@ async fn agent_history_is_refused_locally_before_protocol_17() {
     drop(client);
     assert!(old_node.await.unwrap().is_none(), "nothing was sent");
 }
+
+mod inbox;

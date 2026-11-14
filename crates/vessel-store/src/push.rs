@@ -35,28 +35,26 @@ pub(crate) enum PushWrite {
     },
     Remove {
         device: DeviceId,
-        expected: Option<PushSubscription>,
     },
+    Expire(Box<StoredPush>),
 }
 pub(crate) fn apply(connection: &Connection, write: &PushWrite) -> Result<(), StoreError> {
     match write {
         PushWrite::Subscribe { stored, now } => subscribe(connection, stored, *now),
-        PushWrite::Remove { device, expected } => {
-            // A late 410 for the old subscription cannot remove its replacement.
-            match expected {
-                Some(subscription) => {
-                    let _rows = connection.execute(
-                        "DELETE FROM push_subscriptions WHERE device=?1 AND subscription=?2",
-                        params![device.to_string(), encode(subscription)?],
-                    )?;
-                }
-                None => {
-                    let _rows = connection.execute(
-                        "DELETE FROM push_subscriptions WHERE device=?1",
-                        [device.to_string()],
-                    )?;
-                }
-            }
+        PushWrite::Remove { device } => {
+            let _rows = connection.execute(
+                "DELETE FROM push_subscriptions WHERE device=?1",
+                [device.to_string()],
+            )?;
+            Ok(())
+        }
+        PushWrite::Expire(stored) => {
+            // The browser may renew the same capability during HTTP. A late
+            // 404/410 belongs only to the attempted lease, not its renewal.
+            let _rows = connection.execute(
+                "DELETE FROM push_subscriptions WHERE device=?1 AND subscription=?2 AND expires_at=?3",
+                params![stored.device.to_string(), encode(&stored.subscription)?, time_to_sql(stored.expires_at)?],
+            )?;
             Ok(())
         }
     }

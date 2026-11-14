@@ -200,3 +200,13 @@ RFC 6979 deterministic nonces (`sha2`, `rfc6979`, `hmac`). HTTP TLS uses
 the existing rustls/ring stack. No OpenSSL or native crypto build step is
 introduced. The locked graph includes target-specific support crates;
 a licence listing is not a claim of a third-party security audit.
+
+## Late gone responses and lease renewal
+
+An HTTP 404/410 removes only the admitted `StoredPush` identity: device,
+subscription and exact stored expiry, in one writer statement. A browser can
+renew the same capability while an earlier request is in flight; comparing
+only the capability would erase that later lease. Explicit unsubscribe is a
+separate unconditional device operation. Tests hold a real loopback HTTP
+response until renewal commits, then verify both stale-response survival and
+current-lease removal. No schema or wire change is required.

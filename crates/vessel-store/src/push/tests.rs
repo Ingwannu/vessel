@@ -69,26 +69,12 @@ fn expired_lease_is_not_listed_and_late_410_cannot_delete_replacement() {
     let mut replacement = old.clone();
     replacement.subscription.endpoint = "https://push.example/replaced".parse().unwrap();
     subscribe(&db, &replacement, now()).unwrap();
-    apply(
-        &db,
-        &PushWrite::Remove {
-            device: old.device,
-            expected: Some(old.subscription),
-        },
-    )
-    .unwrap();
+    apply(&db, &PushWrite::Expire(Box::new(old))).unwrap();
     assert_eq!(
         list(&db, now()).unwrap()[0].subscription,
         replacement.subscription
     );
-    apply(
-        &db,
-        &PushWrite::Remove {
-            device: replacement.device,
-            expected: Some(replacement.subscription),
-        },
-    )
-    .unwrap();
+    apply(&db, &PushWrite::Expire(Box::new(replacement))).unwrap();
     assert!(list(&db, now()).unwrap().is_empty());
 }
 #[test]
@@ -112,4 +98,39 @@ fn sixty_four_subscriptions_allow_renewal_but_not_another_device_until_expiry() 
         .unwrap();
     subscribe(&db, &extra, renewal).unwrap();
     assert_eq!(list(&db, now()).unwrap().len(), 1);
+}
+
+#[test]
+fn late_gone_for_the_same_capability_cannot_delete_a_renewed_lease() {
+    let db = database();
+    let old = stored(device(&db, vec![Scope::Read]));
+    subscribe(&db, &old, now()).unwrap();
+    let mut renewed = old.clone();
+    renewed.expires_at = old
+        .expires_at
+        .checked_add_signed(chrono::TimeDelta::seconds(1))
+        .unwrap();
+    subscribe(&db, &renewed, now()).unwrap();
+    apply(&db, &PushWrite::Expire(Box::new(old))).unwrap();
+    let retained = list(&db, now()).unwrap();
+    assert_eq!(retained.len(), 1);
+    assert_eq!(retained[0].expires_at, renewed.expires_at);
+    assert_eq!(retained[0].subscription, renewed.subscription);
+    apply(&db, &PushWrite::Expire(Box::new(renewed))).unwrap();
+    assert!(list(&db, now()).unwrap().is_empty());
+}
+
+#[test]
+fn explicit_unsubscribe_removes_a_renewal_without_an_attempt_identity() {
+    let db = database();
+    let lease = stored(device(&db, vec![Scope::Read]));
+    subscribe(&db, &lease, now()).unwrap();
+    apply(
+        &db,
+        &PushWrite::Remove {
+            device: lease.device,
+        },
+    )
+    .unwrap();
+    assert!(list(&db, now()).unwrap().is_empty());
 }

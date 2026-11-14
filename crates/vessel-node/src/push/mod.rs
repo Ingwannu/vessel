@@ -175,7 +175,7 @@ impl Push {
         Ok(PushLease { expires_at })
     }
     pub(crate) async fn unsubscribe(&self, device: DeviceId) -> Result<(), PushError> {
-        Ok(self.store.remove_push(device, None).await?)
+        Ok(self.store.remove_push(device).await?)
     }
     /// Returns whether a close watcher is needed. One per connection, at
     /// most 128: an idle-but-open connection consumes a slot, not activity.
