@@ -18,7 +18,15 @@
 //!   GPUI's renderer (resvg) at exactly the device pixels that box covers,
 //!   and painted 1:1. Rasters are kept by content and size in a small
 //!   cache; one pushed out is dropped from GPUI's atlas, so a transition's
-//!   frames do not pile up textures.
+//!   frames do not pile up textures. Of the large ones (a backdrop the
+//!   panel's size, about 3 MB at 1280 × 800 and scale 1, held once in the
+//!   cache and once in the atlas) only the two newest stay, so a journey's
+//!   frames cannot keep twelve; small ones (glyphs, avatars) are drawn every
+//!   frame and must not be pushed out by a transition, or they would be
+//!   rasterised again each frame. A backdrop rasterises only the area it
+//!   fills: the whole extent of the open session's frame (its apex far
+//!   below the screen) made one raster of about 70 MB (measured: the app's
+//!   memory 75 MB above a build without the drawing).
 //! - Cost: at rest one texture per drawing and nothing per frame; a new
 //!   layout or a transition frame rasterises once (measured in the brand's
 //!   notes: the 1920 drawing at scale 2 in a few milliseconds).
@@ -61,6 +69,13 @@ pub struct Drawing {
 /// and size; every message of an agent shares its raster).
 const KEPT: usize = 12;
 
+/// A raster above this many bytes (four a device pixel, 512 × 512) is
+/// large: a backdrop, not a glyph or an avatar.
+const LARGE: u64 = 1 << 20;
+
+/// How many large rasters are kept: the one drawn and the one before it.
+const LARGE_KEPT: usize = 2;
+
 /// A raster's identity: its SVG's hash, its device width and height.
 type Key = (u64, i32, i32);
 
@@ -84,7 +99,7 @@ pub fn drawing(
         |_, _, _| {},
         move |bounds, (), window, cx| {
             if let Some(drawing) = make(bounds, window, cx) {
-                paint(&drawing, window, cx);
+                paint(&drawing, Some(bounds), window, cx);
             }
         },
     )
@@ -103,7 +118,7 @@ pub fn inline(drawing: Arc<Drawing>, logical: gpui::Size<Pixels>) -> impl gpui::
         |_, _, _| {},
         move |bounds, (), window, cx| {
             let origin = (f32::from(bounds.origin.x), f32::from(bounds.origin.y));
-            paint(&moved(&drawing, origin), window, cx);
+            paint(&moved(&drawing, origin), None, window, cx);
         },
     )
     .flex_none()
@@ -136,7 +151,7 @@ pub fn snapped(
                     .collect(),
                 ink,
             };
-            paint(&drawing, window, cx);
+            paint(&drawing, None, window, cx);
         },
     )
     .flex_none()
@@ -181,6 +196,21 @@ fn moved(drawing: &Drawing, (dx, dy): (f32, f32)) -> Drawing {
             .collect(),
         ink: drawing.ink,
     }
+}
+
+/// `extent` within `clip` (left, top, right, bottom), or `None` when
+/// nothing of it is inside.
+fn clipped(
+    (x0, y0, x1, y1): (f32, f32, f32, f32),
+    clip: Option<Bounds<Pixels>>,
+) -> Option<(f32, f32, f32, f32)> {
+    let Some(clip) = clip else {
+        return Some((x0, y0, x1, y1));
+    };
+    let (left, top) = (f32::from(clip.origin.x), f32::from(clip.origin.y));
+    let (right, bottom) = (f32::from(clip.right()), f32::from(clip.bottom()));
+    let inside = (x0.max(left), y0.max(top), x1.min(right), y1.min(bottom));
+    (inside.0 < inside.2 && inside.1 < inside.3).then_some(inside)
 }
 
 /// The shapes' bounds, grown by half the widest stroke and one point of
@@ -299,8 +329,12 @@ pub(crate) fn device_box(x0: f32, y0: f32, x1: f32, y1: f32, scale: f32) -> (i32
     )
 }
 
-fn paint(drawing: &Drawing, window: &mut Window, cx: &mut App) {
-    let Some((x0, y0, x1, y1)) = extent(drawing) else {
+/// Paints `drawing`, rasterising only what lies inside `clip`: a backdrop's
+/// lines may run far past the area it fills (the open session's frame
+/// meets its apex thousands of points below the screen), and a raster of
+/// the whole extent was measured at about 70 MB for one frame.
+fn paint(drawing: &Drawing, clip: Option<Bounds<Pixels>>, window: &mut Window, cx: &mut App) {
+    let Some((x0, y0, x1, y1)) = extent(drawing).and_then(|box_| clipped(box_, clip)) else {
         return;
     };
     let scale = window.scale_factor();
@@ -329,6 +363,33 @@ fn paint(drawing: &Drawing, window: &mut Window, cx: &mut App) {
     }
 }
 
+/// The bytes a raster holds: four a device pixel.
+fn bytes((_, width, height): Key) -> u64 {
+    let side = |n: i32| u64::try_from(n).unwrap_or(0);
+    side(width).saturating_mul(side(height)).saturating_mul(4)
+}
+
+/// Which rasters stay (`keys` oldest first, the one just made last): the
+/// newest [`KEPT`], of which at most [`LARGE_KEPT`] are [`LARGE`].
+fn kept(keys: &[Key]) -> Vec<bool> {
+    let (mut all, mut large) = (0_usize, 0_usize);
+    let mut flags: Vec<bool> = keys
+        .iter()
+        .rev()
+        .map(|&key| {
+            let big = bytes(key) > LARGE;
+            let keep = all < KEPT && (!big || large < LARGE_KEPT);
+            if keep {
+                all = all.saturating_add(1);
+                large = large.saturating_add(usize::from(big));
+            }
+            keep
+        })
+        .collect();
+    flags.reverse();
+    flags
+}
+
 fn raster(key: Key, text: &str, window: &mut Window, cx: &mut App) -> Option<Arc<RenderImage>> {
     let found = RASTERS.with_borrow_mut(|rasters| {
         let at = rasters.iter().position(|(k, _)| *k == key)?;
@@ -351,10 +412,14 @@ fn raster(key: Key, text: &str, window: &mut Window, cx: &mut App) -> Option<Arc
         Ok(made) => {
             let evicted = RASTERS.with_borrow_mut(|rasters| {
                 rasters.push((key, Arc::clone(&made)));
-                let over = rasters.len().saturating_sub(KEPT);
-                rasters
-                    .drain(..over)
-                    .map(|(_, image)| image)
+                let flags = kept(&rasters.iter().map(|(k, _)| *k).collect::<Vec<_>>());
+                let (stay, gone): (Vec<_>, Vec<_>) = std::mem::take(rasters)
+                    .into_iter()
+                    .zip(flags)
+                    .partition(|(_, keep)| *keep);
+                *rasters = stay.into_iter().map(|(entry, _)| entry).collect();
+                gone.into_iter()
+                    .map(|((_, image), _)| image)
                     .collect::<Vec<_>>()
             });
             for image in evicted {

@@ -4,7 +4,7 @@
     reason = "a colour channel written as a fraction of 255"
 )]
 
-use super::{Drawing, Shape, device_box, extent, svg};
+use super::{Drawing, KEPT, Shape, clipped, device_box, extent, kept, svg};
 
 fn drawing() -> Drawing {
     Drawing {
@@ -79,4 +79,49 @@ fn the_svg_is_the_shapes_in_one_ink() {
     );
     let tree = resvg::usvg::Tree::from_str(&text, &resvg::usvg::Options::default());
     assert!(tree.is_ok());
+}
+
+#[test]
+fn small_rasters_stay_twelve() {
+    let keys: Vec<_> = (0_u64..20).map(|hash| (hash, 11, 11)).collect();
+    let flags = kept(&keys);
+    assert_eq!(flags.iter().filter(|&&keep| keep).count(), KEPT);
+    assert!(flags.iter().skip(8).all(|&keep| keep), "the newest stay");
+}
+
+#[test]
+fn only_the_two_newest_large_rasters_stay() {
+    // a glyph, three backdrop frames of a transition, an avatar
+    let keys = [
+        (1, 11, 11),
+        (2, 1000, 760),
+        (3, 1000, 760),
+        (4, 1000, 760),
+        (5, 48, 48),
+    ];
+    assert_eq!(kept(&keys), vec![true, false, true, true, true]);
+}
+
+#[test]
+fn a_backdrop_at_scale_two_keeps_the_glyphs() {
+    // one raster far above the large size never pushes the small ones out
+    let mut keys: Vec<_> = (0_u64..6).map(|hash| (hash, 18, 18)).collect();
+    keys.push((9, 3400, 2100));
+    assert!(kept(&keys).iter().all(|&keep| keep));
+}
+
+#[test]
+fn a_backdrop_rasterises_only_the_area_it_fills() {
+    let panel = gpui::Bounds {
+        origin: gpui::point(gpui::px(264.0), gpui::px(37.0)),
+        size: gpui::size(gpui::px(1007.0), gpui::px(755.0)),
+    };
+    // the open session's frame: arms down to an apex far below the screen
+    let far = (270.0, 60.0, 1265.0, 40_000.0);
+    assert_eq!(
+        clipped(far, Some(panel)),
+        Some((270.0, 60.0, 1265.0, 792.0))
+    );
+    assert_eq!(clipped((0.0, 0.0, 100.0, 20.0), Some(panel)), None);
+    assert_eq!(clipped(far, None), Some(far));
 }
