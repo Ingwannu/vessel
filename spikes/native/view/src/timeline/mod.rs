@@ -57,7 +57,7 @@ pub use entry::{
 };
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
-    query_of, readable_text, searchable, spans_of, step,
+    query_of, readable_text, searchable, spans_of, start_at, step,
 };
 pub use fold::{Change, Facts, Timeline};
 pub use live::Live;
