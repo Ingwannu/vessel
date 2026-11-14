@@ -300,3 +300,21 @@ Adjacent tests cover blank and malformed siblings, padding, Unicode, the
 file bound, safe Debug, command independence and the unchanged digest.
 The helper is not called by the node yet. Narrow all-targets Clippy and
 its project-file tests pass; the exact-commit whole gate remains next.
+
+### Atomic generated title application contract
+
+The next library slice extends the existing bounded rename channel; it
+adds no wire call. A generated proposal is compared and published inside
+the owning actor. A conditional read followed by `rename` cannot preserve
+a concurrent manual rename, so it is rejected. An exhaustive change enum
+shares the existing acknowledgement path without another writer or pool.
+
+Adjacent rule tests and the existing fake-runtime fixture will cover exact
+given matching, other origins, explicit specifications, terminal/resuming
+modes, ended sessions and a simultaneous same-text manual rename. No real
+agent, provider or socket is required. This source API does not arm a task
+or call a model. Node wiring and its end-to-end generation tests remain
+later. The ADR now states the live-only application/recording floor and
+corrects the old create/first-prompt and wire-acknowledgement assumption.
+The shared accessor correction passed independent validation and review;
+the integrated node head is still needed before settings registration.
