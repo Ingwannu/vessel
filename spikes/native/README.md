@@ -458,14 +458,13 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
 - A struct pattern over a protocol type (`vessel_proto`) ends with `..`,
   so a field a newer node adds does not break the app (old and new peers
   are both accepted). The exception is a type that carries what a person
-  approves or agrees to (today `ProjectCommands::Listed` in
-  `Listed::of`, and the worktree's `NeedsApproval` that carries it): its
-  pattern names every field on purpose, with a comment saying so, so
-  that a new field breaks the build until the screen shows it or refuses
-  it by type. Ignoring it would let a person approve something the
-  screen never showed. A permission request and an install offer are
-  read by field access, which no added field breaks; giving them the
-  same guard is an open item.
+  approves or agrees to (`ProjectCommands::Listed` in `Listed::of` and
+  the worktree's `NeedsApproval` that carries it; the permission card's
+  `PermissionRequest` and each `PermissionOption`; an `InstallOffer`
+  where it is shown and run): its pattern names every field on purpose,
+  with a comment saying so, so that a new field breaks the build until
+  the screen shows it or refuses it by type. Ignoring it would let a
+  person approve something the screen never showed.
 - The sidebar and the conversation's timeline are drawn as regions
   (`app/src/region.rs`): GPUI views of their own, cached between frames,
   drawn again whenever the shell changes. A field's caret blink (or any
