@@ -300,7 +300,13 @@ async fn a_broken_profiles_file_stops_the_node_from_starting() {
 async fn a_devices_session_records_the_device() {
     within(async {
         let fixture = Fixture::new();
-        let node = fixture.start().await;
+        let node = fixture
+            .start_with(|config| {
+                // The offer is rewritten to the live route below; the issuer
+                // must still have an explicitly advertised pairing route.
+                config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+            })
+            .await;
         let owner = fixture.connect(&node).await;
         let direct: RouteUrl = format!("ws://{}", node.address().unwrap()).parse().unwrap();
         let dialer = || WsDialer::new(TlsConfig::with_roots(rustls::RootCertStore::empty()).unwrap());

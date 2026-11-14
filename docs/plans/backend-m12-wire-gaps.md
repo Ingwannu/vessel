@@ -354,3 +354,47 @@ New typed detail: DeviceInvite { reason: DeviceInviteError::NoRoutes } on
 ErrorCode::Conflict, with setup guidance; existing device.invite method and
 client/CLI calls remain unchanged. See the ADR for rejected alternatives,
 old-peer fallback and required fixtures. No native screen work is included.
+
+Row 4 implementation shares route selection for public and tracked issuance;
+no bind-address inference, network probing or relay configuration is added.
+The client keeps the existing invite calls and typed remote error; its API
+documents the new Conflict reason. A future/unknown detail remains readable,
+and a protocol-4 connection to the updated node gets the same guidance.
+Older server behavior itself is not changed by a new client's version.
+Existing in-memory fleet and CLI offer-inspection tests now explicitly
+advertise their fabricated route; no assertion or safety timeout is relaxed.
+The fake fleet's no-route fixture uses only the fake binary PATH, scratch
+home/data/config and a local ephemeral listener, and reaps its exact child.
+
+The first whole row 4 run stopped at node E2E: 173 passed, two failed.
+Both legacy fixtures issued an empty-route invitation and rewrote it to the
+live listener afterward: callback's member-without-relay guidance case and
+secure's frozen-direct-route keepalive case. Their preparation now advertises
+an explicit placeholder, retaining the existing live-route replacement and
+all assertions/timeouts. All other completed suites passed, including 215
+node units and the new current/old-peer no-route cases. The source remained
+frozen throughout that failed attempt; prepared fixes were installed with
+current timestamps only after it exited. A changed-source full root gate
+follows; no clean final result is claimed at this checkpoint.
+
+## Row 4 final verification
+
+The changed-source fmt, whole Clippy and literal whole workspace tests passed:
+110 suites, 1,786 passed, zero failed, ten ignored (RUST_TEST_THREADS=2).
+Node units 215 and node E2E 175 passed, including both corrected legacy
+fixtures. The two source files fixed after the first whole failure are the
+only differing Rust inputs between attempts. All 1,022 final Rust inputs
+remained unchanged during the passing gate; changed crates were recompiled.
+Both TS generators, page lint/typecheck, 417 units and build passed; all
+62 page E2E passed in 5.1 minutes. No page scenario was skipped. The complete
+CLI fake fleet passed, including an isolated real no-route node's exact
+setup guidance and empty stdout. Its child was reaped; both main node PIDs
+were verified, signalled and absent, with no owned runtime left. UID/GID 1000,
+14 private book/token/credential paths checked at 0600/0700. No production
+permission change, native screen or other-OS runtime approval is claimed.
+Logs and pending review are recorded in the current resume checkpoint.
+
+Next priority is the file-seeded FakeForge fleet node, then actual project
+PR listing (row 5), registry/version states (row 6), and hooks (row 7). The
+fake backend must be test-only; shipped vesseld may honor no fake backend
+switch or flag. Its ADR and seed contract are not decided by this slice.

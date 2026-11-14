@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check N3 wire shapes through the fake fleet's CLI, without agent prompts."""
 import os
+import socket
 from pathlib import Path
 import subprocess
 import sys
@@ -14,6 +15,54 @@ def prepare(root: Path, _target: Path) -> None:
     for name in ["laptop", "build-server"]:
         for harness in [".claude", ".codex"]:
             (root / f"{name}-home" / harness).mkdir(parents=True, exist_ok=True)
+
+
+
+def check_no_route(root: Path, target: Path) -> None:
+    # An isolated, reachable local RPC listener without any advertised
+    # pairing route. Its token stays in its own private data directory.
+    data = root / "no-route-data"
+    home = root / "no-route-home"
+    home.mkdir()
+    env = {"PATH": f"{root / 'bin'}:/usr/local/bin:/usr/bin:/bin", "HOME": str(home),
+           "VESSEL_CONFIG_DIR": str(root / "no-route-config")}
+    with socket.socket() as reservation:
+        reservation.bind(("127.0.0.1", 0))
+        port = reservation.getsockname()[1]
+    address = f"127.0.0.1:{port}"
+    cli = [str(target / "vessel"), "--node", address, "--data-dir", str(data)]
+    with (root / "no-route.log").open("w") as log:
+        node = subprocess.Popen([str(target / "vesseld"), "--data-dir", str(data),
+                                 "--bind", address], env=env,
+                                stdout=log, stderr=subprocess.STDOUT)
+        try:
+            deadline = time.monotonic() + 30
+            while True:
+                assert node.poll() is None, "no-route fixture node exited"
+                if (data / "token").is_file():
+                    status = subprocess.run(cli + ["status"], env=env, capture_output=True,
+                                            timeout=10, check=False)
+                    if status.returncode == 0:
+                        break
+                assert time.monotonic() < deadline, "no-route fixture node did not listen"
+                time.sleep(0.1)
+            refused = subprocess.run(cli + ["node", "pair"], env=env, capture_output=True,
+                                     text=True, timeout=30, check=False)
+            assert refused.returncode != 0, "no-route invitation was issued"
+            assert refused.stdout == "", "no-route refusal printed a link or QR"
+            assert refused.stderr == (
+                "error: the node returned an error: Conflict: this node has no pairing route; configure --public "
+                "with a reachable address or --relay, then create a new invitation\n"
+            ), "no-route setup guidance missing"
+        finally:
+            # Popen owns this exact child PID; never signal a process name.
+            if node.poll() is None:
+                node.terminate()
+                try:
+                    node.wait(timeout=30)
+                except subprocess.TimeoutExpired:
+                    node.kill()
+                    node.wait()
 
 
 def check(root: Path, target: Path) -> None:
@@ -123,10 +172,12 @@ def check(root: Path, target: Path) -> None:
     uuid.UUID(sync_self[0].removeprefix("device  "))
     assert call("status", config="sync-only-config").returncode != 0, "self granted Read"
     assert call("node", "devices", config="sync-only-config").returncode != 0, "self granted Admin"
+    check_no_route(root, target)
     (root / "wire-gap-shapes.txt").write_text(
         "timezone, ten runs, CLI zone, impossible expression: checked\n"
         "fleet home/member/standalone, join/leave/sync, applied reports, read-only refusal: checked\n"
-        "self: paired person, local owner, reader and no-Read caller; no widened grant: checked\n")
+        "self: paired person, local owner, reader and no-Read caller; no widened grant: checked\n"
+        "no-route invite: setup guidance, empty stdout, exact child stopped: checked\n")
 
 
 if __name__ == "__main__":

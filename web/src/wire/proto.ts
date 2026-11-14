@@ -1594,6 +1594,11 @@ scopes: Array<Scope>,
 revoked_at?: string | null, };
 
 /**
+ * Why a pairing invitation could not be issued (protocol 19, ADR 0044).
+ */
+export type DeviceInviteError = "no_routes" | "unknown";
+
+/**
  * This connection's effective grant, not a promise of resource ownership.
  * Unavailable queries remain unknown to a client; there is no default grant.
  */
@@ -1858,7 +1863,11 @@ reason: SchedulePreviewError, } | { "kind": "fleet_control",
 /**
  * The stable fleet reason.
  */
-reason: FleetControlError, } | { "kind": "unknown" };
+reason: FleetControlError, } | { "kind": "device_invite", 
+/**
+ * The stable pairing setup reason.
+ */
+reason: DeviceInviteError, } | { "kind": "unknown" };
 
 /**
  * Reply to `session.read`.

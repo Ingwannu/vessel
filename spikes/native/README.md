@@ -422,3 +422,8 @@ is never the app's book. `readonly-config` holds Read; `sync-only-config`
 can inspect its own grant without Read, but cannot read status or list
 devices. Both disposable nodes advertise loopback routes for that pairing.
 No link is typed into a display, placed in arguments or printed in checks.
+
+The wire-gap fixture also starts and reaps an isolated local node with no
+advertised direct/relay route. Its CLI pairing request must fail with setup
+guidance and empty stdout (no link or QR). This checks configured route
+absence; it makes no claim about another device's network reachability.

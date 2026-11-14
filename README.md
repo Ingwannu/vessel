@@ -339,6 +339,10 @@ vessel node devices self                  # this connection's own grant; no Read
 vessel node devices revoke 3fa9       # its open connections close
 ```
 
+Pairing requires an advertised direct address (`--public`) or relay (`--relay`).
+Without one, the node refuses before issuing a link and says what to configure.
+An advertised route must still be reachable from the other device.
+
 - `vessel nodes add --pair` shows the node's key fingerprint; compare it
   with `vessel node status` on the node before confirming. Piped in, the
   link needs `--yes`.
