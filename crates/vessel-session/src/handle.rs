@@ -2,11 +2,14 @@
 //! sends the session is `input`'s.
 
 mod input;
+mod title;
+pub use title::TitleUpdate;
+pub(crate) use title::{Rename, RenameChange};
 
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_agent::{AgentInput, Driver};
 use vessel_proto::{
@@ -19,7 +22,6 @@ use crate::conversation::Seen;
 use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
-use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
 use crate::parking::{ParkOrder, Route};
@@ -287,20 +289,7 @@ impl SessionHandle {
     /// # Errors
     /// [`SessionError::Ended`] once the session has ended.
     pub async fn rename(&self, title: SessionTitle) -> Result<SessionInfo, SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
-        let (done, renamed) = oneshot::channel();
-        self.0
-            .renames
-            .send(Rename {
-                title,
-                origin: vessel_proto::TitleOrigin::Typed,
-                done,
-            })
-            .await
-            .map_err(|_ended| SessionError::Ended)?;
-        renamed.await.map_err(|_ended| SessionError::Ended)?;
+        let _applied = self.rename_change(RenameChange::Typed(title)).await?;
         Ok(self.info())
     }
 

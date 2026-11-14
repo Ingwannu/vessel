@@ -341,3 +341,13 @@ later. The ADR now states the live-only application/recording floor and
 corrects the old create/first-prompt and wire-acknowledgement assumption.
 The shared accessor correction passed independent validation and review;
 the integrated node head is still needed before settings registration.
+
+Actor implementation checkpoint: typed and generated requests now share a
+bounded channel and acknowledgement. The actor borrows current info only
+for comparison, drops that borrow, then publishes in the same actor turn.
+The new handle API returns a typed Applied/Kept result and preserves the
+ordinary rename API. Rule tests cover explicit/future origin and mode
+exclusions; real fake-runtime tests cover application, same-word manual
+renames, concurrent requests and ended actors. No model client or node
+arming is connected. Narrow all-targets Clippy, all library tests and the
+fake actor cases pass. The exact-commit whole gate remains next.

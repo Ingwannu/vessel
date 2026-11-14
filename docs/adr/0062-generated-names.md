@@ -483,7 +483,7 @@ Bounds on a generated answer, all refusals rather than cuts:
 
 | Text | Bound | Fallback |
 | --- | --- | --- |
-| Title | one line, 1 to 80 characters, a `SessionTitle` | the given title stays |
+| Title | nonblank line, `MAX_GENERATED_TITLE_UNITS` raw UTF-16 units, then `SessionTitle` | the given title stays |
 | Branch | the slug above, and a `BranchName` | the placeholder stays |
 | Commit message | one line, 1 to 72 characters, a `CommitMessage` | `Update files` |
 | Pull-request title | one line, 1 to 72 characters, a `PullTitle` | `Update changes` |
@@ -507,8 +507,9 @@ failed its bound. Nothing is dropped without that class in the log.
 The log and the `ModelCall` record carry the route, the model, the
 token counts, the stop, the failure class and the duration. They do
 not carry the prompt, the diff, the completion, or a key (ADR 0015,
-decision 10). A title or branch generation records a `ModelCall` on
-that session. The record's route is the route the generation called,
+decision 10). A title or branch generation publishes a `ModelCall` through
+that session's live actor. The live-only and bounded-channel recording
+limits above still apply; a record after the actor ended is not promised. The record's route is the route the generation called,
 which may not be the route the session was launched with. A
 `text.commit` or `text.pull` names a root, not a session, so it does not
 append a `ModelCall`; the answer's `source` is what the caller has, and
