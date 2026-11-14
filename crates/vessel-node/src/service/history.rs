@@ -1,4 +1,4 @@
-//! Protocol 14's `agent.history` (track A2, ADR 0053): a page of an
+//! Protocol 17's `agent.history` (track A2, ADR 0053): a page of an
 //! agent's own conversations, so a person imports one (`session.create`
 //! with `resume`). Routing and bounds here; the listing itself is
 //! `vessel_agent::history`, started by the session runtime as a probe is.

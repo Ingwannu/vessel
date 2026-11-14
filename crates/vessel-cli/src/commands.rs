@@ -117,7 +117,11 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             let text = render::node_status(&node, &sessions, env!("CARGO_PKG_VERSION"));
             Ok(io::out(text.as_bytes()).await?)
         }
-        NodeCommand::Pair { label, ttl } => devices::pair(target, label, ttl).await,
+        NodeCommand::Pair {
+            label,
+            ttl,
+            read_only,
+        } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
         NodeCommand::Settings { park_after } => {
             let client = connect(target).await?.client;

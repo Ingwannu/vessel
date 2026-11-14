@@ -1,5 +1,5 @@
 //! [`history`]: one page of an agent's own conversations, as it lists them
-//! over ACP (`session/list`; protocol 14's `agent.history`, ADR 0053).
+//! over ACP (`session/list`; protocol 17's `agent.history`, ADR 0053).
 //!
 //! [Decision Log]
 //! - Purpose: a person imports a conversation they had with an agent

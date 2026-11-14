@@ -1,4 +1,4 @@
-//! Importing from an agent's own history (protocol 14, milestone 11's
+//! Importing from an agent's own history (protocol 17, milestone 11's
 //! track A2, ADR 0053): `agent.history`, a page of the conversations an
 //! agent keeps, as it lists them over ACP.
 //!

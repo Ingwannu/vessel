@@ -1,4 +1,4 @@
-//! Protocol 14's `agent.history` (track A2, ADR 0053), with `fake-acp`,
+//! Protocol 17's `agent.history` (track A2, ADR 0053), with `fake-acp`,
 //! which keeps three earlier conversations over two pages (and one in a
 //! relative folder, left out): a listing pages through them, an import
 //! (`session.create` with `resume`) replays one into a new session's log

@@ -2,7 +2,10 @@
 
 Status: accepted, 2026-11-13 (milestone 11, track A2,
 `docs/plans/backend-m11.md`, "Track A2: contract, 4." and its review).
-The wire is protocol 14's `agent.history` (`crates/vessel-proto/src/history.rs`).
+The wire is protocol 17's `agent.history` (`crates/vessel-proto/src/history.rs`):
+track A2 wrote it at 14 beside forking, and on milestone 12's node line
+15 (fleet controls) and 16 (`fleet.published`) came first, so it was
+numbered 17 when merged there.
 
 ## Context
 

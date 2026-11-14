@@ -171,3 +171,108 @@ captures belong to G2. The existing scheduler's gap/fold policy stays unchanged.
   dependent changes plus cleanup wait for that receipt. This also covers
   sidebar, send-key and grouping cleanup. No timeline assertion or timeout
   is changed; the same Ctrl+F/default-key test still has to pass.
+
+## Row 2: fleet controls and applied state
+
+Numbered 15 when the node integrator merged it on `backend/m12-node`
+(this branch declares 12 and asked for preview's 13): 13 and 14 were
+already published there without these calls, and a call's version is the
+first one whose nodes have it, so a newer client refuses them locally on
+an older node. The text below is as built on this branch.
+
+Decision: extend the current join/leave implementation and existing serial
+publisher/member loops (ADR 0044, written before the code), with Admin
+mutations and a credential-free Read projection. Paseo's ConnectedHosts
+source governs actor authority, persistence before acknowledgement and
+summaries without connection secrets; fleet publication/revocation remains
+ADR 0012/0013. The accepted sync request is distinct from completed apply.
+Implemented in `2ced8723` with runtime fixture followup `caaea148`. The final
+root gate passed (105 suites, 1,666 passed, zero failed, nine ignored), as did
+TS generation, the page gate and real fake-fleet checks. V1 review and
+protocol-13 integration remain pending; no native action UI is approved.
+
+Exact contract: root `JoinFleet { link: PairingLink, grant: Vec<Scope> }`
+returns `JoinedFleet { home: NodeInfo }`; `LeaveFleet {}` and `SyncFleet {}`
+return Ack; `GetFleetStatus {}` returns `FleetSyncStatus { role, local,
+members? }`. `FleetRole` is standalone/home/member (home id, join time), plus
+unknown. `FleetApplied` carries optional generation/applied_at/contacted_at,
+bundle-relative conflicts and typed `FleetSyncProblem` categories. All
+control refusals have `ErrorDetail::FleetControl { reason }`. Client methods
+are `join_fleet`, `leave_fleet`, `sync_fleet`, `fleet_status`. Membership
+mutations require Admin, are not forwardable, and refuse agent/delegated
+principals; Read status omits members unless the home's local connection is
+owner or paired Admin. No secrets, absolute destination paths or file errors
+are projected. Sync accepts one coalesced wake, not an apply receipt.
+
+The Tokio mutation permit spans preflight, network pairing and commit. The
+OS try-lock is held only during blocking preflight and commit, distinct from
+the apply lock and shared with init. Commit rechecks the role; a racing
+offline operation can consume an invitation but cannot replace membership.
+Post-redemption admission/write/task failures are typed `join_uncertain`;
+inspect status before creating another invitation, never automatically retry.
+Blocking closures own their permits through RPC cancellation. Their wakeup
+survives loss of the RPC. Partial leave still wakes and reconciles the former
+home's device before returning failure; a retry removes an orphan credential.
+Source and target materialization
+stay in the existing engines. Explicit manual sync can wake retry waits;
+automatic retry backoff is unchanged. A leave does not roll back an admitted
+apply. The fake fleet keeps the Settings behind/conflict fixtures, adds a
+real member with a long name, exercises join/leave/sync, and creates a real
+Read-only credential with `node pair --read-only` to check identity omission
+and mutation refusal. No screen changes or native captures are claimed.
+
+Status reads cap state JSON at 1 MiB, membership JSON at 64 KiB, local
+conflict entries at 256 and aggregate reply conflicts at 512; BundlePath is
+already limited to 1,024 bytes. Admin reports use an indexed 128-record
+device window, checking its explicit `more` before building a result. They
+inspect only those reports and check counts before cloning; no whole report
+map snapshot or complete device list is made by status. Serialization into a
+nonallocating sink caps payload below 1 MiB with 1,024 bytes reserved for the
+RPC envelope. Four read permits survive all blocking work. Exceeding any
+budget returns typed `status_too_large` for the whole result; there is no
+truncated list that could be mistaken for empty or complete. Last generation
+is historical without current-home association; do not compare its bare
+number with the current home's to label it up to date.
+
+The first whole clippy waited 24 minutes 6 seconds for a slot, then exposed
+missing method-table documentation and redundant Ack qualification. Both
+are fixed without lint exceptions. Review followups prepared while queued
+were installed with current modification times before compilation began;
+the additional cap E2E was installed while only protocol checking had begun,
+before node checking. No successful gate on an earlier source is claimed.
+
+Row 1 implementation is `f81798c3`; the native app integration remains G2's.
+
+Coordinator followup for row 1's shutdown prerequisite: the exact E2E binary
+from the clean workspace gate ran the grant-stop regression eight consecutive
+times; all eight passed. Existing five-second stop assertion and no-first-file
+assertion were unchanged. Setup-inclusive durations were 22.42, 8.37, 4.30,
+9.05, 13.61, 9.26, 15.82 and 20.78 seconds. Already-built current fake binaries
+were used, with Cargo unavailable to the runtime locator, so no rebuild or
+unchanged whole-gate rerun was charged to those eight checks.
+
+## Row 2 final verification
+
+Final source: `caaea148` atop `2ced8723`, `cc972008`, `a32a0ac6`; documentation
+checkpoints include `73332e50` and `bcc9106c`. Whole fmt/clippy/test passed,
+with changed crates explicitly recompiled: 105 test suites, 1,666 passed,
+zero failed, nine ignored; node E2E 151 and node units 198. The literal
+filtered TS generation command passed both generators and left declarations
+unchanged. Page lint/typecheck, 243 units, build and 36 E2E passed.
+
+The first TS-enabled whole run had four failures (1,669 passed, nine ignored):
+the new lifecycle fixture queried before publication, two protocol authority/
+version lists lacked the added methods, and an existing remote fallback test
+hit its unchanged 60-second limit. The new fixtures were corrected without
+weakening assertions or deadlines. All four pass in the final whole root run;
+the earlier remote timeout remains unexplained, not waived as a load exception.
+
+Four consecutive reinstalled-member checks and eight grant-stop checks passed
+on the final whole run's exact node E2E executable, with CARGO unset and its
+pre/post hashes equal. Real fake-fleet CLI checks cover join/leave/sync, long
+member labels, applied reports, standalone refusal and read-only privacy/
+refusals. UID/GID 1000, private directories 0700, credentials/books 0600; no
+ownership or permission change. Owned fixture processes were stopped by PID.
+No native screen or other-OS runtime claim is made. See the resume note for
+log names, pending review and consumers. No new slice or branch merge followed
+the credit-stop instruction.

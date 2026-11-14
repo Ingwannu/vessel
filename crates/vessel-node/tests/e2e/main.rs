@@ -29,6 +29,12 @@ mod crowd;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod fleet_control;
+#[cfg(test)]
+mod fleet_control_cancel;
+#[cfg(test)]
+mod fleet_published;
+#[cfg(test)]
 mod forge;
 #[cfg(test)]
 mod forge_rules;

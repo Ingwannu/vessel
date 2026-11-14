@@ -49,7 +49,7 @@
 //!   agent that ignores the anchor. Options as `session/new`.
 //! - `session/delete` (offered): says `fake-acp: deleted <id>` on stderr,
 //!   so a test sees a refused fork deleted.
-//! - `session/list` (protocol 14; offered unless `FAKE_ACP_NO_LIST` is
+//! - `session/list` (protocol 17; offered unless `FAKE_ACP_NO_LIST` is
 //!   set, "method not found" then): three earlier conversations over two
 //!   pages (`history` module); no session is started by it.
 //! - `session/load`: replays the conversation as a user message chunk
@@ -757,7 +757,7 @@ async fn serve() -> ExitCode {
 
 /// What makes this process's session ids its own: real agents mint ids
 /// no other process repeats (UUIDs), and a node refuses two live sessions
-/// on one conversation (protocol 14), so two fakes must not both say
+/// on one conversation (protocol 17), so two fakes must not both say
 /// `fake-session-1`. Its process id and start time, in hex.
 fn process_tag() -> &'static str {
     static TAG: std::sync::OnceLock<String> = std::sync::OnceLock::new();

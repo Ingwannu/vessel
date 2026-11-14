@@ -219,6 +219,9 @@ pub enum InitError {
 /// # Errors
 /// See [`InitError`].
 pub fn init(files: &FleetFiles, init: &FleetInit) -> Result<PathBuf, InitError> {
+    // Offline home creation and remote joining must not both validate
+    // against the other's not-yet-written configuration.
+    let _reservation = super::mutation::Reservation::take(files, None)?;
     let path = files.sources().to_owned();
     if path.exists() {
         return Err(InitError::Exists(path));

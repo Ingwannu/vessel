@@ -143,7 +143,12 @@ const fn refused(method: Method) -> bool {
         | Method::ListScripts
         | Method::RunScript
         | Method::RestartScript
-        // An agent's own history (protocol 14, ADR 0053): an account's
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        // What the machine shares (ADR 0056): a person's read, `admin`.
+        | Method::GetPublished
+        // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
         | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
@@ -163,6 +168,7 @@ const fn refused(method: Method) -> bool {
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
         // `automation::schedules::rules`).
+        | Method::GetFleetStatus
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule

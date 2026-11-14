@@ -30,13 +30,113 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 17 (2026-11-14, milestone 11's track A2 slice 4, on milestone 12's node line, ADR 0053)
+
+Nodes speak 2..=17. One method, no event, no record. Track A2 wrote it
+at 14 beside forking; on the node line 15 (N3's fleet controls) and 16
+(`fleet.published`) were taken first, so it is 17 here. A client
+sends it to no older node (`Call::since`; `unsupported`, "needs protocol
+17"); a node refuses it on an older connection.
+
+### Importing from an agent's own history (track A2, ADR 0053)
+
+One method; types in `vessel_proto::history`.
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
+  forwardable, refused to agents) answers `AgentHistoryPage {
+  conversations: [HistoryEntry], next? }`: the conversations the agent
+  keeps under that profile, newest first, as it lists them over ACP
+  (`session/list`; the node starts the agent as for `harness.options`,
+  and no session is created or loaded). `cwd` (absolute) keeps those
+  held in that folder; `cursor` is a page's `next` as it was given (at
+  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
+  `next` after the node has asked past several empty pages of the agent's.
+- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
+  }`: the agent's id, its folder (absolute), its title cut as a prompt's
+  title is, when it was last active, and the newest session on this node
+  (live or kept) on that conversation.
+- Importing is `session.create` with `mode: structured { resume:
+  harness_session }`, the entry's `cwd`, the `profile` it was listed
+  under and, for a title, its `title`; the agent's replay is the new
+  session's log.
+- A node of 17 refuses `session.create` with `resume` and
+  `session.resume` with `conflict` while another live session (parked
+  included) is on that conversation under the same profile, or starting
+  on it: two agents on one transcript would corrupt it. This is the
+  node's own check, so a client of any version meets it. Another
+  profile's copy (`session.import`, `session copy`) is another file and
+  is not refused. `session move` hard-links the transcript into the
+  target profile's home and stops the old agent before it starts the
+  new one, so a move never runs two agents itself; but the check is by
+  profile, so it does not catch an import of that conversation under the
+  profile the session moved away from (the same file, linked), nor under
+  the target profile while the move is between its stop and its
+  `profile_changed`. The listing marks such an entry `in_vessel`; a
+  client opens that session rather than import it.
+- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
+  the agent refusing it), `unsupported` (an agent that does not list or
+  load over ACP), `not_found` (a profile or added agent that is not
+  there), `spawn_failed` (the agent did not start or answer within its
+  handshake), `unavailable` (two listings already run on the node).
+
+## Version 16 (2026-11-14, milestone 12's node line, ADR 0056)
+
+Nodes speak 2..=16. One method, no event, no record; a client refuses it
+locally on an older node (`unsupported`, "needs protocol 16").
+
+`fleet.published {}` (admin, not forwardable, refused to agents; the browser
+bridge passes it) answers what this machine shares through its fleet, by
+name and metadata, never file contents, secret values or a tool server's
+command, arguments, address or headers. Tagged `role`:
+
+- `standalone`: it shares nothing (a value, not an error).
+- `home { bundle? }`: what it publishes; absent before its first bundle.
+- `member { home, bundle?, applied? }`: the bundle it last received from
+  `home`, and the version last applied here (older than `bundle`'s when
+  the last apply did not finish).
+- `unknown`: a newer node's role.
+
+`PublishedBundle { generation, files: SharedFile[], servers, secrets }`;
+`SharedFile { path, kind: instructions | skill | other, size, executable }`;
+`servers` are tool (MCP) server names, `secrets` the secret names they use,
+each once, sorted. Over a bound (4096 files, 256 servers, the reply's byte
+budget) the whole read is refused: `unavailable` with
+`detail: { kind: fleet_control, reason: published_too_large }`, which a
+version 15 client reads as `unknown`. The member protocol
+(`fleet.manifest`, `fleet.peers`) is unchanged and stays `sync`-only.
+
+## Version 15 (2026-11-13, milestone 12, N3 row 2)
+
+Nodes speak 2..=15. Track N3 built its fleet controls as part of its
+protocol 12 and asked for them to share the preview's 13; on the node line
+13 and 14 were already published without these calls, so they are 15:
+a client refuses them locally on an older node (`unsupported`, "needs
+protocol 15") rather than sending a method that node cannot decode. No
+event and no record; `ErrorDetail::FleetControl` is a new kind that a
+13 or 14 client reads as `unknown`, and an older one skips with `detail`.
+
+`fleet.join { link, grant }` (Admin) redeems one single-use invitation and
+returns `JoinedFleet { home }` only after persisting the selected machine's
+membership. `fleet.leave {}` (Admin) removes membership and its credential,
+keeping materialized files; already left succeeds. `fleet.sync {}` (Admin)
+returns Ack when accepted by the existing loop, not when applied. These
+mutations cannot be forwarded or used by an agent. A disconnected join may
+have redeemed its invitation; clients never automatically retry it.
+`fleet.status {}` (Read) returns `FleetSyncStatus { role, local, members? }`.
+`role` is standalone, home or member (home id and join time). `local` is last
+applied generation/time, home contact time, relative conflict paths and typed
+problem categories; history can predate the current join. Only the home's
+own authenticated owner/paired Admin sees per-member device reports.
+Read-only and delegated reads omit `members`; they never receive credentials,
+secret names, absolute destination paths or arbitrary local error text.
+Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
+
 ## Version 14 (2026-11-13, milestone 11's track A2, on milestone 12's node line)
 
 Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
 protocol 12; on the node line N3's schedule preview had taken 13 first,
 and a client built at 13 has no variant for the two new records, so they
-and the two calls are 14 here; `agent.history` (track A2's slice 4)
-joined them at 14. A client sends none of these calls to an older node
+and the two calls are 14 here. A client sends none of these calls to an older node
 (`Call::since`); a node refuses them on an older connection
 (`unsupported`, "needs protocol 14").
 
@@ -97,38 +197,6 @@ and `vessel_proto::agent`.
   log), the agent's conversation from now on, and how many tool calls left
   behind edited, deleted or moved files (not put back).
 
-### Importing from an agent's own history (track A2, ADR 0053)
-
-One method; types in `vessel_proto::history`.
-
-- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
-  forwardable, refused to agents) answers `AgentHistoryPage {
-  conversations: [HistoryEntry], next? }`: the conversations the agent
-  keeps under that profile, newest first, as it lists them over ACP
-  (`session/list`; the node starts the agent as for `harness.options`,
-  and no session is created or loaded). `cwd` (absolute) keeps those
-  held in that folder; `cursor` is a page's `next` as it was given (at
-  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
-  `next` after the node has asked past several empty pages of the agent's.
-- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
-  }`: the agent's id, its folder (absolute), its title cut as a prompt's
-  title is, when it was last active, and the newest session on this node
-  (live or kept) on that conversation.
-- Importing is `session.create` with `mode: structured { resume:
-  harness_session }`, the entry's `cwd`, the `profile` it was listed
-  under and, for a title, its `title`; the agent's replay is the new
-  session's log.
-- Since 14, `session.create` with `resume` and `session.resume` are
-  refused `conflict` while another live session (parked included) is on
-  that conversation under the same profile, or starting on it: two agents
-  on one transcript would corrupt it. Another profile's copy is another
-  file (`session move` resumes the copy before it stops the source).
-- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
-  the agent refusing it), `unsupported` (an agent that does not list or
-  load over ACP), `not_found` (a profile or added agent that is not
-  there), `spawn_failed` (the agent did not start or answer within its
-  handshake), `unavailable` (two listings already run on the node).
-
 ## Version 13 (2026-11-13, milestone 12, N3)
 
 Nodes speak 2..=13; the minimum is unchanged. Additive N3 calls are gated at
@@ -143,6 +211,9 @@ are `invalid_request` with optional typed `detail: { kind: schedule_preview,
 reason: unknown_zone | unknown_cadence | no_future_run | time_out_of_range }`,
 or `unavailable` for the bounded worker pool. Existing errors omit detail;
 future unknown detail kinds decode as unknown. Clients never parse messages.
+The optional error `detail` is additive and is not stripped from older
+connections: older error decoders ignore unknown fields. The error code and
+message remain sufficient for those peers.
 
 ## Version 12 (2026-11-13, milestone 11, wave 2's second half)
 

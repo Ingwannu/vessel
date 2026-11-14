@@ -1,4 +1,4 @@
-//! One agent per conversation (protocol 14, ADR 0053): a structured session
+//! One agent per conversation (protocol 17, ADR 0053): a structured session
 //! that starts on an agent's existing conversation (`session.create` with
 //! `resume`, an import, `session.resume`) is refused while another live
 //! session of this runtime is on it, or starting on it, under the same

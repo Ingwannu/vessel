@@ -61,7 +61,7 @@ pub struct SessionRuntime {
     /// parked, as the node now says (protocol 12, ADR 0038): every actor
     /// follows it, so a change applies to live sessions at once.
     park_after: watch::Sender<Option<Duration>>,
-    /// Conversations sessions are starting on (protocol 14, `claims`).
+    /// Conversations sessions are starting on (protocol 17, `claims`).
     claims: claims::Claims,
 }
 

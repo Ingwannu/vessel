@@ -265,9 +265,9 @@ impl Method {
     ///   and a person runs a project's service there (ADR 0031).
     /// - Forwardable, protocol 12's and 14's conversation calls
     ///   (`session.search`, `session.park`, `session.wake`, `session.fork`,
-    ///   `session.rewind`) and `agent.history` (ADR 0053), which an import there needs as
-    ///   `session.create` does; not `node.settings` or `node.set_settings`,
-    ///   a node's administration.
+    ///   `session.rewind`) and protocol 17's `agent.history` (ADR 0053),
+    ///   which an import there needs as `session.create` does; not
+    ///   `node.settings` or `node.set_settings`, a node's administration.
     #[must_use]
     #[expect(
         clippy::too_many_lines,
@@ -387,6 +387,7 @@ impl Method {
             | Self::GetAgentStatus
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
+            | Self::GetFleetStatus
             | Self::PreviewSchedule
             | Self::ListSchedules
             | Self::GetSchedule
@@ -445,6 +446,11 @@ impl Method {
             | Self::WatchFleet
             | Self::ReportApplied
             | Self::ListMembers
+            | Self::JoinFleet
+            | Self::LeaveFleet
+            | Self::SyncFleet
+            // Each machine is read over its own connection (ADR 0056).
+            | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,

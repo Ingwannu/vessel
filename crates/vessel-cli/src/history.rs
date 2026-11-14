@@ -1,4 +1,4 @@
-//! `vessel history` (protocol 14, ADR 0053): one page of an agent's own
+//! `vessel history` (protocol 17, ADR 0053): one page of an agent's own
 //! conversations, one line each, then how to go on and how to import one.
 
 use std::fmt::Write as _;

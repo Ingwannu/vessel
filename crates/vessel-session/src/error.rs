@@ -104,7 +104,7 @@ pub enum SessionError {
     #[error("{}", fork_refusal(*.0))]
     ForkRefused(vessel_agent::ForkRefusal),
     /// An agent's own conversations could not be listed
-    /// (`SessionRuntime::history`, protocol 14).
+    /// (`SessionRuntime::history`, protocol 17).
     #[error(transparent)]
     History(#[from] vessel_agent::HistoryError),
     /// The rewound agent did not start; the session goes on with its old
@@ -112,7 +112,7 @@ pub enum SessionError {
     #[error("the agent did not start at the point: {0}")]
     RewindFailed(String),
     /// Another live session is on the agent's conversation this one would
-    /// start on, or starting on it (protocol 14, ADR 0053): two agents on
+    /// start on, or starting on it (protocol 17, ADR 0053): two agents on
     /// one transcript would corrupt it.
     #[error("session {0} is already on that conversation; open it, or end it first")]
     ConversationTaken(SessionId),

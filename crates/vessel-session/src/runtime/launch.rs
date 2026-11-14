@@ -173,7 +173,7 @@ impl SessionRuntime {
     /// profile of another harness or servers the harness cannot take,
     /// [`SessionError::McpFile`] when the MCP file cannot be written,
     /// [`SessionError::ConversationTaken`] for a `resume` another live
-    /// session is on (protocol 14).
+    /// session is on (protocol 17).
     pub async fn create_with(
         &self,
         spec: SessionSpec,

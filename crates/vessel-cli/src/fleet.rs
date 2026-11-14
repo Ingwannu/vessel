@@ -2,11 +2,11 @@
 //! joining members, and showing where the fleet stands.
 //!
 //! [Decision Log]
-//! - Local and remote: `init`, `join`, `leave`, `status` and `restore`
-//!   act on this machine's node through its data directory
-//!   (`vessel_node::fleet`), so they work whether the node runs or not,
-//!   and a running node picks the change up within seconds. `invite`,
-//!   `members` and `forget` are calls to a node (`--node`), the home.
+//! - Local and remote: without `--node`, `join`, `leave` and `status`
+//!   retain their offline data-directory behavior. An explicit selected
+//!   node uses authenticated RPC instead, so a native client and the CLI
+//!   share one authority boundary. `init` and `restore` remain local.
+//!   `sync`, `invite`, `members` and `forget` call the selected node.
 //!   `forget` is the home's own act: it withdraws the invitations
 //!   outstanding and records the devices that exist at that moment, which
 //!   a change to its files alone could not do.
@@ -15,6 +15,8 @@
 //!   `pair`): the link is a single-use secret.
 //! - `init` makes relative paths absolute against the current directory,
 //!   since the node reads them from another one.
+
+mod remote;
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -29,13 +31,14 @@ use crate::{devices, io, pair, secret};
 
 /// `vessel fleet <command>`.
 pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<(), CliError> {
-    let files = FleetFiles::new(&data_dir(target)?);
+    // Wire operations need the selected connection, not a local data home.
+    let files = || data_dir(target).map(|data| FleetFiles::new(&data));
     match command {
         FleetCommand::Init {
             instructions,
             skills,
             skip,
-        } => init(files, instructions, skills, skip).await,
+        } => init(files()?, instructions, skills, skip).await,
         FleetCommand::Invite { label, ttl, relay } => {
             let client = connect(target).await?.client;
             // Never `admin`: a member's agents act on other nodes only
@@ -49,8 +52,16 @@ pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<()
             devices::show_invitation(&invitation, "on the joining node run\n  vessel fleet join")
                 .await
         }
-        FleetCommand::Join { yes, grant } => join(files, yes, grant.0).await,
+        FleetCommand::Join { yes, grant } => {
+            if target.node.is_some() {
+                remote::join(target, yes, grant.0).await
+            } else {
+                join(files()?, yes, grant.0).await
+            }
+        }
+        FleetCommand::Leave if target.node.is_some() => remote::leave(target).await,
         FleetCommand::Leave => {
+            let files = files()?;
             let was = blocking(move || fleet::leave(&files).map_err(CliError::from)).await?;
             io::note(if was {
                 "left the fleet; the files it wrote stay as they are\n"
@@ -61,7 +72,11 @@ pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<()
             Ok(())
         }
         FleetCommand::Forget { node } => forget(target, node).await,
+        FleetCommand::Sync => remote::sync(target).await,
+        FleetCommand::Published => remote::published(target).await,
+        FleetCommand::Status if target.node.is_some() => remote::status(target).await,
         FleetCommand::Status => {
+            let files = files()?;
             let status = blocking(move || fleet::status(&files).map_err(CliError::from)).await?;
             io::out(render_status(&status).as_bytes()).await?;
             Ok(())
@@ -72,7 +87,9 @@ pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<()
             io::out(render_members(&members).as_bytes()).await?;
             Ok(())
         }
-        FleetCommand::Secret { command } => Box::pin(secret::command(target, files, command)).await,
+        FleetCommand::Secret { command } => {
+            Box::pin(secret::command(target, files()?, command)).await
+        }
         FleetCommand::Memory {
             command:
                 MemoryCommand::Copy {
@@ -95,6 +112,7 @@ pub(crate) async fn command(target: &Target, command: FleetCommand) -> Result<()
             .await
         }
         FleetCommand::Restore { path } => {
+            let files = files()?;
             let path = absolute(&path)?;
             let shown = path.display().to_string();
             let restored =

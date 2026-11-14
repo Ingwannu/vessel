@@ -197,6 +197,12 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetCatalogue
         | Method::InstallAgent
         | Method::ReadInstall
+        | Method::JoinFleet
+        | Method::LeaveFleet
+        | Method::SyncFleet
+        | Method::GetFleetStatus
+        // A person's read of what the machine shares (ADR 0056).
+        | Method::GetPublished
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
@@ -222,7 +228,7 @@ const fn forwardable(method: Method) -> bool {
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession
-        // Protocol 14: an agent's own history (ADR 0053).
+        // Protocol 17: an agent's own history (ADR 0053).
         | Method::GetAgentHistory => true,
         Method::Subscribe
         | Method::SubscribeTerminal

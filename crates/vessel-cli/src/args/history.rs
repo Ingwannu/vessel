@@ -1,4 +1,4 @@
-//! `vessel history` (protocol 14, ADR 0053): an agent's own conversations,
+//! `vessel history` (protocol 17, ADR 0053): an agent's own conversations,
 //! to import one.
 
 use std::path::PathBuf;

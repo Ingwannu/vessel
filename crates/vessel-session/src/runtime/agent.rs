@@ -180,7 +180,7 @@ impl SessionRuntime {
         Ok(vessel_agent::probe(&command, setup).await?)
     }
 
-    /// A page of `harness`'s own conversations (protocol 14's
+    /// A page of `harness`'s own conversations (protocol 17's
     /// `agent.history`, `vessel_agent::history`), those in `folder` or all
     /// of them, from `from`: the agent started as [`probe`](Self::probe)
     /// starts it (under `profile`, `proxy`, in `cwd`), asked

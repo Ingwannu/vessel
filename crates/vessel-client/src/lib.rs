@@ -47,6 +47,7 @@ mod conversation;
 mod credential;
 mod error;
 pub mod file_fault;
+mod fleet_control;
 mod local;
 pub mod pairing;
 mod pinned;

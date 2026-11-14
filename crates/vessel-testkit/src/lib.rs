@@ -89,6 +89,7 @@ use std::time::Duration;
 
 use tokio::time::error::Elapsed;
 
+pub mod fleet_fixtures;
 pub mod model;
 #[cfg(feature = "relay")]
 pub mod relay;

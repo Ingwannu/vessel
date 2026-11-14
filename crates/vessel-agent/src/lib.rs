@@ -22,7 +22,7 @@
 //! - `probe`: asking an agent what it offers without a session (protocol
 //!   9's `harness.options`);
 //! - `history`: a page of the agent's own conversations, over `session/list`
-//!   (protocol 14's `agent.history`);
+//!   (protocol 17's `agent.history`);
 //! - `permissions`: pending permission requests, first answer wins;
 //! - `questions`: pending questions (ACP form elicitations, protocol 10),
 //!   first answer wins;

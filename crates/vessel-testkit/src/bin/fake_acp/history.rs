@@ -1,4 +1,4 @@
-//! `history`: what `session/list` answers (protocol 14's `agent.history`).
+//! `history`: what `session/list` answers (protocol 17's `agent.history`).
 //!
 //! Three earlier conversations, newest first, two a page:
 //!

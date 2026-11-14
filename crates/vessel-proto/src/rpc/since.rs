@@ -23,6 +23,7 @@ impl Call {
     pub fn since(&self) -> ProtocolVersion {
         let method = self.method().since();
         let fields = match self {
+            Self::JoinFleet(request) => request.grant.iter().map(|scope| scope.since().get()).max(),
             // Options chosen at creation and a title came in 9: an older
             // node would start the session in the agent's default mode (a
             // permissions mode the caller did not ask for) and unnamed.
@@ -203,6 +204,10 @@ impl Call {
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
             | Self::ReadInstall(_)
+            | Self::LeaveFleet(_)
+            | Self::SyncFleet(_)
+            | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)

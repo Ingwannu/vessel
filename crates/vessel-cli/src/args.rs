@@ -127,7 +127,7 @@ pub(crate) enum Command {
     /// was asked and what the agents answered, in sessions live, ended or
     /// archived.
     Search(Search),
-    /// List an agent's own conversations, newest first (protocol 14), to
+    /// List an agent's own conversations, newest first (protocol 17), to
     /// import one: `vessel run AGENT --structured --resume ID --cwd DIR`.
     History(History),
     /// Print a session's log.

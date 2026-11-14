@@ -404,3 +404,13 @@ distribution directory at once. Nothing here writes there.
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),
 and an impossible-expression refusal. No schedule is saved by this check.
+It also joins the build server to the Settings fixture's laptop home,
+checks leave and standalone refusal, revokes that temporary identity, then
+joins with a long member label and waits for the real apply/report. The
+existing behind/conflict report remains a synthetic Settings fixture.
+Only disposable harness homes receive files. A real Read-only pairing is
+stored as `laptop` in the separate `ROOT/readonly-config` book (select it
+with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
+identities and is refused sync/leave. `node pair --read-only` creates that
+credential through the same public invitation RPC; no credential or link is
+written to the fixture report.
