@@ -206,7 +206,9 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
      `--resume=<UUID>` (anything else refused: `--resume` would read a
      name or a path), `--permission-mode=<mode>` from one exhaustive match
      (only `bypassPermissions` adds `--allow-dangerously-skip-permissions`;
-     no mode chosen passes none), `--model=<id>`, `--mcp-config=<file>` in
+     no mode chosen passes none, so the person's own default mode holds,
+     bypass included, unknown to the node, exactly as with the ACP
+     adapter), `--model=<id>`, `--mcp-config=<file>` in
      the node's private directory (`vessel_harness::claude_mcp_file`).
      Value flags use `=`. Nothing is added to the environment. A fork, an
      option other than the mode, or MCP servers without the private
@@ -303,6 +305,11 @@ checked against `/doc`.
     `can_use_tool` in every mode but bypass, that a denial lets the turn
     go on, and that a refused unknown request (an elicitation) stops
     nothing on the CLI's side but the request;
+  - a wake before the session's first turn: Claude Code writes the
+    transcript only once a turn starts, so `--resume=<launched id>` may
+    find no conversation (A2's read). If so, slice 4 starts an unused id
+    again with `--session-id`, which needs the launch to know that no turn
+    ran: a seam question for then;
   - whether prompts the node sends should carry `origin: {kind: human}`
     (the SDK asks hosts wrapping keyboard input to say so; scheduled
     prompts are not typed by a person);
