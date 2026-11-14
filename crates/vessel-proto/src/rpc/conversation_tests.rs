@@ -242,6 +242,7 @@ fn a_page_with_a_new_event_is_rewritten_for_older_clients() {
                     event: AgentEvent::TurnEnded {
                         reason: crate::agent::StopReason::EndTurn,
                         usage: None,
+                        point: None,
                     },
                 },
             ),

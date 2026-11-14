@@ -135,3 +135,23 @@ fn older_and_disconnected_calls_are_worded_without_display_text() {
         );
     }
 }
+
+#[test]
+fn a_call_the_app_never_sent_says_so_without_node_detail_or_reconnect_advice() {
+    assert_eq!(
+        Lang::En.git_call_failure(&Problem::Unsent),
+        GitFailureText {
+            title: "Could not send.".to_owned(),
+            next: "Try again.".to_owned(),
+            detail: None,
+        }
+    );
+    assert_eq!(
+        Lang::Ko.git_call_failure(&Problem::Unsent),
+        GitFailureText {
+            title: "보내지 못했습니다.".to_owned(),
+            next: "다시 시도하세요.".to_owned(),
+            detail: None,
+        }
+    );
+}

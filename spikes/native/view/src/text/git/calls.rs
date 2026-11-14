@@ -14,8 +14,22 @@ impl Lang {
             Problem::Node { code, message } => (Some(*code), Some(message.clone())),
             Problem::Older => (Some(ErrorCode::ProtocolMismatch), None),
             Problem::Gone(detail) => (None, Some(detail.clone())),
+            // Nothing reached the machine, so there is no node detail and
+            // no reconnect advice: the lead's words for an act the app's
+            // own queue gave back (`Problem::Unsent`), split at the sentence.
+            Problem::Unsent => return self.git_unsent(),
         };
-        let (title, next) = match (self, code) {
+        let (title, next) = self.git_call_words(code);
+        GitFailureText {
+            title: title.to_owned(),
+            next: next.to_owned(),
+            detail,
+        }
+    }
+
+    /// The two sentences for a call's code (none: the machine is gone).
+    const fn git_call_words(self, code: Option<ErrorCode>) -> (&'static str, &'static str) {
+        match (self, code) {
             (Self::En, None) => (
                 "The app could not complete this request to the machine.",
                 "Reconnect the machine, then try again.",
@@ -104,11 +118,20 @@ impl Lang {
                 "머신이 이 Git 동작을 완료하지 못했습니다.",
                 "아래 상세 출력을 읽고 문제를 고친 뒤 다시 시도하세요.",
             ),
+        }
+    }
+
+    /// The app's link did not take the call: the workspace's own unsent
+    /// sentence, split into its two sentences.
+    fn git_unsent(self) -> GitFailureText {
+        let (title, next) = match self {
+            Self::En => ("Could not send.", "Try again."),
+            Self::Ko => ("보내지 못했습니다.", "다시 시도하세요."),
         };
         GitFailureText {
             title: title.to_owned(),
             next: next.to_owned(),
-            detail,
+            detail: None,
         }
     }
 }

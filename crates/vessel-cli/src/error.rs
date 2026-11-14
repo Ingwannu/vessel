@@ -112,6 +112,9 @@ pub(crate) enum CliError {
     /// The pasted text is not a pairing link.
     #[error(transparent)]
     PairingLink(vessel_proto::LinkError),
+    /// The decoded invitation could not be encoded for its typed RPC.
+    #[error("could not encode a pairing invitation")]
+    PairingEncode(#[source] serde_json::Error),
     /// The person did not confirm the node.
     #[error("not paired")]
     NotPaired,

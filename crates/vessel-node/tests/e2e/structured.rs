@@ -287,7 +287,7 @@ async fn a_stuck_agent_fails_after_the_configured_handshake_timeout() {
         )
         .await
         .expect("the configured handshake timeout did not apply");
-        let Some(SessionStatus::Failed { message }) = seen.last().and_then(status_of) else {
+        let Some(SessionStatus::Failed { message, .. }) = seen.last().and_then(status_of) else {
             panic!("expected a failed session, got {:?}", seen.last());
         };
         assert!(message.contains("within 1 s"), "{message}");

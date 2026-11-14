@@ -135,6 +135,16 @@ impl Parking {
         false
     }
 
+    /// The node's setting changed: the timer is moved to the end of the
+    /// period that started at the last activity, which may already be past
+    /// (the session is then looked at at once). A park already under way
+    /// finishes.
+    pub(crate) fn set_after(&mut self, after: Option<Duration>) {
+        self.after = after;
+        let due = deadline(self.active_at, self.after);
+        self.timer.as_mut().reset(due);
+    }
+
     /// Start a full idle period from now (after a park was not possible).
     pub(crate) fn rearm(&mut self) {
         self.touch();

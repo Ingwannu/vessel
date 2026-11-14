@@ -93,6 +93,7 @@ mod secure;
 mod server;
 mod service;
 mod sessions;
+mod settings;
 mod shutdown;
 mod subscribe;
 mod terminals;

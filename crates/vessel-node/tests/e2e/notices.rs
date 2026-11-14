@@ -92,7 +92,8 @@ async fn an_agent_is_told_when_its_childs_turn_finishes_waits_and_ends() {
             .unwrap();
         let waits = [
             child_id.as_str(),
-            "is waiting for an answer: permission for Run fake tool.",
+            "is waiting for an answer to a permission for",
+            "\nRun fake tool\n</vessel-session-output-",
         ];
         told(&mut stream, &mut seen, &waits).await;
 

@@ -93,4 +93,7 @@ pub enum Failure {
     Worker,
     /// The browser has no local book.
     Unavailable,
+    /// The app's link did not take the request (its queue full, or
+    /// stopped): nothing was read or written.
+    Unsent,
 }

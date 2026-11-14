@@ -362,3 +362,92 @@ mod card {
         assert_eq!(EN.permission_count(1, 2), "1/2");
     }
 }
+
+// What the node says waits (`session.conversation`) against what the log
+// read holds (`timeline::Live`): a request or a question whose record was
+// pruned is drawn from the node's word; one the log holds, waiting or
+// settled, stays the log's.
+
+mod live {
+    use serde_json::json;
+    use vessel_app_view::timeline::{Live, Timeline};
+    use vessel_proto::{PermissionRequest, Question};
+
+    use crate::support::{Log, uuid};
+
+    fn request(at: u32) -> PermissionRequest {
+        serde_json::from_value(json!({
+            "id": uuid(at), "tool_call": "call-1",
+            "options": [{ "id": "allow-once", "name": "Yes", "kind": "allow_once" }]
+        }))
+        .expect("a request the wire takes")
+    }
+
+    fn question(at: u32) -> Question {
+        serde_json::from_value(json!({ "id": uuid(at), "message": "Which?", "fields": [] }))
+            .expect("a question the wire takes")
+    }
+
+    /// A log holding request 1 settled, request 2 waiting and question 3
+    /// waiting.
+    fn read() -> Timeline {
+        let mut log = Log::default();
+        let records = [
+            log.agent(&json!({
+                "event": "turn_started", "content": [{ "type": "text", "text": "go" }]
+            })),
+            log.agent(&json!({
+                "event": "permission_requested", "id": uuid(1), "tool_call": "call-1",
+                "options": [{ "id": "allow-once", "name": "Yes", "kind": "allow_once" }]
+            })),
+            log.agent(&json!({
+                "event": "permission_resolved", "id": uuid(1),
+                "outcome": { "outcome": "selected", "option": "allow-once" }
+            })),
+            log.agent(&json!({
+                "event": "permission_requested", "id": uuid(2), "tool_call": "call-1",
+                "options": [{ "id": "allow-once", "name": "Yes", "kind": "allow_once" }]
+            })),
+            log.agent(&json!({
+                "event": "question_asked", "id": uuid(3), "message": "Which?", "fields": []
+            })),
+        ];
+        let mut timeline = Timeline::default();
+        let _change = timeline.apply(&records);
+        timeline
+    }
+
+    #[test]
+    fn a_pruned_request_and_question_are_drawn_from_the_nodes_word_and_no_entry_is_made() {
+        let timeline = read();
+        let entries = timeline.entries().len();
+        let live = Live {
+            permissions: vec![request(2), request(7)],
+            questions: vec![question(3), question(8)],
+        };
+        let unseen: Vec<_> = timeline
+            .unseen_permissions(&live)
+            .into_iter()
+            .map(|request| request.id)
+            .collect();
+        assert_eq!(unseen, [request(7).id]);
+        let unseen: Vec<_> = timeline
+            .unseen_questions(&live)
+            .into_iter()
+            .map(|question| question.id)
+            .collect();
+        assert_eq!(unseen, [question(8).id]);
+        assert_eq!(timeline.entries().len(), entries);
+    }
+
+    #[test]
+    fn a_request_the_log_holds_settled_is_never_drawn_again_from_a_stale_read() {
+        let timeline = read();
+        let live = Live {
+            permissions: vec![request(1)],
+            questions: Vec::new(),
+        };
+        assert!(timeline.unseen_permissions(&live).is_empty());
+        assert!(timeline.unseen_questions(&Live::default()).is_empty());
+    }
+}

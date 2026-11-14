@@ -56,8 +56,12 @@ pub struct Config {
     /// How long a structured session may stay idle before its agent's
     /// process is parked, to be started again by the next prompt (protocol
     /// 12, ADR 0038; `vesseld --park-after`). An hour by default (Paseo's);
-    /// `None` never parks.
+    /// `None` never parks. A value a person saved through
+    /// `node.set_settings` (`settings.json`) wins over it at start.
     pub park_after: Option<Duration>,
+    /// Whether [`park_after`](Self::park_after) was given (`--park-after`),
+    /// not the default: a saved value then overriding it is logged.
+    pub park_after_given: bool,
     /// Per-connection RPC limits.
     pub rpc: ServerConfig,
     /// Relays this node registers with, in preference order (`--relay`);
@@ -163,6 +167,7 @@ impl Config {
             durable_capacity: DEFAULT_DURABLE_CAPACITY,
             agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
             park_after: Some(DEFAULT_PARK_AFTER),
+            park_after_given: false,
             rpc: ServerConfig::default(),
             relays: Vec::new(),
             relay_token_file: None,

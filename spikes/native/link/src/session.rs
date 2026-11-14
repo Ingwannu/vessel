@@ -22,9 +22,9 @@ use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
 use vessel_client::NodeClient;
-use vessel_proto::conversation::{QueueChange, SessionDeleted};
+use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
-    ErrorCode, Mark, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
+    ErrorCode, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
     TerminalBytes, TerminalInput, TerminalSize,
 };
 use vessel_proto::{
@@ -63,6 +63,15 @@ pub enum Act {
     /// answer says whether it went (the card shows it being sent, or why
     /// it could not be).
     Permit(PermissionId, PermissionOptionId),
+    /// Read what the session holds now (`session.conversation`): the
+    /// requests and questions waiting, whatever its log still keeps.
+    Conversation,
+    /// Change one of a running session's options (`session.set_option`,
+    /// protocol 9): its model, effort, permission mode or a feature. The
+    /// options as they then stand come back as the session's own
+    /// `options_changed` record; the agent's refusal (one it cannot make
+    /// mid-turn, a value it does not take) is the act's failure.
+    SetOption(OptionChoice),
 }
 
 /// Which act an answer is for.
@@ -90,6 +99,10 @@ pub enum ActKind {
     Answer,
     /// An answer to a permission request.
     Permit,
+    /// A read of what the session holds now.
+    Conversation,
+    /// A change to one of its options.
+    SetOption,
 }
 
 impl Act {
@@ -108,6 +121,8 @@ impl Act {
             Self::Queue(_) => ActKind::Queue,
             Self::Answer(..) => ActKind::Answer,
             Self::Permit(..) => ActKind::Permit,
+            Self::Conversation => ActKind::Conversation,
+            Self::SetOption(_) => ActKind::SetOption,
         }
     }
 }
@@ -122,6 +137,8 @@ pub enum Acted {
     Deleted(SessionDeleted),
     /// It was killed, or the terminal took the input.
     Done,
+    /// What the session holds now.
+    Conversation(Box<Conversation>),
 }
 
 /// Why a session act failed: the node's code, when it answered with one,
@@ -195,6 +212,16 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         Act::StartAgain => client.resume_session(session).await.map(boxed),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
+        // The options as they now stand also arrive as the session's own
+        // `options_changed` record, which the conversation folds.
+        Act::SetOption(choice) => client
+            .set_option(session, choice)
+            .await
+            .map(|_options| Acted::Done),
+        Act::Conversation => client
+            .conversation(session)
+            .await
+            .map(|held| Acted::Conversation(Box::new(held))),
         Act::MoveProfile(profile) => client
             .move_profile(session, profile, false)
             .await

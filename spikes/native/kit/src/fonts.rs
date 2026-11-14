@@ -234,6 +234,59 @@ pub fn measure(window: &gpui::Window, text: &str, step: Type) -> f32 {
     f32::from(line.width).ceil()
 }
 
+/// `text` cut in its middle with "…" so it is at most `width` points in
+/// `step`'s face; the whole text when it fits. A path keeps its start (the
+/// root) and its end (the file's name), which a cut at either end loses.
+///
+/// [Decision Log]
+/// - Purpose: a path in a settings row was clipped mid-word with no mark
+///   that anything was missing (the coordinator's review of Settings ›
+///   Agents); the brief's rule for a path is its own element of a set
+///   width, cut in the middle, the whole of it in a tooltip.
+/// - Constraint: GPUI truncates only at a text's end; the cut has to be
+///   chosen before drawing, from measured widths.
+/// - Choice: the longest middle cut that fits, found by halving the kept
+///   length ([`elide_middle_by`]), measured with [`measure`].
+/// - Cost: a few line shapings per drawn path (about log2 of its length).
+#[must_use]
+pub fn elide_middle(window: &gpui::Window, text: &str, step: Type, width: f32) -> String {
+    elide_middle_by(text, |candidate| measure(window, candidate, step) <= width)
+}
+
+/// The longest middle cut of `text` that `fits` (the whole text when it
+/// does): as many characters kept at the start as at the end, one more at
+/// the end when odd (a file's name is at the end). `fits` must hold for
+/// every shorter cut of a cut it holds for.
+#[must_use]
+pub fn elide_middle_by(text: &str, fits: impl Fn(&str) -> bool) -> String {
+    if fits(text) {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let cut = |keep: usize| -> String {
+        // Half, rounded down: the extra character goes to the end.
+        let head = keep >> 1;
+        let tail = keep.saturating_sub(head);
+        chars
+            .iter()
+            .take(head)
+            .chain(std::iter::once(&'…'))
+            .chain(chars.iter().skip(chars.len().saturating_sub(tail)))
+            .collect()
+    };
+    let (mut low, mut high) = (0_usize, chars.len().saturating_sub(1));
+    while low < high {
+        // The upper middle, so the search always moves.
+        let middle = low.saturating_add(high).saturating_add(1) >> 1;
+        if fits(&cut(middle)) {
+            low = middle;
+        } else {
+            high = middle.saturating_sub(1);
+        }
+    }
+    cut(low)
+}
+
 #[cfg(test)]
 mod mono_body_tests {
     use super::*;
@@ -274,5 +327,36 @@ mod mono_body_tests {
             Type::Body.metrics_with(same, code_eighteen),
             (14.0, 21.0, FontWeight::NORMAL)
         );
+    }
+}
+
+#[cfg(test)]
+mod elide_tests {
+    use super::elide_middle_by;
+
+    fn at_most(count: usize) -> impl Fn(&str) -> bool {
+        move |text| text.chars().count() <= count
+    }
+
+    #[test]
+    fn a_text_that_fits_is_kept_whole() {
+        assert_eq!(
+            elide_middle_by("/usr/bin/codex", at_most(14)),
+            "/usr/bin/codex"
+        );
+    }
+
+    #[test]
+    fn a_long_path_keeps_its_root_and_its_name() {
+        let path = "/tmp/build/vessel-target-m12-agents/debug/fake-acp";
+        let cut = elide_middle_by(path, at_most(20));
+        assert_eq!(cut.chars().count(), 20);
+        assert_eq!(cut, "/data/bui…g/fake-acp");
+        assert!(cut.starts_with("/data/") && cut.ends_with("fake-acp"));
+    }
+
+    #[test]
+    fn nothing_fits_but_the_mark_itself() {
+        assert_eq!(elide_middle_by("abcdef", at_most(1)), "…");
     }
 }

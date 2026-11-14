@@ -15,11 +15,10 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{FindMarks, FindPalette, Tokens, Type, TypeExt as _, chat_markdown};
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{
-    Entry, EntryKind, Prompt, answered_lines, plan_progress, settled, spans_of,
-};
+use vessel_app_view::timeline::{Entry, EntryKind, Prompt, answered_lines, settled, spans_of};
 use vessel_proto::{Question, QuestionOutcome};
 
+use super::Seat;
 use super::find::Marking;
 use super::look::{BUBBLE_RADIUS, BUBBLE_SHARE, Look, WORK_LINE, WORK_SIZE};
 use super::tool;
@@ -32,6 +31,8 @@ pub(super) struct Paint<'a> {
     pub(super) look: Look,
     /// What find marks, while its bar shows matches.
     pub(super) find: Option<Marking<'a>>,
+    /// Where the conversation drawn is kept: its rows' toggles change it.
+    pub(super) seat: Seat,
 }
 
 /// Entry `index` as its row.
@@ -83,10 +84,9 @@ pub(super) fn entry(
         EntryKind::Question {
             question,
             outcome: Some(outcome),
-        } => question_card(paint, question, outcome),
-        EntryKind::Plan { entries } => {
-            let (done, total) = plan_progress(entries);
-            meta(paint, words.plan_line(done, total))
+        } => question_card(paint, index, question, outcome),
+        EntryKind::Plan { entries, activity } => {
+            super::plan::row(paint, index, (entries, activity), open, cx)
         }
         // While it waits its card is over the composer, with the command
         // in its box: here only a quiet line, so the command is not read
@@ -201,6 +201,7 @@ pub(super) fn work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
+    let seat = paint.seat;
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -215,7 +216,9 @@ pub(super) fn work_row(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| shell.toggle_entry(index, cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| {
+            shell.toggle_entry(seat, index, cx);
+        }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))
         .children(detail.map(|(detail, color)| {
@@ -276,7 +279,12 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
 /// A settled question in the timeline: what the agent asked, each answer
 /// by its field (the page's answered card, `question-entry.tsx`), and how
 /// it was settled.
-fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutcome) -> AnyElement {
+fn question_card(
+    paint: &Paint<'_>,
+    index: usize,
+    question: &Question,
+    outcome: &QuestionOutcome,
+) -> AnyElement {
     let words = paint.words;
     let lines = answered_lines(question, outcome, words.question_yes_no());
     div()
@@ -292,7 +300,9 @@ fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutco
             div()
                 .type_(Type::Body)
                 .text_color(paint.tokens.neutral.foreground)
-                .child(question.message.clone()),
+                // What find searches in a question (`view::timeline::find`),
+                // marked as a person's message is.
+                .child(marked_text(paint, index, &question.message)),
         )
         .children(lines.into_iter().map(|line| {
             div()

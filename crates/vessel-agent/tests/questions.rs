@@ -38,6 +38,7 @@ mod support {
             mcp_servers: vessel_proto::ResolvedMcpServers::new(),
             handshake_timeout: vessel_agent::DEFAULT_HANDSHAKE_TIMEOUT,
             questions,
+            fork: None,
         }
     }
 

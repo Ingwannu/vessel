@@ -12,6 +12,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
+use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
@@ -377,12 +378,23 @@ async fn core(
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     let runtime = runtime(config, loader);
-    let stop = CancellationToken::new();
-    let lifecycle = Lifecycle::new(
-        identity::node_info(id, config.name.clone(), *key),
-        stop.clone(),
+    // A value saved with `node.set_settings` wins over `--park-after`
+    // (protocol 12, `settings`).
+    let settings = Arc::new(crate::settings::Settings::open(
+        config.data_dir.clone(),
         Arc::clone(&runtime),
-    );
+        ParkAfter::from_duration(config.park_after),
+        config.park_after_given,
+    ));
+    let stop = CancellationToken::new();
+    // System zone detection may read OS configuration; keep startup I/O
+    // off the async workers just as data-directory preparation is.
+    let name = config.name.clone();
+    let public_key = *key;
+    let info = tokio::task::spawn_blocking(move || identity::node_info(id, name, public_key))
+        .await
+        .map_err(NodeError::Task)?;
+    let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
     let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
@@ -534,6 +546,7 @@ async fn core(
         ports,
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
+        settings,
     })));
     automation::schedules::start(
         commands,

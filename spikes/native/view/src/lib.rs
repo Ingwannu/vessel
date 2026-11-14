@@ -10,6 +10,7 @@
 //! screens draw these values through Vessel's kit, whatever is under it.
 
 pub mod about;
+pub mod agent_mark;
 pub mod agent_status;
 pub mod ago;
 pub mod alert;
@@ -23,9 +24,11 @@ pub mod files;
 mod links;
 pub mod machine_book;
 pub mod machines;
+pub mod mark_attributions;
 pub mod models;
 pub mod notices;
 mod options;
+pub mod pairing;
 pub mod palette;
 pub mod prefs;
 pub mod session;
@@ -41,6 +44,7 @@ pub mod timeline;
 pub mod toasts;
 pub mod workspace;
 
+pub use agent_mark::AgentMark;
 pub use board::{
     Agent, Attention, Card, Fleet, Lane, Machine, Phrase, Reach, Via, agent_name, rows_for_scroll,
 };
@@ -53,7 +57,7 @@ pub use options::{
 pub use text::localization;
 pub use text::{
     AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
-    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, NoticeWords,
-    OptionsText, PairingWords, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText,
+    NoticeWords, OptionsText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     UpdateText, grouped, meter_tokens, short_tokens,
 };

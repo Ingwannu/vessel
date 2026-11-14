@@ -13,14 +13,15 @@ mod parts;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{Arc, PoisonError, RwLock};
+use std::time::Duration;
 
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::{EventRecord, SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
-pub use launch::LaunchOptions;
+pub use launch::{ForkStart, LaunchOptions};
 pub(crate) use parts::{ActorStart, Begin};
 
 use crate::attachments::AttachmentLoader;
@@ -55,6 +56,10 @@ pub struct SessionRuntime {
     /// The node's attachment loader (protocol 10), which every structured
     /// session asks for its prompts' attachments.
     attachments: Option<AttachmentLoader>,
+    /// How long an idle structured session runs before its agent is
+    /// parked, as the node now says (protocol 12, ADR 0038): every actor
+    /// follows it, so a change applies to live sessions at once.
+    park_after: watch::Sender<Option<Duration>>,
 }
 
 /// A session that was just started.
@@ -74,13 +79,36 @@ impl SessionRuntime {
     /// A runtime whose sessions all stop when `shutdown` is cancelled.
     #[must_use]
     pub fn new(config: RuntimeConfig, shutdown: CancellationToken) -> Self {
+        let (park_after, _) = watch::channel(config.park_after);
         Self {
             config,
             shutdown,
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
+            park_after,
         }
+    }
+
+    /// How long an idle structured session runs before its agent is
+    /// parked; `None` never parks (protocol 12).
+    #[must_use]
+    pub fn park_after(&self) -> Option<Duration> {
+        *self.park_after.borrow()
+    }
+
+    /// Change [`park_after`](Self::park_after) for every structured
+    /// session, live ones included: each re-arms its idle timer from its
+    /// last activity, so one idle for longer than a new, shorter time is
+    /// parked at once. Off disarms the timers; parked sessions stay parked
+    /// until something wakes them.
+    pub fn set_park_after(&self, after: Option<Duration>) {
+        let _before = self.park_after.send_replace(after);
+    }
+
+    /// The setting, for a new actor to follow.
+    pub(crate) fn park_setting(&self) -> watch::Receiver<Option<Duration>> {
+        self.park_after.subscribe()
     }
 
     /// Structured sessions load their prompts' attachments through
@@ -104,7 +132,7 @@ impl SessionRuntime {
     }
 
     /// How long an agent's handshake may take.
-    pub(crate) const fn handshake_timeout(&self) -> std::time::Duration {
+    pub(crate) const fn handshake_timeout(&self) -> Duration {
         self.config.agent_handshake_timeout
     }
 

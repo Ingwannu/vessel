@@ -58,7 +58,7 @@ async fn the_first_prompt_names_a_session_and_a_rename_replaces_it() {
 /// A session created with a title keeps it: its prompts do not rename it.
 #[tokio::test]
 async fn a_given_title_is_kept() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::new();
         let handle = fixture
             .start(structured(Vec::new()).with_title(title("Mine")))
@@ -70,7 +70,7 @@ async fn a_given_title_is_kept() {
         assert!(log.titles().is_empty(), "{:?}", log.titles());
         handle.kill();
         let _end = handle.ended().await;
-    })
+    }))
     .await;
 }
 
@@ -118,7 +118,7 @@ async fn a_choice_not_offered_fails_the_session() {
             .start(structured(vec![select("mode", "yolo")]))
             .await;
         let end = handle.ended().await;
-        let SessionStatus::Failed { message } = &end.status else {
+        let SessionStatus::Failed { message, .. } = &end.status else {
             panic!("failed: {:?}", end.status);
         };
         assert!(
@@ -132,7 +132,7 @@ async fn a_choice_not_offered_fails_the_session() {
 /// A terminal session has no options to read or set, and can be renamed.
 #[tokio::test]
 async fn a_terminal_session_has_no_options_but_a_title() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::new();
         let spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
@@ -151,6 +151,6 @@ async fn a_terminal_session_has_no_options_but_a_title() {
         assert_eq!(renamed.title, Some(title("A shell")));
         handle.kill();
         let _end = handle.ended().await;
-    })
+    }))
     .await;
 }

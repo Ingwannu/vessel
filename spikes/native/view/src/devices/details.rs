@@ -1,7 +1,7 @@
 //! A badge is a short fact about credential state, never a guessed live
 //! connection. Its explanation and exact timestamps stay with the row.
 
-use super::{scope_line, time::Age};
+use super::{Access, time::Age};
 use crate::{Lang, badge::Variant};
 use chrono::{DateTime, FixedOffset, Utc};
 use vessel_proto::DeviceInfo;
@@ -40,22 +40,23 @@ impl DeviceState {
     }
 }
 
-/// The complete explanatory lines below a device's name and badge.
+/// The row's single compact access/last-use hint. Pairing history and
+/// full scope facts belong to the exact tooltip, not extra hint lines.
 #[must_use]
 pub fn details(lang: Lang, device: &DeviceInfo, now: DateTime<Utc>, offset: FixedOffset) -> String {
-    let words = lang.devices();
-    [
-        scope_line(lang, device),
-        words.last_seen(device.last_seen.map(|seen| Age::of(seen, now, offset))),
-        words.paired_ago(Age::of(device.created_at, now, offset)),
-    ]
-    .join("\n")
+    lang.devices().row_hint(
+        Access::of(&device.scopes),
+        device.last_seen.map(|seen| Age::of(seen, now, offset)),
+    )
 }
 
-/// Both exact instants, for the kit's hover tooltip. Missing is said
+/// Exact instants and every scope, for the kit's hover tooltip. Missing is said
 /// plainly; an invented date is never substituted for it.
 #[must_use]
 pub fn exact(lang: Lang, device: &DeviceInfo, offset: FixedOffset) -> String {
-    lang.devices()
-        .exact_times(device.created_at, device.last_seen, offset)
+    let words = lang.devices();
+    words.device_tooltip(
+        &words.exact_times(device.created_at, device.last_seen, offset),
+        &device.scopes,
+    )
 }

@@ -21,10 +21,16 @@
 //!   revision (`FindCache`), so the second search is quick.
 //! - Shortcut: no element of the conversation holds the keys while the
 //!   composer does, so Mod+F is heard by a keystroke observer the area
-//!   keeps (`observe_keystrokes`), not by an action on an element.
-//! - Not yet: the matched words are not highlighted in the text (the
-//!   entry is brought into view); a search is not run again as the
-//!   session grows while the bar is open.
+//!   keeps (`observe_keystrokes`), not by an action on an element. The
+//!   app's shortcuts (track S2's registry, rebindable) call
+//!   [`Shell::conversation_find`]; once they bind Find, the observer goes
+//!   (opening twice for one press does no harm meanwhile).
+//! - Marks: the matches are marked in a person's messages, in replies
+//!   and in an answered question's text (GOAT's yellow, the current one
+//!   amber, `Marking`); the search runs again as the session grows while
+//!   the bar is open (`find_grew`). A question still waiting is answered
+//!   over the composer, so its row in the timeline is one quiet line and
+//!   holds no mark.
 
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
@@ -142,16 +148,29 @@ impl Shell {
         let keys = cx.observe_keystrokes(|shell, event, window, cx| {
             let stroke = &event.keystroke;
             let modifiers = stroke.modifiers;
-            if stroke.key == "f"
-                && modifiers.secondary(cx)
-                && !modifiers.shift
-                && !modifiers.alt
-                && shell.areas.conversation.shown.is_some()
-            {
-                shell.open_find(window, cx);
+            if stroke.key == "f" && modifiers.secondary(cx) && !modifiers.shift && !modifiers.alt {
+                shell.conversation_find(window, cx);
             }
         });
         self.areas.conversation.keys = Some(keys);
+    }
+
+    /// Find in the session shown (the shortcuts' Find, Mod+F by default):
+    /// open the bar, or give its field the keys again; nothing when no
+    /// session shows. Calling it twice for one press does no harm.
+    pub(crate) fn conversation_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.conversation.shown.is_none() {
+            return;
+        }
+        self.open_find(window, cx);
+    }
+
+    /// Update a retained field's language without clearing its search.
+    pub(crate) fn refresh_find_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(bar) = &self.areas.conversation.find {
+            bar.field
+                .set_placeholder(self.t.lang.conversation().find_in_session(), window, cx);
+        }
     }
 
     /// Open the bar, or give its field the keys again.
@@ -335,7 +354,7 @@ impl Shell {
             .map(|run| run.lead)
             .filter(|lead| *lead != found && !area.open_runs.contains(lead));
         if let Some(lead) = folded_in {
-            self.toggle_run(lead, cx);
+            self.toggle_run(super::Seat::SESSION, lead, cx);
         }
         let area = &self.areas.conversation;
         if let Some(row) = area.rows.row_index(found, area.folds.as_ref(), &area.logs) {
@@ -481,3 +500,6 @@ fn small_button(
             },
         ))
 }
+
+#[cfg(test)]
+mod language_tests;

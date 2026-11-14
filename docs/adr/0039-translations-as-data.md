@@ -356,3 +356,73 @@ A contributor checks the current source/candidate root for zero missing
 keys and passes the native gate before adding a release folder. While the
 legacy tables remain, coverage of migrated messages alone does not prove
 an additional language covers the whole app.
+
+### Pairing model and stored language (overnight checkpoint)
+
+The pairing dialogs now read their thirteen original messages from Fluent.
+The pairing-only app-table messages and complete paired-status selector also
+move; shared file-fault and other areas' tables stay with their owners. Typed
+decoder/connection/storage/name/browser problems select complete English and
+Korean messages. Dynamic outcomes retain typed data and prepared text so a
+language event can reword them without formatting during drawing. The model's
+allocation tests include plain pairing getters and shared prepared failures.
+
+General uses the embedded registry for a stored language preference, System
+first and native names after it. The pseudo language remains override-only.
+The normal UI has verified persistence, first-paint restoration, override
+precedence, a retained typed draft and a paired-status sentence changing in
+the same process. Headless real-control tests exercise the actual language
+change for find, question, queue and project fields, preserving text, selected
+character, caret, focus and current step.
+
+The first model gate passed format, all-target Clippy, 430 ordinary tests and
+two compile-fail tests; its changed view/link/app crates were recompiled.
+The later source also takes the lead's response-ownership fix unchanged and
+shortens an English empty-name hint after pseudo inspection found its phone
+viewport clipping. At this checkpoint that final source has passed format
+and all-target Clippy. Its remaining final gate and short-hint recapture
+are recorded in the track notes rather than asserted complete here.
+
+Personally inspected evidence includes 32 pre-migration screens, a 60-frame
+English/Korean/pseudo pairing matrix, twelve General screens, 24 real native
+connection/storage/name failures and eight busy frames, eight test-only
+browser-unsupported renderer frames, nine normal preference-flow frames and
+21 completed pairing/save/live-language frames. The three normal pseudo
+views are paste-link, confirmation and General. E2's unmigrated sending and
+preferences rows remain visibly plain beside the pseudo Language row.
+Private storage-failure folders were restored from 0500 to their original
+0700 under the same UID; saved preferences/books are 0600. No service account
+or production permissions changed.
+
+Browser-unsupported captures prove wording/layout in the actual native test
+renderer, not a browser transport. Linux Xvfb/Mesa captures do not verify
+Windows, the complete browser app or a real GPU. Release size/paint numbers
+above measure the accepted engine experiment; no new installed-size or
+performance claim is made for this model checkpoint. The contributor guide
+now records adding strings/languages, coverage, pseudo runs and the one-area
+migration recipe, including one cached-placeholder refresh method registered
+in a single dispatch list.
+
+The subsequent final normal build completed with exit zero. Twelve fresh
+English/Korean/pseudo confirmation captures from that binary were inspected
+in both themes/sizes: the shortened empty-name hint now fits completely in
+the phone's pseudo viewport. This closes that visual finding. The earlier
+broad matrices retain their original binary provenance. At this later
+checkpoint the final native test and explicit wasm command still await
+their recorded exits; no final gate acceptance is inferred from the build.
+The isolated fleet/holder and fake children (17 verified PIDs), private
+display and protected pairing inputs have been cleaned up.
+
+The final native gate subsequently completed with recorded zero exits:
+format, all-target Clippy, 432 ordinary tests and two compile-fail doctests.
+This includes the unchanged lead late-answer regressions and all four
+actual-dispatch input/caret/focus retention tests. The final standalone
+wasm command is still queued at the overnight checkpoint; its eventual
+exit is recorded separately rather than inferred from native success.
+
+The final standalone `vessel-app-view` check for
+`wasm32-unknown-unknown` then completed with its own recorded exit zero
+(41.25s after waiting for a slot). The full sequential native/wasm runner
+completed with exit zero, with frozen compiled-source hashes unchanged.
+This closes the pending-target checkpoint above; review of the model is
+still pending and no broader platform/runtime acceptance is inferred.

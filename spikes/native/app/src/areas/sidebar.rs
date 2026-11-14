@@ -124,7 +124,7 @@ pub(crate) fn render(
         .px(px(8.0))
         .pb(px(8.0))
         .gap(px(12.0))
-        .child(nav.children(schedules(shell, tokens, cx)))
+        .child(nav.children(schedules(shell, tokens, touch, cx)))
         .children(projects(shell, tokens, cx))
         .child(
             div()
@@ -158,9 +158,12 @@ pub(crate) fn render(
 /// sidebar has it (after its pages, before the projects): the schedules
 /// track's (G2) entry; `None`: nothing. As [`projects`], one owner each
 /// side of the slot.
+/// The row to draw there is [`nav_row`] with `Some(Glyph::CalendarClock)`
+/// and the sidebar's `touch`.
 const fn schedules(
     _shell: &Shell,
     _tokens: &Tokens,
+    _touch: bool,
     _cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
     None
@@ -334,6 +337,12 @@ fn session_row(
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
+        .child(crate::agent_mark::mark(
+            card.detail.harness.as_ref(),
+            vessel_app_kit::agent_mark::Size::Fourteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            tokens,
+        ))
         .child(dot(card_color(card, tokens)))
         .child(
             div()
@@ -360,20 +369,56 @@ fn row(
     active: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    nav_row(id, label, None, active, false, tokens)
+}
+
+/// A navigation row of the sidebar, for an entry in its slots (track G2's
+/// Schedules, after Paseo's `SidebarHeaderRow` `compact`): `leading`, a
+/// glyph before the words in the words' colour, 8 from them (Paseo's
+/// `spacing[2]`), at Paseo's `sm` density icon: 14 points, 18 on `touch`
+/// (`control-geometry.ts`, `ICON_SIZE` and `TOUCH_ICON_SIZE`). `None`
+/// draws the row exactly as the sidebar's own rows were drawn (the flex
+/// row is set only with a glyph). The caller adds what a press does.
+///
+/// Differences from Paseo's row, named, for the sidebar's full drawing
+/// (track S's slice) to settle for every row at once: a hovered row here
+/// only fills (Paseo also turns the words and the glyph to the
+/// foreground); the row's padding, type and radius are the sidebar's own,
+/// not Paseo's compact values; no shortcut on hover.
+pub(crate) fn nav_row(
+    id: impl Into<ElementId>,
+    label: &'static str,
+    leading: Option<vessel_app_kit::assets::Glyph>,
+    active: bool,
+    touch: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let color = if active {
+        tokens.text_primary
+    } else {
+        tokens.text_secondary
+    };
+    let glyph_size = if touch { 18.0 } else { 14.0 };
     div()
         .id(id)
+        .when(leading.is_some(), |row| {
+            row.flex().flex_row().items_center().gap(px(8.0))
+        })
         .px(px(10.0))
         .py(px(6.0))
         .rounded(px(vessel_app_kit::theme::radius::R4))
         .type_(Type::Label)
-        .text_color(if active {
-            tokens.text_primary
-        } else {
-            tokens.text_secondary
-        })
+        .text_color(color)
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
+        .children(leading.map(|glyph| {
+            vessel_app_kit::ui::svg()
+                .path(glyph.path())
+                .size(px(glyph_size))
+                .flex_none()
+                .text_color(color)
+        }))
         .child(label)
 }
 

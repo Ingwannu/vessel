@@ -1,5 +1,7 @@
 //! The structured-mode session actor: an ACP agent's outputs become events.
 
+use std::time::Duration;
+
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentInput, AgentOutput, AgentOutputs, AgentProcess, Disconnect};
 use vessel_proto::{AgentEvent, ProfileName, SessionEvent, SessionOption, SessionStatus};
@@ -52,6 +54,17 @@ pub(crate) struct StructuredActor {
     pub(crate) loader: Option<AttachmentLoader>,
     /// The idle clock and the parked state (protocol 12, `parking`).
     pub(crate) parking: Parking,
+    /// The node's `park_after` as it changes (protocol 12, `node.settings`);
+    /// apart from `parking`, so the actor's `select` can wait on both.
+    pub(crate) park_setting: watch::Receiver<Option<Duration>>,
+    /// A record the log starts with (a fork's `forked`, protocol 14).
+    /// Kept after it is published: a fork that fails before its agent is
+    /// ready never held a conversation (`empty_fork`).
+    pub(crate) opening: Option<Box<SessionEvent>>,
+    /// Why the session cannot go on although its agent was ready: a
+    /// rewind failed and its conversation did not start again (protocol
+    /// 14, `forking`). It then ends `failed` with this, not `exited`.
+    pub(crate) unrecoverable: Option<String>,
 }
 
 /// A structured session's move state (see `moving`).
@@ -82,6 +95,9 @@ impl StructuredActor {
             return;
         }
         self.life.starting(&mut self.agent).await;
+        if let Some(opening) = self.opening.as_deref() {
+            self.life.publish(&mut self.agent, opening.clone()).await;
+        }
         // The queue a session started again brought back, held (protocol
         // 10); nothing for a new session.
         self.publish_queue().await;
@@ -111,6 +127,7 @@ impl StructuredActor {
                         Some(Control::Queue(order)) => self.change_queue(order).await,
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
+                        Some(Control::Rewind(order)) => self.rewind(order).await,
                         None => control_open = false,
                     }
                 },
@@ -121,6 +138,11 @@ impl StructuredActor {
                     self.life.renamed(&mut self.agent, rename).await;
                 }
                 Ok(()) = self.life.forge.changed() => self.life.forge_changed(),
+                // The node's setting changed: the timer follows it.
+                Ok(()) = self.park_setting.changed() => {
+                    let after = *self.park_setting.borrow_and_update();
+                    self.parking.set_after(after);
+                }
                 // Last: anything else that is ready goes first, and is
                 // activity (protocol 12, `parking`).
                 () = self.parking.timer().as_mut(), if self.parking.armed() && self.ready => {
@@ -138,6 +160,8 @@ impl StructuredActor {
 
         let status = if self.life.stop.interrupted() {
             SessionStatus::Interrupted
+        } else if let Some(message) = self.unrecoverable.take() {
+            SessionStatus::failed(message)
         } else if self.ready || (self.life.stop.killed() && !self.failed_before_kill) {
             // Killed while it was still starting ends as a killed terminal
             // session does: exited, with whatever code the stop left. (The
@@ -148,6 +172,7 @@ impl StructuredActor {
         } else {
             SessionStatus::Failed {
                 message: start_failure(self.disconnect.as_ref(), code),
+                empty_fork: matches!(self.opening.as_deref(), Some(SessionEvent::Forked { .. })),
             }
         };
         self.life.status(&mut self.agent, status).await;
@@ -250,6 +275,11 @@ impl StructuredActor {
                 } = &event
                 {
                     self.parking.harness_session = Some(harness_session.clone());
+                    // A fork is made once (protocol 14): a later start of
+                    // this agent (a wake, a move's fallback) loads it.
+                    if self.launch.setup.fork.take().is_some() {
+                        self.launch.setup.resume = Some(harness_session.clone());
+                    }
                 }
                 // The agent's timeline is activity; its stderr is not (a
                 // chatty adapter would never be parked).
@@ -312,6 +342,12 @@ impl StructuredActor {
 /// Why a session that never became ready failed.
 fn start_failure(disconnect: Option<&Disconnect>, code: Option<i32>) -> String {
     match disconnect {
+        // A fork the agent refused (protocol 14): the sentence a person
+        // reads, not the transport's.
+        Some(Disconnect::Handshake {
+            fork_refused: Some(refusal),
+            ..
+        }) => crate::error::fork_refusal(*refusal).to_owned(),
         Some(failure @ (Disconnect::Handshake { .. } | Disconnect::Protocol { .. })) => {
             failure.to_string()
         }
@@ -333,6 +369,7 @@ mod tests {
         let handshake = Disconnect::Handshake {
             message: "the agent does not offer model `x`".to_owned(),
             refused: None,
+            fork_refused: None,
         };
         assert_eq!(
             start_failure(Some(&handshake), Some(0)),

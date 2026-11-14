@@ -49,8 +49,8 @@ pub(crate) struct Ui {
 }
 
 impl Ui {
-    /// A UI offering `source`'s nodes, with a short hello deadline and fast
-    /// redials.
+    /// A UI offering `source`'s nodes, with the product's hello deadline and
+    /// fast redials.
     pub(crate) async fn start(source: Source) -> Self {
         Self::configured(source, |_| {}).await
     }
@@ -59,8 +59,11 @@ impl Ui {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let token = LaunchToken::mint().unwrap();
+        // The hello deadline stays the product's: every tab here
+        // authenticates, and a short deadline shared by every test made
+        // each of them fail when a busy machine took longer than it to
+        // answer the challenge. A test of the deadline itself sets its own.
         let mut config = UiConfig::new(token.clone());
-        config.hello_deadline = Duration::from_millis(300);
         config.backoff = vessel_client::Backoff {
             first: Duration::from_millis(20),
             max: Duration::from_millis(100),

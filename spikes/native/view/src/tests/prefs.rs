@@ -1,7 +1,7 @@
 //! The page's `data/prefs.test.ts`, `compose-keys.test.ts` and the
 //! bridge's own tests of the same document (`wire/prefs.rs`,
 //! `wire/prefs/keys.rs`, `wire/prefs/change.rs`): the same JSON, the
-//! same rules.
+//! same rules, plus the app-only language preference.
 
 use std::collections::BTreeMap;
 
@@ -28,7 +28,15 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    assert_eq!(serde_json::to_string(&values).unwrap(), DEFAULT);
+    // Keep the page/bridge fixture unchanged. The native document adds one
+    // explicit field; every byte of its other defaults still comes from that
+    // fixture, and both old and extended documents must read identically.
+    let native_default = DEFAULT.replacen('{', r#"{"language":"system","#, 1);
+    assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
+    assert_eq!(
+        serde_json::from_str::<Preferences>(&native_default).unwrap(),
+        values
+    );
     assert_eq!(
         serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
         values

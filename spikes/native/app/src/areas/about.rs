@@ -28,6 +28,8 @@
 //!   page, then Vessel's licence and the parts the app is built from with
 //!   theirs, as the page's About; its own screen and route are gone.
 
+mod marks;
+
 use std::path::PathBuf;
 
 use crate::update::UpdateState;
@@ -39,7 +41,8 @@ use vessel_app_kit::ui::{
     div, px,
 };
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _, button, glyph, markdown, outline_button, settings,
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind, glyph, markdown,
+    outline_button, settings,
 };
 
 use crate::shell::Shell;
@@ -148,6 +151,7 @@ pub(crate) fn content(
         // The page's name for it: the page's title says About already.
         .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
         .child(settings::section(about.software, licences, tokens))
+        .child(marks::section(shell, tokens, compact, cx))
         .into_any_element()
 }
 
@@ -304,24 +308,33 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
     if !busy {
         check = check.on_click(cx.listener(|this, _event, _window, cx| this.check_for_updates(cx)));
     }
-    let mut update = button(
+    // Paseo's `DesktopAppUpdateRow`: the update button is always there,
+    // filled, and disabled unless a build is ready to install (the kit's
+    // disabled state: half opacity, no hover, no handler); before, an
+    // enabled button was faded by hand and still lit on hover.
+    let label = ready
+        .as_deref()
+        .map_or_else(|| words.update.to_owned(), |label| words.update_to(label));
+    let installable = if ready.is_some() && !busy {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
+    let mut update = button_with_kind(
         "about-update",
-        ready
-            .as_deref()
-            .map_or_else(|| words.update.to_owned(), |label| words.update_to(label)),
-        true,
+        label,
+        ButtonKind::Primary,
+        installable,
         tokens,
     )
     .flex_shrink_0();
-    update = if ready.is_some() {
-        update.on_click(cx.listener(|this, _event, window, cx| {
+    if installable == ButtonState::Enabled {
+        update = update.on_click(cx.listener(|this, _event, window, cx| {
             this.areas.about.confirm = true;
             this.areas.about.confirm_dialog.focus(window, cx);
             cx.notify();
-        }))
-    } else {
-        update.opacity(0.5).cursor_default()
-    };
+        }));
+    }
     let controls = div()
         .flex()
         .flex_row()
