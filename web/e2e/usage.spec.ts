@@ -120,7 +120,7 @@ async function refreshTurn(
   ).toHaveText(formatted(priorCache + 12));
   await expect(
     page.getByRole("list", { name: "Accounting coverage" }),
-  ).not.toContainText("T12:00:00Z");
+  ).not.toContainText(/\d{4}-\d{2}-\d{2}T/);
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 }
 

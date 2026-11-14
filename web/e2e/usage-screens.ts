@@ -1,12 +1,10 @@
 // Intentional content-only captures from the isolated fake fleet. No URL,
 // trace, video or WebSocket recording; locale changes number/date formats.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-
 import { expect, test } from "@playwright/test";
 
 import { startSession, timeline } from "./kit";
 import { openUi } from "./open";
+import { shot } from "./shot";
 
 const SIZES = [
   { width: 1280, height: 900 },
@@ -26,7 +24,9 @@ for (const locale of LOCALES) {
         const context = await browser.newContext({
           locale,
           colorScheme: scheme,
-          viewport: size,
+          // The shared bootstrap helper waits for the desktop sidebar.
+          // Verify the requested compact layout only after authentication.
+          viewport: SIZES[0],
         });
         const page = await context.newPage();
         try {
@@ -44,24 +44,21 @@ for (const locale of LOCALES) {
           await expect(
             page.getByRole("button", { name: "Refresh", exact: true }),
           ).toBeEnabled();
+          await page.setViewportSize(size);
+          await expect(report).toBeVisible();
           await page.evaluate(async () => document.fonts.ready);
           const overflow = await page.evaluate(
             () => document.documentElement.scrollWidth > window.innerWidth,
           );
           expect(overflow).toBe(false);
-          const out = process.env["VESSEL_SCREEN_DIR"];
-          if (out === undefined)
-            throw new Error(
-              "VESSEL_SCREEN_DIR must name the capture directory",
-            );
-          mkdirSync(out, { recursive: true });
-          await page.screenshot({
-            path: join(
-              out,
-              `usage-${locale}-${scheme}-${size.width}x${size.height}.png`,
-            ),
-            fullPage: true,
+          const name = `usage-${locale}-${scheme}-${size.width}x${size.height}`;
+          await shot(page, name, { fullPage: true });
+          const coverage = page.getByRole("list", {
+            name: "Accounting coverage",
           });
+          await coverage.scrollIntoViewIfNeeded();
+          await expect(coverage).toBeVisible();
+          await shot(page, `${name}-coverage`, { fullPage: true });
         } finally {
           await context.close();
         }

@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: proposed inventory and implementation order, 2026-11-14. ADR 0075.
+Status: parity contract accepted; A1 implementation verification in progress, 2026-11-14. ADR 0075.
 
 ## Scope and evidence
 
@@ -127,7 +127,7 @@ new wire number or native modification.
 | F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Existing group/sort/filter/pin; review persistence and nesting before extending. |
 | F81 / m11:213 / A notification inbox that survives a reload | Inbox not on base | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | After inbox merge, durable list/read cursor, loading/offline/refusal states, no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
-| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query protocol21; limits/lookup awaiting merge | session/inspector-summary.tsx routed usage and timeline-item turn counts only | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | Add reported totals/day/week/agent rows first; optional coverage, cost redaction, no estimates. Account limits after merge. |
+| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query protocol21; limits/lookup awaiting merge | session/inspector-summary.tsx routed usage; A1 adds usage/usage-section.tsx (verification below) | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine totals/day/week are implemented; verification below. Agent/session rows remain A2, account limits await merge; no estimates. |
 | F84 / m11:216 / Pull requests page | pr.list/get | No dedicated pull-requests route | pulls/mod.rs session dialogs only | [P21](#reference-p21) | Add project-aware list and facts after schedules; do not claim all-PR coverage from watched sessions only. |
 | F85 / m11:222 / Light, dark, system | Bridge preference theme | settings/appearance.tsx; data/theme.ts | settings/appearance.rs | [P38](#reference-p38) | Existing three schemes; preserve system/reduced-motion and tokens. |
 | F86 / m11:223 / More themes | Client themes; no node RPC required | Only light/dark/system tokens | settings/appearance.rs three choices; extra theme branch not integrated | [P38](#reference-p38) | Wait for shared theme decision/data; do not invent new purple/gradient theme. |
@@ -159,7 +159,7 @@ assignments as current implementation proof.
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
 | m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings; no diagnostic/update API | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation integration, more themes, diagnostics/node update when merged. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
-| m12:372 / Usage/limits (F24,F83) | usage.query21; limits/lookup await merge | Only routed call inspector/turn counts | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | Usage page now; account consent/windows and factual notices after merge. |
+| m12:372 / Usage/limits (F24,F83) | usage.query21; limits/lookup await merge | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | Usage page now; account consent/windows and factual notices after merge. |
 | m12:373 / Phone/push (F71–F72) | Shared node transport; push absent | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
 | m12:374 / Browser as surface | Local bridge serves page; GPUI browser is separate spike | app.tsx; routes/; loopback bridge | Wasm experiment is not connected-client parity proof | [P13](#reference-p13) [P23](#reference-p23) [P24](#reference-p24) | This track maintains the existing page; no new native/Wasm/browser engine. |
 
@@ -295,15 +295,29 @@ licence audit, deployment, live permission change or repository push.
 
 ## Resume point
 
-Done: isolated page branch from the checked node snapshot, own build/npm
-paths; complete source inventory and ADR 0075. Documentation fast checks:
-format check, page size (zero files over budget), font stack check (15
-stacks) and kit-control check passed. Root size/boundary scripts do not
-exist on this snapshot. No compile/test/UI runtime claim for this contract.
-Next: submit this documentation commit for review, then implement A1 using
-usage.query only without waiting on unmerged limits/inbox. A returned
-contract is fixed before new feature work. UI captures/runtime checks and
-the first code slice's full gate remain pending.
+The parity contract passed documentation review (`39fcda13`). Node head
+`a365d295` was merged without conflicts (`5790cdd3`); the page adds no wire
+method, field, protocol/schema number, crate edge or native change.
+
+A1 source checkpoint `7a46c043` adds machine reported accounting in
+Settings. Its first whole run passed format, size/boundaries, full Clippy,
+Rust (112 summaries: 1,963 passed, zero failed, 12 ignored), TypeScript
+freshness (two cases), web lint including 132 font stacks, and web type
+checking. Web units stopped that run at 427 passed and one failed: the
+command palette's explicit complete Settings list did not yet include the
+new Usage section. This failure comes from the feature addition; it is
+not labelled an unrelated base defect. Source pre/post identities matched.
+No remaining browser/build stage is inferred from that partial gate.
+
+The narrow correction adds only `Settings: Usage` between the existing
+Devices and Sync expectations. Every prior entry and its order remain.
+The next complete run must validate the corrected immutable tree after
+actual browser findings are addressed; existing deadlines/assertions and
+quality exceptions remain unchanged. A1 is not integration-ready until
+that complete gate and implementation review pass. Per-agent/session
+accounting is A2; account limits and inbox still wait for assigned merged
+contracts. No live account, vendor, native runtime or other-platform check
+is claimed by this page work.
 
 ## Paseo source index
 
@@ -576,3 +590,58 @@ served assets and rendered captures are still unverified at this source
 checkpoint. No limits/inbox/new wire/native change or live service action
 is included. The next step is the whole gate and recording its actual
 results, including any shared-test failure and the instructed exact rerun.
+
+
+## First whole accounting run and retained failure
+
+The first immutable implementation run stopped at the command palette
+unit expectation described in the resume point. Its successful Rust and
+web checks remain scoped evidence; the incomplete whole run remains a
+failure. The complete Settings-list assertion gains the new product entry
+without dropping or moving any pre-existing entry. Actual browser flow,
+intentional captures, final asset freshness and a new whole changed-tree
+run are required before calling this slice validated.
+
+
+## Isolated browser diagnostic and capture correction
+
+On the same immutable source checkpoint, a separate diagnostic built the
+browser binaries, then passed the real-node usage flow: selected machine,
+day/week, reported reasoning/cache zero, a second actual fake-agent turn,
+and refreshed ledger values. The flow passed once; this does not turn the
+stopped whole gate into a success. Twelve of sixteen intentional captures
+passed. All four 390-pixel cases stopped at the shared desktop bootstrap
+helper's Sidebar visibility assertion, before measuring Usage layout.
+
+The capture setup now authenticates and seeds at the existing desktop
+size, then resizes to each requested viewport and keeps the report-visible
+and no-horizontal-overflow assertions. The common bootstrap helper and
+all deadlines remain unchanged. Captures use the established machine-name
+mask convention. This proves neither mobile cold-start behavior nor a
+translated page: Korean locale applies to numbers/dates; labels stay English.
+
+Both diagnostic fleets recorded matching hashes for all eighteen static
+assets referenced by their actual index. An extra audit assertion comparing
+the per-request painted HTML with the unpainted bundle file failed; this
+was an audit assumption, not a static-asset mismatch. `crates/vessel-web/src/files.rs`
+documents the request painting. The original observations remain retained;
+subsequent freshness checks compare static assets and explicitly exclude
+that HTML byte comparison. No live service or access permission changed.
+A complete gate on the corrected tree, including all browser cases and
+all sixteen corrected captures, remains required.
+
+
+The corrected capture cases reuse the existing `e2e/shot.ts` helper,
+including its machine-name mask and cosmetic frame settling after real
+visibility/font readiness. Each of the sixteen locale/theme/viewport
+cases records an overview and a scrolled coverage view (32 images), so
+cost and all provenance dates can be inspected inside the actual scroll
+container. The usage flow's no-raw-ISO assertion now matches any RFC3339
+date prefix rather than a fixed fixture timestamp. These strengthen the
+evidence; no product state, deadline or existing assertion was weakened.
+
+
+After the explicit palette-list correction, all 428 frontend unit tests
+passed in the narrow run. This does not erase the stopped whole run or
+execute the strengthened browser/capture cases. Narrow type/lint checks
+and the complete corrected-tree gate remain pending at this checkpoint.
