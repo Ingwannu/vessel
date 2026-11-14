@@ -43,6 +43,7 @@ pub mod output;
 pub mod picker;
 pub mod popup;
 pub mod qr;
+pub mod resize;
 
 pub mod screen_header;
 pub mod segmented;
