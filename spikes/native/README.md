@@ -226,6 +226,14 @@ before the text sees them. `KeyAnswer::Pass` leaves everything as before
 (Enter sends, Tab indents); `Taken` stops the key. An input method
 composing is never asked. Screens take a key only while their menu shows.
 
+The permissions modes' marks are Paseo's shield family on the kit's own
+`Shield` outline: `ShieldPlus`, `ShieldCheck`, `ShieldOff`, `ShieldEllipsis`
+and `ShieldAlert` (`assets.rs`, the 24-unit 1.5-stroke grid). A list row
+draws one in the foreground with `Leading::Mark` (Paseo's mode rows);
+`Leading::Glyph` stays muted. `cargo run -p vessel-app-kit --example
+shield_marks` with `GPUI_X11_SCALE_FACTOR` draws them beside `Shield` at
+14, 16 and 20 points, off the pixel grid, for the scale check.
+
 `kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
 list): rows drawn best last (nearest the text), the chosen one on
 `surface2`, a chosen command's card above the list, the loading, empty and

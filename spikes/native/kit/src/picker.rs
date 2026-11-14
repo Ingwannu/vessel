@@ -320,6 +320,9 @@ pub fn send_button(
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
+    /// A glyph in the foreground: a permissions mode's mark (Paseo's
+    /// `ModeComboboxOption` draws its `DensityIcon` with `color="foreground"`).
+    Mark(Glyph),
     /// An official agent mark, or the generic bot when unknown.
     AgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
@@ -916,6 +919,7 @@ fn row_leading(
     let neutral = tokens.neutral;
     match leading {
         Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
+        Leading::Mark(which) => glyph(which, 16.0, neutral.foreground).into_any_element(),
         Leading::AgentMark(art) => {
             let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical
