@@ -254,7 +254,21 @@ answered with no bytes, `the_opener_answers_before_anyone_qualifies`
 colour queries, from the creating view, before anyone has typed and
 with focus lost), and
 `nobody_answers_a_live_query_when_no_viewer_may` (the same queries on
-an attach with nobody qualified, no reply bytes).
+an attach with nobody qualified, no reply bytes),
+`records_buffered_during_load_are_not_answered`,
+`a_query_split_across_the_handover_is_not_answered`, and each refused
+query of ADR 0073's closed set fed through `feed` with an empty reply.
+
+**Untrusted input.** The parser eats the program's bytes, so every
+buffer has a stated bound and no input reaches a panic. The model is
+taken from the inherited draft in slices of a few hundred lines, each
+reviewed (V2) and gated: the parser's state machine around `vte`; the
+grid and scrollback; attributes and colours; wide and combining cells;
+the answered-query set. Each slice's tests include hostile input
+(unterminated sequences, huge parameters and counts, overlong OSC and
+DCS strings, scroll regions outside the grid, zero and enormous sizes)
+and a fuzz-style test over random bytes with a fixed seed. T1's screen
+comes after the parser and grid slices pass.
 
 **Link (T1–T3).** A session that is a terminal is read with
 `session.read` pages for its history and followed for live records; a
@@ -325,8 +339,16 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   out). The first author's uncommitted draft (`view/src/terminal/`:
   `types`, `grid/` with parse, edit, reflow and find, `keys`, `paste`,
   `duty`, `tests`; about 2,500 lines, in `/home/dev/vessel-gk-terminal`)
-  builds and its 20 tests pass (short lane, 2026-11-14). It is the
-  starting point of T1, reviewed against this contract before it is
-  committed (find wraps now; replies take the drawn colours; sends split
-  at 64 KiB).
-- Next: T1.
+  builds and its 20 tests pass (short lane, 2026-11-14). It was never
+  reviewed and the parser eats untrusted bytes, so it is suspect, not a
+  head start (the coordinator): it is taken in the reviewed slices of
+  "Untrusted input" above, each against this contract (find wraps;
+  replies only from the closed set, in the drawn colours; the hand-over
+  is `replay`; sends split at 64 KiB with the paste rules).
+- Next: the parser slice, then grid and scrollback, attributes and
+  colours, wide and combining cells, the answered set; then T1's
+  screen with the kit control (agreed with the lead: a control-only
+  commit, the palette in `kit/src/theme/terminal.rs` as
+  `tokens.terminal`, the grid view reading only its own frame, the
+  cursor blinking at 500 ms and still under reduced motion, measured
+  by `VESSEL_APP_FRAME_LOG`'s draw lines and the process's CPU).

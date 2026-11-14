@@ -239,6 +239,31 @@ bytes are those above:
   fold of the ring use only `replay`. A cursor-position query in that
   history moves the grid and types nothing. The grid's tests feed
   `ESC [ 6 n` through `replay` and assert the reply is empty.
+- The hand-over from history to live output is `replay` too. Records
+  that arrive while the history is being read and replayed are kept and
+  applied with `replay` after it; only records received after the
+  hand-over go through `feed`. A query that arrived during a load is
+  therefore never answered late, as a missed query is never answered
+  late. A sequence whose introducer was consumed by `replay` produces no
+  reply even when it completes in live bytes (history ending in
+  `ESC [ 6`, a live record starting with `n`): the model remembers that
+  the sequence under way began in replay. Tests:
+  `records_buffered_during_load_are_not_answered`,
+  `a_query_split_across_the_handover_is_not_answered`.
+- The answered set is closed: exactly the five replies above (primary
+  device attributes for `CSI c` and `CSI 0 c`; status for `CSI 5 n`;
+  the cursor for `CSI 6 n` and `CSI ? 6 n`; the colour for `OSC 10`,
+  `11` or `12` whose argument is exactly `?`). A reply's bytes come only
+  from the fixed DA and status strings, the cursor's position and the
+  colours drawn, never from text the program sent. Every other query
+  produces no reply. Refused by name, each with a test that feeds it
+  through `feed` and asserts an empty reply: window and icon title
+  reports (`CSI 20 t`, `CSI 21 t`), size reports (`CSI 14 t`, `16 t`,
+  `18 t`, `19 t`), DECRQSS (`DCS $ q … ST`), XTGETTCAP (`DCS + q … ST`),
+  the clipboard read (`OSC 52` with `?`), ENQ (answerback, `0x05`),
+  DECRQM (`CSI Ps $ p`, `CSI ? Ps $ p`, which Paseo's client also
+  swallows), secondary and tertiary device attributes (`CSI > c`,
+  `CSI = c`), and an `OSC 10`–`12` whose argument is anything but `?`.
 - `feed` may return those reply bytes. The link sends them from one
   viewer. Once any viewer qualifies under `ResizeRule` (it has focus
   and the person has typed), that viewer is the one. Every other
@@ -364,7 +389,28 @@ is not smuggled in as a copy.
   Shift+Tab `ESC [ Z`. The grid's tests pin these bytes.
 - A send carries at most 64 KiB (`SendTerminal::MAX_BYTES`, refused
   above it by the node): keys, a paste and a reply are split at a
-  character boundary into sends that size, in order.
+  character boundary (never inside a UTF-8 sequence) into sends that
+  size, in order.
+- A paste is one item of the ordered sender: keys typed while it goes
+  wait behind it. When the program has turned bracketed paste on, the
+  start marker `ESC [ 200 ~` goes before the paste's first chunk and the
+  end marker `ESC [ 201 ~` after its last, once each, never a pair per
+  chunk. An end marker inside the pasted text loses its ESC, Paseo's
+  rule (`terminal-paste.ts` 18–28: `input.text.replaceAll(BRACKETED_PASTE_END,
+  "[201~")`), so a pasted `201~` cannot end paste mode early and run the
+  rest as typed input. Outside bracketed paste, Vessel removes every ESC
+  byte from pasted text (a paste is text, not keys); Paseo sends that
+  text as it is (21–23), a stated difference. xterm's own paste
+  preparation was not read.
+- When the node refuses a chunk or the connection drops in the middle
+  of a paste, the rest of it is not sent, and nothing already sent is
+  sent again. If the start marker went out, the end marker is sent once
+  so the shell leaves paste mode. The person is told, beside the
+  terminal, how much went: "Paste stopped after {sent} of {total}
+  bytes" (a typed failure, `PasteStopped { sent, total }`). Tests in the
+  input slice: markers around the whole paste, an embedded end marker
+  neutralized, a refused middle chunk followed by exactly one end marker
+  and no resend.
 - Closing a shell's tab is Paseo's: a confirm ("Close terminal?", "Any
   running process in this terminal will be stopped immediately.",
   `en.ts` 712–713), then the terminal is gone (`terminal.close`). Stop
