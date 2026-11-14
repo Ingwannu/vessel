@@ -50,13 +50,21 @@ impl Shell {
         self.keep_draft(DraftKey::New, &text, cx);
     }
 
-    /// The session composer changed: the open session's draft follows.
+    /// The session composer changed: the open session's draft follows. A
+    /// sent message shown by recall is not a draft until it is edited (the
+    /// page's `show`): recall starts only from an empty composer, so the
+    /// draft stays empty while the composer holds it as recalled.
     fn session_composer_edited(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let Some(session) = self.areas.session.open.as_ref().map(|open| open.session) else {
             return;
         };
         let text = self.areas.session.composer.text(cx);
-        self.keep_draft(DraftKey::Session { session }, &text, cx);
+        let draft = if self.areas.composer.recall.showing(&text) {
+            ""
+        } else {
+            text.as_str()
+        };
+        self.keep_draft(DraftKey::Session { session }, draft, cx);
     }
 
     fn keep_draft(&mut self, key: DraftKey, text: &str, cx: &mut Context<'_, Self>) {
