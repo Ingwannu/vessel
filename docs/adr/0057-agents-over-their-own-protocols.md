@@ -118,11 +118,31 @@ weighed:
   own. (c) is the adapter Vessel already has.
 - **Recommendation: (a)**, built in two layers:
   - **The documented layer**: stream-json both ways, and the node's
-    permission model, which never relies on the undocumented wire.
+    permission model, whose safety never depends on the undocumented wire
+    being understood: what is not understood is denied (amended
+    2026-11-14 with the coordinator and A2, below).
   - **The control frames, opt-in**: interrupt, live model and mode
     changes, `rewind_files`, context usage. They are checked by a contract
     test against the SDK's declarations of the version Vessel follows,
     and the driver turns them off where that check fails.
+  - **Permissions** (coordinator's decision, 2026-11-14): inside the CLI
+    versions the contract test covers, every tool request comes over the
+    control protocol's `can_use_tool`, which carries the agent's own
+    choices ("always allow …") and their withdrawal. Outside that range,
+    or when the control handshake does not come up as the contract
+    expects, the driver falls back by itself to the documented
+    `--permission-prompt-tool mcp__…` route (allow or deny only), and the
+    session says once that the agent's own choices are unavailable on
+    that version. On both routes, tested on the fake CLI: every tool
+    request is answered by the node or denied; a frame the driver does
+    not understand is a denial and ends the turn with a typed error,
+    never an allow; no permission-skipping flag unless the session's mode
+    is bypass; MCP configuration and anything secret go in a file only the
+    node's user can read, never on the command line.
+  - **Credentials**: the driver never reads, copies or proxies the agent's
+    credential files or tokens, and never presents a login of its own: it
+    runs the person's own installed `claude` under the person's own login
+    (the profile's home), as the ACP adapter does.
 
   This is "where possible" taken at its word: possible from Rust, but
   only partly a public contract, so the rest is fenced.

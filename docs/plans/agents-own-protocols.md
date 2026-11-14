@@ -198,6 +198,36 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
    frame with usage. Cancel is the `interrupt` control frame where the
    contract holds, otherwise stopping the process and resuming.
    `fake_claude_stream` replays frames from the SDK's declared types.
+   As built (2026-11-14, `BUILT` stays false until slice 2):
+   - `launch` adds only enumerated flags, checked ids and a path:
+     `--include-partial-messages`, `--permission-prompt-tool=stdio`,
+     `--disallowedTools=AskUserQuestion` (always, until slice 2 makes it
+     follow `setup.questions`), `--session-id=<new UUID>` or
+     `--resume=<UUID>` (anything else refused: `--resume` would read a
+     name or a path), `--permission-mode=<mode>` from one exhaustive match
+     (only `bypassPermissions` adds `--allow-dangerously-skip-permissions`;
+     no mode chosen passes none), `--model=<id>`, `--mcp-config=<file>` in
+     the node's private directory (`vessel_harness::claude_mcp_file`).
+     Value flags use `=`. Nothing is added to the environment. A fork, an
+     option other than the mode, or MCP servers without the private
+     directory are refused before spawning (`LaunchRefusal`).
+   - The session opens the control protocol (`initialize`) within the
+     handshake time and is ready with the launched conversation; a CLI
+     that does not answer fails the handshake (slice 2 adds the MCP-tool
+     fallback for that case). Text and reasoning come from the stream,
+     a message never streamed from its whole frame, tool calls from whole
+     frames, their results from `user` frames, the turn's end from
+     `result`; a subagent's frames are left out until slice 5.
+   - The floor: every `can_use_tool` is denied, with a line in the log; a
+     control request it does not serve or cannot read is refused and the
+     turn is interrupted and ends failed, saying why; a `result` that does
+     not read ends the turn; a line that is not JSON ends the connection.
+   - Attachments and opaque blocks are refused (`AttachmentNotTaken`,
+     `InvalidContent`); steering is `CannotSteer`; options are empty.
+   - The contract test (`claude::contract`, ignored unless
+     `VESSEL_CLAUDE_SDK_TYPES` names the installed SDK's `sdk.d.ts`) checks
+     every type, field and literal the wire uses against the SDK's
+     declarations, and its `claudeCodeVersion` against `direct`'s.
 2. **Permissions and questions.**
    - Every tool request comes through `can_use_tool` (`--permission-prompt-
      tool stdio`), with its suggestions as the agent's choices.
@@ -264,7 +294,20 @@ checked against `/doc`.
     introduced version is read from.
 - **Claude Code**:
   - each control frame on the installed CLI (2.1.322 here, the SDK
-    follows 2.1.246);
+    follows 2.1.246): `initialize` answered before any prompt and what
+    its answer holds; `interrupt` and the `result` an interrupted turn
+    writes (its subtype, whether `stop_reason` is null);
+  - that `--session-id` gives `init` the same id, and `--resume` keeps
+    it (the driver logs a difference, never follows it);
+  - that `--permission-prompt-tool=stdio` sends every tool request as
+    `can_use_tool` in every mode but bypass, that a denial lets the turn
+    go on, and that a refused unknown request (an elicitation) stops
+    nothing on the CLI's side but the request;
+  - whether prompts the node sends should carry `origin: {kind: human}`
+    (the SDK asks hosts wrapping keyboard input to say so; scheduled
+    prompts are not typed by a person);
+  - a synthetic or local message (`/context`) shown once, and a
+    subagent's frames;
   - `can_use_tool` payloads and suggestions;
   - `rewind_files` on real file history.
 - **OpenCode**:

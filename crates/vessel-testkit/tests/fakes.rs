@@ -230,6 +230,15 @@ fn the_direct_fakes_answer_their_version_and_first_exchange() {
         .iter()
         .map(|frame| frame["type"].as_str().unwrap())
         .collect();
-    assert_eq!(kinds, ["system", "result"]);
-    assert_eq!(frames[0]["session_id"], frames[1]["session_id"]);
+    assert_eq!(kinds.first(), Some(&"system"));
+    assert_eq!(kinds.last(), Some(&"result"));
+    assert!(
+        kinds.contains(&"stream_event") && kinds.contains(&"assistant"),
+        "{kinds:?}"
+    );
+    assert!(
+        frames
+            .iter()
+            .all(|frame| frame["session_id"] == frames[0]["session_id"])
+    );
 }

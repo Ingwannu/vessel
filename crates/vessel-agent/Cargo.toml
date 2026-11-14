@@ -22,10 +22,13 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "rt", "sync", "time"] }
 tracing.workspace = true
+# Claude Code's conversation ids: a new one minted for `--session-id`, a
+# resumed one checked before it reaches `--resume` (ADR 0057).
+uuid.workspace = true
 
 [dev-dependencies]
 # Temporary homes and owner-only directories (the Codex contract test, the
-# MCP file tests).
+# Claude driver's MCP file tests).
 tempfile.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
 vessel-testkit.workspace = true
