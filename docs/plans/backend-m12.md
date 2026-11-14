@@ -448,7 +448,7 @@ do nothing); each is for a node track:
 | ~~Fleet join, leave and sync now over the wire, and applied state~~ — final source `caaea148`, integrated by `ff2981f2` at 15 | Settings › Sync | Admin controls and bounded Read status are available; app integration is separate |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 | ~~A device's own scopes (only an admin can list devices)~~ — built in `3d486ff4` | every screen that offers an action | `device.self` returns this authenticated caller's grant, even without Read; unsupported remains unknown |
-| ~~A pairing link from a machine with no advertised address or relay~~ — row 4 implementation, hash in the N3 resume checkpoint | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
+| ~~A pairing link from a machine with no advertised address or relay~~ — built in `aea21c54` | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |
 
 ### Translations as data files (2026-11-13)
@@ -621,5 +621,5 @@ do nothing); each is for a node track:
 | ~~Fleet join, leave and "sync now" over the wire, and a member's applied state~~ | Settings › Sync | N3 row 2: `2ced8723` + `caaea148`; root gate 1,666/0/9, real fleet checked. V1 passed; integrated on `backend/m12-node` as protocol 15 (13 and 14 were already published without it); the screens are G4's |
 | The registry's address from the command line or the environment | the fake fleet (a fixture registry cannot be served) | the rules are tested against a fixture; screens show the live public list |
 | ~~A device's own scopes (only an admin can list devices)~~ — built in `3d486ff4` | every screen that offers an action | `device.self` returns this authenticated caller's grant, even without Read; unsupported remains unknown |
-| ~~A pairing link from a machine with no advertised address or relay~~ — row 4 implementation, hash in the N3 resume checkpoint | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
+| ~~A pairing link from a machine with no advertised address or relay~~ — built in `aea21c54` | Settings › Devices | the updated node refuses before minting, with Conflict / DeviceInviteError::NoRoutes and setup guidance |
 | An agent that is too old or too new: the ACP client rejects the other version before the node's own check runs, so the node reports a failed check and its `TooOld` / `TooNew` states never occur | Settings › Agents | the two sentences exist and are tested; on screen a person sees the failed check |

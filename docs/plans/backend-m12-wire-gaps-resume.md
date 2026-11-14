@@ -16,8 +16,8 @@ Their detailed evidence remains in the implementation plan and git history.
 
 ## Row 4: complete, ready for review
 
-Contract-first ADR amendment: `41518e9c`. Implementation is the commit
-containing this checkpoint; its hash is recorded immediately afterward.
+Contract-first ADR amendment: `41518e9c`. Gated implementation: `aea21c54`.
+Source/evidence review is pending with V1.
 The changed-source final root gate passed: 110 suites, 1,786 passed, zero
 failed, ten ignored, RUST_TEST_THREADS=2. Both TS generators and page lint,
 typecheck, 417 units and build passed. Final binary build, all 62 page E2E

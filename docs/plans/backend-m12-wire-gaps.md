@@ -377,7 +377,7 @@ frozen throughout that failed attempt; prepared fixes were installed with
 current timestamps only after it exited. A changed-source full root gate
 follows; no clean final result is claimed at this checkpoint.
 
-## Row 4 final verification
+## Row 4 final verification (`aea21c54`)
 
 The changed-source fmt, whole Clippy and literal whole workspace tests passed:
 110 suites, 1,786 passed, zero failed, ten ignored (RUST_TEST_THREADS=2).
