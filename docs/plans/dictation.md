@@ -276,23 +276,41 @@ refusal messages. Count calculations use explicit integer division, keeping
 the rounding policy visible to the lint gate. No dependency, setting or wire
 method is added.
 
+## Settings contract values
+
+Decision: extend the existing dictation values, reuse SecretName and its
+central validator, and add a change type because Option alone loses the
+keep/reset distinction. No dependency is added. Paseo speech-settings.ts
+149–175 clears null fields and resets site options on provider changes;
+persisted-config.ts 99–115 makes provider fields strict. The contract now
+records those behaviours before implementation. Read views expose only key
+presence; a safely decoded/redacted reference is only for a write and lookup.
+
+The value-only slice adds no NodeSettings field, persistence or method.
+Tests cover defaults, omission versus null for every field, provider switching,
+unknown choices, inactive options and secret-reference diagnostics. The later
+persistence slice must test failed writes/refusals leave the whole file and
+runtime unchanged and newly selected references resolve before saving.
+
 ## Resume point
 
-Done: 2a and its corrections passed review. Provider metadata (2b1) passed
-source review; its full gate remains owed. TLS and resolved secret lookup
-extractions each passed their exact-commit gate and review. The named node
-head was merged, retaining its entire architecture text before appending
-the dictation section. No call or settings field is registered.
+Done: audio values, metadata, TLS and resolved-secret extraction passed review.
+The named node head was merged and the owed metadata gate closed fully green
+on 10fe31df: Rust1971/0/12 ignored, TS2, web unit417/e2e62. The architecture
+merge retained the head verbatim and appended dictation. Boundary fixtures
+now derive from their constants. No call or settings field is registered.
 
-This commit connects boundary fixtures and API comments to their existing
-constants. Its full gate also checks the merged tree and closes the owed
-metadata gate only if the shared side-question test passes.
+This docs commit extends the settings contract for typed keep/set/reset,
+provider changes, strict fields and safe secret references. Next apply the
+unregistered contract values, gate them, then stage the audio/owner and
+endpoint service modules against synthetic/loopback tests.
 
-Half-done: settings and service code remains private preparation. Registration
-waits for the shared `required_protocol` accessor; unassigned features use
-`Option<ProtocolVersion>`, with new data hidden until assignment. No second
-mechanism is added.
+Node service staging is test-only until wiring; its review does not establish
+a product path. Wiring waits for the shared protocol accessor and call-table
+refactor, removes the staging attribute, and gets a whole product gate.
+Existing complete settings literals gain default completion only with the
+new optional field, preserving every old value and assertion. Do not split
+the shared guard: the common plumbing refactor owns its structure.
 
-Next: run and report the merged whole gate, then continue settings and stream
-service after the shared accessor lands. Local engines and the app microphone
-remain deferred. The CLI file client follows the node service.
+Local engines and microphone capture remain deferred. The CLI file client
+follows the node service; its file-format contract still needs an amendment.

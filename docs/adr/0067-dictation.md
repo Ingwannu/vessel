@@ -1,10 +1,10 @@
 # ADR 0067: Dictation, spoken into the node
 
-Status: proposed, 2026-11-14. The protocol number is the one given at
-merge. This commit does not change `PROTOCOL_VERSION` (20 in
-`crates/vessel-proto/src/node.rs`). New calls are gated on one constant,
-`dictation::SINCE`, so the integrator changes that one line. Nothing in
-this decision is on the wire until the slice that adds the methods.
+Status: proposed, 2026-11-14. The protocol number is given at merge;
+this decision changes no global protocol version. Value types may exist before
+registration. The first wiring commit changes the inactive `dictation::SINCE`
+to `Option<ProtocolVersion> = None` and uses the shared `required_protocol()`
+accessor. No new call is sent or dispatched while the number is unassigned.
 
 The behaviour this follows is Paseo's composer dictation (read for this
 decision; file and line in `docs/plans/dictation.md`). Voice mode, local
@@ -111,9 +111,9 @@ Constraints that bind the shape:
 
 ## The choice
 
-The number given at merge adds five methods, each `operate`, each not
-forwardable, each refused to an agent, each gated on `dictation::SINCE`.
-`PROTOCOL_VERSION` stays 20 until the integrator sets that constant.
+Wiring adds five methods, each `operate`, each not forwardable, each
+refused to an agent, each gated on `dictation::SINCE`. A number is assigned
+only after the service and clients that expose this feature are ready.
 Settings ride on the existing settings calls. The secret rides on the
 existing secret calls.
 
@@ -333,10 +333,10 @@ execution and standalone linking remain unverified until those gates run.
 
 ### Settings, defaults, secret
 
-On `NodeSettings`, one optional `dictation`. Omitted when every field
-is the default, so a peer at today's `PROTOCOL_VERSION` (20) sees the
-same settings bytes as today. The object is meaningful at
-`dictation::SINCE` and above.
+On `NodeSettings`, one optional `dictation`. It is omitted when every field
+is the default, while its protocol number is unassigned, and for peers older
+than its assigned number. Both settings replies, including nested or forwarded
+reply filtering, must preserve the earlier peer's settings bytes.
 
 | Field | Default | Paseo, when its environment is unset |
 | --- | --- | --- |
@@ -351,15 +351,19 @@ same settings bytes as today. The object is meaningful at
 The switch is `on` or `off`, not a bool. `off` makes `start` fail
 `unsupported` with `Disabled`. The value is still kept.
 
-A change (`node.set_settings`, `admin`) names only the fields it
-sets. `unknown` provider or an unknown local model id is refused and
+A change (`node.set_settings`, `admin`) distinguishes an omitted field
+(keep), a value (select), and null (remove its saved override). An unknown
+provider, switch or local model is readable but refused when applied, and
 writes nothing. Language is a short code: 1 to 16 characters, ASCII
-letters and `-`. The base is `https`, a host, no userinfo, no
-fragment, at most 256 characters. The endpoint model is 1 to 64
-characters, no spaces.
+letters and `-`. The base is HTTPS or parsed loopback HTTP, without userinfo, query or
+fragment, within the canonical byte bound in the URI amendment. The endpoint
+model uses its validated Unicode character bound and refuses whitespace and
+controls.
 
-The key is not a field of the settings file. The setting holds a
-`SecretName` the admin already stored with `secret.set`. `node.settings`
+The credential value is never stored in settings.json. The setting selects a
+`SecretName` the admin already stored with `secret.set`. A new selection must
+resolve to a nonempty value before it is saved; a later deletion is reported
+as absent. Null clears the reference without deleting the independent secret. `node.settings`
 (`read`) reports `key: present` or `key: absent`, never the name and
 never the value: a read-only device learns whether dictation can
 authenticate, not which secret it uses. The name is visible to
@@ -367,13 +371,52 @@ authenticate, not which secret it uses. The name is visible to
 `start` with `endpoint` and `key: absent` fails `unavailable` with
 `KeyAbsent`.
 
-A client that negotiated a protocol below `dictation::SINCE` does not
-send these methods (`Call::since`). It ignores a `dictation` object if
-a newer node included one (serde's default: unknown fields do not
-fail). A node below `dictation::SINCE` has no object and no methods. A
-newer client, seeing a negotiated protocol below `dictation::SINCE`,
-treats dictation as absent. It does not apply the defaults to an older
-node and then call methods that node does not have.
+Before assignment, the shared accessor refuses sending and dispatching
+these calls with `UnassignedProtocol`. A settings patch containing dictation,
+even an empty patch, also requires that assignment. After assignment a peer
+older than the feature receives neither these calls nor the dictation settings
+object. A newer client treats an absent feature as unsupported; it does not
+apply dictation defaults to an older node and call methods it cannot serve.
+
+### Settings patch implementation amendment
+
+Purpose and intent: preserve Paseo's provider switching and explicit resets,
+without storing a raw credential or confusing null with an omitted field.
+
+Existing implementation and constraints: speech-settings.ts 149–175 removes
+null or blank fields and clears site options when the provider changes.
+persisted-config.ts 99–115 rejects options belonging to another provider.
+Vessel already has validated metadata, fixed defaults without environment
+overrides, and a separate node secret store. Its file reuses the patch type.
+
+Alternatives considered: plain `Option<T>` would swallow a present null as
+an unchanged field; an untagged trial decoder would discard the value
+validator's error. Retaining inactive provider options would change Paseo's
+switch behaviour. A raw API key would duplicate the existing secret owner.
+
+Choice: optional `DictationChange<T>` fields represent keep/set/reset. A
+manual option visitor preserves value diagnostics and a present null reset.
+Applying a patch normalizes resets out of saved overrides. A provider change
+retains the switch, clears language/model/base/key overrides, then applies
+the new fields. The merged provider refuses inactive options. SecretReference
+wraps the existing name rule, redacts Debug and submitted text in failures,
+and exposes the name only for the existing secret lookup. Readers get only
+key presence; no credential value is part of these types.
+
+Why this and not the alternatives: the explicit change type reproduces null
+resets and prevents silent no-op patches. Existing metadata still refuses
+blank strings instead of interpreting them as resets; null is the supported
+reset representation. These validated options retain the URI and short-name
+restrictions already stated above. No dependency is introduced.
+
+Advantages, costs and effects: provider changes cannot carry old authentication
+or model options into a new site. Clearing a reference leaves secret deletion
+with its existing owner. Known patch fields reject unknown nested fields;
+future choices remain readable but cannot be newly applied. Because the file
+uses the patch type, an unknown nested field can cause an older build to refuse
+that settings file and use its existing fallback to flags. This slice adds
+contract values only: no node.settings field, persistence path or call is
+registered yet. Their wiring has its own compatibility and atomic-write tests.
 
 ### Privacy: where the audio goes
 
@@ -540,9 +583,9 @@ refusal is the cost of not lying about a model that is not there.
 
 Effects, when the implementation slice lands:
 
-- `vessel-proto` gains the types and the five rows. `PROTOCOL_VERSION`
-  stays 20. `dictation::SINCE` becomes the assigned number, and it is
-  the only version this track names. `docs/PROTOCOL.md` records both
+- `vessel-proto` gains the types before the five rows. `dictation::SINCE`
+  is an unassigned optional version at registration and becomes the assigned
+  number only when the service and its clients are ready. `docs/PROTOCOL.md` records both
   directions in the commit that publishes that number.
 - `vessel-node` gains the stream task and the endpoint provider. No
   `vessel-*` edge is added. `reqwest` is used from the node as an
