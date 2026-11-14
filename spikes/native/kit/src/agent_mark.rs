@@ -166,6 +166,26 @@ pub fn agent_mark(artwork: Option<Artwork>, size: Size, space: Space, tokens: &T
         space,
         tokens,
         tokens.neutral.foreground_muted,
+        None,
+    )
+}
+/// The mark in the muted ink, where a list shows many (Paseo's session
+/// list draws its provider icons in `foregroundMuted`); the colours stay
+/// in the pickers and Settings.
+#[must_use]
+pub fn agent_mark_muted(
+    artwork: Option<Artwork>,
+    size: Size,
+    space: Space,
+    tokens: &Tokens,
+) -> Div {
+    render(
+        artwork,
+        size,
+        space,
+        tokens,
+        tokens.neutral.foreground_muted,
+        Some(tokens.neutral.foreground_muted),
     )
 }
 fn render(
@@ -174,6 +194,7 @@ fn render(
     space: Space,
     tokens: &Tokens,
     fallback: gpui::Hsla,
+    tint: Option<gpui::Hsla>,
 ) -> Div {
     if let Some((art, (width, height))) = artwork.and_then(|art| {
         art.dimensions(size, space)
@@ -187,7 +208,7 @@ fn render(
             .flex()
             .items_center()
             .justify_center()
-            .child(raster::exact(art.image(tokens.scheme), image))
+            .child(raster::exact(art.image(tokens.scheme), image, tint))
     } else {
         let fallback_size = match space {
             Space::Row => 16.0,

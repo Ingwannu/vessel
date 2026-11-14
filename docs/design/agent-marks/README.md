@@ -95,6 +95,16 @@ for 0.0.0.0.13 and 0.0.0.0.14, the blue spark from Google's
 copies every text here; no Apache-2.0 artwork is embedded now).
 
 
+## In the session list (2026-11-14)
+
+The sidebar's session rows draw the marks in the muted ink, as Paseo's
+session list draws its provider icons in `foregroundMuted`
+(`agent-list.tsx`); the coloured marks stay in the pickers, the composer
+and Settings › Agents (the coordinator, 2026-11-14, the default unless
+the owner objects). The muted mark is the same device-pixel raster with
+its colour replaced and its coverage kept (`raster.rs`), so it is as
+sharp as the coloured one; OpenCode's two tones become one silhouette.
+
 ## For the owner
 
 Anthropic requires prior approval: "You may only use our trademarks as specifically permitted by us and only in materials we approve beforehand."
