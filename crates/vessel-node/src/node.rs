@@ -302,6 +302,10 @@ struct SessionSetup {
     fleet_mcp: Arc<FleetMcp>,
     /// Where agents are probed (`DataDir::probe_dir`, protocol 9).
     probe_dir: PathBuf,
+    /// The owner-only MCP directory (`DataDir::prepare_mcp_dir`), which the
+    /// session runtime also gives a direct driver's launches for their
+    /// private files (`AgentSetup::private_dir`, ADR 0057).
+    private_dir: PathBuf,
     /// Worktrees and their setup logs (`DataDir::workspace_dir`,
     /// protocol 10).
     workspace_dir: PathBuf,
@@ -340,6 +344,7 @@ impl SessionSetup {
         Self {
             profiles: Arc::new(profiles),
             models,
+            private_dir: mcp.clone(),
             launcher: Launcher::new(mcp, source, tools),
             fleet_mcp,
             probe_dir: probe,
@@ -377,7 +382,7 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader);
+    let runtime = runtime(config, loader, setup.private_dir.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(crate::settings::Settings::open(
@@ -574,8 +579,9 @@ async fn core(
 }
 
 /// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader`.
-fn runtime(config: &Config, loader: AttachmentLoader) -> Arc<SessionRuntime> {
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
     Arc::new(
         SessionRuntime::new(
             RuntimeConfig {
@@ -585,6 +591,7 @@ fn runtime(config: &Config, loader: AttachmentLoader) -> Arc<SessionRuntime> {
                 durable_capacity: config.durable_capacity,
                 agent_handshake_timeout: config.agent_handshake_timeout,
                 park_after: config.park_after,
+                private_dir: Some(private_dir),
             },
             CancellationToken::new(),
         )

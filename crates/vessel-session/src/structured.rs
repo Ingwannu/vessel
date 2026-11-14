@@ -128,6 +128,10 @@ impl StructuredActor {
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
+                        #[cfg(test)]
+                        Some(Control::PrivateDir(reply)) => {
+                            drop(reply.send(self.launch.setup.private_dir.clone()));
+                        }
                         None => control_open = false,
                     }
                 },

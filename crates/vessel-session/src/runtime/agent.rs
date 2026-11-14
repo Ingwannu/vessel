@@ -3,6 +3,7 @@
 //! probed before any session of it exists, and moved to another profile.
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_agent::{AgentProcess, AgentSetup, CommandSpec, Driver};
@@ -174,16 +175,7 @@ impl SessionRuntime {
             driver,
             ..
         } = self.agent_command(spec, profile, proxy).await?;
-        let setup = AgentSetup {
-            cwd,
-            model: None,
-            resume: None,
-            options: Vec::new(),
-            mcp_servers: ResolvedMcpServers::new(),
-            handshake_timeout: self.config.agent_handshake_timeout,
-            questions: false,
-            fork: None,
-        };
+        let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
         Ok(vessel_agent::probe_with(driver, &command, setup).await?)
     }
 
@@ -302,6 +294,7 @@ impl SessionRuntime {
             // never changes whether the agent may ask.
             questions: false,
             fork: None,
+            private_dir: self.private_dir(),
         };
         let (reply, answer) = oneshot::channel();
         let order = MoveOrder {
@@ -333,6 +326,23 @@ impl SessionRuntime {
         }
         moved?;
         Ok(handle.info())
+    }
+}
+
+/// A probe's setup: no session, no MCP servers, no questions, and no
+/// private directory, so its launch writes no file
+/// (`AgentSetup::private_dir`).
+pub(super) fn probe_setup(cwd: PathBuf, handshake_timeout: Duration) -> AgentSetup {
+    AgentSetup {
+        cwd,
+        model: None,
+        resume: None,
+        options: Vec::new(),
+        mcp_servers: ResolvedMcpServers::new(),
+        handshake_timeout,
+        questions: false,
+        fork: None,
+        private_dir: None,
     }
 }
 

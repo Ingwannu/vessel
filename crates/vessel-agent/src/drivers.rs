@@ -96,6 +96,7 @@ mod tests {
             mcp_servers: ResolvedMcpServers::new(),
             handshake_timeout: Duration::from_secs(1),
             questions: false,
+            private_dir: None,
         }
     }
 

@@ -48,14 +48,32 @@ The session actors, the store and the wire do not change.
 Every driver implements or reads these; a change to one is agreed with
 the coordinator and the other driver's worker before it is made.
 
-- `vessel_agent`: `AgentSetup`; the commands (`input::Command` and
-  `AgentInput`'s methods); `AgentOutput` and `AgentOutputs`;
-  `Disconnect`; `AgentError::NoDriver`; `Driver` and `Driver::built`;
-  the entry signatures `run(ChildStdin, ChildStdout,
-  mpsc::Receiver<Command>, mpsc::Sender<AgentOutput>, AgentSetup)` and
+- `vessel_agent`: `AgentSetup` (with `private_dir`, added 2026-11-14
+  by the launch-step commit below, and closed again); the commands
+  (`input::Command` and `AgentInput`'s methods); `AgentOutput` and
+  `AgentOutputs`; `Disconnect`; `AgentError::NoDriver`; `Driver` and
+  `Driver::built`; each direct driver's entries `launch(&CommandSpec,
+  &AgentSetup) -> Result<(CommandSpec, Launched), AgentError>` (its own
+  `Launched`), `run(ChildStdin, ChildStdout, mpsc::Receiver<Command>,
+  mpsc::Sender<AgentOutput>, AgentSetup, Launched)` and
   `history(&CommandSpec, Option<&Path>, HistoryFrom, Duration) ->
   Result<HistoryPage, HistoryError>`; `HistoryFrom`, `HistoryPage`,
   `HistoryError`, `Probed`.
+- **The launch step** (2026-11-14, agreed with the coordinator and A2):
+  Claude Code takes resume, fork, its permission route and its MCP
+  configuration file only on its command line, so a direct driver shapes
+  its command in `launch`, from `setup`, before `AgentProcess::spawn_with`
+  spawns it, and keeps what that leaves (`Launched`: Claude's MCP file)
+  for the session's life in `run`. Codex's and `OpenCode`'s `launch` are
+  the identity today; `OpenCode`'s will put the node's own server
+  password into its environment there. `history` spawns inside each
+  module, so a listing shapes its own command there and writes no file;
+  a probe goes through `spawn_with` with `private_dir: None`.
+  `AgentSetup::private_dir` is the node's owner-only MCP directory
+  (`DataDir::prepare_mcp_dir`, emptied at every node start), set by the
+  session runtime on a new session, a fork, a start again and a move (a
+  wake and a rewind reuse the session's launch), and `None` for a probe;
+  a driver writes there only through `vessel_harness::McpFile`.
 - `vessel_harness`: `Direct` (its fields), `DirectProtocol`, `Version`,
   `VersionFit`, `launch_direct`, `version_check`.
 - `vessel_proto::settings`: `AgentDriver`, `AgentDrivers`,
@@ -71,8 +89,9 @@ the coordinator and the other driver's worker before it is made.
   versions checked) once its permissions slice lands, its section of
   this plan and of ADR 0057's notes.
 - **Does not touch**: `crates/vessel-agent/src/{process,probe,
-  history,drivers,lib}.rs` (the dispatch already names every module; the
-  one exception is a `pub use` its slice needs, agreed first), the ACP
+  history,drivers,lib}.rs` (the dispatch already names every module and
+  its launch step; these files are closed to driver slices since the
+  launch-step commit, and a `pub use` a slice needs is agreed first), the ACP
   driver (`crates/vessel-agent/src/driver/`), the other drivers' modules
   and fakes, `vessel-session` (the session actors, `runtime/drivers.rs`),
   `vessel-node`'s settings, and the wire. A shared session test is run
