@@ -398,3 +398,18 @@ Next priority is the file-seeded FakeForge fleet node, then actual project
 PR listing (row 5), registry/version states (row 6), and hooks (row 7). The
 fake backend must be test-only; shipped vesseld may honor no fake backend
 switch or flag. Its ADR and seed contract are not decided by this slice.
+
+## File-seeded forge fixture: contract before code
+
+After row 4's passed source review, the next slice is the test-only forge
+node described in ADR 0029's new amendment. Reuse FakeForge and
+ForgeSetup.custom. A separate feature-gated vessel-forge-fixture binary avoids
+a node/testkit dependency cycle; product vesseld has no fake switch, even
+when the feature is enabled. Version-1 JSON groups typed PullRequest values
+by RepoRef, with explicit per-repo failures and refused merges. Bounds and
+safe diagnostics are part of the decoder, and seeded fake operations remain
+bounded. No new dependency edge, external crate or wire version is needed.
+The executable is built/tested with its feature; the whole root gate and
+real CLI fake fleet remain required. Only after merge does the blocked PR
+screen track receive the exact command and seed format. Project-wide PR
+listing is the following slice, not claimed by this one.
