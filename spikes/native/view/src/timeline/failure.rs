@@ -68,12 +68,15 @@ pub fn turn_failure(message: &str) -> TurnFailure {
     } else {
         sentence
     };
+    // An agent whose error's data is a plain string (the node writes it
+    // as JSON, quoted: `Internal error: "the turn failed"`): its words.
+    let sentence = serde_json::from_str::<String>(sentence).unwrap_or_else(|_| sentence.to_owned());
     let limit = error_kind
         .as_deref()
         .is_some_and(|kind| LIMIT_KINDS.contains(&kind))
-        || says_limit(sentence);
+        || says_limit(&sentence);
     TurnFailure {
-        sentence: sentence.to_owned(),
+        sentence,
         kind: if limit {
             FailureKind::Limit
         } else {

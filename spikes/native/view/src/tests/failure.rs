@@ -84,6 +84,15 @@ fn another_failure_reads_turn_failed_and_its_sentence() {
     );
 }
 
+// The fake agent's `fail` (and any agent whose error data is a string):
+// the node writes `Internal error: "<words>"`.
+#[test]
+fn an_error_whose_data_is_a_string_reads_as_its_words() {
+    let failure = turn_failure("Internal error: \"fake-acp: the turn failed\"");
+    assert_eq!(failure.sentence, "fake-acp: the turn failed");
+    assert_eq!(failure.kind, FailureKind::Other);
+}
+
 #[test]
 fn a_limit_is_known_by_its_sentence_when_no_data_says_so() {
     assert_eq!(
