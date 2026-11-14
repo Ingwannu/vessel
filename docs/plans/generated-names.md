@@ -11,7 +11,7 @@ Read from Paseo's tree, not copied.
 | Behaviour | Where |
 | --- | --- |
 | A typed title is trimmed. The provisional title is the first non-empty prompt line, whitespace collapsed, cut at 60 (`min(60, MAX_EXPLICIT_AGENT_TITLE_CHARS)`). An explicit title wins over the prompt line. | `packages/server/src/server/agent/create-agent-title.ts` 1–48; `packages/protocol/src/agent-title-limits.ts` 1 (`MAX_EXPLICIT_AGENT_TITLE_CHARS = 200`) |
-| Empty `agents.metadataGeneration.providers` is automatic. A non-empty list is manual: those entries only, in order, deduped. Automatic matches, on model id or label, `haiku`, then `gpt-5.4-mini` with thinking `low`, then `minimax-m3`, then `nemotron-3-super`, then the current selection. A thinking id the model does not offer becomes the model's default. | `packages/server/src/server/agent/structured-generation-providers.ts` 14–19, 29–70, 230–284; `packages/server/src/server/persisted-config.ts` 180–186 |
+| Empty `agents.metadataGeneration.providers` is automatic. A non-empty list is manual: those entries only, in order, deduped. Automatic matches, on model id or label, `haiku`, then `gpt-5.4-mini` with thinking `low`, then `minimax-m3`, then `nemotron-3-super`, then the current selection. An explicit model on a top-level manual provider passes its thinking string through; an omitted model uses the default or first model and resolves thinking against it. | `packages/server/src/server/agent/structured-generation-providers.ts` 14–19, 29–70, 230–284; `packages/server/src/server/persisted-config.ts` 180–186 |
 | The settings screen replaces the first manual entry and keeps the rest. Switching to automatic clears the list. | `public-docs/metadata-generation.md` (the "Choose a model" and "Configure a custom fallback order" sections) |
 | Project `paseo.json` `metadataGeneration.{title,branchName,commitMessage,pullRequest}.instructions` replaces that kind's style and is not appended. The contract is not replaceable. Blank instructions are ignored. The file is read from disk at the cwd's repository root (`readPaseoConfig`), not from a commit. `agentTitle` is a legacy key, ignored since v0.1.96. | `packages/server/src/utils/build-metadata-prompt.ts` 7–61; `paseo-config-file.ts` 284–289; `packages/protocol/src/paseo-config-schema.ts` 63–80 |
 | One structured call returns `{ title, branch }`, title 1–80, branch 1–100. The prompt forbids tools and forbids deriving the branch from the title. `maxRetries: 2`, `persistSession: false`, internal agent titled "Branch name generator". Failure returns null. | `packages/server/src/server/worktree-branch-name-generator.ts` 39–42, 54–139 |
@@ -88,9 +88,12 @@ ADR 0062 records each one with its reason. Short form:
     stays). An effort the provider's API cannot say is omitted at the
     call and the provider's default is used: Anthropic's wire has no
     `minimal` (`wire/anthropic.rs` 376–385). An effort outside the enum
-    is refused when the setting is written. Paseo keeps the string and
-    replaces an id the model does not offer at generation time
-    (`resolveThinkingOptionId`, 263–276).
+    is refused when the setting is written. Paseo passes explicit-model
+    manual candidates through on top-level providers (136–160); omitted
+    models use the default or first model and resolve thinking against it
+    (162–169, 259–276). Vessel validates the allowed route/model pair and
+    closed effort before saving. Preferring an omitted model's `small_model`
+    is a Vessel cost choice, not Paseo's default/first-model rule.
 15. The ADR 0022 constructors stay: a provisional title is cut at 80
     Unicode scalar values and a typed title allows 120. Internal prompt
     whitespace is retained, with control characters replaced by spaces.
@@ -107,7 +110,7 @@ nothing.
 
 - **The settings section** reads `node.settings` (`read`) and writes
   `node.set_settings` (`admin`). The field is `metadata.providers`: an
-  array of `{ route, model?, effort? }`, at most eight. Empty, present,
+  array of `{ route, model?, effort? }`, bounded by `MAX_METADATA_PROVIDERS`. Empty, present,
   is automatic. Absent `metadata` means the peer does not generate
   (below `GENERATED_NAMES`); the section is not offered as if it worked.
   Send `metadata` only when the peer speaks that constant. `effort` is
@@ -241,3 +244,28 @@ restores only that field and combines the patterns. Existing head SQL,
 test expectations, deadlines and production migration behavior stay unchanged.
 The corrected committed tree still owes the whole gate before either slice
 is reported as complete.
+
+### Slice 2b1: bounded values resume point
+
+- Done in this slice: reusable `MetadataSettings`, `MetadataProvider` and
+  `MetadataEffort` values, with constructor and bounded streaming decoder;
+  `GeneratedTitle` validates raw UTF-16 length before using `SessionTitle`.
+  Order, duplicates, exact bounds, future effort, unknown object keys,
+  invalid extra candidates, padded answers and supplementary Unicode
+  characters have adjacent tests. Strict object keys follow the persisted
+  Paseo schemas (`persisted-config.ts` 172–186).
+- Existing assets: parsed route/model ids, the title constructor, serde and
+  this crate's error conventions. Modify those APIs through small modules;
+  no external solution or dependency is needed for these value contracts.
+- The generated-title bound follows Paseo's schema and trim order
+  (`worktree-branch-name-generator.ts` 39–42, 132–135). The stored candidate
+  cap and existing one-line/control rules are deliberate Vessel bounds.
+  The resolver notes above distinguish explicit-model manual pass-through
+  from default-model resolution; the old blanket thinking statement and
+  small-model attribution were inaccurate.
+- Not added: settings request/reply fields, persistence, model selection,
+  project instructions, model calls or automatic title application. The
+  protocol threshold stays unassigned. This slice's exact-commit gate is
+  next; the shared accessor correction has a separate independent gate.
+- Next: settings persistence and per-peer field gates after the shared
+  admission contract, then project instructions and generation against fakes.

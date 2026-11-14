@@ -183,11 +183,17 @@ that route's model or its `small_model` (ADR 0015, decision 5);
 anything else is a refused setting, not a call. An entry's `effort`,
 when set, is a closed set (`minimal`, `low`, `medium`, `high`, `max`),
 mapped in the node onto `vessel-llm`'s effort. A value outside that set
-is refused on write, as an unknown `park_after` is. Paseo instead keeps
-the string and, at generation, replaces a thinking id the model does
-not offer with the model's default (`resolveThinkingOptionId`,
-263–276). The same outcome is used here for a value the provider's API
-cannot say: Anthropic's wire effort is `low`, `medium`, `high` and
+is refused on write, as an unknown `park_after` is. Paseo's manual
+candidate with an explicit model on a top-level provider passes that
+model and thinking string through unchanged
+(`structured-generation-providers.ts` 136–160). When the model is
+omitted it selects the default model, or the first model, and resolves
+the thinking id against that model (162–169, 259–276); nested matches
+also resolve it. Vessel instead validates the model against the route's
+allowed pair and uses a closed effort type, so an unsupported choice can
+be refused before saving. This is a deliberate security and cost bound,
+not a reproduction of Paseo's explicit-model pass-through. An effort that
+the provider's API cannot represent is omitted: Anthropic's wire effort is `low`, `medium`, `high` and
 `max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
 call and the provider's default stands. When the entry omits effort,
 the provider's default stands, except the automatic `gpt-5.4-mini`
@@ -198,16 +204,20 @@ logs the class (`no route`), never the prompt.
 
 The model id sent upstream is the route's `small_model` when the entry
 did not name a model and the route has a small model, otherwise the
-route's model. Paseo prefers a small model; `small_model` is that field.
+route's model. Preferring `small_model` here is a Vessel cost choice.
+Paseo's manual candidate without a model uses the default or first model
+(`selectDefaultModel`, 259–261); its automatic path uses the model that
+matched the substring, not a separate small-model field.
 
 ### Settings
 
 `NodeSettings.metadata` and `SetNodeSettings.metadata`:
 
-- `providers`: at most eight entries. Each is `{ route, model?, effort? }`.
+- `providers`: at most `MAX_METADATA_PROVIDERS` entries. Each is
+  `{ route, model?, effort? }`.
   An empty list is automatic, the default, and what an older
   `settings.json` becomes. A non-empty list is manual: those entries
-  only, nothing appended. Nine entries, an unknown route name, a model
+  only, nothing appended. An oversized list, an unknown route name, a model
   the route does not allow, or an unknown effort is a typed refusal and
   the file is not written (ADR 0038: a failed change changes nothing).
 - Kept in the same `settings.json`, as one more optional field of
@@ -240,6 +250,32 @@ is a bound Paseo does not have. Both are stated below.
 
 The settings screen is not part of this change. It calls the methods
 in the plan's "What a screen calls".
+
+### Bounded value contracts
+
+The protocol crate extends its existing parsed route/model identifiers and
+`SessionTitle`; no provider SDK or new dependency is needed. A separate
+`GeneratedTitle` preserves the model-output contract: its raw UTF-16 unit
+count is checked against `MAX_GENERATED_TITLE_UNITS` before trimming or
+ordinary title validation. Paseo checks its schema before trimming too
+(`worktree-branch-name-generator.ts` 39–42, 132–135). Vessel additionally
+keeps ADR 0022's one-line and control-character refusals; allowing a model
+to bypass the title rules would make stored and user-supplied titles
+disagree. A bad model title is refused, never truncated.
+
+`MetadataSettings` owns its private ordered candidate list and one
+constructor. The settings and candidate objects refuse unknown keys, as
+Paseo's persisted schemas do (`persisted-config.ts` 172–186), so a misspelled
+preference cannot silently choose automatic defaults. Its decoder stops
+constructing candidates at
+`MAX_METADATA_PROVIDERS` and refuses an extra element, rather than
+allocating an unbounded list before checking its length. Duplicate entries
+count towards that storage bound and stay in order; selection deduplicates
+later. The cap is a Vessel bound, absent from Paseo's provider array.
+Future effort values decode as typed `Unknown` for reading and are refused
+by settings validation when the setting is wired. This value-only slice
+adds neither settings fields nor registered calls: availability checks and
+persistent writes belong to the following settings slice.
 
 ### A session title's origin
 

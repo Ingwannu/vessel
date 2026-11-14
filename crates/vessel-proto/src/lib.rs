@@ -138,7 +138,10 @@ pub use session::{
     SessionStatus,
 };
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
-pub use title::{InvalidTitle, SessionTitle, TitleOrigin};
+pub use title::{
+    GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,
+    TitleOrigin,
+};
 pub use transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MAX_TRANSFER_FILE,
     MAX_TRANSFER_TOTAL, MemoryImported, MemoryRef, ReadTransfer, SessionImported, SessionRef,
