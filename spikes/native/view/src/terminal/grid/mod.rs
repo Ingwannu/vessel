@@ -163,6 +163,16 @@ impl Grid {
         self.title.as_deref()
     }
 
+    /// The cursor's cell on the live screen, shown or not (a report of its
+    /// position answers either way).
+    #[must_use]
+    pub const fn cursor(&self) -> CursorCell {
+        CursorCell {
+            row: self.at.row,
+            col: self.at.col,
+        }
+    }
+
     /// The change count.
     #[must_use]
     pub const fn generation(&self) -> Generation {

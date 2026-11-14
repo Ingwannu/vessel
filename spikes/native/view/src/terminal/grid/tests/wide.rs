@@ -29,8 +29,8 @@ fn the_same_syllable_split_across_two_feeds_is_one_wide_cell() {
     let mut term = model(4, 1, 0);
     let bytes = "한".as_bytes();
     let (head, tail) = bytes.split_at(2);
-    let _ = term.replay(head);
-    let _ = term.replay(tail);
+    assert_eq!(term.replay(head).consumed, 2);
+    assert_eq!(term.replay(tail).consumed, 1);
     assert_eq!(glyphs(&term, 0), [Scalar('한'), Cont, Empty, Empty]);
 }
 

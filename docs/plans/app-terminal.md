@@ -318,6 +318,9 @@ grid, and that an unchanged generation draws nothing), not described.
   (`terminal.ts` 883–922, read). An attach, or a creating view that
   has closed, with nobody qualified, is answered by nobody, and the
   program waits. The app shows no error of its own.
+- A cursor report counts rows from the screen's top in origin mode
+  too, as Paseo's daemon does (`buffer.cursorY`); xterm counts from the
+  region. With a wrap pending it reports the last column.
 - A dangerous path is refused, not stripped.
 - Blink (SGR 5, 6), overline (53) and the underline's colour (58) are
   read and dropped; xterm.js draws them. Blink needs a timer over the
@@ -386,7 +389,17 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   `Continuation`, and every edit that can split a pair blanks the half
   left behind (overwrite, ECH, ICH, DCH, a narrower grid, a history line
   cut in a snapshot).
-- Next: reflow, the answered set; then T1's
+- P5, the answered set (`reply/`, `duty.rs`, `TerminalModel::feed`,
+  `set_palette`): Paseo's bytes for DA1, DSR 5, CPR and its private
+  form, OSC 10/11/12 in the palette shown (none until a palette is
+  given); `query` matches every action with no catch-all arm and lists
+  ENQ, DECRQSS, XTGETTCAP, OSC 52 `?`, DA2/DA3, DECRQM and `CSI t` as
+  never answered; a reply is computed before its action applies; the
+  named fixtures (`the_opener_answers_before_anyone_qualifies`,
+  `nobody_answers_a_live_query_when_no_viewer_may`, the two hand-over
+  tests at the model) and a flood bound (under four times the bytes,
+  plus one carried answer).
+- Next: reflow; then T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the
