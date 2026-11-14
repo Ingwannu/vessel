@@ -155,6 +155,9 @@ unicode-normalization = "0.1"
 # the `std` build keeps an OSC string in a Vec with no bound; without it
 # the parser's own buffer is capped (`terminal::parse::OSC_LIMIT`).
 vte = { version = "0.15.0", default-features = false }
+# A scalar's width in cells for the terminal grid (ADR 0073), MIT OR
+# Apache-2.0; already in the lock through gpui-component.
+unicode-width = "0.2.3"
 qrcode = { version = "0.14", default-features = false }
 
 [profile.release]

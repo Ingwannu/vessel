@@ -20,6 +20,7 @@ serde_json.workspace = true
 unicode-normalization.workspace = true
 # The terminal's parser (ADR 0073); only this crate may use it.
 vte.workspace = true
+unicode-width.workspace = true
 qrcode.workspace = true
 
 fluent-bundle.workspace = true

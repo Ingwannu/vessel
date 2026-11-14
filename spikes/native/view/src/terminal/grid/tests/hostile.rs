@@ -166,9 +166,17 @@ impl Seeded {
             b"1", b"4", b"6", b"7", b"20", b"25", b"47", b"1047", b"1048", b"1049", b"2004",
         ];
         const ESCAPES: &[&[u8]] = &[b"D", b"E", b"H", b"M", b"7", b"8", b"c", b"(B", b"#8"];
+        const TEXT: &[&[u8]] = &[
+            b"text ",
+            "한글 ".as_bytes(),
+            "e\u{301}".as_bytes(),
+            "\u{1112}\u{1161}\u{11ab}".as_bytes(),
+            "\u{1f600}\u{200d}".as_bytes(),
+            "\u{0e34}漢".as_bytes(),
+        ];
         const CONTROLS: &[&[u8]] = &[b"\r", b"\n", b"\t", b"\x08", b"\x0b", b"\x07", b"\r\n"];
         match self.below(9) {
-            0 | 1 => out.extend_from_slice("text 한글 ".as_bytes()),
+            0 | 1 => out.extend_from_slice(self.pick(TEXT)),
             2 => out.extend_from_slice(self.pick(CONTROLS)),
             3 | 4 => {
                 out.extend_from_slice(b"\x1b[");

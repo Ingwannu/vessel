@@ -1,9 +1,9 @@
 //! A cell and a line of cells.
 //!
 //! A cell is plain data the kit can paint: a glyph and the pen it was
-//! printed or erased with. The wide-cell slice adds the continuation of a
-//! wide scalar. Every erase takes the blank to write (`Grid::blank`, the
-//! current background).
+//! printed or erased with. A wide scalar takes its cell and the next, a
+//! continuation (`width`). Every erase takes the blank to write
+//! (`Grid::blank`, the current background).
 
 use super::pen::Pen;
 
@@ -12,8 +12,12 @@ use super::pen::Pen;
 pub enum Glyph {
     /// Nothing printed.
     Empty,
-    /// A scalar the program printed.
+    /// A scalar the program printed. It is two cells wide exactly when the
+    /// next cell is a `Continuation`.
     Scalar(char),
+    /// The second cell of a wide scalar: not a character of its own (find
+    /// and selection skip it; the kit draws the scalar across both).
+    Continuation,
 }
 
 /// One cell of the grid: 20 bytes (a test pins it; history's bound is
@@ -36,6 +40,15 @@ impl Cell {
     pub const fn printed(c: char, pen: Pen) -> Self {
         Self {
             glyph: Glyph::Scalar(c),
+            pen,
+        }
+    }
+
+    /// The second cell of a wide scalar printed with `pen`.
+    #[must_use]
+    pub const fn continuation(pen: Pen) -> Self {
+        Self {
+            glyph: Glyph::Continuation,
             pen,
         }
     }
@@ -115,9 +128,17 @@ impl Line {
         self.cells.get_mut(usize::from(col))
     }
 
-    /// Exactly `cols` wide: cut, or padded with `blank`.
+    /// Exactly `cols` wide: cut, or padded with `blank`; a wide scalar cut
+    /// in half at the edge is blanked.
     pub(super) fn fit(&mut self, cols: u16, blank: Cell) {
         self.cells.resize(usize::from(cols), blank);
+        let last = self.cells.len();
+        self.fix_pairs(last.saturating_sub(1), last, blank);
+    }
+
+    /// Blank the half pairs in cells `from..to` and on either side of them.
+    pub(super) fn fix_pairs(&mut self, from: usize, to: usize, blank: Cell) {
+        super::width::fix_pairs(&mut self.cells, from, to, blank);
     }
 
     /// Without its trailing unprinted cells (a line kept in history).

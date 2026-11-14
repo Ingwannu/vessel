@@ -1,44 +1,13 @@
-//! Moving the cursor and scrolling: printing, line feeds, the `CUx` family,
+//! Moving the cursor and scrolling: line feeds, the `CUx` family,
 //! positions in origin mode, the alternate screen and saved cursors. Each
 //! count is clamped to the grid before it moves anything.
 
 use super::Grid;
-use super::cell::{Cell, Wrap};
-use super::modes::{At, AutoWrap, Insert, LineFeed, Origin, Pending, Saved, Shown};
+use super::modes::{At, LineFeed, Origin, Pending, Saved, Shown};
 use super::screen::Region;
 use crate::terminal::parse::{Count, Position};
 
 impl Grid {
-    /// Print `c` at the cursor with the pen (one cell wide in this slice).
-    pub(super) fn print(&mut self, c: char) {
-        if self.at.pending == Pending::Wrap && self.modes.auto_wrap == AutoWrap::Wrap {
-            let row = self.at.row;
-            if let Some(line) = self.screen_mut().line_mut(row) {
-                line.set_wrap(Wrap::Soft);
-            }
-            self.at.col = 0;
-            self.index();
-        }
-        self.at.pending = Pending::Nothing;
-        let (row, col, blank) = (self.at.row, self.at.col, self.blank());
-        if self.modes.insert == Insert::Insert {
-            self.screen_mut().insert_cells(row, col, 1, blank);
-        }
-        let printed = Cell::printed(c, self.pen);
-        if let Some(cell) = self
-            .screen_mut()
-            .line_mut(row)
-            .and_then(|line| line.cell_mut(col))
-        {
-            *cell = printed;
-        }
-        if col < self.size.last_col() {
-            self.at.col = col.saturating_add(1);
-        } else if self.modes.auto_wrap == AutoWrap::Wrap {
-            self.at.pending = Pending::Wrap;
-        }
-    }
-
     /// LF, VT, FF: down one line, scrolling at the region's bottom; with
     /// LNM set also back to column 0.
     pub(super) fn line_feed(&mut self) {

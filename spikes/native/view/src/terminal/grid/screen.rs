@@ -71,6 +71,7 @@ impl Screen {
         if let Some(span) = cells.get_mut(start..end) {
             span.fill(blank);
         }
+        line.fix_pairs(start, end, blank);
     }
 
     /// Rows `rows` blank, each ending hard.
@@ -96,6 +97,7 @@ impl Screen {
         if let Some(gap) = tail.get_mut(..n) {
             gap.fill(blank);
         }
+        self.fix_line(row, blank);
     }
 
     /// `n` cells at `col` of `row` removed; blanks fill in at the edge.
@@ -108,6 +110,16 @@ impl Screen {
         let keep = tail.len().saturating_sub(n);
         if let Some(gap) = tail.get_mut(keep..) {
             gap.fill(blank);
+        }
+        self.fix_line(row, blank);
+    }
+
+    /// Every half pair on `row` blanked (after a shift, which can split a
+    /// pair at the cursor and at the edge).
+    fn fix_line(&mut self, row: u16, blank: Cell) {
+        if let Some(line) = self.line_mut(row) {
+            let width = line.cells().len();
+            line.fix_pairs(0, width, blank);
         }
     }
 

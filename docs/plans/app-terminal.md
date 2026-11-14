@@ -304,6 +304,14 @@ grid, and that an unchanged generation draws nothing), not described.
   the screen debounces resize by 100 ms.
 - Scalar width, not Paseo's grapheme clusters. Hangul matches; emoji
   clusters and Indic conjuncts do not.
+- A zero-width mark is composed into the cell before the cursor when
+  Unicode has a composed scalar of the same width (decomposed Hangul, as
+  `ls` prints file names on a macOS node, and decomposed Latin accents);
+  a mark with no composed form (a Thai vowel sign, a joiner) is dropped.
+  xterm.js keeps it; keeping it here would add bytes to every cell
+  history holds, or a side table every edit must shift. A wide scalar
+  that does not fit before the edge wraps whole, or is dropped with
+  auto-wrap off or on a one-column grid (xterm.js).
 - A live query is answered by the view that created the terminal until
   some viewer has focus and has typed, then only by that viewer.
   Paseo's daemon always answers, with no viewer in the decision
@@ -372,7 +380,13 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   codes), erase in the background only, DECSC keeping the pen, resize
   padding plain; `paint` resolves a pen in a `Palette` (the 16 from
   `tokens.terminal`, the cube and grey ramp past them).
-- Next: wide and combining cells, reflow, the answered set; then T1's
+- P4, wide and combining cells (`grid/width.rs`, `grid/print.rs`):
+  `unicode-width` 0.2.3 as a direct `view` dependency (in the lock
+  already; About lists it); a wide scalar is a `Scalar` and a
+  `Continuation`, and every edit that can split a pair blanks the half
+  left behind (overwrite, ECH, ICH, DCH, a narrower grid, a history line
+  cut in a snapshot).
+- Next: reflow, the answered set; then T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the

@@ -5,6 +5,7 @@
 mod behaviour;
 mod hostile;
 mod pen;
+mod wide;
 
 use super::{Cell, CursorCell, Glyph, Grid, Scroll, Wrap};
 use crate::terminal::{GridSize, ScrollbackLines, TerminalModel};
@@ -26,13 +27,15 @@ fn play(model: &mut TerminalModel, bytes: &[u8]) {
     }
 }
 
-/// A row as text: an unprinted cell is a space, trailing spaces dropped.
+/// A row as text: an unprinted cell is a space, a continuation nothing
+/// (its scalar stands for both cells), trailing spaces dropped.
 fn text(cells: &[Cell]) -> String {
     let row: String = cells
         .iter()
-        .map(|cell| match cell.glyph() {
-            Glyph::Empty => ' ',
-            Glyph::Scalar(c) => c,
+        .filter_map(|cell| match cell.glyph() {
+            Glyph::Empty => Some(' '),
+            Glyph::Scalar(c) => Some(c),
+            Glyph::Continuation => None,
         })
         .collect();
     row.trim_end().to_owned()
@@ -73,6 +76,7 @@ fn check(grid: &Grid) {
     for screen in [&grid.primary, &grid.alternate] {
         assert_eq!(screen.rows(), rows);
         assert!(screen.lines().iter().all(|line| line.cells().len() == cols));
+        assert!(screen.lines().iter().all(|line| paired(line.cells())));
         assert!(screen.region.top < screen.region.bottom || rows == 1);
         assert!(screen.region.bottom < grid.size.rows());
     }
@@ -80,8 +84,18 @@ fn check(grid: &Grid) {
     assert!(grid.history.cells() <= super::CELL_LIMIT);
     let limit = usize::try_from(grid.history.limit().get()).unwrap_or(usize::MAX);
     assert!(grid.history.len() <= limit);
-    let back = Scroll(u32::MAX);
-    assert_eq!(grid.snapshot(back).cells.len(), cols.saturating_mul(rows));
+    let back = grid.snapshot(Scroll(u32::MAX));
+    assert_eq!(back.cells.len(), cols.saturating_mul(rows));
+    assert!(back.cells.chunks(cols.max(1)).all(paired));
+}
+
+/// Every continuation follows a wide scalar, and every wide scalar is
+/// followed by its continuation.
+fn paired(cells: &[Cell]) -> bool {
+    let mut fixed = cells.to_vec();
+    let len = fixed.len();
+    super::width::fix_pairs(&mut fixed, 0, len, Cell::BLANK);
+    fixed == cells
 }
 
 /// Whether a line wrapped onto the next.
