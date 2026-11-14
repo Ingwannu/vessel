@@ -261,3 +261,105 @@ The new direct push refusal case, which the stopped whole run had not reached,
 was subsequently executed once on this same frozen source and passed. The
 checkpoint is deliberately `wip:`: owner decisions and complete validation
 remain outstanding, and the proposed canary diagnostics are not installed.
+
+## Owner diagnostics and three-per-tree comparison
+
+Own source: `d2e6e6a8b13ae9f0e60e0ad66d15e1090dedba86`.
+Baseline: node-line HEAD frozen at `7f87d41cb388a0f3de0bb708a9b6c6c662ffc7ae`.
+Both use exactly the owner's canary diagnostic bytes
+`dec70323fec15e73949922da0bd97e4c54151dd10acc27c2281a2912c49d95f9`.
+Order alternates own/base three times. Each command executes exactly the one
+canary, with the existing 60-second safety net and assertions unchanged.
+`uptime` and `free -m` are recorded before and after every invocation. Both
+use the same temporary node-data filesystem (HDD); build targets are separate.
+The first baseline build is cold. Phase clocks exclude compilation, fake build
+warmup and slot waiting. No extra retry was made.
+
+Both trees pass two runs and time out once. Their median phase sums are
+52,201 ms (own) and 54,145 ms (baseline). The two failures occur in JoinMember
+after Setup and MakeHome have consumed most of the safety net; neither failed
+run reaches shutdown. The measurements do not show an own-only slow phase.
+They do not establish the underlying reason for the startup/home variability,
+and do not replace the whole-root failure or provide a slice PASS.
+
+## All phases (milliseconds)
+
+| phase | own-1 | own-2 | own-3 | baseline-1 | baseline-2 | baseline-3 |
+|---|---|---|---|---|---|---|
+| Setup | 18497 | 21228 | 31449 | 21154 | 39545 | 14041 |
+| MakeHome | 899 | 5935 | 19990 | 617 | 17668 | 7087 |
+| JoinMember | 8099 | 6769 | 8675* | 6990 | 2790* | 3300 |
+| JoinPlain | 8317 | 2892 | — | 10325 | — | 2207 |
+| JoinRouteless | 6910 | 2356 | — | 6754 | — | 1770 |
+| CopySecrets | 682 | 481 | — | 1211 | — | 602 |
+| Profiles | 264 | 289 | — | 135 | — | 455 |
+| Sessions | 2272 | 2904 | — | 414 | — | 3485 |
+| AgentTools | 52 | 624 | — | 54 | — | 403 |
+| Transfers | 1868 | 1374 | — | 3744 | — | 865 |
+| SessionLogs | 128 | 363 | — | 142 | — | 296 |
+| Credentials | 0 | 0 | — | 0 | — | 0 |
+| Scan | 5 | 6 | — | 4 | — | 4 |
+| AssertClean | 574 | 624 | — | 522 | — | 572 |
+| StopHome | 705 | 513 | — | 1024 | — | 919 |
+| StopMember | 859 | 1613 | — | 528 | — | 512 |
+| StopPlain | 1259 | 1618 | — | 368 | — | 413 |
+| StopRouteless | 810 | 1511 | — | 159 | — | 338 |
+| StopRelay | 1 | 1 | — | 0 | — | 1 |
+| total ms | 52201 | 51101 | 60114 | 54145 | 60003 | 37270 |
+| exit | 0 | 0 | 101 | 0 | 101 | 0 |
+
+`*` is the final partial phase reported when the timed-out future was dropped.
+A Drop line also occurs on success; it alone is not evidence of a failure.
+Setup includes relay and four node starts. `—` means the phase was not reached.
+
+## Recorded load and planned outcomes
+
+| run | result | phase sum (ms) | load before | load after | slot wait (s) |
+|---|---|---:|---|---|---:|
+| own-1 | pass | 52201 | 22.81, 25.16, 25.11 | 24.61, 25.32, 25.30 | 112 |
+| own-2 | pass | 51101 | 20.84, 20.39, 22.38 | 17.94, 17.95, 20.35 | 364 |
+| own-3 | timeout | 60114 | 23.34, 25.71, 24.08 | 25.32, 22.43, 22.64 | 562 |
+| baseline-1 | pass | 54145 | 24.61, 25.32, 25.30 | 20.84, 20.39, 22.38 | 276 |
+| baseline-2 | timeout | 60003 | 17.94, 17.95, 20.35 | 23.34, 25.71, 24.08 | 738 |
+| baseline-3 | pass | 37270 | 25.32, 22.43, 22.64 | 24.92, 23.66, 23.28 | 480 |
+All six invocations ran the selected test. Both source manifests stayed
+unchanged and all processes from the two comparison targets were gone at the
+end. The common-test owner can now review the aggregate setup/home budget as
+requested. The terminal-link three-per-tree comparison remains next; no new
+whole gate has been run after this table.
+
+## SSD temporary-data confirmation
+
+The corrected node consumed only the two shared-test owner corrections: the
+Models duration assertion (milliseconds, decimal seconds and minutes/seconds)
+and the canary's fixed-name phase diagnostics. Product formatters, test
+assertions, safety-net deadlines and retries are unchanged.
+
+Three exact canary executions used a private mode-0700 SSD temporary directory;
+build targets and logs stayed on the data disk. This is a new execution
+condition, distinct from the earlier six HDD comparisons.
+
+| Run | Setup ms | MakeHome ms | Phase sum ms | Result |
+|---|---:|---:|---:|---|
+| SSD own 1 | 502 | 151 | 3151 | pass |
+| SSD own 2 | 6322 | 3742 | 19712 | pass |
+| SSD own 3 | 20113 | 21146 | 59955 | 60-second timeout |
+
+The third sum includes a partial AgentTools phase; later phases, including
+shutdown, were not reached. The first two runs became substantially faster,
+but the third failed while six real workspace builds saturated the machine.
+The startup and home-creation medians were 6.322 and 3.742 seconds. These
+results support using SSD runtime data; they do not prove that temporary-data
+placement alone removes the common test failure. Build/queue/warmup time is
+separate from the phase sums.
+
+All three logs retain load and memory records before and after. The third
+front record preceded a long FIFO wait, so it does not measure load at test
+start. No test was retried. The recorded test processes and local build-prefix
+executables were gone before clearing this track's temporary data.
+
+Next: the one authorized canonical whole root gate with SSD temporary data
+and load records, then the six SSD Links comparisons and the full web E2E
+gate. The implementation remains returned for source corrections until the
+corrected immutable tree and its complete evidence are reviewed. No node
+slice pass or native-screen proof is claimed here.

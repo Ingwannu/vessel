@@ -307,3 +307,27 @@ model-call assertion rejects the production formatter's valid seconds unit;
 the terminal-link case stopped before link handling at session creation. Their
 owner decisions and full validation remain pending. The node-only resume note
 records exact boundaries; no correction or UI approval is claimed.
+
+### Common canary comparison
+
+The owner Models correction and static canary diagnostics were consumed alone.
+The requested isolated three-per-tree comparison completed: both the inbox tree
+and frozen node-line HEAD pass two runs and hit the unchanged 60-second safety
+net once. Median phase sums are 52.201 s and 54.145 s respectively. Both failed
+runs exhaust the budget during initial setup/home/join, before shutdown. The
+resume note contains every phase and before/after load records. No own-only
+slow phase is established, and this does not waive the whole gate. Common-test
+structure review belongs to the node integrator; the link comparison is next.
+
+### SSD confirmation and remaining common-test evidence
+
+Three own-tree canaries with private SSD runtime data produced phase sums
+3.151 seconds (pass), 19.712 seconds (pass), and 59.955 seconds (60-second
+timeout; final phase partial). Setup was 0.502/6.322/20.113 seconds and home
+creation 0.151/3.742/21.146 seconds. The third execution followed a long FIFO
+wait amid six real workspace builds. This is improved startup evidence, not
+three passing runs or proof that storage alone explains every timeout.
+Targets/logs remain on the data disk; runtime temporary data now uses SSD.
+The corrected node's canonical SSD whole gate, six SSD Links comparisons and
+full E2E remain pending. Shared-test timeouts/assertions/retry counts stay
+unchanged. The resume document carries the exact comparison and limitations.
