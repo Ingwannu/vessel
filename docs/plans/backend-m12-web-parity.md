@@ -7,7 +7,7 @@ Status: proposed inventory and implementation order, 2026-11-14. ADR 0075.
 The browser client remains `web/` behind the local bridge (ADR 0017),
 retained under ADR 0036 while ADR 0035's native client develops. ADR 0020
 was never accepted and is historical, replaced by ADR 0035. This track changes no native source and adds no protocol.
-Node/page snapshot: `7f87d41c` (protocol 21); native source snapshot:
+Original inventory node/page snapshot: `7f87d41c` (protocol 21); native source snapshot:
 `1fc0f66a`; Paseo 0.15.4: `1c00b365`. Native working drafts and unrelated
 branches are excluded: presence in a branch is not an integrated screen.
 
@@ -262,9 +262,10 @@ are retained initially; this is not a claim of translated-page parity.
 ## Checks and limits of evidence
 
 Documentation-only contract: fmt/check and available size/boundary checks;
-no compile/test rerun for documents. This checked base has no root
-`scripts/` size/boundary programs or `docs/QUALITY.md`; their absence is
-reported rather than patched in this track. Native gate/token checks do
+no compile/test rerun for documents. The original inventory base lacked
+root `scripts/` size/boundary programs and `docs/QUALITY.md`; that limitation
+applies only to the retained initial documentation check. The subsequent
+node-head merge supplies them, and they apply to all following checks. Native gate/token checks do
 not apply: no native source is touched.
 
 For each code slice: one detached gate through one bounded build slot, own target
@@ -518,3 +519,23 @@ implementation has no whole gate, browser flow or capture evidence yet.
 No limits/inbox/future call is registered. A new checked node head is to
 be merged at this clean checkpoint; its quality rules apply before further
 implementation and the whole merged tree must pass.
+
+## Merged node head and current quality boundary
+
+The accepted documentation commits remain unchanged in history. Draft
+implementation checkpoint `2f169260` was followed by merge `5790cdd3`,
+which brings node head `a365d295` without conflicts or rebase. The node
+head's protocol/method tables, schema/migrations, tests and document entries
+were retained. Comparing the two node snapshots shows no RPC table or
+protocol-constant change: usage.query remains assigned at 21; limits, inbox
+and project-wide PR enumeration are still unavailable here. The feature
+rows therefore retain their accepted capability classification.
+
+The merged head adds `docs/QUALITY.md`, strict AGENTS rules and root size/
+boundary checks. Those now govern the page slice. No root check, schema
+number, test expectation or quality allow-list is changed by this track.
+Store schema 15 is the head's, not an added page migration. The whole
+merged implementation gate is still owed, including test-binary prebuilds
+and all Rust/web steps. A known shared side-question forwarded test race
+is outside the page implementation; any actual failure must be retained
+and its one instructed exact rerun reported separately, never erased.
