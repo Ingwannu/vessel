@@ -1,0 +1,179 @@
+# The first-run walkthrough
+
+ADR 0071 is the contract. This file is the order of work and the
+Paseo behaviour it was taken from.
+
+Paseo 0.15.4 is the reference. Paths below are that repository's
+packages. Vessel paths are this repository.
+
+## Existing assets, and the choice
+
+- **Theme.** `vessel_app_view::prefs::Theme` and
+  `PreferenceChange::Theme`. Settings › Appearance already draws
+  `Theme::ALL` (system, light, dark) in
+  `spikes/native/app/src/areas/settings/appearance.rs`. The step writes
+  that change. It does not grow a second theme store.
+  Paseo's picker also offers zinc, midnight, further palettes
+  (`packages/app/src/styles/theme.ts` from 783) and contributed
+  themes (`appearance/theme-picker.tsx` 31–64). Those themes are not
+  in the kit. Decision: do not add them.
+- **A machine.** `link::Command::Pair` and `view::pairing`. The shell
+  already opens `Route::Pair` when the first fleet has no machine
+  (`spikes/native/app/src/shell.rs`, the empty-fleet arm). The
+  connect step is that flow, drawn inside the walkthrough. It is not
+  a second decoder. If composing the existing pair screen needs a
+  change outside `app/src/areas/onboarding/`, the line is reported
+  and not edited here.
+- **Agents.** `view::agent_status::readiness` and the link's
+  `Ask::List` / `Ask::Check`. Sign-in stays the node's command, copied
+  (`areas/settings/agents/detail/sign_in.rs`). The step does not invent
+  a login. Paseo's providers section also enables, removes and
+  installs providers (`screens/settings/providers-section.tsx`). The
+  walkthrough shows the checks Vessel's node already returns. It does
+  not grow a provider catalogue.
+- **A project.** `ProjectAsk::List` and `ProjectAsk::Add`. Paseo's
+  suggestions come from each agent's history, pre-checked at three
+  sessions in 30 days (`project-suggestions/internal/suggestions.ts`
+  5–6, 52–56). The node keeps no such history. Decision: no
+  suggestion list. Add is the existing add. Continue with nothing in
+  flight moves on, as Paseo's Continue does when nothing is checked.
+- **The record.** The app's `app-prefs.json` (`link` `prefs.rs`), a
+  new `setup` field, not a field of `Preferences`. `view` still does
+  no I/O. No new crate, no new dependency (`chrono` is already
+  `view`'s), no new wire call.
+- **External alternatives.** A wizard crate, or Paseo's React screens
+  copied into GPUI. Refused: the rules are a closed enum, and Paseo's
+  sources are not ours to copy.
+
+Decision: **new** model (`view` `onboarding`) and **new** screens
+(`app/src/areas/onboarding/`). **Modify** the prefs file's schema by
+one optional field, in the slice that loads it. **Do not modify** the
+shell or Settings; their owners mount the lines below.
+
+## What Paseo does, kept
+
+The detail and the line ranges are ADR 0071. The tests in slice 2
+match `internal/model.test.ts` case for case, under the names here.
+
+| Paseo case (`model.test.ts`) | Here |
+| --- | --- |
+| Opens on appearance for a connected host with no projects | Pending, and no machine, or machines whose project lists are empty: open on `Theme` |
+| Waits until connected and hydrated | Pending and project lists unknown: stay `Deciding`. No machine does not wait (stated difference) |
+| Stays hidden if the host had projects, even after they go | `Hidden::AlreadySetUp` is sticky |
+| Stays hidden once completed | A `completed_at` hides, and a later empty fleet does not open |
+| Decides only after the record has loaded | Neither note is assumed; completed hides without the machines |
+| Stays open if the first project appears during setup | Notes after leaving `Deciding` do nothing |
+| Omits the phone step on a phone | No phone step at any width (stated difference) |
+| Moves inside the list; back stops at the first | `back` and `go_to` |
+| A late advance from a visit already left does nothing | `next` checks `Visit` |
+| The last step finishes, unless that visit was left | `next` from `Project` returns the record |
+| Closing writes the record, so the next launch stays hidden | `complete` |
+| Reopen starts at the first step for someone who finished | `reopen` |
+| Subscribers see each change | Not ported: the caller notifies. The assertions are on the phase |
+
+Also kept, from the modal rather than the model: Skip is drawn on
+every step but the last; close finishes; Finish on the last step runs
+that step's add if one is in flight; an add uses the visit it started
+with.
+
+## Stated differences
+
+1. **Pairing instead of a local daemon.** Paseo's host is the desktop
+   daemon, else the first saved host (`use-setup-host.ts` 9–14), and
+   the walkthrough does not start it. `paseo onboard` does, and also
+   asks about voice. Vessel's app pairs a node. With no machine the
+   walkthrough opens, so the connect step can run. `vessel init` is
+   not changed and is not called from the walkthrough.
+2. **No orchestration step.** Paseo's three switches default on and
+   write daemon config, skills and the CLI (`orchestration-setup.ts`).
+   The app has no such switches. Folding `vessel init`'s installs in,
+   default on, would break init's rule that `--yes` alone does not
+   install.
+3. **No phone step.** Paseo adds it only off a compact phone, and a
+   native phone never opens setup. This app is the client at every
+   width, including 390, so the same four steps show; the narrow
+   layout stacks, as Paseo's compact sheet does.
+4. **Three themes, not Paseo's grid.** System, light, dark, system
+   first, applied at the pick.
+5. **No history suggestions.** Add a folder, list what the machine has.
+6. **The record lives in `app-prefs.json`**, field `setup.completed_at`,
+   snake case, RFC 3339. Paseo's key is `@paseo:onboarding` with
+   `completedAt`. An invalid field is omitted on the next save of that
+   file rather than deleted by its own write, because the file is
+   replaced whole. An unreadable file hides setup and is not saved.
+7. **No `subscribe`.** Same transitions; the shell notifies.
+8. **Show setup again** uses the same button words. The description
+   names these steps, not phone pairing. The row is not removed on a
+   narrow window. The button is always enabled: reopen does not need
+   a host, because the connect step is how a host appears. Paseo
+   disables it with no host (`use-open-onboarding.ts` 6–15).
+
+## Words
+
+English is the source, Korean in the same catalogs, ADR 0039. Taken
+from `packages/app/src/i18n/resources/en.ts` 1671–1734 and 2506–2513
+where the step exists:
+
+- Rail title: the product name. Step counter "Step {current} of
+  {total}". Skip setup. Continue. Finish. Back.
+- Theme: label "Appearance", title "Welcome to Vessel", description
+  "Let's start by picking a look".
+- Agents: label "Providers", title "Your agents", description "The
+  machine runs the agent programs it already has". Paseo's sentence
+  says "this computer"; the machine may be another one.
+- Project: label "Projects", title "Add your projects", description
+  "Where do you want your agents to work on", button "Add project",
+  badge "Added".
+- Machine, which Paseo does not have: label "Machine", title "Connect
+  a machine", description "Pair a node you already run. This app does
+  not start one".
+- Settings row: "First-run setup", "Walk through appearance, a
+  machine, your agents and a project again", "Show setup again".
+
+## Layout
+
+Paseo's modal (`onboarding-modal.tsx`): a desktop card, rail at the
+full height with the mark and the steps, the step's title and
+description above its content, actions at the foot; a compact stack
+of title, "Step N of M", content, actions. Controls come from the kit.
+Spacing, type, colour and radii come from the kit's tokens. A step
+change uses `vessel_app_kit::motion` and is instant when motion is
+held. Nothing animates continuously. Captures in both themes, English
+and Korean, at 1280, 390, 800×600 and 1024×700, glyphs at scale 1,
+1.25, 1.5 and 2, on a fake fleet. Not in the docs slice.
+
+## Lines other owners mount
+
+Not applied in this branch.
+
+Shell, the empty-fleet arm that today calls `route_to(Route::Pair)`:
+ask the model with no machine, and if the phase is open, draw the
+walkthrough instead of that route. Pairing stays the walkthrough's
+machine step. A fleet that already has a machine only notes the
+project facts; it does not open the pairing route.
+
+Settings › General, a row in the general card, beside the page's
+`ShowSetupAgainRow`: the label and description above, and a button
+whose action is `onboarding.reopen()`.
+
+## Slices
+
+1. **ADR and this plan.** Docs only. No code, so the native README's
+   layout list is not updated until the area exists.
+2. **The model and its tests**, in `view`, one module, tests beside it.
+   The record's constructor parses RFC 3339 and rejects anything else.
+   No prefs file yet: the model takes a completion value.
+3. **The screens** in `app/src/areas/onboarding/`, kit controls only,
+   both catalogs. The native README's area list gains the area in that
+   commit.
+4. **The entry.** Load and save `setup` through the prefs file. Expose
+   the calls slice 2's model already has, so the shell and Settings
+   can mount the lines above. Do not edit `shell.rs` or
+   `areas/settings/`.
+
+## Resume point
+
+- **Done:** the decision and this plan. No code.
+- **Half-done:** nothing.
+- **Next:** slice 2, the model, starting from ADR 0071's phase, visit
+  and record. Do not open slice 3 before those tests pass.
