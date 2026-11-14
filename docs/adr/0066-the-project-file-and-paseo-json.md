@@ -282,6 +282,54 @@ unused range is still a change to the set a person approved.
   as an absolute local path can reach an executable outside the project.
   No new dependency or crate edge is needed.
 
+#### Port-script selection and nonempty allocation values
+
+- Purpose and intent: validate the program and the allocation block once,
+  before either becomes part of an approval or execution plan.
+- Existing constraints: `RelPath` deliberately admits the folder root,
+  which is useful for file calls but cannot name a program. `ExecPath`
+  carries a foreign absolute path without filesystem access. Paseo's
+  `paseo-config-schema.ts:5–22` trims `portScript`, requires at least one
+  of `range` and `portScript`, allows both, and refuses unknown block keys.
+- Alternatives considered: public relative/absolute enum variants; an
+  unchecked command string; or an opaque value with one decoder. Public
+  variants let a caller insert `RelPath::root()`; unchecked text repeats
+  validation at every consumer. Neither protects the constructor boundary.
+- Choice: `PortScript` privately owns a non-root `RelPath` or an
+  `ExecPath`. Its decoder applies JavaScript whole-string trimming, then
+  validates the remaining literal path; serde uses that same decoder.
+  A borrowed target view permits inspection but is not an execution input.
+  `ServicePorts` privately owns its optional range and port script. Its
+  constructor and deserializer both refuse an empty block; no domain
+  default can construct one, and unknown block fields are refused.
+- Why this choice: the existing path types and serde conversion pattern
+  carry their invariants into the future parser. One project-text rule
+  owns JavaScript trimming for the range, terminal entries and port script,
+  so BOM and NEL handling cannot drift between these input edges. No
+  dependency or crate edge is added.
+- Costs and effects: these values remain outside wire replies and project
+  file parsing until their later integration slice. Their presence starts
+  no process. Program existence, relative-link containment, native grammar
+  compatibility and Windows command-script refusal are execution checks
+  still owed; the value slice cannot claim they have run.
+
+Relative program resolution is a deliberate difference from Paseo. Its
+allocator passes the trimmed command to the plugin's `execFile` wrapper
+(`workspace-service-port-allocator.ts:58–72`,
+`packages/plugin/src/server/process.ts:76–100`); a bare command name uses
+Node's [PATH lookup](https://github.com/nodejs/node/blob/v22.x/doc/api/child_process.md).
+Vessel treats even a bare name as relative to the approved project root,
+without consulting PATH. It also keeps `RelPath`'s portable forward-slash
+grammar and refusals, including parent, backslash, control and repository
+metadata components. These are the existing project containment floor:
+approval must not silently select an executable elsewhere through PATH
+or a relative path that escapes the root. The runtime test
+`bare_port_script_is_resolved_under_the_approved_root` must put a different
+fake program on PATH and prove that the project program is selected.
+Relative symlinks are resolved and checked by `Root::existing` at execution;
+the digest continues to cover the approved text, not a machine's resolved
+filename. These runtime tests remain unimplemented in the value slice.
+
 The service's environment, when it is started, gains `VESSEL_PORT` for
 its own port and `VESSEL_SERVICE_<NAME>_PORT` for every service in the
 file, itself included. `<NAME>` is Paseo's `normalizeServiceEnvName`

@@ -199,7 +199,11 @@ shown and a partial comparison cannot claim the commands are unchanged.
   project-file key. Native invocation and the Windows command-script
   refusal remain later typed checks, with their tests still owed.
 - Then: add the nonempty allocation block and project-relative program
-  path, followed by
+  path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
+  serde through private owners; share the existing JavaScript trim rule
+  across the input edges. A relative bare program is project-rooted,
+  unlike Paseo's PATH lookup; the execution test proving that selection
+  and relative-link containment remain owed. Then add
   the file parser, digest, approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
