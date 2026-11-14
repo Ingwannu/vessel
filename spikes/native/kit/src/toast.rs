@@ -130,7 +130,11 @@ pub fn toasts(cards: Vec<AnyElement>, top: f32, window: &Window) -> Option<AnyEl
                             .flex_col()
                             .items_center()
                             .gap(px(8.0))
-                            .children(cards),
+                            .children(
+                                cards
+                                    .into_iter()
+                                    .map(|card| popup::layer(div().child(card))),
+                            ),
                     ),
             ),
         )

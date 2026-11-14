@@ -174,10 +174,6 @@ impl Shell {
     /// the composer then sends nothing, since a send would only try to
     /// start it again. `false` while it runs, can be started again, or is
     /// not yet described.
-    #[expect(
-        dead_code,
-        reason = "the lead's composer reads it at its merge (no send, the field read-only); remove with its first call"
-    )]
     pub(crate) fn conversation_cannot_resume(&self) -> bool {
         self.areas
             .conversation

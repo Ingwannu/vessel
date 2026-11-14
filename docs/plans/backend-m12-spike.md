@@ -509,29 +509,27 @@ described here and not kept in the repository):
   fast mode (outline off, filled violet on); in the middle the step's
   word at 14/600 over the model's name at 12 with a chevron (a hover
   background; pressing it opens the model's list); at the right a reset
-  (the agent's default); under them a slider of the agent's levels. The
-  card is 256 wide, 12 in, round 14; the slider's track is 24 tall and
-  round with a dot per step 13 in from its ends, its thumb a white disc
-  28 across (edged on a light card).
+  (the agent's default); under them a slider of the agent's levels.
+  (2026-11-14: the card and slider now follow the Codex app's values:
+  254 wide, 4 in; see `backend-m12-effort-slider.md`.)
 - The slider's steps are the agent's `thought_level` values in its
   order, without "default"; the last step is the agent's own "ultra"
   switch when it has one (Claude Code's `ultracode`: choosing it sends
   the highest level and the switch on, a lower step sends the switch
   off) or its own highest level (Codex's Ultra). The switches folded in
-  are named by id in a typed table (`view::effort::KNOWN`), read off the
+  are named by id in a typed table (`view::effort::ROLES`), read off the
   preview node through the app's log of each probe: Claude Code sends
   `effort`, `fast` (on|off) and `ultracode` (on|off); Codex sends
   `reasoning_effort` (low to ultra) and `fast-mode` (off|on). An agent
   the table does not know gets its levels only; an agent with no levels
   (OpenCode) has no card: its control opens the model's list.
-- Colours: the captures show two points, "High" (a muted fill) and the
-  top step (a blue-to-violet gradient with sparkles, its word violet).
-  Inferred between them: the lower half of the steps below the top is
-  the muted text colour, the upper half moves toward the violet (two
-  thirds of the way just below the top). Fast mode makes the fill move
-  (a sheen crossing it, the sparkles quicker); with it off only the top
-  step's sparkles drift. Motion is frame-driven and stops when the card
-  closes.
+- Colours and motion (superseded 2026-11-14 by the Codex app's model
+  card, `backend-m12-effort-slider.md`): the fill is the accent at every
+  level; the top stop (`Effort::maximum`) turns the word purple, reveals
+  a moving purple field from the thumb with a burst, and fades the
+  stops; Fast streams white dots back along the fill and slides the
+  filled stops away. Logic and motion in `view::slider`, drawing in
+  `kit::slider`; frames only while something moves.
 - Every option the control does not drive (Claude Code's agent, Codex's
   collaboration mode, anything an agent sends) is a row at the top of
   the model's list, where the reference has its one switch: an on/off

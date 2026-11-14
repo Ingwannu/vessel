@@ -22,7 +22,7 @@
 //!   radius 10 with a 2% edge and a softer shadow, its scrim the ink at
 //!   45%; Paseo's are the values here.
 
-use gpui::{BoxShadow, Hsla, point, px, rgba};
+use gpui::{BoxShadow, Hsla, InteractiveElement, Styled, point, px, rgba};
 
 use crate::theme::{Scheme, Tokens};
 
@@ -110,4 +110,75 @@ pub const SHEET_RADIUS: f32 = 16.0;
 #[must_use]
 pub const fn row_height(narrow: bool) -> f32 {
     if narrow { 44.0 } else { 28.0 }
+}
+
+/// A popover's own layer (a menu, a list, a card over the composer, a
+/// toast): it takes the pointer, so nothing under it is hovered or pressed
+/// or shows its cursor, and its own cursor is the arrow (its buttons set
+/// the pointing hand). The owner, on 0.0.0.0.13 (word 27): over the effort
+/// card the composer under it still showed the text cursor.
+#[must_use]
+pub fn layer<E: InteractiveElement + Styled>(element: E) -> E {
+    element.occlude().cursor_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    use gpui::{
+        Context, InteractiveElement as _, IntoElement, Modifiers, ParentElement as _, Render,
+        StatefulInteractiveElement as _, Styled as _, TestAppContext, Window, anchored, deferred,
+        div, point, px,
+    };
+
+    use super::layer;
+
+    struct Probe {
+        under: Rc<Cell<bool>>,
+    }
+
+    impl Render for Probe {
+        fn render(
+            &mut self,
+            _window: &mut Window,
+            _cx: &mut Context<'_, Self>,
+        ) -> impl IntoElement {
+            let under = Rc::clone(&self.under);
+            div()
+                .size_full()
+                .child(
+                    div()
+                        .id("under")
+                        .size_full()
+                        .cursor_text()
+                        .on_hover(move |over, _window, _cx| under.set(*over)),
+                )
+                .child(deferred(
+                    anchored()
+                        .position(point(px(0.0), px(0.0)))
+                        .child(layer(div().w(px(100.0)).h(px(100.0)))),
+                ))
+        }
+    }
+
+    /// The pointer over a popover does not hover what lies under it;
+    /// beside it, it does.
+    #[gpui::test]
+    fn a_popover_keeps_the_pointer_from_what_is_under_it(cx: &mut TestAppContext) {
+        let under = Rc::new(Cell::new(false));
+        let shared = Rc::clone(&under);
+        let (_probe, cx) = cx.add_window_view(move |_window, _cx| Probe { under: shared });
+        cx.run_until_parked();
+        cx.simulate_mouse_move(point(px(300.0), px(300.0)), None, Modifiers::none());
+        cx.run_until_parked();
+        assert!(
+            under.get(),
+            "beside the popover, the element under is hovered"
+        );
+        cx.simulate_mouse_move(point(px(50.0), px(50.0)), None, Modifiers::none());
+        cx.run_until_parked();
+        assert!(!under.get(), "over the popover, it is not");
+    }
 }
