@@ -84,6 +84,14 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Agents {
+                machine, request, ..
+            } => self.emit(Event::Agents {
+                machine,
+                request,
+                answer: Err(crate::agents::AgentsError::NoTransport),
+            }),
+
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
@@ -91,6 +99,12 @@ impl Link {
             Command::Machines(ask) => self.emit(Event::Machines(
                 ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
             )),
+            Command::Sync { ticket, .. } => self.emit(Event::Sync(crate::sync::Answer {
+                ticket,
+                result: Err(vessel_app_view::sync::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                )),
+            })),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);
@@ -138,9 +152,7 @@ impl Link {
                 self.emit(Event::Records { session, records });
             }
             Command::Pair { .. } => self.emit(Event::PairFailed(
-                "Pairing from a browser is not built: the browser has no secure channel \
-                 to a node yet (docs/plans/backend-m12-browser.md, question 8)"
-                    .to_owned(),
+                vessel_app_view::pairing::PairProblem::Browser,
             )),
         }
     }
@@ -171,12 +183,11 @@ pub struct Offer {
 ///
 /// # Errors
 /// The text is not a pairing link, or it does not decode.
-pub fn read_link(text: &str) -> Result<Offer, LinkError> {
+pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
     let offer = text
         .trim()
         .parse::<PairingLink>()
-        .and_then(|link| link.decode())
-        .map_err(|error| LinkError::PairingLink(error.to_string()))?;
+        .and_then(|link| link.decode())?;
     Ok(Offer {
         key: "(not computed in the browser build)".to_owned(),
         node: offer.node.to_string(),
@@ -196,19 +207,7 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
 /// own parser, which lives in `vessel-client`; the browser build cannot
 /// link it yet, so "not a node name" is left to the node here. Same
 /// variants, so a screen matching them builds for both.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NameProblem {
-    /// Nothing typed.
-    Empty,
-    /// It is the node's key, typed where a name goes.
-    LooksLikeKey,
-    /// It is a pairing link.
-    LooksLikeLink,
-    /// Not a node name (never reported in a browser: see above).
-    Invalid,
-    /// The book already has a machine of that name.
-    Taken,
-}
+pub use vessel_app_view::pairing::NameProblem;
 
 /// What is wrong with `text` as a new machine's name, if anything.
 #[must_use]

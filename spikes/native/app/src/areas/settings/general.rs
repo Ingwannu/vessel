@@ -107,6 +107,7 @@ pub(crate) fn render(
     div()
         .flex()
         .flex_col()
+        .child(super::language::render(shell, tokens, compact, cx))
         .when(shown, |page| {
             page.child(settings::section(words.composer, sending, tokens))
         })

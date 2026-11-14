@@ -16,7 +16,13 @@ const ENDED: SessionInfo = {
   ...liveSession,
   status: { state: "exited", code: 0 },
   harness_session: fixtureId("HarnessSessionId", "h1"),
-  abilities: { steer: false, resume: true, image: false, audio: false },
+  abilities: {
+    steer: false,
+    resume: true,
+    image: false,
+    audio: false,
+    fork: false,
+  },
 };
 
 describe("what a session offers", () => {
@@ -55,7 +61,13 @@ describe("what a session offers", () => {
     expect(
       canStartAgain({
         ...ENDED,
-        abilities: { steer: false, resume: false, image: false, audio: false },
+        abilities: {
+          steer: false,
+          resume: false,
+          image: false,
+          audio: false,
+          fork: false,
+        },
       }),
     ).toBe(false);
     // Stored before protocol 10: no abilities recorded, the node decides.

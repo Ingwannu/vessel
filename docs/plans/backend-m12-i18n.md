@@ -46,7 +46,8 @@ specified, instead of Paseo's native and translated name pair.
 
 Paseo's `hosts/add-host/internal/pair-link-modal.tsx` and
 `i18n/resources/{en,ko}.ts` define pairing's words and context. This
-track changes no pairing behavior or layout.
+migration retains the two-dialog layout. The later scoped empty-name and
+pending-action corrections are recorded with slice 2 below.
 
 ## Slice 1: measurements and verification
 
@@ -301,3 +302,292 @@ introduced by moving a test fixture. Root source is unchanged by this
 correction, so its root gate is not repeated. The coordinator's machine-wide
 build slot wraps subsequent cargo commands; it is not a host-specific path
 in the public contributor script.
+
+## Slice 2: the pairing screen and language preference
+
+The partial Japanese proof moved out of the shipped tree in `4b3e180`;
+its fixture-root registry, fallback and coverage checks passed review.
+The lead's `d050e7e9` includes `226ef62`'s pairing wording and the typed,
+redacted file-fault work (`5beb45a`), plus the title-bar changes and code rows
+for the machine id and fingerprint. This migration starts on that source,
+retaining both technical values in the lead's mono face.
+
+All thirteen dialog strings move from `text/pairing.rs` into
+`locales/{en,ko}/pairing.ftl`; the table and its exports are removed. The
+nine original pairing-only entries in `text/app.rs` also move: `link_placeholder`,
+`name_label`, `name_hint`, `name_is_key`, `name_is_link`, `name_empty`,
+`name_invalid`, `name_taken`, `paste_first`. Caller inspection found no
+other screen reading those entries. `paired(name, Via)` is also pairing-only:
+its whole sentence is a Fluent selector, retaining the machine and route
+so an already visible outcome can change language without pairing again.
+Existing unused entries in the lead's mixed table are left with its owner.
+
+Shared sentences stay with their area: `machines_unreadable` and
+`file_problem` still serve the machine list and preferences, including a
+book fault shown during pairing. The typed fault and its useful safe
+coordinates/field are retained; its words are prepared before painting
+and reworded when the language changes. Draft/sidebar/title-bar words
+behind the modal stay in their areas' tables.
+
+`view::pairing` classifies each wire link-decoder error into a whole
+recovery sentence. Both platform readers return the original typed error;
+its Display is never UI copy. Name problems share one view enum instead
+of platform duplicates. Connect failures also use a typed app-internal
+problem, rather than an English String, including the browser's unsupported
+transport. No node or wire behavior changes. The file-fault branch keeps
+the lead's complete safe diagnosis rather than reducing it to a generic
+storage error. Prepared failures share immutable text with the renderer;
+dynamic successful notices are formatted only on an event/language change.
+
+The new language card follows Paseo's
+`packages/app/src/screens/settings-screen.tsx`, `GeneralSection`, and
+its `i18n/resources/{en,ko}.ts` language labels. It uses the existing
+kit select and combobox; the language menu's width is Paseo's explicit
+300. E2's General first-child slot owns only the registration line;
+its sending/storage rows and existing choice list remain E2's. The new
+picker has separate state and closes the existing list, and vice versa.
+Native names alone (rather than Paseo's native/translated name pair) are
+the coordinator's explicit contract. The row says Language / App language
+and 언어 / 앱 언어. System is first; the checking pseudo-language is absent.
+
+The saved preference is typed, lenient and changed only through
+`Prefs::prefer(&PreferenceChange::Language(..))`. Startup reads it before
+creating the shell or drawing. A change prepares a catalog before saving,
+then switches both the catalog and the remaining table adapter together.
+Retained composer, pairing, archive, find, question and project placeholders
+refresh without navigation, a node request, clearing text or moving focus;
+conversation measurements are invalidated for the new words.
+`VESSEL_APP_LANG` remains the highest-priority checking override.
+
+The contributor guide is `view/locales/README.md`: adding strings and
+languages, missing-key reports, pseudo checks, message-writing rules and
+the area migration recipe. English defines the typed API; every shipped
+catalog must be complete. Formatting/particle limits remain the measured
+ADR 0039 contract.
+
+Validation and screen evidence are recorded once the complete gate and
+normal-app capture matrix finish. Until then this section records the
+implementation, not a claim of screen or platform acceptance.
+
+
+The coordinator defined the three pseudo views as the paste-link dialog,
+machine confirmation and General's Language row. General's sending/storage
+rows still use E2's table, deliberately visible as plain English beside the
+pseudo row. Pairing failure states need English/Korean evidence instead.
+The browser-unsupported wording has a Linux, ignored display-test harness:
+the real pairing renderer receives the typed problem after the ordinary
+reader decodes a private fleet offer. It is absent from the shipped app and
+is only evidence of wording/layout. No browser transport run is claimed;
+connection, storage and name failures use real isolated paths.
+
+Retained placeholders register in one `app/language.rs::PLACEHOLDERS` list;
+find, the current question step and a project AddForm each expose one focused
+refresh method. The coordinator approved those C/F-owned seams with tests
+that change language through the actual dispatch, preserve the complete typed
+value and focus, then replace the selected character at its original caret.
+Tests use real controls in GPUI's headless platform and a shell with no link,
+updater or config I/O. They run in the ordinary gate, with no display needed.
+The commit names the three files and owners, and its hash goes to both owners.
+The pending pairing actions now use the existing kit's disabled button state,
+as Paseo disables Cancel/Pair while saving; the existing callback guard stays.
+This is the only intentional control-state change in the migration.
+
+Preparation merge `466ca256` integrates the conversation request API from
+`5360d38f`, retaining connection recovery across the extracted open/take
+methods. Native format/Clippy/test passed (413 ordinary, two compile-fail),
+and root format/workspace all-target Clippy/testkit passed (14 tests).
+A headless regression checks that unrelated records keep a connection notice
+while this session's records or opening another session clear it. No L area
+moved in that preparation commit; the migration was set aside during its gate.
+
+The question placeholder refresh uses `waiting_at::<SessionPlace>` and only
+`Seat::SESSION.get_mut`; other places retain their own fields. Queue editing
+also has its own placeholder-only method and the same input-retention test,
+explicitly released by the conversation owner.
+
+The later pairing correction `586f844c` is ported within this migrated area:
+the name starts empty, its short placeholder says that empty uses the machine's
+own name, and a typed name is saved as typed. Its below-field example stays
+unchanged. A valid, free machine name is preferred; otherwise the existing
+free fallback is used. This adds `name_placeholder` as a tenth pairing-only
+message directly in Fluent; it is not introduced into the legacy table on
+this branch. The lead's future merge must remove its legacy addition with
+the rest of the migrated name fields. No other new lead-head changes are
+brought into the middle of this gated tree.
+
+The old name-is-link error referred to a link field above the name, which
+no longer exists in the two-step confirmation dialog. Its whole Fluent
+message now asks for a short name or the new empty-name option; the name
+hint/example below the field stays unchanged. Both languages are tested
+as complete sentences.
+
+The first full pseudo matrix exposed the new empty-name placeholder being
+clipped by the phone's single-line field viewport. Its English is shortened
+to "Leave empty to use its own name", keeping the label/context and the same
+empty-name behavior. Korean and the below-field example do not change.
+
+The lead's response-ownership correction `e8f49fec` is taken as its exact
+Followup/answered/acted implementation and late-answer regressions, without
+a new branch merge or unrelated lead-head changes. It addresses the reason
+V1 returned preparation `466ca256`; L does not redesign that owned fix.
+
+## Overnight resume checkpoint
+
+Accepted engine/catalog commits are `5834962` and `4b3e180`. Preparation
+`466ca256` was returned by V1 for the inherited late-answer path; the exact
+lead fix from `e8f49fec` is now in this model's source, with byte-identical
+implementation/test blocks recorded in `lead-response-fix-identical.json`.
+The model is not yet approved by V1 or the coordinator. No further area or
+branch merge starts under the overnight credit limit.
+
+Evidence lives under `/tmp/work/m12-i18n/`:
+
+- The first model native format/Clippy/test passed: `s2-final-*-1.log`,
+  430 ordinary tests and two compile-fail tests. View/link/app actually
+  recompiled. This predates the lead response fix and shortened placeholder.
+- `s2-final-inputs-2.json` freezes the final Rust/manifest/Fluent hashes.
+  `s2-final-gate-2.json` records individual command exits as they finish;
+  inspect it and the running process before starting another cargo command.
+  Its logs are `s2-final-{fmt,clippy,build,test,wasm}-2.log`.
+- The preparation root format/all-target workspace Clippy/testkit gate
+  passed (14 tests, `c-place-*` logs). Model changes add no root Rust code.
+- `s2-font-before-captures`: 32 personally inspected pre-migration screens
+  from the lead's code-row source. `s2-model-captures`: 60 inspected model
+  screens, including all three languages and five states. This first pseudo
+  pass found the phone empty-name hint clipping; the shortened final hint
+  still needs its final-binary recapture before this finding is closed.
+- `s2-general-live-captures`: 12 inspected en/ko/pseudo General screens,
+  both themes/sizes, with a running isolated fake fleet. E2's unchanged
+  General/Composer/Kept/Preferences/sending rows stay plain in pseudo.
+- `s2-real-failure-captures`: 24 inspected connection/storage/name failures
+  plus eight busy frames. All use real native paths. Eight UID 1000 config
+  folders were changed only from 0700 to 0500 for the storage failure and
+  independently verified restored to 0700. No service permissions changed.
+- `s2-browser-captures-retry`: eight inspected test-only real-renderer
+  browser-unsupported frames, eight successful display-test exits. This is
+  wording/layout evidence, not browser transport evidence.
+- `s2-live-language-retry`: nine inspected normal-UI frames and results:
+  unknown tag follows System without losing dark/ModEnter preferences;
+  selecting Korean keeps the same process and typed draft; restart restores
+  Korean; the English override wins without changing the saved Korean tag.
+  The chooser has exactly System, English and 한국어. File 0600/folder 0700.
+- The paired-status/save flow uses the frozen normal binary recorded by
+  `s2-normal-binary-provenance.json`. Later final-source differences are
+  the conversation-only response fix and shorter English empty-name hint.
+  Native save/name and language-choice behavior is otherwise unchanged.
+  `s2-paired-language-light/results.json` proves both light sizes and a
+  literal typed name; `s2-paired-language-dark-ready/results.json` proves
+  both dark sizes after painted-frame readiness. All 21 completed behavior captures were personally
+  inspected. Earlier fixed-delay captures caught the preceding frame.
+- `s2-source-coverage.log` reads the current locale files: en/ko complete,
+  zero missing. `s2-fixture-coverage.log`: Japanese has the expected three
+  missing keys. These explicit-root reports use the unchanged parser; the
+  final native gate additionally checks the compiled release registry.
+- `foreign-lines.json` lists every added/deleted foreign seam line against
+  `466ca256`; `lead-response-fix-scope.txt` separates the lead's exact port.
+
+The early wasm log reached the compiler's Finished line, but the containing
+execution session reported 143. Do not turn that outer result into a new
+final-source exit-zero claim; the final runner checks wasm explicitly.
+Earlier unsuccessful capture attempts are preserved separately: a dead
+private fleet, OCR control lookup, asynchronous preference-file creation,
+phone navigation/frame timing and a slow credential-file write exceeded
+the first driver's timeout. They are not counted as successful cases.
+
+First on resume: inspect the final gate JSON and source hashes, finish any
+unverified gate, and recapture the short empty-name hint with the final
+normal app in both themes/sizes (en/ko/pseudo). Send this whole model to V1
+first; after its pass, report the hash/gate/captures/foreign lines and stated
+differences to the coordinator. The C find/question/queue and F project
+placeholder seams must remain together in one commit naming their owners;
+send both owners its hash and the exact added lines. E2 approved the first
+General child, module/state/picker and language-preference arm.
+
+After approval, a clean-point lead-head merge remains pending (new Light
+faces already supplied; do not run the font downloader). The next areas are
+About, updater sentences and title bar, one area per commit. About also owes
+the lead a Translations role for the five Fluent-stack rows and a separate
+uuid identity role; no About source has been changed. S2's board, sidebar,
+palette, shortcuts and notices remain held until their owner releases them.
+Windows, the complete browser app/transport and real GPU rendering remain
+unverified; these captures use Linux Xvfb with Mesa software rendering.
+Stop only this track's fake fleet/display/app PIDs and protected pairing
+inputs at the end. Never touch the real preview or distribution folder.
+
+Final-source checkpoint at 21:10 UTC: native format and all-target Clippy
+completed with exit zero (`s2-final-gate-2.json`). The final normal build,
+test and wasm commands, plus the shortened-hint recapture, are still pending.
+Do not report the earlier 430+2 result as the final response-fix/hint gate.
+
+### Superseding checkpoint, 21:30 UTC
+
+Current source is committed as `8da03f18` (WIP, not approved for merge).
+Final native format, all-target Clippy and normal build have exit zero in
+`s2-final-gate-2.json`. Test is compiling; the final wasm check has not yet
+reported its own exit. The prior 430+2 result remains a separate earlier
+source result until this final test completes.
+
+The final normal binary is hashed in `s2-final-binary-provenance.json` and
+does not contain the test-only pairing fixture environment hook. Its twelve
+`s2-final-empty-captures` frames (en/ko/pseudo, both themes/sizes) have now
+been personally inspected. The shorter English hint fits completely in the
+pseudo phone field in both themes; the earlier clipping finding is closed.
+The offer came from the normal private fleet CLI and was reused only for
+decoding; no connect request or installed-app override was added. The
+remaining broad matrices are still labelled with their earlier binary.
+
+`s2-paired-language-dark-ready` and `s2-paired-language-light` contain the
+completed, inspected same-process save/retranslation proof in both sizes
+and themes; the latter also proves a literal typed name is kept.
+`s2-evidence-index.json` maps the immutable source and every evidence root.
+F acknowledged the project seam and will not edit those lines while waiting
+for an approved hash. C and E2 have the WIP hash and exact foreign-line report.
+
+Cleanup is complete for the UI/fleet proof: `s2-cleanup.json` records 17
+verified owned PIDs stopped (nodes, fake children and holder). No process
+remains with any of this track's three fleet working directories, the
+private display 188 is gone and protected pairing inputs were removed.
+The cargo gate is deliberately not interrupted; its process/session and
+compiled-input verification are in `final-source-verified.json`. Inspect
+that process and `s2-final-gate-2.json` before starting another build.
+If credit stops this session, finish/review the final test and wasm result
+first. No further UI/fleet process needs stopping or leaving running.
+
+### Latest resume status, 21:35 UTC
+
+The exact source in `8da03f18` has now passed the full final native gate:
+format, all-target Clippy, normal build, and `cargo test`, each exit zero.
+Tests: 432 ordinary plus two compile-fail doctests, with the explicit display
+fixture ignored in the ordinary run (its eight display exits are separate).
+Both lead late-answer tests and all four C/F input/caret/focus retention
+tests passed. View/link/app were actually recompiled. Frozen compiled-input
+hashes are still identical; the later commits change documents only.
+
+The one remaining running command is the standalone view wasm check,
+currently waiting for a machine-wide slot. If stopped for credit, inspect
+its actual exit in `s2-final-gate-2.json` before repeating anything. All UI
+proof, including the final short hint, and fleet/display/input cleanup are
+already complete. V1 received the native result first; no V1/coordinator
+approval of this model is claimed. After the wasm result, send the final
+immutable range and report to V1, then follow its findings/approval before
+asking the coordinator to accept the model. Do not start another slice.
+
+### Final implementation/gate result, 21:36 UTC
+
+All five final commands now have exit zero in `s2-final-gate-2.json`:
+native format, all-target Clippy, normal build, whole native test (432
+ordinary plus two compile-fail), and standalone `vessel-app-view` check for
+`wasm32-unknown-unknown`. The final wasm command recompiled view and
+completed in 41.25s after its slot wait. This supersedes the pending-target
+checkpoints above; the earlier outer-session 143 is not used as evidence.
+The full sequential runner has completed with exit zero. Frozen compiled
+input hashes remain identical to the source in `8da03f18`; follow-up
+commits record documents only. All UI proof and cleanup described above
+are complete. No build, private fleet or display is left running.
+
+Send the final immutable range to V1 for the model review. The status is
+implementation/gate complete, review pending, not coordinator acceptance.
+C/F/E2 have the unchanged source hash and the exact foreign-line report.
+The next session begins with V1's findings/approval; only after acceptance
+and a clean lead-head merge can the released next areas start. The
+About roles and S2 ownership holds listed above still remain pending.

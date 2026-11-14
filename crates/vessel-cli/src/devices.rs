@@ -25,9 +25,22 @@ use crate::error::CliError;
 use crate::io;
 
 /// `vessel node pair`.
-pub(crate) async fn pair(target: &Target, label: Option<String>, ttl: u32) -> Result<(), CliError> {
+pub(crate) async fn pair(
+    target: &Target,
+    label: Option<String>,
+    ttl: u32,
+    read_only: bool,
+) -> Result<(), CliError> {
     let client = connect(target).await?.client;
-    let invitation = client.invite_device(label, ttl).await?;
+    let invitation = if read_only {
+        client
+            .invite_with_scopes(label, ttl, vec![vessel_proto::Scope::Read])
+            .await?
+    } else {
+        // Keep the omitted scopes field for protocol-4 nodes. Explicit
+        // scopes need protocol 5 and must never silently widen a reader.
+        client.invite_device(label, ttl).await?
+    };
     show_invitation(
         &invitation,
         "on the new device run\n  vessel nodes add NAME --pair",

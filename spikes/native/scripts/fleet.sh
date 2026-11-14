@@ -3,7 +3,8 @@
 # directory with the testkit's fake harnesses (`fake-acp` as the ACP
 # adapters, `fake-tui` as the CLIs), a node book naming them, and a few
 # structured sessions with a turn each. No real agent runs and nothing
-# leaves the machine: every process has a scratch home, the nodes listen
+# leaves the machine unless a person opens the public agent registry:
+# every process has a scratch home, the nodes listen
 # on loopback ports the system picks. The same setup as the page's
 # end-to-end fleet (web/e2e/fleet.ts), in shell.
 #
@@ -17,6 +18,8 @@
 # Build the binaries first, in the repository root:
 #   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 set -euo pipefail
+umask 077
+source "$(dirname "${BASH_SOURCE[0]}")/agent-fixtures.sh"
 
 command=${1:?start or stop}
 root=${2:?a scratch directory}
@@ -48,6 +51,7 @@ free_port() {
 }
 
 python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" prepare "$root" "$target"
 
 : > "$root/pids"
 for name in laptop build-server; do
@@ -55,9 +59,12 @@ for name in laptop build-server; do
   data="$root/$name"
   home="$root/$name-home"
   mkdir -p "$home"
+  agent_fixture_bin "$root" "$target" "$name"
+  agent_fixture_config "$data"
+  node_path="$root/$name-bin:/usr/bin:/bin"
   extra=()
   if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
-  env -i PATH="$base_path" HOME="$home" RUST_LOG=info \
+  env -i PATH="$node_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
@@ -76,6 +83,10 @@ python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
 }
+
+# The schedule preview is real node behaviour, not a client calculation.
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" check "$root" "$target"
+agent_fixture_seed "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the
 # first line of the first prompt), one of them in Hangul.
@@ -360,6 +371,27 @@ grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
   grep -q "^  5) No, and tell Codex what to do differently" <<<"$(log_of laptop "$codex")" &&
   [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -eq 2 ] || {
   echo "fleet: the permission sessions lack their real shapes" >&2
+  exit 1
+}
+
+# How full the agent's context is (fake-acp's `usage <tokens>`, of
+# 200,000, at a cost of 0.5 USD): the context meter's room (0.6%), amber
+# (75%) and red (95%). The agent offers `/compact`. Checked through
+# `vessel log` (the turn's message chunk).
+for shape in "context-room usage" "context-low usage 150000" "context-full usage 190000"; do
+  start_session laptop "${shape%% *}" "${shape#* }"
+  wait_for laptop "$(tail -1 "$root/sessions" | cut -d' ' -f2)" "used"
+done
+
+# An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
+# the whole list in each update): created, sent again unchanged, a step
+# started, one done as the next starts, one added. Checked through
+# `vessel log` (one `[plan]` line per update, six).
+start_session laptop plans "plans"
+plans=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plans" "plans done"
+[ "$(log_of laptop "$plans" | grep -c '^\[plan\]')" -eq 6 ] || {
+  echo "fleet: the plans session lacks its six plan updates" >&2
   exit 1
 }
 

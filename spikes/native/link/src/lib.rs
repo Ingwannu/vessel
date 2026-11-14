@@ -25,15 +25,19 @@
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+#[cfg(not(target_arch = "wasm32"))]
+mod pairing;
 mod prefs;
 mod session;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
+pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
@@ -171,9 +175,6 @@ pub enum LinkError {
     /// An SSH node (not in this build).
     #[error("SSH routes are not in this build yet; pair the node instead")]
     SshNotYet,
-    /// The pasted text is not a pairing link.
-    #[error("not a pairing link: {0}")]
-    PairingLink(String),
     /// The name is not a valid machine name.
     #[error("the name: {0}")]
     Name(String),
@@ -188,6 +189,16 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// A request for one machine’s Agents settings.
+    Agents {
+        /// Validated book key.
+        machine: agents::MachineKey,
+        /// Correlation ticket.
+        request: vessel_proto::RequestId,
+        /// The operation.
+        ask: agents::Ask,
+    },
+
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
@@ -200,6 +211,13 @@ pub enum Command {
         ticket: vessel_app_view::devices::Ticket,
         /// The device operation.
         ask: devices::Ask,
+    },
+    /// Read-only sharing status for one selected machine.
+    Sync {
+        /// Its parsed node-book identity.
+        machine: vessel_app_view::devices::MachineKey,
+        /// Correlation identity reserved by the page.
+        ticket: vessel_app_view::devices::Ticket,
     },
     /// Show a session's conversation: its records from the start, then as
     /// they arrive. Replaces the session followed before.
@@ -310,12 +328,24 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An Agents response, including background install progress.
+    Agents {
+        /// Originating machine.
+        machine: agents::MachineKey,
+        /// Original request ticket.
+        request: vessel_proto::RequestId,
+        /// Facts or typed failure.
+        answer: Result<agents::Answer, agents::AgentsError>,
+    },
+
     /// A saved-machine operation completed.
     Machines(machines::Answer),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
     Devices(devices::Answer),
+    /// Safe, correlated sharing status.
+    Sync(sync::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
@@ -340,7 +370,7 @@ pub enum Event {
         address: String,
     },
     /// Pairing failed; the words to show beside the form.
-    PairFailed(String),
+    PairFailed(vessel_app_view::pairing::PairProblem),
     /// A session act's answer.
     Acted(ActAnswer),
     /// An ended session runs again, and the prompt was sent to it.
@@ -419,7 +449,10 @@ impl Link {
             follow_machine: None,
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
+            agents: agents::Hub::default(),
+
             device_calls: devices::Hub::default(),
+            sync_calls: sync::Hub::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -479,7 +512,10 @@ struct State {
     follow_machine: Option<String>,
     book_path: machines::BookPath,
     workspace: workspace::Hub,
+    agents: agents::Hub,
+
     device_calls: devices::Hub,
+    sync_calls: sync::Hub,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -511,7 +547,22 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Agents {
+                machine,
+                request,
+                ask,
+            } => {
+                let client = self
+                    .clients
+                    .get(machine.as_str())
+                    .map(|connected| connected.client.clone());
+                self.agents
+                    .ask(client, machine, request, ask, self.events.clone())
+                    .await;
+            }
+
             Command::Machines(ask) => self.machine_book(ask).await,
+            Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -565,7 +616,7 @@ impl State {
                     self.reload().await;
                 }
                 Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
-                Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
+                Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
             },
             Command::Act {
                 machine,

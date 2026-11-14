@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), the look (`look`), the scroll bench (`bench`) |
 
 Other areas use the conversation through seams, each one call:
 
@@ -77,6 +77,7 @@ Paseo screen it follows.
 | `52-find-marks-current-dark-1280`, `53-find-current-in-last-reply-light-1280`, `54-find-marks-in-table-dark-390` | find's matches marked in the text, the current one amber and scrolled to (inside a reply taller than the view, to its line); a search run again as the session grows keeps the current match (1/1 became 1/2) | GOAT `threadFindHighlights.ts`, `index.css` `::highlight(goat-thread-find…)`; the page's `find-bar.tsx` refresh rule |
 | `55-outline-pointed-dark-1280`, `56-outline-jumped-to-prompt-dark-1280`, `57-outline-pointed-korean-light-1280`, `58-outline-hidden-on-phone-dark-390` | the outline rail on the fleet's five-turn session: the lit prompt's pill wider, the pills near the pointer magnified, the prompt's card (two lines, Korean too), a click putting that prompt at the view's top; no rail under 918 | Paseo `agent-stream/chat-outline/rail.web.tsx`, `model.ts`, `hover-intent.ts` |
 | `59-queue-dark-1280`, `68-queue-light-1280`, `70-queue-phone-dark-390`, `71-queue-phone-light-390` | the fleet's `queued` session: three prompts waiting behind a running turn above the composer, each a row with a grip, its text on two lines (an ellipsis past them), and round buttons for edit, steer, send now and remove; on a phone the buttons on a line of their own | Paseo `composer/index.tsx` `QueuedMessageRow` (surface1, a hairline, radius 8, 12 by 8, buttons of 32 on surface2, send on the accent); GOAT `QueuedRunsControl.tsx` (grip, steer, remove, edit in place) |
+| `permit/q-moved`, `permit/q-end-crop`, `permit/q-up-crop`, `permit/q-grip-zoom` | the queue's keys: the first row's grip clicked, Down moves it one place, Down again to the end, Up back; the grip keeps the keys, its mark in the foreground on `surface2` | GOAT `QueuedRunsControl.tsx` (the grip's `ArrowUp`/`ArrowDown`) |
 | `60`–`62` (edit), `63-drag`, `64-dropped`, `65-removed`, `66-steered`, `67-sent-now` | a queued prompt edited in its row in the kit's field and saved (the node's revision r0 to r1); a row dragged by its grip onto the first (the drop row outlined, the dragged text following the pointer) and the order the node then holds; a row taken out; a row steered into the running turn (the fake echoes "steered: …"); the last sent now, which stopped the turn ("Turn ended · cancelled") and started its own | GOAT `QueuedRunsControl.tsx`; the node's `session.queue` |
 | `72-queue-held-ko-dark-1280` | a held queue (`vessel session queue … hold`): "대기 중 · 3개 · 멈춤" with resume and clear; resume lets it move (`[queue: 3 waiting]`, no longer held) | the node's `QueueHold` |
 | `73-before-thought-ko-dark-1280`, `74-after-thought-ko-dark-1280`, `75-thought-open-ko-dark-1280`, `76-thought-ko-light-390` | the folded thought row in Korean: "생가ㄱ" before, "생각" after; the thought opened, its Korean paragraph (streamed in 174 chunks) whole | — |
@@ -90,6 +91,10 @@ Paseo screen it follows.
 | `permit/07-two-ko-light-1280`, `permit/08-two-en-dark-390` | two requests waiting: GOAT's "1/2" at the card's top right | GOAT `ComposerPendingApprovalPanel` |
 | `permit/11-long-command-en-dark-1280`, `permit/12-long-command-ko-light-390` | the long command ends before the copy button: a box with a copy button keeps the button's column, no line enters it (before, the command showed on both sides of the button) | GOAT `CommandOutputPanel.tsx` `pe-7` |
 | `permit/13-plan-ko-dark-1280`, `permit/14-codex-ko-dark-1280` | a direction with three answers or more keeps the agent's names: the plan exit's six allows ("Yes, manually approve edits" primary), Codex's "Yes, proceed" beside its two "always" allows; a lone reject is still 거부 | Paseo's agent labels on ACP |
+| `plan/01-plans-en-dark-1280`, `plan/04-plans-ko-dark-1280`, `plan/03-plans-ko-light-390` | the fleet's `plans` session (fake-acp's `plans`, Claude Code's shape): a row per change, "Created 4 tasks", "Started", "Completed" as the next starts, "Added" once work began, each with Paseo's mark and the step's words after; on a phone the step cut to a line | Paseo `types/stream.ts` `deriveTaskActivities`; `components/message.tsx` `TodoListCard` |
+| `plan/02-plans-open-en-dark-1280`, `plan/06-plans-open-en-light-1280`, `plan/07-plans-open-en-dark-390`, `plan/05-created-open-ko-dark-1280` | a row opened: the plan as it stood then, Paseo's `TaskListRow`s (done struck through, extra muted; under way in the running blue; to do muted rings); the "Created" row holds the four steps it was made with | Paseo `components/task-list-row.tsx` |
+| `plan/m-01-amber-en-dark-1280`, `plan/m-02-card-amber-en-dark-1280`, `plan/m-04-red-card-ko-light-1280`, `plan/m-05-room-en-dark-390` | the context meter left of the send button (the fleet's `context-*` sessions, fake-acp's `usage <tokens>`): Paseo's ring at 75% in amber, at 95% in red, at 0.6% in the muted ink; its card: "Context window", the share used, used and maximum tokens, the session's cost, GOAT's "Compact context" | Paseo `components/context-window-meter.tsx`, `context-window-details.tsx`; GOAT `chat/ContextWindowMeter.tsx` |
+| `plan/m-03-compact-sent-running-en-dark-1280`, `plan/m-06-room-card-en-dark-390`, `plan/m-07-closed-by-press-outside-390` | Compact sent as the agent's `/compact`; while that turn runs the card holds the button, faded, with its reason; on a phone the card opens on a press and closes on a press outside | GOAT's disabled compact with its reason; Paseo's press-to-open on touch |
 | `permit/09-sending-en-dark-1280`, `permit/10-failed-en-dark-1280` | an answer going (the node paused): the kit's spinner in the pressed button, the rest not answering; the connection then lost: "Could not send your response. Try again. (the connection to the node closed)" in the card, every answer ready again | Paseo's `isResponding`, `message.question.responseFailed` |
 | `43-table-scrolls-not-breaks-light-390`, `44-code-block-and-korean-dark-390` | a phone's width: the table keeps its words and scrolls sideways; the code block, the link, Korean | GOAT `.chat-markdown table` ("the min column width is the longest word, and only wider content scrolls") |
 
@@ -123,7 +128,8 @@ Paseo screen it follows.
   Matches are marked in a person's messages and in replies (GOAT's
   yellow, the current one amber); in a reply the current one keeps the
   reply's own ink, as its renderer paints backgrounds only (GOAT darkens
-  it). A question's text is searched but not marked yet. The wrap is said
+  it). An answered question's text is marked too; a waiting one is
+  answered over the composer and its timeline row holds no mark. The wrap is said
   only to a screen reader, as on the page (kept for the screen-reader
   buffer).
 - **The queue** is Paseo's row with GOAT's actions as more of Paseo's
@@ -133,8 +139,10 @@ Paseo screen it follows.
   only while a turn runs and the agent takes one (`abilities.steer`).
   Send now interrupts a running turn, as its own button, apart from
   steer. On a phone the four 40-point buttons go on a line under the
-  text (Paseo keeps one line, having two). Not yet: GOAT's keys on the
-  grip and its steer shortcut, a queued message's attachments. The page
+  text (Paseo keeps one line, having two). GOAT's keys on the grip: a
+  click gives the grip the keys and the arrows move its row one place,
+  the grip keeping them as the row moves (shown in the foreground on
+  `surface2`). Not yet: a queued message's attachments as thumbnails. The page
   (`backend/m11`, `features/session/queue-dock.tsx`) follows
   agent-orchestrator's `QueuedMessageDock` instead: a count with a
   chevron that folds the list to its first row, 40-pixel rows of one
@@ -235,6 +243,12 @@ only.
 
 ## Problems met
 
+- Read marks seemed never to go on the fleet: Xvfb with no window
+  manager never makes the app's window active, and a mark goes only
+  while it is (`Window::is_window_active`, the page's focus rule). To
+  check them there, give the window focus first (`xdotool windowfocus
+  --sync <window>`); the debug log then says "the session shown marked
+  read" and the CLI no longer lists it `[unread]`.
 - Real replies broke screens that short fake texts never did (the
   owner's report on build 0.0.0.0.5): hence the `shapes` turn and the
   fleet's check, so the shapes cannot quietly shrink again.
@@ -295,10 +309,34 @@ only.
 
 ## Still to do
 
-The branch chip
-rail, read marks drawn, the ended banner, the context ring, the
-inspector's Summary, the terminal view (§7), stream banners; copying a
-message and a conversation (a tool's text and a code block have their
-copy button); a screen-reader buffer;
-then rewind, fork, cross-session search, export and import, written
-down.
+In the order the coordinator set (2026-11-13), what this track has not
+done yet:
+
+- **The queue**: a queued message's attachments show as their names in
+  its text (`[name]`), not as GOAT's 16-point thumbnails, which need the
+  node's files read; GOAT's steer and edit-latest shortcuts wait for the
+  app's shortcuts (track S2) to bind `Shell::conversation_steer_next` and
+  `Shell::conversation_edit_latest_queued`; the area's own Mod+F
+  observer goes once they bind Find.
+- **The turn's usage line** and a limit notice are track N2's, in the
+  two lines it adds over the composer (the seams above); the turn's own
+  token count stays on its divider.
+- **Pin, archive, unread**: read marks go (`read`: the page's
+  `use-read-marks.ts`, the view's rule); left: an archived or ended
+  session's banner (the page's `ended-banner.tsx`) and the pinned state
+  in the bar. Only this area's menu marks the session shown unread now;
+  another area doing so before any read mark went (a session with
+  nothing asking for attention) would be marked read again at once, so
+  such an area needs the hold this menu sets (`read_held`, one seam).
+- **Chat settings** (Settings › Chat, track E2 draws the page): always
+  expand reasoning, the outline shown or not, collapse whole turns; each
+  needs a preference and its rule here.
+- **What A2 landed** (protocol 12): searching every session's messages
+  (open a hit at its record), parking an idle agent (parked beside
+  running, a wake button when waking failed, the `parked` and `woken`
+  marks in the timeline); then rewind, fork, import and handoff as A2
+  sends them.
+- Then: the branch chip rail, the ended banner, the
+  inspector's Summary, the terminal view (§7), stream banners; copying a
+  message and a conversation (a tool's text and a code block have their
+  copy button); a screen-reader buffer; export.

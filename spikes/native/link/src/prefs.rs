@@ -366,6 +366,29 @@ mod tests {
     }
 
     #[test]
+    fn an_unknown_language_keeps_the_file_and_its_other_preferences() {
+        use vessel_app_view::localization::LanguagePreference;
+        let path = scratch("language").unwrap();
+        std::fs::write(&path, r#"{"machine":"laptop","last_label":"previous","settings":{"language":"removed-ZZ","appearance":{"theme":"dark"},"composer":{"send":"mod_enter"}}}"#).unwrap();
+        let mut kept = Prefs::load_at(&path);
+        assert!(matches!(kept.kept, prefs::Kept::File { .. }));
+        assert_eq!(kept.machine.as_deref(), Some("laptop"));
+        assert_eq!(kept.last_label.as_deref(), Some("previous"));
+        assert_eq!(kept.settings.language, LanguagePreference::System);
+        assert_eq!(kept.settings.appearance.theme, prefs::Theme::Dark);
+        assert_eq!(kept.settings.composer.send, prefs::SendKey::ModEnter);
+        kept.prefer(&PreferenceChange::Language(LanguagePreference::from_tag(
+            "ko",
+        )))
+        .unwrap();
+        kept.save_at(&path).unwrap();
+        let read = Prefs::load_at(&path);
+        assert_eq!(read, kept);
+        assert_eq!(read.settings.language.tag(), "ko");
+        drop(std::fs::remove_dir_all(path.parent().unwrap()));
+    }
+
+    #[test]
     fn a_file_that_cannot_be_read_is_not_written_over() {
         let path = scratch("broken").unwrap();
         std::fs::write(&path, "not json").unwrap();

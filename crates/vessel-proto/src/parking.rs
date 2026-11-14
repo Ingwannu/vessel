@@ -83,6 +83,107 @@ pub struct Parked {
     pub reason: ParkReason,
 }
 
+/// How long a structured session may stay idle before its agent is parked:
+/// a node setting (protocol 12, `node.settings`, ADR 0038).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ParkAfter {
+    /// Never parked on its own (`session.park` still parks one).
+    Never,
+    /// Parked after this long without activity.
+    Idle {
+        /// Minutes, 1 to [`IdleMinutes::MAX`].
+        minutes: IdleMinutes,
+    },
+    /// A choice a newer node offers; never accepted in a change.
+    #[serde(other)]
+    Unknown,
+}
+
+impl ParkAfter {
+    /// What a node does when nothing is saved and no flag says otherwise:
+    /// an hour, as Paseo.
+    pub const DEFAULT: Self = Self::Idle {
+        minutes: IdleMinutes(60),
+    };
+
+    /// As a duration; `None` never parks (and for `Unknown`).
+    #[must_use]
+    pub fn duration(self) -> Option<std::time::Duration> {
+        match self {
+            Self::Idle { minutes } => Some(minutes.duration()),
+            Self::Never | Self::Unknown => None,
+        }
+    }
+
+    /// From a duration (`None` never parks), in whole minutes, at least
+    /// one and at most [`IdleMinutes::MAX`].
+    #[must_use]
+    pub fn from_duration(after: Option<std::time::Duration>) -> Self {
+        after.map_or(Self::Never, |after| {
+            let minutes = after.as_secs().div_ceil(60);
+            let minutes = u16::try_from(minutes).unwrap_or(IdleMinutes::MAX);
+            Self::Idle {
+                minutes: IdleMinutes::clamped(minutes),
+            }
+        })
+    }
+}
+
+/// Minutes of idleness before a park: 1 to [`IdleMinutes::MAX`] (a week).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct IdleMinutes(u16);
+
+impl IdleMinutes {
+    /// A week.
+    pub const MAX: u16 = 10_080;
+
+    /// Minutes, if within `1..=MAX`.
+    #[must_use]
+    pub const fn new(minutes: u16) -> Option<Self> {
+        if minutes >= 1 && minutes <= Self::MAX {
+            Some(Self(minutes))
+        } else {
+            None
+        }
+    }
+
+    /// `minutes` brought within `1..=MAX`.
+    #[must_use]
+    pub const fn clamped(minutes: u16) -> Self {
+        if minutes < 1 {
+            Self(1)
+        } else if minutes > Self::MAX {
+            Self(Self::MAX)
+        } else {
+            Self(minutes)
+        }
+    }
+
+    /// The minutes.
+    #[must_use]
+    pub const fn get(self) -> u16 {
+        self.0
+    }
+
+    /// As a duration.
+    #[must_use]
+    pub fn duration(self) -> std::time::Duration {
+        std::time::Duration::from_secs(u64::from(self.0).saturating_mul(60))
+    }
+}
+
+impl<'de> Deserialize<'de> for IdleMinutes {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let minutes = u16::deserialize(deserializer)?;
+        Self::new(minutes)
+            .ok_or_else(|| serde::de::Error::custom("idle minutes must be 1 to 10080 (a week)"))
+    }
+}
+
 /// `session.park`: stop an idle session's agent now, keeping the session
 /// and its conversation. Needs `operate`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -136,6 +237,29 @@ mod tests {
             SessionEvent::Woken
                 .for_protocol(ProtocolVersion::new(2))
                 .is_some()
+        );
+    }
+
+    #[test]
+    fn park_after_reads_its_forms_and_refuses_out_of_range() {
+        let idle: ParkAfter = serde_json::from_str(r#"{"kind":"idle","minutes":30}"#).unwrap();
+        assert_eq!(idle.duration(), Some(std::time::Duration::from_secs(1800)));
+        assert_eq!(
+            serde_json::from_str::<ParkAfter>(r#"{"kind":"never"}"#).unwrap(),
+            ParkAfter::Never
+        );
+        assert_eq!(
+            serde_json::from_str::<ParkAfter>(r#"{"kind":"when_quiet"}"#).unwrap(),
+            ParkAfter::Unknown
+        );
+        assert!(serde_json::from_str::<ParkAfter>(r#"{"kind":"idle","minutes":0}"#).is_err());
+        assert!(serde_json::from_str::<ParkAfter>(r#"{"kind":"idle","minutes":10081}"#).is_err());
+        assert_eq!(ParkAfter::from_duration(None), ParkAfter::Never);
+        assert_eq!(
+            ParkAfter::from_duration(Some(std::time::Duration::from_secs(90))),
+            ParkAfter::Idle {
+                minutes: IdleMinutes::clamped(2)
+            }
         );
     }
 

@@ -261,3 +261,32 @@ Where track D met the node join (pull requests, terminals) and track G
   `HarnessRef`; a run whose added agent was removed fails `not_found`, one
   whose secret is missing or (one of the four) is being installed fails
   `conflict`, and the schedule goes on.
+
+## Read-only previews and machine zone (2026-11-13, N3, protocol 13)
+
+A preview calls the existing `Due` calculation on the node. Duplicating it
+in a client was rejected: the database and DST policy could diverge. The
+reply includes the effective cadence, with the interval anchor filled at
+one clock reading, so create/update can preserve it. A historical preview
+is about that cursor; saving later still schedules only future instants.
+
+Four blocking workers at most, admitted before enqueueing, hold permits
+until they exit even if the caller disconnects or cancels. Ten requested
+runs at most, eight years per search, no partial result on failure.
+Read scope suffices because nothing is saved or started. The optional typed
+error detail distinguishes zone, cadence, time-range and no-match failures.
+
+`NodeInfo.timezone` is a best-effort startup observation from jiff's
+`try_system` with `tz-system` (Unix system configuration and Windows system
+zone mapping). A zone without an IANA name or a detection failure is absent;
+there is no UTC fallback. This does not modify the system's settings. The
+bundled IANA database still determines all schedule calculations. Testing
+Windows system detection itself requires a Windows runner; it is not
+claimed from Linux. Older handshakes and node.info replies omit the field.
+
+Preview time inputs are checked against jiff's `Timestamp::MIN` and `MAX`,
+including subsecond validity. These bounds reserve room for every legal
+UTC offset, so the first and last civil days of the extreme years are not
+all supported instants. A request outside those bounds is `time_out_of_range`;
+a search with no remaining cron instant is `no_future_run`. Neither returns
+a partial run list.

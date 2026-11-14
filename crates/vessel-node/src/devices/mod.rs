@@ -180,6 +180,20 @@ impl Devices {
         Ok(self.store.devices().await?)
     }
 
+    pub(crate) async fn window(
+        &self,
+        after: Option<DeviceId>,
+        permit: tokio::sync::OwnedSemaphorePermit,
+    ) -> Result<
+        (
+            vessel_store::DeviceWindow,
+            tokio::sync::OwnedSemaphorePermit,
+        ),
+        ServiceError,
+    > {
+        Ok(self.store.guarded_device_window(after, permit).await?)
+    }
+
     /// `device.revoke`: revoke the device and close its open connections.
     /// Revoking a revoked device succeeds and changes nothing.
     pub(crate) async fn revoke(&self, device: DeviceId) -> Result<(), ServiceError> {

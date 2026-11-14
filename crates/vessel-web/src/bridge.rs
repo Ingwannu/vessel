@@ -174,7 +174,10 @@ async fn statuses<S: NodeSource>(registry: &Registry<S>, out: mpsc::Sender<Serve
         let frame = match changes.recv().await {
             Ok(Change::State { node, status }) => {
                 let _new = known.insert(node.clone());
-                ServerFrame::Node { node, status }
+                ServerFrame::Node {
+                    node,
+                    status: *status,
+                }
             }
             Ok(Change::Removed { node }) => {
                 let _gone = known.remove(&node);

@@ -24,7 +24,13 @@ const LIMITS: AttachmentLimits = {
   chunk: MIB,
 };
 
-const SEES = { steer: false, resume: true, image: true, audio: false };
+const SEES = {
+  steer: false,
+  resume: true,
+  image: true,
+  audio: false,
+  fork: false,
+};
 
 describe("a file's type and kind, as the node reads them", () => {
   test("the four inline image types are images, audio is audio", () => {

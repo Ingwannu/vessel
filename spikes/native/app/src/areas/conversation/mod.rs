@@ -50,10 +50,13 @@ pub(crate) mod dock;
 mod entries;
 mod find;
 mod look;
+mod meter;
 mod outline;
 mod permission;
+mod plan;
 mod question;
 mod queue;
+mod read;
 mod rename;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
@@ -78,6 +81,7 @@ use vessel_proto::{
 
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
+pub(crate) use meter::meter;
 pub(crate) use timeline::{overlays, timeline};
 
 use crate::shell::Shell;
@@ -296,6 +300,10 @@ pub(crate) struct ConversationArea {
     pub(crate) queue_edit: Option<queue::QueueEdit>,
     /// The question waiting first, being answered over the composer.
     pub(crate) answering: Option<question::Answering>,
+    /// The context meter left of the send button, and its card.
+    pub(crate) meter: meter::MeterState,
+    /// Marking the session read while it is in front.
+    read: read::ReadMarks,
     /// A permission's answer being sent.
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
@@ -346,6 +354,8 @@ impl ConversationArea {
             rename: None,
             queue_edit: None,
             answering: None,
+            meter: meter::MeterState::default(),
+            read: read::ReadMarks::default(),
             permit_sending: None,
             plan_folded: false,
             live: Live::default(),
@@ -357,17 +367,6 @@ impl ConversationArea {
             keys: None,
             bench: bench::Bench::default(),
         }
-    }
-
-    /// Show `session` on `machine`: what was shown before is dropped, and
-    /// the session's records are folded from its first again
-    /// ([`Self::take`]). Asks the node nothing.
-    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
-        self.clear();
-        self.shown = Some(Shown {
-            machine: machine.to_owned(),
-            session,
-        });
     }
 
     /// What an act's answer does to the conversation's own state, only
@@ -384,7 +383,7 @@ impl ConversationArea {
         let for_shown = self.shown.as_ref().is_some_and(|shown| {
             shown.machine == answer.machine && shown.session == answer.session
         });
-        if !for_shown {
+        if !for_shown || self.read_answered(&answer) {
             return Followup::None;
         }
         match answer.result {
@@ -417,9 +416,22 @@ impl ConversationArea {
         Followup::None
     }
 
+    /// Show `session` on `machine`: what was shown before is dropped, and
+    /// the session's records are folded from its first again
+    /// ([`Self::take`]). Asks the node nothing.
+    pub(crate) fn open(&mut self, machine: &str, session: SessionId) {
+        self.clear();
+        self.shown = Some(Shown {
+            machine: machine.to_owned(),
+            session,
+        });
+    }
+
     /// Show nothing: what was shown is dropped, here only.
     fn clear(&mut self) {
         self.shown = None;
+        self.lost = None;
+        self.read = read::ReadMarks::default();
         self.timeline = Timeline::default();
         self.folds = self.collapse.then(Folds::default);
         self.open_runs.clear();
@@ -430,7 +442,6 @@ impl ConversationArea {
         self.list.reset(0);
         self.info = None;
         self.refused = None;
-        self.lost = None;
         self.menu.close();
         self.confirm = None;
         self.rename = None;
@@ -495,7 +506,7 @@ impl ConversationArea {
         {
             return false;
         }
-        // Records arriving: the connection is back.
+        // Records arriving for this session: the connection is back.
         self.lost = None;
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
@@ -789,6 +800,9 @@ impl Shell {
             MenuAction::Mark(MarkAction::Delete) => Some(Confirm::Delete),
             MenuAction::Kill => Some(Confirm::Kill),
             MenuAction::Mark(mark) => {
+                if mark == MarkAction::MarkUnread {
+                    self.areas.conversation.read_held();
+                }
                 self.mark(mark);
                 None
             }
@@ -928,6 +942,9 @@ mod tests {
         assert!(!shown("build-server").on("laptop"));
     }
 }
+
+#[cfg(test)]
+mod connection_tests;
 
 /// An act's answer reaches the conversation's state only when it is for
 /// the session shown (track V1's review of the lead's head 64b5a3d).

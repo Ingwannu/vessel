@@ -121,7 +121,14 @@ image: boolean,
 /**
  * A prompt may hold audio (`promptCapabilities.audio`).
  */
-audio: boolean, };
+audio: boolean, 
+/**
+ * The conversation can be forked (`sessionCapabilities.fork`, ACP's
+ * unstable `session/fork`; protocol 14, ADR 0052). Absent from older
+ * nodes and sessions started before 14: a fork's own handshake
+ * decides, not this.
+ */
+fork: boolean, };
 
 /**
  * One command the agent offers (ACP `available_commands_update`). A
@@ -241,7 +248,14 @@ reason: StopReason,
  * The turn's tokens, when the agent reports them with its end
  * (protocol 10).
  */
-usage?: TurnUsage | null, } | { "event": "turn_failed", 
+usage?: TurnUsage | null, 
+/**
+ * Where a fork or a rewind can start (protocol 14, ADR 0052):
+ * set when the turn's last agent message carried an id and nothing
+ * but the turn's end followed it. Absent otherwise, and from older
+ * nodes.
+ */
+point?: TurnPoint | null, } | { "event": "turn_failed", 
 /**
  * Human-readable reason.
  */
@@ -280,6 +294,13 @@ detail: AgentDetail, };
  * What a person calls an added agent (`Goose`), shown on the page.
  */
 export type AgentLabel = string;
+
+/**
+ * The id an agent gives one of its messages (ACP's `messageId` on a
+ * message chunk): what a fork at a turn names (protocol 14, ADR 0052).
+ * At most [`AgentMessageId::MAX_BYTES`]; the node drops a longer one.
+ */
+export type AgentMessageId = string & { readonly __brand: "AgentMessageId" };
 
 /**
  * The name of an agent added on a node by its command (protocol 11, ADR
@@ -690,7 +711,7 @@ zone: TimeZoneName, } | { "kind": "unknown" };
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession };
 
 /**
  * What `fleet.callback` answers.
@@ -1771,6 +1792,19 @@ export type EnvName = string;
 export type ErrorCode = "invalid_request" | "unauthorized" | "forbidden" | "protocol_mismatch" | "not_found" | "conflict" | "unsupported" | "harness_not_installed" | "spawn_failed" | "unavailable" | "internal";
 
 /**
+ * Further typed context for a refusal. Unknown future reasons stay readable.
+ */
+export type ErrorDetail = { "kind": "schedule_preview", 
+/**
+ * The stable preview reason.
+ */
+reason: SchedulePreviewError, } | { "kind": "fleet_control", 
+/**
+ * The stable fleet reason.
+ */
+reason: FleetControlError, } | { "kind": "unknown" };
+
+/**
  * Reply to `session.read`.
  */
 export type EventPage = { 
@@ -2057,6 +2091,38 @@ upload: UploadId, };
 export type FiniteNumber = number;
 
 /**
+ * Safe for any caller with Read; no file text, credentials or secret names.
+ */
+export type FleetApplied = { 
+/**
+ * The last generation applied here, possibly before the latest join.
+ * It has no current-home association: never compare its bare number
+ * with the current home's generation to claim this node is up to date.
+ */
+generation: Generation | null, 
+/**
+ * When that apply completed.
+ */
+applied_at: string | null, 
+/**
+ * When the member's home last answered.
+ */
+contacted_at: string | null, 
+/**
+ * Bundle-relative paths kept as edited, deleted or not owned by Vessel.
+ */
+conflicts: Array<BundlePath>, 
+/**
+ * Issues at the last recorded operation.
+ */
+problems: Array<FleetSyncProblem>, };
+
+/**
+ * Why a fleet control was refused, without invitation or filesystem text.
+ */
+export type FleetControlError = "busy" | "already_home" | "already_member" | "self_home" | "invalid_invitation" | "cannot_join" | "cannot_store" | "join_uncertain" | "not_configured" | "direct_only" | "cannot_read" | "status_too_large" | "unknown";
+
+/**
  * A member as its home reports it.
  */
 export type FleetMember = { 
@@ -2102,6 +2168,41 @@ protocol: ProtocolVersion,
  * Whether the home can reach it now.
  */
 reachable: boolean, };
+
+/**
+ * This node's current configured role, independently of connectivity.
+ */
+export type FleetRole = { "kind": "standalone" } | { "kind": "home" } | { "kind": "member", 
+/**
+ * The configured home.
+ */
+home: NodeId, 
+/**
+ * When the current membership was persisted.
+ */
+joined_at: string, } | { "kind": "unknown" };
+
+/**
+ * Actionable issue classes; arbitrary file errors remain in the local log.
+ */
+export type FleetSyncProblem = "operation_failed" | "apply_failed" | "incomplete_sources" | "grant_failed" | "unknown";
+
+/**
+ * Local state plus the home's per-member reports when the caller is Admin.
+ */
+export type FleetSyncStatus = { 
+/**
+ * The configured role.
+ */
+role: FleetRole, 
+/**
+ * Last apply here, not a promise that the current sources were applied.
+ */
+local: FleetApplied, 
+/**
+ * Present only on a home for an Admin caller; read-only sees none.
+ */
+members?: Array<FleetMember> | null, };
 
 /**
  * The name of one folder to create (a clone's).
@@ -2210,6 +2311,22 @@ export type ForgetNode = {
  * The member node.
  */
 node: NodeId, };
+
+/**
+ * `session.fork`: a new session that continues `session`'s conversation
+ * as it was after the turn whose end is record `after`, or as it is now.
+ * Needs `operate`; answers the new session, as `session.create` does.
+ */
+export type ForkSession = { 
+/**
+ * The session forked.
+ */
+session: SessionId, 
+/**
+ * A `turn_ended` record of it that carries a point; absent for the
+ * whole conversation (refused while a turn runs).
+ */
+after?: EventSeq | null, };
 
 /**
  * `fleet.forward` (protocol 6): run `call` on fleet node `node`. Sent by a
@@ -2386,6 +2503,11 @@ ignore_whitespace: boolean,
 from_hunk?: number | null, };
 
 /**
+ * Read this node's role and last apply, without resolving any secrets.
+ */
+export type GetFleetStatus = Record<symbol, never>;
+
+/**
  * `forge.status`: how the node is signed in to each forge.
  */
 export type GetForgeStatus = Record<symbol, never>;
@@ -2422,6 +2544,11 @@ export type GetManifest = null;
  * `node.info`: describe the node.
  */
 export type GetNode = null;
+
+/**
+ * `node.settings`: the node's settings in force. Needs `read`.
+ */
+export type GetNodeSettings = Record<symbol, never>;
 
 /**
  * `project.get`: one project, at once or after its next change.
@@ -2867,6 +2994,11 @@ section?: string | null,
 lines: Array<DiffLine>, };
 
 /**
+ * Minutes of idleness before a park: 1 to [`IdleMinutes::MAX`] (a week).
+ */
+export type IdleMinutes = number;
+
+/**
  * What `worktree.remove` does when something would be lost.
  */
 export type IfLost = "keep" | "snapshot" | "discard";
@@ -3139,6 +3271,28 @@ ttl_secs: number,
 scopes?: Array<Scope> | null, };
 
 /**
+ * Join this node to the home named by one single-use invitation.
+ */
+export type JoinFleet = { 
+/**
+ * Never logged or returned; the node redeems it on the caller's behalf.
+ */
+link: PairingLink, 
+/**
+ * What this node grants its home; never inferred from the invitation.
+ */
+grant: Array<Scope>, };
+
+/**
+ * The authenticated home after the membership was persisted.
+ */
+export type JoinedFleet = { 
+/**
+ * The home, without credentials or connection routes.
+ */
+home: NodeInfo, };
+
+/**
  * The lane a session is in: where it sits between first prompt and merge,
  * and which loop is turning it.
  */
@@ -3184,6 +3338,11 @@ terminal: TerminalId, };
  * A supported server family; JavaScript uses the TypeScript server.
  */
 export type Language = "rust" | "type_script" | "python" | "go" | "cpp";
+
+/**
+ * Leave this node's fleet. Applied files stay; already left is success.
+ */
+export type LeaveFleet = Record<symbol, never>;
 
 /**
  * What a line of a hunk is.
@@ -3607,7 +3766,7 @@ export type MessageRole = "prompt" | "reply";
 /**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -3805,13 +3964,28 @@ state: NodeState,
  * The node's static key for secure channels (protocol 4; absent from
  * older nodes and from nodes without a key yet).
  */
-public_key?: NodePublicKey | null, };
+public_key?: NodePublicKey | null, 
+/**
+ * System IANA time zone, detected at start (protocol 13). Absent on
+ * older nodes or when the system cannot supply an IANA name.
+ */
+timezone?: TimeZoneName | null, };
 
 /**
  * A node's static X25519 public key: the identity a client pins at pairing
  * and checks on every secure handshake.
  */
 export type NodePublicKey = string & { readonly __brand: "NodePublicKey" };
+
+/**
+ * The node's settings in force.
+ */
+export type NodeSettings = { 
+/**
+ * How long a structured session may stay idle before its agent is
+ * parked.
+ */
+park_after: ParkAfter, };
 
 /**
  * Whether a node is taking new work.
@@ -4073,6 +4247,16 @@ invite: InvitationSecret,
 expires: string, };
 
 /**
+ * How long a structured session may stay idle before its agent is parked:
+ * a node setting (protocol 12, `node.settings`, ADR 0038).
+ */
+export type ParkAfter = { "kind": "never" } | { "kind": "idle", 
+/**
+ * Minutes, 1 to [`IdleMinutes::MAX`].
+ */
+minutes: IdleMinutes, } | { "kind": "unknown" };
+
+/**
  * Why a session's agent is parked.
  */
 export type ParkReason = { "reason": "idle" } | { "reason": "asked" } | { "reason": "wake_failed", 
@@ -4270,6 +4454,28 @@ line: number,
  * One-based Unicode scalar column, not a byte or UTF-16 offset.
  */
 column: number, };
+
+/**
+ * How many next runs to compute: 1 to 10, default 5.
+ */
+export type PreviewCount = number;
+
+/**
+ * `schedule.preview`: compute without saving or starting anything.
+ */
+export type PreviewSchedule = { 
+/**
+ * When it runs. An interval without an anchor is anchored at `after`.
+ */
+cadence: Cadence, 
+/**
+ * Strictly after this instant; absent uses one node clock reading.
+ */
+after?: string | null, 
+/**
+ * At most ten runs; absent means five.
+ */
+count: PreviewCount, };
 
 /**
  * What the system calls a process (`comm` on Linux, `lsof`'s command on
@@ -5381,7 +5587,7 @@ title: SessionTitle, };
 /**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo };
 
 /**
  * A repository's path on its forge: `owner/name`, or GitLab's
@@ -5491,6 +5697,21 @@ export type RevokeDevice = {
  * Which device.
  */
 device: DeviceId, };
+
+/**
+ * `session.rewind`: the session goes back to the end of the turn whose
+ * end is record `after`; its agent continues from there. Between turns
+ * only. Needs `operate`; answers the session.
+ */
+export type RewindSession = { 
+/**
+ * Which session.
+ */
+session: SessionId, 
+/**
+ * A `turn_ended` record of it that carries a point.
+ */
+after: EventSeq, };
 
 /**
  * A route to a node: a `ws://` or `wss://` URL, for a relay or a direct
@@ -5783,6 +6004,28 @@ schedules: Array<ScheduleInfo>, };
  * What a schedule or a hook is called on a page.
  */
 export type ScheduleName = string;
+
+/**
+ * A preview's instants and the exact cadence to reuse when saving it.
+ */
+export type SchedulePreview = { 
+/**
+ * The resolved starting instant.
+ */
+after: string, 
+/**
+ * Includes the resolved interval anchor; reuse in create/update.
+ */
+cadence: Cadence, 
+/**
+ * Strictly increasing UTC instants, exactly the requested count.
+ */
+runs: Array<string>, };
+
+/**
+ * Why a preview could not be computed, carried in `WireError.detail`.
+ */
+export type SchedulePreviewError = "unknown_zone" | "unknown_cadence" | "no_future_run" | "time_out_of_range" | "unknown";
 
 /**
  * One run of a schedule.
@@ -6262,7 +6505,30 @@ usage: ContextUsage, } | { "type": "parked",
 /**
  * Why.
  */
-reason: ParkReason, } | { "type": "woken" };
+reason: ParkReason, } | { "type": "woken" } | { "type": "forked", 
+/**
+ * The session forked.
+ */
+from: SessionId, 
+/**
+ * The record of `from` the fork starts after; absent for the
+ * whole conversation.
+ */
+after?: EventSeq | null, } | { "type": "rewound", 
+/**
+ * The `turn_ended` record it went back to.
+ */
+after: EventSeq, 
+/**
+ * The agent's conversation from now on (a fork of the old one,
+ * which the agent keeps).
+ */
+harness_session: HarnessSessionId, 
+/**
+ * How many tool calls left behind edited, deleted or moved files:
+ * those changes were not put back.
+ */
+files_changed: number, };
 
 /**
  * A session on a node. Unique across the fleet, so it can be used
@@ -6706,6 +6972,17 @@ session: SessionId,
  * On or off.
  */
 enabled: boolean, };
+
+/**
+ * `node.set_settings`: change the settings it names; the others stay.
+ * Needs `admin`. Answers the settings in force.
+ */
+export type SetNodeSettings = { 
+/**
+ * How long a structured session may stay idle before its agent is
+ * parked; `unknown` is refused.
+ */
+park_after?: ParkAfter | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -7218,6 +7495,12 @@ container: string | null, };
 export type SymbolKind = "file" | "module" | "namespace" | "package" | "class" | "method" | "property" | "field" | "constructor" | "enum" | "interface" | "function" | "variable" | "constant" | "string" | "number" | "boolean" | "array" | "object" | "key" | "null" | "enum_member" | "struct" | "event" | "operator" | "type_parameter" | "unknown";
 
 /**
+ * Ask this node to sync now. Ack means accepted, not already applied.
+ * Concurrent requests coalesce behind the node's current apply.
+ */
+export type SyncFleet = Record<symbol, never>;
+
+/**
  * Raw bytes to or from a PTY.
  *
  * [Decision Log]
@@ -7672,6 +7955,32 @@ files: { [key in BundlePath]: BundleFile },
 detail: TransferDetail, };
 
 /**
+ * Where a fork or a rewind can start (protocol 14, ADR 0052): the end of a
+ * turn, named as the agent names it.
+ *
+ * [Decision Log]
+ * - Purpose: ACP's `session/fork` forks the whole conversation; both
+ *   installed adapters also read an anchor (`_meta.jetbrains.air.fork`),
+ *   an agent message's id, and fork up to it (Claude) or after the turn
+ *   that holds it (Codex).
+ * - Choice: only a turn's end is a point (a cut inside a turn would leave
+ *   a tool call without its result), and only when the turn's last agent
+ *   message carried an id and nothing but the turn's end followed it (a
+ *   thought, a plan or a tool call after it would be cut off). The point
+ *   carries the conversation it belongs to, so a fork from a point a
+ *   rewind left behind takes the conversation that still holds it.
+ */
+export type TurnPoint = { 
+/**
+ * The turn's last agent message.
+ */
+message: AgentMessageId, 
+/**
+ * The agent's conversation it is in.
+ */
+conversation: HarnessSessionId, };
+
+/**
  * One turn's tokens, as the agent reports them with the turn's end (the
  * prompt's answer `usage`).
  *
@@ -7841,7 +8150,11 @@ code: ErrorCode,
 /**
  * Human-readable explanation. Never contains secrets.
  */
-message: string, };
+message: string, 
+/**
+ * Optional machine-readable reason (protocol 13); older errors omit it.
+ */
+detail?: ErrorDetail | null, };
 
 /**
  * The server identity a query selects. This is not a filesystem grant.

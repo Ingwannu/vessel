@@ -337,6 +337,12 @@ fn session_row(
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
+        .child(crate::agent_mark::mark(
+            card.detail.harness.as_ref(),
+            vessel_app_kit::agent_mark::Size::Fourteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            tokens,
+        ))
         .child(dot(card_color(card, tokens)))
         .child(
             div()

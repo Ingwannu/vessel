@@ -9,10 +9,9 @@ use vessel_proto::{NodeId, ProfileName, Scope, SecretName};
 
 use super::ttl_secs;
 
-/// `vessel fleet ...`. `init`, `join`, `leave`, `status` and `restore` act
-/// on the node of this machine's data directory (`--data-dir`), running or
-/// not; `invite`, `members` and `forget` talk to a node (`--node`, the
-/// home).
+/// `vessel fleet ...`. Without --node, join/leave/status retain offline
+/// data-directory behavior. With --node they use authenticated RPC. Sync,
+/// invite/members/forget always call the selected node; init/restore stay local.
 #[derive(Debug, Subcommand)]
 pub(crate) enum FleetCommand {
     /// Make this node the fleet's home: write `fleet.toml`, naming the
@@ -57,6 +56,9 @@ pub(crate) enum FleetCommand {
     },
     /// Stop following the home. The files it wrote stay as they are.
     Leave,
+    /// Ask the selected machine to sync now (needs admin). Success means
+    /// accepted; status shows what was actually applied.
+    Sync,
     /// This node's place in the fleet: its role, what it last applied, and
     /// the files it left alone and why.
     Status,

@@ -25,9 +25,12 @@
 //!   app's shortcuts (track S2's registry, rebindable) call
 //!   [`Shell::conversation_find`]; once they bind Find, the observer goes
 //!   (opening twice for one press does no harm meanwhile).
-//! - Not yet: the matched words are not highlighted in the text (the
-//!   entry is brought into view); a search is not run again as the
-//!   session grows while the bar is open.
+//! - Marks: the matches are marked in a person's messages, in replies
+//!   and in an answered question's text (GOAT's yellow, the current one
+//!   amber, `Marking`); the search runs again as the session grows while
+//!   the bar is open (`find_grew`). A question still waiting is answered
+//!   over the composer, so its row in the timeline is one quiet line and
+//!   holds no mark.
 
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
@@ -159,6 +162,19 @@ impl Shell {
         if self.areas.conversation.shown.is_none() {
             return;
         }
+        self.open_find(window, cx);
+    }
+
+    /// Update a retained field's language without clearing its search.
+    pub(crate) fn refresh_find_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(bar) = &self.areas.conversation.find {
+            bar.field
+                .set_placeholder(self.t.lang.conversation().find_in_session(), window, cx);
+        }
+    }
+
+    /// Open the bar, or give its field the keys again.
+    fn open_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(bar) = &self.areas.conversation.find {
             bar.field.focus(window, cx);
             return;
@@ -484,3 +500,6 @@ fn small_button(
             },
         ))
 }
+
+#[cfg(test)]
+mod language_tests;

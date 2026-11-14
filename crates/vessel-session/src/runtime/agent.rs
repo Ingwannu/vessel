@@ -59,9 +59,11 @@ impl SessionRuntime {
             desk,
             replaying,
             gate,
+            opening,
         } = actor;
+        let park_setting = self.park_setting();
         let parking = Parking::new(
-            self.config.park_after,
+            *park_setting.borrow(),
             launch.setup.options.clone(),
             launch.setup.resume.clone(),
         );
@@ -86,6 +88,8 @@ impl SessionRuntime {
             gate,
             loader: self.attachments.clone(),
             parking,
+            park_setting,
+            opening,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))
     }
@@ -170,6 +174,7 @@ impl SessionRuntime {
             mcp_servers: ResolvedMcpServers::new(),
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: false,
+            fork: None,
         };
         Ok(vessel_agent::probe(&command, setup).await?)
     }
@@ -251,6 +256,7 @@ impl SessionRuntime {
             // The session's own, which the actor keeps (`moving`): a move
             // never changes whether the agent may ask.
             questions: false,
+            fork: None,
         };
         let (reply, answer) = oneshot::channel();
         let order = MoveOrder {

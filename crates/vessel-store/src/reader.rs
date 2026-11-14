@@ -173,6 +173,13 @@ impl Reader {
         self.with(devices::list)
     }
 
+    pub(crate) fn device_window(
+        &self,
+        after: Option<DeviceId>,
+    ) -> Result<crate::DeviceWindow, StoreError> {
+        self.with(|connection| devices::window(connection, after))
+    }
+
     /// One device, with its credential hash.
     pub(crate) fn device(&self, id: DeviceId) -> Result<Option<StoredDevice>, StoreError> {
         self.with(|connection| devices::find(connection, id))

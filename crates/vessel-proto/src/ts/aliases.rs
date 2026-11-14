@@ -106,6 +106,7 @@ pub enum Alias {
 pub const ALIASES: &[(&str, Alias)] = &[
     ("ActionId", Alias::Named),
     ("AgentLabel", Alias::Named),
+    ("AgentMessageId", Alias::Handle),
     ("AgentName", Alias::Named),
     ("AgentProgram", Alias::Named),
     ("AgentVersion", Alias::Named),
@@ -147,6 +148,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
     ("HttpUrl", Alias::Named),
+    ("IdleMinutes", Alias::Quantity),
     ("InstallId", Alias::Handle),
     ("InterfaceSize", Alias::Quantity),
     ("InvitationSecret", Alias::Secret),
@@ -168,6 +170,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
     ("PresentedToken", Alias::Secret),
+    ("PreviewCount", Alias::Quantity),
     ("ProcessName", Alias::Content),
     ("ProfileName", Alias::Named),
     ("ProjectCommand", Alias::Content),
