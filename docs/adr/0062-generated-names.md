@@ -110,7 +110,9 @@ failed fill becomes fixed fallback text.
 
 ## The choice
 
-The number is `GENERATED_NAMES`, given at merge. Every new field is
+The threshold is `GENERATED_NAMES: Option<ProtocolVersion>`, assigned at
+merge. `None` means no negotiated peer supports it; it is not a reserved
+numeric sentinel. Every new field is
 optional and skipped when absent, so a peer that ignores unknown JSON
 fields keeps working. A peer below that constant is not sent the new
 methods (`since` refuses them, as every method since protocol 5).
@@ -222,33 +224,37 @@ in the plan's "What a screen calls".
 
 `TitleOrigin` is `typed`, `given`, `generated`, or `unknown`.
 
-- `typed`: `SessionSpec.title`, or the last `session.rename`. A person
-  wrote it. Generation does not replace it, even when the text equals
+- `typed`: a person supplied `SessionSpec.title`, a schedule name the
+  person wrote, or the last `session.rename`. Generation does not replace
+  it, even when the text equals
   the prompt's first line.
 - `given`: Vessel derived it by cutting text (`SessionTitle::from_prompt`),
-  including the first prompt's line (ADR 0022) and a fork's derived
-  title. Only the given title of a **new structured session that had no
+  including the first prompt's line (ADR 0022), a side chat's
+  inherited label and a fork's derived title. Only the given title of a
+  **new structured session that had no
   `spec.title`** is eligible to be replaced, and only while it is still
   that title.
 - `generated`: this generator's title, after it parsed.
-- `unknown`: the field was absent (a record from before `GENERATED_NAMES`,
+- `unknown`: an imported specification whose author cannot be attested,
+  or the field was absent (a record from before `GENERATED_NAMES`,
   or a newer origin). Generation does not replace an unknown title. A
   person's old typed title and an old prompt line cannot be told apart,
   so neither is overwritten.
 
 The field is `SessionInfo.title_origin` and `SessionEvent::Renamed.origin`,
-both optional. Absent decodes as `unknown`. A `renamed` event stays
-protocol 9, because a peer of 9 that ignores an unknown field still
-reads `title`. The node still sends a known origin to an older peer:
-the event decoder ignores unknown fields, so the title remains readable. `since` of the
-event does not move. An older fleet hop decodes and re-encodes a typed
-`Forwarded.reply` (`forward.rs`), so it can discard this additive reply
-field. The next reader then sees `unknown` and cannot treat that title as
-eligible for generation. Protocol 20's envelope version rule protects
-request fields; it does not preserve unknown reply fields. The
-compatibility test exercises an older-shaped decoder and encoder; a
-mixed-version binary fleet remains a manual verification.
-`SessionInfo` from a node below `GENERATED_NAMES` omits the field.
+both optional. Absent decodes as `unknown`. The durable log keeps known
+origins without depending on this build's protocol number. At the wire
+edge, both `SessionInfo::for_protocol` and `SessionEvent::for_protocol`
+replace the origin with `unknown` for a peer below the assigned threshold,
+or while it is `None`; serialization then omits the unknown field. A
+`renamed` event stays protocol 9 because its title remains readable.
+An older fleet hop decodes and re-encodes a typed `Forwarded.reply`
+(`forward.rs`), so it can discard additive reply fields too. The next
+reader sees `unknown`, never an inferred person or generated title.
+Protocol 20's envelope rule protects request fields; it does not preserve
+unknown reply fields. Tests cover old-shaped decoding and re-encoding,
+and the same adaptation with unassigned and synthetic assigned thresholds.
+A mixed-version binary fleet remains a manual verification.
 
 Generation is scheduled only after `session.create` has published the
 given title and returned. It is not scheduled for a terminal session, a

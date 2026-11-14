@@ -162,18 +162,18 @@ impl TitleOrigin {
         matches!(self, Self::Unknown)
     }
 
-    /// Leave the field out of `SessionInfo`: unknown, or this build does
-    /// not speak [`GENERATED_NAMES`](crate::node::GENERATED_NAMES) yet.
-    /// A `renamed` event still carries a known origin. Its version does
-    /// not move. A typed older hop can discard origin; its next reader
-    /// treats that title as unknown and never replaces it automatically.
+    /// Hide provenance only at a negotiated wire edge. Stored JSON keeps
+    /// it even while the merge-assigned threshold is absent.
     #[must_use]
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's skip_serializing_if callback requires a borrowed field"
-    )]
-    pub(crate) const fn omit_on_info(&self) -> bool {
-        self.is_unknown() || !crate::node::speaks_generated_names()
+    pub(crate) const fn for_protocol(
+        self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Self {
+        match assigned {
+            Some(since) if protocol.get() >= since.get() => self,
+            Some(_) | None => Self::Unknown,
+        }
     }
 }
 
@@ -246,11 +246,8 @@ mod tests {
             serde_json::to_string(&TitleOrigin::Generated).unwrap(),
             "\"generated\""
         );
-        assert!(TitleOrigin::omit_on_info(&TitleOrigin::Unknown));
-        assert_eq!(
-            TitleOrigin::omit_on_info(&TitleOrigin::Typed),
-            !crate::node::speaks_generated_names()
-        );
+        assert!(TitleOrigin::is_unknown(&TitleOrigin::Unknown));
+        assert!(!TitleOrigin::is_unknown(&TitleOrigin::Typed));
     }
 
     #[test]
@@ -275,7 +272,10 @@ mod tests {
             origin: TitleOrigin::Generated,
         };
         assert_eq!(event.since(), ProtocolVersion::new(9));
-        assert_eq!(event.for_protocol(ProtocolVersion::new(9)), None);
+        assert_eq!(
+            event.origin_for_protocol(ProtocolVersion::new(9), Some(ProtocolVersion::new(10))),
+            Some(read.clone())
+        );
         let encoded = serde_json::to_string(&event).unwrap();
         let older: OldRename = serde_json::from_str(&encoded).unwrap();
         let OldRename::Renamed { title } = &older;
@@ -292,19 +292,77 @@ mod tests {
         assert!(!serde_json::to_string(&read).unwrap().contains("origin"));
     }
 
-    #[test]
-    fn an_old_session_info_is_unknown_even_when_its_spec_has_a_title() {
-        use crate::{HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec};
-        let spec = SessionSpec::new(
-            HarnessKind::Codex,
-            SessionMode::Structured {
+    fn titled_info() -> crate::SessionInfo {
+        let spec = crate::SessionSpec::new(
+            crate::HarnessKind::Codex,
+            crate::SessionMode::Structured {
                 model: None,
                 resume: None,
                 options: Vec::new(),
             },
         )
-        .with_title("Mine".parse().unwrap());
-        let mut info = SessionInfo::new(SessionId::random(), spec, chrono::Utc::now());
+        .with_title("My title".parse().unwrap());
+        crate::SessionInfo::new(crate::SessionId::random(), spec, chrono::Utc::now())
+    }
+
+    #[test]
+    fn negotiated_origins_are_hidden_until_assigned_but_storage_keeps_them() {
+        use crate::{ProtocolVersion, SessionEvent};
+        let event = SessionEvent::Renamed {
+            title: "My title".parse().unwrap(),
+            origin: TitleOrigin::Generated,
+        };
+        let info = titled_info();
+        // Durable JSON is independent of wire negotiation.
+        assert!(serde_json::to_string(&event).unwrap().contains("origin"));
+        assert!(
+            serde_json::to_string(&info)
+                .unwrap()
+                .contains("title_origin")
+        );
+        let protocol = crate::PROTOCOL_VERSION;
+        let old_event = event
+            .for_protocol(protocol)
+            .unwrap_or_else(|| event.clone());
+        let old_info = info.for_protocol(protocol).unwrap_or_else(|| info.clone());
+        assert_eq!(
+            serde_json::to_string(&old_event)
+                .unwrap()
+                .contains("origin"),
+            crate::speaks_generated_names()
+        );
+        assert_eq!(
+            serde_json::to_string(&old_info)
+                .unwrap()
+                .contains("title_origin"),
+            crate::speaks_generated_names()
+        );
+        let assigned = Some(ProtocolVersion::new(20));
+        assert_eq!(
+            event.origin_for_protocol(ProtocolVersion::new(20), assigned),
+            None
+        );
+        assert_eq!(
+            info.for_protocol_with_names(ProtocolVersion::new(20), assigned),
+            None
+        );
+        for threshold in [None, assigned] {
+            let old = ProtocolVersion::new(19);
+            let event = event.origin_for_protocol(old, threshold).unwrap();
+            let info = info.for_protocol_with_names(old, threshold).unwrap();
+            assert!(!serde_json::to_string(&event).unwrap().contains("origin"));
+            assert!(
+                !serde_json::to_string(&info)
+                    .unwrap()
+                    .contains("title_origin")
+            );
+        }
+    }
+
+    #[test]
+    fn an_old_session_info_is_unknown_even_when_its_spec_has_a_title() {
+        use crate::SessionInfo;
+        let mut info = titled_info();
         assert_eq!(info.title_origin, TitleOrigin::Typed);
         // Removing the field models a pre-origin node without inferring
         // who authored a title from its text or the create specification.

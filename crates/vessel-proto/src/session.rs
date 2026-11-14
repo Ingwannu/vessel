@@ -276,10 +276,7 @@ pub struct SessionInfo {
     /// [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
     /// build does not speak the field yet, or the row was stored before
     /// it. A `renamed` event carries the same origin.
-    #[serde(
-        default,
-        skip_serializing_if = "crate::title::TitleOrigin::omit_on_info"
-    )]
+    #[serde(default, skip_serializing_if = "crate::title::TitleOrigin::is_unknown")]
     pub title_origin: crate::title::TitleOrigin,
     /// What a person marked on it: pinned, archived, unread (protocol 10,
     /// ADR 0026). Kept by the node, so every client sees the same; left

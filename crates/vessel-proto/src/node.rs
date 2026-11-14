@@ -39,16 +39,16 @@ impl fmt::Display for ProtocolVersion {
 pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(20);
 
 /// The protocol version that speaks generated names (ADR 0062). The
-/// integrator sets this number when the change merges. Callers compare
-/// against the constant; this track does not copy it into
+/// integrator assigns this at merge; `None` means no peer speaks it.
+/// Callers compare against it; this track does not copy it into
 /// [`PROTOCOL_VERSION`].
-pub const GENERATED_NAMES: ProtocolVersion = ProtocolVersion::new(u32::MAX);
+pub const GENERATED_NAMES: Option<ProtocolVersion> = None;
 
 /// Whether this build puts generated-name fields on the wire. False until
 /// [`GENERATED_NAMES`] is at most [`PROTOCOL_VERSION`].
 #[must_use]
 pub const fn speaks_generated_names() -> bool {
-    PROTOCOL_VERSION.get() >= GENERATED_NAMES.get()
+    matches!(GENERATED_NAMES, Some(version) if version.get() <= PROTOCOL_VERSION.get())
 }
 
 /// The oldest protocol this build still accepts. Versions 3 to 20 only add

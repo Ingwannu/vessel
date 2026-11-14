@@ -211,6 +211,18 @@ impl Fixture {
         DataDir::new(self.data.path())
     }
 
+    /// Read only after stop: the wire intentionally hides origin until
+    /// its version is assigned, while the durable fact must already agree.
+    pub(crate) async fn saved_title_origin(&self, id: SessionId) -> vessel_proto::TitleOrigin {
+        let opened =
+            vessel_store::Store::open(&self.data_dir(), vessel_store::StoreConfig::default())
+                .await
+                .unwrap();
+        let info = opened.store.session(id).await.unwrap().unwrap();
+        opened.store.close().await;
+        info.title_origin
+    }
+
     pub(crate) async fn start(&self) -> Node {
         self.start_with(|_| {}).await
     }

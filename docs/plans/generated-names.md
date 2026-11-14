@@ -1,8 +1,8 @@
 # Generated names
 
 ADR 0062 is the contract. This file is the reading notes, the reuse
-decision, and the slice list. The protocol number is `GENERATED_NAMES`,
-given at merge. Neither document chooses it.
+decision, and the slice list. The protocol threshold is the optional
+`GENERATED_NAMES`, assigned at merge. Neither document chooses it.
 
 ## What Paseo does
 
@@ -178,6 +178,11 @@ that already uses `..` is left alone.
   applies to the inner request (`docs/PROTOCOL.md` 42–47).
   Runtime tests assert prompt-derived and typed origins against the fake
   harness; store tests cover migration, each origin and reopening.
+- **Source return addressed:** the merge threshold is optional (no sentinel);
+  wire adaptation hides both origin fields together, independent of durable
+  JSON. Side chats are given; imports are unknown; schedule names are typed.
+  Each creation path has a durable end-to-end assertion after stopping its
+  fake node. Targeted checks cover these paths; the whole gate remains owed.
 - **Remaining slice 2:** 2b settings and project instructions; 2c the
   bounded completion seam; 2d automatic scheduling and application. The
   application must compare the expected given title inside the actor:
@@ -194,8 +199,10 @@ that already uses `..` is left alone.
   No generation exists in 2a. Nothing calls a model. No branch work starts
   before slice 2 is complete.
 - `PROTOCOL_VERSION` stays at the base. `GENERATED_NAMES` is the single
-  merge-assigned threshold. Until assigned, `SessionInfo` omits its
-  origin; a known rename origin remains an additive field, as the ADR
-  requires. Generated TypeScript is regenerated with each wire slice.
+  merge-assigned threshold, optional and `None` until assigned. Both fields
+  are
+  removed for unsupported peers at protocol adaptation, while stored JSON
+  retains their known origins. Generated TypeScript is regenerated with
+  each wire slice.
 - Not verified: real models, live nodes, UI interactions, an actual
   old-binary forwarding hop, Windows or macOS execution.

@@ -186,7 +186,7 @@ impl SessionEvent {
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         if self.since() <= protocol {
-            return None;
+            return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
         let log = |line: String| {
             Some(Self::Agent {
@@ -271,6 +271,23 @@ impl SessionEvent {
                 }
             )),
         }
+    }
+
+    /// One origin rule shared with synthetic assigned-threshold tests,
+    /// without changing the durable event's own protocol version.
+    pub(crate) fn origin_for_protocol(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        if let Self::Renamed { title, origin } = self {
+            let adapted = origin.for_protocol(protocol, assigned);
+            return (adapted != *origin).then(|| Self::Renamed {
+                title: title.clone(),
+                origin: adapted,
+            });
+        }
+        None
     }
 }
 

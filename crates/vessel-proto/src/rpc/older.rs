@@ -106,6 +106,19 @@ impl Reply {
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
+            Self::ResumeSession(session) => info(session).map(Self::ResumeSession),
+            Self::MarkSession(session) => info(session).map(Self::MarkSession),
+            Self::ParkSession(session) => info(session).map(Self::ParkSession),
+            Self::WakeSession(session) => info(session).map(Self::WakeSession),
+            Self::ForkSession(session) => info(session).map(Self::ForkSession),
+            Self::RewindSession(session) => info(session).map(Self::RewindSession),
+            Self::ImportSession(imported) => imported.session.as_deref().and_then(info).map(|info| {
+                let mut imported = imported.clone();
+                imported.session = Some(Box::new(info));
+                Self::ImportSession(imported)
+            }),
+            Self::ExportSession(manifest) => manifest_for_protocol(manifest, protocol).map(Self::ExportSession),
+            Self::ExportMemory(manifest) => manifest_for_protocol(manifest, protocol).map(Self::ExportMemory),
             Self::Subscribe(subscribed) => info(&subscribed.info).map(|info| {
                 let mut subscribed = subscribed.clone();
                 subscribed.info = info;
@@ -144,9 +157,6 @@ impl Reply {
             | Self::ListPeers(_)
             | Self::ListNodes(_)
             | Self::ForgetNode(_)
-            | Self::ExportSession(_)
-            | Self::ImportSession(_)
-            | Self::ExportMemory(_)
             | Self::ImportMemory(_)
             | Self::ReadTransfer(_)
             | Self::CloseTransfer(_)
@@ -171,8 +181,6 @@ impl Reply {
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::GetConversation(_)
-            | Self::ResumeSession(_)
-            | Self::MarkSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)
@@ -263,15 +271,38 @@ impl Reply {
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
-            | Self::ParkSession(_)
-            | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
-            | Self::ForkSession(_)
-            | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
         }
     }
+}
+
+/// Transfers carry the same session information as direct reads; their
+/// nested copy must not bypass field-level compatibility.
+fn manifest_for_protocol(
+    manifest: &crate::TransferManifest,
+    protocol: ProtocolVersion,
+) -> Option<crate::TransferManifest> {
+    let detail = match &manifest.detail {
+        crate::TransferDetail::Session {
+            harness_session,
+            cwd,
+            info,
+            options,
+        } => info
+            .for_protocol(protocol)
+            .map(|info| crate::TransferDetail::Session {
+                harness_session: harness_session.clone(),
+                cwd: cwd.clone(),
+                info: Box::new(info),
+                options: options.clone(),
+            }),
+        crate::TransferDetail::Memory { .. } => None,
+    }?;
+    let mut adapted = manifest.clone();
+    adapted.detail = detail;
+    Some(adapted)
 }
 
 /// The envelope's inner reply, rewritten.
@@ -290,17 +321,32 @@ impl SessionInfo {
     /// not archived keeps protocol 8's place in the archive.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if protocol >= ENDED_OUTSIDE_THE_ARCHIVE || self.status.is_live() {
-            return None;
-        }
-        let board = self.board.as_ref()?;
-        if board.column == KanbanColumn::Archive {
+        self.for_protocol_with_names(protocol, crate::GENERATED_NAMES)
+    }
+
+    /// Adapt all fields together; hiding provenance must not bypass an
+    /// older peer's archive placement rule.
+    pub(crate) fn for_protocol_with_names(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        let title_origin = self.title_origin.for_protocol(protocol, assigned);
+        let board = self.board.as_ref().filter(|board| {
+            protocol < ENDED_OUTSIDE_THE_ARCHIVE
+                && !self.status.is_live()
+                && board.column != KanbanColumn::Archive
+        });
+        if title_origin == self.title_origin && board.is_none() {
             return None;
         }
         let mut info = self.clone();
-        info.board = Some(SessionBoard::archived(
-            self.ended_at.unwrap_or(board.last_activity_at),
-        ));
+        info.title_origin = title_origin;
+        if let Some(board) = board {
+            info.board = Some(SessionBoard::archived(
+                self.ended_at.unwrap_or(board.last_activity_at),
+            ));
+        }
         Some(info)
     }
 }
@@ -321,7 +367,7 @@ mod tests {
     const V9: ProtocolVersion = ProtocolVersion::new(9);
     const V10: ProtocolVersion = ProtocolVersion::new(10);
 
-    fn exited() -> SessionInfo {
+    pub(super) fn exited() -> SessionInfo {
         let spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
             SessionMode::Structured {
@@ -362,6 +408,20 @@ mod tests {
     }
 
     #[test]
+    fn hiding_origin_still_adapts_archive_placement() {
+        let mut info = exited();
+        info.title_origin = crate::TitleOrigin::Given;
+        let old = info.for_protocol_with_names(V9, Some(V10)).unwrap();
+        assert_eq!(old.title_origin, crate::TitleOrigin::Unknown);
+        assert_eq!(
+            old.board,
+            Some(SessionBoard::archived(DateTime::UNIX_EPOCH))
+        );
+        let current = info.for_protocol_with_names(V10, Some(V10));
+        assert_eq!(current, None);
+    }
+
+    #[test]
     fn a_page_passed_through_the_envelope_is_rewritten_too() {
         let page = EventPage {
             records: vec![EventRecord {
@@ -397,3 +457,6 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod origins;
