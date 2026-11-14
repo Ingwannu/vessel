@@ -1,8 +1,11 @@
 # ADR 0063: Labels, background, reload, and the log's selection
 
-Status: accepted, 2026-11-14 (milestone 12). Provisional protocol 21.
-The node integrator assigns the final number; this commit does not raise
-`PROTOCOL_VERSION`. The plan is `docs/plans/agent-lifecycle-parity.md`.
+Status: proposed, 2026-11-14 (milestone 12). The protocol number is the
+one given at merge. This commit does not change `PROTOCOL_VERSION`.
+New calls and fields are gated on one constant, `lifecycle::SINCE`, so
+the integrator changes that one line. The plan is
+`docs/plans/agent-lifecycle-parity.md`. This track adds no
+`node.settings` key.
 
 ## Purpose and intent
 
@@ -31,11 +34,15 @@ written below.
   view already joins streamed reply chunks. Follow is a subscription;
   subscriptions are not forwarded (`session.read` with `wait` is).
 - A live structured session is restarted today by a move to another
-  profile and by a wake: hold input, stop the process (`SIGTERM`, then
-  `SIGKILL` after a grace), start it again with `session/load` on the
-  same harness session id, drop the replay because the log already has
-  it. Parking, rewind and fork own their own uses of that stop and
-  start. This track does not change those, and it does not change
+  profile and by a wake: hold input, stop the process through
+  `Child::signal`, start it again with `session/load` on the same
+  harness session id, drop the replay because the log already has it.
+  On Unix that signal reaches the process group; on Windows there is
+  no polite signal, so the same call terminates the child's job
+  (`crates/vessel-proc/src/child.rs`, the comment on `signal`). Reload
+  uses that stop. It does not add a signal, a service unit or a
+  startup script. Parking, rewind and fork own their own uses of it.
+  This track does not change those, and it does not change
   `vessel-agent` (the drivers are another track's).
 - An ended session starts again only through `session.resume`. A parked
   session stays `running` and starts again only through a wake. A reload
@@ -44,7 +51,9 @@ written below.
   call a method until `workspace/policy.rs` names them. Every new method
   also has to decide `forwardable`, `Call::since`, and `Reply::for_protocol`.
 - The store's schema is 14. A migration is appended, never edited.
-  `PROTOCOL_VERSION` is 20. Minimum stays 2.
+  `PROTOCOL_VERSION` stays that base. Minimum stays 2. `lifecycle::SINCE`
+  is the only new version this track names, and its value is assigned
+  at merge.
 - No new crate edge and no new dependency.
 
 ## Alternatives considered
@@ -75,10 +84,11 @@ written below.
 
 ## The choice
 
-Provisional protocol 21 adds two calls, two events, and fields on the
-session and on `session.list`. Schema 15 (appended when the code lands)
-stores the current labels and the listing. `PROTOCOL.md` is updated in
-the commit that raises the version, not in this one.
+The number given at merge adds two calls, two events, and fields on the
+session and on `session.list`, all gated on `lifecycle::SINCE`. The
+next schema append (when the code lands) stores the current labels and
+the listing. `PROTOCOL.md` is updated in the commit that the integrator
+uses to publish the number, not in this one.
 
 ### Labels
 
@@ -96,7 +106,8 @@ the last value.
 
 Set at `session.create` (and so at `vessel run`, including `--resume`),
 copied by `session.import` with the row, and replaced as a patch by
-`session.labels` (`operate`, forwardable, since 21). The reply is the
+`session.labels` (`operate`, forwardable, since `lifecycle::SINCE`).
+The reply is the
 `SessionInfo`. The log gains `labels_changed` with the whole map, so the
 latest record is the state. `SessionSpec` keeps what creation asked;
 the column keeps the current map, as the title's column does.
@@ -116,20 +127,21 @@ a schedule-definer's omission is `shown`.
 background sessions out. `all` includes them. It does not change which
 archived sessions appear; those stay listed as they are today.
 
-A peer that negotiated a protocol older than 21 has no field. The node
-includes background sessions in that peer's list and rewrites each
-`SessionInfo` so the listing reads `shown` and the labels are absent.
-A current client does not send `scope: all`, a label filter, a
-background listing or any labels to an older node (`Call::since` is 21
-when any of those is present). `params: null` keeps decoding as the
-default request.
+A peer that negotiated a protocol older than `lifecycle::SINCE` has no
+field. The node includes background sessions in that peer's list and
+rewrites each `SessionInfo` so the listing reads `shown` and the labels
+are absent. A current client does not send `scope: all`, a label
+filter, a background listing or any labels to an older node
+(`Call::since` is `lifecycle::SINCE` when any of those is present).
+`params: null` keeps decoding as the default request.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
 not care about the listing. A background session is still there.
 
 ### Reload
 
-`session.reload` (`operate`, forwardable, since 21) restarts the live
+`session.reload` (`operate`, forwardable, since `lifecycle::SINCE`)
+restarts the live
 process and keeps the session id, the log, the subscribers, the title,
 the labels, the listing, the marks, the profile, the place, the queue
 and the harness session id. The reply is the `SessionInfo`. The log
@@ -156,8 +168,11 @@ to the point the behaviours differ:
    move already uses (10 seconds). If it does not end, the call is
    `conflict`, the process stays, and the turn stays. The reload does
    not kill a turn that failed to cancel.
-3. The process is then stopped with the existing stop. If that stop
-   fails, the call is `unavailable` and nothing new is spawned.
+3. The process is then stopped with the existing `Child::signal`. On
+   Unix that is the group signal a move already uses. On Windows the
+   same call terminates the job, because Windows has no polite signal
+   for a windowless process. If that stop fails, the call is
+   `unavailable` and nothing new is spawned.
 4. The same launch as a wake starts the replacement with `session/load`
    on the same harness session id, so the current tool servers are the
    ones the launch already injects. Its replay is dropped.
@@ -215,6 +230,78 @@ No reload tool and no log-filter tool.
 | Old client, new node | `session.list` of `params: null` returns every session, background included, with listing and labels removed from each `SessionInfo`. `labels_changed` and `reloaded` arrive as a `HarnessLog` line (`vessel: labels: …`, `vessel: reloaded`) at the same sequence, so the log does not grow a gap. Unknown methods are the node's existing refusal. |
 | New client, new node, through an old hop | `Call::since` includes the new fields, so the client does not hand a background listing or a label patch to a hop that would drop it and create or update the wrong session. |
 
+### What reload is allowed to reach
+
+Reload starts no listener, no browser and no script of its own. The
+replacement is the session's existing harness, launched as that session
+is already launched: the same profile, the same working directory, the
+same agent credential already held in the session's `vessel` MCP server.
+It gains no second credential. The refusals above happen before any
+spawn. A test fake of a harness stays behind `cfg(test)` or a test-only
+feature a release build cannot enable; this track adds no fake that
+answers in a product build.
+
+## Differences from Paseo
+
+Each line below was read. The quote is the behaviour; the reason is why
+Vessel does not copy it.
+
+- Labels have no maximum in Paseo's schema (`messages.ts:915`,
+  `labels: z.record(z.string(), z.string()).default({})`). Vessel caps a
+  key at 64 scalars, a value at 256, and a session at 32, and refuses a
+  control character or `=`. Reason: a pairing label is already bounded
+  at 64 scalars, and an unbounded map is a reply the other list calls
+  refuse rather than cut.
+- Paseo deletes one key with `null` (`applyLabelPatch`,
+  `agent-manager.ts:631`). The CLI and MCP send only strings. Vessel's
+  public patch only sets keys. Reason: the public surface has no
+  delete, and a silent drop of an unknown key would hide a typo.
+- A list filter without `=` is ignored by Paseo's CLI parser
+  (`ls.ts:126`). Vessel refuses it. Reason: a typo must not look like
+  an empty filter.
+- An unknown `--filter` is a substring of the timeline type
+  (`logs.ts:226`, the `default` arm). Vessel accepts only `tools`,
+  `text`, `errors` and `permissions`. Reason: a typo must not print an
+  empty log.
+- Background is `workspace.background`, creation-only
+  (`docs/agent-lifecycle.md:186`, "controls discovery only"). Vessel
+  puts `SessionListing` on the session. Reason: a project is a shared
+  folder, not an agent workspace; hiding the folder would hide sessions
+  nobody asked to hide. The flag stays creation-only, as Paseo's does.
+- `ls -a` includes archived and background (`ls.ts:149`,
+  `options.background || options.all`). Vessel's `--background` only
+  adds background sessions. Reason: Vessel already lists archived
+  sessions; this track does not change that.
+- User-facing reload wipes the in-memory timeline
+  (`agent-manager.ts:1627`, "the timeline is wiped"). Vessel keeps the
+  log and drops the replay. Reason: the log is the cursor; deleting it
+  leaves a gap.
+- A closed agent is loaded by refresh (`session.ts:4760`, the branch
+  that calls `ensureAgentLoaded`). Vessel refuses a session that is not
+  live and names `session.resume`. A parked session is refused and
+  names `session.wake`. Reason: those two calls already own those
+  starts, and this track must not grow a second one.
+- After a successful close, a failed resume leaves the agent closed
+  (`docs/agent-lifecycle.md:47`, "leaves the durable agent closed and
+  retryable"). Vessel does the same: the session is `failed`, the log
+  stays, `session.resume` retries. It does not start the old process
+  again, which is what a failed move does. Reason: that sentence, not
+  the move's recovery.
+- If the turn's interrupt times out, reload fails and the turn stays
+  (`docs/agent-lifecycle.md:116`, "keeps its active foreground turn").
+  Vessel does the same, and does not then kill the process.
+- There is no MCP reload tool (no `reload` registration was found in
+  `paseo-tools.ts`; the RPC is `refreshAgent`, `reload.ts:66`). Vessel
+  adds none and refuses the RPC to agents. Reason: the same absence.
+- Paseo's follow writer joins fragments (`logs.ts`,
+  `createFollowTranscriptWriter`). Vessel's log view already joins
+  reply chunks, and follow uses that. Reason: one renderer.
+
+Not read, so not asserted: the app's reload menu handler beyond the
+tooltip string in `packages/app/src/i18n/resources/en.ts` ("Reload agent
+to update skills, MCPs or login status."), and any label maximum outside
+`messages.ts`, `update.ts`, `import.ts`, `ls.ts` and `paseo-tools.ts`.
+
 ## Why this and not the others
 
 The session is already the thing Vessel lists, reads and restarts. Labels
@@ -235,9 +322,12 @@ other list calls refuse rather than truncate.
   driver. If the session runtime cannot restart without a new function
   in `vessel-agent`, the implementation stops and reports instead of
   editing that crate.
-- Schema 15 and protocol 21 land with the first code slice, together
-  with `docs/PROTOCOL.md` and the store sentence of `docs/ARCHITECTURE.md`.
-  No crate edge is added, so ADR 0001 and the crate table do not change.
+- The schema append and `lifecycle::SINCE` land with the first code
+  slice. `PROTOCOL_VERSION` stays the base until the integrator sets
+  the constant and, in that same merge, the published version.
+  `docs/PROTOCOL.md` and the store sentence of `docs/ARCHITECTURE.md`
+  change then. No crate edge is added, so ADR 0001 and the crate table
+  do not change.
 - The page learns the fields when `web/src/wire` is regenerated with
   the protocol change. This track does not draw a screen.
 - Not verified here: no process was restarted and no list was filtered.

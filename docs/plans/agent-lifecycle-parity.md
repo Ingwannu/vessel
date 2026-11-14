@@ -1,9 +1,10 @@
 # Agent lifecycle parity
 
 Labels, a background listing, a live reload, and selectors on `vessel log`.
-The decision is ADR 0063. Provisional protocol 21; the integrator assigns
-the final number. This track does not touch parking, rewind, fork, or
-`vessel-agent`.
+The decision is ADR 0063. The protocol number is the one given at merge.
+Calls and fields are gated on `lifecycle::SINCE`; this branch does not
+change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
+it does not touch parking, rewind, fork, or `vessel-agent`.
 
 ## What Paseo does
 
@@ -119,9 +120,9 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 | Asset | Where | Decision |
 | --- | --- | --- |
 | Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. |
-| Marks as columns | schema 7 | Modify: schema 15 adds `labels` (JSON text, null is empty) and `listing` (`shown` default). |
+| Marks as columns | schema 7 | Modify: the next schema append adds `labels` (JSON text, null is empty) and `listing` (`shown` default). The number is whatever the migration list's length is at merge. |
 | Unit `session.list` | `rpc/requests.rs` | Modify: a struct that still decodes `params: null`. |
-| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need 21; older replies drop them; new events have a `HarnessLog` stand-in. |
+| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
 | `Method::forwardable` and its pinned list | `forward.rs`, `rpc/tests.rs` | Modify: `session.labels` and `session.reload` are forwardable, as rename and wake are. |
 | Agent refusal | `vessel-node/src/workspace/policy.rs` | Modify: `session.labels` allowed; `session.reload` refused with its own reason, not the file-and-git sentence. |
 | Stop and `session/load` | `vessel-session/src/moving.rs`, parking's wake | Reuse from a new reload order. Do not change move, park, wake, rewind or fork. |
@@ -136,15 +137,16 @@ bounds, the map and the timestamps.
 ## Slices
 
 1. **This commit.** ADR 0063 and this plan. No code, so `PROTOCOL_VERSION`
-   stays 20 and schema stays 14.
+   and the schema stay at the base.
 2. **Labels.** `LabelKey`, `LabelValue`, `SessionLabels`. Create, import
    copy, `session.labels`, `labels_changed` and its stand-in, the list
-   filter, schema 15's `labels` column, CLI `--label`, MCP `labels` and
+   filter, the labels column on the next schema append, CLI `--label`, MCP `labels` and
    `set_labels`. Tests beside the parser, the patch, the filter and the
    old-peer rewrite.
-3. **Background.** `SessionListing`, creation inheritance, schema 15's
-   `listing` column (same migration as slice 2 if slice 2 has not yet
-   shipped it; if it has, schema 16). `session.list`'s `scope`. CLI
+3. **Background.** `SessionListing`, creation inheritance, the `listing`
+   column on the same schema append as the labels column when that
+   append has not shipped yet, otherwise the append after it.
+   `session.list`'s `scope`. CLI
    `--background` on `run` and on `sessions`. MCP `listing` and `scope`.
    Tests: default hides, `all` shows, an exact get still finds it, an
    older peer is not filtered and does not see the field, an agent
@@ -162,9 +164,11 @@ bounds, the map and the timestamps.
    the testkit's fakes and an event, never a sleep and never a real
    agent.
 
-The commit that first changes a wire type raises protocol 21 (or the
-integrator's number), updates `docs/PROTOCOL.md`, regenerates
-`web/src/wire`, and extends the store sentence in `docs/ARCHITECTURE.md`.
+The commit that first changes a wire type adds `lifecycle::SINCE` and
+gates the new calls and fields on it. It does not change
+`PROTOCOL_VERSION`. The integrator sets that one constant, and in the
+merge updates `docs/PROTOCOL.md`. The same code commit regenerates
+`web/src/wire` and extends the store sentence in `docs/ARCHITECTURE.md`.
 No row of the crate table changes.
 
 ## Tests the contract requires
@@ -181,7 +185,8 @@ No row of the crate table changes.
   with `scope: all`, and present in `session.get`. An older connection's
   list includes it and the encoded info has no listing field.
 - `session.create` with `listing: background` sent toward a negotiated
-  protocol of 20 is refused by the client before the socket write.
+  protocol older than `lifecycle::SINCE` is refused by the client before
+  the socket write.
 - Reload of a terminal, a parked session, an ended session, and a
   session with no harness session id does not spawn. A running turn
   that does not end within the grace does not spawn a replacement.
@@ -194,9 +199,10 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code.
+- Done: slice 1, the ADR and this plan. No code. `PROTOCOL_VERSION` is
+  not changed. The number is `lifecycle::SINCE`, set at merge.
 - Half-done: nothing.
-- Next: slice 2, labels, starting at `vessel-proto` (`LabelKey` and the
-  `session.labels` row). Do not raise the protocol until that commit's
-  wire types exist. Do not start reload or the log flags before labels
+- Next: slice 2, labels, starting at `vessel-proto` (`LabelKey`,
+  `lifecycle::SINCE`, and the `session.labels` row). Do not change
+  `PROTOCOL_VERSION`. Do not start reload or the log flags before labels
   and the listing are in.
