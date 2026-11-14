@@ -667,3 +667,23 @@ the driver now starts its Xvfb with an authority cookie of its own.
 
 Captures: the scratch directory's `s3/shots/palette/` (matrix) and
 `s3/shots/palette-motion/` (strips, with `times.txt` per strip).
+
+### Resume point (track S3, 2026-11-14 04:40 UTC)
+
+- Done: palette (`153da701`, accepted); `view::matcher` rename after C's
+  `view::search` (`b89e4528`); every app-wide key through the registry with
+  GOAT's queue keys and repeat suppression (`62f80a87`); Settings ›
+  Shortcuts page (`b0818ba5`). The gate (fmt, clippy, test) passed on
+  `b0818ba5`'s tree.
+- Half-done: Settings › Shortcuts has no captures yet (both themes, both
+  sizes, both languages, recording, a refused key, the reassign question,
+  scale 1.25/1.5 and the pointer over the palette and its sheet, per the
+  owner's words 26-27); pair the capture fleet by the CLI pipe from now on.
+- Next: those captures and the slice-2 report; then the palette's Messages
+  group (C's seams on the lead since `9461f149`: `message_search_query`,
+  `message_search_rows`, `message_row`, `message_search_note`,
+  `open_search_hit`, `message_search_more`), tell C to remove `example`
+  and `hear_find`; then the sidebar (group, sort, filter, pin, unread,
+  children), then notifications. Kit requests (command row with agent
+  mark, status badge, elapsed time; a tooltip that opens downward) are
+  with the lead.
