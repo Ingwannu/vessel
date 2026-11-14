@@ -61,6 +61,9 @@ pub struct Labels {
     pub none: &'static str,
     pub start_without_setup: &'static str,
     pub approve_and_run: &'static str,
+    /// In place of Approve, when the set holds commands the app cannot
+    /// show yet (terminal commands, ADR 0066).
+    pub approval_unseen: &'static str,
     pub script_warning: &'static str,
     pub badge_new: &'static str,
     pub badge_changed: &'static str,

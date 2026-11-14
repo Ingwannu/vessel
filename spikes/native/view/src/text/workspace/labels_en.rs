@@ -58,6 +58,7 @@ pub const EN: Labels = Labels {
     none: "None.",
     start_without_setup: "Start without setup",
     approve_and_run: "Approve and run",
+    approval_unseen: "This set also starts terminal commands, which this app cannot show yet, so it cannot be approved here.",
     script_warning: "A command that runs a script of the repository (./setup.sh, npm ci running package scripts) runs whatever that script says on that branch.",
     badge_new: "new",
     badge_changed: "changed",

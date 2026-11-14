@@ -28,7 +28,9 @@
 
 use chrono::{DateTime, Utc};
 use vessel_proto::scripts::ScriptEntry;
-use vessel_proto::workspace::{ApprovedCommands, CommandsDigest, ProjectCommand, ProjectCommands};
+use vessel_proto::workspace::{
+    ApprovedCommands, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands,
+};
 
 /// A set of commands as the node lists it, borrowed from its answer.
 #[derive(Debug, Clone, Copy)]
@@ -45,6 +47,10 @@ pub struct Listed<'a> {
     pub scripts: &'a [ScriptEntry],
     /// The set approved last, when the node kept it.
     pub last_approved: Option<&'a ApprovedCommands>,
+    /// Terminal commands the set also approves (ADR 0066). The app does not
+    /// draw them yet, so a set that has any is refused, not offered
+    /// (`approves_unseen`).
+    pub terminals: &'a [FileTerminal],
 }
 
 impl<'a> Listed<'a> {
@@ -63,6 +69,7 @@ impl<'a> Listed<'a> {
                 digest,
                 approved,
                 scripts,
+                terminals,
                 last_approved,
             } => Some(Self {
                 setup,
@@ -71,9 +78,20 @@ impl<'a> Listed<'a> {
                 approved: *approved,
                 scripts,
                 last_approved: last_approved.as_deref(),
+                terminals,
             }),
             ProjectCommands::None | ProjectCommands::Invalid { .. } => None,
         }
+    }
+
+    /// Whether approving this set would approve something the app cannot
+    /// show: terminal commands (ADR 0066), until a slice draws them. The
+    /// approval card refuses such a set in a plain sentence and offers no
+    /// Approve, as the page does; the digest covers them, so approving
+    /// without showing them would approve unseen commands.
+    #[must_use]
+    pub const fn approves_unseen(&self) -> bool {
+        !self.terminals.is_empty()
     }
 }
 
