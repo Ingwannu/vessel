@@ -1,0 +1,89 @@
+# Plugins
+
+Status: study committed, no code. ADR 0068 is proposed, not
+accepted. The inventory is `docs/plans/plugins-inventory.md`. The
+three hosts are `docs/plans/plugins-hosts.md`.
+
+## Goal
+
+Carry Paseo's plugin behaviour across, under its names, and stop
+where a GPUI app cannot draw a React component or where a security
+floor is stricter than a silent drop. The owner reviews the ADR
+before any code.
+
+## What was read
+
+Paseo 0.15.4, the files and lines in the inventory. Vessel: the
+crate table, `SessionSpec`, `session.create` (`create_session` and
+the shared `create_starting`), automation hooks, `docs/LESSONS.md`
+on plugins, ADR 0035, and the workspace manifests for an embedded
+engine (none).
+
+## Existing asset, reuse, decision
+
+| | |
+| --- | --- |
+| Existing | Automation hooks (HTTP, protocol 11). `session.create`. No plugin crate, no JS engine, no Wasm runtime |
+| Reuse | The create path, unchanged when the registry is empty. The hook names and wait bits from Paseo. The lesson's host: a helper process, later |
+| Not an extension of | The automation hook type. A plugin id is not a `HookId`, and a rewrite of a create spec is not an HTTP delivery |
+| Outside | Node, as a possible later helper; a Wasm runtime, as a possible later sandbox. Neither is adopted. No licence or size is claimed, because nothing is added |
+| Decision | New, when the ADR is accepted: crate `vessel-plugin`, called by `vessel-node`. Modify `create_session` only. Do not modify the shared create path's checks |
+
+## Slice 1, after the ADR is accepted
+
+The contract is the "Slice 1" section of ADR 0068. Short form:
+
+- Fourteen hook names, Paseo's wait bits, byte order of the plugin
+  id then registration order, 30 seconds on a waiting hook.
+- Only `agent.create.before` and `agent.create.after` are called,
+  and only from `create_session`.
+- Before may replace `title` and `harness`. A change to `cwd`,
+  `place`, `profile` or `mode` is a `Conflict` that names the
+  plugin and the hook, and later handlers do not run.
+- After is not awaited. Its failure is logged and the session
+  stays.
+- Empty registry: create is unchanged, no new wire, protocol stays
+  20.
+- Tests beside the rules, fakes only, no sleep. The node test that
+  proves the deadline uses the paused clock.
+
+No install command, no settings switch, no provider, no UI.
+
+## Later slices, not started
+
+Each waits on the review of the one before it.
+
+1. `agent.open.before` with launch-only environment, still no
+   child. Tools and MCP servers stay absent until a process can
+   own a callback.
+2. Worktree create before and after, on the worktree call that
+   already exists, with the path refusal Paseo makes.
+3. Turn and permission notifications, wired to the session events
+   that already exist, not awaited.
+4. The helper process and its framed protocol, a fake child in the
+   testkit, still no JavaScript. Wire changes, if a client must
+   see a plugin, take the next free protocol number at that time
+   and say it is provisional.
+5. Anything the app draws, as data the kit can render, in a native
+   track. React components are out of scope until a record says
+   otherwise.
+
+A Node helper that evaluates a Paseo server bundle, and a sandbox,
+are separate decisions. They are not implied by slice 4.
+
+## Resume point
+
+- Done: the inventory, the host comparison, ADR 0068, this plan.
+  No code. No crate. No protocol number. This slice is documents
+  only, so the gate is the fast checks (format, file size, crate
+  boundaries) and not clippy or the tests.
+- Half-done: nothing in code. The ADR is proposed.
+- Next: wait for the review of ADR 0068. Do not start slice 1's
+  crate on a hunch. A returned document is fixed before any code.
+- Not verified: Paseo's scheduler and side-agent paths against
+  `agent.create.before`; the field-by-field provider schemas; the
+  app's client-bundle loader; whether `localeCompare` and byte
+  order differ for any id the schema rejects (they are not compared
+  here for characters outside that alphabet). The create path's
+  grant check was not re-read beyond `refuse_installing` and the
+  fact that the replaced spec goes through `create`.
