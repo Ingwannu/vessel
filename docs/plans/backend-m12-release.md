@@ -848,8 +848,16 @@ never rebuilt.
   - Built from exactly `a792d766`, the desktop lead's head (the native
     gate passed at `52344564`; above it only plans), checked out
     detached; this branch then merged it.
-  - The set went into place at 06:04:53 UTC on 2026-11-14. It is not
-    published yet: the coordinator checks it on the real node first.
+  - The set went into place at 06:04:53 UTC on 2026-11-14 and was
+    published to `preview` at 06:55:18 UTC, after the coordinator's
+    check on the real node.
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature. The published 0.0.0.0.13 Linux
+    build took 0.0.0.0.14 by itself at 06:57:04 UTC.
+  - The notes carry one known cost: with the composer focused, the
+    caret's blink repaints the window (on the software renderer about
+    31% of a core at 1280×800 and 62% at 1920×1200, the coordinator's
+    reading). It is the desktop lead's first follow-up.
   - In it: the slider's fill inside its pill, popovers that take the
     pointer, the card's decorations at 30 frames a second coming to
     rest, the whole app's motion held still on a software renderer, and
