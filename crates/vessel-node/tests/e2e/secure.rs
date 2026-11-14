@@ -574,7 +574,13 @@ async fn a_frozen_direct_route_is_dropped_by_keepalive_and_the_attach_resumes() 
             silence: Duration::from_secs(1),
         };
         let fixture = Fixture::new();
-        let node = fixture.start_with(|config| config.keepalive = fast).await;
+        let node = fixture
+            .start_with(|config| {
+                config.keepalive = fast;
+                // The offer below uses the live ephemeral listener.
+                config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
+            })
+            .await;
         let owner = fixture.connect(&node).await;
         let mut offer = invite(&owner, 600).await;
         offer.direct = vec![direct_route(&node)];

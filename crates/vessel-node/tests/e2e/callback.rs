@@ -109,8 +109,8 @@ async fn a_member_of_a_home_without_a_relay_says_it_has_no_route_and_how_to_add_
         let home = direct_home(sources.path()).await;
         let fixture = Fixture::new();
         let mut offer = invite(&home, "laptop").await;
-        // The home has no relay and no `--public`: the test names its
-        // listener, as `--public` would.
+        // Replace the advertised placeholder with this run's listener;
+        // the home has no relay, so the member has no callback route.
         offer.direct = vec![direct_route(&home.node)];
         join(&fixture, &offer, "laptop").await;
         let member = plain_member(&fixture, "laptop").await;
@@ -161,6 +161,9 @@ async fn direct_home(sources: &std::path::Path) -> Member {
     let node = fixture
         .start_with(|config| {
             config.name = Some("home".to_owned());
+            // Pairing is explicit; the test replaces this placeholder
+            // with the ephemeral listener before using the offer.
+            config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
             config.fleet = fleet_config(HarnessKind::ClaudeCode, applied);
         })
         .await;

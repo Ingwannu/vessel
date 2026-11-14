@@ -1236,3 +1236,17 @@ projection, with the CLI branching before Admin-only listing.
 `vessel-testkit` optionally depends on proto for `authority-fixtures`, enabled
 only by node tests, to share concrete `DeviceSelf` fixtures. Ordinary fake
 binaries keep that feature off. No new external crate or schema is needed.
+
+### Invitations require advertised routes (row 4, ADR 0044)
+
+The existing device authority validates an invitation's effective Routes
+before creating randomness, encoding a link or adding it to the pending map.
+Public invitations use startup --public/--relay configuration; a tracked
+fleet callback uses its explicit override. An explicit empty override refuses
+rather than falling back to defaults. Bind addresses are never inferred.
+Missing routes map once to Conflict plus DeviceInviteError::NoRoutes, with
+setup guidance. Configured routes are not a reachability guarantee and no
+probe or automatic relay activation is performed. Existing Admin guards run
+first. The CLI prints no link or QR on refusal; older clients keep the human
+message while typed clients can localize the stable error reason. No new
+RPC, external dependency, persistent state or ownership rule is introduced.

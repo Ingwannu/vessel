@@ -51,6 +51,20 @@ an entry neither generated file declares any more.
   profile policy or agent limits. Unsupported self queries remain unknown
   authority to the caller, never an inferred full or read-only grant.
 
+### Pairing setup refusal (N3 row 4, ADR 0044)
+
+`device.invite` retains its original method/version and Admin requirement.
+If neither a direct address nor a relay is advertised, the node refuses
+before creating invitation material: Conflict with optional detail
+`{ kind: "device_invite", reason: "no_routes" }`. `DeviceInviteError` also
+has an explicit Unknown future reason. The human message says to configure
+a reachable --public address or --relay, then create another invitation.
+The same refusal is sent on older negotiated connections: their decoders
+ignore unknown detail and retain the message. A configured route is not a
+remote connectivity proof; callback invitations use their effective override.
+An older node can retain its previous behavior; this refusal guarantees the
+behavior of the updated node, not a retroactive change to an older server.
+
 ## Version 19 (2026-11-14, milestone 12)
 
 The track raises the current version once to 19; minimum remains 2.
@@ -99,6 +113,7 @@ The track raises the current version once to 19; minimum remains 2.
   protocol 19 when they name a side link, so old nodes cannot silently
   ignore it. The optional field is ignored by older apps. No new events
   or stand-ins are required.
+
 ## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
 
 Nodes speak 2..=18. No method, no event, no record: one field of the
