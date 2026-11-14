@@ -106,6 +106,9 @@ fn metadata_bounds_use_characters_and_canonical_url_bytes() {
     let max = format!("{prefix}{}", "a".repeat(MAX_URL_BYTES - prefix.len()));
     assert!(max.parse::<EndpointBase>().is_ok());
     assert!(format!("{max}a").parse::<EndpointBase>().is_err());
-    let escaped_too_long = format!("{prefix}{}", "한".repeat(MAX_URL_BYTES / "한".len()));
+    let escaped_too_long = format!(
+        "{prefix}{}",
+        "한".repeat(MAX_URL_BYTES.div_euclid("한".len()))
+    );
     assert!(escaped_too_long.parse::<EndpointBase>().is_err());
 }

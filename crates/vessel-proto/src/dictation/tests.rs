@@ -89,7 +89,7 @@ fn pcm_round_trips_at_both_caps_and_refuses_incomplete_samples() {
 #[test]
 fn transcripts_are_bounded_in_utf8_bytes_and_debug_is_redacted() {
     let character = "가";
-    let max_characters = MAX_TRANSCRIPT_BYTES / character.len();
+    let max_characters = MAX_TRANSCRIPT_BYTES.div_euclid(character.len());
     let text = character.repeat(max_characters);
     let transcript = Transcript::try_from(text.clone()).unwrap();
     assert!(transcript.as_str() == text, "transcript bytes changed");

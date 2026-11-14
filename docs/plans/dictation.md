@@ -272,7 +272,9 @@ Decision: modify existing tests and API comments. Boundary fixtures derive
 from each value type's existing constants, including multibyte transcript
 lengths, encoded audio size and finish-budget JSON. This keeps the tested
 edge aligned when a bound changes, without changing accepted inputs or
-refusal messages. No dependency, setting or wire method is added.
+refusal messages. Count calculations use explicit integer division, keeping
+the rounding policy visible to the lint gate. No dependency, setting or wire
+method is added.
 
 ## Resume point
 
