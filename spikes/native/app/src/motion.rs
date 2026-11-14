@@ -21,7 +21,12 @@
 //! - Cost: one portal connection on a task of its own, as GPUI's own
 //!   colour-scheme follower keeps.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use gpui::App;
+
+/// Whether the window draws on a software renderer ([`note_renderer`]).
+static SOFTWARE: AtomicBool = AtomicBool::new(false);
 
 /// `VESSEL_APP_REDUCE_MOTION=1` (or `0`): the flag fixed for this run and
 /// the system not followed, as `VESSEL_APP_THEME` fixes the scheme, so a
@@ -54,7 +59,9 @@ pub(crate) fn follow(cx: &mut App) {
             tracing::debug!("no desktop portal: reduce motion stays off");
             return;
         };
-        let mut set = |reduce: bool| cx.update(|cx| cx.set_reduce_motion(reduce));
+        let mut set = |reduce: bool| {
+            cx.update(|cx| cx.set_reduce_motion(reduce || SOFTWARE.load(Ordering::Relaxed)));
+        };
         // Each source is subscribed to before it is read, so a change
         // between the two is in the stream and the last value applied is
         // the newest (track V1's review: read-then-subscribe could miss it
@@ -139,14 +146,24 @@ mod tests {
     }
 }
 
-/// Whether the window draws on a software renderer (llvmpipe, lavapipe,
-/// Windows' basic render driver): the effort card then moves as under
-/// reduced motion (the coordinator, on 0.0.0.0.13: its field cost about
-/// three cores there). `VESSEL_APP_REDUCE_MOTION=0` lifts this too, so the
-/// moving card can be measured on a virtual display; nothing is stored.
-pub(crate) fn software(window: &gpui::Window) -> bool {
-    forced() != Some(false)
-        && window
-            .gpu_specs()
-            .is_some_and(|specs| specs.is_software_emulated)
+/// Note the window's renderer: on a software one (llvmpipe, lavapipe,
+/// Windows' basic render driver) the whole app moves as under reduced
+/// motion. Every frame there is the whole window drawn by the processor:
+/// on 0.0.0.0.13 the board's working spinners cost about five cores and
+/// the effort card's field three (the coordinator's measure and the lead's,
+/// release build on a virtual display, 2026-11-14). GPUI's animations and
+/// the kit's controls hold still under the flag; the colours still change.
+/// `VESSEL_APP_REDUCE_MOTION=0` keeps the motion, to measure it.
+pub(crate) fn note_renderer(window: &gpui::Window, cx: &mut App) {
+    if forced() == Some(false) {
+        return;
+    }
+    let software = window
+        .gpu_specs()
+        .is_some_and(|specs| specs.is_software_emulated);
+    if software {
+        SOFTWARE.store(true, Ordering::Relaxed);
+        cx.set_reduce_motion(true);
+        tracing::info!("a software renderer: the app holds its motion still");
+    }
 }

@@ -379,7 +379,7 @@ pub(crate) fn card(
         .fast
         .as_ref()
         .is_some_and(vessel_app_view::effort::Switch::on);
-    let frame = frame_now(state, effort, fast_on, window, cx);
+    let frame = frame_now(state, effort, fast_on, cx);
     let shown = state.motion.borrow().shown(effort.current);
     let surface = match tokens.scheme {
         Scheme::Light => neutral.surface0,
@@ -474,24 +474,16 @@ pub(crate) fn card(
 }
 
 /// The slider's frame now.
-fn frame_now(
-    state: &CardState,
-    effort: &Effort,
-    fast_on: bool,
-    window: &Window,
-    cx: &App,
-) -> Frame {
+fn frame_now(state: &CardState, effort: &Effort, fast_on: bool, cx: &App) -> Frame {
     state.motion.borrow_mut().frame(
         Input {
             stops: effort.steps.len(),
             current: effort.current,
             maximum: effort.maximum(),
             fast: fast_on,
-            // A software renderer (llvmpipe, lavapipe, Windows' basic
-            // render driver) draws the card as under reduced motion: the
-            // colours change, nothing moves (measured on 0.0.0.0.13: the
-            // moving field cost about three cores there).
-            reduce: cx.reduce_motion() || crate::motion::software(window),
+            // On a software renderer the app holds its motion still
+            // (`motion::note_renderer`): the colours change, nothing moves.
+            reduce: cx.reduce_motion(),
         },
         state.now(),
     )
