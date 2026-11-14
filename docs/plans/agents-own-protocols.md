@@ -121,16 +121,34 @@ test regenerates it when `codex` is installed.
      setting cannot select the driver yet.
    - `fake_codex_app_server` replays schema-shaped messages.
 2. **Permissions and questions.**
+   - **The mode** is an option of its own here (it decides what is
+     asked), with codex-acp's id and values so a session's choices carry
+     over between drivers: `mode` = `read-only` (on-request, read-only
+     sandbox), `workspace-write` (on-request, workspace-write),
+     `agent` (on-request, workspace-write, reviewer `auto_review`; the
+     default, as codex-acp's) and `agent-full-access` (never,
+     danger-full-access; the only one that sets either). It goes with
+     `thread/start` and `thread/resume`, and a change goes with the next
+     `turn/start` (`approvalPolicy`, `approvalsReviewer`,
+     `sandboxPolicy`).
    - The approval requests (`item/commandExecution/requestApproval`,
      `item/fileChange/requestApproval`,
-     `item/permissions/requestApproval`) become permission requests, with
-     the agent's own choices.
+     `item/permissions/requestApproval`) become permission requests on
+     the item's tool call (announced from the request when `item/started`
+     has not come), with the agent's own choices: a command's
+     `availableDecisions` (accept, accept for the session, accept with
+     the proposed rule, decline, cancel), a file change's four, more
+     permissions for the turn or the session, or none. The answer goes
+     back as the decision chosen; a cancel, the turn's end and the
+     connection's withdraw what is open (`cancel`, no permissions).
    - `item/tool/requestUserInput` and `mcpServer/elicitation/request`
-     become questions.
-   - The session's mode maps to approval policy and sandbox, as in
-     Paseo's presets. Full access is never set unless the mode is full
-     access.
-   - After this slice the setting may select `direct` for Codex.
+     (form mode) become questions: a question with options is a choice,
+     one without (or with `isOther`) is text; an elicitation's form is
+     read as ACP's (both are MCP's schema). With questions off (nobody
+     watches), they are answered empty or declined at once, with a line
+     in the log; other elicitation modes are declined.
+   - After this slice the setting may select `direct` for Codex
+     (`selectable`).
 3. **Options.**
    - `model/list` gives models and efforts.
    - Speed is a select of the model's `serviceTiers` plus the default.
@@ -272,8 +290,11 @@ checked against `/doc`.
   0.166.0's schema the driver follows; regenerated from an installed
   Codex of at least 0.166.0 and compared). A fork is refused at the
   handshake (`CannotFork`) and a listing answers `CannotList` until slice
-  4; options are empty until slice 3; MCP servers are not passed until
-  slice 3 (`config`), so a direct Codex session has no Vessel tools yet.
+  4; options are empty until slice 3, so a session asked for a choice
+  fails its handshake (as for an option an ACP agent does not offer);
+  MCP servers are not passed until slice 3 (`config`), so a direct Codex
+  session has no Vessel tools yet, and its log says which it runs
+  without.
   The thread runs `on-request` in a `workspace-write` sandbox, Paseo's
   default; slice 2 maps the session's mode instead. Checked against
   `fake-codex-app-server` (its scenarios in its file): the handshake's
@@ -282,3 +303,14 @@ checked against `/doc`.
   plan, a message without deltas, a declined approval and its log line,
   a steer and a cancel, a failed turn, an agent that exits mid-turn, a
   resume, a missing thread and a fork refused at the handshake, a probe.
+- Codex slice 1, after the integrator's review (2026-11-14): choices and
+  tool servers are never dropped unannounced (above); the running turn's
+  id is `turn/start`'s answer's alone, and only its `turn/completed` ends
+  it (another client's turn on the thread does not), one that does not
+  read ending it failed; a message that does not serialize is not sent
+  and its caller is answered as for a closed input; a `file:` link's
+  percent escapes are decoded. The contract test that runs the installed
+  `codex` is opt-in (`VESSEL_CODEX_CONTRACT`, set only by the gate's step
+  in AGENTS.md section 1, the one exception in section 8), in an empty
+  environment but `PATH` with temporary homes, its output in a temporary
+  directory, and says on standard error when it skips.

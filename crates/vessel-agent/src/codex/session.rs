@@ -12,9 +12,11 @@
 //!   (`Pending`); the answer arrives through the same ordered stream as the
 //!   agent's notifications. Commands are taken only once the session is
 //!   ready, so those sent during the handshake wait for it (as with ACP).
-//! - Turn ids: `turn/start` answers with the turn's id, and `turn/started`
-//!   says it too; whichever comes first is kept. A cancel before either
-//!   is remembered and sent as soon as the id is known.
+//! - Turn ids: the running turn's id is `turn/start`'s answer's, and only
+//!   that turn's `turn/completed` ends it: another client may run turns on
+//!   the same thread. A cancel before the answer is remembered and sent
+//!   once the id is known. A completion of the running turn that does not
+//!   read ends it failed, never leaving the session busy for good.
 //! - Approvals: declined, each with a line in the session's log, until the
 //!   permissions slice turns them into permission requests. That is why
 //!   the node cannot select this driver yet (`vessel_harness::direct`).
@@ -285,6 +287,12 @@ impl Session {
         if !self.out.notify("initialized", &serde_json::json!({})).await {
             return Some(Disconnect::Closed);
         }
+        // Until the options slice the driver offers no option: a choice
+        // asked for fails the handshake, as an ACP agent's unknown option
+        // does, rather than run without it unannounced.
+        if let Some(choice) = self.setup.options.first() {
+            return Some(handshake_failed(unknown(choice.clone()).to_string()));
+        }
         if self.setup.fork.is_some() {
             // Forking a thread is the history slice's (`thread/fork`).
             return Some(Disconnect::Handshake {
@@ -340,6 +348,22 @@ impl Session {
             abilities: Some(abilities),
         })
         .await;
+        // Nor tool servers (the thread's `config`, slice 3): said, so a
+        // session never lacks them unannounced.
+        if !self.setup.mcp_servers.is_empty() {
+            let names: Vec<String> = self
+                .setup
+                .mcp_servers
+                .keys()
+                .map(ToString::to_string)
+                .collect();
+            let line = format!(
+                "vessel: Codex's own protocol does not pass tool servers yet; this session runs \
+                 without {}",
+                names.join(", ")
+            );
+            self.emit(AgentEvent::HarnessLog { line }).await;
+        }
         None
     }
 
@@ -380,20 +404,7 @@ impl Session {
         };
         let ours = |of: &str| of == thread;
         match method {
-            "turn/started" => {
-                if let Some(turn) = read::<TurnNotification>(method, params)
-                    .filter(|notification| ours(&notification.thread_id))
-                {
-                    self.turn_is(turn.turn.id).await;
-                }
-            }
-            "turn/completed" => {
-                if let Some(done) = read::<TurnNotification>(method, params)
-                    .filter(|notification| ours(&notification.thread_id))
-                {
-                    self.turn_completed(&done).await;
-                }
-            }
+            "turn/completed" => self.completed(&thread, params).await,
             "item/started" | "item/completed" => {
                 if let Some(item) = read::<ItemNotification>(method, params)
                     .filter(|notification| ours(&notification.thread_id))
@@ -448,6 +459,10 @@ impl Session {
                     self.emit(AgentEvent::HarnessLog { line }).await;
                 }
             }
+            // `turn/started` among them: the turn's id is taken from
+            // `turn/start`'s answer alone, since another client may start a
+            // turn on the same thread and its `turn/started` must not become
+            // this session's.
             _ => {}
         }
     }
@@ -470,16 +485,29 @@ impl Session {
         }
     }
 
-    async fn turn_completed(&mut self, done: &TurnNotification) {
-        if self.turn == TurnState::Idle {
-            // A turn the session did not start (none is started otherwise
-            // today); its items were shown, its end is not the session's.
+    /// `turn/completed` on `thread`: the running turn's ends it; one that
+    /// does not read ends the running turn failed, rather than leave the
+    /// session busy for good.
+    async fn completed(&mut self, thread: &str, params: Value) {
+        let TurnState::Running { id } = &self.turn else {
+            // None running, or its id not known yet: `turn/start` answers
+            // before Codex says anything of the turn, so this is another's.
             return;
-        }
+        };
+        let running = id.clone();
+        let failed = match serde_json::from_value::<TurnNotification>(params) {
+            Ok(done) if done.thread_id != thread || done.turn.id != running => return,
+            Ok(done) => {
+                let usage = mapper::turn_usage(self.before, self.total);
+                mapper::turn_end(&done.turn, usage)
+            }
+            Err(error) => AgentEvent::TurnFailed {
+                message: format!("Codex's turn/completed did not read: {error}"),
+            },
+        };
         self.turn = TurnState::Idle;
         self.streamed.clear();
-        let usage = mapper::turn_usage(self.before, self.total);
-        self.emit(mapper::turn_end(&done.turn, usage)).await;
+        self.emit(failed).await;
     }
 
     /// A request of the agent's: approvals are declined; nothing else is

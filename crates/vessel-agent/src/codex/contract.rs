@@ -10,13 +10,22 @@
 //!   `generate-json-schema --experimental` wrote them, are checked in. One
 //!   test checks the driver's fields against that file (always run); one
 //!   regenerates the file's definitions from the `codex` on `PATH` and
-//!   fails on any difference (run when that Codex is at least the oldest
-//!   version the driver was checked against, said and skipped otherwise).
+//!   fails on any difference.
+//! - The second runs the real `codex`, which AGENTS.md section 8 keeps out
+//!   of tests: it is the one exception, opt-in ([`OPT_IN`], set only by
+//!   the gate's own step, AGENTS.md section 1), so a person who upgrades
+//!   Codex does not fail `cargo test` for unrelated work. It generates a
+//!   schema and nothing else: no session, no network, an empty
+//!   environment but `PATH`, a temporary `HOME` and `CODEX_HOME`, output
+//!   in a temporary directory. Without the variable it says it skipped, on
+//!   the test's standard error, where a run shows it.
 //! - Cost: a Codex release that changes a documentation string in one of
 //!   these definitions fails the second test too. That is the point: the
 //!   person upgrading reads what changed and regenerates the file.
 
+use std::io::Write as _;
 use std::path::Path;
+use std::process::Command;
 
 use serde_json::Value;
 
@@ -25,6 +34,10 @@ const SCHEMA: &str = include_str!("schema/app-server.json");
 
 /// The oldest Codex these definitions were checked against.
 const CHECKED: (u64, u64, u64) = (0, 166, 0);
+
+/// Set (to anything) to regenerate the definitions from the installed
+/// Codex: the gate's own step does (AGENTS.md section 1).
+const OPT_IN: &str = "VESSEL_CODEX_CONTRACT";
 
 /// Each definition the driver reads or writes, and the properties of it
 /// (or of one of its variants) it uses.
@@ -226,39 +239,55 @@ fn version(line: &str) -> Option<(u64, u64, u64)> {
 
 #[test]
 fn the_checked_in_schema_is_what_an_installed_codex_generates() {
-    let Ok(output) = std::process::Command::new("codex")
-        .arg("--version")
-        .output()
-    else {
-        tracing::info!("no codex on PATH: the schema is not regenerated");
-        return;
-    };
-    let line = String::from_utf8_lossy(&output.stdout);
-    let Some(installed) = version(line.trim()).filter(|installed| *installed >= CHECKED) else {
-        tracing::info!(
-            installed = %line.trim(),
-            "codex is older than the driver's schema: not regenerated"
+    if std::env::var_os(OPT_IN).is_none() {
+        let _shown = writeln!(
+            std::io::stderr(),
+            "codex contract: {OPT_IN} is unset, the schema is not regenerated from the \
+             installed codex"
         );
         return;
+    }
+    // An empty environment but `PATH` (an npm-installed codex is a script
+    // its `node` runs), and homes of the test's own.
+    let home = tempfile::tempdir().unwrap();
+    let codex_home = home.path().join("codex");
+    std::fs::create_dir(&codex_home).unwrap();
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    let codex = || {
+        let mut command = Command::new("codex");
+        let _set = command
+            .env_clear()
+            .env("PATH", &path)
+            .env("HOME", home.path())
+            .env("CODEX_HOME", &codex_home);
+        command
     };
-    let out = std::env::temp_dir().join(format!(
-        "vessel-codex-schema-{}-{}",
-        std::process::id(),
-        installed.2
-    ));
-    let generated = std::process::Command::new("codex")
+    let output = codex()
+        .arg("--version")
+        .output()
+        .expect("the gate's contract step needs codex on PATH");
+    let line = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    let installed = version(&line);
+    assert!(
+        installed.is_some_and(|installed| installed >= CHECKED),
+        "the contract step needs a codex of at least {}.{}.{}: {line}",
+        CHECKED.0,
+        CHECKED.1,
+        CHECKED.2
+    );
+    let out = tempfile::tempdir().unwrap();
+    let generated = codex()
         .args([
             "app-server",
             "generate-json-schema",
             "--experimental",
             "--out",
         ])
-        .arg(&out)
+        .arg(out.path())
         .status()
         .unwrap();
     assert!(generated.success(), "codex could not generate its schema");
-    let fresh = read(&out.join("codex_app_server_protocol.schemas.json"));
-    drop(std::fs::remove_dir_all(&out));
+    let fresh = read(&out.path().join("codex_app_server_protocol.schemas.json"));
     let checked: Value = serde_json::from_str(SCHEMA).unwrap();
     let all = definitions(&fresh);
     let v2 = all.get("v2").and_then(Value::as_object);

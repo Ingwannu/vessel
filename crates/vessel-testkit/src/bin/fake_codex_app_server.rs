@@ -27,6 +27,10 @@
 //!     - `wait`: runs until `turn/interrupt` (then `interrupted`); a
 //!       `turn/steer` meanwhile is taken and said back as a message;
 //!     - `fail`: ends `failed` with the error `fake failure`;
+//!     - `garbled`: ends with a `turn/completed` that does not read (its
+//!       turn has no status);
+//!     - `other`: first completes another turn of the same thread (which
+//!       is not this session's), then as `plain`;
 //!     - `exit`: exits mid-turn.
 //!   - Any other request is "method not found" (`-32601`).
 //! - Anything else exits with code 2.
@@ -268,6 +272,14 @@ impl Server {
                 Ok(())
             }
             "fail" => self.completed(&turn, "failed", Some("fake failure")),
+            "garbled" => self.notify(
+                "turn/completed",
+                &json!({"threadId": self.thread(), "turn": {"id": turn, "items": []}}),
+            ),
+            "other" => {
+                self.completed("turn-of-another-client", "completed", None)?;
+                self.plain(&turn, &prompt)
+            }
             "exit" => Err(Exit::Now),
             _ => self.plain(&turn, &prompt),
         }

@@ -45,11 +45,11 @@ pub(super) fn user_input(content: &[ContentBlock]) -> Result<Vec<UserInput>, Inp
         .map(|block| match block {
             ContentBlock::Text { text } => Ok(UserInput::Text { text: text.clone() }),
             ContentBlock::ResourceLink { uri, name } => {
-                Ok(uri.strip_prefix("file://").map_or_else(
+                Ok(uri.strip_prefix("file://").and_then(decoded).map_or_else(
                     || UserInput::Text { text: uri.clone() },
                     |path| UserInput::Mention {
                         name: name.clone(),
-                        path: path.to_owned(),
+                        path,
                     },
                 ))
             }
@@ -62,6 +62,27 @@ pub(super) fn user_input(content: &[ContentBlock]) -> Result<Vec<UserInput>, Inp
             )),
         })
         .collect()
+}
+
+/// A `file:` URI's path with its percent escapes decoded (`%20` is a
+/// space); `None` when an escape is broken or the bytes are not UTF-8, and
+/// the link then goes as its text.
+fn decoded(path: &str) -> Option<String> {
+    let bytes = path.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+    while let Some(&byte) = bytes.get(at) {
+        if byte == b'%' {
+            let hex = bytes.get(at.checked_add(1)?..at.checked_add(3)?)?;
+            let text = std::str::from_utf8(hex).ok()?;
+            out.push(u8::from_str_radix(text, 16).ok()?);
+            at = at.checked_add(3)?;
+        } else {
+            out.push(byte);
+            at = at.checked_add(1)?;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 /// The tool call a started item announces, for a tool-like item.
@@ -349,6 +370,14 @@ mod tests {
                 uri: "https://example.org".to_owned(),
                 name: "site".to_owned(),
             },
+            ContentBlock::ResourceLink {
+                uri: "file:///work/a%20b.rs".to_owned(),
+                name: "a b.rs".to_owned(),
+            },
+            ContentBlock::ResourceLink {
+                uri: "file:///work/broken%2".to_owned(),
+                name: "broken".to_owned(),
+            },
         ];
         assert_eq!(
             user_input(&content).unwrap(),
@@ -362,6 +391,13 @@ mod tests {
                 },
                 UserInput::Text {
                     text: "https://example.org".to_owned()
+                },
+                UserInput::Mention {
+                    name: "a b.rs".to_owned(),
+                    path: "/work/a b.rs".to_owned()
+                },
+                UserInput::Text {
+                    text: "file:///work/broken%2".to_owned()
                 },
             ]
         );

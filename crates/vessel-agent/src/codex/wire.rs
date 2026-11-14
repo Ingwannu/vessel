@@ -169,12 +169,17 @@ impl Outgoing {
     }
 
     /// Queue one message; false once the writer is gone (the agent closed
-    /// its input).
+    /// its input), or when it did not serialize.
     async fn line(&self, message: &impl Serialize) -> bool {
-        let Ok(mut bytes) = serde_json::to_vec(message) else {
-            // Every message is built from serializable parts; nothing to
-            // send otherwise.
-            return true;
+        let mut bytes = match serde_json::to_vec(message) {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                // Every message is built from serializable parts; one that
+                // is not is not sent, and its caller answers as for a
+                // closed input.
+                tracing::warn!(%error, "a message for Codex did not serialize");
+                return false;
+            }
         };
         bytes.push(b'\n');
         self.0.send(bytes).await.is_ok()

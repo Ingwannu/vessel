@@ -435,3 +435,81 @@ async fn a_probe_reads_the_introduction() {
     })
     .await;
 }
+
+/// Codex's completions are matched to the running turn: another turn of the
+/// thread does not end it, and one that does not read ends it failed
+/// rather than leave the session busy.
+#[tokio::test]
+async fn only_the_running_turns_completion_ends_it() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("other")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert_eq!(said(&events), "fake reply: other");
+        input.prompt(text("garbled")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(
+            matches!(
+                events.last(),
+                Some(AgentEvent::TurnFailed { message }) if message.contains("did not read")
+            ),
+            "{events:?}"
+        );
+        assert!(!input.turn_running().await.unwrap());
+    })
+    .await;
+}
+
+/// Until the options slice, a session asked for a choice is not started
+/// without it: the handshake fails as for an option an agent does not
+/// offer. Tool servers are said to be left out.
+#[tokio::test]
+async fn choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
+    within(async {
+        let mut choosing = setup(None);
+        choosing.options = vec![vessel_proto::OptionChoice {
+            id: vessel_proto::OptionId::new("mode"),
+            value: vessel_proto::ChoiceValue::Select {
+                value: vessel_proto::OptionValueId::new("read-only"),
+            },
+        }];
+        let (_agent, _input, mut outputs) = spawn(choosing);
+        let refused = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Disconnected(_))
+        })
+        .await;
+        assert!(
+            matches!(
+                refused.last(),
+                Some(AgentOutput::Disconnected(Disconnect::Handshake { message, .. }))
+                    if message.contains("mode")
+            ),
+            "{refused:?}"
+        );
+
+        let mut serving = setup(None);
+        let _none = serving.mcp_servers.insert(
+            "vessel".parse().unwrap(),
+            vessel_proto::McpTransport::Stdio {
+                command: "vessel".into(),
+                args: Vec::new(),
+                env: std::collections::BTreeMap::new(),
+            },
+        );
+        let (_agent, _input, mut outputs) = spawn(serving);
+        let said = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::HarnessLog { .. }))
+        })
+        .await;
+        assert!(
+            matches!(
+                said.last(),
+                Some(AgentOutput::Event(AgentEvent::HarnessLog { line }))
+                    if line.contains("without vessel")
+            ),
+            "{said:?}"
+        );
+    })
+    .await;
+}
