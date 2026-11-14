@@ -24,7 +24,7 @@ use vessel_app_kit::{
 use vessel_app_link::workspace::GitWrite;
 use vessel_app_view::workspace::git::{
     CommitDestination, CommitForm, Issue, WriteIntent, can_commit, commit_files, commit_request,
-    committed_state,
+    committed_state, project_default,
 };
 use vessel_app_view::workspace::git_quick::GitAction;
 use vessel_proto::workspace::{GitStatus, RefName};
@@ -94,17 +94,10 @@ impl Shell {
     }
 }
 
-/// The project's default branch, when the branch list has been read.
+/// The project's default branch, when the branch list has been read
+/// (local, or remote-tracking when the remote's HEAD names it).
 fn default_branch(shell: &Shell) -> Option<RefName> {
-    shell
-        .areas
-        .git
-        .branches
-        .shown()?
-        .branches
-        .iter()
-        .find(|branch| branch.default && branch.remote.is_none())
-        .map(|branch| branch.name.clone())
+    project_default(shell.areas.git.branches.shown()?).cloned()
 }
 
 /// The commit form, when open.

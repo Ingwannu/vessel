@@ -43,7 +43,7 @@ pub use branch_picker::{
     branch_selection,
 };
 pub use commit_row::committed_state;
-pub use destination::CommitDestination;
+pub use destination::{CommitDestination, names_default, project_default};
 pub use dialog::Dialog;
 pub use discard::{DiscardDecision, DiscardEffect};
 pub use drop_stash::DropStash;
