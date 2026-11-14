@@ -29,6 +29,7 @@ pub(super) fn db() -> (Connection, SessionId, DateTime<Utc>) {
 pub(super) fn cost(value: f64) -> SessionEvent {
     SessionEvent::UsageChanged {
         usage: ContextUsage {
+            observation: vessel_proto::conversation::UsageObservation::Current,
             used: TokenCount::new(1200),
             size: TokenCount::new(200_000),
             cost: Some(Cost {
@@ -303,6 +304,7 @@ fn money_outside_decimal_range_and_token_overflow_are_explicit_gaps() {
 fn zero_cost_and_alternating_currencies_keep_their_own_baselines() {
     let (db, session, now) = db();
     let mut credits = ContextUsage {
+        observation: vessel_proto::conversation::UsageObservation::Current,
         used: TokenCount::new(0),
         size: TokenCount::new(200_000),
         cost: Some(Cost {

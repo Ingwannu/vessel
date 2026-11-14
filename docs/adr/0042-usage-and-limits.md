@@ -41,6 +41,20 @@ notifications. Its recovery banner offers resume and snooze at reset.
   that interval gets an explicit gap rather than the whole charge.
   Session queries also show the latest cumulative reports independently
   of time-period increments. Their visibility uses the same cost scope.
+- The session runtime marks context observations made while loading a
+  conversation as `replayed` (the optional protocol-19
+  `ContextUsage.observation` field). This includes profile moves, wakes
+  and rewinds whose Ready event is deliberately consumed by the replay
+  filter. Such an observation can establish a baseline or a gap, never
+  spend an increase under the previous account. The runtime sets the
+  origin; a vendor cannot choose it. An ordinary observation defaults to
+  `current`, omitted on the wire. Older peers receive the original context
+  report without this metadata. This reuses the existing replay boundary
+  instead of inferring a load from status, counter value or wall time;
+  those facts cannot distinguish a hidden Ready from new work. Changed
+  native identity or profile still clears the baseline conservatively.
+  The existing event/projection storage keeps this metadata; no new
+  retention policy, credential access or database migration is needed.
 - Keep at most 90 days and 100,000 usage samples per node, independent
   of event byte pruning, with session deletion cascading to its samples.
   The bounded per-session cost baselines remain until session deletion,

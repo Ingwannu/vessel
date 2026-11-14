@@ -1608,7 +1608,14 @@ calls apply the destination's existing scope intersection. A machine or
 agent query with the session period/cursor is `invalid_request`, a missing
 session `not_found`, a scope/ownership refusal `forbidden`.
 
-The minimum protocol remains 2. No event changed. New calls are refused
+The minimum protocol remains 2. No event kind changed. `ContextUsage`
+adds optional `observation: current|replayed` metadata in protocol 19;
+`current` is the omitted default. The runtime marks reports received during
+conversation loading, including a move, wake or rewind whose Ready is
+consumed. Replayed costs establish baselines/gaps without spending a
+historical increase. Older peers receive their original context report
+without the metadata, including through forwarded conversation replies.
+New calls are refused
 by the existing negotiated-version guard on an older node; an old client
 continues reading the existing ACP reports in the conversation log.
 

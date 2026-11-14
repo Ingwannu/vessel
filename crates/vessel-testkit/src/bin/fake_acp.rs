@@ -103,7 +103,9 @@
 //!     <n>` (the bytes of the file its `file:` URI names, or
 //!     `unreadable`), then `end_turn`;
 //!   - `usage-burst`: 101 cumulative cost updates, for sparse read-only pages;
-//!     `FAKE_ACP_LOAD_USAGE` replays .5 USD while loading, before Ready.
+//!     `FAKE_ACP_LOAD_USAGE` replays .5 USD while loading, before Ready;
+//!     its `higher` mode replays 10 USD. `usage-after-load` reports 12 USD
+//!     and `usage-later` 14 USD, with the same vendor response shape.
 //!   - `usage-reasoning`: as `usage`, with reported zero reasoning/write and 12 cached reads;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
@@ -355,7 +357,8 @@ async fn serve() -> ExitCode {
     let loads = std::env::var_os("FAKE_ACP_NO_LOAD").is_none();
     let hears = std::env::var_os("FAKE_ACP_AUDIO").is_some();
     let startup_log = std::env::var_os("FAKE_ACP_STARTUP_LOG").is_some();
-    let load_usage = std::env::var_os("FAKE_ACP_LOAD_USAGE").is_some();
+    let load_usage = std::env::var_os("FAKE_ACP_LOAD_USAGE")
+        .map(|mode| if mode == "higher" { 10.0 } else { 0.5 });
     let load_fails = std::env::var_os("FAKE_ACP_LOAD_FAILS").is_some();
     let signs_in = std::env::var_os("FAKE_ACP_SIGN_IN").is_some();
     let forks = std::env::var_os("FAKE_ACP_NO_FORK").is_none();
@@ -522,9 +525,9 @@ async fn serve() -> ExitCode {
                     };
                     // Real adapters can replay their cumulative session
                     // cost before load's response and the driver's Ready.
-                    if load_usage {
+                    if let Some(amount) = load_usage {
                         say(SessionUpdate::UsageUpdate(
-                            UsageUpdate::new(1200, 200_000).cost(Cost::new(0.5, "USD")),
+                            UsageUpdate::new(1200, 200_000).cost(Cost::new(amount, "USD")),
                         ))?;
                     }
                     say(SessionUpdate::UserMessageChunk(ContentChunk::new(text(
@@ -637,11 +640,19 @@ async fn serve() -> ExitCode {
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
-                    if prompt == "usage" || prompt == "usage-reasoning" {
+                    if matches!(
+                        prompt.as_str(),
+                        "usage" | "usage-reasoning" | "usage-after-load" | "usage-later"
+                    ) {
+                        let amount = match prompt.as_str() {
+                            "usage-after-load" => 12.0,
+                            "usage-later" => 14.0,
+                            _ => 0.5,
+                        };
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::UsageUpdate(
-                                UsageUpdate::new(1200, 200_000).cost(Cost::new(0.5, "USD")),
+                                UsageUpdate::new(1200, 200_000).cost(Cost::new(amount, "USD")),
                             ),
                         ))?;
                         cx.send_notification(SessionNotification::new(

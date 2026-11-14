@@ -1228,7 +1228,8 @@ vessel usage session 3f2a --after 100    # the next page; totals are unchanged
 
 Counts and costs are only what the agent reported. Context occupancy is
 separate; missing reports are not zero and costs in different units stay
-separate. Accounting starts with this version, retains at most 90 days
+separate. Cost replayed while loading a conversation establishes a baseline
+instead of being counted as new spending. Accounting starts with this version, retains at most 90 days
 and 100,000 reports, and follows session deletion. New usage queries need
 read scope; cost in these queries additionally needs operate scope.
 

@@ -70,7 +70,9 @@ pub(crate) fn observe(
             let Some(cost) = &usage.cost else {
                 return Ok(());
             };
-            let Some(kind) = cost::increment(connection, session, cost, record.at)? else {
+            let Some(kind) =
+                cost::increment(connection, session, cost, record.at, usage.observation)?
+            else {
                 return Ok(());
             };
             kind

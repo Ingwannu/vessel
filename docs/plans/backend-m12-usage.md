@@ -385,3 +385,29 @@ The merge baseline now has a complete passing gate. Runtime replay origin
 remains the next accounting correction before an integration-ready report;
 limits lookup and recovery are still unimplemented. No native UI work or
 live-account verification is included.
+
+### Runtime replay observation correction
+
+Reuse the session runtime's existing replay flag, rather than guessing from
+a Running status or a Ready event that a move, wake or rewind suppresses.
+`ContextUsage.observation` is optional protocol-19 metadata, set by the
+runtime and defaulting to current for older records. Replayed cumulative
+increases produce a baseline/gap. The latest reported total and context
+occupancy remain visible. Older event and forwarded conversation replies
+strip this metadata. Identity/profile changes retain their conservative
+unknown-baseline policy; no new database migration is necessary.
+
+Regressions cover increased replay with no visible Ready, old/new wire
+projections, and actual fake-ACP node wake, rewind and profile move. The
+fake uses the vendor's UsageUpdate response shape with cumulative costs
+0.5, 10, 12 and 14. Verification of this correction is pending; the passing
+baseline above does not prove the newly changed source.
+
+The replay correction passed its selected gate: formatting, all-target
+Clippy for the six changed crates, 3 protocol and 22 store usage tests,
+and all 3 real-node replay cases (wake, rewind and profile move). The
+profile case proves the old profile keeps only its earlier 0.5 cost while
+the new profile receives only the subsequently observable increment.
+The fixture now uses the current protocol constant and a flat scenario
+body; latest whole-workspace, generated declarations and full web
+verification are pending before integration approval.

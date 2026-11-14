@@ -107,6 +107,65 @@ fn replayed_cost_before_same_id_ready_is_not_spent_twice() {
 use crate::log;
 
 #[test]
+fn replayed_increases_without_a_visible_ready_are_baselines_then_live_increments_resume() {
+    let (db, session, now) = db();
+    let mut replayed = cost(20.0);
+    if let SessionEvent::UsageChanged { usage } = &mut replayed {
+        usage.observation = vessel_proto::conversation::UsageObservation::Replayed;
+    }
+    let events = [cost(10.0), replayed, cost(22.0)];
+    let records: Vec<_> = events
+        .into_iter()
+        .enumerate()
+        .map(|(seq, event)| EventRecord {
+            seq: EventSeq::new(u64::try_from(seq).unwrap()),
+            at: now,
+            event,
+        })
+        .collect();
+    let _appended = log::append(&db, session, &records).unwrap();
+    let value = report(&db, session, now);
+    assert_eq!(
+        value.totals.costs[0].amount,
+        FiniteNumber::new(12.0).unwrap()
+    );
+    assert_eq!(value.totals.unaccounted_costs.get(), 1);
+    assert_eq!(
+        value.current_costs[0].amount,
+        FiniteNumber::new(22.0).unwrap()
+    );
+    assert_eq!(
+        value
+            .samples
+            .iter()
+            .map(|sample| &sample.kind)
+            .collect::<Vec<_>>(),
+        vec![
+            &UsageSampleKind::Cost {
+                cost: vessel_proto::conversation::Cost {
+                    amount: FiniteNumber::new(10.0).unwrap(),
+                    unit: "USD".parse().unwrap()
+                },
+                since: now
+            },
+            &UsageSampleKind::CostBaseline {
+                cost: vessel_proto::conversation::Cost {
+                    amount: FiniteNumber::new(20.0).unwrap(),
+                    unit: "USD".parse().unwrap()
+                }
+            },
+            &UsageSampleKind::Cost {
+                cost: vessel_proto::conversation::Cost {
+                    amount: FiniteNumber::new(2.0).unwrap(),
+                    unit: "USD".parse().unwrap()
+                },
+                since: now
+            },
+        ]
+    );
+}
+
+#[test]
 fn same_native_session_ready_preserves_cost_and_a_new_identity_is_unknown() {
     let (db, session, now) = db();
     let ready = |id| SessionEvent::Agent {

@@ -1,9 +1,9 @@
 //! What an agent says about itself and its session (protocol 10): what it
 //! can do, the commands it offers, and the tokens it reports.
 //!
-//! Each is passed on as the agent reports it over ACP (`vessel-agent` reads
-//! it); Vessel keeps no list of its own (milestone 11's rule: truth over
-//! neatness).
+//! Numbers are passed on as the agent reports them over ACP
+//! (`vessel-agent` reads them). The runtime only adds whether it observed
+//! context during conversation loading; it never changes the numbers.
 
 use serde::{Deserialize, Serialize};
 
@@ -121,6 +121,11 @@ pub struct Cost {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ContextUsage {
+    /// Whether the runtime observed this while loading an existing
+    /// conversation (protocol 19). Context occupancy remains useful;
+    /// a replayed cumulative cost is not new spending.
+    #[serde(default, skip_serializing_if = "UsageObservation::is_current")]
+    pub observation: UsageObservation,
     /// Tokens in the context now.
     pub used: TokenCount,
     /// The context window's size.
@@ -128,6 +133,39 @@ pub struct ContextUsage {
     /// What the session has cost so far, when the agent says.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cost: Option<Cost>,
+}
+
+/// The runtime's observation boundary, independent of the vendor's numbers.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum UsageObservation {
+    /// Observed outside conversation loading; the default for older records.
+    #[default]
+    Current,
+    /// Observed while loading, before the runtime's replay boundary ended.
+    Replayed,
+}
+
+impl UsageObservation {
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's skip_serializing_if predicate receives a reference to the field"
+    )]
+    fn is_current(&self) -> bool {
+        *self == Self::Current
+    }
+}
+
+impl ContextUsage {
+    pub(crate) fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
+        (protocol < crate::ProtocolVersion::new(19)
+            && self.observation == UsageObservation::Replayed)
+            .then(|| Self {
+                observation: UsageObservation::Current,
+                ..self.clone()
+            })
+    }
 }
 
 /// One turn's tokens, as the agent reports them with the turn's end (the
@@ -175,6 +213,7 @@ mod tests {
     fn usage_cost_numbers_survive_json_round_trips() {
         for amount in [1e-29, 2e-29, 1e-28, 0.1, 10_000_000_000_000_002.0] {
             let usage = ContextUsage {
+                observation: UsageObservation::Current,
                 used: TokenCount::new(1200),
                 size: TokenCount::new(200_000),
                 cost: Some(Cost {
@@ -195,6 +234,7 @@ mod tests {
         let abilities: AgentAbilities = serde_json::from_str("{}").unwrap();
         assert_eq!(abilities, AgentAbilities::default());
         let usage = ContextUsage {
+            observation: UsageObservation::Current,
             used: TokenCount::new(41_200),
             size: TokenCount::new(200_000),
             cost: Some(Cost {
@@ -208,5 +248,70 @@ mod tests {
             r#"{"used":41200,"size":200000,"cost":{"amount":0.5,"unit":"USD"}}"#
         );
         assert_eq!(serde_json::from_str::<ContextUsage>(&json).unwrap(), usage);
+    }
+
+    #[test]
+    fn usage_observation_is_additive_and_replayed_reports_are_projected_for_older_peers() {
+        let current: ContextUsage = serde_json::from_str(r#"{"used":1200,"size":200000}"#).unwrap();
+        assert_eq!(current.observation, UsageObservation::Current);
+        assert_eq!(
+            serde_json::to_string(&current).unwrap(),
+            r#"{"used":1200,"size":200000}"#
+        );
+        let replayed = ContextUsage {
+            observation: UsageObservation::Replayed,
+            ..current.clone()
+        };
+        let json = r#"{"observation":"replayed","used":1200,"size":200000}"#;
+        assert_eq!(serde_json::to_string(&replayed).unwrap(), json);
+        assert_eq!(
+            serde_json::from_str::<ContextUsage>(json).unwrap(),
+            replayed
+        );
+        assert_eq!(
+            replayed.for_protocol(crate::ProtocolVersion::new(18)),
+            Some(current.clone())
+        );
+        assert_eq!(replayed.for_protocol(crate::PROTOCOL_VERSION), None);
+        let event = crate::SessionEvent::UsageChanged {
+            usage: replayed.clone(),
+        };
+        assert_eq!(
+            event.for_protocol(crate::ProtocolVersion::new(18)),
+            Some(crate::SessionEvent::UsageChanged {
+                usage: current.clone()
+            })
+        );
+        assert_eq!(event.for_protocol(crate::PROTOCOL_VERSION), None);
+        assert_eq!(
+            event.for_protocol(crate::ProtocolVersion::new(9)),
+            Some(crate::SessionEvent::Agent {
+                event: crate::AgentEvent::HarnessLog {
+                    line: "vessel: context: 1200 of 200000 tokens".to_owned()
+                }
+            })
+        );
+        let conversation = crate::Conversation {
+            queue: crate::PromptQueue::default(),
+            commands: Vec::new(),
+            usage: Some(replayed),
+            permissions: Vec::new(),
+            questions: Vec::new(),
+            abilities: None,
+            limits: crate::conversation::AttachmentLimits::DEFAULT,
+        };
+        let mut older = conversation.clone();
+        older.usage = Some(current);
+        let reply = crate::Reply::Deliver(crate::forward::Forwarded {
+            reply: Box::new(crate::Reply::GetConversation(conversation)),
+        });
+        let expected = crate::Reply::Deliver(crate::forward::Forwarded {
+            reply: Box::new(crate::Reply::GetConversation(older)),
+        });
+        assert_eq!(
+            reply.for_protocol(crate::ProtocolVersion::new(18)),
+            Some(expected)
+        );
+        assert_eq!(reply.for_protocol(crate::PROTOCOL_VERSION), None);
     }
 }

@@ -1072,7 +1072,11 @@ concurrency bound. Usage scans have two shared try-acquired slots whose
 permits stay inside queued/running blocking closures, including after
 caller cancellation. Excess scans receive a typed busy refusal with retry
 advice. A same-native-session ready record preserves the
-cost baseline; repeated cumulative reports add nothing. Loaded or reset
+cost baseline; repeated cumulative reports add nothing. The session runtime
+marks context observations during replay, even when its Ready event is
+consumed during a move, wake or rewind. The store treats these reports as
+baselines, so an increase observed before the new native/profile marker
+cannot spend old account history. Loaded or reset
 counters and increments spanning the queried period carry explicit gaps. No context size,
 proxy report or transcript is added to ACP tokens. Profile assignment is
 captured at each sample, including a move in the same batch.

@@ -122,3 +122,6 @@ mod workspace;
 
 #[cfg(test)]
 mod usage;
+
+#[cfg(test)]
+mod usage_replay;

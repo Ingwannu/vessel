@@ -6,7 +6,7 @@ use crate::error::{Column, StoreError};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use serde::{Deserialize, Serialize};
-use vessel_proto::conversation::Cost;
+use vessel_proto::conversation::{Cost, UsageObservation};
 use vessel_proto::usage::UsageSampleKind;
 use vessel_proto::{HarnessSessionId, SessionId, SessionInfo, SessionMode};
 
@@ -158,17 +158,22 @@ pub(super) fn increment(
     session: SessionId,
     current: &Cost,
     at: DateTime<Utc>,
+    observation: UsageObservation,
 ) -> Result<Option<UsageSampleKind>, StoreError> {
     if current.amount.get() < 0.0 {
         return Ok(None);
     }
     let mut state = get(connection, session)?;
+    let phase = match observation {
+        UsageObservation::Current => state.phase,
+        UsageObservation::Replayed => Phase::Starting,
+    };
     let previous = state
         .baselines
         .iter_mut()
         .find(|value| value.cost.unit == current.unit);
     let result = if let Some(previous) = previous {
-        let result = change(previous, current, at, state.phase);
+        let result = change(previous, current, at, phase);
         *previous = Baseline {
             cost: current.clone(),
             at,
@@ -182,7 +187,7 @@ pub(super) fn increment(
             cost: current.clone(),
             at,
         });
-        match (state.origin, state.phase) {
+        match (state.origin, phase) {
             (Origin::Fresh, Phase::Ready)
                 if super::money::Amount::reported(current.amount).is_none() =>
             {
