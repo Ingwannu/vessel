@@ -26,6 +26,8 @@ impl Shell {
     ) {
         self.hear_find(cx);
         self.areas.conversation.open(machine, session);
+        // Opened again: a fork's origin that could not be read is read.
+        self.origin_read();
         for act in [Act::Info, Act::Conversation] {
             self.command(Command::Act {
                 machine: machine.to_owned(),

@@ -52,10 +52,15 @@ impl ConversationWords {
             "The conversation it was forked from could not be read",
             "분기한 원래 대화를 읽지 못했습니다",
         );
-        if message.trim().is_empty() {
-            format!("{failed}.")
+        let again = self.either(
+            "Open the session again to try again.",
+            "세션을 다시 열면 다시 읽습니다.",
+        );
+        let message = message.trim().trim_end_matches('.');
+        if message.is_empty() {
+            format!("{failed}. {again}")
         } else {
-            format!("{failed}: {message}")
+            format!("{failed}: {message}. {again}")
         }
     }
 

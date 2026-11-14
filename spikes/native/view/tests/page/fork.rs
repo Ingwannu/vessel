@@ -156,8 +156,13 @@ fn an_origin_that_cannot_be_read_is_said_plainly() {
         "The conversation it was forked from was removed."
     );
     assert_eq!(
-        words.origin_unread(false, "connection lost"),
-        "The conversation it was forked from could not be read: connection lost"
+        words.origin_unread(false, "connection lost."),
+        "The conversation it was forked from could not be read: connection lost. Open the \
+         session again to try again."
+    );
+    assert_eq!(
+        Lang::Ko.conversation().origin_unread(false, " "),
+        "분기한 원래 대화를 읽지 못했습니다. 세션을 다시 열면 다시 읽습니다."
     );
     assert_eq!(
         Lang::Ko.conversation().origin_unread(true, ""),
