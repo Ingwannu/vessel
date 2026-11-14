@@ -369,3 +369,22 @@ pub enum ParkingChange {
     /// It was started again with its conversation.
     Woken,
 }
+
+/// Whether the message at `index` is the first reply of its turn: no
+/// reply since the person's last message (the reply that carries the
+/// agent's circle beside it, slice M).
+#[must_use]
+pub fn first_reply(entries: &[Entry], index: usize) -> bool {
+    entries.get(..index).is_none_or(|before| {
+        before
+            .iter()
+            .rev()
+            .find(|entry| {
+                matches!(
+                    entry.kind,
+                    EntryKind::Message { .. } | EntryKind::Prompt(_) | EntryKind::Steer { .. }
+                )
+            })
+            .is_none_or(|entry| !matches!(entry.kind, EntryKind::Message { .. }))
+    })
+}

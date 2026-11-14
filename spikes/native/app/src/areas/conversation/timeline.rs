@@ -135,7 +135,7 @@ fn row_element(
             TailRow::Pending(text) => {
                 let index = area.timeline.entries().len();
                 area.pending_drawn();
-                let row = entries::pending(&paint, index, &text);
+                let row = super::bubbles::pending(&paint, index, &text);
                 if area.pending_fresh() {
                     super::motion::settle(
                         ElementId::NamedInteger("pending-arrive".into(), id(index)),

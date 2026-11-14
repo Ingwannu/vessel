@@ -344,7 +344,13 @@ fn a_pick_and_a_custom_answer_replace_each_other_on_a_single_choice() {
 fn a_multiple_choice_toggles_and_keeps_its_other() {
     let form = claude();
     let steps = steps_of(&form);
-    let several = steps[1];
+    // Claude's steps go in their numbers' order (0, 2, 10): the multiple
+    // choice is question_10, found by name.
+    let several = steps
+        .iter()
+        .copied()
+        .find(|step| step.field.name.as_str() == "question_10")
+        .expect("Claude's multiple choice");
     let mut drafts = starting_drafts(&form);
     typed(several, &mut drafts, "also this".to_owned());
     assert_eq!(pick(several, &mut drafts, "a"), Pick::Picked);
