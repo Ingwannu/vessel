@@ -173,3 +173,36 @@ that already uses `..` is left alone.
   `GENERATED_NAMES` only, and that constant's value is written at merge.
   `docs/PROTOCOL.md` gains its section in the same merge, not with a
   number this plan invents.
+
+
+### Shared admission foundation
+
+The protocol foundation is separate from title settings: the existing
+`Call::since()` signature and table remain unchanged. One additive
+`required_protocol()` returns an optional requirement and propagates it
+through the three fleet envelopes. Client and server admission refuse a
+pending requirement before ids, the writer queue or dispatch. The new
+SDK error is mapped at the root MCP, web and fleet-hop boundaries; native
+matches belong to their existing owner. No title settings types or new
+calls are added by this foundation. Current calls remain assigned; pending
+state tests exercise both admission guards, while the existing in-memory
+suite checks legacy requests and older-peer refusals. A pending feature's
+end-to-end request test lands with that feature.
+
+The client admission rule and hop error conversion are extracted into
+small modules rather than growing existing over-budget files; only their
+existing ratchet limits are lowered. No dependency is added. The isolated
+proof applies this foundation directly to the integrated node head, without
+title provenance, settings or migrations. Its validation covers the whole
+workspace Clippy gate and the Rust tests of the affected crates. Native
+exhaustive mappings remain with their existing owner.
+
+### Accessor-only resume point
+
+This isolated change deliberately retains the integrated title plan above.
+Only shared optional protocol admission and its root mappings are added.
+The comparison mapping classifies an unsent pending feature as Refused;
+its existing cases stay unchanged and a separate test checks the new case.
+No title value type, origin field, setting, migration or method is added.
+The numeric protocol and method table stay at the integrated head's values.
+The isolated validation is pending before this commit is reported.

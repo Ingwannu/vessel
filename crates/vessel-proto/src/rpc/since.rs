@@ -9,6 +9,33 @@ use crate::session::{SessionInput, SessionMode};
 use super::Call;
 
 impl Call {
+    /// The assigned requirement for admission. A feature awaiting a
+    /// protocol number returns `None`; senders must refuse it rather than
+    /// manufacture a version. Fleet envelopes propagate the inner call's
+    /// requirement before considering their own assigned version.
+    #[must_use]
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
+        if let Self::Forward(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Relay(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Deliver(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        Some(self.since())
+    }
+
     /// The protocol version this call needs: its method's, or a later one
     /// when it uses a field added since. A node that predates a field would
     /// ignore it silently (and, say, start a session with the wrong profile
@@ -264,5 +291,40 @@ fn side_target(target: &crate::automation::ScheduleTarget) -> Option<u32> {
         crate::automation::ScheduleTarget::NewSession { spec, .. } => side_spec(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
+    }
+}
+
+#[cfg(test)]
+mod requirement_tests {
+    use crate::{Deliver, Forward, GetNode, NodeId, Origin, OriginBy, RelayCall, Request as _};
+
+    #[test]
+    fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {
+        let request = GetNode.into_call();
+        assert_eq!(request.required_protocol(), Some(request.since()));
+        let origin = Origin {
+            node: NodeId::random(),
+            by: OriginBy::Owner,
+            scopes: Vec::new(),
+        };
+        let wrapped = Forward {
+            node: NodeId::random(),
+            call: Box::new(request),
+        }
+        .into_call();
+        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
+        let wrapped = RelayCall {
+            node: NodeId::random(),
+            call: Box::new(wrapped),
+            origin: origin.clone(),
+        }
+        .into_call();
+        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
+        let wrapped = Deliver {
+            call: Box::new(wrapped),
+            origin,
+        }
+        .into_call();
+        assert_eq!(wrapped.required_protocol(), Some(wrapped.since()));
     }
 }
