@@ -148,9 +148,15 @@ How it behaves (`view::offers`, tests in `view/src/offers/tests.rs`):
   back. Ten opens are one request.
 - An answer that arrives while one of the draft's lists is open is laid
   over the shown list (`arrange`): what stays keeps its place, what is new
-  goes after it (a new value after its group's last value, so a group is
-  drawn once), what is gone leaves; names, descriptions and the value in
-  effect are the answer's. A closed list takes the agent's order.
+  goes at the edge away from the one the list is anchored by, in the
+  agent's order (a new value of a group already shown next to that group,
+  so a group is drawn once), what is gone leaves; names, descriptions and
+  the value in effect are the answer's. The composer's lists open above
+  their control, or as a sheet from the bottom, so they grow upward: new
+  rows go at the top and every shown row stays where it is on screen. A
+  closed list takes the agent's order.
+- The keyboard highlight follows its row (by its label) when rows are added
+  or removed above it (the kit's list), and is dropped when its row goes.
 - A failed refresh keeps the list and says once, quietly, above the rows,
   that it may be out of date (`composer-offers-stale`).
 
@@ -169,10 +175,14 @@ machine online).
 
 Deliberate differences:
 
-- **Order while a list is open.** Paseo replaces the data and its list
-  keys rows by id; the kit's list highlights by index, so a row added
-  above would move the highlight and the row under the pointer. A value
-  removed above the pointer still moves the rows under it by one.
+- **Order while a list is open.** Paseo replaces the data; its desktop
+  model list has a fixed height and keys rows by id, so a new row does not
+  move the popover. The kit's list is as tall as its rows and opens above
+  its control, so a row added anywhere but the top moves every row above
+  it up by one (the first capture of this store showed it: "Fake XL"
+  appended at the end lifted the whole list). New rows go at the top
+  while the list is open. A value removed, or one added to a group shown,
+  still moves the rows on its far side by one.
 - **The not-fresh line.** Paseo says nothing when a refetch fails with data
   present; the owner asked for it to be said once, quietly.
 - **No timer.** Paseo's snapshot also updates by a pushed event from its

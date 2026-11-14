@@ -1107,7 +1107,8 @@ decides what is shown (the list there is, however old; loading or the error
 only when there is none), when to ask again (on open, at connect, when a
 machine's agents change or a person retries; one request per agent in
 flight, none within 30 s of a good answer on open) and how an answer lands in
-an open list without moving it. `link::offers` keeps the last answers on the
+an open list (new rows at the edge away from its anchor, the shown rows in
+place). `link::offers` keeps the last answers on the
 device between runs in one owner-only, versioned, bounded file in the app's
 state folder, keyed by the node's id (not a book's name), written only when an
 answer differs; a machine that connects gets its kept lists
