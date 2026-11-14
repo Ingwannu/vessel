@@ -320,7 +320,11 @@ Six methods, one optional field, no event. Every type is in
 - `pr.get { session, refresh }` (read): the whole `PullRequest` (checks
   with the failing ones named, people's reviews, times, the repository's
   merge methods). `refresh` reads now, at most once per 10 s per session
-  (more often is answered from memory); an agent may refresh only a
+  (more often is answered from memory); a refresh that comes before the
+  node has first read the session's folder (its branch, just after the
+  session started) waits for that read and answers with what it finds
+  (since 2026-11-14; before, it answered at once with no pull request);
+  an agent may refresh only a
   session it may operate. A session that has ended answers `access:
   ended`; one the node does not watch (not placed) `not_placed`.
 - `pr.open { session, title, body?, base?, draft }` (operate): from the
