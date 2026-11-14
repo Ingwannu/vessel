@@ -915,3 +915,44 @@ async fn http_servers_are_left_out_for_an_agent_without_http() {
     })
     .await;
 }
+
+/// A fork its check refuses, or that cannot be checked because the agent
+/// cannot load it, is deleted from the agent's history on the same
+/// connection (protocol 14): it is not left as a conversation nobody holds.
+#[tokio::test]
+async fn a_refused_fork_is_deleted_from_the_agents_history() {
+    within(async {
+        for (switch, refused) in [
+            ("FAKE_ACP_FORK_IGNORES_POINT", true),
+            ("FAKE_ACP_LOAD_FAILS", false),
+        ] {
+            let command = vessel_proc::CommandSpec::new(vessel_testkit::Fake::Acp.path().unwrap())
+                .env(switch, "1");
+            let mut agent = Agent::start_with(
+                &command,
+                AgentSetup {
+                    fork: Some(Box::new(vessel_agent::ForkFrom {
+                        session: HarnessSessionId::new("fake-session-1"),
+                        point: Some(vessel_proto::AgentMessageId::new("msg-1")),
+                    })),
+                    ..setup(None)
+                },
+            );
+            let disconnect = agent.until_end().await;
+            let Disconnect::Handshake { fork_refused, .. } = &disconnect else {
+                panic!("{switch}: {disconnect:?}");
+            };
+            assert_eq!(fork_refused.is_some(), refused, "{switch}: {disconnect:?}");
+            assert!(
+                agent
+                    .log
+                    .iter()
+                    .any(|line| line.starts_with("fake-acp: deleted fork~fake-session-1~")),
+                "{switch}: {:?}",
+                agent.log
+            );
+            assert!(!agent.events.iter().any(ready), "{switch}");
+        }
+    })
+    .await;
+}

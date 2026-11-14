@@ -73,7 +73,9 @@ app-server (`thread/fork`, `thread/rollback`), OpenCode's
   connection, by `session/load` of the fork (both adapters load a session
   they just forked), and the driver reads its replay: it must end with
   the anchor's message and no user message after it. Otherwise the
-  handshake fails "the agent did not fork at the point" (`unsupported`).
+  handshake fails "the agent did not fork at the chosen point"
+  (`unsupported`), and the fork the agent made is deleted from its
+  history (`session/delete`) where it offers that.
 - **The new conversation id is in the record**: a restarted agent's
   `ready` is dropped with its replay, so `rewound.harness_session` is
   what the store's projection and the session's info take, and what a
@@ -97,6 +99,16 @@ adapter that ignores the anchor from a silent wrong answer into a refusal.
 - A fork's history is in its source's log; once the source is deleted, or
   retention prunes the fork's first records (past 64 MiB of its log), a
   client shows the fork's own records only. Its agent keeps the history.
+- `session.fork` answers at creation, as `session.create` does (the
+  coordinator's decision, 2026-11-13: the check needs the agent started
+  and a replay, longer than a call should be held). A refused fork is a
+  failed session with `empty_fork` (it never held a conversation), which
+  a client offers to remove; its agent's fork is deleted where the agent
+  offers `session/delete` (both installed adapters do) and otherwise
+  stays in the agent's history.
+- A rewind whose fork fails and whose old conversation then cannot start
+  again either ends the session `failed`, with a sentence that says to
+  resume it; its conversation id is unchanged and no agent runs.
 - The anchor is another client's `_meta` extension
   (`jetbrains.air.fork`); both installed adapters read it from any
   client. If a later ACP version names a point, Vessel moves to it.

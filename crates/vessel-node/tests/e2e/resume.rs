@@ -364,7 +364,7 @@ async fn a_conversation_that_does_not_load_leaves_the_attempt_in_the_log() {
         })
         .await;
         assert_eq!(status_of(&seen[0]), Some(&SessionStatus::Starting));
-        let Some(SessionStatus::Failed { message }) = status_of(seen.last().unwrap()) else {
+        let Some(SessionStatus::Failed { message, .. }) = status_of(seen.last().unwrap()) else {
             panic!("it failed: {seen:?}");
         };
         assert!(message.contains("session/load"), "{message}");
