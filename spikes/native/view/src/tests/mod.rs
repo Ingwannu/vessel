@@ -25,6 +25,7 @@ mod search;
 mod settings;
 mod shortcuts;
 mod sidebar;
+mod sidebar_display;
 mod sync;
 mod toasts;
 mod tree;

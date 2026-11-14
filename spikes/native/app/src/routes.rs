@@ -79,13 +79,13 @@ pub(crate) fn sidebar(
 pub(crate) fn sidebar_inner(
     shell: &Shell,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     match shell.route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
         Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
-            areas::sidebar::render(shell, tokens, false, cx).into_any_element()
+            areas::sidebar::render(shell, tokens, false, window, cx).into_any_element()
         }
     }
 }

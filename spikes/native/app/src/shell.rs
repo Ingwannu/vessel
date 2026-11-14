@@ -412,7 +412,7 @@ impl Render for Shell {
             vessel_app_kit::sheet(
                 "sidebar-sheet",
                 vessel_app_kit::Edge::Left,
-                areas::sidebar::render(self, &tokens, true, cx).into_any_element(),
+                areas::sidebar::render(self, &tokens, true, window, cx).into_any_element(),
                 &tokens,
                 cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
             )
