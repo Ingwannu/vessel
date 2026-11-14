@@ -84,7 +84,7 @@ pub(super) fn entry(
         EntryKind::Question {
             question,
             outcome: Some(outcome),
-        } => question_card(paint, question, outcome),
+        } => question_card(paint, index, question, outcome),
         EntryKind::Plan { entries, activity } => {
             super::plan::row(paint, index, (entries, activity), open, cx)
         }
@@ -279,7 +279,12 @@ fn divider(paint: &Paint<'_>, text: String, failed: bool) -> AnyElement {
 /// A settled question in the timeline: what the agent asked, each answer
 /// by its field (the page's answered card, `question-entry.tsx`), and how
 /// it was settled.
-fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutcome) -> AnyElement {
+fn question_card(
+    paint: &Paint<'_>,
+    index: usize,
+    question: &Question,
+    outcome: &QuestionOutcome,
+) -> AnyElement {
     let words = paint.words;
     let lines = answered_lines(question, outcome, words.question_yes_no());
     div()
@@ -295,7 +300,9 @@ fn question_card(paint: &Paint<'_>, question: &Question, outcome: &QuestionOutco
             div()
                 .type_(Type::Body)
                 .text_color(paint.tokens.neutral.foreground)
-                .child(question.message.clone()),
+                // What find searches in a question (`view::timeline::find`),
+                // marked as a person's message is.
+                .child(marked_text(paint, index, &question.message)),
         )
         .children(lines.into_iter().map(|line| {
             div()

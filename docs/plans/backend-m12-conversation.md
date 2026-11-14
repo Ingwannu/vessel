@@ -24,7 +24,7 @@ neutral colours come only from `tokens.neutral.*`.
 | Node calls | `link/src/session.rs` | a session's acts (`Act`: rename, mark, start again, delete, kill, move profile, terminal input, a change to the queue, an answer to a question), each on its own task |
 | Kit controls | `kit/src/virtual_list.rs`, `menu.rs`, `dialog.rs`, `popup.rs` | the long list, Paseo's menu and dialog (a sheet on a phone), the popup surfaces |
 | Kit, GOAT's chat surfaces | `kit/src/chat_markdown.rs`, `output.rs`, `copy.rs` | a reply's Markdown (code blocks that scroll sideways with a language and a copy button, GOAT's tables, links in the theme's blue); a tool's text and diffs in a box capped at 192 that draws only the lines in view; the copy button both use |
-| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), the look (`look`), the scroll bench (`bench`) |
+| Screens | `app/src/areas/conversation/` | the title bar (`bar`) and its rename in place (`rename`), find (`find`), the outline rail (`outline`), a permission's card (`permission`), a question's card (`question`) and the queue (`queue`), all in the lead's slot above the composer card (`dock`), the timeline (`timeline`), the entries (`entries`, `tool`, and `plan`: an agent's plan as Paseo's task list), the context meter left of the send button (`meter`, in the slot the lead's composer keeps for it), read marks (`read`: the session shown marked read while it is in front), the look (`look`), the scroll bench (`bench`) |
 
 Other areas use the conversation through seams, each one call:
 
@@ -128,7 +128,8 @@ Paseo screen it follows.
   Matches are marked in a person's messages and in replies (GOAT's
   yellow, the current one amber); in a reply the current one keeps the
   reply's own ink, as its renderer paints backgrounds only (GOAT darkens
-  it). A question's text is searched but not marked yet. The wrap is said
+  it). An answered question's text is marked too; a waiting one is
+  answered over the composer and its timeline row holds no mark. The wrap is said
   only to a screen reader, as on the page (kept for the screen-reader
   buffer).
 - **The queue** is Paseo's row with GOAT's actions as more of Paseo's
@@ -242,6 +243,12 @@ only.
 
 ## Problems met
 
+- Read marks seemed never to go on the fleet: Xvfb with no window
+  manager never makes the app's window active, and a mark goes only
+  while it is (`Window::is_window_active`, the page's focus rule). To
+  check them there, give the window focus first (`xdotool windowfocus
+  --sync <window>`); the debug log then says "the session shown marked
+  read" and the CLI no longer lists it `[unread]`.
 - Real replies broke screens that short fake texts never did (the
   owner's report on build 0.0.0.0.5): hence the `shapes` turn and the
   fleet's check, so the shapes cannot quietly shrink again.
@@ -314,7 +321,13 @@ done yet:
 - **The turn's usage line** and a limit notice are track N2's, in the
   two lines it adds over the composer (the seams above); the turn's own
   token count stays on its divider.
-- **Pin, archive, unread** marks drawn in the conversation.
+- **Pin, archive, unread**: read marks go (`read`: the page's
+  `use-read-marks.ts`, the view's rule); left: an archived or ended
+  session's banner (the page's `ended-banner.tsx`) and the pinned state
+  in the bar. Only this area's menu marks the session shown unread now;
+  another area doing so before any read mark went (a session with
+  nothing asking for attention) would be marked read again at once, so
+  such an area needs the hold this menu sets (`read_held`, one seam).
 - **Chat settings** (Settings › Chat, track E2 draws the page): always
   expand reasoning, the outline shown or not, collapse whole turns; each
   needs a preference and its rule here.
@@ -323,7 +336,7 @@ done yet:
   running, a wake button when waking failed, the `parked` and `woken`
   marks in the timeline); then rewind, fork, import and handoff as A2
   sends them.
-- Then: the branch chip rail, read marks drawn, the ended banner, the
+- Then: the branch chip rail, the ended banner, the
   inspector's Summary, the terminal view (§7), stream banners; copying a
   message and a conversation (a tool's text and a code block have their
   copy button); a screen-reader buffer; export.
