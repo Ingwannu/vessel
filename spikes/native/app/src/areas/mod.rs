@@ -12,6 +12,7 @@ pub(crate) mod about;
 pub(crate) mod archive;
 pub(crate) mod board;
 pub(crate) mod common;
+pub(crate) mod composer;
 pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod pair;
@@ -42,6 +43,8 @@ pub(crate) struct Areas {
     pub(crate) sidebar: sidebar::SidebarState,
     /// The toasts on screen.
     pub(crate) toasts: vessel_app_view::toasts::Toasts,
+    /// Track P's: a running session's option changes in flight.
+    pub(crate) composer: composer::ComposerArea,
 }
 
 impl Areas {
@@ -59,6 +62,7 @@ impl Areas {
             shortcuts: shortcuts::ShortcutListener::new(cx),
             sidebar: sidebar::SidebarState::new(),
             toasts: vessel_app_view::toasts::Toasts::default(),
+            composer: composer::ComposerArea::default(),
         }
     }
 }

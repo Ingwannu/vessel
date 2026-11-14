@@ -25,6 +25,7 @@
 pub mod agent_mark;
 pub mod alert;
 pub mod assets;
+pub mod autocomplete;
 pub mod badge;
 pub mod breakpoint;
 pub mod card_button;
@@ -36,6 +37,7 @@ pub mod copy;
 pub mod dialog;
 pub mod field;
 pub mod fonts;
+pub mod frame_log;
 pub mod menu;
 pub mod motion;
 pub mod output;

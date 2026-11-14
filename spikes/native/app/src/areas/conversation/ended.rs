@@ -29,6 +29,12 @@
 //!   Paseo's button is plain words; the page's restore mark is not drawn
 //!   because the kit's button takes words only. The phone padding follows
 //!   the app's phone width (768), not Paseo's 600.
+//! - Slice M (the owner on 0.0.0.0.13: sending as in Paseo): an ended
+//!   session that can go on has no banner at all; the next message
+//!   starts it again underneath and shows at once (`tail`). The banner is
+//!   left for an archived session (Paseo's archived callout) and for one
+//!   whose agent cannot go on. A released agent's failed resume is the
+//!   header's chip; the next send retries, as Paseo's closed agent does.
 //! - Cost: a send typed into an ended session's composer still starts it
 //!   again (the lead's composer); the banner says what the agent can do,
 //!   and the composer's own line under the conversation says what sending
@@ -47,8 +53,9 @@ use vessel_proto::SessionMode;
 
 use crate::shell::Shell;
 
-/// The banner over the composer card while the session shown has ended;
-/// `None` while it is live or not yet described.
+/// The banner over the composer card while the session shown has ended,
+/// or while its released agent could not be resumed; `None` otherwise or
+/// before the node describes it.
 pub(super) fn banner(
     shell: &Shell,
     tokens: &Tokens,
@@ -57,14 +64,32 @@ pub(super) fn banner(
 ) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
     let info = area.info.as_deref()?;
-    if is_live(info) || !matches!(info.spec.mode, SessionMode::Structured { .. }) {
+    if !matches!(info.spec.mode, SessionMode::Structured { .. }) {
         return None;
     }
     let words = shell.t.lang.conversation();
     let neutral = tokens.neutral;
-    let again = can_start_again(info);
+    // Slice M (the owner, 2026-11-14: as in Paseo, the next message
+    // starts an ended agent again): a session that ended and can go on has
+    // no card; the person sends and the message shows at once. An archived
+    // one keeps Paseo's archived callout, and one whose agent cannot go on
+    // says so, since nothing sent there would be answered. A failed resume
+    // of a released agent is the header's to say; the next send retries.
+    if is_live(info) {
+        return None;
+    }
+    let can = can_start_again(info);
+    let archived = is_archived(info);
+    if can && !archived {
+        return None;
+    }
+    let (heading, line, again) = (
+        words.ended_heading(archived),
+        words.ended_line(can).to_owned(),
+        can,
+    );
     let narrow = breakpoint::phone(window);
-    let state = if area.starting_again {
+    let state = if area.restarting {
         ButtonState::Disabled
     } else {
         ButtonState::Enabled
@@ -94,13 +119,13 @@ pub(super) fn banner(
             div()
                 .type_(Type::Label)
                 .text_color(neutral.foreground)
-                .child(words.ended_heading(is_archived(info))),
+                .child(heading),
         )
         .child(
             div()
                 .type_(Type::Body)
                 .text_color(neutral.foreground_muted)
-                .child(words.ended_line(again)),
+                .child(line),
         );
     let callout = div()
         .flex()
@@ -151,10 +176,10 @@ impl Shell {
     /// row): once, until the node answers.
     pub(super) fn conversation_start_again(&mut self, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
-        if area.starting_again {
+        if area.restarting {
             return;
         }
-        area.starting_again = true;
+        area.restarting = true;
         area.again_refused = None;
         self.act(Act::StartAgain);
         cx.notify();

@@ -143,17 +143,24 @@ fi
 # - The SIL Open Font License asks that each copy of the fonts carry the
 #   licence; the app embeds Geist, Geist Mono and Pretendard (fonts.sh
 #   puts their texts beside the fonts).
-# - The agents' marks (docs/design/agent-marks/README.md): from 0.0.0.0.13
-#   the app embeds Google's Gemini spark (path and gradient) from a Google
-#   repository under Apache-2.0 (0.0.0.0.10-0.0.0.0.12: the Gemini CLI
-#   icon, same licence), whose section 4(a) asks that recipients of the
-#   object form get a copy of the licence. Every text beside the marks is
-#   carried, so a mark added later brings its licence without a change
-#   here. (The restricted marks keep only path data and ship no text.)
+# - The agents' marks (docs/design/agent-marks/README.md): every text
+#   beside the marks is carried, so a mark that comes with a licence brings
+#   it without a change here. 0.0.0.0.10-0.0.0.0.14 embedded Gemini marks
+#   from Google repositories under Apache-2.0 (section 4(a): recipients of
+#   the object form get the licence), hence google-Apache-2.0.txt. The
+#   desktop track is moving Gemini to Google's own file from Google's CDN,
+#   which is not an Apache-2.0 work; once no embedded mark needs that text
+#   it can leave the folder. The folder may then hold no text at all, so
+#   the copy takes what is there and never fails on an empty match. (The
+#   restricted marks keep only path data and ship no text.)
 licenses() {
     mkdir -p "$1/licenses"
     cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
-    cp "$repo"/docs/design/agent-marks/*.txt "$1/licenses/"
+    local text
+    for text in "$repo"/docs/design/agent-marks/*.txt; do
+        [ -e "$text" ] || continue
+        cp "$text" "$1/licenses/"
+    done
 }
 
 # Every icon, from the owner's mark (docs/design/brand/, whose README says

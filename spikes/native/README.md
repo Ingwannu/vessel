@@ -273,6 +273,49 @@ the kit's existing fields: Enter starts a line, Mod+Enter submits, and
 after twelve lines the editor scrolls. Its marked-text regression also
 exercises the composer; platform input-method support remains shared.
 
+`kit::field::composer_hooks` gives a composer's screen what Paseo's
+composer needs of its text: `caret`, `selection`, `replace_range` and
+`replace_all` (byte offsets; one undoable edit, the caret after it),
+`on_edit` (after every edit), and `hooked`, which offers Up, Down, Enter
+(alone), Tab and Escape, and a paste of images or files, to the screen
+before the text sees them. `KeyAnswer::Pass` leaves everything as before
+(Enter sends, Tab indents); `Taken` stops the key. An input method
+composing is never asked. Screens take a key only while their menu shows.
+
+The permissions modes' marks are Paseo's shield family on the kit's own
+`Shield` outline: `ShieldPlus`, `ShieldCheck`, `ShieldOff`, `ShieldEllipsis`
+and `ShieldAlert` (`assets.rs`, the 24-unit 1.5-stroke grid). A list row
+draws one in the foreground with `Leading::Mark` (Paseo's mode rows);
+`Leading::Glyph` stays muted. `cargo run -p vessel-app-kit --example
+shield_marks` with `GPUI_X11_SCALE_FACTOR` draws them beside `Shield` at
+14, 16 and 20 points, off the pixel grid, for the scale check.
+A list in which any row leads with a mark keeps the mark's column on every
+row (an empty one where a row has none), so labels share one left edge;
+agent lists, whose marks are the agents' own widths, are left as they are.
+`ComboHeader::note` is a muted line above a list's rows: the composer's
+lists say there that the list shown could not be refreshed.
+
+What each agent on each machine offers (its models, efforts, modes, on/off
+options) is one store, `view::offers`: shown at once when a control opens,
+refreshed behind it (on open, at connect, when a machine's agents change;
+one request per agent in flight), laid over an open list at the edge away
+from its anchor so the rows shown stay put (the list's keyboard highlight
+follows its row). The link keeps the last lists on the device between runs
+(`link/src/offers.rs`: `agent-options.json` in the app's state folder,
+owner-only, versioned, bounded, keyed by the node's id) and hands them over
+when a machine connects. `docs/plans/backend-m12-composer.md` has the
+rules and what was followed from Paseo.
+
+`kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
+list): rows drawn best last (nearest the text), the chosen one on
+`surface2`, a chosen command's card above the list, the loading, empty and
+failed states as one muted line; at most 220 high, scrolling, the chosen
+row kept in view. `cargo run -p vessel-app-kit --example autocomplete`
+with `VESSEL_AUTOCOMPLETE_SCENE` (`commands`, `long`, `files`, `empty`,
+`loading`, `failed`, `scroll`) and `VESSEL_APP_THEME` draws each state.
+The list takes a `Motion` (an easing and a length) from the screen, which
+reads the app's one set of motion tokens; the kit has none of its own.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.

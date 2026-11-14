@@ -57,6 +57,16 @@ pub enum Glyph {
     Stop,
     /// The permissions mode.
     Shield,
+    /// A permissions mode that accepts edits (Paseo's `ShieldPlus`).
+    ShieldPlus,
+    /// A permissions mode that decides for itself (Paseo's `ShieldCheck`).
+    ShieldCheck,
+    /// A permissions mode that asks nothing (Paseo's `ShieldOff`).
+    ShieldOff,
+    /// A planning mode (Paseo's `ShieldEllipsis`).
+    ShieldEllipsis,
+    /// A permissions mode that asks before writing (Paseo's `ShieldAlert`).
+    ShieldAlert,
     /// The effort (thinking).
     Brain,
     /// An agent.
@@ -177,7 +187,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 72] = [
+const ALL: [Glyph; 77] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -194,6 +204,11 @@ const ALL: [Glyph; 72] = [
     Glyph::ArrowUp,
     Glyph::Stop,
     Glyph::Shield,
+    Glyph::ShieldPlus,
+    Glyph::ShieldCheck,
+    Glyph::ShieldOff,
+    Glyph::ShieldEllipsis,
+    Glyph::ShieldAlert,
     Glyph::Brain,
     Glyph::Bot,
     Glyph::Alert,
@@ -285,6 +300,11 @@ impl Glyph {
             Self::ArrowUp => "kit/arrow-up.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
+            Self::ShieldPlus => "kit/shield-plus.svg",
+            Self::ShieldCheck => "kit/shield-check.svg",
+            Self::ShieldOff => "kit/shield-off.svg",
+            Self::ShieldEllipsis => "kit/shield-ellipsis.svg",
+            Self::ShieldAlert => "kit/shield-alert.svg",
             Self::Brain => "kit/brain.svg",
             Self::Bot => "kit/bot.svg",
             Self::Alert => "kit/alert.svg",
@@ -378,6 +398,33 @@ impl Glyph {
             Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
             Self::Shield => {
                 line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
+            }
+            // The shield's outline with its mark inside, centred on the
+            // shield's optical middle (12, 11.5).
+            Self::ShieldPlus => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M12 8.5v6M9 11.5h6"/>"#
+                )
+            }
+            Self::ShieldCheck => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M9 11.5l2 2 4-4"/>"#
+                )
+            }
+            Self::ShieldOff => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M4 4l16 16"/>"#
+                )
+            }
+            Self::ShieldEllipsis => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/>"#
+                )
+            }
+            Self::ShieldAlert => {
+                line_glyph!(
+                    r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/><path d="M12 8v4M12 15h.01"/>"#
+                )
             }
             Self::Brain => line_glyph!(
                 r#"<path d="M12 5.5a3 3 0 0 0-5.6-1.2A3 3 0 0 0 4 8.5a3.2 3.2 0 0 0 .8 5.8A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5z"/><path d="M12 5.5a3 3 0 0 1 5.6-1.2A3 3 0 0 1 20 8.5a3.2 3.2 0 0 1-.8 5.8A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/>"#

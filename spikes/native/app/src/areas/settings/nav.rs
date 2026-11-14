@@ -316,6 +316,7 @@ pub(crate) fn picker_header(shell: &Shell, compact: bool) -> ComboHeader {
         back: false,
         search: false,
         empty: words.no_machines.into(),
+        note: None,
         side: Side::Below,
     }
 }

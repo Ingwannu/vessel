@@ -13,10 +13,14 @@
 //!   stop a pointer is on, the glide, the spring, the decorations through
 //!   time) is in `view::slider`, under test.
 //! - Choice: this control draws a [`Paint`] the caller computes each frame
-//!   (from `view::slider::state::Motion`) and reports the pointer as a
-//!   share of the track's width, the wheel's units and the arrow keys
-//!   ([`Events`]). It asks for the next frame only while the paint says
-//!   something moves, so nothing ticks when it rests or is not drawn.
+//!   (from `view::slider::state::Motion`) and reports the pointer in
+//!   points along the track ([`Pointer`]), the wheel's units and the arrow
+//!   keys ([`Events`]). While the paint says something moves it asks for
+//!   the display's next frame (GPUI's frame callback, at the display's
+//!   rate: the thumb, the fill, Fast's dots, the field and the burst all
+//!   advance once per frame drawn); when it rests or is not drawn nothing
+//!   ticks. Until 0.0.0.0.14 the decorations ran on a 30-a-second timer,
+//!   which read as choppy on the owner's GPU (words 41-42).
 //! - The field: the caller gives a sampler (colour and opacity at a point
 //!   of the fill); the control samples it every 2 points into one small
 //!   image per frame, painted over the fill with its left corners rounded,
@@ -66,9 +70,6 @@ const BURST_DOT: f32 = 5.0;
 const FAST_DOT: f32 = 3.0;
 /// The field's sampling step, points.
 const FIELD_STEP: f32 = 2.0;
-/// The decorations' frame time: 30 a second (the reference's motion is
-/// slow; the display's every frame is spent only on the thumb's glide).
-const DECORATION_FRAME: Duration = Duration::from_millis(33);
 /// A line of wheel scrolling, in the reference's units.
 const WHEEL_LINE: f32 = 30.0;
 
@@ -125,11 +126,8 @@ pub struct Paint {
     pub field: Option<Sampler>,
     /// The fill's colour.
     pub fill: Hsla,
-    /// Whether anything moves (a next frame is asked for).
+    /// Whether anything moves (the display's next frame is asked for).
     pub moving: bool,
-    /// Whether that frame is the display's next (the thumb gliding or
-    /// springing); otherwise one 1/30 s later (the decorations).
-    pub smooth: bool,
     /// Whether the slider has the keys and the last input was a key: the
     /// thumb shows the focus ring (the reference's `:focus-visible`).
     pub ring: Option<Hsla>,
@@ -156,10 +154,10 @@ pub type Then = Rc<dyn Fn(&mut Window, &mut App)>;
 #[derive(Clone)]
 #[expect(missing_debug_implementations, reason = "callbacks only")]
 pub struct Events {
-    /// A press at a share of the track's width.
-    pub press: With<f32>,
-    /// The pointer, pressed, at a share of the track's width.
-    pub drag: With<f32>,
+    /// A press on the track.
+    pub press: With<Pointer>,
+    /// The pointer, pressed, anywhere in the window.
+    pub drag: With<Pointer>,
     /// The release.
     pub release: Then,
     /// The pointer onto or off the thumb.
@@ -178,8 +176,6 @@ pub struct SliderState {
     track: Rc<Cell<Option<Bounds<Pixels>>>>,
     /// Whether the pointer is pressed on it.
     pressed: Rc<Cell<bool>>,
-    /// A decorations' frame is already asked for.
-    ticking: Rc<Cell<bool>>,
     /// The field's image last painted, dropped when the next is.
     field: Rc<RefCell<Option<Arc<RenderImage>>>>,
 }
@@ -194,7 +190,6 @@ impl SliderState {
             track: Rc::new(Cell::new(None)),
             pressed: Rc::new(Cell::new(false)),
             field: Rc::new(RefCell::new(None)),
-            ticking: Rc::new(Cell::new(false)),
         }
     }
 
@@ -211,16 +206,22 @@ impl SliderState {
     }
 }
 
-/// The share of `track`'s width at `x`, 0 to 1.
-fn share(x: Pixels, track: Bounds<Pixels>) -> f32 {
-    let width = f32::from(track.size.width);
-    if width <= 0.0 {
-        return 0.0;
+/// A pointer over the track, in points: from the track's start (beyond
+/// either end while dragging), and the track's width.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pointer {
+    /// Points from the track's start.
+    pub x: f32,
+    /// The track's width.
+    pub width: f32,
+}
+
+/// The pointer at `x` over `track`.
+fn pointer(x: Pixels, track: Bounds<Pixels>) -> Pointer {
+    Pointer {
+        x: f32::from(track.left()).mul_add(-1.0, f32::from(x)),
+        width: f32::from(track.size.width),
     }
-    f32::from(track.left())
-        .mul_add(-1.0, f32::from(x))
-        .mul_add(width.recip(), 0.0)
-        .clamp(0.0, 1.0)
 }
 
 /// Where along a track `width` wide a point `fraction` of the way between
@@ -605,27 +606,19 @@ fn byte(channel: f32) -> u8 {
 fn frames(state: &SliderState, paint: &Paint, events: &Events) -> AnyElement {
     let pressed = Rc::clone(&state.pressed);
     let track = Rc::clone(&state.track);
-    let ticking = Rc::clone(&state.ticking);
     let drag = Rc::clone(&events.drag);
-    let (moving, smooth) = (paint.moving, paint.smooth);
+    let moving = paint.moving;
     canvas(
         |_, _, _| {},
-        move |_bounds, (), window, cx| {
-            // Asked only while the paint moves (under reduced motion the
-            // caller's frames hold still): a resting or closed card does
-            // not tick. The thumb's glide takes the display's frames; the
-            // decorations one frame each 1/30 s, from one timer at a time.
-            if moving && smooth {
+        move |_bounds, (), window, _cx| {
+            // Asked only while the paint moves (under held motion the
+            // caller's frames rest): a resting or closed card does not
+            // tick. Each frame drawn while it moves asks for the next.
+            if moving {
+                crate::frame_log::note("slider");
                 window.request_animation_frame();
-            } else if moving && !ticking.replace(true) {
-                let ticking = Rc::clone(&ticking);
-                window
-                    .spawn(cx, async move |cx| {
-                        cx.background_executor().timer(DECORATION_FRAME).await;
-                        ticking.set(false);
-                        let _drawn = cx.update(|window, _cx| window.refresh());
-                    })
-                    .detach();
+            } else {
+                crate::frame_log::note("still");
             }
             if !pressed.get() {
                 return;
@@ -638,7 +631,7 @@ fn frames(state: &SliderState, paint: &Paint, events: &Events) -> AnyElement {
                     && pressed.get()
                     && let Some(bounds) = track.get()
                 {
-                    drag(share(event.position.x, bounds), window, cx);
+                    drag(pointer(event.position.x, bounds), window, cx);
                 }
             });
         },
@@ -662,7 +655,7 @@ fn press(
         };
         pressed.set(true);
         focus.focus(window, cx);
-        press(share(event.position.x, bounds), window, cx);
+        press(pointer(event.position.x, bounds), window, cx);
     }
 }
 
@@ -728,14 +721,14 @@ pub fn spinner(id: impl Into<ElementId>, size: f32, colour: Hsla) -> AnyElement 
 mod tests {
     use gpui::{Bounds, point, px, size};
 
-    use super::{along, share};
+    use super::{along, pointer};
 
     #[test]
-    fn a_pointer_is_a_share_of_the_track() {
+    fn a_pointer_is_measured_from_the_track_start() {
         let track = Bounds::new(point(px(100.0), px(0.0)), size(px(200.0), px(24.0)));
-        assert!((share(px(90.0), track) - 0.0).abs() < 1e-6);
-        assert!((share(px(150.0), track) - 0.25).abs() < 1e-6);
-        assert!((share(px(400.0), track) - 1.0).abs() < 1e-6);
+        assert!((pointer(px(90.0), track).x + 10.0).abs() < 1e-6);
+        assert!((pointer(px(150.0), track).x - 50.0).abs() < 1e-6);
+        assert!((pointer(px(150.0), track).width - 200.0).abs() < 1e-6);
     }
 
     #[test]

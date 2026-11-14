@@ -298,6 +298,15 @@ impl Shell {
         }
         if open.live {
             let delivery = self.delivery();
+            // A send that starts a turn shows in the conversation at once
+            // (Paseo's pending message; track C's tail). One into a running
+            // turn waits in the queue or joins the turn instead.
+            if !self.areas.session.conversation.turn_running() {
+                self.conversation_sending(&text, cx);
+            }
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -307,6 +316,12 @@ impl Shell {
         } else {
             // Ended or interrupted: start it again with its conversation,
             // then send (Paseo and GOAT continue a session the same way).
+            // The message shows in the conversation at once, the agent's
+            // working footer under it, while the session starts.
+            self.conversation_sending(&text, cx);
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Resume {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -372,6 +387,7 @@ impl Shell {
         }
         *view.restore.borrow_mut() = view.resuming.take();
         view.resume_error = Some(why);
+        self.conversation_send_failed();
     }
 
     /// A prompt the link did not take: its text back in the composer of
@@ -385,6 +401,7 @@ impl Shell {
             .is_some_and(|open| open.session == session)
         {
             *view.restore.borrow_mut() = Some(text);
+            self.conversation_send_failed();
         }
     }
 
@@ -452,42 +469,40 @@ pub(crate) fn render(
             // agent shows only its callout); a send would only try to
             // start it again.
             let ended_for_good = shell.conversation_cannot_resume();
+            // The draft's pills on the session's own options (Paseo's
+            // AgentControls on a running agent).
+            let touch = crate::areas::draft::compact(window);
+            let (controls, over) =
+                crate::areas::draft::running_controls(shell, touch, tokens, window, cx).unzip();
             frame
                 .children(dock.map(column))
                 .when(!ended_for_good, |frame| {
-                    frame.child(composer(shell, tokens, working, window, cx))
+                    frame.child(composer(shell, tokens, working, controls, window, cx))
                 })
+                .children(over.into_iter().flatten())
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot: the screen, with the code panel beside it when out.
     crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }
 
-/// Under an ended session's conversation: that sending starts it again;
-/// while it starts, the prompt and that it is starting; why it could not.
+/// Under an ended session's conversation: why it could not be started
+/// again (Paseo's send error, its words back in the composer). While it
+/// starts, the message is in the conversation with the agent's working
+/// footer under it (track C's tail, slice M): nothing is said here.
 fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     if !open.structured || open.live {
         return None;
     }
-    let t = shell.t;
-    let view = &shell.areas.session;
-    let neutral = tokens.neutral;
-    // That it ended is the dock's banner's to say (track C's ended
-    // banner); this line speaks only while it starts again or failed to.
-    let (text, color) = if let Some(why) = &view.resume_error {
-        (t.resume_failed(why), neutral.destructive)
-    } else if view.resuming.is_some() {
-        (t.resuming.to_owned(), tokens.st_building)
-    } else {
-        return None;
-    };
-    let mut note = div().w_full().flex().flex_col().gap(px(8.0)).py(px(8.0));
-    if let Some(prompt) = &view.resuming {
-        note = note.child(bubble(prompt, tokens));
-    }
-    Some(column(note.child(
-        div().type_(Type::Meta).text_color(color).child(text),
-    )))
+    let why = shell.areas.session.resume_error.as_ref()?;
+    Some(column(
+        div().w_full().py(px(8.0)).child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.destructive)
+                .child(shell.t.resume_failed(why)),
+        ),
+    ))
 }
 
 /// The first prompt, shown while the session starts; in a new worktree,
@@ -546,6 +561,7 @@ fn composer(
     shell: &Shell,
     tokens: &Tokens,
     working: bool,
+    controls: Option<Div>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -577,18 +593,35 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
+    // Track P: the `/` menu over the card, and the text with its keys
+    // offered to the menu first.
+    let commands = crate::areas::composer::menu(shell, tokens, window, cx);
     column(
         vessel_app_kit::composer_card(tokens, touch)
-            .child(field.element(tokens, touch, cx))
+            .relative()
+            .children(commands)
+            .child(crate::areas::composer::text(shell, tokens, touch, cx))
             .child(
+                // The draft's row: the agent's controls on the left (Paseo's
+                // button row bleeds 6 past the card's padding), the meter
+                // and send/stop on the right.
                 div()
+                    .mx(px(-6.0))
                     .flex()
                     .flex_row()
                     .items_center()
-                    .justify_end()
+                    .justify_between()
                     .gap(px(8.0))
-                    .children(super::conversation::meter(shell, tokens, window, cx))
-                    .child(button),
+                    .child(div().flex_1().min_w_0().children(controls))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(8.0))
+                            .children(super::conversation::meter(shell, tokens, window, cx))
+                            .child(button),
+                    ),
             ),
     )
     .pb(px(12.0))
