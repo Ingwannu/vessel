@@ -232,7 +232,10 @@ impl Shell {
             Event::BookUnreadable(fault) => self.book_unreadable(&fault),
             Event::SessionLost { session, why } => self.session_lost(session, why),
             Event::Acted(answer) => {
-                if let Some(answer) = self.board_acted(answer, cx) {
+                if let Some(answer) = self
+                    .board_acted(answer, cx)
+                    .and_then(|answer| self.option_acted(answer, cx))
+                {
                     self.acted(answer, cx);
                 }
             }
