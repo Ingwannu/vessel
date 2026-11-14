@@ -1178,6 +1178,12 @@ CI runs exactly those three on Linux, Windows and macOS. Lints are strict
 `Cargo.toml`. Changes to `web/` also need its checks ("Web UI" above),
 which CI runs on Linux.
 
+For account-free pull-request fixtures, build the separate
+`vessel-forge-fixture` executable with `--features vessel-node/forge-fixture`.
+It loads a bounded, typed JSON seed into the existing in-memory forge;
+product `vesseld` has no fake-forge selector. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
+and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
+
 ## License
 
 Vessel is **source-available, not open source.** It is licensed under the
