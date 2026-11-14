@@ -232,20 +232,21 @@ stay the same. No new dependency or wire method is added.
 
 ## Resume point
 
-Done: slice 1, reviewed ADR and contract; slice 2a values-only implementation
-in `6a0d3e21`, with five edge tests. The implementation has no callable RPC,
-settings field, stream task or provider. Generated wire bytes are unchanged.
+Done: slice 1, reviewed ADR and contract; slice 2a values in `6a0d3e21`
+and returned-review corrections in `2e3ebbf0` and `3756ae0c`. The final
+correction passed its exact-commit gate and was reported for re-review.
+It still adds no callable RPC, settings field, provider or node task.
 
-Review of 2a returned its bare version and repeated bounds. This commit
-corrects both: a typed base-version reference and named bounds used in
-checks and diagnostics. It also clarifies why the public accessors exist. The strict lint gate
-requires the prelude `size_of` spelling for the sample-width constant.
-The correction must pass its exact-commit gate and be reported for review.
+This docs amendment records why the next metadata slice reuses the existing
+workspace URL parser, its licence/source-package size, input restrictions
+and platform limits. No dependency or implementation changes in this commit.
+The existing generic HTTP URL type is shared with MCP and does not parse
+complete URI syntax; changing it would alter unrelated contracts.
 
-Half-done: the previous settings/service draft remains outside the repository
-for comparison, uncompiled and unreviewed. It must not be treated as a
-finished implementation.
+Half-done: metadata, settings persistence and service drafts remain private
+preparation, uncompiled and unreviewed. None is finished implementation.
 
-Next: gate and report this correction, then continue settings and service
-implementation in reviewable parts. Do not link local models or open a
-microphone. The CLI file client follows the node service.
+Next: fast-gate this docs commit, add provider metadata and edge tests as
+2b1, then settings/persistence as 2b2. Subsequent audio, endpoint, actor and
+RPC slices include their own parity tests. Local engines and the app's
+microphone remain deferred; the CLI file client follows the node service.

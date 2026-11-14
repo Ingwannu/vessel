@@ -281,6 +281,56 @@ implementation. Tests use a fake provider behind the same enum's test
 constructor, not the network. The endpoint's tests speak HTTP to a
 listener on loopback started by the test.
 
+### URI parsing dependency (implementation amendment)
+
+Purpose and intent: parse the endpoint URI once at the protocol boundary,
+including standard IPv4, IPv6, IDNA and scheme normalization, before a node
+can retain settings or send credentials.
+
+Existing implementation and constraints: HttpUrl checks a prefix, authority
+presence and userinfo. It does not parse complete URI syntax. Extending it
+would also alter existing MCP URLs, outside dictation's contract.
+
+Alternatives considered: std has no URI parser; a local authority parser
+would duplicate URI rules and reject valid normalized forms. Reuse the
+workspace's url crate, already used by node, lsp and testkit.
+
+Choice: add url.workspace = true to vessel-proto. Cargo.lock resolves
+url 2.5.8, licensed MIT OR Apache-2.0. Its uncompressed package files are
+591779 bytes; this is source-package size, not a measured linked-binary or
+WebAssembly footprint. No new package or feature is introduced into the
+root workspace resolution.
+
+Why this and not the alternatives: the parser canonicalizes schemes and
+hosts and validates IP literals without handwritten URI interpretation.
+It performs no I/O. The settings type keeps the parsed URL privately; the
+fixed default uses a typed marker and its constant URL. Request path construction appends
+segments to that parsed value, preserving escaped path bytes.
+The encoded canonical URI is capped at 256 ASCII bytes so saving and
+reading it use the same bound. Userinfo, fragments and query strings are
+refused. Query rejection is an explicit difference from a Paseo's free-text base setting (OpenAI
+config.ts 37-44): dictation appends one fixed path and never carries credentials
+in URI parameters. HTTP is accepted only for parsed loopback IPs or the
+localhost host; HTTPS may reach the admin-selected host with the selected
+node secret. Redirects and environment proxies remain disabled.
+
+Advantages, costs and effects: no new vessel-* edge or owned-external edge;
+URL and IDNA parsing become part of proto's client dependency surface.
+Standalone binary/WebAssembly size and platform execution are not yet
+measured. The manifest change must follow this amendment's docs commit.
+
+The stored URI is canonicalised, including scheme/host case, default ports
+and a trailing path separator. Whitespace, control characters, backslashes
+and port zero are refused rather than silently normalised. These and the
+short language/model names are explicit input restrictions beyond Paseo's
+trimmed free-text configuration: a refused patch must not change the file.
+The loopback HTTP exception permits a local compatible endpoint and the
+HTTP fake; non-loopback hosts always require TLS. No signals or service-
+manager APIs are introduced: the intended path on
+Windows, macOS, Linux and WebAssembly is this same parser. Cross-platform
+execution and standalone linking remain unverified until those gates run.
+
+
 ### Settings, defaults, secret
 
 On `NodeSettings`, one optional `dictation`. Omitted when every field
