@@ -20,7 +20,7 @@ notifications. Its recovery banner offers resume and snooze at reset.
 
 ## Decision
 
-- Reuse the ACP reports, event writer, SQLite reader pool and existing
+- Reuse the ACP reports, event writer, SQLite readers and existing
   client authentication. No scraping, price catalogue, billing estimate,
   transcript scan, or inferred token count. Proxy reports are a separate
   source and never added to ACP reports for the same session.
@@ -78,7 +78,7 @@ notifications. Its recovery banner offers resume and snooze at reset.
   changed account, deletion or explicit cancellation. Recheck state before
   sending once. Offer account handoff only through the existing checked
   profile move; do not offer an action for an unavailable route.
-- Protocol 12 adds calls; the minimum stays 2. Older clients see the
+- Protocol 19 provisionally adds usage calls after the protocol-18 node line; the minimum stays 2. Older clients see the
   existing conversation reports. New clients on older nodes receive the
   existing version refusal and show that usage is not available there.
 

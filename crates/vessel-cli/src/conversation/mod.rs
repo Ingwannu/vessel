@@ -12,6 +12,8 @@ mod send;
 use std::io::IsTerminal as _;
 
 use vessel_client::NodeClient;
+use vessel_proto::forking::{ForkSession, RewindSession};
+use vessel_proto::parking::{ParkSession, WakeSession};
 use vessel_proto::{Mark, SessionInfo};
 
 pub(crate) use send::send;
@@ -42,6 +44,22 @@ pub(crate) async fn command(target: &Target, command: ConversationCommand) -> Re
         ConversationCommand::Resume { session } => {
             let id = session.resolve(&client).await?.id;
             show(&client.resume_session(id).await?).await
+        }
+        ConversationCommand::Park { session } => {
+            let id = session.resolve(&client).await?.id;
+            show(&client.call(ParkSession { session: id }).await?).await
+        }
+        ConversationCommand::Wake { session } => {
+            let id = session.resolve(&client).await?.id;
+            show(&client.call(WakeSession { session: id }).await?).await
+        }
+        ConversationCommand::Fork { session, after } => {
+            let id = session.resolve(&client).await?.id;
+            show(&client.call(ForkSession { session: id, after }).await?).await
+        }
+        ConversationCommand::Rewind { session, after } => {
+            let id = session.resolve(&client).await?.id;
+            show(&client.call(RewindSession { session: id, after }).await?).await
         }
         ConversationCommand::Pin { session } => mark(&client, &session, |_| Mark::Pin).await,
         ConversationCommand::Unpin { session } => mark(&client, &session, |_| Mark::Unpin).await,

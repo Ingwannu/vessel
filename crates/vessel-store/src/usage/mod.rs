@@ -38,14 +38,26 @@ pub(crate) fn observe(
             event: AgentEvent::Ready {
                 harness_session, ..
             },
+        }
+        | SessionEvent::Rewound {
+            harness_session, ..
         } => {
             cost::ready(connection, session, harness_session)?;
             return Ok(());
         }
         SessionEvent::Status {
             status: vessel_proto::SessionStatus::Starting,
-        } => {
+        }
+        | SessionEvent::Parked { .. } => {
             cost::starting(connection, session)?;
+            return Ok(());
+        }
+        SessionEvent::Woken => {
+            cost::woken(connection, session)?;
+            return Ok(());
+        }
+        SessionEvent::Forked { .. } => {
+            cost::changed_profile(connection, session)?;
             return Ok(());
         }
         SessionEvent::Agent {

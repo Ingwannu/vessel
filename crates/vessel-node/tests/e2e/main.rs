@@ -29,6 +29,12 @@ mod crowd;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod fleet_control;
+#[cfg(test)]
+mod fleet_control_cancel;
+#[cfg(test)]
+mod fleet_published;
+#[cfg(test)]
 mod forge;
 #[cfg(test)]
 mod forge_rules;
@@ -47,6 +53,10 @@ mod marks;
 // Where protocol 11's pull requests and terminals meet (Unix: the
 // terminals' shell is `/bin/sh`).
 #[cfg(test)]
+mod forking;
+#[cfg(test)]
+mod history;
+#[cfg(test)]
 #[cfg(unix)]
 mod meeting;
 #[cfg(test)]
@@ -57,6 +67,7 @@ mod notices;
 mod options;
 #[cfg(test)]
 mod page_wire;
+mod parking;
 #[cfg(test)]
 mod profiles;
 #[cfg(test)]
@@ -71,13 +82,18 @@ mod removal_race;
 mod resume;
 #[cfg(test)]
 mod routing;
+mod settings;
 // Where track D's schedules meet pull requests, terminals and added
 // agents (Unix: the terminals' shell is `/bin/sh`).
+#[cfg(test)]
+mod schedule_preview;
 #[cfg(test)]
 #[cfg(unix)]
 mod scheduled;
 #[cfg(test)]
 mod schedules;
+#[cfg(test)]
+mod search;
 #[cfg(test)]
 mod secrets_across;
 #[cfg(test)]

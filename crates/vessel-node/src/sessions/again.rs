@@ -239,7 +239,7 @@ pub(crate) async fn ready(handle: &SessionHandle) -> Result<SessionInfo, Service
     };
     let why = match status {
         SessionStatus::Running => return Ok(handle.info()),
-        SessionStatus::Failed { message } => message,
+        SessionStatus::Failed { message, .. } => message,
         SessionStatus::Starting | SessionStatus::Exited { .. } | SessionStatus::Interrupted => {
             "it was stopped before its agent was ready".to_owned()
         }
@@ -266,6 +266,7 @@ fn continued(ended: EndedSession) -> Ended {
         queue,
         usage,
         attention,
+        moved_through,
     } = ended;
     let choices = choices.unwrap_or_else(|| info.spec.mode.options().to_vec());
     Ended {
@@ -274,5 +275,6 @@ fn continued(ended: EndedSession) -> Ended {
         queue,
         usage,
         attention,
+        moved_through,
     }
 }

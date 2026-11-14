@@ -140,6 +140,22 @@ async fn an_already_built_call_newer_than_the_connection_is_not_sent() {
 }
 
 #[tokio::test]
+async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
+    let (mut client, mut served) = raw_client(12).await;
+    let request = vessel_proto::automation::PreviewSchedule {
+        cadence: vessel_proto::automation::Cadence::Every {
+            seconds: vessel_proto::automation::EverySeconds::try_from(60).unwrap(),
+            anchor: None,
+        },
+        after: None,
+        count: vessel_proto::automation::PreviewCount::default(),
+    };
+    let error = refusal(&call_raw(&mut client, 1, request.into_call()).await);
+    assert_eq!(error.code, ErrorCode::Unsupported);
+    assert!(served.seen.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
     use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
     let previous = QueryUsage::METHOD.since().get().saturating_sub(1);

@@ -115,6 +115,9 @@ pub(crate) enum CliError {
     /// The pasted text is not a pairing link.
     #[error(transparent)]
     PairingLink(vessel_proto::LinkError),
+    /// The decoded invitation could not be encoded for its typed RPC.
+    #[error("could not encode a pairing invitation")]
+    PairingEncode(#[source] serde_json::Error),
     /// The person did not confirm the node.
     #[error("not paired")]
     NotPaired,
@@ -136,6 +139,9 @@ pub(crate) enum CliError {
     /// An agent's text breaks its rule (`vessel agents add`).
     #[error(transparent)]
     AgentText(#[from] vessel_proto::agents::InvalidAgentText),
+    /// A search's words break its rule (`vessel search`).
+    #[error(transparent)]
+    Search(#[from] vessel_proto::search::InvalidSearch),
     #[error(transparent)]
     Ssh(#[from] SshError),
     #[error(transparent)]

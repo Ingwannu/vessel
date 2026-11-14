@@ -6,8 +6,8 @@
 
 import { useState } from "react";
 
-import { useFleet, useFleetState } from "../../context";
-import { agentName } from "../../data/agents";
+import { useAgents, useFleet, useFleetState } from "../../context";
+import { agentName, sameAgent } from "../../data/agents";
 import { moveProfile } from "../../data/calls";
 import { moveChoices } from "../../data/agent-choices";
 import { shortId } from "../../data/format";
@@ -29,8 +29,9 @@ export function MoveProfile({
 }) {
   const fleet = useFleet();
   const profiles = useFleetState((state) => state.profiles[node]);
-  const choices = (profiles ?? []).filter(
-    (profile) => profile.harness === session.spec.harness,
+  const agents = useAgents(node);
+  const choices = (profiles ?? []).filter((profile) =>
+    sameAgent(profile.harness, session.spec.harness),
   );
   const route = session.model?.route ?? null;
   const [chosen, setChosen] = useState<string>(
@@ -81,8 +82,8 @@ export function MoveProfile({
     >
       <p className="hint">
         The conversation continues under the other account, between turns. Only
-        profiles of {agentName(session.spec.harness)} on this machine are
-        offered
+        profiles of {agentName(session.spec.harness, agents)} on this machine
+        are offered
         {route === null
           ? "."
           : `, on route ${route}: a session keeps the route it started on.`}

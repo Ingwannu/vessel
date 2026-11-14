@@ -48,6 +48,7 @@ free_port() {
 }
 
 python3 "$(dirname "$0")/settings-fixtures.py" prepare "$root"
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" prepare "$root" "$target"
 
 : > "$root/pids"
 for name in laptop build-server; do
@@ -57,7 +58,7 @@ for name in laptop build-server; do
   mkdir -p "$home"
   extra=()
   if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
-  env -i PATH="$base_path" HOME="$home" RUST_LOG=info \
+  env -i PATH="$base_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
     "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
@@ -76,6 +77,9 @@ python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
 cli() {
   env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" "$target/vessel" "$@"
 }
+
+# The schedule preview is real node behaviour, not a client calculation.
+python3 "$(dirname "$0")/wire-gaps-fixtures.py" check "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the
 # first line of the first prompt), one of them in Hangul.

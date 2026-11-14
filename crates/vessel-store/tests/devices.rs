@@ -4,7 +4,74 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
-/// Undoes the usage ledger, then schemas 12 to 7, so a test can take a
+#[test]
+fn cancelled_window_retains_admission_while_its_blocking_read_is_queued() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let (_temp, _dir, store) = store().await;
+        let slots = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+        let permit = std::sync::Arc::clone(&slots).try_acquire_owned().unwrap();
+        let (entered, started) = tokio::sync::oneshot::channel();
+        let (release, until_released) = std::sync::mpsc::sync_channel(1);
+        let blocker = tokio::task::spawn_blocking(move || {
+            entered.send(()).unwrap();
+            until_released.recv().unwrap();
+        });
+        started.await.unwrap();
+        let mut pending = Box::pin(store.guarded_device_window(None, permit));
+        assert!(futures_util::poll!(&mut pending).is_pending());
+        drop(pending);
+        assert_eq!(
+            slots.available_permits(),
+            0,
+            "queued disk work must still own admission"
+        );
+        release.send(()).unwrap();
+        blocker.await.unwrap();
+        let returned = tokio::time::timeout(std::time::Duration::from_secs(30), slots.acquire())
+            .await
+            .expect("the detached bounded read never released admission")
+            .unwrap();
+        drop(returned);
+        store.close().await;
+    });
+}
+
+#[tokio::test]
+async fn device_windows_keep_a_stable_cursor_and_explicit_incompleteness() {
+    let (_temp, _dir, store) = store().await;
+    let mut expected = Vec::new();
+    for index in 0..=vessel_store::DeviceWindow::MAX_ITEMS {
+        let info = device("window fixture", i64::from(index));
+        store
+            .add_device(
+                info.clone(),
+                CredentialHash::of(&DeviceSecret::from_bytes([8; 32])),
+            )
+            .await
+            .unwrap();
+        expected.push(info);
+    }
+    expected.sort_by_key(|info| info.id);
+    let first = store.device_window(None).await.unwrap();
+    assert!(first.more);
+    let last = first.devices.last().unwrap().id;
+    let second = store.device_window(Some(last)).await.unwrap();
+    assert!(!second.more);
+    assert_eq!(second.devices.len(), 1);
+    let last = second.devices.last().unwrap().id;
+    assert_eq!([first.devices, second.devices].concat(), expected);
+    let empty = store.device_window(Some(last)).await.unwrap();
+    assert!(!empty.more);
+    assert!(empty.devices.is_empty());
+    store.close().await;
+}
+
+/// Undoes the usage ledger, then schemas 13 to 7, so a test can take a
 /// database further back: the schedules', saved prompts' and hooks' tables
 /// (12), pull request feedback (10; 11's column goes with `approvals`), the
 /// workspace's tables (9), retention's index (schema 1's in its place, 8),
@@ -12,6 +79,14 @@ use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 const UNDO_SCHEMAS_AFTER_6: &str = "DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+DROP TRIGGER sessions_search_gone;
+     DROP TRIGGER sessions_search_pruned;
+     DROP TABLE search_index;
+     DROP TABLE search_messages;
+     DROP TABLE search_gone;
+     DROP INDEX sessions_search_behind;
+     ALTER TABLE sessions DROP COLUMN search_open;
+     ALTER TABLE sessions DROP COLUMN search_seq;
      DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;

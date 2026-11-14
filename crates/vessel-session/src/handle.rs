@@ -8,19 +8,21 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
-use vessel_agent::AgentInput;
+use vessel_agent::{AgentInput, Driver};
 use vessel_proto::{
     Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
-    SessionTitle,
+    SessionTitle, TurnPoint,
 };
 use vessel_pty::PtyInput;
 
 use crate::conversation::Seen;
+use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
 use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
+use crate::parking::{ParkOrder, Route};
 use crate::ring::{Follow, FollowError, Ring};
 
 /// State shared between a session's actor and its handles.
@@ -42,6 +44,9 @@ pub(crate) struct Shared {
     pub(crate) kill: CancellationToken,
     /// Orders for the actor (structured sessions: moves).
     pub(crate) control: Option<mpsc::Sender<Control>>,
+    /// The protocol its agent speaks (ADR 0057), for its life: what a move
+    /// builds the new agent's command for. ACP for a terminal session.
+    pub(crate) driver: Driver,
     /// Model calls the node's proxy made for the session, for the actor to
     /// record (protocol 7). Bounded; see [`SessionHandle::model_call`].
     pub(crate) model_calls: mpsc::Sender<ModelCall>,
@@ -92,9 +97,10 @@ impl Shared {
 #[derive(Debug)]
 pub(crate) enum Input {
     Terminal(PtyInput),
-    /// The current agent's input; `None` while the session moves to another
-    /// profile and its agent is replaced.
-    Structured(watch::Receiver<Option<AgentInput>>),
+    /// Where the current agent's input goes: to it, nowhere while it is
+    /// replaced (a move, a park), or to the actor while it is parked
+    /// (protocol 12).
+    Structured(watch::Receiver<Route>),
 }
 
 impl Input {
@@ -107,8 +113,8 @@ impl Input {
 }
 
 /// The agent input goes to now; refused while the session moves.
-fn current(route: &watch::Receiver<Option<AgentInput>>) -> Result<AgentInput, SessionError> {
-    route.borrow().clone().ok_or(SessionError::Moving)
+fn current(route: &watch::Receiver<Route>) -> Result<AgentInput, SessionError> {
+    route.borrow().input()
 }
 
 /// A handle to one session. Cheap to clone; every clone refers to the same
@@ -121,6 +127,12 @@ impl SessionHandle {
     #[must_use]
     pub fn id(&self) -> SessionId {
         self.0.id
+    }
+
+    /// The protocol its agent speaks (ADR 0057).
+    #[must_use]
+    pub fn driver(&self) -> Driver {
+        self.0.driver
     }
 
     /// The choices the session runs with now (protocol 9): every select's
@@ -151,6 +163,17 @@ impl SessionHandle {
     /// [`SessionError::Moving`] during a move, [`SessionError::Ended`] once
     /// the session has ended.
     pub async fn options(&self) -> Result<Vec<SessionOption>, SessionError> {
+        // A parked agent's options are what it last reported (protocol 12):
+        // reading them is no reason to start it.
+        if self.parked() {
+            let reported = self
+                .0
+                .reported
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .clone();
+            return Ok(reported.map(|options| options.to_vec()).unwrap_or_default());
+        }
         Ok(self.agent()?.options().await?)
     }
 
@@ -164,7 +187,79 @@ impl SessionHandle {
         &self,
         choice: OptionChoice,
     ) -> Result<Vec<SessionOption>, SessionError> {
+        // Changing an option needs the agent: a parked one is woken first
+        // (protocol 12).
+        if self.parked() {
+            let _woken = self.wake().await?;
+        }
         Ok(self.agent()?.set_option(choice).await?)
+    }
+
+    /// Stop the session's agent now, keeping the session and its
+    /// conversation (protocol 12's `session.park`); the info after.
+    ///
+    /// # Errors
+    /// [`SessionError::NotParked`] when it is not idle or its agent cannot
+    /// resume, [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn park(&self) -> Result<SessionInfo, SessionError> {
+        let route = self.structured_route(ParkRefusal::Terminal)?;
+        self.order(route, |reply| Control::Park(ParkOrder::Park(reply)))
+            .await?;
+        Ok(self.info())
+    }
+
+    /// Start a parked session's agent again with its conversation, once it
+    /// is ready (protocol 12's `session.wake`); at once when it is not
+    /// parked. The info after.
+    ///
+    /// # Errors
+    /// [`SessionError::WakeFailed`] (it stays parked),
+    /// [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn wake(&self) -> Result<SessionInfo, SessionError> {
+        let route = self.structured_route(ParkRefusal::Terminal)?;
+        self.order(route, |reply| Control::Park(ParkOrder::Wake(reply)))
+            .await?;
+        Ok(self.info())
+    }
+
+    /// Take the conversation back to the end of the turn `point` names
+    /// (protocol 14's `session.rewind`, ADR 0052): the agent's conversation
+    /// is forked there and the session goes on with the fork. Between turns
+    /// only; a parked session is woken first. The info after.
+    ///
+    /// # Errors
+    /// [`SessionError::NotRewound`] while a turn runs, something waits or
+    /// the queue moves, or for a terminal session;
+    /// [`SessionError::ForkRefused`] when the agent cannot fork there;
+    /// [`SessionError::RewindFailed`] (the old conversation goes on);
+    /// [`SessionError::Moving`], [`SessionError::Ended`].
+    pub async fn rewind(
+        &self,
+        point: TurnPoint,
+        after: EventSeq,
+        files_changed: u32,
+    ) -> Result<SessionInfo, SessionError> {
+        if !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        let Input::Structured(route) = &self.0.input else {
+            return Err(crate::error::RewindRefusal::Terminal.into());
+        };
+        self.order(route, |reply| {
+            Control::Rewind(crate::forking::RewindOrder {
+                point,
+                after,
+                files_changed,
+                reply,
+            })
+        })
+        .await?;
+        Ok(self.info())
+    }
+
+    /// Whether the session's agent is parked now.
+    fn parked(&self) -> bool {
+        matches!(&self.0.input, Input::Structured(route) if matches!(*route.borrow(), Route::Parked))
     }
 
     /// The conversation as the session's log says it now (protocol 10):

@@ -18,9 +18,22 @@
 //   machine's reason; the rest are "Available". What it offers is laid
 //   out by `options.ts`' `controlsOf`, the composer's own reading, so the
 //   card and the composer place and name every option alike.
+// - Protocol 11 (ADR 0032): the agents added on a machine are listed
+//   after the four it has, by their label: one whose program the machine
+//   found (it is in `harness.list`) is "Available" as a conversation
+//   without a terminal; one it did not (only in `agent.list`) is "Not
+//   found", naming its program. Adding, removing and installing them are
+//   a later track's screens.
 
-import type { Harness, HarnessKind } from "../wire/proto";
-import { AGENT_KINDS } from "./agents";
+import type { AgentInfo, Harness, HarnessRef } from "../wire/proto";
+import {
+  AGENT_KINDS,
+  addedAgents,
+  agentKey,
+  agentModes,
+  knownAgent,
+  sameAgent,
+} from "./agents";
 import { ago, type StateTone } from "./format";
 import {
   type Controls,
@@ -33,16 +46,19 @@ import {
 export type AgentStatus =
   | { kind: "available"; harness: Harness }
   | { kind: "terminal-only"; harness: Harness; reason: string }
-  | { kind: "not-found" };
+  /** Not found; for an added agent, the program its machine looked for. */
+  | { kind: "not-found"; program: string | null };
 
-/** What `kind` is on a machine that found `harnesses`. */
+/** What `agent` is on a machine that found `harnesses`; `program` is an
+ * added agent's, from `agent.list`. */
 export function agentStatus(
-  kind: HarnessKind,
+  agent: HarnessRef,
   harnesses: readonly Harness[],
+  program: string | null = null,
 ): AgentStatus {
-  const harness = harnesses.find((found) => found.kind === kind);
+  const harness = harnesses.find((found) => sameAgent(found.kind, agent));
   if (harness === undefined) {
-    return { kind: "not-found" };
+    return { kind: "not-found", program };
   }
   return harness.structured.state === "available"
     ? { kind: "available", harness }
@@ -61,7 +77,14 @@ export function agentHeadline(status: AgentStatus): {
 } {
   switch (status.kind) {
     case "available":
-      return { headline: "Available", tone: "ok", detail: null };
+      return {
+        headline: "Available",
+        tone: "ok",
+        detail:
+          agentModes(status.harness).kind === "timeline"
+            ? "Runs as a conversation; it has no terminal"
+            : null,
+      };
     case "terminal-only":
       return {
         headline: "Needs attention",
@@ -72,23 +95,51 @@ export function agentHeadline(status: AgentStatus): {
       return {
         headline: "Not found",
         tone: "neutral",
-        detail: "Not installed on this machine",
+        detail:
+          status.program === null
+            ? "Not installed on this machine"
+            : `Its program, ${status.program}, is not found on this machine`,
       };
   }
 }
 
-/** The agents on a machine, installed first, each in `AGENT_KINDS`'
- * order. */
+/** The agents on a machine, found before not found: the four in
+ * `AGENT_KINDS`' order, the agents added on it after them (from
+ * `agent.list` when read, and those `harness.list` found). */
 export function agentsOn(
   harnesses: readonly Harness[],
-): { kind: HarnessKind; status: AgentStatus }[] {
-  const all = AGENT_KINDS.map((kind) => ({
-    kind,
+  agents: readonly AgentInfo[] = [],
+): { agent: HarnessRef; status: AgentStatus }[] {
+  const four = AGENT_KINDS.map((kind) => ({
+    agent: kind,
     status: agentStatus(kind, harnesses),
   }));
+  const listed = addedAgents(agents).map((info) => ({
+    agent: info.agent,
+    status: agentStatus(
+      info.agent,
+      harnesses,
+      info.detail.kind === "added" ? info.detail.added.program : null,
+    ),
+  }));
+  const keys = new Set(listed.map((entry) => agentKey(entry.agent)));
+  const found = harnesses
+    .filter(
+      (harness) =>
+        knownAgent(harness.kind) === null && !keys.has(agentKey(harness.kind)),
+    )
+    .map((harness) => ({
+      agent: harness.kind,
+      status: agentStatus(harness.kind, harnesses),
+    }));
+  const added = [...listed, ...found];
+  const isFound = (entry: { status: AgentStatus }): boolean =>
+    entry.status.kind !== "not-found";
   return [
-    ...all.filter((agent) => agent.status.kind !== "not-found"),
-    ...all.filter((agent) => agent.status.kind === "not-found"),
+    ...four.filter(isFound),
+    ...added.filter(isFound),
+    ...added.filter((entry) => !isFound(entry)),
+    ...four.filter((entry) => !isFound(entry)),
   ];
 }
 

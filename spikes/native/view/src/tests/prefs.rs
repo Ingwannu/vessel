@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, OptionValueId};
 
 use crate::Lang;
+use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
     ActionId, AgentKind, Bindings, Choices, ContentWidth, InvalidActionId, InvalidKeyBinding, Kept,
     KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults, Panel, PreferenceChange,
@@ -279,21 +280,33 @@ fn where_they_are_kept_said_only_when_it_is_not_a_file() {
     let unreadable = words
         .kept_why(&Kept::ThisLaunch {
             why: LaunchOnly::Unreadable {
-                path: "/c/app-prefs.json".to_owned(),
-                message: "not JSON".to_owned(),
+                fault: FileFault {
+                    path: "/c/app-prefs.json".to_owned(),
+                    at: Some((1, 2)),
+                    problem: FileProblem::NotJson,
+                    field: None,
+                },
             },
         })
         .unwrap();
     assert!(unreadable.contains("Fix or remove it, then restart Vessel."));
+    assert!(
+        unreadable.contains("line 1, column 2: this is not JSON"),
+        "{unreadable}"
+    );
     assert_eq!(
         serde_json::to_string(&Kept::ThisLaunch {
             why: LaunchOnly::Unreadable {
-                path: "/c".to_owned(),
-                message: "m".to_owned()
+                fault: FileFault {
+                    path: "/c".to_owned(),
+                    at: None,
+                    problem: FileProblem::WrongKind,
+                    field: None,
+                },
             }
         })
         .unwrap(),
-        r#"{"kind":"this_launch","why":{"kind":"unreadable","path":"/c","message":"m"}}"#
+        r#"{"kind":"this_launch","why":{"kind":"unreadable","fault":{"path":"/c","at":null,"problem":"wrong_kind","field":null}}}"#
     );
 }
 

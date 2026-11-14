@@ -109,7 +109,6 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         let id = info.id;
         self.book.put(info);
         self.book.set_making(id, true);
-        self.book.noted(id, &job.run);
         let starts = matches!(job.definition.target, ScheduleTarget::NewSession { .. });
         let deadline = asked
             .then(|| self.clock.now().checked_add_signed(run_now_wait()))

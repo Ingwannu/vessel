@@ -36,7 +36,7 @@ use std::time::{Duration, SystemTime};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex, watch};
+use tokio::sync::{Mutex, Notify, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_fleet::{BlobStore, Sources};
 use vessel_proto::{
@@ -82,6 +82,12 @@ pub(crate) struct Home {
     reports: Mutex<BTreeMap<DeviceId, Report>>,
     watch_limit: Duration,
     stop: CancellationToken,
+    /// One permit each: repeated requests coalesce without another apply loop.
+    requested: Notify,
+    member_sync: Arc<Notify>,
+    /// Rotated after wire membership writes. Cancels an in-flight member
+    /// grant even while the supervisor is waiting for that grant's lock.
+    membership: watch::Sender<CancellationToken>,
 }
 
 fn unavailable(message: &str) -> WireError {
@@ -102,13 +108,46 @@ impl Home {
                 None
             })
             .unwrap_or_default();
+        let membership = watch::Sender::new(stop.child_token());
         Self {
             files,
             published: watch::Sender::new(None),
             reports: Mutex::new(reports),
             watch_limit,
             stop,
+            requested: Notify::new(),
+            member_sync: Arc::new(Notify::new()),
+            membership,
         }
+    }
+
+    /// Accept a manual sync; existing work completes before another apply.
+    pub(crate) fn sync_now(&self) {
+        self.requested.notify_one();
+        self.member_sync.notify_one();
+    }
+
+    /// Wake the configuration supervisor after a membership commit.
+    pub(crate) fn membership_changed(&self) {
+        let previous = self.membership.send_replace(self.stop.child_token());
+        previous.cancel();
+        self.requested.notify_one();
+    }
+
+    /// Snapshot before reading membership. A concurrent wire change cancels
+    /// this generation, including a loop created from an old file read.
+    pub(crate) fn membership_epoch(&self) -> CancellationToken {
+        self.membership.borrow().clone()
+    }
+
+    /// One coalesced request for the supervisor's next tick.
+    pub(crate) async fn sync_requested(&self) {
+        self.requested.notified().await;
+    }
+
+    /// The member loop's independent, bounded manual wakeup.
+    pub(crate) fn member_sync(&self) -> Arc<Notify> {
+        Arc::clone(&self.member_sync)
     }
 
     /// The fleet files of this node.
@@ -206,17 +245,48 @@ impl Home {
             .filter(|device| device.scopes.contains(&Scope::Sync) && device.revoked_at.is_none())
             .map(|device| {
                 let report = reports.get(&device.id);
-                FleetMember {
-                    device: device.id,
-                    label: device.label,
-                    applied: report.map(|report| report.applied),
-                    conflicts: report
-                        .map(|report| report.conflicts.clone())
-                        .unwrap_or_default(),
-                    reported_at: report.map(|report| report.reported_at),
-                }
+                member_view(device, report)
             })
             .collect()
+    }
+
+    /// Status reads only a bounded device window and never clone the report
+    /// map. Check each vector before copying, under the same Tokio lock.
+    pub(crate) async fn bounded_members(
+        &self,
+        devices: Vec<DeviceInfo>,
+    ) -> Result<Vec<FleetMember>, super::projection::ProjectionError> {
+        use super::projection::{MAX_CONFLICTS, ProjectionError};
+        if devices.len() > usize::from(vessel_store::DeviceWindow::MAX_ITEMS) {
+            return Err(ProjectionError::TooLarge);
+        }
+        let reports = self.reports.lock().await;
+        let mut members = Vec::new();
+        let mut conflicts = 0_usize;
+        for device in devices
+            .into_iter()
+            .filter(|device| device.scopes.contains(&Scope::Sync) && device.revoked_at.is_none())
+        {
+            let report = reports.get(&device.id);
+            conflicts = conflicts.saturating_add(report.map_or(0, |report| report.conflicts.len()));
+            if conflicts > MAX_CONFLICTS {
+                return Err(ProjectionError::TooLarge);
+            }
+            members.push(member_view(device, report));
+        }
+        Ok(members)
+    }
+}
+
+fn member_view(device: DeviceInfo, report: Option<&Report>) -> FleetMember {
+    FleetMember {
+        device: device.id,
+        label: device.label,
+        applied: report.map(|report| report.applied),
+        conflicts: report
+            .map(|report| report.conflicts.clone())
+            .unwrap_or_default(),
+        reported_at: report.map(|report| report.reported_at),
     }
 }
 
@@ -289,5 +359,29 @@ impl Stamp {
                 self.walk(root, &resolved, visited);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod manual_tests {
+    use super::*;
+    use futures_util::FutureExt as _;
+
+    #[tokio::test]
+    async fn repeated_manual_sync_requests_coalesce_for_both_existing_loops() {
+        let temp = tempfile::tempdir().unwrap();
+        let files = FleetFiles::new(&vessel_store::DataDir::new(temp.path().join("data")));
+        let home = Home::new(files, Duration::from_secs(50), CancellationToken::new());
+        let member = home.member_sync();
+        for _ in 0..1000 {
+            home.sync_now();
+        }
+        assert!(home.sync_requested().now_or_never().is_some());
+        assert!(member.notified().now_or_never().is_some());
+        assert!(home.sync_requested().now_or_never().is_none());
+        assert!(member.notified().now_or_never().is_none());
+        home.sync_now();
+        assert!(home.sync_requested().now_or_never().is_some());
+        assert!(member.notified().now_or_never().is_some());
     }
 }

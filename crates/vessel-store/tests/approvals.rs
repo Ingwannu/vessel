@@ -22,6 +22,14 @@ mod fixtures;
 const UNDO_SCHEMAS_AFTER_9: &str = "DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
+DROP TRIGGER sessions_search_gone;
+     DROP TRIGGER sessions_search_pruned;
+     DROP TABLE search_index;
+     DROP TABLE search_messages;
+     DROP TABLE search_gone;
+     DROP INDEX sessions_search_behind;
+     ALTER TABLE sessions DROP COLUMN search_open;
+     ALTER TABLE sessions DROP COLUMN search_seq;
      DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
@@ -83,7 +91,8 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
     let walked = store.workspace().await.unwrap();
     assert_eq!(walked.approvals, [(app.id, digest('a'))]);
     assert!(walked.approved_sets.is_empty(), "it covered nothing known");
-    // Feedback's tables came back with schema 10, the schedules' with 12.
+    // Feedback's tables came back with schema 10, the schedules' with 12,
+    // the search index with 13.
     assert!(
         store
             .feedback(vessel_proto::SessionId::random())
@@ -93,6 +102,20 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
     let automation = store.automation().await.unwrap();
     assert!(automation.schedules.is_empty());
     assert!(store.saved_prompts(None).await.unwrap().is_empty());
+    store.indexed().await;
+    assert!(
+        store
+            .search(vessel_proto::search::SearchMessages {
+                query: "anything".parse().unwrap(),
+                session: None,
+                before: None,
+                limit: None,
+            })
+            .await
+            .unwrap()
+            .hits
+            .is_empty()
+    );
 
     let set = CommandSet {
         setup: vec!["npm ci".parse().unwrap()],

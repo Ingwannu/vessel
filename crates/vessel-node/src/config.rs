@@ -14,6 +14,12 @@ use vessel_store::{DataDir, StoreConfig};
 
 use crate::fleet::FleetConfig;
 
+/// How long a structured session may stay idle before its agent is parked
+/// (protocol 12, ADR 0038): an hour, as Paseo releases idle agents. Long on
+/// purpose: Vessel cannot ask an agent whether it left work running in the
+/// background (ACP has no such call), and parking stops its process group.
+pub const DEFAULT_PARK_AFTER: Duration = Duration::from_secs(60 * 60);
+
 /// Everything a node needs to start. Build with [`Config::new`] and
 /// override fields as needed.
 #[derive(Debug, Clone)]
@@ -47,6 +53,15 @@ pub struct Config {
     /// handshake) before the session fails. 60 s by default; raise it
     /// where adapters start slowly (`vesseld --agent-handshake-timeout`).
     pub agent_handshake_timeout: Duration,
+    /// How long a structured session may stay idle before its agent's
+    /// process is parked, to be started again by the next prompt (protocol
+    /// 12, ADR 0038; `vesseld --park-after`). An hour by default (Paseo's);
+    /// `None` never parks. A value a person saved through
+    /// `node.set_settings` (`settings.json`) wins over it at start.
+    pub park_after: Option<Duration>,
+    /// Whether [`park_after`](Self::park_after) was given (`--park-after`),
+    /// not the default: a saved value then overriding it is logged.
+    pub park_after_given: bool,
     /// Per-connection RPC limits.
     pub rpc: ServerConfig,
     /// Relays this node registers with, in preference order (`--relay`);
@@ -151,6 +166,8 @@ impl Config {
             ring_capacity: DEFAULT_RING_CAPACITY,
             durable_capacity: DEFAULT_DURABLE_CAPACITY,
             agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+            park_after: Some(DEFAULT_PARK_AFTER),
+            park_after_given: false,
             rpc: ServerConfig::default(),
             relays: Vec::new(),
             relay_token_file: None,

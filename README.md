@@ -98,6 +98,11 @@ vessel session queue 3f2a send-now 9c --steer   # remove, hold, resume, clear to
 vessel session answer 3f2a 51c way=left sure=yes   # a question the agent asks, by field
 vessel session answer 3f2a 8e allow-once     # a permission request, by option
 vessel session resume 3f2a                   # an ended session's agent picks the conversation up again
+vessel session park 3f2a                     # stop its idle agent now; wake, or its next prompt, starts it again
+vessel session fork 3f2a --after 120         # a new session continuing the conversation from that turn's end
+vessel session rewind 3f2a --after 120       # take this session back to that turn's end
+vessel history claude --cwd ~/app            # the agent's own conversations in that folder, to import one
+vessel run claude --structured --resume 4c1e… --cwd ~/app --title "the parser"   # import it: its history is the log
 vessel session pin 3f2a                      # unpin, archive, unarchive, read, unread
 vessel session delete 3f2a                   # an ended one, for good (asks; --yes to skip), its worktree too if nothing would be lost
 ```
@@ -116,6 +121,44 @@ vessel session delete 3f2a                   # an ended one, for good (asks; --y
 - `vessel sessions` shows each session's marks. `archive` stops a live
   session first; `resume` brings an archived one back; `delete` refuses
   a live one.
+- Forking and rewinding (protocol 14) start at a turn's end: `vessel log`
+  shows the number on its `turn ended` line. Only agents that can fork
+  their conversation (Claude Code and Codex through their ACP adapters
+  do); Vessel checks that the fork ends where it asked and refuses it
+  otherwise. A rewind keeps what came after in the log, and does not put
+  files back (it says how many changes it left).
+- An idle agent is parked (protocol 12): after an hour without activity
+  (`vessel node settings --park-after MINUTES|never`, kept across
+  restarts and applied at once; `vesseld --park-after` is the value of a
+  node where nobody changed it) its process is stopped while
+  the session stays running, unless a turn runs, something waits on an
+  answer, its queue moves, or someone follows it (a page that has it
+  open, `vessel attach`). The next prompt, option change or `vessel
+  session wake` starts it again on the same conversation; `vessel
+  sessions` says `(parked)`. Only an agent whose adapter can load a
+  conversation again (ACP `loadSession`) is parked; what it left running
+  in the background stops with it.
+- Agents over their own protocols (protocol 18, ADR 0057): `vessel node
+  settings --driver codex=direct` chooses Codex's app-server instead of
+  its ACP adapter for new sessions (likewise `claude` and `opencode`;
+  `acp` goes back). No build offers one yet: the node refuses `direct`
+  until that agent's driver can ask for permissions as ACP does. Every
+  agent runs over ACP until then.
+
+Search what was said in every session (protocol 12): prompts and the
+agents' replies, live, ended or archived, newest first.
+
+```bash
+vessel search parser 오류                    # every word, inside other words, without case
+vessel search zebrafish --session 3f2a       # one session's
+vessel search parser --before 1763031235000000000   # the next page, from the last line's `more:`
+```
+
+- Each line is a session, the record where the message starts (`vessel
+  log ID --from` that number shows it in place), the time, who said it,
+  and the words in `[` `]`. Tool calls, their output and thoughts are not
+  searched; a reply is found once it has ended.
+- Agents have the same as the `search_sessions` tool.
 
 ### Another machine, over SSH
 
@@ -474,9 +517,11 @@ vessel schedule create --name nightly --cron "0 9 * * 1-5" --tz Asia/Seoul \
   --harness claude --project app --prompt "Look at last night's failures"
 vessel schedule create --every 30m --session 3f2a --prompt-file check.md
 vessel schedule list
+vessel schedule preview --cron "0 9 * * 1-5" --tz Asia/Seoul --count 5
 vessel schedule runs nightly                # what each run came to
 vessel schedule run nightly                 # once now
 vessel schedule edit nightly --cron "0 8 * * 1-5"
+vessel schedule edit nightly --keep         # the rest of its session as it was
 vessel schedule pause nightly
 vessel prompt save review --project app --text "Review the open pull requests"
 vessel prompt run review --session 3f2a     # into its queue
@@ -485,8 +530,15 @@ vessel prompt run review --session 3f2a     # into its queue
 - A run acts as whoever last made or changed the schedule, as they are
   when it runs: a revoked device's schedules end, an agent's end with its
   session. A new session's run is archived after its first turn unless
-  `--keep`; nobody is asked questions in it, and a permission it asks
+  `--keep` (its terminals and services end with it, as when a person
+  archives); nobody is asked questions in it, and a permission it asks
   makes the run wait (the next due times are skipped meanwhile).
+- `--harness` names one of the four or an agent added on the node
+  (`vessel agents`). A schedule or a saved prompt is named by its whole
+  id, or by its name or the start of its id when only one matches.
+- At most four runs are made at once and eight scheduled sessions are in
+  their first turn; the rest wait, the oldest due first. `schedule run`
+  answers `unavailable` after 30 s without room.
 - A time the clocks skip runs once at the jump; a time they repeat runs
   once. Due times missed while the node was stopped give one run (the
   latest, if less than a day old; `--catch-up skip` for none).
@@ -587,6 +639,12 @@ vessel agents install claude --adapter       # Claude Code's ACP adapter
 - The catalogue lists what each registry entry would run; adding one
   writes exactly that (an `npx`/`uvx` command pinned to the version
   shown). An entry that ships only an archive is shown, not downloaded.
+- On the page (`vessel ui`) an added agent is chosen on the new-session
+  page after the four, by its label, and named so on its sessions;
+  Settings › Agents lists it, found or not. It runs as a conversation
+  only, so no terminal is offered for it; while a secret it names is not
+  set on its machine, the page says so and does not start it. Adding,
+  removing and installing are done with `vessel agents`.
 
 ### A fleet: one home, many members
 
@@ -603,6 +661,7 @@ vessel init --service --join
 vessel fleet status                           # what it applied, and the files it left alone
 # on the home
 vessel fleet members
+vessel fleet published                        # what it shares, by name (needs admin)
 ```
 
 - Edit the sources on the home; members follow within seconds.
@@ -816,45 +875,92 @@ vessel log 3f2a                              # model calls: route, model, tokens
 `vessel ui` serves Vessel's web UI on this machine and opens it in the
 browser on Unix (on Windows, open the printed address).
 
-- **New session** (the sidebar, the title bar's New, the command palette,
-  or `n`) asks what you want to work on. Under the box choose the agent
+- **New session** (the first screen once a machine is connected, the
+  sidebar, the title bar's New, the command palette, or `n`) asks what
+  you want to work on, in the project you worked in last on that machine
+  (from a session, its project). Under the box choose the agent
   and, from what that agent itself offers on that machine, its model, its
   effort, its on/off settings and its permissions; under the "+" a profile
-  and "Open as terminal"; under the box the machine and the folder (it
-  suggests the folders sessions already ran in there). Send starts the
-  session with those choices, sends the prompt and opens it. Reading what
-  an agent offers takes the machine a few seconds the first time (it
-  starts the agent to ask); until then, or if the agent cannot say, the
-  session starts on the agent's own defaults.
+  and "Open as terminal"; under the box the machine, then the project
+  and where in it the session runs: its folder as it is ("Local"), a new
+  worktree on a new branch from a base, or a worktree on an existing
+  branch (with no project, a folder, suggesting the folders sessions
+  already ran in there). Send starts the session with those choices and
+  opens it at once, with the prompt in it while the agent is still
+  starting (a message typed meanwhile waits behind the first). For a new
+  worktree it first makes the worktree: if the project's `vessel.toml`
+  names commands that were not
+  approved, it shows every one of them (setup, teardown, and its scripts
+  and services, which the approval covers too) and what changed since
+  the set approved last, for you to approve or to start without setup;
+  setup's output shows under the box as it runs, and a failed setup
+  waits for you (run it again, start anyway, or stop).
+  Reading what an agent offers takes the machine a few seconds the first
+  time (it starts the agent to ask); until then, or if the agent cannot
+  say, the session starts on the agent's own defaults.
 - **A session** is named by its title (the first line of its first prompt
   until you rename it, in place, in the title bar), shows its timeline
   and a composer that changes the same choices while it runs, and asks
   each permission once, over the composer. Its summary holds the plan,
   the files it touched, its model calls and, under Details, its
-  identifiers. A session opened as a terminal is the agent's own TUI.
+  identifiers. Beside Summary, **Changes** and **Files** show the code
+  of its worktree or project (the branch's chip in the title bar opens
+  Changes, in a sheet on a phone): every changed file's diff, by
+  comparison (everything since the base, uncommitted, staged, unstaged,
+  a commit), with stage, unstage and discard per file and git's actions
+  (commit, push, pull, fetch, switch, create and rename a branch,
+  stash), each refusal said in words; the file tree, a file by name,
+  lines by content, a viewer and an editor that never overwrites a
+  change made on disk since it read the file. Lines selected in a diff
+  or a file go into the composer's draft as a reference ("Add to
+  chat"). A session opened as a terminal is the agent's own TUI.
   What you type is the session's draft until you send it: it survives
   leaving the session, a reload and a new launch. In an empty composer
   Up and Down bring back the prompts you sent. Find in the session
   (`Ctrl+F`, `⌘F` on a Mac) searches its prompts and messages and counts
   the matches; the outline at the conversation's left edge, one mark per
   prompt, shows each prompt and the reply to it and jumps there.
+- **While a turn runs** (a node on protocol 10), a message you send waits
+  in the machine's queue, shown over the composer: edit, reorder, delete
+  or steer each one; Stop holds the queue until you resume it. Settings ›
+  General's "Default send" makes Send queue, steer into the running turn
+  (agents that take it) or interrupt it; `Ctrl+Enter` or Ctrl with the
+  click sends the other way. Files are pasted, dropped or picked with the
+  paperclip, checked against what the agent takes and the machine's
+  limits, and uploaded when you send; a sent prompt shows its files, an
+  image fetched only when it comes into view. `/` at the start lists the
+  agent's commands, `@` finds the session's files. A question the agent
+  asks is answered over the composer, one step at a time. The context
+  meter beside the model shows how full the agent's context is, and each
+  turn its tokens. From the title bar's menu: pin, mark unread, start an
+  ended session again, archive, restore and delete it.
 - **The board** shows every machine's sessions by title, one lane per
   stage of delivery, a session an agent started named on its card; an
-  ended one stays in its lane as exited until it is archived, and the
-  archived ones are in the archive under it (from a node before
-  protocol 10, every ended one is). The sidebar lists each
-  machine's live sessions, marked while one works or waits on you; its
+  ended one stays in its lane as exited until it is archived (its card's
+  Archive; archiving also ends the terminals and services beside it,
+  their output kept), and the archived ones are in the archive under it,
+  to restore or delete (from a node before protocol 10, every ended one
+  is); a session in a worktree shows its branch. The sidebar lists each
+  machine's projects (each opens to its live sessions, and its "+"
+  starts a session there) and each machine's live sessions under it,
+  pinned ones first, marked while one works or waits on you and when one
+  is unread; its
   Display menu groups them by status instead, sorts them by last
   activity and shows ended ones. `Ctrl+B` hides it; below 768px of window
   it opens from the title bar's menu button.
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
-  sections): General (whether Enter or `Ctrl+Enter` sends), Appearance
+  sections): General (whether Enter or `Ctrl+Enter` sends, and "Default
+  send": whether a message sent while the agent works is queued, steered
+  into its turn or interrupts it), Appearance
   (theme, interface and code font sizes, the conversation's width, and
   whether tool calls are collapsed), Shortcuts (every key, searchable,
   each rebound by pressing the new one; a key another command holds is
   offered to move), Notifications, Machines (add, rename, make default,
-  forget), Agents (what each agent on a machine offers: model, effort,
-  permissions), Models, Devices (pairing a phone with a QR code), Sync
+  forget), Projects (add a folder, clone a repository with its progress,
+  start a new one; approve or withdraw a project's commands; its
+  worktrees, removed only after saying what would be lost and offering a
+  snapshot; its snapshots), Agents (what each agent on a machine
+  offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
   and About. A machine in the sidebar opens it there. The page follows
   the system's light or dark theme until you choose one.
 - **What you choose is kept by `vessel ui`, not the browser** (ADR
@@ -961,8 +1067,9 @@ vessel-testkit --bins`). Set `VESSEL_SCREEN_DIR` to write screenshots outside
 the checkout. `perf` runs on demand only (minutes, not part of `e2e`): the
 board loading cold over a slow and a phone-like link, a timeline of 5,000
 and 20,000 entries, find in it and going to a match far from the view, a
-terminal under heavy output, a board of 500 cards
-(`docs/PERFORMANCE.md` keeps the figures). `VESSEL_PERF_OUT` names its
+terminal under heavy output, a board of 500 cards, a session's code
+panel over a large change and a large tree (`docs/PERFORMANCE.md` keeps
+the figures). `VESSEL_PERF_OUT` names its
 JSON file, `VESSEL_PERF_RUNS` the runs per measurement, and
 `VESSEL_CARGO_PROFILE=release` runs the fleet on release binaries (`cargo
 build --release ...`) instead of debug ones. CI uploads only the
@@ -1124,3 +1231,11 @@ separate; missing reports are not zero and costs in different units stay
 separate. Accounting starts with this version, retains at most 90 days
 and 100,000 reports, and follows session deletion. New usage queries need
 read scope; cost in these queries additionally needs operate scope.
+
+A schedule preview is calculated on the target node without saving or
+starting work (`vessel schedule preview --every 30m`, or `--cron` with an
+optional `--tz`). Omitted `--tz` uses the CLI machine's IANA zone, as schedule creation does;
+if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
+reproducible preview; `--count` is 1–10. API callers reuse the returned
+cadence when saving so an interval keeps its preview anchor. `vessel status`
+also reports the node's time zone. ADR 0033 defines the daylight-saving rules.

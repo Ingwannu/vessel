@@ -59,6 +59,15 @@ async fn a_schedule_is_made_run_changed_and_removed_by_its_name() {
             shown.contains("a new claude") && shown.contains("prompt:\nplain"),
             "{shown}"
         );
+        // `--keep` alone changes what follows a run, the rest of the
+        // session's spec as it was.
+        let kept = fixture
+            .vessel(&["schedule", "edit", "nightly", "--keep"], b"")
+            .await;
+        let _line = ok(&kept);
+        let shown = fixture.vessel(&["schedule", "show", "nightly"], b"").await;
+        let shown = ok(&shown);
+        assert!(shown.contains("session each run (kept)"), "{shown}");
 
         let paused = fixture.vessel(&["schedule", "pause", "nightly"], b"").await;
         assert!(ok(&paused).contains("paused since"), "{}", paused.stdout);
@@ -148,6 +157,47 @@ async fn a_saved_prompt_is_saved_replaced_sent_and_removed() {
         assert!(ok(&deleted).starts_with("deleted "));
         let none = fixture.vessel(&["prompt", "list"], b"").await;
         assert!(ok(&none).is_empty());
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn schedule_preview_uses_node_calculation_without_saving() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let preview = fixture
+            .vessel(
+                &[
+                    "schedule",
+                    "preview",
+                    "--cron",
+                    "15 9 * * 1-5",
+                    "--tz",
+                    "UTC",
+                    "--after",
+                    "2026-01-05T09:14:30Z",
+                    "--count",
+                    "2",
+                ],
+                b"",
+            )
+            .await;
+        assert!(preview.ok, "{}", preview.stderr);
+        assert_eq!(
+            preview.stdout,
+            "2026-01-05T09:15:00+00:00\n2026-01-06T09:15:00+00:00\n"
+        );
+        let empty = fixture.vessel(&["schedule", "list"], b"").await;
+        assert!(empty.ok, "{}", empty.stderr);
+        assert_eq!(empty.stdout, "");
+        let invalid = fixture
+            .vessel(
+                &["schedule", "preview", "--every", "1h", "--count", "11"],
+                b"",
+            )
+            .await;
+        assert!(!invalid.ok);
+        fixture.stop().await;
     })
     .await;
 }

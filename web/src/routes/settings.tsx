@@ -15,6 +15,7 @@ import { AboutSection } from "../features/settings/about";
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import { GeneralSection } from "../features/settings/general";
+import { ProjectsSection } from "../features/projects/projects-section";
 import { ModelsSection } from "../features/settings/models";
 import { NotificationsSection } from "../features/settings/notifications-section";
 import { ShortcutsSection } from "../features/settings/shortcuts-section";
@@ -57,6 +58,8 @@ export function SettingsPage(): ReactElement | null {
       return <ModelsSection machine={place.machine} />;
     case "machines":
       return <MachinesSection machine={place.machine} />;
+    case "projects":
+      return <ProjectsSection machine={place.machine} />;
     case "devices":
       return <DevicesSection machine={place.machine} />;
     case "sync":

@@ -74,12 +74,14 @@ fn running_cost_is_not_summed_and_turn_counts_stay_separate_from_context() {
         SessionEvent::Agent {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
+                point: None,
                 usage: Some(tokens()),
             },
         },
         SessionEvent::Agent {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
+                point: None,
                 usage: None,
             },
         },
@@ -148,6 +150,7 @@ fn rollback_pruning_pagination_and_session_delete_do_not_invent_usage() {
         event: SessionEvent::Agent {
             event: AgentEvent::TurnEnded {
                 reason: StopReason::EndTurn,
+                point: None,
                 usage: Some(tokens()),
             },
         },
@@ -201,6 +204,7 @@ fn profile_moves_in_one_batch_attribute_each_report_to_its_original_profile() {
     let turn = || SessionEvent::Agent {
         event: AgentEvent::TurnEnded {
             reason: StopReason::EndTurn,
+            point: None,
             usage: Some(tokens()),
         },
     };
@@ -250,6 +254,7 @@ fn a_reported_zero_is_distinct_from_no_report() {
             event: SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
                     reason: StopReason::EndTurn,
+                    point: None,
                     usage: Some(zero),
                 },
             },

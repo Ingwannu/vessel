@@ -20,7 +20,7 @@ use vessel_proto::{
     PairingOffer, RouteUrl, Scope,
 };
 
-use crate::across::{Member, home, member_granting};
+use crate::across::{Member, home, member_granting, member_joined, member_started};
 use crate::agents::vessel_mcp;
 use crate::fleet::fleet_config;
 use crate::secure::{Relay, closed_route, device_via, dialer, relayed_with};
@@ -561,8 +561,12 @@ async fn a_reinstalled_node_grants_again_once_the_home_forgets_it() {
         // Its device was paired before the forget: a restart is not enough
         // (round 3: the forgotten id goes only to a device paired since).
         node.stop().await.unwrap();
-        let node = member_node(&relay, &fixture, "desktop").await;
+        // Stamped before the restart, not after: the restarted member
+        // connects, is refused and pulls (its one report) while
+        // `member_node` is still returning, and with nothing new at the
+        // home it does not report again within the test.
         let since = Utc::now();
+        let node = member_node(&relay, &fixture, "desktop").await;
         reported_after(&home, "reinstalled", since).await;
         assert!(home.owner.call_on(id, ListSessions).await.is_err());
         // Invited again and joined from there: granted.
@@ -611,10 +615,15 @@ async fn a_slow_grant_holds_up_no_other() {
         assert!(message.contains("in progress"), "{message}");
 
         // Another node joins and is granted while the slow one pairs.
+        // Timed from its joining, not from making its node: a new data
+        // directory and its store take seconds of their own on a busy
+        // disk, and are not the grant this test is about.
+        let (fixture, node) = member_started(&relay, "late", |_| {}).await;
         let started = std::time::Instant::now();
-        let late = member_granting(
-            &relay,
+        let late = member_joined(
             &home,
+            fixture,
+            node,
             "late",
             vec![Scope::Sync],
             DEFAULT_GRANT.to_vec(),
@@ -677,7 +686,7 @@ async fn stopping_a_member_does_not_wait_for_its_grant() {
             .start_with(|config| {
                 config.name = Some("unreachable".to_owned());
                 config.public = silent;
-                config.fleet = fleet_config(HarnessKind::Codex, applied);
+                config.fleet = fleet_config(HarnessKind::Codex, applied.clone());
             })
             .await;
         let offer = home
@@ -706,6 +715,11 @@ async fn stopping_a_member_does_not_wait_for_its_grant() {
         assert!(dialed.load(std::sync::atomic::Ordering::Acquire) > 0);
         let stopped = tokio::time::timeout(Duration::from_secs(5), node.stop()).await;
         assert!(stopped.is_ok(), "stopping waited for the grant");
+        stopped.unwrap().unwrap();
+        assert!(
+            !applied.join("AGENTS.md").exists(),
+            "shutdown admitted a first pull after cancelling the grant"
+        );
         relay.stop().await;
     })
     .await;

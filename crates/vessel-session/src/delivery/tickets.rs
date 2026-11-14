@@ -38,47 +38,43 @@ pub(crate) struct Tickets {
     /// `turn_started` records observed, and the latest one's seq.
     seen: u64,
     last: Option<EventSeq>,
-    /// For a turn started or joined whose `turn_started` is on its way.
-    awaiting: Vec<TurnTicket>,
+    /// For a turn started or joined whose `turn_started` is on its way:
+    /// the turn's number among those the actor started (the record of the
+    /// `n`th turn is the `n`th observed), and its ticket.
+    awaiting: Vec<(u64, TurnTicket)>,
     /// For prompts waiting in the queue, by entry.
     queued: HashMap<QueueEntryId, TurnTicket>,
 }
 
 impl Tickets {
-    /// How many `turn_started` records were observed; taken before a
-    /// delivery, it tells [`give`](Self::give) whether the prompt's own
-    /// came meanwhile.
-    pub(crate) const fn seen(&self) -> u64 {
-        self.seen
-    }
-
-    /// A `turn_started` about to be published as `seq`.
+    /// A `turn_started` about to be published as `seq`: the tickets
+    /// waiting for this turn's record are told.
     pub(crate) fn turn_started(&mut self, seq: EventSeq) {
         self.seen = self.seen.saturating_add(1);
         self.last = Some(seq);
-        for ticket in self.awaiting.drain(..) {
+        let seen = self.seen;
+        let (told, waiting): (Vec<_>, Vec<_>) = std::mem::take(&mut self.awaiting)
+            .into_iter()
+            .partition(|(turn, _)| *turn <= seen);
+        self.awaiting = waiting;
+        for (_, ticket) in told {
             let _gone = ticket.send(seq);
         }
     }
 
-    /// `ticket`'s prompt was delivered as `delivered`. `seen_before` is
-    /// [`seen`](Self::seen) before the delivery; `started` the turns the
-    /// actor has started so far.
-    pub(crate) fn give(
-        &mut self,
-        ticket: TurnTicket,
-        delivered: Delivered,
-        seen_before: u64,
-        started: u64,
-    ) {
+    /// `ticket`'s prompt was delivered as `delivered`; `started` is the
+    /// number of turns the actor has started, its own included.
+    ///
+    /// A prompt that started a turn, or steered into the running one, is
+    /// about the `started`th turn, whose `turn_started` is the `started`th
+    /// observed. Counting, not "the next record", because an interrupt
+    /// cancels a turn whose own record may still be on its way: the next
+    /// record would be that turn's, not this prompt's (the code review of
+    /// the join, finding 8).
+    pub(crate) fn give(&mut self, ticket: TurnTicket, delivered: Delivered, started: u64) {
         match delivered {
-            // Its turn's record came while the prompt was sent, or is
-            // the next to come.
-            Delivered::Started if self.seen > seen_before => self.tell(ticket),
-            // The running turn's record is on its way when the actor
-            // started more turns than it has seen begin.
-            Delivered::Steered if started <= self.seen => self.tell(ticket),
-            Delivered::Started | Delivered::Steered => self.awaiting.push(ticket),
+            Delivered::Started | Delivered::Steered if started <= self.seen => self.tell(ticket),
+            Delivered::Started | Delivered::Steered => self.awaiting.push((started, ticket)),
             Delivered::Queued { entry } => {
                 let _replaced = self.queued.insert(entry, ticket);
             }
@@ -105,12 +101,11 @@ impl Tickets {
             .retain(|entry, _| queue.entries.iter().any(|queued| queued.id == *entry));
     }
 
-    fn tell(&mut self, ticket: TurnTicket) {
-        match self.last {
-            Some(seq) => {
-                let _gone = ticket.send(seq);
-            }
-            None => self.awaiting.push(ticket),
+    /// The latest record is this prompt's turn's (the actor has seen as
+    /// many begin as it started).
+    fn tell(&self, ticket: TurnTicket) {
+        if let Some(seq) = self.last {
+            let _gone = ticket.send(seq);
         }
     }
 }
@@ -127,15 +122,13 @@ mod tests {
     fn a_started_prompt_learns_its_turn_whichever_comes_first() {
         let mut tickets = Tickets::default();
         // The record came while the prompt was sent.
-        let before = tickets.seen();
         tickets.turn_started(EventSeq::new(4));
         let (sender, mut early) = ticket();
-        tickets.give(sender, Delivered::Started, before, 1);
+        tickets.give(sender, Delivered::Started, 1);
         assert_eq!(early.try_recv(), Ok(EventSeq::new(4)));
         // The record is still on its way.
-        let before = tickets.seen();
         let (sender, mut late) = ticket();
-        tickets.give(sender, Delivered::Started, before, 2);
+        tickets.give(sender, Delivered::Started, 2);
         assert!(late.try_recv().is_err());
         tickets.turn_started(EventSeq::new(9));
         assert_eq!(late.try_recv(), Ok(EventSeq::new(9)));
@@ -146,11 +139,11 @@ mod tests {
         let mut tickets = Tickets::default();
         tickets.turn_started(EventSeq::new(4));
         let (sender, mut joined) = ticket();
-        tickets.give(sender, Delivered::Steered, tickets.seen(), 1);
+        tickets.give(sender, Delivered::Steered, 1);
         assert_eq!(joined.try_recv(), Ok(EventSeq::new(4)));
         // A turn started whose record is on its way: that one.
         let (sender, mut next) = ticket();
-        tickets.give(sender, Delivered::Steered, tickets.seen(), 2);
+        tickets.give(sender, Delivered::Steered, 2);
         assert!(next.try_recv().is_err());
         tickets.turn_started(EventSeq::new(12));
         assert_eq!(next.try_recv(), Ok(EventSeq::new(12)));
@@ -162,9 +155,9 @@ mod tests {
         let kept = QueueEntryId::random();
         let removed = QueueEntryId::random();
         let (sender, mut waits) = ticket();
-        tickets.give(sender, Delivered::Queued { entry: kept }, 0, 0);
+        tickets.give(sender, Delivered::Queued { entry: kept }, 0);
         let (sender, mut never) = ticket();
-        tickets.give(sender, Delivered::Queued { entry: removed }, 0, 0);
+        tickets.give(sender, Delivered::Queued { entry: removed }, 0);
         let queue = PromptQueue {
             entries: vec![vessel_proto::QueuedPrompt {
                 id: kept,
@@ -178,9 +171,30 @@ mod tests {
         tickets.prune(&queue);
         assert_eq!(never.try_recv(), Err(oneshot::error::TryRecvError::Closed));
         let sender = tickets.take(kept).unwrap();
-        let before = tickets.seen();
-        tickets.give(sender, Delivered::Started, before, 1);
+        tickets.give(sender, Delivered::Started, 1);
         tickets.turn_started(EventSeq::new(20));
         assert_eq!(waits.try_recv(), Ok(EventSeq::new(20)));
+    }
+
+    /// An interrupt: the running turn (the first) was started, but its
+    /// record was not yet seen when the prompt that interrupts it started
+    /// the second. The first record to come is the cancelled turn's, and
+    /// the ticket waits for the second's.
+    #[test]
+    fn an_interrupting_prompt_learns_its_own_turn_not_the_one_it_cancelled() {
+        let mut tickets = Tickets::default();
+        let (sender, mut own) = ticket();
+        tickets.give(sender, Delivered::Started, 2);
+        tickets.turn_started(EventSeq::new(3));
+        assert!(own.try_recv().is_err(), "the cancelled turn's record");
+        tickets.turn_started(EventSeq::new(8));
+        assert_eq!(own.try_recv(), Ok(EventSeq::new(8)));
+        // Both seen before the ticket is given: the latest is its turn.
+        let mut seen = Tickets::default();
+        seen.turn_started(EventSeq::new(3));
+        seen.turn_started(EventSeq::new(8));
+        let (sender, mut late) = ticket();
+        seen.give(sender, Delivered::Started, 2);
+        assert_eq!(late.try_recv(), Ok(EventSeq::new(8)));
     }
 }

@@ -85,6 +85,37 @@ pub enum SessionError {
     /// The session has ended and accepts no more input.
     #[error("the session has ended")]
     Ended,
+    /// The session's agent is parked (protocol 12, ADR 0038): what goes
+    /// straight to the agent (an answer) has nothing to go to; a prompt or
+    /// `session.wake` starts it again.
+    #[error("the session's agent is parked; a prompt or a wake starts it again")]
+    Parked,
+    /// The session's agent cannot be parked now (protocol 12).
+    #[error("the session's agent cannot be parked: {0}")]
+    NotParked(#[from] ParkRefusal),
+    /// Starting a parked session's agent again failed; it stays parked.
+    #[error("the session's agent did not start again: {0}")]
+    WakeFailed(String),
+    /// The session cannot be rewound now (protocol 14, ADR 0052).
+    #[error("the session cannot be rewound now: {0}")]
+    NotRewound(#[from] RewindRefusal),
+    /// The agent cannot fork its conversation there (protocol 14): it does
+    /// not offer `session/fork`, or it did not fork at the point.
+    #[error("{}", fork_refusal(*.0))]
+    ForkRefused(vessel_agent::ForkRefusal),
+    /// An agent's own conversations could not be listed
+    /// (`SessionRuntime::history`, protocol 17).
+    #[error(transparent)]
+    History(#[from] vessel_agent::HistoryError),
+    /// The rewound agent did not start; the session goes on with its old
+    /// conversation.
+    #[error("the agent did not start at the point: {0}")]
+    RewindFailed(String),
+    /// Another live session is on the agent's conversation this one would
+    /// start on, or starting on it (protocol 17, ADR 0053): two agents on
+    /// one transcript would corrupt it.
+    #[error("session {0} is already on that conversation; open it, or end it first")]
+    ConversationTaken(SessionId),
     /// An ended session cannot start again (protocol 10's
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
@@ -95,6 +126,60 @@ pub enum SessionError {
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
+}
+
+/// Why a session's agent was not parked (protocol 12's `session.park`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ParkRefusal {
+    /// A terminal session: its harness is its own interface.
+    #[error("a terminal session's harness is not parked")]
+    Terminal,
+    /// Its agent did not say it can resume a session (`loadSession`), or it
+    /// has no session id yet: its conversation would be lost.
+    #[error("its agent cannot resume a conversation")]
+    CannotResume,
+    /// Its agent is still starting or moving.
+    #[error("its agent is starting or moving")]
+    NotReady,
+    /// A turn runs.
+    #[error("a turn is running")]
+    TurnRunning,
+    /// A permission or a question waits for an answer.
+    #[error("the agent waits for an answer")]
+    Waiting,
+    /// The queue would start its next prompt.
+    #[error("the queue has prompts that are not held")]
+    QueueMoving,
+}
+
+/// Why a session was not rewound (protocol 14's `session.rewind`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum RewindRefusal {
+    /// A terminal session: Vessel does not see its agent's turns.
+    #[error("a terminal session is not rewound")]
+    Terminal,
+    /// Its agent is still starting or moving.
+    #[error("its agent is starting or moving")]
+    NotReady,
+    /// A turn runs.
+    #[error("a turn is running")]
+    TurnRunning,
+    /// A permission or a question waits for an answer.
+    #[error("the agent waits for an answer")]
+    Waiting,
+    /// The queue would start its next prompt.
+    #[error("the queue has prompts that are not held")]
+    QueueMoving,
+}
+
+/// A fork refusal in words.
+/// A fork's refusal as a person reads it (a failed fork's status, a
+/// rewind's answer).
+pub(crate) const fn fork_refusal(refusal: vessel_agent::ForkRefusal) -> &'static str {
+    match refusal {
+        vessel_agent::ForkRefusal::CannotFork => "the agent cannot fork a conversation",
+        vessel_agent::ForkRefusal::NotAtPoint => "the agent did not fork at the chosen point",
+    }
 }
 
 /// Why a prompt was not delivered (protocol 10's `session.prompt`).
@@ -126,6 +211,11 @@ pub enum RemoveError {
 impl SessionError {
     /// The wire error code for this failure.
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per kind of failure, so a new kind must choose its code; the list is \
+                  the point"
+    )]
     pub const fn code(&self) -> ErrorCode {
         match self {
             // An added agent's program not found is its "not installed"
@@ -133,11 +223,20 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. } | HarnessError::AgentMissing { .. }) => {
                 ErrorCode::HarnessNotInstalled
             }
-            Self::Launch(HarnessError::StructuredUnavailable { .. } | HarnessError::NoTerminal { .. })
+            Self::Launch(
+                HarnessError::StructuredUnavailable { .. }
+                | HarnessError::NoTerminal { .. }
+                | HarnessError::NoDirect { .. },
+            )
+            | Self::StartAgent(vessel_agent::AgentError::NoDriver(_))
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
             | Self::NotResumable(_)
+            | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
+            | Self::NotRewound(RewindRefusal::Terminal)
+            | Self::ForkRefused(_)
+            | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
             | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
             Self::Launch(
@@ -157,6 +256,7 @@ impl SessionError {
                 | InputError::InvalidAnswer { .. }
                 | InputError::AttachmentNotTaken { .. },
             )
+            | Self::History(vessel_agent::HistoryError::Refused(_))
             | Self::Attachment(
                 AttachmentError::TooMany { .. }
                 | AttachmentError::TooLarge { .. }
@@ -164,9 +264,17 @@ impl SessionError {
                 | AttachmentError::NotTaken { .. }
                 | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
-            Self::Spawn(_) | Self::StartAgent(_) | Self::McpFile(_) | Self::Probe(_) => {
-                ErrorCode::SpawnFailed
-            }
+            Self::Spawn(_)
+            | Self::StartAgent(_)
+            | Self::McpFile(_)
+            | Self::Probe(_)
+            | Self::History(
+                vessel_agent::HistoryError::Spawn(_)
+                | vessel_agent::HistoryError::Failed { .. }
+                | vessel_agent::HistoryError::TimedOut { .. },
+            )
+            | Self::WakeFailed(_)
+            | Self::RewindFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
             // An agent this node has not added (ADR 0032).
             | Self::Launch(HarnessError::NotDefined { .. })
@@ -177,6 +285,21 @@ impl SessionError {
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })
             | Self::Moving
+            | Self::ConversationTaken(_)
+            // Nothing waits on a parked session: an answer has no request.
+            | Self::Parked
+            | Self::NotParked(
+                ParkRefusal::NotReady
+                | ParkRefusal::TurnRunning
+                | ParkRefusal::Waiting
+                | ParkRefusal::QueueMoving,
+            )
+            | Self::NotRewound(
+                RewindRefusal::NotReady
+                | RewindRefusal::TurnRunning
+                | RewindRefusal::Waiting
+                | RewindRefusal::QueueMoving,
+            )
             // The agent's refusal of an option change: the session is in a
             // state where it does not take it.
             | Self::Input(

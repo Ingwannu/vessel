@@ -4,6 +4,7 @@ import {
   covers,
   guess,
   INSET,
+  holdStep,
   offBy,
   offsets,
   scrollFor,
@@ -104,5 +105,17 @@ describe("going to an item", () => {
     expect(covers([0], { start: 0, end: 0, before: 0, after: 0 }, 0, 600)).toBe(
       true,
     );
+  });
+});
+
+describe("holdStep", () => {
+  it("moves by the nearest whole pixel, none under half of one", () => {
+    expect(holdStep(0)).toBe(0);
+    expect(holdStep(0.4)).toBe(0);
+    expect(holdStep(-0.5)).toBe(0);
+    expect(holdStep(0.5)).toBe(1);
+    expect(holdStep(-0.6)).toBe(-1);
+    expect(holdStep(0.9)).toBe(1);
+    expect(holdStep(-41.3)).toBe(-41);
   });
 });

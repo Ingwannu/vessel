@@ -241,6 +241,7 @@ fn row_retention_keeps_exactly_the_newest_even_when_times_tie() {
             event: SessionEvent::Agent {
                 event: AgentEvent::TurnEnded {
                     reason: vessel_proto::StopReason::EndTurn,
+                    point: None,
                     usage: None,
                 },
             },

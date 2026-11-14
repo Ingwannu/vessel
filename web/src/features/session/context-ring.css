@@ -1,0 +1,56 @@
+/* The context meter (context-ring.tsx): agent-orchestrator's 28px box
+   and 20px ring, a stroke of 3 on its 24 units, the track in the border
+   colour, the arc from the top, clockwise; its colour by how full. */
+
+.context-ring {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-4);
+  color: var(--st-building);
+  outline: none;
+}
+
+.context-ring:hover {
+  background: var(--bg-hover);
+}
+
+.context-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.context-ring[data-fullness="low"] {
+  color: var(--st-needs-you);
+}
+
+.context-ring[data-fullness="full"] {
+  color: var(--danger);
+}
+
+.context-ring svg {
+  transform: rotate(-90deg);
+}
+
+.context-ring-track,
+.context-ring-arc {
+  fill: none;
+  stroke-width: 3;
+}
+
+.context-ring-track {
+  stroke: var(--border-strong);
+}
+
+.context-ring-arc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  transition: stroke-dasharray 500ms var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-ring-arc {
+    transition: none;
+  }
+}

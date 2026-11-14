@@ -29,6 +29,24 @@
   scale: 0.95;
 }
 
+/* A label with lines under it (the context meter's figures): a column,
+   the lines in the secondary colour. */
+.tooltip.lined {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tooltip-line {
+  color: var(--text-secondary);
+}
+
 .tooltip-keys {
   color: var(--text-tertiary);
   letter-spacing: 0.04em;

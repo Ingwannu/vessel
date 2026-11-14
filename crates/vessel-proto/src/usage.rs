@@ -61,7 +61,7 @@ pub enum UsageScope {
     },
 }
 
-/// `usage.query` (protocol 12). Totals cover the selected range; `after`
+/// `usage.query` (protocol 19). Totals cover the selected range; `after`
 /// pages only the individual session samples, never the total.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

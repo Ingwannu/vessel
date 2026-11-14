@@ -5,7 +5,7 @@
 //! does; a first turn that fails with the agent alive; a schedule of an
 //! agent added by its command (track G) while its secret is missing and
 //! once it is removed; a heartbeat does not survive its session started
-//! again.
+//! again; a spec kept for later is bounded.
 //!
 //! Unix only, as `meeting` is: the shell is `/bin/sh`.
 
@@ -18,7 +18,7 @@ use vessel_proto::automation::{
 };
 use vessel_proto::conversation::ResumeSession;
 use vessel_proto::scripts::{RunScript, ScriptPlace, ScriptRunOutcome};
-use vessel_proto::terminals::{CreateTerminal, ServiceState, TerminalPlace};
+use vessel_proto::terminals::{CreateTerminal, ServiceState, TerminalInfo, TerminalPlace};
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{
     AgentEvent, ErrorCode, EventSeq, HarnessRef, PermissionOptionId, PermissionOutcome, ScheduleId,
@@ -70,6 +70,24 @@ async fn last_run_until(
                 .is_some_and(|run| wanted(&run.outcome))
             {
                 return info;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    })
+    .await
+}
+
+/// `info`'s terminal once it has ended.
+async fn ended_terminal(
+    owner: &NodeClient,
+    info: &TerminalInfo,
+    what: &'static str,
+) -> TerminalInfo {
+    step(what, async {
+        loop {
+            let now = terminal(owner, info).await;
+            if !now.is_live() {
+                return now;
             }
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         }
@@ -168,22 +186,14 @@ async fn a_scheduled_session_is_watched_and_put_away_with_what_runs_beside_it() 
         let archived = info_until(&owner, session, |info| info.marks.archived_at.is_some()).await;
         assert!(archived.pull_request.is_none(), "{archived:?}");
         nothing_watched(&owner).await;
-        let service = step("the service ends", async {
-            loop {
-                let now = terminal(&owner, &service).await;
-                if !now.is_live() {
-                    return now;
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-            }
-        })
-        .await;
+        // The archive shows before what ran beside it has ended (each
+        // terminal's end is told as its process exits): wait for each.
+        let service = ended_terminal(&owner, &service, "the service ends").await;
         assert!(
             matches!(service.service, Some(ServiceState::Stopped)),
             "not restarted: {service:?}"
         );
-        let shell = terminal(&owner, &shell).await;
-        assert!(!shell.is_live(), "{shell:?}");
+        let _shell = ended_terminal(&owner, &shell, "the shell ends").await;
         node.stop().await.unwrap();
     })
     .await;
@@ -335,6 +345,24 @@ async fn ended(client: &NodeClient, session: SessionId) {
     let mut stream = client.follow(session, EventSeq::ZERO).await.unwrap();
     read_until(&mut stream, &mut Vec::new(), |record| {
         status_of(record).is_some_and(|status| !status.is_live())
+    })
+    .await;
+}
+
+/// A spec kept for later is bounded as the prompt beside it is: a folder
+/// of 20 KiB is refused at creation (the join's code review, finding 5).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_spec_kept_for_later_is_bounded() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture.start().await;
+        let owner = fixture.connect(&node).await;
+        let spec = structured_spec(&fixture, None).with_cwd(fixture.cwd().join("x".repeat(20_000)));
+        let refused = owner
+            .create_schedule(hourly(new_session(spec), "plain"), false)
+            .await;
+        assert_eq!(code(refused), ErrorCode::InvalidRequest);
+        node.stop().await.unwrap();
     })
     .await;
 }

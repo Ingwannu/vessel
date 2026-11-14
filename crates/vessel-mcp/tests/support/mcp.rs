@@ -249,7 +249,11 @@ pub(super) async fn agent_env_with(
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => {}
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
     let servers: Value = serde_json::from_str(reply.strip_prefix("mcp ").unwrap()).unwrap();

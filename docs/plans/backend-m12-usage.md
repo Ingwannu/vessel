@@ -46,7 +46,8 @@ Sources followed (public repository-relative paths):
 
 ## Contract
 
-The first node slice adds `usage.query` (read, protocol 12). It takes a
+The first node slice adds `usage.query` (read, provisionally protocol 19
+after integration with the protocol-18 node line). It takes a
 closed period (day/week/session), a closed scope (machine, agent/profile,
 session), and an optional session sequence cursor. Machine/agent requests
 must use day or week. Session period includes retained samples only.
@@ -321,3 +322,27 @@ The page end-to-end exceptions remain with integration; they were not
 rerun during closeout. Latest full Rust Clippy/test and CLI/node process
 regressions after the JSON-feature correction remain unverified. No native
 gate or screen approval is claimed. No service permission was changed.
+
+### Resumed node-only integration
+
+The accounting stack is being merged with the protocol-18 node line before
+further feature work. This branch provisionally uses protocol 19 for
+`usage.query`; the minimum remains 2. The named usage migration follows
+the search migration as schema 14. Integration may renumber these versions.
+Generated TypeScript is regenerated from the merged Rust contract.
+
+The current scope ends at node, store, wire, client, CLI and fake-fleet
+behavior. Native Usage screens and the conversation slots are deferred
+to the screen tracks; no screen or native gate is claimed here. External
+lookup and recovery remain planned, not implemented.
+
+The merge preserves cumulative baselines across wake completion and treats
+fork origins as existing history. Rewind and profile-move replay still
+need an explicit observation-origin boundary: the session can forward a
+usage report while suppressing the replayed Ready event. That boundary
+will be covered separately after the baseline merge gate; its observed
+cost must not silently become new spend.
+
+The resumed full Rust gate and required full web gate, including its own
+headless fake-fleet Playwright suite, are pending. Previous failures and
+scoped passes above describe the older tree, not this merge.

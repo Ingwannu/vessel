@@ -3,14 +3,15 @@
 //! own starts (a terminal's program in a PTY, a structured session's
 //! agent through `agent`).
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use vessel_agent::AgentSetup;
+use vessel_agent::{AgentSetup, Driver};
 use vessel_harness::{McpFile, ModelProxy, Profile};
 use vessel_proto::{
-    Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionId,
-    SessionInfo, SessionMode, SessionModel, SessionOrigin, SessionSpec, TerminalSize,
+    Creator, HarnessSessionId, ModelId, NodeId, OptionChoice, ResolvedMcpServers, SessionEvent,
+    SessionId, SessionInfo, SessionMode, SessionModel, SessionOrigin, SessionSpec, TerminalSize,
 };
 use vessel_pty::{PtyProcess, WindowSize};
 
@@ -80,6 +81,23 @@ pub struct LaunchOptions {
     /// for a session someone watches. Off by default. Kept for the
     /// session's life: an agent a move starts again asks as the first did.
     pub questions: bool,
+    /// A fork of another session's conversation (protocol 14, ADR 0052):
+    /// the agent starts with `session/fork` and the log with a `forked`
+    /// record. Structured sessions only. Boxed: rare, and every start's
+    /// future carries the options' size.
+    pub fork: Option<Box<ForkStart>>,
+}
+
+/// Where a forked session's conversation comes from (protocol 14).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForkStart {
+    /// The session forked.
+    pub from: SessionId,
+    /// Its `turn_ended` record the fork starts after; `None` for its whole
+    /// conversation.
+    pub after: Option<vessel_proto::EventSeq>,
+    /// The agent's conversation forked, and where.
+    pub agent: vessel_agent::ForkFrom,
 }
 
 /// What a session records about its start besides its spec.
@@ -125,6 +143,7 @@ struct AgentStart {
     options: Vec<OptionChoice>,
     mcp_servers: ResolvedMcpServers,
     questions: bool,
+    fork: Option<Box<ForkStart>>,
 }
 
 impl SessionRuntime {
@@ -153,7 +172,9 @@ impl SessionRuntime {
     /// # Errors
     /// As [`create`](Self::create), and [`SessionError::Launch`] for a
     /// profile of another harness or servers the harness cannot take,
-    /// [`SessionError::McpFile`] when the MCP file cannot be written.
+    /// [`SessionError::McpFile`] when the MCP file cannot be written,
+    /// [`SessionError::ConversationTaken`] for a `resume` another live
+    /// session is on (protocol 17).
     pub async fn create_with(
         &self,
         spec: SessionSpec,
@@ -177,6 +198,7 @@ impl SessionRuntime {
             model,
             model_proxy,
             questions,
+            fork,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
         if self.get(id).is_some() {
@@ -192,6 +214,9 @@ impl SessionRuntime {
         };
         let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
         match spec.mode.clone() {
+            SessionMode::Terminal { .. } if fork.is_some() => Err(SessionError::Terminal(
+                "forking (a terminal session's conversation is its harness's)",
+            )),
             SessionMode::Terminal { size, .. } => {
                 let mcp = TerminalMcp {
                     servers: mcp_servers,
@@ -205,15 +230,27 @@ impl SessionRuntime {
                 resume,
                 options,
             } => {
+                // One agent per conversation (`claims`): held until the
+                // session is registered. A new session holds its profile
+                // alone, which the live check reads from its info.
+                let _claim = resume
+                    .as_ref()
+                    .map(|conversation| {
+                        let profiles = BTreeSet::from([spec.profile.clone()]);
+                        self.claim(id, &spec.harness, profiles, conversation)
+                    })
+                    .transpose()?;
                 let start = AgentStart {
                     model,
                     resume,
                     options,
                     mcp_servers,
                     questions,
+                    fork,
                 };
-                self.create_structured(spec, (profile, model_proxy), start, record)
-                    .await
+                // Boxed: the claim held across it put every caller's future
+                // past clippy's `large_futures` bound.
+                Box::pin(self.create_structured(spec, (profile, model_proxy), start, record)).await
             }
         }
     }
@@ -275,7 +312,7 @@ impl SessionRuntime {
             begin,
             notices,
             (Input::Terminal(pty.input()), pty.pid()),
-            None,
+            (None, Driver::Acp),
         );
         let actor = TerminalActor {
             pty,
@@ -293,8 +330,12 @@ impl SessionRuntime {
         start: AgentStart,
         record: Record,
     ) -> Result<Created, SessionError> {
-        let AgentCommand { command, cwd } =
-            self.agent_command(spec.clone(), profile, proxy).await?;
+        let AgentCommand {
+            command,
+            cwd,
+            driver,
+            notices: chosen,
+        } = self.agent_command(spec.clone(), profile, proxy).await?;
         let setup = AgentSetup {
             cwd,
             model: start.model,
@@ -303,13 +344,33 @@ impl SessionRuntime {
             mcp_servers: start.mcp_servers,
             handshake_timeout: self.config.agent_handshake_timeout,
             questions: start.questions,
+            fork: start.fork.as_ref().map(|fork| Box::new(fork.agent.clone())),
+            private_dir: self.private_dir(),
         };
-        let (begin, notices) = record.begin(spec);
+        let (begin, mut notices) = record.begin(spec);
+        notices.extend(chosen);
+        // A fork's log starts by saying what it forked, and drops the
+        // replay of its check (protocol 14): the conversation is the
+        // source's log, not copied.
+        let actor = start
+            .fork
+            .map_or_else(ActorStart::default, |fork| ActorStart {
+                replaying: true,
+                opening: Some(Box::new(SessionEvent::Forked {
+                    from: fork.from,
+                    after: fork.after,
+                })),
+                ..ActorStart::default()
+            });
         self.run_structured(
-            Launch { command, setup },
+            Launch {
+                command,
+                setup,
+                driver,
+            },
             begin,
             notices,
-            ActorStart::default(),
+            actor,
         )
     }
 }

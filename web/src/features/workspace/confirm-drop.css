@@ -1,0 +1,8 @@
+/* The pair a drop asks with (confirm-drop.tsx): the two buttons side by
+   side where the one stood. */
+
+.confirm-drop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

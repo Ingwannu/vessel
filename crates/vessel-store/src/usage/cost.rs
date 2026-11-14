@@ -85,6 +85,13 @@ pub(super) fn starting(connection: &Connection, session: SessionId) -> Result<()
     state.phase = Phase::Starting;
     put(connection, session, &state)
 }
+/// A wake's Ready is consumed by the session's replay filter. Woken is
+/// its durable completion marker; it must not reset a cumulative counter.
+pub(super) fn woken(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
+    let mut state = get(connection, session)?;
+    state.phase = Phase::Ready;
+    put(connection, session, &state)
+}
 pub(super) fn ready(
     connection: &Connection,
     session: SessionId,

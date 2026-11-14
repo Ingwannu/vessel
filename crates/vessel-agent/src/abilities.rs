@@ -38,6 +38,8 @@ pub(crate) fn of(initialized: &acp::InitializeResponse) -> AgentAbilities {
         resume: capabilities.load_session,
         image: capabilities.prompt_capabilities.image,
         audio: capabilities.prompt_capabilities.audio,
+        // ACP's unstable `session/fork` (protocol 14, ADR 0052).
+        fork: capabilities.session_capabilities.fork.is_some(),
     }
 }
 
@@ -76,6 +78,7 @@ mod tests {
                 resume: true,
                 image: true,
                 audio: false,
+                fork: false,
             }
         );
     }
