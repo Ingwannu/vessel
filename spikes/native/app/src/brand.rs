@@ -121,7 +121,9 @@ impl Brand {
 
     /// For the new session's column (`on_children_prepainted`): after
     /// `skip` leading children come the heading, the composer's card and
-    /// the pickers.
+    /// the pickers; everything after them (a note such as "no machine
+    /// yet. Add one first.") counts with the pickers, so the V's bottom
+    /// never passes under it (it did at 800 × 600 on the first run).
     pub(crate) fn new_session(
         &self,
         skip: usize,
@@ -135,7 +137,7 @@ impl Brand {
                 shared.seen.set(Some(Seen::New {
                     heading,
                     composer,
-                    pickers,
+                    pickers: boxes.fold(pickers, Area::union),
                 }));
             }
         }

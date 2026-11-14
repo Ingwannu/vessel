@@ -71,8 +71,9 @@ frame and the window controls, where traces and pads are at home.
 - Degrading: a new session wide enough draws the whole V; narrower (the
   arms would cross the heading or the pickers), the star above the
   heading and the V's bottom under the pickers; an open session draws as
-  many loops a side as its margin holds after the avatar's room (four,
-  three, two), none below two.
+  many loops a side as its margin holds after the air beside the column
+  (four, three, two), none below two, its arms leaning in as far as the
+  margin allows and at most 20° (the owner's sketch of the open session).
 - Motion: one bounded transition on the first message (the move 300 ms,
   star to circle 150 ms, the agent's mark 150 ms, the Codex app's curve,
   all read from one place); one step per presented frame at the display's
