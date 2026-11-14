@@ -117,9 +117,12 @@ The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
 
-Settings sections register their renderer in `settings::content` and their
-presence in `settings::drawn`; the latter controls navigation, so a page
-must appear in both. State and event slots are added only when needed.
+Settings lists Paseo's sections in Paseo's two groups and order
+(`view::settings`: App, then the chosen machine's, Paseo's Host, headed by
+the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
+section registers its renderer once, in `settings::sections::page`; a
+section without one is not listed (no placeholder pages), so the list and
+the pages cannot disagree. State and event slots are added only when needed.
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
