@@ -11,7 +11,7 @@ use super::ConversationWords;
 use super::numbers::{grouped, short_tokens};
 use super::plural;
 use crate::Lang;
-use crate::timeline::{Entry, EntryKind, PlanActivity, plan_progress};
+use crate::timeline::{Entry, EntryKind, FailureKind, PlanActivity, plan_progress, turn_failure};
 use crate::timeline::{RunSummary, Tally};
 use crate::timeline::{Settled, settled};
 
@@ -434,8 +434,18 @@ impl ConversationWords {
                 &settled(&permission.request.options, permission.outcome.as_ref()),
             ),
             EntryKind::TurnEnded { reason, usage } => self.turn_ended(*reason, usage.as_ref()),
+            // One sentence, without the JSON-RPC wrapper or the agent's
+            // data; a usage limit's sentence alone (`timeline::failure`).
             EntryKind::TurnFailed { message } => {
-                format!("{} · {message}", self.either("Turn failed", "턴 실패"))
+                let failure = turn_failure(message);
+                match failure.kind {
+                    FailureKind::Limit => failure.sentence,
+                    FailureKind::Other => format!(
+                        "{} · {}",
+                        self.either("Turn failed", "턴 실패"),
+                        failure.sentence
+                    ),
+                }
             }
             EntryKind::Log { line } => line.clone(),
             EntryKind::Status { status } => match self.lang {
