@@ -147,6 +147,13 @@ impl Outgoing {
         Self(sender)
     }
 
+    /// A writer whose lines the caller reads, for the loop's tests.
+    #[cfg(test)]
+    pub(super) fn detached() -> (Self, mpsc::Receiver<Vec<u8>>) {
+        let (sender, receiver) = mpsc::channel(OUTGOING);
+        (Self(sender), receiver)
+    }
+
     /// Send request `id`.
     pub(super) async fn request(&self, id: u64, method: &str, params: &impl Serialize) -> bool {
         self.line(&Request { id, method, params }).await

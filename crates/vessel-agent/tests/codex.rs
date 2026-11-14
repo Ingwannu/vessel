@@ -457,6 +457,19 @@ async fn only_the_running_turns_completion_ends_it() {
             "{events:?}"
         );
         assert!(!input.turn_running().await.unwrap());
+        // The turn's id comes only with `turn/start`'s answer: one that
+        // does not read ends the turn failed rather than leave it starting.
+        input.prompt(text("badstart")).await.unwrap();
+        let events = turn(&mut outputs).await;
+        assert!(
+            matches!(
+                events.last(),
+                Some(AgentEvent::TurnFailed { message })
+                    if message.contains("answer to turn/start did not read")
+            ),
+            "{events:?}"
+        );
+        assert!(!input.turn_running().await.unwrap());
     })
     .await;
 }
@@ -509,6 +522,40 @@ async fn choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
                     if line.contains("without vessel")
             ),
             "{said:?}"
+        );
+    })
+    .await;
+}
+
+/// A cancel ends a turn while its reply streams, end to end: the fake
+/// streams 200,000 deltas without a pause unless interrupted. (That the
+/// loop takes a command before the agent's queued lines is its own unit
+/// test, `a_command_is_taken_before_queued_agent_lines`; here the reader
+/// may fall behind and let either order through.)
+#[tokio::test]
+async fn a_cancel_lands_while_the_reply_streams() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _ready = ready(&mut outputs).await;
+        input.prompt(text("stream")).await.unwrap();
+        let _first = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Event(AgentEvent::MessageChunk { .. }))
+        })
+        .await;
+        // From a task of its own: the outputs must keep being read, or the
+        // driver waits on them.
+        let cancelling = tokio::spawn(async move { input.cancel_turn().await });
+        let events = turn(&mut outputs).await;
+        cancelling.await.unwrap().unwrap();
+        assert!(
+            matches!(
+                events.last(),
+                Some(AgentEvent::TurnEnded {
+                    reason: StopReason::Cancelled,
+                    ..
+                })
+            ),
+            "the stream ended before the cancel arrived"
         );
     })
     .await;
