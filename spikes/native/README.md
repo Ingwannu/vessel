@@ -217,6 +217,15 @@ the kit's existing fields: Enter starts a line, Mod+Enter submits, and
 after twelve lines the editor scrolls. Its marked-text regression also
 exercises the composer; platform input-method support remains shared.
 
+`kit::field::composer_hooks` gives a composer's screen what Paseo's
+composer needs of its text: `caret`, `selection`, `replace_range` and
+`replace_all` (byte offsets; one undoable edit, the caret after it),
+`on_edit` (after every edit), and `hooked`, which offers Up, Down, Enter
+(alone), Tab and Escape, and a paste of images or files, to the screen
+before the text sees them. `KeyAnswer::Pass` leaves everything as before
+(Enter sends, Tab indents); `Taken` stops the key. An input method
+composing is never asked. Screens take a key only while their menu shows.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.
