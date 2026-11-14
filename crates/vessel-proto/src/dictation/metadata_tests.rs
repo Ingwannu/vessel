@@ -1,5 +1,6 @@
 //! Provider metadata is accepted once and carried as a validated value.
 
+use super::settings_values::{MAX_LANGUAGE_CHARS, MAX_MODEL_CHARS, MAX_URL_BYTES};
 use super::*;
 
 #[test]
@@ -75,21 +76,36 @@ fn endpoint_authorities_are_unambiguous_and_cleartext_is_loopback_only() {
 
 #[test]
 fn metadata_bounds_use_characters_and_canonical_url_bytes() {
-    assert!("a".repeat(16).parse::<Language>().is_ok());
-    for language in ["", "two words", "123", &"a".repeat(17)] {
+    assert!("a".repeat(MAX_LANGUAGE_CHARS).parse::<Language>().is_ok());
+    for language in ["", "two words", "123", &"a".repeat(MAX_LANGUAGE_CHARS + 1)] {
         assert!(language.parse::<Language>().is_err());
     }
-    assert!("모".repeat(64).parse::<EndpointModel>().is_ok());
-    for model in ["", "two words", "model\u{0000}", &"모".repeat(65)] {
+    assert!(
+        "모"
+            .repeat(MAX_MODEL_CHARS)
+            .parse::<EndpointModel>()
+            .is_ok()
+    );
+    for model in [
+        "",
+        "two words",
+        "model\u{0000}",
+        &"모".repeat(MAX_MODEL_CHARS + 1),
+    ] {
         assert!(model.parse::<EndpointModel>().is_err());
     }
-    for model in ["", "two words", "../model", &"a".repeat(65)] {
+    for model in [
+        "",
+        "two words",
+        "../model",
+        &"a".repeat(MAX_MODEL_CHARS + 1),
+    ] {
         assert!(model.parse::<LocalModelId>().is_err());
     }
     let prefix = "https://example.com/";
-    let max = format!("{prefix}{}", "a".repeat(256 - prefix.len()));
+    let max = format!("{prefix}{}", "a".repeat(MAX_URL_BYTES - prefix.len()));
     assert!(max.parse::<EndpointBase>().is_ok());
     assert!(format!("{max}a").parse::<EndpointBase>().is_err());
-    let escaped_too_long = format!("{prefix}{}", "한".repeat(30));
+    let escaped_too_long = format!("{prefix}{}", "한".repeat(MAX_URL_BYTES / "한".len()));
     assert!(escaped_too_long.parse::<EndpointBase>().is_err());
 }

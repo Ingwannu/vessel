@@ -15,7 +15,7 @@ const MAX_MODEL_BYTES: usize = MAX_MODEL_CHARS * char::MAX.len_utf8();
 pub(super) const MAX_URL_BYTES: usize = 256;
 const MAX_URL_INPUT_BYTES: usize = MAX_URL_BYTES * char::MAX.len_utf8();
 
-/// A language code: 1 to 16 ASCII letters and `-`.
+/// ASCII letters and `-`, bounded by `MIN_TEXT_CHARS` and `MAX_LANGUAGE_CHARS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct Language(String);
@@ -58,7 +58,7 @@ impl fmt::Display for Language {
 
 serde_via_text!(Language);
 
-/// The endpoint's model name. 1 to 64 characters, no whitespace.
+/// The endpoint's model name, bounded by `MAX_MODEL_CHARS`, without whitespace.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct EndpointModel(String);
@@ -103,7 +103,7 @@ serde_via_text!(EndpointModel);
 
 /// The endpoint's base URL. `https`, or `http` only when the host is
 /// loopback, so the key is not sent in cleartext off this machine.
-/// A host, no userinfo, query or fragment, at most 256 canonical ASCII bytes.
+/// A host without userinfo, query or fragment, bounded by `MAX_URL_BYTES`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct EndpointBase(BaseAddress);

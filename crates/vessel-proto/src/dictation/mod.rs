@@ -34,17 +34,16 @@ const MAX_FINISH_MS: u32 = 300_000;
 const PCM_SAMPLE_BYTES: usize = size_of::<i16>();
 const KIB_BYTES: usize = 1024;
 
-/// Longest PCM16 chunk. One second at 48 kHz is 96 000 bytes, so this also
-/// holds a second at every accepted rate.
+/// Longest PCM16 chunk; holds a second at every accepted sample rate.
 const MAX_CHUNK_BYTES: usize = 256 * KIB_BYTES;
 
-/// Last sequence a stream accepts. 1800 one-second chunks is 30 minutes.
+/// Last sequence a stream accepts; the stream enforces this duration bound.
 pub const MAX_SEQ: ChunkSeq = ChunkSeq::new(1_799);
 
 /// Longest transcript the node will return.
 const MAX_TRANSCRIPT_BYTES: usize = 64 * KIB_BYTES;
 
-/// A dictation stream. One to 64 characters of `[A-Za-z0-9_-]`.
+/// A dictation stream token, bounded by `MIN_ID_CHARS` and `MAX_ID_CHARS`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct DictationId(String);
@@ -81,7 +80,7 @@ impl fmt::Display for DictationId {
 
 serde_via_text!(DictationId);
 
-/// Samples per second. 8 000 to 48 000.
+/// Samples per second, bounded by `MIN_RATE` and `MAX_RATE`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SampleRate(u32);
 
@@ -89,7 +88,7 @@ impl SampleRate {
     /// Validate before any stream or provider is opened.
     ///
     /// # Errors
-    /// Rates outside 8–48 kHz cannot be used for dictation.
+    /// Rates outside `MIN_RATE` through `MAX_RATE` cannot be used for dictation.
     pub fn new(rate: u32) -> Result<Self, DictationDecodeError> {
         if (MIN_RATE..=MAX_RATE).contains(&rate) {
             Ok(Self(rate))
@@ -161,13 +160,13 @@ impl fmt::Display for Pcm16Mono {
 
 serde_via_text!(Pcm16Mono);
 
-/// One PCM16 chunk. Even, at least one sample, at most 256 KiB.
+/// One complete PCM16 chunk, bounded by `PCM_SAMPLE_BYTES` and `MAX_CHUNK_BYTES`.
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct DictationPcm(Bytes);
 
 impl DictationPcm {
-    /// PCM16 that is even, at least one sample, and at most 256 KiB.
+    /// Complete PCM16 samples up to `MAX_CHUNK_BYTES`.
     ///
     /// # Errors
     /// The bytes are odd, empty, or longer than the cap.
@@ -257,7 +256,7 @@ impl WithinMs {
     }
 }
 
-/// A transcript. Empty is allowed. Longer than 64 KiB of UTF-8 is refused.
+/// A transcript, allowing empty text up to `MAX_TRANSCRIPT_BYTES` in UTF-8.
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct Transcript(String);

@@ -266,23 +266,31 @@ copy test `a_secret_is_copied_only_where_the_home_was_granted_admin`.
 The endpoint that consumes the new helper is a later slice; this does not
 verify sending its header or authenticating to a real provider.
 
+## Boundary test maintenance
+
+Decision: modify existing tests and API comments. Boundary fixtures derive
+from each value type's existing constants, including multibyte transcript
+lengths, encoded audio size and finish-budget JSON. This keeps the tested
+edge aligned when a bound changes, without changing accepted inputs or
+refusal messages. No dependency, setting or wire method is added.
+
 ## Resume point
 
-Done: 2a and its corrections passed review. 2b1 provider metadata source
-passed; its whole gate is owed after the shared side-question fix and the
-coordinator's named node-head merge. TLS extraction `9ed08e9a` passed its
-own exact-commit gate and review. No call or settings field is registered.
+Done: 2a and its corrections passed review. Provider metadata (2b1) passed
+source review; its full gate remains owed. TLS and resolved secret lookup
+extractions each passed their exact-commit gate and review. The named node
+head was merged, retaining its entire architecture text before appending
+the dictation section. No call or settings field is registered.
 
-This commit extracts only an internal resolved secret lookup and delegates
-the existing copy wrapper. It needs its own unchanged-test gate and review
-row before the endpoint uses it.
+This commit connects boundary fixtures and API comments to their existing
+constants. Its full gate also checks the merged tree and closes the owed
+metadata gate only if the shared side-question test passes.
 
 Half-done: settings and service code remains private preparation. Registration
-waits for the shared `required_protocol` accessor; A6 uses an unassigned
+waits for the shared `required_protocol` accessor; unassigned features use
 `Option<ProtocolVersion>`, with new data hidden until assignment. No second
 mechanism is added.
 
-Next: gate/report the resolved lookup; merge the node head only when named,
-close the owed whole gate, then continue settings and stream service.
-Local engines and the app microphone remain deferred. The CLI file client
-follows the node service.
+Next: run and report the merged whole gate, then continue settings and stream
+service after the shared accessor lands. Local engines and the app microphone
+remain deferred. The CLI file client follows the node service.
