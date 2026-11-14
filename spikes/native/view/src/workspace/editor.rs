@@ -192,6 +192,27 @@ impl EditorModel {
         Some((kind, kind == ConflictKind::Changed && self.modified()))
     }
 
+    /// The write out, by number: the node's answer to a save carries no
+    /// number, and one write is out at a time (a save is not made while
+    /// one is out), so the answer is this one's.
+    #[must_use]
+    pub fn writing(&self) -> Option<u64> {
+        self.writing.as_ref().map(|(sequence, _)| *sequence)
+    }
+
+    /// The read last asked for, by number (an answer to an older one is
+    /// taken for it: reads of one file come back in order).
+    #[must_use]
+    pub const fn reading(&self) -> u64 {
+        self.read_sequence
+    }
+
+    /// The version last read or saved (its size for the toolbar).
+    #[must_use]
+    pub const fn version(&self) -> Option<&FileVersion> {
+        self.version.as_ref()
+    }
+
     /// The failed read's or write's sentence.
     #[must_use]
     pub fn error(&self) -> Option<&str> {

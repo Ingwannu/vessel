@@ -154,7 +154,7 @@ impl Shell {
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
-            Answer::Read { ask, result } => self.file_read(&ask, result),
+            Answer::Read { ask, result } => self.file_read(&ask, result, cx),
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
@@ -163,8 +163,8 @@ impl Shell {
             Answer::Status { .. }
             | Answer::Log { .. }
             | Answer::Stashes { .. }
-            | Answer::Git { .. }
-            | Answer::Saved { .. } => {}
+            | Answer::Git { .. } => {}
+            Answer::Saved { root, path, saved } => self.editor_saved(&root, &path, saved, cx),
         }
         cx.notify();
     }

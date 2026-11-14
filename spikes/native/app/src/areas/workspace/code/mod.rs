@@ -27,10 +27,14 @@ mod actions;
 mod actions_view;
 mod change_rows;
 mod changes;
+mod editing;
+mod editing_view;
+mod editor_status;
 mod elsewhere;
 mod files;
 mod found;
 mod frame;
+mod line_syntax;
 mod search;
 mod tree;
 mod viewer;
@@ -109,6 +113,9 @@ struct Viewer {
     goto: Option<u32>,
     /// The lines chosen for the composer (from 0, first and last).
     chosen: Option<(usize, usize)>,
+    /// The file edited in place (a desktop's width, at most 1 MiB of
+    /// text); `None`: shown read-only by the lines above.
+    edit: Option<editing::Editing>,
 }
 
 /// What a file shows.
@@ -132,6 +139,9 @@ struct Files {
     viewer: Option<Viewer>,
     search: search::Search,
     actions: actions::Actions,
+    /// Whether the tab was last drawn at a phone's width, where a file is
+    /// shown read-only (Paseo edits on a desktop only); set as it draws.
+    narrow: std::cell::Cell<bool>,
 }
 
 /// The panel's state.
@@ -181,6 +191,7 @@ impl CodePanel {
                 viewer: None,
                 search: search::Search::new(window, cx),
                 actions: actions::Actions::new(cx),
+                narrow: std::cell::Cell::new(false),
             },
             width: frame::WIDTH,
             stale: Stale::default(),
@@ -337,14 +348,20 @@ impl Shell {
         let Some((machine, session)) = self.code_session() else {
             return;
         };
-        let panel = &mut self.areas.workspace.code;
-        if panel
+        let same = self
+            .areas
+            .workspace
+            .code
             .target
             .as_ref()
-            .is_some_and(|target| target.machine == machine && target.session == session)
-        {
+            .is_some_and(|target| target.machine == machine && target.session == session);
+        if same {
             return;
         }
+        // The file edited in the session left is written first (Paseo
+        // flushes an editor when its panel goes).
+        self.flush_file();
+        let panel = &mut self.areas.workspace.code;
         panel.target = Some(Target {
             machine: machine.clone(),
             session,

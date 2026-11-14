@@ -163,6 +163,28 @@ pub struct Labels {
     pub delete_message: &'static str,
     /// Over the Files tree when the machine refused a new entry, a rename or a delete; its reason is shown under it.
     pub change_refused: &'static str,
+    /// The file editor's conflict bar: the file changed on disk while it was edited (Paseo's `changedOnDisk`).
+    pub editor_changed_on_disk: &'static str,
+    /// The file editor's conflict bar: the file is gone from disk (Paseo's `deletedTitle`).
+    pub editor_deleted_title: &'static str,
+    /// The file editor's conflict bar, under the deleted title (Paseo's `preservedDescription`).
+    pub editor_preserved: &'static str,
+    /// The file editor's conflict bar, under "Changed on disk" when Overwrite is offered (Paseo's `conflictDescription`).
+    pub editor_conflict_description: &'static str,
+    /// The file editor's conflict bar: write the buffer over the disk's file.
+    pub editor_overwrite: &'static str,
+    /// The file editor's conflict bar and the reload dialog's button: take the disk's file.
+    pub editor_reload: &'static str,
+    /// The reload dialog's title, when the buffer has changes (Paseo's `reloadTitle`).
+    pub editor_reload_title: &'static str,
+    /// The reload dialog's sentence (Paseo's `reloadMessage`).
+    pub editor_reload_message: &'static str,
+    /// The file editor's toolbar while a save is out (Paseo's `saving`).
+    pub editor_saving: &'static str,
+    /// The file editor's toolbar after a save failed (Paseo's `saveFailed`); the reason is in the tooltip.
+    pub editor_save_failed: &'static str,
+    /// The file editor's toolbar: the dot's tooltip when the buffer has unsaved changes (Paseo's `unsavedChanges`).
+    pub editor_unsaved: &'static str,
 }
 
 pub use super::labels_en::EN;

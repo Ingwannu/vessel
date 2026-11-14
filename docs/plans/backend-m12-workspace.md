@@ -131,6 +131,26 @@ when it is next shown (G1's finding: a closed panel was being read,
 and a hidden tab kept what was true before the write). The Changes
 tab's refresh button reads the open tab again.
 
+A file opened at a desktop's width is edited in place (Paseo's Source
+panel, `file-panels/source/`): the model is `view::workspace::editor`
+(Paseo's `FileEditorModel` as a state machine with its test cases: the
+800 ms autosave, a save guarded by the hash the edit started from,
+Overwrite, Reload asked first when the buffer has changes, a re-read
+after a git write that a clean buffer follows and a modified one meets
+as "Changed on disk", a file gone as "File deleted on disk", the write
+made when the file is left). The control is the kit's `code_editor`
+(the engine's code-editor kind in the kit's colours, the code face with
+Pretendard behind it, syntax from the view's lexer through
+`LineSyntax`, its kinds coloured by the current theme on every draw).
+Paseo's toolbar sits over it (size and lines; the dot, "Saving..." or
+"Save failed"; "Ln, Col" and "Add lines … to chat" in a small view of
+their own, since the editor redraws on every blink of its caret).
+Paseo's rules for what is editable are kept: at most 1 MiB (read whole
+in one page, the node's largest), never at a phone's width; anything
+else is shown read-only as before. Difference, named: the node has no
+watch of a file, so a change on disk shows at the next save or re-read,
+not at once.
+
 Track P's seams (the composer): a selection or a file handed to the
 composer is a value, `view::workspace::reference::FileReference` (root,
 path, an optional `LineRange`, the text sent), keyed, titled and
