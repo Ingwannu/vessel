@@ -584,9 +584,14 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
+    // Track P: the `/` menu over the card, and the text with its keys
+    // offered to the menu first.
+    let commands = crate::areas::composer::menu(shell, tokens, window, cx);
     column(
         vessel_app_kit::composer_card(tokens, touch)
-            .child(field.element(tokens, touch, cx))
+            .relative()
+            .children(commands)
+            .child(crate::areas::composer::text(shell, tokens, touch, cx))
             .child(
                 // The draft's row: the agent's controls on the left (Paseo's
                 // button row bleeds 6 past the card's padding), the meter
