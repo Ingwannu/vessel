@@ -4,6 +4,7 @@ use tokio::sync::mpsc;
 use vessel_proc::{CommandSpec, Signal, SignalError, Spawned};
 
 use crate::driver;
+use crate::drivers::Driver;
 use crate::error::AgentError;
 use crate::handshake::AgentSetup;
 use crate::input::AgentInput;
@@ -43,6 +44,25 @@ impl AgentProcess {
         command: &CommandSpec,
         setup: AgentSetup,
     ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        Self::spawn_with(Driver::Acp, command, setup)
+    }
+
+    /// [`spawn`](Self::spawn) with the protocol `driver` speaks (ADR 0057).
+    ///
+    /// # Errors
+    /// As [`spawn`](Self::spawn), and [`AgentError::NoDriver`] for a driver
+    /// not built yet (only ACP is).
+    pub fn spawn_with(
+        driver: Driver,
+        command: &CommandSpec,
+        setup: AgentSetup,
+    ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        match driver {
+            Driver::Acp => {}
+            Driver::CodexAppServer | Driver::ClaudeStream | Driver::OpencodeHttp => {
+                return Err(AgentError::NoDriver(driver));
+            }
+        }
         let Spawned {
             child,
             stdin,
