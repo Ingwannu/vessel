@@ -32,7 +32,7 @@ pub(super) const BUBBLE_RADIUS: f32 = 16.0;
 pub(super) const CORNER: f32 = 4.0;
 
 /// The circle beside the agent's reply, and the room between them.
-pub(super) const AVATAR: f32 = 28.0;
+pub(super) const AVATAR: f32 = 24.0;
 pub(super) const AVATAR_GAP: f32 = 8.0;
 
 /// The work log's text: 12.5 points on a 1.625 line (GOAT's

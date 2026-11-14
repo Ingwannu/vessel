@@ -93,24 +93,30 @@ What left the timeline, and where each fact is now:
 | the ended card ("Session ended … Start again") | gone for a session that can go on (the next message starts it again); kept for an archived session (Paseo's archived callout) and for one whose agent cannot go on |
 | the held message box and "Restarting the session…" (the composer's) | the message in the conversation and the working footer |
 | "released" on a sidebar row and a board card | gone: an idle session reads idle, as in Paseo; the header keeps it |
+| "Agent log · N lines" rows between turns (the adapter's stderr) | the Session actions' "Agent log · N lines" (shown once the agent wrote a line), opening a dialog with every line in one box, copyable; Paseo shows no adapter log in its stream |
+| the rule under a folded run's summary (it read as a rule between turns) | gone; Paseo's summary row (`agent-stream/turn-collapse/summary-line.tsx`, its `ExpandableBadge`) has no rule, and its stream draws none between turns |
 
 Kept in the timeline: messages, thoughts, tool rows, plans, questions,
-permissions, the agent's log behind its own disclosure, a turn that
-failed (its words: the person must see them), a profile change (the
-person's own act).
+permissions, a turn that failed (its words: the person must see them),
+a profile change (the person's own act).
 
 The reply: the owner's bubble (Paseo's reply has none): Paseo's user
 bubble mirrored (16 inside, radius 16 with the corner toward the agent
-at 4) on `surface1` edged with a hairline, as wide as the column so a
-code block or a wide table scrolls sideways inside it and the bubble
-never passes the column; beside a turn's first reply a 28-point circle
+at 4) on `surface1` edged with a hairline. It hugs its words as the
+person's bubble does (a two-word reply is a two-word bubble) and grows
+to the column at most: a wide table takes the column and its cells
+wrap, a long code line scrolls sideways inside its block; the bubble
+never passes the column. Every reply takes it the same way (the first
+after a session is started again, a replayed conversation, a reply
+still streaming: all are the timeline's message entries); beside a turn's first reply a 28-point circle
 with the session's agent's mark (worker B's star-to-circle morph is to
 be mounted in that circle). The person's bubble takes Paseo's values:
 `surface3`, 16 inside, the corner toward the writer at 4, as wide as
 the column needs.
 
-Motion (`motion`): a message sent rises in over 150 ms, a reply over
-300 ms, on `cubic-bezier(.23,1,.32,1)` (GPUI's `ease_out_quint`); only
+Motion (`motion`): a message sent is drawn whole on its first frame
+and rises into place over 150 ms (a fade would leave Enter's next frame
+nearly empty), a reply fades and rises in over 300 ms, on `cubic-bezier(.23,1,.32,1)` (GPUI's `ease_out_quint`); only
 what just arrived moves, so nothing replays on scrolling and an idle
 session draws nothing for it; `VESSEL_APP_MOTION=off` draws the end
 state until the lead's setting exists.

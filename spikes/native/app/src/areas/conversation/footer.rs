@@ -38,9 +38,10 @@ use crate::shell::Shell;
 /// Paseo's `STREAM_METADATA_FONT_SIZE`.
 const METADATA: f32 = 12.0;
 
-/// Where the reply bubbles start (the avatar's column and its gap): the
-/// footers line up under them.
-const BUBBLE_COLUMN: f32 = 36.0;
+/// Where the reply bubbles start: `look::AVATAR` (24, worker B's circle)
+/// and `look::AVATAR_GAP` (8), kept equal to their sum by hand (no float
+/// arithmetic here); the footers line up under the bubbles.
+const BUBBLE_COLUMN: f32 = 32.0;
 
 /// The footer of the turn that ended at entry `index` (its `turn_ended`).
 pub(super) fn completed(
@@ -116,16 +117,19 @@ pub(super) fn completed(
 }
 
 /// The footer while a turn runs: Paseo's spinner and, once the turn's
-/// prompt is in, how long it has run.
+/// prompt is in, how long it has run. Its first child is the empty
+/// avatar column: where the next reply's circle will be drawn, the place
+/// worker B's star travels to while the reply is awaited (its bounds go
+/// to the brand once B's slot lands).
 pub(super) fn working(paint: &Paint<'_>, since: Option<DateTime<Utc>>) -> AnyElement {
     let muted = paint.tokens.neutral.foreground_muted;
     div()
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
+        .gap(px(super::look::AVATAR_GAP))
         .min_h(px(24.0))
-        .ml(px(BUBBLE_COLUMN))
+        .child(div().flex_none().size(px(super::look::AVATAR)))
         .child(vessel_app_kit::slider::spinner(
             "turn-working",
             14.0,
