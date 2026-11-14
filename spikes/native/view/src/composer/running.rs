@@ -13,7 +13,10 @@
 //! - Each choice is also kept as that agent's preference for new chats
 //!   (`mergeProviderPreferences`): the model once the agent took it, the
 //!   effort, the mode and a feature as they are sent ([`KeepAt`]).
-//! - A refusal is an error toast ([`Refusal`]).
+//! - A refusal is an error toast ([`Refusal`]): the app's sentence for the
+//!   machine's answer, never the agent's own words in its body (the
+//!   coordinator's rule for original text: those belong in a tooltip or a
+//!   copy, which the toast does not have yet).
 //!
 //! [Decision Log]
 //! - Purpose: the coordinator's row a (change the model, effort or
@@ -154,10 +157,14 @@ impl InFlight {
 
 /// Why a running session did not take a change, by the node's code, each
 /// with a sentence of its own (the toast's words).
+///
+/// To move into the shared mapping of the node's codes to sentences (the
+/// lead's slice, with the conversation bar's words); until then this small
+/// table is the composer's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
     /// The agent refused it in the state it is in (mid-turn, or a change
-    /// it does not make now): its own words follow.
+    /// it does not make now).
     Busy,
     /// The option or its value is no longer offered.
     NotOffered,
@@ -170,8 +177,7 @@ pub enum Refusal {
     /// The machine is stopping, or the app could not send it (its queue
     /// full or stopped); again later.
     Unavailable,
-    /// Anything else (the connection failed, the machine failed): its own
-    /// words follow.
+    /// Anything else (the connection failed, the machine failed).
     Other,
 }
 
@@ -198,13 +204,12 @@ impl Refusal {
         }
     }
 
-    /// The toast's whole sentence; `why` is what the agent or the machine
-    /// said, used where the sentence carries it.
+    /// The toast's whole sentence.
     ///
     /// # Errors
     /// The catalog could not format the message (its English fallback
     /// too).
-    pub fn words(self, why: &str, catalog: &Translator) -> Result<String, FormatError> {
+    pub fn words(self, catalog: &Translator) -> Result<String, FormatError> {
         let reason = match self {
             Self::Busy => ComposerOptionRefusedReason::Busy,
             Self::NotOffered => ComposerOptionRefusedReason::NotOffered,
@@ -214,7 +219,7 @@ impl Refusal {
             Self::Unavailable => ComposerOptionRefusedReason::Unavailable,
             Self::Other => ComposerOptionRefusedReason::Other,
         };
-        catalog.composer().option_refused(reason, why)
+        catalog.composer().option_refused(reason)
     }
 }
 

@@ -8,8 +8,7 @@
 //! value shows when the session's `options_changed` record arrives. The
 //! choice is also kept as the agent's default for a new chat, at the moment
 //! Paseo keeps it (`view::composer::running::KeepAt`). A refusal is an
-//! error toast in the app's words, with the agent's own after them where
-//! the sentence takes them.
+//! error toast in the app's words for the machine's answer.
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{ActAnswer, ActKind, Command};
@@ -156,12 +155,18 @@ impl Shell {
                     self.keep_running_choice(&change.machine, &change.agent, &change.choice);
                 }
             }
-            Err(failed) => match Refusal::of(failed.code).words(&failed.message, self.words) {
-                Ok(text) => self.toast(text, ToastTone::Error, cx),
-                Err(error) => {
-                    tracing::error!(%error, "an option change's refusal could not be worded");
+            Err(failed) => {
+                // The machine's own words stay in the log (the toast says
+                // the app's sentence; a tooltip or a copy of the original
+                // comes with the shared mapping of codes).
+                tracing::debug!(code = ?failed.code, said = %failed.message, "an option change was refused");
+                match Refusal::of(failed.code).words(self.words) {
+                    Ok(text) => self.toast(text, ToastTone::Error, cx),
+                    Err(error) => {
+                        tracing::error!(%error, "an option change's refusal could not be worded");
+                    }
                 }
-            },
+            }
         }
         None
     }

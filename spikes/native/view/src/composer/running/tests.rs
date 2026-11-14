@@ -162,12 +162,11 @@ fn every_code_has_its_refusal() {
 fn every_refusal_is_a_whole_sentence_in_both_languages() {
     let en = Translator::get(ENGLISH).unwrap();
     let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
-    let why = "cannot change the model during a turn";
     for (refusal, english, korean) in [
         (
             Refusal::Busy,
-            "The agent didn't make this change: \u{2068}cannot change the model during a turn\u{2069}",
-            "에이전트가 이 변경을 하지 않았습니다: \u{2068}cannot change the model during a turn\u{2069}",
+            "The agent can't make this change now.",
+            "에이전트가 지금은 이 변경을 할 수 없습니다.",
         ),
         (
             Refusal::NotOffered,
@@ -196,11 +195,11 @@ fn every_refusal_is_a_whole_sentence_in_both_languages() {
         ),
         (
             Refusal::Other,
-            "The change didn't reach the agent: \u{2068}cannot change the model during a turn\u{2069}",
-            "변경이 에이전트에 닿지 않았습니다: \u{2068}cannot change the model during a turn\u{2069}",
+            "The change didn't go through. Try again.",
+            "변경이 적용되지 않았습니다. 다시 시도하세요.",
         ),
     ] {
-        assert_eq!(refusal.words(why, en).unwrap(), english, "{refusal:?}");
-        assert_eq!(refusal.words(why, ko).unwrap(), korean, "{refusal:?}");
+        assert_eq!(refusal.words(en).unwrap(), english, "{refusal:?}");
+        assert_eq!(refusal.words(ko).unwrap(), korean, "{refusal:?}");
     }
 }
