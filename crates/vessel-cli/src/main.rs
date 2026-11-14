@@ -18,6 +18,7 @@ mod devices;
 mod error;
 mod fleet;
 mod forge;
+mod history;
 mod init;
 mod io;
 mod log;
@@ -110,6 +111,7 @@ async fn cli() -> ExitCode {
         | Command::Send(_)
         | Command::Log { .. }
         | Command::Search(_)
+        | Command::History(_)
         | Command::Kill { .. }
         | Command::Session { .. }
         | Command::Project { .. }

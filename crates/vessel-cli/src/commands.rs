@@ -77,6 +77,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Send(send) => conversation::send(target, send).await,
         Command::Log { session, from } => log(target, &session, from).await,
         Command::Search(search) => crate::search::search(target, search).await,
+        Command::History(history) => crate::history::history(target, history).await,
         Command::Kill { session } => {
             let client = connect(target).await?.client;
             let info = session.resolve(&client).await?;
@@ -291,6 +292,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     let mut spec = SessionSpec::new(run.harness, mode);
     spec.cwd = run.cwd.map(|cwd| node_cwd(&resolved, cwd)).transpose()?;
     spec.profile = run.profile;
+    spec.title = run.title;
     let connected = connect_to(target, &resolved, &book).await?;
     // A place (protocol 10): the node fills `cwd` with its folder.
     spec.place = workspace::place(
@@ -320,7 +322,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
 /// here with an error saying so, instead of being sent and failing there
 /// with a less helpful one. "This machine" is a loopback websocket node, as
 /// for the token file (`connect`); an SSH node is another machine.
-fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
+pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
     if cwd.is_absolute() {
         return Ok(cwd);
     }

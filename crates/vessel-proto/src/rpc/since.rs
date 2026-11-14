@@ -228,7 +228,8 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
-            | Self::RewindSession(_) => None,
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         };
         fields.map_or(method, |since| method.max(ProtocolVersion::new(since)))
     }

@@ -227,7 +227,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::SetNodeSettings
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
-        | Method::RewindSession => true,
+        | Method::RewindSession
+        // Protocol 17: an agent's own history (ADR 0053).
+        | Method::GetAgentHistory => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

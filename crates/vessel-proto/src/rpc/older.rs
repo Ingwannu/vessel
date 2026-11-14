@@ -251,13 +251,14 @@ impl Reply {
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
             | Self::SearchMessages(_)
-            // Protocol 12's and 14's: asked only by peers that read them.
+            // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::ParkSession(_)
             | Self::WakeSession(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
-            | Self::RewindSession(_) => None,
+            | Self::RewindSession(_)
+            | Self::GetAgentHistory(_) => None,
         }
     }
 }

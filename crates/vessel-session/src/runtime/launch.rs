@@ -171,7 +171,9 @@ impl SessionRuntime {
     /// # Errors
     /// As [`create`](Self::create), and [`SessionError::Launch`] for a
     /// profile of another harness or servers the harness cannot take,
-    /// [`SessionError::McpFile`] when the MCP file cannot be written.
+    /// [`SessionError::McpFile`] when the MCP file cannot be written,
+    /// [`SessionError::ConversationTaken`] for a `resume` another live
+    /// session is on (protocol 17).
     pub async fn create_with(
         &self,
         spec: SessionSpec,
@@ -227,6 +229,14 @@ impl SessionRuntime {
                 resume,
                 options,
             } => {
+                // One agent per conversation (`claims`): held until the
+                // session is registered.
+                let _claim = resume
+                    .as_ref()
+                    .map(|conversation| {
+                        self.claim(id, &spec.harness, spec.profile.as_ref(), conversation)
+                    })
+                    .transpose()?;
                 let start = AgentStart {
                     model,
                     resume,
@@ -235,8 +245,9 @@ impl SessionRuntime {
                     questions,
                     fork,
                 };
-                self.create_structured(spec, (profile, model_proxy), start, record)
-                    .await
+                // Boxed: the claim held across it put every caller's future
+                // past clippy's `large_futures` bound.
+                Box::pin(self.create_structured(spec, (profile, model_proxy), start, record)).await
             }
         }
     }

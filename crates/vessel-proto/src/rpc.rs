@@ -422,6 +422,8 @@ rpc_methods! {
     ForkSession / fork_session / "session.fork" [Operate, 14]: crate::forking::ForkSession => SessionInfo;
     /// Take a session back to a turn's end (protocol 14, ADR 0052).
     RewindSession / rewind_session / "session.rewind" [Operate, 14]: crate::forking::RewindSession => SessionInfo;
+    /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
+    GetAgentHistory / agent_history / "agent.history" [Operate, 17]: crate::history::GetAgentHistory => crate::history::AgentHistoryPage;
 }
 
 /// Result of a call.

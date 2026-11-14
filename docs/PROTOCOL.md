@@ -30,6 +30,55 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 17 (2026-11-14, milestone 11's track A2 slice 4, on milestone 12's node line, ADR 0053)
+
+Nodes speak 2..=17. One method, no event, no record. Track A2 wrote it
+at 14 beside forking; on the node line 15 (N3's fleet controls) and 16
+(`fleet.published`) were taken first, so it is 17 here. A client
+sends it to no older node (`Call::since`; `unsupported`, "needs protocol
+17"); a node refuses it on an older connection.
+
+### Importing from an agent's own history (track A2, ADR 0053)
+
+One method; types in `vessel_proto::history`.
+
+- `agent.history { harness, profile?, cwd?, cursor? }` (operate,
+  forwardable, refused to agents) answers `AgentHistoryPage {
+  conversations: [HistoryEntry], next? }`: the conversations the agent
+  keeps under that profile, newest first, as it lists them over ACP
+  (`session/list`; the node starts the agent as for `harness.options`,
+  and no session is created or loaded). `cwd` (absolute) keeps those
+  held in that folder; `cursor` is a page's `next` as it was given (at
+  most 4,096 bytes). A page holds up to 1,000; it can be empty with a
+  `next` after the node has asked past several empty pages of the agent's.
+- `HistoryEntry { harness_session, cwd, title?, updated_at?, in_vessel?
+  }`: the agent's id, its folder (absolute), its title cut as a prompt's
+  title is, when it was last active, and the newest session on this node
+  (live or kept) on that conversation.
+- Importing is `session.create` with `mode: structured { resume:
+  harness_session }`, the entry's `cwd`, the `profile` it was listed
+  under and, for a title, its `title`; the agent's replay is the new
+  session's log.
+- A node of 17 refuses `session.create` with `resume` and
+  `session.resume` with `conflict` while another live session (parked
+  included) is on that conversation under the same profile, or starting
+  on it: two agents on one transcript would corrupt it. This is the
+  node's own check, so a client of any version meets it. Another
+  profile's copy (`session.import`, `session copy`) is another file and
+  is not refused. `session move` hard-links the transcript into the
+  target profile's home and stops the old agent before it starts the
+  new one, so a move never runs two agents itself; but the check is by
+  profile, so it does not catch an import of that conversation under the
+  profile the session moved away from (the same file, linked), nor under
+  the target profile while the move is between its stop and its
+  `profile_changed`. The listing marks such an entry `in_vessel`; a
+  client opens that session rather than import it.
+- Errors: `invalid_request` (a relative folder, a cursor no listing gave,
+  the agent refusing it), `unsupported` (an agent that does not list or
+  load over ACP), `not_found` (a profile or added agent that is not
+  there), `spawn_failed` (the agent did not start or answer within its
+  handshake), `unavailable` (two listings already run on the node).
+
 ## Version 16 (2026-11-14, milestone 12's node line, ADR 0056)
 
 Nodes speak 2..=16. One method, no event, no record; a client refuses it
@@ -87,8 +136,8 @@ Refusals use `ErrorDetail::FleetControl { reason }` (ADR 0044).
 Nodes speak 2..=14. Track A2 built forking and rewinding as part of its
 protocol 12; on the node line N3's schedule preview had taken 13 first,
 and a client built at 13 has no variant for the two new records, so they
-and the two calls are 14 here. A client sends neither call to an older
-node (`Call::since`); a node refuses them on an older connection
+and the two calls are 14 here. A client sends none of these calls to an older node
+(`Call::since`); a node refuses them on an older connection
 (`unsupported`, "needs protocol 14").
 
 ### Forking and rewinding (track A2, ADR 0052)

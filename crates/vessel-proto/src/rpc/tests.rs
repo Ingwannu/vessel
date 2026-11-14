@@ -306,6 +306,20 @@ fn protocol_sixteen_methods_know_their_version_and_scope() {
     assert_eq!(sixteen, PROTOCOL_SIXTEEN);
 }
 
+/// Protocol 17's method (track A2's slice 4, ADR 0053): an agent's own
+/// history, written at 14 and numbered after 15 and 16 on the node line.
+const PROTOCOL_SEVENTEEN: &[(&str, Scope)] = &[("agent.history", Scope::Operate)];
+
+#[test]
+fn protocol_seventeen_methods_know_their_version_and_scope() {
+    let seventeen: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == ProtocolVersion::new(17))
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(seventeen, PROTOCOL_SEVENTEEN);
+}
+
 #[test]
 fn every_hop_of_the_envelope_has_its_own_scope() {
     // What a member holds on its home: `sync` for the bundle, `relay` only
@@ -460,6 +474,7 @@ const FORWARDABLE: &[&str] = &[
     "session.wake",
     "session.fork",
     "session.rewind",
+    "agent.history",
 ];
 
 #[test]

@@ -167,8 +167,10 @@ impl SessionRuntime {
     ///
     /// # Errors
     /// [`SessionError::NotResumable`], [`SessionError::DuplicateId`] for a
-    /// session the runtime still has, as [`create`](Self::create) for the
-    /// launch, and [`SessionError::ShuttingDown`].
+    /// session the runtime still has, [`SessionError::ConversationTaken`]
+    /// while another live session is on its conversation, as
+    /// [`create`](Self::create) for the launch, and
+    /// [`SessionError::ShuttingDown`].
     pub async fn start_again(
         &self,
         ended: Ended,
@@ -190,6 +192,14 @@ impl SessionRuntime {
         if self.get(info.id).is_some() {
             return Err(SessionError::DuplicateId(info.id));
         }
+        // One agent per conversation (`runtime::claims`): held until the
+        // session is registered.
+        let _claim = self.claim(
+            info.id,
+            &info.spec.harness,
+            info.profile.as_ref(),
+            &harness_session,
+        )?;
         let Relaunch {
             profile,
             mcp_servers,

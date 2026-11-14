@@ -544,6 +544,7 @@ impl Handler for FakeNode {
         set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
+        agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
     }
 }
 

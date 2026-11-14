@@ -180,6 +180,45 @@ impl SessionRuntime {
         Ok(vessel_agent::probe(&command, setup).await?)
     }
 
+    /// A page of `harness`'s own conversations (protocol 17's
+    /// `agent.history`, `vessel_agent::history`), those in `folder` or all
+    /// of them, from `from`: the agent started as [`probe`](Self::probe)
+    /// starts it (under `profile`, `proxy`, in `cwd`), asked
+    /// `session/list`, and stopped. No session is started or loaded.
+    /// Bounded by the handshake timeout.
+    ///
+    /// # Errors
+    /// [`SessionError::Launch`] as for a probe, [`SessionError::History`]
+    /// when the agent does not list or did not answer,
+    /// [`SessionError::ShuttingDown`] after shutdown began.
+    pub async fn history(
+        &self,
+        harness: HarnessRef,
+        (profile, proxy): (Option<Profile>, Option<ModelProxy>),
+        cwd: PathBuf,
+        folder: Option<&std::path::Path>,
+        from: vessel_agent::HistoryFrom,
+    ) -> Result<vessel_agent::HistoryPage, SessionError> {
+        if self.shutdown.is_cancelled() {
+            return Err(SessionError::ShuttingDown);
+        }
+        let mode = SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        };
+        let profile = profile.map_or_else(|| Profile::default_of(&harness), Ok)?;
+        let mut spec = SessionSpec::new(harness, mode).with_cwd(cwd);
+        if !profile.is_default() {
+            spec = spec.with_profile(profile.name().clone());
+        }
+        let AgentCommand { command, .. } = self.agent_command(spec, profile, proxy).await?;
+        Ok(
+            vessel_agent::history(&command, folder, from, self.config.agent_handshake_timeout)
+                .await?,
+        )
+    }
+
     /// Move a live structured session to another profile (ADR 0011): link
     /// its files into the target home, restart its agent there with
     /// `session/load`, and publish `ProfileChanged`. The session keeps its

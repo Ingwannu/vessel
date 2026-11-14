@@ -21,6 +21,8 @@
 //!   as Vessel's and changed by a client's choice (protocol 9);
 //! - `probe`: asking an agent what it offers without a session (protocol
 //!   9's `harness.options`);
+//! - `history`: a page of the agent's own conversations, over `session/list`
+//!   (protocol 17's `agent.history`);
 //! - `permissions`: pending permission requests, first answer wins;
 //! - `questions`: pending questions (ACP form elicitations, protocol 10),
 //!   first answer wins;
@@ -50,6 +52,7 @@ mod attached;
 mod driver;
 mod error;
 mod handshake;
+mod history;
 mod input;
 mod introduction;
 mod mapper;
@@ -68,6 +71,10 @@ mod transport;
 pub use attached::{AttachmentBody, Attachments};
 pub use error::{AgentError, Disconnect, InputError};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
+pub use history::{
+    HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,
+    NotACursor, history,
+};
 pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};

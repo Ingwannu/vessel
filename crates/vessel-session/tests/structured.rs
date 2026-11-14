@@ -291,6 +291,21 @@ async fn status_follows_the_acp_handshake() {
         let [starting, options, ready, running] = first.as_slice() else {
             panic!("four records before running: {first:?}");
         };
+        // The fake's first conversation, its id its own (`fake-session-1-<tag>`).
+        let SessionEvent::Agent {
+            event:
+                AgentEvent::Ready {
+                    harness_session: conversation,
+                    ..
+                },
+        } = ready
+        else {
+            panic!("ready: {ready:?}");
+        };
+        assert!(
+            conversation.as_str().starts_with("fake-session-1-"),
+            "{conversation}"
+        );
         assert_eq!(
             (starting, ready, running),
             (
@@ -299,7 +314,7 @@ async fn status_follows_the_acp_handshake() {
                 },
                 &SessionEvent::Agent {
                     event: AgentEvent::Ready {
-                        harness_session: HarnessSessionId::new("fake-session-1"),
+                        harness_session: conversation.clone(),
                         abilities: Some(vessel_proto::AgentAbilities {
                             steer: true,
                             resume: true,
@@ -321,10 +336,7 @@ async fn status_follows_the_acp_handshake() {
             SessionOption::summary(options),
             "Mode Default, Model Fake-large, Effort High, Fast off"
         );
-        assert_eq!(
-            handle.info().harness_session,
-            Some(HarnessSessionId::new("fake-session-1"))
-        );
+        assert_eq!(handle.info().harness_session.as_ref(), Some(conversation));
 
         handle.kill();
         let end = follower.until_end().await;

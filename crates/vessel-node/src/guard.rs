@@ -181,6 +181,9 @@ untargeted!(
     // The node's settings: no session's.
     vessel_proto::settings::GetNodeSettings,
     vessel_proto::settings::SetNodeSettings,
+    // An agent's own history (ADR 0053): no session's, and refused to
+    // agents (`workspace::policy`).
+    vessel_proto::history::GetAgentHistory,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,
@@ -481,6 +484,7 @@ guarded! {
     set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
     fork_session: vessel_proto::forking::ForkSession => SessionInfo;
     rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
+    agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
 
     @through_the_guard {
         forward: Forward => Forwarded;

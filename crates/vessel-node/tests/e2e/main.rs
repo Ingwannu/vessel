@@ -55,6 +55,8 @@ mod marks;
 #[cfg(test)]
 mod forking;
 #[cfg(test)]
+mod history;
+#[cfg(test)]
 #[cfg(unix)]
 mod meeting;
 #[cfg(test)]

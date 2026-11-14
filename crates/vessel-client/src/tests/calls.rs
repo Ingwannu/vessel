@@ -135,3 +135,37 @@ async fn published_is_refused_locally_before_protocol_16() {
     drop(client);
     assert!(old_node.await.unwrap().is_none(), "nothing was sent");
 }
+
+/// Protocol 16 has no `agent.history` (track A2 wrote it at 14; it is 17
+/// on the node line): the client refuses it locally.
+#[tokio::test]
+async fn agent_history_is_refused_locally_before_protocol_17() {
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        let welcome = ServerFrame::Welcome(Welcome {
+            protocol: ProtocolVersion::new(16),
+            node: node(),
+        });
+        node_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let asked = vessel_proto::history::GetAgentHistory {
+        harness: "claude-code".parse().unwrap(),
+        profile: None,
+        cwd: None,
+        cursor: None,
+    };
+    assert_eq!(
+        client.call(asked).await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    drop(client);
+    assert!(old_node.await.unwrap().is_none(), "nothing was sent");
+}
