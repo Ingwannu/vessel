@@ -864,8 +864,21 @@ below an 800x600 window.
   gate, fix what it finds, then split the WIP commit by responsibility
   as slice 2 was.
 - On waking (the coordinator, once track N3's fake forge is on the node
-  line): capture the Create PR form first, then the facts, the link, the
-  card line, and slice 3's rows and switch.
+  line): first merge the lead's line at or after `ae8c1d38` (0.0.0.0.16,
+  which holds `0036db7c`), then capture the Create PR form, then the
+  facts, the link, the card line, and slice 3's rows and switch.
+- What the lead changed while merging `0036db7c`:
+  - The picker keeps both `Leading` forms (Mark and SmallGlyph). The
+    combobox draws the row tooltips, its row arguments are bundled in
+    one `Listing`, and combo rows moved to `kit/src/picker/rows.rs`.
+  - `code_git_width` is the width the frame draws (`PANEL.width`, for
+    word 29's edges), not the field.
+  - The screens' literal sizes in git/head, menu, stashes and commit, and
+    in pulls/facts, form and card, became named constants and spacing
+    steps.
+  - The form summary's colour is `theme::SUMMARY_LIGHT`.
+  - The WIP commit `76fedfb7` will conflict where it touches those
+    files: resolve toward the lead's names.
 
 ### Resume (2026-11-14 15:00 UTC)
 
