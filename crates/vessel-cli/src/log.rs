@@ -20,13 +20,24 @@
 //! - Cost: one write per change of stream instead of two per page; status
 //!   records are few, so this is a handful of extra writes per session.
 
+use std::borrow::Cow;
+
 use vessel_proto::{EventRecord, EventSeq, SessionEvent};
 
 use crate::view::Conversation;
 
 mod read;
+pub(crate) mod select;
 pub(crate) mod tail;
+
 pub(crate) use read::print;
+
+/// Rendering survives page and history/live boundaries, with gaps separating messages.
+#[derive(Default)]
+struct Timeline {
+    conversation: Conversation,
+    previous: Option<EventSeq>,
+}
 
 /// Which stream a run of text goes to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,11 +57,7 @@ struct Run {
 
 /// A page as runs in record order. `expected` is the first record asked
 /// for; a later first record means the ones before it were pruned.
-fn render(
-    conversation: &mut Conversation,
-    expected: EventSeq,
-    records: &[EventRecord],
-) -> Vec<Run> {
+fn render(timeline: &mut Timeline, expected: EventSeq, records: &[EventRecord]) -> Vec<Run> {
     let mut runs: Vec<Run> = Vec::new();
     let mut push = |stream: Stream, text: &[u8]| {
         if text.is_empty() {
@@ -68,8 +75,23 @@ fn render(
         push(notice.stream, &notice.text);
     }
     for record in records {
+        if timeline
+            .previous
+            .is_some_and(|previous| previous.next() != Some(record.seq))
+        {
+            push(Stream::Out, timeline.conversation.finish_line().as_bytes());
+        }
+        timeline.previous = Some(record.seq);
+        let (stream, text) = timeline.show(record);
+        push(stream, &text);
+    }
+    runs
+}
+
+impl Timeline {
+    fn show<'a>(&mut self, record: &'a EventRecord) -> (Stream, Cow<'a, [u8]>) {
         match &record.event {
-            SessionEvent::Terminal(output) => push(Stream::Out, output.data.bytes()),
+            SessionEvent::Terminal(output) => (Stream::Out, Cow::Borrowed(output.data.bytes())),
             SessionEvent::Status { .. }
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
@@ -81,16 +103,19 @@ fn render(
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => {
-                push(Stream::Note, conversation.show(record).as_bytes());
-            }
-            SessionEvent::Agent { .. } => push(Stream::Out, conversation.show(record).as_bytes()),
+            | SessionEvent::Rewound { .. } => (
+                Stream::Note,
+                Cow::Owned(self.conversation.show(record).into_bytes()),
+            ),
+            SessionEvent::Agent { .. } => (
+                Stream::Out,
+                Cow::Owned(self.conversation.show(record).into_bytes()),
+            ),
         }
     }
-    runs
 }
 
-/// Only a raw page can prove pruning: omitting earlier tail records is selection.
+/// Only a raw page can prove pruning: selection gaps must never become this notice.
 fn pruned(expected: EventSeq, records: &[EventRecord]) -> Option<Run> {
     let first = records.first()?;
     (first.seq > expected).then(|| Run {
@@ -135,14 +160,10 @@ mod tests {
     }
 
     fn runs(records: &[EventRecord], expected: u64) -> Vec<(Stream, String)> {
-        render(
-            &mut Conversation::default(),
-            EventSeq::new(expected),
-            records,
-        )
-        .into_iter()
-        .map(|run| (run.stream, String::from_utf8(run.text).unwrap()))
-        .collect()
+        render(&mut Timeline::default(), EventSeq::new(expected), records)
+            .into_iter()
+            .map(|run| (run.stream, String::from_utf8(run.text).unwrap()))
+            .collect()
     }
 
     #[test]
@@ -217,6 +238,40 @@ mod tests {
                 (Stream::Out, "ab".to_owned()),
                 (Stream::Note, "[session exited (0)]\n".to_owned()),
             ]
+        );
+    }
+    #[test]
+    fn selection_gaps_separate_messages_without_a_false_retention_notice() {
+        let chunk = |seq, text: &str| {
+            agent(
+                seq,
+                AgentEvent::MessageChunk {
+                    content: ContentBlock::Text {
+                        text: text.to_owned(),
+                    },
+                },
+            )
+        };
+        let mut timeline = Timeline::default();
+        let first = render(&mut timeline, EventSeq::new(4), &[chunk(4, "one")]);
+        let second = render(
+            &mut timeline,
+            EventSeq::new(9),
+            &[chunk(9, "two"), chunk(10, "!")],
+        );
+        assert_eq!(
+            first,
+            [Run {
+                stream: Stream::Out,
+                text: b"one".to_vec()
+            }]
+        );
+        assert_eq!(
+            second,
+            [Run {
+                stream: Stream::Out,
+                text: b"\ntwo!".to_vec()
+            }]
         );
     }
 }

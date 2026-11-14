@@ -288,13 +288,17 @@ No row of the crate table changes.
   omission keeps the unbounded-by-count snapshot behavior. Raw pages prove
   retention gaps; dropping earlier tail records never invents a notice.
   Parser/window units and a fake-node CLI test remain unrun.
-- The full time/kind/follow implementation is a protected draft for slice 5b,
-  not part of the tail slice. It must reuse the tail type and window rather
-  than restating their rules. Existing render test expectations stay unchanged.
+- Implementation slice 5b, verification pending: time/kind predicates precede
+  the existing tail window. Sequence gaps separate message chunks, but only
+  raw page gaps generate retention notices. Parser, predicate, render-boundary
+  and fake-node selection tests have not run yet. Existing render expectations
+  stay unchanged. Follow and its transition test remain a protected draft for
+  slice 5c, which must reuse these predicates and the raw history cursor.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: report the independent decoder gate, then gate tail slice 5a while
+- Next: report the independent decoder gate, then gate tail slice 5a and
+  selection slice 5b and follow slice 5c in order while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Windows, macOS, native UI and real harnesses remain
   unverified.

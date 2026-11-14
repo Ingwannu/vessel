@@ -370,7 +370,7 @@ pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, Cli
 async fn log_command(target: &Target, log: &crate::args::Log) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = log.session.resolve(&client).await?;
-    crate::log::print(&client, info.id, log.from, log.tail).await
+    crate::log::print(&client, info.id, log).await
 }
 
 #[cfg(test)]
