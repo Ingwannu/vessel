@@ -14,19 +14,44 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 
 ## Crates, and what may depend on what
 
-| Crate | Owns | Must not |
-| --- | --- | --- |
-| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit |
-| `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions |
-| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-component` or `gpui-platform` outside `main.rs`; hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) |
+| Crate | Owns | Must not | Depends on |
+| --- | --- | --- | --- |
+| `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
+| `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
 ```
 app ──> kit ──> GPUI (gpui-pre 0.3.10) + gpui-component 0.8.1 (text field, Markdown only)
  │
- ├──> link ──> vessel-client, vessel-proto
- └──> view ──> vessel-proto
+ ├──> link ──> view, vessel-client, vessel-proto
+ ├──> view ──> vessel-proto
+ └──> vessel-proto; on the desktop vessel-app-updater, vessel-app-log (spikes/release)
 ```
+
+The table is checked: `node ../../scripts/check-boundaries.mjs --workspace .`
+compares the last column with every crate's normal and build dependencies
+on `vessel-*` crates (in both directions), and holds the two tables below;
+it builds nothing (`cargo metadata --no-deps`). A new edge is a change of
+this table, with its reason in the same commit.
+
+### External crates with one owner
+
+| Crate | Who may depend on it | Why |
+| --- | --- | --- |
+| `gpui-pre` | only `vessel-app-kit`, `vessel-app` | Nothing of GPUI's reaches `view` or `link` (ADRs 0035, 0036). |
+| `gpui-pre-platform` | only `vessel-app` | The platform layer is chosen where the app starts. |
+| `gpui-component` | only `vessel-app-kit` | The component layer (text field, Markdown) is reached through the kit. |
+| `gpui-base` | only `vessel-app-kit` | The kit's field draws on its editing engine. |
+| `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
+| `tokio` | never `vessel-app-view`, `vessel-app-kit` | `view` does no I/O and `kit` draws; the runtime is `link`'s (and the app's entry). |
+
+### Names only some files may use
+
+| Names | Crate | Where | Why |
+| --- | --- | --- | --- |
+| `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
+| `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 
 Nothing of GPUI's reaches `view` or `link` (ADR 0035, 0036): the browser
 track compiles them to WebAssembly, and the layer under the kit can be
@@ -283,7 +308,12 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
 - Words through `view/locales/` (or an active area's remaining `view/src/text/` table); English and Korean together.
 - Colours, type, spacing and radii from the kit's tokens, never a literal
   in a screen. Pretendard is behind every face (the kit sets it); no
-  generic family anywhere.
+  generic family anywhere. `node scripts/check-tokens.mjs` holds the part a
+  tool can see: a `px(<number>)` in `app/src` (one equal to a spacing step
+  is written `px(spacing::S…)`), and a hex colour anywhere outside the
+  kit's tokens (`kit/src/theme.rs`, `kit/src/theme/`). What was there on
+  2026-11-14 is listed per file in `scripts/tokens-allow.txt` and may only
+  fall (`px-step` 443, `px-other` 90, `hex` 44).
 - An error belongs beside the control it is about; the frame's foot is
   for what belongs to no control.
 - Every screen works from 360 points wide (the phone); targets are 44
@@ -345,9 +375,20 @@ track runs exactly this before it reports a slice:
 ```bash
 cd spikes/native
 cargo fmt --all --check
+node ../../scripts/check-rust-size.mjs --workspace .     # file budget
+node ../../scripts/check-boundaries.mjs --workspace .    # this README's crate tables
+node scripts/check-tokens.mjs                            # tokens, not literals
 cargo clippy --all-targets -- -D warnings
 cargo test
 ```
+
+The three `node` checks build nothing and take about a second, so a
+violation fails before the compile. The file budget is the main
+workspace's (`docs/QUALITY.md`, M3): a file of product code over 500 lines
+fails unless `scripts/rust-size-allow.txt` lists it, and a listed file may
+not grow past its recorded size (22 files on 2026-11-14). The release
+workspace (`spikes/release`, whose crates the app links) has the same two
+checks in its own gate (`spikes/release/README.md`).
 
 Environment:
 
