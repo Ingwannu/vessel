@@ -427,6 +427,10 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
     )
 }
 
+/// The tallest the banner's notes are drawn before they scroll, points:
+/// about five lines of meta text.
+const NOTES_MOST: f32 = 96.0;
+
 /// The note shown once after an update, at the top of the frame.
 pub(crate) fn updated(
     shell: &Shell,
@@ -464,12 +468,16 @@ pub(crate) fn updated(
                         .text_color(tokens.text_primary)
                         .child(words.updated_to(&updated.label)),
                 )
-                .children(
-                    updated
-                        .notes
-                        .clone()
-                        .map(|notes| line(notes, tokens.text_secondary)),
-                ),
+                // At most a few lines tall, scrolled past that: in a small
+                // window the whole notes pushed the composer below the
+                // frame (About keeps them in full).
+                .children(updated.notes.clone().map(|notes| {
+                    div()
+                        .id("updated-notes")
+                        .max_h(px(NOTES_MOST))
+                        .overflow_y_scroll()
+                        .child(line(notes, tokens.text_secondary))
+                })),
         )
         .child(
             div().flex_none().child(
