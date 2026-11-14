@@ -171,7 +171,8 @@ speed, and what did not help.
 - The daemon is the product; clients are thin.
 - Harnesses are wrapped, never re-implemented (ADR 0003).
 - Wire types exist once, in `vessel-proto`.
-- No panics, no unbounded queues, no untyped JSON (see `AGENTS.md`).
+- No panics, no unbounded queues, no untyped JSON (see `AGENTS.md`; each
+  strict rule, its check and where the code stands: `docs/QUALITY.md`).
 
 ## State (2026-11-06)
 

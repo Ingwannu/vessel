@@ -107,13 +107,16 @@ impl Shell {
         }
     }
 
-    /// A machine answered a workspace ask.
+    /// A machine answered a workspace ask. Returns whether what is drawn
+    /// may have changed; `false` only for an answer that changed nothing
+    /// (track G1's refresh of an unchanged status), so the shell asks for
+    /// no frame.
     pub(crate) fn workspace_answer(
         &mut self,
         machine: &str,
         answer: Answer,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
         match answer {
             Answer::Projects(result) => {
                 let _was = self
@@ -145,7 +148,10 @@ impl Shell {
                 self.setup_started(machine, worktree, result);
             }
             Answer::Removed { ask, result } => self.worktree_removed(machine, &ask, result),
-            Answer::Branches { root, result } => self.branches_read(machine, &root, result),
+            Answer::Branches { root, result } => {
+                self.git_branches_read(machine, &root, &result);
+                self.branches_read(machine, &root, result);
+            }
             Answer::Start { key, step } => self.start_step(key, step),
             Answer::StartEnded { key, ended } => self.start_ended(key, ended, cx),
             Answer::Session { session, result } => self.code_session_read(session, result),
@@ -156,14 +162,23 @@ impl Shell {
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
-            // Track G1's and the later slices' answers: nothing of this
-            // track asks them yet.
-            Answer::Status { .. }
-            | Answer::Log { .. }
-            | Answer::Stashes { .. }
-            | Answer::Git { .. }
-            | Answer::Saved { .. } => {}
+            // Track G1's: the git toolbar's reads and writes.
+            Answer::Status { root, result } => {
+                // An unchanged status asks for no frame (track G1's
+                // five-second refresh of an idle panel draws nothing).
+                if !self.git_status_read(machine, &root, result) {
+                    return false;
+                }
+            }
+            Answer::Stashes { root, result } => self.git_stashes_read(machine, &root, result),
+            Answer::Git { write, result } => self.git_written(machine, &write, result, cx),
+            // Track G1b's: the pull request form's defaults and its calls.
+            Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
+            Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
+            // Nothing of the app asks this yet.
+            Answer::Saved { .. } => {}
         }
         cx.notify();
+        true
     }
 }

@@ -22,7 +22,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
-use vessel_app_view::prefs::TurnDelivery;
+use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
 use vessel_app_view::{Card, Conversation};
 use vessel_proto::{Delivery, EventRecord, SessionId};
 
@@ -300,6 +300,15 @@ impl Shell {
         }
         if open.live {
             let delivery = self.delivery();
+            // A send shows in the conversation at once (Paseo's pending
+            // message; track C's tail), unless it waits in the queue,
+            // whose rows show it.
+            if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
+                self.conversation_sending(&text, cx);
+            }
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -309,6 +318,12 @@ impl Shell {
         } else {
             // Ended or interrupted: start it again with its conversation,
             // then send (Paseo and GOAT continue a session the same way).
+            // The message shows in the conversation at once, the agent's
+            // working footer under it, while the session starts.
+            self.conversation_sending(&text, cx);
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Resume {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -321,20 +336,18 @@ impl Shell {
         cx.notify();
     }
 
-    /// What a plain send does: with no turn running, start one (or wait
-    /// behind prompts already queued); while one runs, what Settings'
-    /// default send says (wait in the queue, join the turn, or stop it and
-    /// start), joining only for an agent that takes it (`abilities.steer`;
-    /// otherwise the queue).
+    /// What a plain send does: Settings' default send by Paseo's rules
+    /// (`view::session::send_delivery`), given whether a turn runs, whether
+    /// the agent takes a message into it, and whether a permission waits.
     fn delivery(&self) -> Delivery {
-        if !self.areas.session.conversation.turn_running() {
-            return Delivery::Queue;
-        }
-        match self.prefs.settings.composer.delivery {
-            TurnDelivery::Steer if self.steers() => Delivery::Steer,
-            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
-            TurnDelivery::Interrupt => Delivery::Interrupt,
-        }
+        send_delivery(
+            self.prefs.settings.composer.delivery,
+            SendFacts {
+                turn_running: self.areas.session.conversation.turn_running(),
+                steers: self.steers(),
+                permission_waits: self.areas.conversation.permission_waits(),
+            },
+        )
     }
 
     /// Whether the open session's agent takes a message into a running
@@ -374,6 +387,7 @@ impl Shell {
         }
         *view.restore.borrow_mut() = view.resuming.take();
         view.resume_error = Some(why);
+        self.conversation_send_failed();
     }
 
     /// A prompt the link did not take: its text back in the composer of
@@ -387,6 +401,7 @@ impl Shell {
             .is_some_and(|open| open.session == session)
         {
             *view.restore.borrow_mut() = Some(text);
+            self.conversation_send_failed();
         }
     }
 
@@ -471,31 +486,23 @@ pub(crate) fn render(
     crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }
 
-/// Under an ended session's conversation: that sending starts it again;
-/// while it starts, the prompt and that it is starting; why it could not.
+/// Under an ended session's conversation: why it could not be started
+/// again (Paseo's send error, its words back in the composer). While it
+/// starts, the message is in the conversation with the agent's working
+/// footer under it (track C's tail, slice M): nothing is said here.
 fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     if !open.structured || open.live {
         return None;
     }
-    let t = shell.t;
-    let view = &shell.areas.session;
-    let neutral = tokens.neutral;
-    // That it ended is the dock's banner's to say (track C's ended
-    // banner); this line speaks only while it starts again or failed to.
-    let (text, color) = if let Some(why) = &view.resume_error {
-        (t.resume_failed(why), neutral.destructive)
-    } else if view.resuming.is_some() {
-        (t.resuming.to_owned(), tokens.st_building)
-    } else {
-        return None;
-    };
-    let mut note = div().w_full().flex().flex_col().gap(px(8.0)).py(px(8.0));
-    if let Some(prompt) = &view.resuming {
-        note = note.child(bubble(prompt, tokens));
-    }
-    Some(column(note.child(
-        div().type_(Type::Meta).text_color(color).child(text),
-    )))
+    let why = shell.areas.session.resume_error.as_ref()?;
+    Some(column(
+        div().w_full().py(px(8.0)).child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.destructive)
+                .child(shell.t.resume_failed(why)),
+        ),
+    ))
 }
 
 /// The first prompt, shown while the session starts; in a new worktree,

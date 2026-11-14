@@ -1,6 +1,6 @@
 use super::*;
 use crate::shell::language_tests;
-use vessel_proto::conversation::{ChoiceOption, FieldName};
+use vessel_proto::conversation::{ChoiceOption, FieldKind, FieldName, QuestionField};
 use vessel_proto::{AgentEvent, EventRecord, EventSeq, SessionEvent};
 
 fn text() -> FieldKind {

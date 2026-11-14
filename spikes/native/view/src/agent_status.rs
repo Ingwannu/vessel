@@ -64,7 +64,7 @@ impl AgentModes {
     pub fn of(harness: &Harness) -> Self {
         match (&harness.structured, &harness.terminal) {
             (StructuredSupport::Available, TerminalSupport::Available) => Self::Both,
-            (StructuredSupport::Available, TerminalSupport::Unavailable { reason }) => {
+            (StructuredSupport::Available, TerminalSupport::Unavailable { reason, .. }) => {
                 Self::Timeline(reason.clone())
             }
             (StructuredSupport::Unavailable { reason }, TerminalSupport::Available) => {
@@ -121,7 +121,7 @@ pub fn agent_status<'a>(
     };
     match &harness.structured {
         StructuredSupport::Available => AgentStatus::Available(harness),
-        StructuredSupport::Unavailable { reason } => AgentStatus::TerminalOnly {
+        StructuredSupport::Unavailable { reason, .. } => AgentStatus::TerminalOnly {
             harness,
             reason: reason.clone(),
         },
@@ -187,7 +187,7 @@ pub fn agents_on<'a>(harnesses: &'a [Harness], agents: &[AgentInfo]) -> Vec<Agen
         })
         .collect();
     let listed = agents.iter().filter_map(|info| match &info.detail {
-        AgentDetail::Added { added } => Some(AgentOn {
+        AgentDetail::Added { added, .. } => Some(AgentOn {
             agent: info.agent.clone(),
             status: agent_status(&info.agent, harnesses, Some(added.program.as_str())),
         }),
@@ -288,7 +288,7 @@ pub fn agent_label(agent: &HarnessRef, agents: &[AgentInfo]) -> String {
         .iter()
         .filter(|info| info.agent == *agent)
         .find_map(|info| match &info.detail {
-            AgentDetail::Added { added } => added.label.as_ref(),
+            AgentDetail::Added { added, .. } => added.label.as_ref(),
             AgentDetail::Known { .. } => None,
         });
     label.map_or_else(|| agent_name(agent), |label| label.as_str().to_owned())

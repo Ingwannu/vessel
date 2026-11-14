@@ -24,8 +24,8 @@ use vessel_app_view::terminal::Outgoing;
 use vessel_client::NodeClient;
 use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
-    ErrorCode, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
-    TerminalBytes, TerminalInput, TerminalSize,
+    ErrorCode, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo, SessionInput,
+    SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
 };
 use vessel_proto::{
     PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
@@ -72,6 +72,14 @@ pub enum Act {
     /// `options_changed` record; the agent's refusal (one it cannot make
     /// mid-turn, a value it does not take) is the act's failure.
     SetOption(OptionChoice),
+    /// Start a parked session's agent again (`session.wake`, protocol 12):
+    /// the session as it then stands, its `parked` cleared.
+    Wake,
+    /// Take the conversation back to the end of the turn whose
+    /// `turn_ended` record is this one (`session.rewind`, protocol 14):
+    /// the session as it then stands; its `rewound` record follows in the
+    /// log.
+    Rewind(EventSeq),
 }
 
 /// Which act an answer is for.
@@ -103,6 +111,10 @@ pub enum ActKind {
     Conversation,
     /// A change to one of its options.
     SetOption,
+    /// A parked agent started again.
+    Wake,
+    /// A rewind.
+    Rewind,
 }
 
 impl Act {
@@ -123,6 +135,8 @@ impl Act {
             Self::Permit(..) => ActKind::Permit,
             Self::Conversation => ActKind::Conversation,
             Self::SetOption(_) => ActKind::SetOption,
+            Self::Wake => ActKind::Wake,
+            Self::Rewind(_) => ActKind::Rewind,
         }
     }
 }
@@ -210,6 +224,14 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         Act::Rename(title) => client.rename(session, title).await.map(boxed),
         Act::Mark(mark) => client.mark(session, mark).await.map(boxed),
         Act::StartAgain => client.resume_session(session).await.map(boxed),
+        Act::Wake => client
+            .call(vessel_proto::parking::WakeSession { session })
+            .await
+            .map(boxed),
+        Act::Rewind(after) => client
+            .call(vessel_proto::forking::RewindSession { session, after })
+            .await
+            .map(boxed),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
         // The options as they now stand also arrive as the session's own

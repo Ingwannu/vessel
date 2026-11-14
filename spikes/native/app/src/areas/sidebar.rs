@@ -16,6 +16,7 @@ use vessel_app_view::settings::Section;
 use vessel_app_view::{Card, Machine, Reach};
 
 use super::common::card_color;
+use super::edge::{Panel, PanelEdge};
 use super::session::Open;
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -28,6 +29,8 @@ pub(crate) struct SidebarState {
     /// The tooltip of the same line drawn on a page (Settings ›
     /// Projects), which draws its own.
     page_tips: Tooltips,
+    /// Its right edge, dragged to resize it.
+    pub(crate) edge: PanelEdge,
 }
 
 impl SidebarState {
@@ -36,6 +39,7 @@ impl SidebarState {
             tips: Tooltips::new(),
             places: RefCell::new(HashMap::new()),
             page_tips: Tooltips::new(),
+            edge: PanelEdge::new(),
         }
     }
 
@@ -102,6 +106,8 @@ pub(crate) fn render(
             .on_click(cx.listener(move |this, _event, window, cx| this.go(route, window, cx))),
         );
     }
+    // Paseo's Search row, after the pages (track S's, `areas::palette`).
+    nav = nav.child(crate::areas::palette::sidebar_row(shell, tokens, touch, cx));
     let mut machines = div().flex().flex_col().gap(px(14.0));
     for machine in &shell.fleet.machines {
         machines = machines.child(machine_rows(machine, shell, tokens, touch, cx));
@@ -116,8 +122,7 @@ pub(crate) fn render(
         );
     }
     div()
-        .w(px(264.0))
-        .h_full()
+        .size_full()
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
@@ -152,6 +157,37 @@ pub(crate) fn render(
         )
         .child(foot(shell, tokens, cx))
         .children(shell.areas.sidebar.tips.render(tokens))
+}
+
+/// The sidebar as a resizable panel: dragged at its right edge
+/// (`super::edge`), kept in the layout's `sidebar_width`.
+const PANEL: Panel = Panel {
+    limits: vessel_app_view::panels::SIDEBAR,
+    edge: |shell| &shell.areas.sidebar.edge,
+    kept: |shell| shell.prefs.settings.layout.sidebar_width,
+    keep: |layout, width| layout.sidebar_width = width,
+    side: vessel_app_kit::resize::Edge::Right,
+};
+
+/// What stands in the sidebar's place on a wide window (the workspace
+/// sidebar, or Settings' list: one width for both, so the frame beside
+/// it does not move when Settings opens), at the width dragged to,
+/// measured against the window's width.
+pub(crate) fn frame(
+    shell: &Shell,
+    inner: vessel_app_kit::ui::AnyElement,
+    tokens: &Tokens,
+    window: &vessel_app_kit::ui::Window,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let width = PANEL.width(shell, f32::from(window.viewport_size().width));
+    div()
+        .relative()
+        .flex_shrink_0()
+        .h_full()
+        .w(px(width))
+        .child(inner)
+        .children(PANEL.handle("sidebar-edge", shell, tokens, window, cx))
 }
 
 /// The slot for Schedules among the navigation rows, where Paseo's
@@ -337,7 +373,7 @@ fn session_row(
         .when(active, |row| row.bg(tokens.bg_active))
         .hover(|style| style.bg(tokens.bg_hover))
         .cursor_pointer()
-        .child(crate::agent_mark::mark(
+        .child(crate::agent_mark::mark_muted(
             card.detail.harness.as_ref(),
             vessel_app_kit::agent_mark::Size::Fourteen,
             vessel_app_kit::agent_mark::Space::Compact,

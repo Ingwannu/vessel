@@ -14,10 +14,11 @@ use vessel_app_kit::{
     lines_box, menu,
 };
 use vessel_app_view::session::is_live;
-use vessel_app_view::timeline::Logs;
+use vessel_app_view::timeline::{EntryKind, Logs};
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
+use super::tail::TailRow;
 use super::{Confirm, ConversationArea, Seat};
 use crate::shell::Shell;
 
@@ -30,6 +31,11 @@ pub(crate) fn timeline(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     super::read::check(shell, window, cx);
+    super::tail::sync(shell, window, cx);
+    // A rewound message back into the composer, on a frame with a window.
+    if shell.areas.conversation.rewinding.has_restore() {
+        cx.defer_in(window, Shell::rewind_restore);
+    }
     let list = rows(shell, Seat::SESSION, tokens, window, cx);
     if shell.areas.conversation.timeline.entries().is_empty() {
         return list;
@@ -109,7 +115,19 @@ fn paint<'a>(
             .as_ref()
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
         seat,
+        entries: area.timeline.entries(),
+        agent: area.info.as_deref().map(|info| &info.spec.harness),
+        rewinds: rewinds(shell, area).then_some(&area.timeline),
     }
+}
+
+/// Whether a rewind may be asked of `area`'s session now: the session
+/// area's own conversation (not a side question's), live, between turns
+/// (the node rewinds only then).
+fn rewinds(shell: &Shell, area: &ConversationArea) -> bool {
+    std::ptr::eq(area, &raw const shell.areas.conversation)
+        && area.info.as_deref().is_some_and(is_live)
+        && !shell.areas.session.conversation.turn_running()
 }
 
 /// Row `row`: its entry, in the lane; a folded run's lead with the run's
@@ -126,37 +144,36 @@ fn row_element(
         return div().into_any_element();
     };
     let paint = paint(shell, area, seat, tokens, window);
+    if let Some(tail) = area.tail_row(row) {
+        return lane(match tail {
+            TailRow::Pending(text) => {
+                let index = area.timeline.entries().len();
+                area.pending_drawn();
+                let row = super::bubbles::pending(&paint, index, &text);
+                if area.pending_fresh() {
+                    super::motion::settle(
+                        ElementId::NamedInteger("pending-arrive".into(), id(index)),
+                        row,
+                    )
+                } else {
+                    row
+                }
+            }
+            TailRow::Working(since) => super::footer::working(&paint, since),
+        });
+    }
     let Some(index) = area.rows.entry(row) else {
         return div().into_any_element();
     };
     let Some(entry) = area.timeline.entries().get(index) else {
         return div().into_any_element();
     };
-    // A run of the agent's own log lines is one row at its first line
-    // (never collapsed into rows of their own: `view::timeline::logs`).
-    if let Some(run) = area.logs.run_of(index).filter(|run| run.lead == index) {
-        let open = area.open_logs.contains(&run.lead);
-        let mut content = div().flex().flex_col().gap(px(4.0)).child(run_header(
-            &paint,
-            ("log", run.lead),
-            paint.words.agent_log(run.lines()),
-            open,
-            Shell::toggle_log,
-            cx,
-        ));
-        if open {
-            let entries = area.timeline.entries();
-            content = content.child(div().ml(px(28.0)).mb(px(6.0)).child(lines_box(
-                ElementId::NamedInteger("log-lines".into(), id(run.lead)),
-                u64::try_from(run.lines()).unwrap_or(u64::MAX),
-                || Lines::text(&Logs::text(run, entries)),
-                Start::Top,
-                tokens,
-                window,
-                cx,
-            )));
-        }
-        return lane(content.into_any_element());
+    // Lifecycle and accounting lines are not drawn: Paseo's stream holds
+    // messages, thoughts, tools, plans and questions; the session's state
+    // is the header's, its usage the context meter's (slice M). What a
+    // rewind left behind is no longer the conversation (slice R1).
+    if quiet(&entry.kind) || area.timeline.rewound(index) {
+        return div().into_any_element();
     }
     let run = area
         .folds
@@ -176,14 +193,42 @@ fn row_element(
         ));
     }
     if run.is_none() || run_open {
-        content = content.child(entries::entry(
-            &paint,
-            index,
-            entry,
-            open(area, index),
-            window,
-            cx,
-        ));
+        let drawn = entries::entry(&paint, index, entry, open(area, index), window, cx);
+        // A person's message carries Paseo's trailing row: its time,
+        // rewind where it can go, copy (`rewind`).
+        let said = if let EntryKind::Prompt(prompt) = &entry.kind {
+            Some(prompt.text.as_str())
+        } else if let EntryKind::Steer { text, .. } = &entry.kind {
+            Some(text.as_str())
+        } else {
+            None
+        };
+        let drawn = if let Some(text) = said {
+            super::rewind::with_row(
+                &paint,
+                index,
+                (drawn, text, entry.at),
+                &area.rewinding,
+                breakpoint::phone(window),
+                window,
+                cx,
+            )
+        } else {
+            drawn
+        };
+        // A reply that just came grows in (`motion`).
+        let arriving = matches!(entry.kind, EntryKind::Message { .. })
+            && area
+                .fresh
+                .is_some_and(|(from, at)| index >= from && at.elapsed() < super::motion::FRESH);
+        content = content.child(if arriving {
+            super::motion::arrive(
+                ElementId::NamedInteger("reply-arrive".into(), id(index)),
+                drawn,
+            )
+        } else {
+            drawn
+        });
     }
     lane(content.into_any_element())
 }
@@ -201,6 +246,23 @@ fn open(area: &ConversationArea, index: usize) -> bool {
     default != area.toggled.contains(&index)
 }
 
+/// The entries the conversation keeps but does not draw (the owner's
+/// report on 0.0.0.0.13; Paseo's stream has no such lines): the
+/// session's status changes (its state is the header's chip), the agent
+/// being ready, released or resumed (the header's), model calls (the
+/// gateway's accounting) and the agent's own log lines (the Session
+/// actions' "Agent log", in a dialog: the coordinator on slice M).
+const fn quiet(kind: &EntryKind) -> bool {
+    matches!(
+        kind,
+        EntryKind::Status { .. }
+            | EntryKind::Ready { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Model(_)
+            | EntryKind::Log { .. }
+    )
+}
+
 /// A row in the session's one chat column (the session area's: the
 /// conversation and the composer share it).
 fn lane(content: AnyElement) -> AnyElement {
@@ -208,8 +270,11 @@ fn lane(content: AnyElement) -> AnyElement {
 }
 
 /// A folded run's summary row (GOAT's work group header: its words and a
-/// chevron, a rule under it), for tool calls or the agent's log; a click
-/// turns it with `toggle`. `name` and the lead entry make its id.
+/// chevron), for tool calls; a click turns it with `toggle`. `name` and
+/// the lead entry make its id. No rule under it (slice M): Paseo's
+/// summary row (`agent-stream/turn-collapse/summary-line.tsx`, its
+/// `ExpandableBadge`) has none, and a rule under every run read as a rule
+/// between turns.
 fn run_header(
     paint: &Paint<'_>,
     (name, lead): (&'static str, usize),
@@ -226,8 +291,6 @@ fn run_header(
         .items_center()
         .gap(px(4.0))
         .pb(px(6.0))
-        .border_b_1()
-        .border_color(paint.look.border)
         .face(Type::Meta)
         .text_size(px(vessel_app_kit::fonts::ui(WORK_SIZE)))
         .line_height(px(vessel_app_kit::fonts::ui(WORK_LINE)))
@@ -245,7 +308,7 @@ fn run_header(
 pub(crate) fn overlays(
     shell: &Shell,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
     let area = &shell.areas.conversation;
@@ -253,6 +316,16 @@ pub(crate) fn overlays(
     let words = shell.t.lang.conversation();
     let mut floating = Vec::new();
     floating.extend(super::search::example(shell, tokens, window, cx));
+    // The rewind menu under a person's message (`rewind`).
+    floating.extend(menu(
+        "rewind-menu",
+        &area.rewinding.menu,
+        &super::rewind::menu_items(shell),
+        &Shell::rewind_menu_handlers(),
+        tokens,
+        narrow,
+        cx,
+    ));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(
         "session-actions",
@@ -326,5 +399,55 @@ pub(crate) fn overlays(
             cx,
         ));
     }
+    if area.agent_log == super::AgentLog::Shown {
+        floating.push(agent_log(shell, tokens, window, narrow, cx));
+    }
     floating
+}
+
+/// The agent's own log (its adapter's lines on stderr), the whole of it
+/// in one box: the Session actions' "Agent log". Its lines were rows
+/// between turns; Paseo shows no adapter log in the stream (slice M).
+fn agent_log(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    narrow: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let area = &shell.areas.conversation;
+    let words = shell.t.lang.conversation();
+    let lines = Logs::all(area.timeline.entries());
+    let count = lines.lines().count();
+    let body = div()
+        .max_h(px(420.0))
+        .child(lines_box(
+            "agent-log-lines",
+            u64::try_from(count).unwrap_or(u64::MAX),
+            || Lines::text(&lines),
+            Start::End,
+            tokens,
+            window,
+            cx,
+        ))
+        .into_any_element();
+    let footer = vec![
+        button("agent-log-close", words.close(), false, tokens)
+            .on_click(cx.listener(|shell, _event, window, cx| shell.dismiss_log(window, cx)))
+            .into_any_element(),
+    ];
+    dialog(
+        &area.dialog,
+        DialogContent {
+            title: words.agent_log(count).into(),
+            body,
+            footer,
+            size: DialogSize::Wide,
+        },
+        tokens,
+        window,
+        narrow,
+        Shell::dismiss_log,
+        cx,
+    )
 }

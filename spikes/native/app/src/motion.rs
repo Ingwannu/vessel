@@ -43,17 +43,21 @@ static OFF: AtomicBool = AtomicBool::new(false);
 
 /// Set GPUI's flag from the reasons kept here; a forced value wins.
 fn apply(cx: &mut App) {
-    let held = forced().unwrap_or_else(|| {
-        SYSTEM.load(Ordering::Relaxed)
-            || SOFTWARE.load(Ordering::Relaxed)
-            || OFF.load(Ordering::Relaxed)
-    });
+    // A forced value fixes the system's and the renderer's reasons for
+    // this run (a capture on a virtual display, which draws in software);
+    // the person's own Animations setting still applies under a forced
+    // "0", so a frame strip can show it on and off.
+    let off = OFF.load(Ordering::Relaxed);
+    let held = match forced() {
+        Some(true) => true,
+        Some(false) => off,
+        None => SYSTEM.load(Ordering::Relaxed) || SOFTWARE.load(Ordering::Relaxed) || off,
+    };
     cx.set_reduce_motion(held);
 }
 
 /// Settings › Appearance › Animations (track S3's setting, word 39): off
 /// holds every motion as reduced motion does.
-#[expect(dead_code, reason = "track S3's Animations setting calls it")]
 pub(crate) fn animations(on: bool, cx: &mut App) {
     OFF.store(!on, Ordering::Relaxed);
     apply(cx);

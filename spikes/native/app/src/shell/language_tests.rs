@@ -39,6 +39,7 @@ impl Shell {
             language: crate::language::Language::new(),
             fleet: Fleet::default(),
             route: Route::Draft,
+            brand: crate::brand::Brand::default(),
             areas: Areas::new(window, cx),
             prefs: Prefs::default(),
             notice: None,

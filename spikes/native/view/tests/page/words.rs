@@ -50,6 +50,7 @@ fn an_entry_as_a_line_says_what_the_row_shows_without_its_markup() {
         with_kind(EntryKind::TurnEnded {
             reason: vessel_proto::StopReason::EndTurn,
             usage,
+            point: false,
         })
     };
     assert_eq!(EN.spoken(&ended(None)), "Turn ended · end turn");

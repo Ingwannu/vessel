@@ -268,8 +268,8 @@ Deliberate differences:
   provider's list may follow a project's settings); `harness.options`
   takes no folder, so a list is the agent's on that node whatever the
   folder.
-- **Opening the effort card** does not refresh by itself (its file is the
-  lead's); opening the model list from it, or any other option list,
+- Opening the effort card refreshes too (the lead's line, at the merge of
+  slice b), as opening the model list from it or any other option list
   does.
 
 Seams in others' files: `app/src/areas/draft/mod.rs` and `pickers.rs` (the

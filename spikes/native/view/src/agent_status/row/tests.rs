@@ -356,10 +356,10 @@ fn activity_is_scoped_to_the_requested_agent_except_for_a_list_refresh() {
 fn section_heading_names_the_machine_without_a_changing_korean_particle() {
     assert_eq!(
         Lang::En.agents().row_section("long / 머신"),
-        "Agents on long / 머신"
+        "Providers on long / 머신"
     );
     assert_eq!(
         Lang::Ko.agents().row_section("long / 머신"),
-        "long / 머신의 에이전트"
+        "long / 머신의 프로바이더"
     );
 }

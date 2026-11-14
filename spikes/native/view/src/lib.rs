@@ -16,6 +16,7 @@ pub mod ago;
 pub mod alert;
 pub mod badge;
 pub mod board;
+pub mod brand;
 pub mod composer;
 mod conversation;
 pub mod devices;
@@ -26,12 +27,14 @@ mod links;
 pub mod machine_book;
 pub mod machines;
 pub mod mark_attributions;
+pub mod matcher;
 pub mod models;
 pub mod notices;
 pub mod offers;
 mod options;
 pub mod pairing;
 pub mod palette;
+pub mod panels;
 pub mod prefs;
 pub mod search;
 pub mod session;
@@ -60,7 +63,8 @@ pub use options::{
 };
 pub use text::localization;
 pub use text::{
-    AboutText, BoardWords, ConversationWords, Lang, MachinesText, MarkText, NoticeWords,
-    OptionsText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text, UpdateText,
-    grouped, meter_tokens, short_tokens,
+    AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
+    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText,
+    NoticeWords, OptionsText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    UpdateText, grouped, meter_tokens, short_tokens,
 };

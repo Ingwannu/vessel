@@ -232,6 +232,9 @@ impl Shell {
         card.set_open(!card.open);
         if card.open {
             card.slider.focus(window, cx);
+            // The card shows the agent's kept lists; opening it asks the
+            // node for fresh ones, as every other option control does.
+            self.probe(true);
         } else {
             self.focus_controls_composer(window, cx);
         }
@@ -269,27 +272,29 @@ fn effort_now(shell: &Shell) -> Option<Effort> {
 }
 
 impl Shell {
-    /// The slider pressed at `share` of its width.
-    fn effort_press(&mut self, share: f32) {
+    /// The slider pressed at `pointer`.
+    fn effort_press(&mut self, pointer: slider::Pointer) {
         let Some(effort) = effort_now(self) else {
             return;
         };
-        let stop = vessel_app_view::slider::stop_under(share, 1.0, effort.steps.len());
+        self.areas.draft.effort.motion.borrow_mut().press(
+            along_track(pointer),
+            effort.steps.len(),
+            effort.current,
+        );
+    }
+
+    /// The slider dragged to `pointer`: the thumb follows it.
+    fn effort_drag(&mut self, pointer: slider::Pointer) {
+        let Some(effort) = effort_now(self) else {
+            return;
+        };
         self.areas
             .draft
             .effort
             .motion
             .borrow_mut()
-            .press(stop, effort.current);
-    }
-
-    /// The slider dragged to `share` of its width.
-    fn effort_drag(&mut self, share: f32) {
-        let Some(effort) = effort_now(self) else {
-            return;
-        };
-        let stop = vessel_app_view::slider::stop_under(share, 1.0, effort.steps.len());
-        self.areas.draft.effort.motion.borrow_mut().drag(stop);
+            .drag(along_track(pointer), effort.steps.len());
     }
 
     /// The slider released: its stop is chosen when it changed.
@@ -316,6 +321,14 @@ impl Shell {
         if by != 0 && Some(to) != effort.current {
             self.effort_choices(|effort| effort.choose(to));
         }
+    }
+}
+
+/// The kit's pointer as the slider's model reads it.
+const fn along_track(pointer: slider::Pointer) -> vessel_app_view::slider::drag::Pointer {
+    vessel_app_view::slider::drag::Pointer {
+        x: pointer.x,
+        width: pointer.width,
     }
 }
 
@@ -728,7 +741,6 @@ fn paint(frame: &Frame, tokens: &Tokens) -> Paint {
         field,
         fill: accent,
         moving: frame.moving,
-        smooth: frame.smooth,
         ring: None,
     }
 }

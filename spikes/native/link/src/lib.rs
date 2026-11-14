@@ -34,9 +34,13 @@ mod offers;
 pub mod drafts;
 // A composer's files sent to their session (track P's row c).
 pub mod attachments;
+// What is sent to a session: a conversation started, a prompt, its
+// files, a session started again, an input.
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
+#[cfg(not(target_arch = "wasm32"))]
+mod sending;
 mod session;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
@@ -71,10 +75,7 @@ use vessel_proto::{
     SessionId, SessionOption,
 };
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_proto::{
-    ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
-    SessionMode, SessionSpec,
-};
+use vessel_proto::{Delivery, PermissionOutcome, ProtocolVersion, SessionInput};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
@@ -671,7 +672,7 @@ impl State {
                 harness,
                 commands,
             } => self.keep_commands(&machine, harness, commands),
-            Command::SaveDrafts(drafts) => save_drafts(drafts),
+            Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
             Command::Attach(attach) => self.attach(attach),
             Command::PromptFiles(prompt) => self.prompt_files(prompt).await,
             Command::Resume {
@@ -857,7 +858,7 @@ impl State {
         let Ok(client) = self.client(machine) else {
             return;
         };
-        drop(tokio::spawn(keep_offers(
+        drop(tokio::spawn(offers::keep_answer(
             std::sync::Arc::clone(&self.offers),
             client.node().id,
             harness,
@@ -871,63 +872,6 @@ impl State {
             .get(machine)
             .map(|connected| &connected.client)
             .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))
-    }
-
-    /// Create a conversation and send its first prompt: `session.prompt`
-    /// where the node speaks protocol 10, `session.send` before it.
-    async fn start(
-        &mut self,
-        machine: &str,
-        harness: HarnessRef,
-        folder: Option<String>,
-        prompt: String,
-        options: Vec<OptionChoice>,
-    ) {
-        let started = async {
-            let client = self.client(machine)?.clone();
-            let mode = SessionMode::Structured {
-                model: None,
-                resume: None,
-                options,
-            };
-            let mut spec = SessionSpec::new(harness, mode);
-            if let Some(folder) = folder {
-                spec = spec.with_cwd(folder);
-            }
-            let info: SessionInfo = client
-                .create_session(spec)
-                .await
-                .map_err(|error| LinkError::Call(error.to_string()))?;
-            let content = vec![ContentBlock::Text { text: prompt }];
-            let sent = if client.protocol() >= ProtocolVersion::new(10) {
-                client
-                    .prompt(info.id, content, Delivery::Start)
-                    .await
-                    .map(|_delivered| ())
-            } else {
-                client.send(info.id, SessionInput::Prompt { content }).await
-            };
-            sent.map_err(|error| LinkError::Call(error.to_string()))?;
-            Ok::<_, LinkError>(Card::from_session(machine, &info))
-        }
-        .await;
-        match started {
-            Ok(card) => {
-                self.emit(Event::Started(card)).await;
-                self.refresh().await;
-            }
-            Err(error) => self.emit(Event::Failed(error.to_string())).await,
-        }
-    }
-
-    /// Send a composer's file beside the other commands
-    /// (`attachments::spawn`).
-    fn attach(&self, attach: attachments::Attach) {
-        let client = self
-            .client(&attach.machine)
-            .cloned()
-            .map_err(|error| error.to_string());
-        attachments::spawn(client, attach, self.events.clone());
     }
 
     /// Ask `machine` what `harness` offers, beside the other commands (the
@@ -944,7 +888,7 @@ impl State {
                     // Kept beside the answer, not before it: the disk
                     // never delays what the app shows.
                     if let Ok(offered) = &answer {
-                        drop(tokio::spawn(keep_offers(
+                        drop(tokio::spawn(offers::keep_answer(
                             store,
                             client.node().id,
                             harness.clone(),
@@ -991,73 +935,6 @@ impl State {
         self.follow_machine = Some(machine.to_owned());
         self.follow = Some(tokio::spawn(follow(client, session, events)));
     }
-
-    /// Start `session` again, then send it `text`, and list the fleet
-    /// again (its card is live once more).
-    async fn resume(&mut self, machine: &str, session: SessionId, text: String) {
-        let resumed = async {
-            let client = self.client(machine)?.clone();
-            let _info = client
-                .resume_session(session)
-                .await
-                .map_err(|error| LinkError::Call(error.to_string()))?;
-            let content = vec![ContentBlock::Text { text }];
-            client
-                .prompt(session, content, Delivery::Queue)
-                .await
-                .map(|_delivered| ())
-                .map_err(|error| LinkError::Call(error.to_string()))
-        }
-        .await;
-        match resumed {
-            Ok(()) => {
-                self.emit(Event::Resumed { session }).await;
-                self.refresh().await;
-            }
-            Err(error) => {
-                self.emit(Event::ResumeFailed {
-                    session,
-                    why: error.to_string(),
-                })
-                .await;
-            }
-        }
-    }
-
-    async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
-        let content = vec![ContentBlock::Text { text }];
-        self.deliver(machine, session, content, delivery).await;
-    }
-
-    /// A prompt with its files (track P's row c).
-    async fn prompt_files(&self, prompt: attachments::WithFiles) {
-        let content = prompt_content(prompt.text, prompt.attachments);
-        self.deliver(&prompt.machine, prompt.session, content, prompt.delivery)
-            .await;
-    }
-
-    async fn deliver(
-        &self,
-        machine: &str,
-        session: SessionId,
-        content: Vec<ContentBlock>,
-        delivery: Delivery,
-    ) {
-        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            let why = LinkError::NotConnected(machine.to_owned()).to_string();
-            self.emit(Event::SessionLost { session, why }).await;
-            return;
-        };
-        match client.prompt(session, content, delivery).await {
-            Ok(_delivered) => self.emit(Event::Sent { session }).await,
-            Err(error) => {
-                self.emit(Event::Failed(
-                    LinkError::Call(error.to_string()).to_string(),
-                ))
-                .await;
-            }
-        }
-    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1072,76 +949,6 @@ impl State {
                 workspace::Hub::refuse(machine, ask, problem, events);
             }
         }
-    }
-
-    async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
-        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            let why = LinkError::NotConnected(machine.to_owned()).to_string();
-            self.emit(Event::SessionLost { session, why }).await;
-            return;
-        };
-        if let Err(error) = client.send(session, input).await {
-            self.emit(Event::Failed(
-                LinkError::Call(error.to_string()).to_string(),
-            ))
-            .await;
-        }
-    }
-}
-
-/// A prompt's content: its text (when there is any), then each file, as
-/// the CLI's `vessel send --attach` orders them.
-#[cfg(not(target_arch = "wasm32"))]
-fn prompt_content(
-    text: String,
-    attachments: Vec<vessel_proto::AttachmentRef>,
-) -> Vec<ContentBlock> {
-    let text = (!text.is_empty()).then_some(ContentBlock::Text { text });
-    text.into_iter()
-        .chain(
-            attachments
-                .into_iter()
-                .map(|attachment| ContentBlock::Attachment { attachment }),
-        )
-        .collect()
-}
-
-/// Write the composers' drafts on the blocking pool; a failure is logged
-/// (never their text).
-#[cfg(not(target_arch = "wasm32"))]
-fn save_drafts(drafts: vessel_app_view::composer::drafts::Drafts) {
-    drop(tokio::task::spawn_blocking(move || {
-        if let Err(error) = drafts::save(&drafts) {
-            tracing::warn!(%error, "the drafts could not be kept");
-        }
-    }));
-}
-
-/// Keep an agent's answer on this device, written only when it differs
-/// from the kept one; a write that fails is logged (the list is a cache).
-#[cfg(not(target_arch = "wasm32"))]
-async fn keep_offers(
-    store: std::sync::Arc<std::sync::Mutex<offers::Store>>,
-    node: vessel_proto::NodeId,
-    harness: HarnessRef,
-    said: offers::Said,
-    at: chrono::DateTime<Utc>,
-) {
-    let kept = tokio::task::spawn_blocking(move || {
-        let mut store = store
-            .lock()
-            .map_err(|_poisoned| std::io::Error::other("the kept lists' lock is poisoned"))?;
-        if store.keep(node, harness, None, said, at) {
-            store.save()
-        } else {
-            Ok(())
-        }
-    })
-    .await;
-    match kept {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => tracing::warn!(%error, "an agent's list could not be kept"),
-        Err(error) => tracing::warn!(%error, "an agent's list was not kept"),
     }
 }
 

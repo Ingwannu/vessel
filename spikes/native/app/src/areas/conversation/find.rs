@@ -35,20 +35,16 @@
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::time::Duration;
 
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::glyph;
-use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    KeyDownEvent, ParentElement as _, Pixels, Stateful, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
-};
-use vessel_app_kit::{
-    Reveal, TextField, Tokens, Type, TypeExt as _, VirtualList, breakpoint, popup,
-};
-use vessel_app_view::timeline::{Entry, Finder, MAX_QUERY, Match, step};
+use vessel_app_kit::ui::{Context, Pixels, Window, px};
+use vessel_app_kit::{Reveal, TextField, VirtualList};
+use vessel_app_view::timeline::{Finder, MAX_QUERY, Match, start_at, step};
 use vessel_proto::EventSeq;
 
 use crate::shell::Shell;
+
+mod bar;
+
+pub(super) use bar::bar;
 
 /// The bar's width (GOAT's `--thread-details-panel-width`, 17.5rem) and
 /// its distance from the conversation's edges (`top-3 right-3`).
@@ -319,9 +315,11 @@ impl Shell {
         let Some(finder) = bar.finder.as_mut() else {
             return true;
         };
-        let Some(matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
+        let Some(mut matches) = finder.step(&mut area.find_cache, area.timeline.entries()) else {
             return false;
         };
+        // What a rewind left behind is not drawn, so find skips it.
+        matches.retain(|found| !area.timeline.rewound(found.entry));
         bar.finder = None;
         let start = bar
             .at
@@ -402,162 +400,5 @@ impl Shell {
     }
 }
 
-/// The bar over the conversation's top right, when it is open.
-pub(super) fn bar(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let bar = shell.areas.conversation.find.as_ref()?;
-    let words = shell.t.lang.conversation();
-    let surfaces = popup::Surfaces::of(tokens);
-    let narrow = breakpoint::phone(window);
-    let neutral = tokens.neutral;
-    let has_query = !bar.query.trim().is_empty();
-    let none = has_query && bar.finder.is_none() && bar.matches.is_empty();
-    let count = if !has_query {
-        String::new()
-    } else if bar.finder.is_some() {
-        words.count_pending().to_owned()
-    } else {
-        words.count_text(bar.matches.len(), bar.index)
-    };
-    let can_move = bar.finder.is_none() && !bar.matches.is_empty();
-    let shell_row = div()
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(2.0))
-        .h(px(if narrow { 44.0 } else { 36.0 }))
-        .pl(px(12.0))
-        .pr(px(4.0))
-        .bg(surfaces.surface1)
-        .border_1()
-        .border_color(surfaces.border_accent)
-        .rounded(px(popup::MENU_RADIUS))
-        .shadow(popup::shadow_md(tokens))
-        .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
-            match event.keystroke.key.as_str() {
-                "escape" => {
-                    shell.close_find(cx);
-                    cx.stop_propagation();
-                }
-                "enter" if event.keystroke.modifiers.shift => {
-                    shell.find_move(false, cx);
-                    cx.stop_propagation();
-                }
-                _ => {}
-            }
-        }))
-        .child(bar.field.input(tokens, cx))
-        .child(
-            div()
-                .min_w(px(40.0))
-                .flex_none()
-                .text_center()
-                .type_(Type::Meta)
-                .text_color(if none {
-                    neutral.destructive
-                } else {
-                    neutral.foreground_muted
-                })
-                .child(count),
-        )
-        .child(
-            small_button("find-previous", Glyph::ChevronUp, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(false, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-next", Glyph::ChevronDown, can_move, tokens, narrow).when(
-                can_move,
-                |button| {
-                    button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.find_move(true, cx);
-                    }))
-                },
-            ),
-        )
-        .child(
-            small_button("find-close", Glyph::Close, true, tokens, narrow).on_click(cx.listener(
-                |shell, _event, _window, cx| {
-                    shell.close_find(cx);
-                },
-            )),
-        );
-    // On a phone the bar takes its own place above the conversation: laid
-    // over it, it would hide the very match it scrolls to (the page lays
-    // it over at every width, the same fault).
-    let frame = if narrow {
-        div().flex_none().px(px(INSET)).pt(px(8.0)).pb(px(4.0))
-    } else {
-        div()
-            .absolute()
-            .top(px(INSET))
-            .right(px(INSET))
-            .w(px(WIDTH))
-    };
-    Some(frame.child(shell_row).into_any_element())
-}
-
-/// One of the bar's buttons (GOAT's `icon-xs` ghost button): its glyph,
-/// dimmed while it cannot act.
-fn small_button(
-    id: &'static str,
-    mark: Glyph,
-    enabled: bool,
-    tokens: &Tokens,
-    narrow: bool,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    let hover = popup::Surfaces::of(tokens).surface2;
-    div()
-        .id(id)
-        .size(px(if narrow { 32.0 } else { 24.0 }))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .rounded(px(6.0))
-        .when(enabled, |button| {
-            button.cursor_pointer().hover(move |style| style.bg(hover))
-        })
-        .child(glyph(
-            mark,
-            // The close cross fills its box; the chevrons do not.
-            if mark == Glyph::Close { 12.0 } else { 14.0 },
-            if enabled {
-                neutral.foreground_muted
-            } else {
-                neutral.foreground_extra_muted
-            },
-        ))
-}
-
 #[cfg(test)]
 mod language_tests;
-
-/// Where find starts for the message at record `at`: the first match in
-/// its entry or after it (the first match when none is); `None` while the
-/// session is not read that far (`next`, the record after the last read).
-fn start_at(entries: &[Entry], next: EventSeq, matches: &[Match], at: EventSeq) -> Option<usize> {
-    if next <= at {
-        return None;
-    }
-    let entry = entries
-        .iter()
-        .rposition(|entry| entry.seq <= at)
-        .unwrap_or(0);
-    Some(
-        matches
-            .iter()
-            .position(|found| found.entry >= entry)
-            .unwrap_or(0),
-    )
-}

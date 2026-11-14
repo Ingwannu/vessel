@@ -5,6 +5,9 @@
 
 use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
+use vessel_app_kit::frame::{Lines, panel_edges};
+use vessel_app_kit::theme::radius::R5;
+use vessel_app_kit::theme::spacing::{S1, S2};
 use vessel_app_kit::tokens;
 use vessel_app_kit::ui::{
     AnyElement, AsyncApp, Context, FluentBuilder as _, InteractiveElement as _, IntoElement,
@@ -65,6 +68,8 @@ pub(crate) struct Shell {
     /// At a phone's width, the sidebar's sheet is open, over what was on
     /// screen when it opened: going anywhere else closes it.
     sidebar_sheet: Option<(Route, Option<vessel_proto::SessionId>)>,
+    /// The brand's drawing behind the content (worker B's `brand.rs`).
+    pub(crate) brand: crate::brand::Brand,
 }
 
 impl Shell {
@@ -95,6 +100,7 @@ impl Shell {
             language,
             fleet: Fleet::default(),
             route: Route::Draft,
+            brand: crate::brand::Brand::default(),
             areas,
             prefs,
             notice,
@@ -113,6 +119,7 @@ impl Shell {
         };
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
+        areas::shortcuts::listen(&mut shell, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -267,7 +274,13 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
-            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
+            Event::Workspace { machine, answer } => {
+                // An answer that changed nothing drawn asks for no frame
+                // (an idle git panel refreshes every five seconds).
+                if !self.workspace_answer(&machine, answer, cx) {
+                    return;
+                }
+            }
             Event::Searched(answer) => self.message_searched(answer, cx),
         }
         cx.notify();
@@ -359,7 +372,9 @@ impl Shell {
         // The tooltip on the words only, so it sits above them, not
         // above the middle of the full-width foot.
         let (tips, place) = &self.foot_tips;
-        let words = div().id("foot").flex_none().child(notice);
+        // Its own width while it fits, wrapping when the window is
+        // narrower (it did not shrink and was cut; the owner's word 40).
+        let words = div().id("foot").flex_initial().min_w_0().child(notice);
         areas::common::foot(
             div().flex().child(tips.on(words, place, detail, touch)),
             tokens,
@@ -411,6 +426,8 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .face(vessel_app_kit::Type::Body)
+            // Every key-up, for the shortcuts' repeat check (track S's).
+            .on_key_up(cx.listener(|this, _event, _window, _cx| this.areas.shortcuts.released()))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
             .child(chrome::title_bar(self, &tokens, window, cx))
@@ -422,7 +439,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone && self.sidebar_shown(), |row| {
-                        row.child(routes::sidebar(self.route, self, &tokens, cx))
+                        row.child(routes::sidebar(self.route, self, &tokens, window, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width
@@ -433,38 +450,50 @@ impl Render for Shell {
                             .flex_1()
                             .min_w(px(0.0))
                             .h_full()
-                            .pb(px(8.0))
-                            .pr(px(8.0))
-                            .when(phone || !self.sidebar_shown(), |frame| frame.pl(px(8.0)))
+                            .pb(px(S2))
+                            .pr(px(S2))
+                            // Room for the edge's outer line at the top and,
+                            // beside the sidebar, at the left (worker B's
+                            // two-line edge, the owner's word 36).
+                            .when(!phone, |frame| frame.pt(px(S1)))
+                            .pl(px(if phone || !self.sidebar_shown() { S2 } else { S1 }))
                             .child(
                                 div()
+                                    .relative()
                                     .size_full()
-                                    .flex()
-                                    .flex_col()
-                                    .bg(tokens.neutral.surface0)
-                                    .border_1()
-                                    .border_color(tokens.border_faint)
-                                    .rounded(px(vessel_app_kit::theme::radius::R5))
-                                    .overflow_hidden()
-                                    .children(self.updated.as_ref().map(|updated| {
-                                        areas::about::updated(self, updated, &tokens, cx)
-                                    }))
-                                    .child(frame)
-                                    .children(
-                                        self.notice.clone().map(|notice| {
-                                            self.foot(notice, &tokens, touch)
-                                        }),
-                                    ),
+                                    .child(
+                                        div()
+                                            .size_full()
+                                            .flex()
+                                            .flex_col()
+                                            .bg(tokens.neutral.surface0)
+                                            .rounded(px(R5))
+                                            .overflow_hidden()
+                                            .relative()
+                                            .child(self.brand.backdrop(&tokens))
+                                            .children(self.updated.as_ref().map(|updated| {
+                                                areas::about::updated(self, updated, &tokens, cx)
+                                            }))
+                                            .child(page::arriving(self, frame))
+                                            .children(self.notice.clone().map(|notice| {
+                                                self.foot(notice, &tokens, touch)
+                                            })),
+                                    )
+                                    .child(div().absolute().top_0().left_0().size_full().child(
+                                        panel_edges(R5, if phone { Lines::One } else { Lines::Two }, &tokens),
+                                    )),
                             ),
                     )
                     // Under the title bar, so its menu button stays to close
                     // it with.
                     .children(sheet),
             )
-            .children(areas::toasts::render(self, &tokens, window, cx));
+            .children(areas::toasts::render(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
 
 #[cfg(test)]
 pub(crate) mod language_tests;
+mod page;

@@ -9,7 +9,7 @@ use vessel_app_view::composer::attach::looks_like;
 use vessel_app_view::composer::tray::{Again, Begun, Origin, Problem};
 use vessel_client::CallError;
 use vessel_client::NodeClient;
-use vessel_proto::{AttachmentRef, BlobChunk, ErrorCode};
+use vessel_proto::{AttachmentRef, BlobChunk, ContentBlock, ErrorCode};
 
 use super::{Attach, Step};
 use crate::Event;
@@ -45,6 +45,19 @@ pub(crate) fn spawn(
         };
         tell(step).await;
     }));
+}
+
+/// A prompt's content: its text (when there is any), then each file, as
+/// the CLI's `vessel send --attach` orders them.
+pub(crate) fn content(text: String, attachments: Vec<AttachmentRef>) -> Vec<ContentBlock> {
+    let text = (!text.is_empty()).then_some(ContentBlock::Text { text });
+    text.into_iter()
+        .chain(
+            attachments
+                .into_iter()
+                .map(|attachment| ContentBlock::Attachment { attachment }),
+        )
+        .collect()
 }
 
 /// What failed, and how it may be tried again.

@@ -65,6 +65,7 @@ impl AgentBadge {
                     | UnknownReason::NotSaid
                     | UnknownReason::NoHome
                     | UnknownReason::Unread,
+                ..
             } => Self::Unknown,
         }
     }
@@ -159,7 +160,7 @@ pub fn installation<'a>(
         }
         Installed::TooOld { .. } => (words.older_agent(), None),
         Installed::TooNew { .. } => (words.too_new.to_owned(), None),
-        Installed::Unknown { reason } => (words.install_unknown(reason), None),
+        Installed::Unknown { reason, .. } => (words.install_unknown(reason), None),
     };
     Installation {
         badge: Badge {
@@ -179,7 +180,7 @@ pub fn authentication(lang: Lang, signed_in: &SignedIn) -> String {
         SignedIn::Yes => words.credentials.to_owned(),
         SignedIn::No { .. } => words.signed_out.to_owned(),
         SignedIn::NotRequired => words.not_required.to_owned(),
-        SignedIn::Unknown { reason } => words.auth_unknown(reason),
+        SignedIn::Unknown { reason, .. } => words.auth_unknown(reason),
     }
 }
 
@@ -224,7 +225,7 @@ pub struct SignInRow<'a> {
 /// one step, and no help is advertised for other authentication states.
 #[must_use]
 pub fn sign_in_help(lang: Lang, signed_in: &SignedIn) -> Vec<SignInRow<'_>> {
-    let SignedIn::No { help } = signed_in else {
+    let SignedIn::No { help, .. } = signed_in else {
         return Vec::new();
     };
     let words = lang.agents();
@@ -267,7 +268,7 @@ pub fn program(installed: &Installed) -> Option<std::borrow::Cow<'_, str>> {
         Installed::Found { path, .. }
         | Installed::TooOld { path, .. }
         | Installed::TooNew { path, .. } => Some(path.to_string_lossy()),
-        Installed::Missing { program } => Some(std::borrow::Cow::Borrowed(program.as_str())),
+        Installed::Missing { program, .. } => Some(std::borrow::Cow::Borrowed(program.as_str())),
         Installed::Unknown { .. } => None,
     }
 }

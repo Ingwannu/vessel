@@ -29,7 +29,7 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, SessionId};
 #[cfg(not(target_arch = "wasm32"))]
 mod send;
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) use send::spawn;
+pub(crate) use send::{content, spawn};
 
 /// One file to send.
 #[derive(Debug, Clone, PartialEq, Eq)]

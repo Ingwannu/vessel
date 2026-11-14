@@ -9,9 +9,10 @@
 //! - Choice: the field and Fast's dots run on their own clock, which runs
 //!   while the pointer is over the card or the slider is held, and for 2 s
 //!   after it leaves or after a change (reaching the top stop, Fast
-//!   switched), then slows to a stop over 1.5 s; a frame says whether it
-//!   needs the display's every frame (the thumb gliding or springing) or
-//!   only the decorations' 30 a second ([`Frame::smooth`]).
+//!   switched), then slows to a stop over 1.5 s. While anything moves the
+//!   control asks for the display's every frame (the coordinator,
+//!   2026-11-14: the decorations' earlier 30 a second read as choppy on
+//!   the owner's GPU; a software renderer holds motion still anyway).
 //! - Difference, named: the Codex app's field and dots move for as long
 //!   as its menu is open; here they come to rest a few seconds after the
 //!   pointer leaves the card (the dots fade as they slow).
@@ -20,8 +21,9 @@
     reason = "times and positions are float formulas"
 )]
 
+use super::drag::{CATCH, DRAG_START, Pointer, RELEASE, magnet, nearest};
 use super::flair::{self, Dot, FastStops};
-use super::motion::{DRAG_GLIDE, GLIDE, GROW, SETTLE, Spring, Tween, Wheel};
+use super::motion::{GLIDE, GROW, SETTLE, Spring, Tween, Wheel};
 use super::{THUMB, THUMB_GROWN, commits, fraction};
 
 /// What a frame is drawn for.
@@ -60,11 +62,9 @@ pub struct Frame {
     pub warning: Option<f32>,
     /// Whether the shown stop is the top one (its colours).
     pub at_maximum: bool,
-    /// Whether anything moves: the control asks for a next frame.
+    /// Whether anything moves: the control asks for the display's next
+    /// frame.
     pub moving: bool,
-    /// Whether that next frame is the display's next (the thumb glides or
-    /// springs); otherwise the decorations' 30 a second are enough.
-    pub smooth: bool,
 }
 
 /// How long the stops take to come back after Fast is turned off.
@@ -80,21 +80,37 @@ const HOLD: f32 = 2.0;
 /// How long they take to come to rest after that.
 const STILLING: f32 = 1.5;
 
-/// A press: the stop in effect when it began.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A press: the stop in effect when it began, and the pointer since.
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Press {
     from: Option<usize>,
+    /// Where it began, points from the track's start.
+    start: f32,
+    /// Whether the pointer has moved far enough to drag the thumb.
+    dragging: bool,
+    /// The pointer, a share of the way between the end stops.
+    at: f32,
+    /// The line between the end stops, points.
+    line: f32,
 }
+
+/// A gap the thumb no longer needs a frame to close (a share of the way).
+const AT_REST: f32 = 1.0e-4;
 
 /// The slider's state.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Motion {
     position: Option<Tween>,
+    /// The thumb springing onto its stop after a drag.
+    snap: Option<Spring>,
+    /// Where the thumb was drawn last, a share of the way.
+    place: Option<f32>,
+    /// The gap a drag's thumb is closing to the pointer's place.
+    catch: f32,
     thumb: Option<Spring>,
     last: Option<f32>,
     pressed: Option<Press>,
     preview: Option<usize>,
-    moved: bool,
     hovered: bool,
     wheel: Wheel,
     top: Option<(bool, f32)>,
@@ -124,28 +140,49 @@ impl Motion {
         self.pressed.is_some()
     }
 
-    /// A press on stop `stop` (the track maps it), with `current` in
-    /// effect: the thumb goes there at once, as a click.
-    pub fn press(&mut self, stop: usize, current: Option<usize>) {
-        self.pressed = Some(Press { from: current });
-        self.preview = Some(stop);
-        self.moved = false;
+    /// A press at `pointer` on a slider of `stops`, with `current` in
+    /// effect: the nearest stop is shown and the thumb glides there, as a
+    /// click, until the pointer moves [`DRAG_START`] away.
+    pub fn press(&mut self, pointer: Pointer, stops: usize, current: Option<usize>) {
+        let at = pointer.fraction();
+        self.pressed = Some(Press {
+            from: current,
+            start: pointer.x,
+            dragging: false,
+            at,
+            line: pointer.line(),
+        });
+        self.preview = Some(nearest(at, stops));
     }
 
-    /// The pointer, pressed, over stop `stop`.
-    pub fn drag(&mut self, stop: usize) {
-        if self.pressed.is_some() && self.preview != Some(stop) {
-            self.preview = Some(stop);
-            self.moved = true;
+    /// The pointer, pressed, at `pointer`: once it has moved far enough
+    /// the thumb follows it ([`super::drag`]), from where the thumb is,
+    /// and the stop shown is the one whose reach it is in.
+    pub fn drag(&mut self, pointer: Pointer, stops: usize) {
+        let place = self.place;
+        let Some(press) = self.pressed.as_mut() else {
+            return;
+        };
+        press.at = pointer.fraction();
+        press.line = pointer.line();
+        if !press.dragging && (pointer.x - press.start).abs() >= DRAG_START {
+            press.dragging = true;
+            let drawn = magnet(press.at, stops, press.line);
+            self.catch = place.map_or(0.0, |place| place - drawn);
         }
+        self.preview = Some(nearest(press.at, stops));
     }
 
     /// The release: the stop to send, when it differs from the one in
-    /// effect at the press.
+    /// effect at the press. A dragged thumb springs onto its stop from
+    /// where it is.
     pub fn release(&mut self) -> Option<usize> {
         let pressed = self.pressed.take()?;
         let released = self.preview.take()?;
-        self.moved = false;
+        if pressed.dragging {
+            self.snap = self.place.map(Spring::rest);
+        }
+        self.catch = 0.0;
         commits(pressed.from, released).then_some(released)
     }
 
@@ -181,7 +218,7 @@ impl Motion {
         self.last = Some(now);
         let shown = self.shown(input.current);
         let at_maximum = shown.is_some() && shown == input.maximum;
-        let (fraction, gliding) = self.glide(shown, input, now);
+        let (fraction, gliding) = self.place(shown, input, now, elapsed);
         let (thumb, springing) = self.spring(input.reduce, elapsed);
         let top_since = self.top_stop(at_maximum, now);
         let (fast_stops, fast_since) = self.fast_mode(input.fast, fraction, now);
@@ -194,12 +231,16 @@ impl Motion {
         } else {
             self.warning = None;
         }
+        // A stop's look follows the stop chosen; whether it is drawn over
+        // the fill follows the thumb, which may be between stops.
         let stops = (0..input.stops)
             .map(|index| {
-                let filled = shown.is_some_and(|shown| index <= shown);
+                let chosen = shown.is_some_and(|shown| index <= shown);
+                let under = fraction
+                    .is_some_and(|place| super::fraction(index, input.stops) <= place + AT_REST);
                 (
-                    stop_look(filled, at_maximum, top_since, fast_stops, input),
-                    filled,
+                    stop_look(chosen, at_maximum, top_since, fast_stops, input),
+                    under,
                 )
             })
             .collect();
@@ -233,7 +274,6 @@ impl Motion {
             warning,
             at_maximum,
             moving,
-            smooth: gliding || springing,
         }
     }
 
@@ -256,22 +296,51 @@ impl Motion {
         speed
     }
 
-    /// The thumb's place gliding to `shown`'s; whether it still glides.
-    fn glide(&mut self, shown: Option<usize>, input: Input, now: f32) -> (Option<f32>, bool) {
+    /// The thumb's place, a share of the way, and whether it still moves:
+    /// following a dragging pointer, springing onto its stop after a drag,
+    /// else gliding to `shown`'s stop.
+    fn place(
+        &mut self,
+        shown: Option<usize>,
+        input: Input,
+        now: f32,
+        elapsed: f32,
+    ) -> (Option<f32>, bool) {
         let Some(target) = shown.map(|stop| fraction(stop, input.stops)) else {
             self.position = None;
+            self.snap = None;
+            self.place = None;
             return (None, false);
         };
-        let length = if input.reduce {
-            0.0
-        } else if self.moved {
-            DRAG_GLIDE
+        let (place, moving) = if let Some(press) = self.pressed.filter(|press| press.dragging)
+            && !input.reduce
+        {
+            self.catch *= (-elapsed / CATCH).exp();
+            let place = magnet(press.at, input.stops, press.line) + self.catch;
+            self.position = Some(Tween::rest(place));
+            (place, self.catch.abs() > AT_REST)
+        } else if let Some(spring) = self.snap.as_mut()
+            && !input.reduce
+        {
+            spring.step(target, RELEASE, elapsed);
+            if spring.settled(target) {
+                self.snap = None;
+                self.position = Some(Tween::rest(target));
+                (target, false)
+            } else {
+                let place = spring.value;
+                self.position = Some(Tween::rest(place));
+                (place, true)
+            }
         } else {
-            GLIDE
+            self.snap = None;
+            let length = if input.reduce { 0.0 } else { GLIDE };
+            let tween = self.position.get_or_insert(Tween::rest(target));
+            tween.glide(target, now, length);
+            (tween.at(now), tween.moving(now))
         };
-        let tween = self.position.get_or_insert(Tween::rest(target));
-        tween.glide(target, now, length);
-        (Some(tween.at(now)), tween.moving(now))
+        self.place = Some(place);
+        (Some(place), moving)
     }
 
     /// The thumb's scale after `elapsed` seconds; whether it still moves.

@@ -105,6 +105,7 @@ fn body(
                 path,
                 old_text,
                 new_text,
+                ..
             } => body
                 .child(label(paint, &words.diff_of(&path.to_string_lossy())))
                 .child(diff(
@@ -115,7 +116,7 @@ fn body(
                     window,
                     cx,
                 )),
-            ToolCallContent::Content { content } => body.child(output_box(
+            ToolCallContent::Content { content, .. } => body.child(output_box(
                 key(part),
                 &block_text(content),
                 Start::End,
