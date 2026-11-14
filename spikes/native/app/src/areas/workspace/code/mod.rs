@@ -25,6 +25,7 @@
 
 mod actions;
 mod actions_view;
+mod appear;
 mod change_rows;
 mod changes;
 mod editing;

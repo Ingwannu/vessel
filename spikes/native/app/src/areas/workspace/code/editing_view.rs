@@ -6,6 +6,7 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
+use vessel_app_kit::motion::{QUICK, STANDARD};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -14,6 +15,7 @@ use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button
 use vessel_app_view::workspace::editor::{ConflictKind, EditorStatus};
 use vessel_app_view::workspace::size::size_word;
 
+use super::appear::appear;
 use super::editing::Editing;
 use super::frame::note;
 use crate::shell::Shell;
@@ -33,9 +35,12 @@ pub(super) fn body(
         }
         return note(labels.loading, tokens).into_any_element();
     };
+    // The viewer's slot for the body is a plain block of a definite
+    // height: the body takes all of it (`flex_1` there did nothing, and
+    // the engine's editor, whose height is its parent's, fell back to two
+    // rows).
     div()
-        .flex_1()
-        .min_h(px(0.0))
+        .size_full()
         .flex()
         .flex_col()
         .child(toolbar(shell, editing, tokens))
@@ -64,14 +69,19 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
     };
     let size = editing.model.version().map_or(0, |version| version.size);
     let lines = editing.model.content().split('\n').count();
-    let state: Option<Div> = match editing.model.status() {
-        EditorStatus::Dirty => Some(
+    // Each mark comes in once as its state begins (`appear`).
+    let state: Option<AnyElement> = match editing.model.status() {
+        EditorStatus::Dirty => Some(appear(
+            "code-editor-dirty",
+            QUICK,
             div()
                 .size(px(6.0))
                 .rounded_full()
                 .bg(neutral.foreground_extra_muted),
-        ),
-        EditorStatus::Saving => Some(
+        )),
+        EditorStatus::Saving => Some(appear(
+            "code-editor-saving-row",
+            QUICK,
             div()
                 .flex()
                 .flex_row()
@@ -88,13 +98,15 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
                         .text_color(neutral.foreground_muted)
                         .child(labels.editor_saving),
                 ),
-        ),
-        EditorStatus::Error => Some(
+        )),
+        EditorStatus::Error => Some(appear(
+            "code-editor-save-failed",
+            QUICK,
             div()
                 .type_(Type::Meta)
                 .text_color(neutral.destructive)
                 .child(labels.editor_save_failed),
-        ),
+        )),
         EditorStatus::Loading
         | EditorStatus::Failed
         | EditorStatus::Clean
@@ -128,13 +140,14 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
 
 /// Paseo's conflict bar: amber hairline under it, the triangle, the title
 /// and what to do, Overwrite (a modified buffer over a changed file) and
-/// Reload.
+/// Reload. It arrives as a surface (`STANDARD`), once per conflict: its
+/// id does not change as Overwrite comes and goes.
 fn conflict_bar(
     shell: &Shell,
     editing: &Editing,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Option<Div> {
+) -> Option<AnyElement> {
     let (kind, overwrite) = editing.model.conflict()?;
     let neutral = tokens.neutral;
     // Paseo's `amber[500]`: the theme's amber status colour.
@@ -170,38 +183,37 @@ fn conflict_bar(
                 ),
             )
     });
-    Some(
-        div()
-            .flex_none()
-            .min_h(px(48.0))
-            .flex()
-            .flex_row()
-            .flex_wrap()
-            .items_center()
-            .gap(px(12.0))
-            .px(px(12.0))
-            .py(px(8.0))
-            .bg(neutral.surface1)
-            .border_b_1()
-            .border_color(amber)
-            .child(glyph(Glyph::Alert, 14.0, amber))
-            .child(
-                div()
-                    .flex_1()
-                    .min_w(px(180.0))
-                    .flex()
-                    .flex_col()
-                    .gap(px(4.0))
-                    .child(div().type_(Type::Label).text_color(amber).child(title))
-                    .children(description.map(|text| {
-                        div()
-                            .type_(Type::Meta)
-                            .text_color(neutral.foreground_muted)
-                            .child(text)
-                    })),
-            )
-            .children(actions),
-    )
+    let bar = div()
+        .flex_none()
+        .min_h(px(48.0))
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .items_center()
+        .gap(px(12.0))
+        .px(px(12.0))
+        .py(px(8.0))
+        .bg(neutral.surface1)
+        .border_b_1()
+        .border_color(amber)
+        .child(glyph(Glyph::Alert, 14.0, amber))
+        .child(
+            div()
+                .flex_1()
+                .min_w(px(180.0))
+                .flex()
+                .flex_col()
+                .gap(px(4.0))
+                .child(div().type_(Type::Label).text_color(amber).child(title))
+                .children(description.map(|text| {
+                    div()
+                        .type_(Type::Meta)
+                        .text_color(neutral.foreground_muted)
+                        .child(text)
+                })),
+        )
+        .children(actions);
+    Some(appear("code-editor-conflict", STANDARD, bar))
 }
 
 /// Reload's question while it is asked (Paseo's `confirmDialog`,

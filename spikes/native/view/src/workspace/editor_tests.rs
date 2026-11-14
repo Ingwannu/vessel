@@ -236,3 +236,15 @@ fn drops_a_stale_answer() {
     let _step = model.saved(new, Written::Saved(version(3)));
     assert_eq!(model.status(), EditorStatus::Clean);
 }
+
+#[test]
+fn prose_wraps_and_code_keeps_its_lines() {
+    assert!(super::wraps("docs/README.md"));
+    assert!(super::wraps("docs/한글-문서/설치-안내.Markdown"));
+    assert!(!super::wraps("src/main.rs"));
+    assert!(
+        !super::wraps("notes.md/index.ts"),
+        "a folder's name is not the file's"
+    );
+    assert!(!super::wraps("Makefile"));
+}

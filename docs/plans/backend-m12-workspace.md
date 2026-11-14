@@ -141,7 +141,9 @@ as "Changed on disk", a file gone as "File deleted on disk", the write
 made when the file is left). The control is the kit's `code_editor`
 (the engine's code-editor kind in the kit's colours, the code face with
 Pretendard behind it, syntax from the view's lexer through
-`LineSyntax`, its kinds coloured by the current theme on every draw).
+`LineSyntax`, its kinds coloured by the current theme on every draw;
+code keeps each line on one row and scrolls sideways, Markdown wraps,
+Paseo's `WRAPPED_EXTENSIONS`, `view::workspace::editor::wraps`).
 Paseo's toolbar sits over it (size and lines; the dot, "Saving..." or
 "Save failed"; "Ln, Col" and "Add lines … to chat" in a small view of
 their own, since the editor redraws on every blink of its caret).
@@ -150,6 +152,15 @@ in one page, the node's largest), never at a phone's width; anything
 else is shown read-only as before. Difference, named: the node has no
 watch of a file, so a change on disk shows at the next save or re-read,
 not at once.
+
+Motion (the owner's word 39): what the person's own action brings in
+comes in once, as a fade on the kit's tokens (`code/appear.rs`): the
+dot, "Saving..." and "Save failed" and the selection's "Add lines … to
+chat" over `QUICK`, the conflict bar as a surface over `STANDARD`. Each
+is keyed by an id naming the mark, not its text, so it does not play
+again while it stays (a wider selection, Overwrite coming and going); a
+mark that leaves is gone at once. While motion is held the end is drawn
+at once (GPUI's one-shot transitions under `reduce_motion`).
 
 Track P's seams (the composer): a selection or a file handed to the
 composer is a value, `view::workspace::reference::FileReference` (root,
@@ -254,6 +265,12 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   of this track passes.
 - `ProjectId` and `WorktreeId` are `Copy` UUIDs (not the opaque string ids
   the page's fixtures suggest): the tests use fixed UUIDs.
+- The editor's first captures (2026-11-14) showed two rows of the file:
+  the engine's editor is as tall as its parent, and the editing body sat
+  in the viewer's plain block with `flex_1`, which only a flex parent
+  honours, so the body was as tall as its content. The body now takes
+  its slot's whole size. The engine also wraps lines unless told not
+  to; the kit's editor now keeps code's lines unwrapped.
 
 ## Where this track stands (2026-11-14 04:40 UTC)
 

@@ -24,7 +24,7 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::workspace::{Ask, FileAsk, Save};
 use vessel_app_view::workspace::editor::{
-    AUTOSAVE_MS, EditorModel, MAX_EDITABLE_BYTES, Read, Step, Written,
+    AUTOSAVE_MS, EditorModel, MAX_EDITABLE_BYTES, Read, Step, Written, wraps,
 };
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::Saved;
@@ -301,6 +301,7 @@ impl Shell {
             return;
         };
         let language = language_of(viewer.path.as_str());
+        let wrap = wraps(viewer.path.as_str());
         let Some(editing) = viewer.edit.as_mut() else {
             return;
         };
@@ -321,6 +322,9 @@ impl Shell {
             window,
             cx,
         );
+        if wrap {
+            editor.set_wrapping(true, window, cx);
+        }
         let goto = viewer.goto.take();
         if let Some(line) = goto {
             editor.reveal_line(line, window, cx);

@@ -130,6 +130,17 @@ pub const AUTOSAVE_MS: u64 = 800;
 /// `MAX_EDITABLE_BYTES`, 1 MiB, the node's largest page).
 pub const MAX_EDITABLE_BYTES: u64 = 1024 * 1024;
 
+/// Whether the editor wraps a file's long lines at its width: prose
+/// (Markdown) wraps, code keeps each line on one row and scrolls sideways
+/// (Paseo's `WRAPPED_EXTENSIONS` in `source/editor/view.web.tsx`).
+#[must_use]
+pub fn wraps(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    name.rsplit_once('.').is_some_and(|(_, extension)| {
+        extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+    })
+}
+
 impl Default for EditorModel {
     fn default() -> Self {
         Self::new()

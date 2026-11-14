@@ -7,15 +7,19 @@
 //! the panel's whole screen must not (it would be drawn twice a second
 //! while nothing else moves). The rest of the toolbar (the save state) is
 //! the panel's, drawn when the model changes.
+//!
+//! The button comes in (`QUICK`, `appear`) as a selection starts.
 
 use gpui::AppContext as _;
 use vessel_app_kit::code_editor::CodeEditor;
+use vessel_app_kit::motion::QUICK;
 use vessel_app_kit::ui::{
     Context, Entity, IntoElement, ParentElement as _, Render, StatefulInteractiveElement as _,
     Styled as _, Subscription, WeakEntity, Window, div, px,
 };
 use vessel_app_kit::{Type, TypeExt as _};
 
+use super::appear::appear;
 use crate::shell::Shell;
 
 /// The caret's line and column, and the selection's button.
@@ -52,13 +56,15 @@ impl Render for Status {
                 usize::try_from(last).unwrap_or(usize::MAX),
             );
             let shell = self.shell.clone();
-            vessel_app_kit::button("code-editor-add-lines", label, true, &tokens).on_click(
-                move |_event, window, cx| {
+            let button = vessel_app_kit::button("code-editor-add-lines", label, true, &tokens)
+                .on_click(move |_event, window, cx| {
                     let _gone = shell.update(cx, |shell, cx| {
                         shell.add_editor_lines((first, last), window, cx);
                     });
-                },
-            )
+                });
+            // Comes in as a selection starts; its id does not name the
+            // lines, so widening the selection does not play it again.
+            appear("code-editor-add-lines-in", QUICK, button)
         });
         div()
             .flex()
