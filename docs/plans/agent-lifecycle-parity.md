@@ -229,6 +229,11 @@ No row of the crate table changes.
 
 ## Resume point
 
+- Corrective verification: the first whole run stopped at a missing
+  Markdown code delimiter in the ingress module documentation. The comment
+  is fixed; no rule or test expectation changes. The exact corrective head
+  still requires its whole gate.
+
 - Integration checkpoint: the named node head is merged without rewriting
   prior commits. Its usage ledger and shared compatibility cases remain.
 - Done: slice 1 contract and reviewed slice 2a validating types. Bounds,
