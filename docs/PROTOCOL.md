@@ -30,6 +30,54 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 19 (2026-11-14, milestone 12)
+
+The track raises the current version once to 19; minimum remains 2.
+
+### Side questions (N5, ADR 0045)
+
+- `SessionSpec.side_question_of?: SessionId` links a separate structured
+  conversation to a local parent. It never resumes the parent's native id.
+  Ordinary creation naming this field uses the same serialized open/reuse
+  operation and inherits the parent's current configuration.
+- `session.side_open { session } -> SessionInfo`: reuse the newest
+  unarchived side, including an ended/interrupted one, or start a new side.
+  Opening never implicitly resumes an ended side.
+- `session.side_prompt { session, question: PromptText } -> Delivered`:
+  refresh the parent context and start a turn in the named side. A live
+  parked side wakes first; a failed wake consumes only that request. Busy
+  or ended sides are conflict. General prompt and queue operations refuse
+  sides, including scheduled and tracked prompts; old clients can read
+  them but must update or use `vessel session side` to ask.
+- `session.side_reset { session, side } -> SessionInfo`: serialized
+  expected-id replacement. A stale side is conflict. Deletion failure
+  creates nothing; creation failure after deletion leaves the old side
+  gone. Opening again retries; no rollback is promised.
+- All three calls need read and operate. Direct and delegated agents are
+  refused; delegated people retain the usual scope intersection. Calls
+  can cross the fleet and the existing encrypted relay. Neither questions
+  nor answers are written into the parent conversation.
+- Context uses current status/attention, an independent latest-plan
+  projection (schema 14; twenty steps, 1,200 characters each), and a
+  labelled partial tail of at most 128 records. Snapshots are at most
+  24 KiB in UTF-8 including metadata and markers; complete serialized ACP requests at
+  most 48 KiB, including prefixes, JSON escaping and the request envelope.
+  TurnStarted retains only the question; context is transient provider
+  input carried atomically with it. Native slash questions are refused
+  explicitly rather than moved behind a context prefix. Question text uses the existing 16 KiB `PromptText`.
+- Parent deletion leaves existing side logs readable but prevents new
+  questions/resume. Reset inherits current profile/model/choices; an
+  existing side keeps its own configuration. Imports clear node-local
+  parent links. Saved/scheduled templates refuse side specs.
+- A parent rewind clears its plan projection and limits the partial
+  transcript to records after the latest rewind, so discarded future
+  messages cannot be presented as current. A new plan report replaces
+  the cleared projection. Generic session.fork refuses side sources;
+  side_reset is the supported start-over path.
+- All direct and currently supported nested session specs require
+  protocol 19 when they name a side link, so old nodes cannot silently
+  ignore it. The optional field is ignored by older apps. No new events
+  or stand-ins are required.
 ## Version 18 (2026-11-14, milestone 11's track A2, ADR 0057's slice 0)
 
 Nodes speak 2..=18. No method, no event, no record: one field of the

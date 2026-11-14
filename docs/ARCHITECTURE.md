@@ -1076,6 +1076,61 @@ Legacy area tables stay until their owners migrate them. The crate map,
 execution instructions and gate are in `spikes/native/README.md`; ADR 0039
 records the decision and `docs/plans/backend-m12-i18n.md` its measurements.
 
+## Native settings' machine book (milestone 12)
+
+The independent workspace under `spikes/native` keeps screen rules in `view`,
+node/file operations in `link`, shared controls in `kit`, and drawing in `app`
+(its README owns the full crate map). `view::machine_book` validates names and
+models edits and safe failure reasons. `link::machines` applies those edits
+through the existing CLI `BookFile` on the blocking pool, then publishes a fresh
+snapshot. Selection follows a successful write only; raw book errors stay at
+the file boundary because malformed content may contain credentials. No new
+wire method or store is introduced. Startup, tick, reload, retry and edit reads
+share a fixed book path and the same typed boundary. Syntax failures reuse the
+shared safe `FileFault` projection; other file failures use closed reasons.
+A failed edit does not refresh or mutate the existing clients or session follow.
+## Side questions (milestone 12, protocol 19)
+
+ADR 0045 keeps side questions in a separate native session. The optional
+parent id lives in the stored SessionSpec. `vessel-node::service::side_questions`
+serializes discovery, creation and expected-id reset; a creation lease
+moves into the session creation task so request cancellation cannot start
+an unseen duplicate. Ordinary creation naming a side link follows that
+same path. `side_questions` owns the person/read policy and bounded
+snapshot formatting; `sessions::side_questions` waits for persistence and
+provides the dedicated Start-only ingress. Generic prompt/tracked/queue
+paths refuse sides centrally, including automation.
+
+`vessel-store::side_context` projects bounded latest plans with their log
+commit (schema 14), and reads a bounded newest-first transcript tail on
+the existing blocking reader pool. Retention can prune the plan's event
+without erasing its projection. Current status/attention is read separately;
+no goal is fabricated. The snapshot and complete prompt have UTF-8 byte
+limits, including metadata and truncation markers. Nothing is sent back
+into the parent session. This isolates conversation context, not project
+tools or filesystem rights. A parent rewind clears the plan projection
+in that same log append; side-tail reads stop at the latest rewind rather
+than presenting discarded future messages. Earlier valid turns are also
+omitted by this bounded partial-context policy. Generic forks refuse a side
+source so that only serialized side creation can set its parent link.
+
+`vessel-client::side_questions` holds typed calls; the CLI's `session side`
+opens/reuses or asks, printing the side id. Existing read, subscription,
+approval, cancellation and explicit-resume paths serve that id. An older
+client may read a side, but ordinary prompts are refused; an older node
+refuses the new calls. Side logs survive a missing parent, while questions
+and resume require it. Imports clear the local parent link. The track plan
+records the reference acceptance list and remaining verification.
+
+
+Provider context is one typed actor control with its bounded question.
+`vessel-agent::PromptContext` bounds UTF-8 bytes and redacts Debug. Only
+ACP receives the prefix; the driver emits TurnStarted with the question
+alone and checks the actual serialized ACP request before sending. The
+ordinary prompt/attachment path is unchanged. No sticky context survives
+failure, cancellation or a busy refusal. Existing restart/profile-move replay suppression continues to cover
+UserMessageChunk until Ready. A new native import transfers and may replay
+provider history, including generated context; it has no local side link.
 ## Protocol 16: what a machine shares, for a person (ADR 0056)
 
 `fleet/published` reads `fleet.published` from the machine's own files on a

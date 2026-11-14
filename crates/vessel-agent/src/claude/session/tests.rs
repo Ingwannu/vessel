@@ -130,6 +130,7 @@ impl Running {
             .send(Command::Prompt {
                 content,
                 attachments: Attachments::new(),
+                context: None,
                 reply,
             })
             .await

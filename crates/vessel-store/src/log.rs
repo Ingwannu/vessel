@@ -74,6 +74,16 @@ enum ProfileMove {
     To(Option<ProfileName>),
 }
 
+/// A plan report replaces the projection; a rewind invalidates it even
+/// if the old plan event is no longer retained.
+#[derive(Default)]
+enum PlanMove {
+    #[default]
+    Unchanged,
+    Cleared,
+    Reported(crate::LatestPlan),
+}
+
 /// The `sessions` columns a run of records changes.
 #[derive(Default)]
 struct Projection {
@@ -92,6 +102,7 @@ struct Projection {
     usage: Option<ContextUsage>,
     queue: Option<PromptQueue>,
     attention: Option<EventSeq>,
+    plan: PlanMove,
     bytes: u64,
 }
 
@@ -123,6 +134,11 @@ impl Projection {
                     self.abilities = *abilities;
                 }
             }
+            SessionEvent::Agent {
+                event: AgentEvent::Plan { entries },
+            } => {
+                self.plan = PlanMove::Reported(crate::LatestPlan::bounded(entries));
+            }
             SessionEvent::UsageChanged { usage } => self.usage = Some(usage.clone()),
             SessionEvent::QueueChanged { queue } => self.queue = Some(queue.clone()),
             SessionEvent::ProfileChanged { to, .. } => {
@@ -146,7 +162,12 @@ impl Projection {
             // a resume or an export after it reads the id from here.
             SessionEvent::Rewound {
                 harness_session, ..
-            } => self.harness_session = Some(harness_session.clone()),
+            } => {
+                self.harness_session = Some(harness_session.clone());
+                // The discarded future's plan is no longer current. Older
+                // events may be pruned; do not pretend to reconstruct it.
+                self.plan = PlanMove::Cleared;
+            }
         }
     }
 }
@@ -210,7 +231,8 @@ pub(crate) fn append<'a>(
                  abilities = COALESCE(?12, abilities),
                  usage = COALESCE(?13, usage),
                  queue = COALESCE(?14, queue),
-                 attention_seq = COALESCE(?15, attention_seq)
+                 attention_seq = COALESCE(?15, attention_seq),
+                 latest_plan = CASE WHEN ?17 THEN ?16 ELSE latest_plan END
              WHERE id = ?1",
         )?
         .execute(params![
@@ -235,6 +257,11 @@ pub(crate) fn append<'a>(
             projection.usage.as_ref().map(encode).transpose()?,
             projection.queue.as_ref().map(encode).transpose()?,
             projection.attention.map(seq_to_sql).transpose()?,
+            match &projection.plan {
+                PlanMove::Reported(plan) => Some(encode(plan)?),
+                PlanMove::Cleared | PlanMove::Unchanged => None,
+            },
+            !matches!(projection.plan, PlanMove::Unchanged),
         ])?;
     Ok(Appended { ended })
 }

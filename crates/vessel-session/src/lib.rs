@@ -131,6 +131,7 @@ mod publish;
 mod queue;
 mod ring;
 mod runtime;
+mod side_questions;
 mod stop;
 mod structured;
 mod terminal;

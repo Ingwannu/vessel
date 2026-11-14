@@ -63,6 +63,14 @@ impl Delivering {
 /// `vessel session ...` on a conversation (protocol 10).
 #[derive(Debug, Subcommand)]
 pub(crate) enum ConversationCommand {
+    /// Open a side conversation, or ask in one, without changing the
+    /// original session. Use this command for each later side question.
+    Side {
+        /// Original session, or an existing side, by id or unique prefix.
+        session: SessionSelector,
+        /// Optional question; opening an ended side does not resume it.
+        question: Option<vessel_proto::automation::PromptText>,
+    },
     /// Show a structured session's queue (the prompts waiting their turn,
     /// next first) and whether it is held; with a change, make it, then
     /// show the queue.

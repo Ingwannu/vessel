@@ -265,7 +265,8 @@ impl SessionError {
             | Self::Delivery(DeliveryError::Empty)
             | Self::Queue(QueueError::NotNow | QueueError::TooLarge)
             | Self::Input(
-                InputError::InvalidContent(_)
+                InputError::ContextLimit
+            | InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
                 | InputError::Option(_)
                 | InputError::InvalidAnswer { .. }
@@ -388,7 +389,8 @@ impl From<InputError> for SessionError {
     fn from(error: InputError) -> Self {
         match error {
             InputError::Closed => Self::Ended,
-            refused @ (InputError::TurnInProgress
+            refused @ (InputError::ContextLimit
+            | InputError::TurnInProgress
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)

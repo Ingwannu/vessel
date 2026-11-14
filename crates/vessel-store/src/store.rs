@@ -377,7 +377,7 @@ impl Store {
             .map_err(|_closed| StoreError::Closed)
     }
 
-    async fn read<T: Send + 'static>(
+    pub(crate) async fn read<T: Send + 'static>(
         &self,
         read: impl FnOnce(&Reader) -> Result<T, StoreError> + Send + 'static,
     ) -> Result<T, StoreError> {

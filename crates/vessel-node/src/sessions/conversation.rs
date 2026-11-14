@@ -80,6 +80,9 @@ impl Sessions {
     ) -> Result<QueueChanged, ServiceError> {
         match self.find(id).await? {
             Found::Live { handle, .. } => {
+                if handle.info().spec.side_question_of.is_some() {
+                    return Err(crate::side_questions::SideError::PromptOnly.into());
+                }
                 let change = match change {
                     QueueChange::Edit {
                         entry,
@@ -112,6 +115,9 @@ impl Sessions {
         handle: &SessionHandle,
         content: Vec<ContentBlock>,
     ) -> Result<Vec<ContentBlock>, ServiceError> {
+        if handle.info().spec.side_question_of.is_some() {
+            return Err(crate::side_questions::SideError::PromptOnly.into());
+        }
         let named = content
             .iter()
             .any(|block| matches!(block, ContentBlock::Attachment { .. }));

@@ -180,6 +180,17 @@ impl SessionRuntime {
         spec: SessionSpec,
         options: LaunchOptions,
     ) -> Result<Created, SessionError> {
+        // Launch owns process setup and a full session specification.
+        // Keep that cold future off every caller's stack as the spec grows;
+        // one allocation per session avoids multiplying it in UI/test tasks.
+        Box::pin(self.launch(spec, options)).await
+    }
+
+    async fn launch(
+        &self,
+        spec: SessionSpec,
+        options: LaunchOptions,
+    ) -> Result<Created, SessionError> {
         // Counts as a running task, so a concurrent `shutdown` waits until
         // this session is either refused or tracked.
         let _in_flight = self.tasks.token();

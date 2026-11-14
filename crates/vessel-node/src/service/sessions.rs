@@ -77,11 +77,33 @@ impl NodeService {
     pub(crate) async fn create_as(
         &self,
         principal: &Principal,
-        spec: SessionSpec,
+        mut spec: SessionSpec,
         origin: Option<SessionOrigin>,
         unattended: Option<String>,
     ) -> Result<SessionInfo, WireError> {
-        self.create_starting(principal, spec, (origin, unattended), None)
+        if origin.is_some() {
+            spec.side_question_of = None;
+        }
+        if let Some(parent) = spec.side_question_of {
+            if unattended.is_some() {
+                return Err(crate::side_questions::SideError::Template.wire());
+            }
+            return self.open_side_as(principal, parent).await;
+        }
+        self.create_core_as(principal, spec, origin, unattended, None)
+            .await
+    }
+
+    /// Resolved side creation retains its serialization lease through launch.
+    pub(super) async fn create_core_as(
+        &self,
+        principal: &Principal,
+        spec: SessionSpec,
+        origin: Option<SessionOrigin>,
+        unattended: Option<String>,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+    ) -> Result<SessionInfo, WireError> {
+        self.create_starting(principal, spec, (origin, unattended), None, lease)
             .await
     }
 
@@ -95,6 +117,7 @@ impl NodeService {
         mut spec: SessionSpec,
         (origin, unattended): (Option<SessionOrigin>, Option<String>),
         fork: Option<vessel_session::ForkStart>,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
@@ -152,7 +175,7 @@ impl NodeService {
             }
         }
         options.fork = fork.map(Box::new);
-        let created = self.sessions.create(spec, options).await;
+        let created = self.sessions.create(spec, options, lease).await;
         if created.is_err() {
             self.agents.forget(id);
             self.models.retire(id);

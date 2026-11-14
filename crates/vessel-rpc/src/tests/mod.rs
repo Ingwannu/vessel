@@ -220,6 +220,30 @@ impl Handler for Fake {
         Ok(info(session(2), request.spec))
     }
 
+    async fn open_side_question(
+        &self,
+        _: &Context,
+        request: vessel_proto::side_questions::OpenSideQuestion,
+    ) -> Result<SessionInfo, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn prompt_side_question(
+        &self,
+        _: &Context,
+        request: vessel_proto::side_questions::PromptSideQuestion,
+    ) -> Result<vessel_proto::Delivered, WireError> {
+        self.unsupported(request)
+    }
+
+    async fn reset_side_question(
+        &self,
+        _: &Context,
+        request: vessel_proto::side_questions::ResetSideQuestion,
+    ) -> Result<SessionInfo, WireError> {
+        self.unsupported(request)
+    }
+
     async fn send_input(&self, _: &Context, request: SendInput) -> Result<Ack, WireError> {
         self.saw(request.into_call());
         Ok(Ack)

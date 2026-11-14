@@ -115,6 +115,12 @@ rpc_methods! {
     GetSession / get_session / "session.get" [Read, 2]: GetSession => SessionInfo;
     /// Start a session.
     CreateSession / create_session / "session.create" [Operate, 2]: CreateSession => SessionInfo;
+    /// Open or reuse a separate side conversation (protocol 19).
+    OpenSideQuestion / open_side_question / "session.side_open" [Operate, 19]: crate::side_questions::OpenSideQuestion => SessionInfo;
+    /// Ask a side question with refreshed parent context (protocol 19).
+    PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 19]: crate::side_questions::PromptSideQuestion => Delivered;
+    /// Replace the expected side conversation (protocol 19).
+    ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 19]: crate::side_questions::ResetSideQuestion => SessionInfo;
     /// Send input to a session.
     SendInput / send_input / "session.send" [Operate, 2]: SendInput => Ack;
     /// Kill a session.

@@ -416,6 +416,9 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
+        prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
+        reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

@@ -1,6 +1,6 @@
 //! Approved command sets across the schemas (protocol 10's schema 9,
-//! protocol 11's 10 to 12): an approval kept before the store held what
-//! it covered survives the walk from 9 to 12 in order, with no set; one
+//! later schemas): an approval kept before the store held what it covered
+//! survives the walk to the current schema in order, with no set; one
 //! given after keeps its set across a restart.
 
 use build::{digest, project};
@@ -16,10 +16,10 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
-/// Undoes schemas 12 to 10: the schedules', saved prompts' and hooks'
-/// tables, the set an approval covered, and pull request feedback's
-/// tables.
-const UNDO_SCHEMAS_10_TO_13: &str = "DROP TRIGGER sessions_search_gone;
+/// Undoes schemas 14 to 10: side plans, search, schedules, saved prompts,
+/// hooks, the set an approval covered, and pull request feedback.
+const UNDO_SCHEMAS_10_TO_14: &str = "ALTER TABLE sessions DROP COLUMN latest_plan;
+     DROP TRIGGER sessions_search_gone;
      DROP TRIGGER sessions_search_pruned;
      DROP TABLE search_index;
      DROP TABLE search_messages;
@@ -74,7 +74,7 @@ async fn an_approval_from_schema_9_walks_to_the_newest_and_new_ones_keep_their_s
 
     // A database as protocol 10 left it, with an approval in it.
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_10_TO_13).unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_10_TO_14).unwrap();
     let _row = connection
         .execute(
             "INSERT INTO approvals (project, digest, approved_at) VALUES (?1, ?2, 1)",

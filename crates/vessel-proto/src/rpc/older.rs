@@ -45,6 +45,8 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
+            Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
@@ -117,7 +119,8 @@ impl Reply {
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
             // Replies of calls newer than every peer that can ask them, or
             // holding nothing that changed meaning.
-            Self::SendInput(_)
+            Self::PromptSideQuestion(_)
+            | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)

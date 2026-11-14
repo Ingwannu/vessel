@@ -76,6 +76,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::ListHarnesses
         | Method::ListSessions
         | Method::GetSession
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::CreateSession
         | Method::SendInput
         | Method::KillSession

@@ -40,7 +40,7 @@ impl NodeService {
         request: ForkSession,
     ) -> Result<SessionInfo, WireError> {
         let (spec, fork) = self.fork_of(request).await.map_err(|error| wire(&error))?;
-        self.create_starting(&connection.principal, spec, (None, None), Some(fork))
+        self.create_starting(&connection.principal, spec, (None, None), Some(fork), None)
             .await
     }
 
@@ -74,6 +74,11 @@ impl NodeService {
     ) -> Result<(vessel_proto::SessionSpec, ForkStart), ServiceError> {
         let id = request.session;
         let source = self.sessions.get(id).await?;
+        // A generic fork must not clone a side link outside its serialized
+        // discovery path, or create a second unarchived side implicitly.
+        if source.spec.side_question_of.is_some() {
+            return Err(crate::side_questions::SideError::Fork.into());
+        }
         let SessionMode::Structured { model, .. } = &source.spec.mode else {
             return Err(ServiceError::NotAPoint {
                 session: id,

@@ -46,6 +46,7 @@ pub mod search;
 mod secret;
 mod session;
 pub mod settings;
+pub mod side_questions;
 mod terminal;
 pub mod terminals;
 mod title;
