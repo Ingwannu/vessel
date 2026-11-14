@@ -32,11 +32,15 @@
 //!   own (`now` is passed in) and without I/O; the link keeps the copy on
 //!   disk and hands it over at connect (`link::offers`). An answer that
 //!   arrives while a list is open is laid over the shown one ([`arrange`]):
-//!   what stays keeps its place, what is new goes after it (after its
-//!   group's last value when it has one), what is gone leaves.
+//!   what stays keeps its place, what is new goes at the edge away from
+//!   the one the list is anchored by (the composer's lists open above
+//!   their control, so at the top: the rows under the pointer stay where
+//!   they are on screen), next to its group when it has one; what is gone
+//!   leaves.
 //! - Trade-offs: a closed list takes the agent's order as sent; an open
-//!   one may show a new value at its end until it is opened again. A value
-//!   removed above the pointer still moves the rows under it up by one.
+//!   one may show a new value out of the agent's order until it is opened
+//!   again. A value removed, or one added to a group, still moves the rows
+//!   on its far side by one row.
 //!   Requests are bounded by [`OPEN_GAP`], [`RETRY_GAP`] and one request
 //!   in flight per agent: ten opens are one request.
 
@@ -120,6 +124,18 @@ pub enum Offered<'a> {
     Loading,
     /// No list, and the last ask failed: why.
     Failed(&'a str),
+}
+
+/// Which edge of an open list stays where it is on screen: the one it is
+/// anchored by. A list grows away from it, so a new row is laid at the
+/// other edge to leave every shown row in place.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Anchored {
+    /// Its top (a list opening below its control): new rows at the end.
+    Top,
+    /// Its bottom (a list opening above its control, a sheet from the
+    /// bottom): new rows at the start.
+    Bottom,
 }
 
 /// What an answer did to the store.
@@ -248,13 +264,14 @@ impl Offers {
     }
 
     /// The agent's answer for `key` at `now`. `open`: a list showing it is
-    /// open, so a new list is laid over the shown one ([`arrange`]) rather
-    /// than replacing it. A failure keeps a list there is, marked stale.
+    /// open, anchored by that edge, so a new list is laid over the shown
+    /// one ([`arrange`]) rather than replacing it. A failure keeps a list
+    /// there is, marked stale.
     pub fn answered(
         &mut self,
         key: OfferKey,
         outcome: Result<Vec<SessionOption>, String>,
-        open: bool,
+        open: Option<Anchored>,
         now: Instant,
     ) -> Arrival {
         let entry = self.entries.entry(key).or_default();
@@ -265,7 +282,10 @@ impl Offers {
                 entry.failed = None;
                 let (options, changed) = match entry.copy.take() {
                     Some((shown, _)) => {
-                        let options = if open { arrange(fresh, &shown) } else { fresh };
+                        let options = match open {
+                            Some(anchored) => arrange(fresh, &shown, anchored),
+                            None => fresh,
+                        };
                         let changed = options != shown;
                         (options, changed)
                     }
@@ -325,25 +345,44 @@ impl Offers {
 
 /// A fresh answer laid over the list shown, so nothing under the pointer
 /// moves: the options and values that stay keep their places, in the
-/// shown order; new ones follow (a new value after the last value of its
-/// group, so a group's values stay together; else at the end); gone ones
+/// shown order; new ones go at the edge away from the list's anchor, in
+/// the agent's order (a new value of a group already shown goes next to
+/// it, on that same side, so a group's values stay together); gone ones
 /// leave. Everything else (names, descriptions, the value in effect, a
 /// changed kind) is the fresh answer's.
 #[must_use]
-pub fn arrange(fresh: Vec<SessionOption>, shown: &[SessionOption]) -> Vec<SessionOption> {
+pub fn arrange(
+    fresh: Vec<SessionOption>,
+    shown: &[SessionOption],
+    anchored: Anchored,
+) -> Vec<SessionOption> {
     let mut pool: Vec<Option<SessionOption>> = fresh.into_iter().map(Some).collect();
-    let mut arranged = Vec::with_capacity(pool.len());
+    let mut kept = Vec::with_capacity(pool.len());
     for old in shown {
         if let Some(new) = take_where(&mut pool, |new| new.id == old.id) {
-            arranged.push(arrange_values(new, old));
+            kept.push(arrange_values(new, old, anchored));
         }
     }
-    arranged.extend(pool.into_iter().flatten());
-    arranged
+    let added: Vec<SessionOption> = pool.into_iter().flatten().collect();
+    match anchored {
+        Anchored::Top => {
+            kept.extend(added);
+            kept
+        }
+        Anchored::Bottom => {
+            let mut arranged = added;
+            arranged.extend(kept);
+            arranged
+        }
+    }
 }
 
 /// An option's values laid over the shown ones ([`arrange`]).
-fn arrange_values(mut fresh: SessionOption, shown: &SessionOption) -> SessionOption {
+fn arrange_values(
+    mut fresh: SessionOption,
+    shown: &SessionOption,
+    anchored: Anchored,
+) -> SessionOption {
     if let (OptionKind::Select { values, .. }, OptionKind::Select { values: old, .. }) =
         (&mut fresh.kind, &shown.kind)
     {
@@ -355,15 +394,33 @@ fn arrange_values(mut fresh: SessionOption, shown: &SessionOption) -> SessionOpt
                 ordered.push(kept);
             }
         }
-        for new in pool.into_iter().flatten() {
-            let after = new.group.as_ref().and_then(|group| {
+        let added: Vec<OptionValue> = pool.into_iter().flatten().collect();
+        // The new values at the start keep the agent's order: each is laid
+        // after the new ones before it (`at_start` counts them).
+        let mut at_start = 0_usize;
+        for new in added {
+            let same = |value: &OptionValue| new.group.is_some() && value.group == new.group;
+            let after_last = |ordered: &[OptionValue]| {
                 ordered
                     .iter()
-                    .rposition(|value| value.group.as_ref() == Some(group))
-            });
-            match after {
-                Some(last) => ordered.insert(last.saturating_add(1), new),
-                None => ordered.push(new),
+                    .rposition(same)
+                    .map(|last| last.saturating_add(1))
+            };
+            let (place, in_start) = match anchored {
+                Anchored::Top => (after_last(&ordered).unwrap_or(ordered.len()), false),
+                Anchored::Bottom => match ordered.iter().position(same) {
+                    // A group the new values began: after its last one.
+                    Some(first) if first < at_start => {
+                        (after_last(&ordered).unwrap_or(at_start), true)
+                    }
+                    // A group shown already: before its first value.
+                    Some(first) => (first, false),
+                    None => (at_start, true),
+                },
+            };
+            ordered.insert(place, new);
+            if in_start {
+                at_start = at_start.saturating_add(1);
             }
         }
         *values = ordered;

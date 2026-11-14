@@ -101,14 +101,14 @@ fn key() -> OfferKey {
 #[test]
 fn the_same_answer_changes_nothing() {
     let shown = vec![models("b", &["a", "b", "c"]), toggle("fast", false)];
-    assert_eq!(arrange(shown.clone(), &shown), shown);
+    assert_eq!(arrange(shown.clone(), &shown, Anchored::Top), shown);
 }
 
 #[test]
 fn values_that_stay_keep_their_shown_places_when_the_agent_reorders_them() {
     let shown = vec![models("a", &["a", "b", "c", "d"])];
     let fresh = vec![models("a", &["d", "c", "b", "a"])];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(value_ids(&arranged, "model"), ["a", "b", "c", "d"]);
 }
 
@@ -116,15 +116,38 @@ fn values_that_stay_keep_their_shown_places_when_the_agent_reorders_them() {
 fn a_new_value_goes_after_the_shown_ones_wherever_the_agent_puts_it() {
     let shown = vec![models("a", &["a", "b", "c"])];
     let fresh = vec![models("a", &["new", "a", "b", "c"])];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(value_ids(&arranged, "model"), ["a", "b", "c", "new"]);
+}
+
+#[test]
+fn in_a_list_anchored_at_its_bottom_new_values_go_at_the_top_in_the_agents_order() {
+    let shown = vec![models("a", &["a", "b", "c"])];
+    let fresh = vec![models("a", &["a", "new1", "b", "c", "new2"])];
+    let arranged = arrange(fresh, &shown, Anchored::Bottom);
+    assert_eq!(
+        value_ids(&arranged, "model"),
+        ["new1", "new2", "a", "b", "c"]
+    );
+}
+
+#[test]
+fn in_a_list_anchored_at_its_bottom_new_options_go_first() {
+    let shown = vec![models("a", &["a"]), toggle("fast", false)];
+    let fresh = vec![
+        models("a", &["a"]),
+        toggle("web", true),
+        toggle("fast", false),
+    ];
+    let arranged = arrange(fresh, &shown, Anchored::Bottom);
+    assert_eq!(option_ids(&arranged), ["web", "model", "fast"]);
 }
 
 #[test]
 fn a_value_gone_from_the_answer_leaves_the_list() {
     let shown = vec![models("a", &["a", "b", "c"])];
     let fresh = vec![models("a", &["a", "c"])];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(value_ids(&arranged, "model"), ["a", "c"]);
 }
 
@@ -140,7 +163,7 @@ fn new_options_follow_the_shown_ones_and_gone_ones_leave() {
         select("mode", "plan", vec![value("plan")]),
         models("a", &["a"]),
     ];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(option_ids(&arranged), ["model", "mode", "web"]);
 }
 
@@ -152,7 +175,7 @@ fn names_descriptions_and_the_value_in_effect_are_the_answers() {
     renamed.description = Some("now with a description".to_owned());
     let mut fresh = select("model", "b", vec![value("a"), renamed.clone()]);
     fresh.name = "Model (new name)".to_owned();
-    let arranged = arrange(vec![fresh], &shown);
+    let arranged = arrange(vec![fresh], &shown, Anchored::Top);
     assert_eq!(current_of(&arranged, "model").as_deref(), Some("b"));
     assert_eq!(
         arranged.first().map(|option| option.name.as_str()),
@@ -187,7 +210,7 @@ fn a_new_value_joins_its_group_so_a_group_is_drawn_once() {
             grouped("g1", "Google"),
         ],
     )];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(
         value_ids(&arranged, "model"),
         ["a1", "a2", "a3", "o1", "o2", "g1"]
@@ -210,42 +233,75 @@ fn a_new_value_joins_its_group_so_a_group_is_drawn_once() {
 }
 
 #[test]
+fn at_the_bottom_anchor_a_new_value_joins_its_group_and_a_new_group_keeps_its_order() {
+    let shown = vec![select(
+        "model",
+        "a1",
+        vec![
+            grouped("a1", "Anthropic"),
+            grouped("a2", "Anthropic"),
+            grouped("o1", "OpenAI"),
+        ],
+    )];
+    let fresh = vec![select(
+        "model",
+        "a1",
+        vec![
+            grouped("o1", "OpenAI"),
+            grouped("o2", "OpenAI"),
+            grouped("a3", "Anthropic"),
+            grouped("a1", "Anthropic"),
+            grouped("a2", "Anthropic"),
+            grouped("g1", "Google"),
+            grouped("g2", "Google"),
+        ],
+    )];
+    let arranged = arrange(fresh, &shown, Anchored::Bottom);
+    assert_eq!(
+        value_ids(&arranged, "model"),
+        ["g1", "g2", "a3", "a1", "a2", "o2", "o1"]
+    );
+}
+
+#[test]
 fn an_option_whose_kind_changed_is_taken_as_answered() {
     let shown = vec![models("a", &["a", "b"])];
     let fresh = vec![SessionOption {
         kind: OptionKind::Toggle { on: true },
         ..models("a", &[])
     }];
-    let arranged = arrange(fresh.clone(), &shown);
+    let arranged = arrange(fresh.clone(), &shown, Anchored::Top);
     assert_eq!(arranged, fresh);
 }
 
 #[test]
 fn nothing_shown_takes_the_answer_as_sent_and_an_empty_answer_empties() {
     let fresh = vec![models("c", &["c", "a", "b"]), toggle("fast", true)];
-    assert_eq!(arrange(fresh.clone(), &[]), fresh);
-    assert!(arrange(Vec::new(), &fresh).is_empty());
+    assert_eq!(arrange(fresh.clone(), &[], Anchored::Top), fresh);
+    assert_eq!(arrange(fresh.clone(), &[], Anchored::Bottom), fresh);
+    assert!(arrange(Vec::new(), &fresh, Anchored::Top).is_empty());
 }
 
 #[test]
 fn a_duplicate_id_in_an_answer_is_neither_lost_nor_invented() {
     let shown = vec![models("a", &["a", "b"])];
     let fresh = vec![models("a", &["a", "b", "a"])];
-    let arranged = arrange(fresh, &shown);
+    let arranged = arrange(fresh, &shown, Anchored::Top);
     assert_eq!(value_ids(&arranged, "model"), ["a", "b", "a"]);
 }
 
-/// Every answer made of some of the shown values, in any order, with new
-/// ones anywhere: the values that stay are in the shown order, and the
-/// rows above the first one gone never move (the pointer's row, wherever
-/// it is above that, keeps its index); every fresh value is there once.
+/// Every answer made of some of the shown values, in any order, with a
+/// new one anywhere: the values that stay are in the shown order, the new
+/// one at the edge away from the anchor, and the rows between that anchor
+/// and the nearest one gone never move on screen (at the top anchor their
+/// indexes stay; at the bottom anchor their distance from the end does).
 #[test]
 fn for_every_reordering_the_rows_that_stay_keep_their_order_and_places() {
     let shown_ids = ["a", "b", "c", "d"];
     let shown = vec![models("a", &shown_ids)];
     let mut cases = Vec::new();
     // Each shown value kept or not (16 subsets), each subset in every
-    // order, a new value at each place.
+    // order, a new value at each place, both anchors.
     for mask in 0_u32..16 {
         let kept: Vec<&str> = shown_ids
             .iter()
@@ -257,19 +313,37 @@ fn for_every_reordering_the_rows_that_stay_keep_their_order_and_places() {
             for at in 0..=order.len() {
                 let mut fresh_ids = order.clone();
                 fresh_ids.insert(at, "new");
-                let arranged = arrange(vec![models("a", &fresh_ids)], &shown);
-                let got = value_ids(&arranged, "model");
-                let expected: Vec<String> = kept
-                    .iter()
-                    .map(|id| (*id).to_owned())
-                    .chain(std::iter::once("new".to_owned()))
-                    .collect();
-                assert_eq!(got, expected, "fresh {fresh_ids:?}");
+                let kept_ids: Vec<String> = kept.iter().map(|id| (*id).to_owned()).collect();
+                // The top anchor: the new one last, the prefix unmoved.
+                let top = value_ids(
+                    &arrange(vec![models("a", &fresh_ids)], &shown, Anchored::Top),
+                    "model",
+                );
+                let mut expected = kept_ids.clone();
+                expected.push("new".to_owned());
+                assert_eq!(top, expected, "top, fresh {fresh_ids:?}");
                 let first_gone = shown_ids
                     .iter()
                     .position(|id| !kept.contains(id))
                     .unwrap_or(shown_ids.len());
-                assert_eq!(&got[..first_gone], &shown_ids[..first_gone]);
+                assert_eq!(&top[..first_gone], &shown_ids[..first_gone]);
+                // The bottom anchor: the new one first, the suffix unmoved.
+                let bottom = value_ids(
+                    &arrange(vec![models("a", &fresh_ids)], &shown, Anchored::Bottom),
+                    "model",
+                );
+                let mut expected = vec!["new".to_owned()];
+                expected.extend(kept_ids);
+                assert_eq!(bottom, expected, "bottom, fresh {fresh_ids:?}");
+                let after_last_gone = shown_ids
+                    .iter()
+                    .rposition(|id| !kept.contains(id))
+                    .map_or(0, |last| last.saturating_add(1));
+                let tail = shown_ids.len().saturating_sub(after_last_gone);
+                assert_eq!(
+                    &bottom[bottom.len().saturating_sub(tail)..],
+                    &shown_ids[after_last_gone..]
+                );
                 cases.push(fresh_ids);
             }
         }
@@ -304,7 +378,7 @@ fn the_first_time_is_loading_then_the_list() {
     assert_eq!(offers.offered(&key()), Offered::Loading);
     let list = vec![models("a", &["a", "b"])];
     assert_eq!(
-        offers.answered(key(), Ok(list.clone()), false, now),
+        offers.answered(key(), Ok(list.clone()), None, now),
         Arrival::Changed
     );
     assert_eq!(
@@ -336,13 +410,14 @@ fn a_kept_list_is_shown_at_once_and_refreshed_in_place() {
     assert!(matches!(offers.offered(&key()), Offered::Ready { .. }));
     let fresh = vec![models("b", &["c", "a", "b"])];
     assert_eq!(
-        offers.answered(key(), Ok(fresh), true, now),
+        offers.answered(key(), Ok(fresh), Some(Anchored::Bottom), now),
         Arrival::Changed
     );
     let options = offers.options(&key()).unwrap_or_default();
+    // Open above its control: the new value at the top, the rest in place.
     assert_eq!(
         value_ids(options, "model"),
-        ["a", "b", "c"],
+        ["c", "a", "b"],
         "open: laid over"
     );
     assert_eq!(current_of(options, "model").as_deref(), Some("b"));
@@ -355,7 +430,7 @@ fn a_closed_list_takes_the_agents_order() {
     let _kept = offers.kept(key(), vec![models("a", &["a", "b"])]);
     let fresh = vec![models("a", &["b", "a"])];
     assert_eq!(
-        offers.answered(key(), Ok(fresh.clone()), false, now),
+        offers.answered(key(), Ok(fresh.clone()), None, now),
         Arrival::Changed
     );
     assert_eq!(offers.options(&key()), Some(fresh.as_slice()));
@@ -368,7 +443,7 @@ fn the_same_answer_is_same_and_confirms_the_list() {
     let list = vec![models("a", &["a", "b"])];
     let _kept = offers.kept(key(), list.clone());
     assert_eq!(
-        offers.answered(key(), Ok(list.clone()), false, now),
+        offers.answered(key(), Ok(list.clone()), None, now),
         Arrival::Same
     );
     assert_eq!(
@@ -387,7 +462,7 @@ fn a_failed_refresh_keeps_the_list_marked_stale_until_one_succeeds() {
     let list = vec![models("a", &["a", "b"])];
     let _kept = offers.kept(key(), list.clone());
     assert_eq!(
-        offers.answered(key(), Err("unreachable".to_owned()), false, now),
+        offers.answered(key(), Err("unreachable".to_owned()), None, now),
         Arrival::KeptStale
     );
     assert_eq!(
@@ -400,7 +475,7 @@ fn a_failed_refresh_keeps_the_list_marked_stale_until_one_succeeds() {
     let later = after(now, RETRY_GAP);
     assert!(offers.want(&key(), Why::Open, later));
     assert_eq!(
-        offers.answered(key(), Ok(list.clone()), false, later),
+        offers.answered(key(), Ok(list.clone()), None, later),
         Arrival::Same
     );
     assert_eq!(
@@ -418,7 +493,7 @@ fn a_first_failure_says_why_and_a_retry_is_loading_again() {
     let now = Instant::now();
     assert!(offers.want(&key(), Why::Open, now));
     assert_eq!(
-        offers.answered(key(), Err("agent missing".to_owned()), false, now),
+        offers.answered(key(), Err("agent missing".to_owned()), None, now),
         Arrival::Failed
     );
     assert_eq!(offers.offered(&key()), Offered::Failed("agent missing"));
@@ -431,7 +506,7 @@ fn a_kept_list_never_replaces_an_answer_of_this_run() {
     let mut offers = Offers::default();
     let now = Instant::now();
     let fresh = vec![models("b", &["b"])];
-    let _first = offers.answered(key(), Ok(fresh.clone()), false, now);
+    let _first = offers.answered(key(), Ok(fresh.clone()), None, now);
     assert_eq!(offers.kept(key(), vec![models("a", &["a"])]), Arrival::Same);
     assert_eq!(offers.options(&key()), Some(fresh.as_slice()));
 }
@@ -446,7 +521,7 @@ fn ten_opens_are_one_request() {
         .count();
     assert_eq!(asked, 1);
     // Answered: still none within the gap, one after it.
-    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), false, now);
+    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), None, now);
     let opens = (0..10_u64)
         .filter(|step| offers.want(&key(), Why::Open, after(now, secs(*step))))
         .count();
@@ -458,7 +533,7 @@ fn ten_opens_are_one_request() {
 fn a_failure_is_retried_on_open_only_after_its_gap() {
     let mut offers = Offers::default();
     let now = Instant::now();
-    let _failed = offers.answered(key(), Err("offline".to_owned()), false, now);
+    let _failed = offers.answered(key(), Err("offline".to_owned()), None, now);
     assert!(!offers.should_ask(&key(), Why::Open, after(now, secs(1))));
     assert!(offers.should_ask(&key(), Why::Open, after(now, RETRY_GAP)));
 }
@@ -467,7 +542,7 @@ fn a_failure_is_retried_on_open_only_after_its_gap() {
 fn a_connection_or_a_change_of_agents_asks_within_the_gap_but_not_twice() {
     let mut offers = Offers::default();
     let now = Instant::now();
-    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), false, now);
+    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), None, now);
     let soon = after(now, secs(1));
     assert!(!offers.should_ask(&key(), Why::Open, soon));
     assert!(offers.want(&key(), Why::Connect, soon));
@@ -478,7 +553,7 @@ fn a_connection_or_a_change_of_agents_asks_within_the_gap_but_not_twice() {
 fn a_persons_retry_asks_at_once_unless_one_is_in_flight() {
     let mut offers = Offers::default();
     let now = Instant::now();
-    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), false, now);
+    let _answer = offers.answered(key(), Ok(vec![models("a", &["a"])]), None, now);
     assert!(!offers.asking(&key(), now));
     assert!(offers.want(&key(), Why::Retry, after(now, secs(1))));
     assert!(offers.asking(&key(), after(now, secs(1))));
@@ -519,7 +594,7 @@ fn two_machines_never_see_each_others_lists() {
     let now = Instant::now();
     let laptop = key();
     let desk = OfferKey::new("desk", HarnessRef::Known(HarnessKind::ClaudeCode));
-    let _answer = offers.answered(laptop, Ok(vec![models("a", &["a"])]), false, now);
+    let _answer = offers.answered(laptop, Ok(vec![models("a", &["a"])]), None, now);
     assert_eq!(offers.offered(&desk), Offered::Loading);
     assert!(offers.should_ask(&desk, Why::Open, now));
 }
@@ -543,7 +618,12 @@ fn a_kept_pick_the_agent_stopped_offering_falls_back_to_the_agents_value() {
     let shown = crate::with_picks(offers.options(&key()).unwrap_or_default(), &picks);
     assert_eq!(current_of(&shown, "model").as_deref(), Some("b"));
     // The agent drops "b" while the pick is kept.
-    let _answer = offers.answered(key(), Ok(vec![models("a", &["a", "c"])]), true, now);
+    let _answer = offers.answered(
+        key(),
+        Ok(vec![models("a", &["a", "c"])]),
+        Some(Anchored::Bottom),
+        now,
+    );
     let options = offers.options(&key()).unwrap_or_default();
     let shown = crate::with_picks(options, &picks);
     assert_eq!(current_of(&shown, "model").as_deref(), Some("a"));

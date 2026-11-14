@@ -9,7 +9,7 @@
 use std::time::Instant;
 
 use vessel_app_link::Command;
-use vessel_app_view::offers::{Arrival, OfferKey, Offered, Why};
+use vessel_app_view::offers::{Anchored, Arrival, OfferKey, Offered, Why};
 use vessel_app_view::{Fleet, Reach};
 use vessel_proto::{HarnessRef, SessionOption};
 
@@ -68,7 +68,9 @@ impl Shell {
 
     /// An agent's answer: laid over the list when one of the draft's
     /// lists is open, else taken as sent; a failure keeps the list there
-    /// is, said once as not fresh.
+    /// is, said once as not fresh. The draft's lists open above their
+    /// control (`Side::Above`) or as a sheet from the bottom: anchored by
+    /// their bottom, so a new row is laid at the top.
     pub(crate) fn offers_arrived(
         &mut self,
         machine: String,
@@ -78,14 +80,14 @@ impl Shell {
         if let Err(why) = &outcome {
             tracing::info!(%machine, agent = ?harness, %why, "an agent's options could not be read");
         }
-        let open = self.offer_list_open();
+        let open = self.offer_list_open().then_some(Anchored::Bottom);
         let arrival = self.areas.composer.offers.answered(
             OfferKey::new(machine, harness),
             outcome,
             open,
             Instant::now(),
         );
-        tracing::debug!(?arrival, open, "an agent's options arrived");
+        tracing::debug!(?arrival, ?open, "an agent's options arrived");
     }
 
     /// The link's kept lists for a machine that just connected: shown at
