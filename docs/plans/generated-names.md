@@ -114,6 +114,8 @@ that already uses `..` is left alone.
 ## Resume point
 
 - **Done:** slice 1, the contract, in ADR 0062 and this file. No code.
+  The contract commit is `77c80674`. This resume line is the only
+  change after it.
 - **Half-done:** nothing.
 - **Next:** slice 2, starting with `crates/vessel-proto/src/names.rs` and
   the settings field, then the generator against a fake completion,
