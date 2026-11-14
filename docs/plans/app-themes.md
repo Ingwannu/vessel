@@ -92,7 +92,10 @@ Do not start a second theme type in the app.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code.
+- Done: slice 1, the ADR and this plan. No code. The contrast
+  floors in the ADR are the unrounded ratios truncated to two
+  decimals, not the rounded table, so the later test can pass on
+  Paseo's own bytes.
 - Half-done: nothing.
 - Next: slice 2, the kit palettes and the contrast test, behind the
   token names ADR 0070 maps. Do not repaint Light or Dark. Do not

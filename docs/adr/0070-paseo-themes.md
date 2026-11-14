@@ -355,10 +355,10 @@ GPUI's Hsla. A channel byte `c` (0–255) becomes `c/255`; if that is at
 most 0.04045 it is divided by 12.92, otherwise
 `((c+0.055)/1.055)^2.4`. `L = 0.2126 R + 0.7152 G + 0.0722 B`. The
 ratio is `(L_lighter + 0.05) / (L_darker + 0.05)`. The tables are that
-ratio rounded half up to two decimals. Every pair below is opaque.
-The kit test computes the ratio from the same hex bytes the palette
-is built from and requires at least the floor, so a conversion to Hsla
-cannot move the number.
+ratio rounded half up to two decimals, for reading. Every pair below is
+opaque. A ratio of 5.897 rounds to 5.90 and would fail a floor of 5.90,
+so the test's floor is the unrounded ratio truncated to two decimals.
+The test measures the hex bytes the palette is built from, not Hsla.
 
 Body (`foreground`), muted (`foregroundMuted`) and extra
 (`foregroundExtraMuted`) on each kit surface. Light's foreground is
@@ -412,23 +412,28 @@ Body (`foreground`), muted (`foregroundMuted`) and extra
 Floors the palette test requires, from these measurements. They are
 Paseo's own pairs, not a correction:
 
-- Body text on each of the six surfaces is at least 5.90 (Ghostty on
-  surface4, the lowest). Every theme clears 4.5:1.
-- Muted text on surface0 is at least 4.83 (Light).
-- Muted text on the sidebar is at least 4.40 (Light). That pair is
-  under the 4.5 normal-text floor. It is kept; it is not darkened.
+- Body text on each of the six surfaces is at least 5.89 (Ghostty on
+  surface4 is 5.897, the lowest; the table shows 5.90). Every theme
+  clears 4.5:1.
+- Muted text on surface0 is at least 4.83 (Light is 4.833).
+- Muted text on the sidebar is at least 4.39 (Light is 4.397; the
+  table shows 4.40). That pair is under the 4.5 normal-text floor.
+  It is kept; it is not darkened.
 - Extra-muted is under 4.5 on most surfaces (Light on white is 2.56).
   No contrast floor: the test checks the hex. Paseo uses it for
   placeholders and the quietest chrome.
 - Accent foreground on the accent fill: Light and Dark, white on
-  `#1A5868`, 7.96. Zinc 13.96. Midnight 4.82. Claude, white on
-  `#d97757`, 3.12, which is large-text only and is kept (Paseo's
-  Ghostty comment claims its blue can carry white; Claude's orange
-  was not given that treatment, and this ADR does not invent one).
-  Ghostty 4.62. Pure black, white on `#20744A`, 5.74.
-- Destructive foreground (white) on destructive: Light 5.74, Dark
-  4.56, Zinc 4.75, Midnight 4.72, Claude 4.29 (under 4.5, kept),
-  Ghostty 4.71, Pure black 4.75.
+  `#1A5868`, at least 7.95 (7.955). Zinc 13.96. Midnight at least
+  4.81 (4.816; the table shows 4.82). Claude, white on `#d97757`,
+  at least 3.12 (3.122), which is large-text only and is kept
+  (Paseo's Ghostty comment claims its blue can carry white; Claude's
+  orange was not given that treatment, and this ADR does not invent
+  one). Ghostty 4.62. Pure black, white on `#20744A`, 5.74.
+- Destructive foreground (white) on destructive: Light at least 5.73
+  (5.739; the table shows 5.74), Dark 4.56, Zinc at least 4.74
+  (4.745; the table shows 4.75), Midnight 4.72, Claude at least 4.28
+  (4.286; the table shows 4.29, under 4.5, kept), Ghostty 4.71,
+  Pure black 4.75.
 
 For Light and Dark the accent pair is the brand, because that is the
 palette that ships. The same pair with Paseo's `#20744A` would be 5.74
