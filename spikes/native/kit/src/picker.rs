@@ -773,6 +773,7 @@ fn rows_list<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
+    let column = leading_column(rows);
     // The rows scroll inside the panel's height; the title and the search
     // row above them stay (`min_h_0` lets the list be shorter than its rows).
     let mut list = div()
@@ -804,9 +805,37 @@ fn rows_list<V: 'static>(
                     .child(heading.clone()),
             );
         }
-        list = list.child(combo_row(index, row, state, handlers, compact, tokens, cx));
+        list = list.child(combo_row(
+            index, row, column, state, handlers, compact, tokens, cx,
+        ));
     }
     list.into_any_element()
+}
+
+/// How wide a row's leading is, for keeping its column on rows without
+/// one: a glyph, a mode's mark and a project's tile are 16, a machine's dot
+/// 14. An agent's mark has none: an agent list gives every row one (the
+/// bot when the agent is unknown), and its artwork's width is the agent's.
+const fn leading_width(leading: &Leading) -> Option<f32> {
+    match leading {
+        Leading::Glyph(_) | Leading::Mark(_) | Leading::Initial(_) => Some(16.0),
+        Leading::Dot(_) => Some(14.0),
+        Leading::AgentMark(_) => None,
+    }
+}
+
+/// The leading column a list keeps on every row, if any.
+///
+/// When any row leads with a mark, a row without one keeps the mark's room,
+/// so every label starts at one left edge. Paseo never meets the case in
+/// its permissions list (its manifest gives every mode it lists a mark);
+/// Vessel does (Codex's `read-only` beside its marked modes), so this is a
+/// stated difference: the alternative, a label starting in the mark column,
+/// puts one row of the list out of line.
+fn leading_column(rows: &[ComboRow]) -> Option<f32> {
+    rows.iter()
+        .filter_map(|row| row.leading.as_ref().and_then(leading_width))
+        .reduce(f32::max)
 }
 
 /// The title row: a way back when it leads back, the title in 14 medium.
@@ -946,9 +975,14 @@ fn row_leading(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a row is drawn from itself, its list's mark column, the list's state and handlers"
+)]
 fn combo_row<V: 'static>(
     index: usize,
     row: &ComboRow,
+    column: Option<f32>,
     state: &ComboboxState,
     handlers: &ComboHandlers<V>,
     compact: bool,
@@ -987,11 +1021,18 @@ fn combo_row<V: 'static>(
         .py(px(8.0))
         .when(row.disabled && !fade_text, |element| element.opacity(0.55))
         .when(highlighted && !row.disabled, |element| element.bg(wash))
-        .children(
-            row.leading
-                .clone()
-                .map(|leading| row_leading(leading, compact, crate::agent_mark::Size::Fourteen, crate::agent_mark::Space::Row, tokens)),
-        )
+        .map(|element| match (row.leading.clone(), column) {
+            (Some(leading), _) => element.child(row_leading(
+                leading,
+                compact,
+                crate::agent_mark::Size::Fourteen,
+                crate::agent_mark::Space::Row,
+                tokens,
+            )),
+            // The list's mark column, kept empty ([`leading_column`]).
+            (None, Some(width)) => element.child(div().flex_none().w(px(width))),
+            (None, None) => element,
+        })
         .child(words)
         // Paseo's trailing slot: the check, then the row's own words (a
         // value at most 45% of the row, one line).
@@ -1096,6 +1137,7 @@ mod tests {
                 list = list.child(combo_row(
                     index,
                     row,
+                    leading_column(&self.rows),
                     &self.state,
                     &handlers,
                     false,
@@ -1289,6 +1331,39 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_list_with_any_mark_keeps_the_mark_column_on_every_row() {
+        let marked = |glyph: Glyph| {
+            let mut row = ComboRow::new("marked");
+            row.leading = Some(Leading::Mark(glyph));
+            row
+        };
+        // Codex's modes: two marked, `read-only` without one.
+        let modes = [
+            ComboRow::new("Read Only"),
+            marked(Glyph::Shield),
+            marked(Glyph::ShieldOff),
+        ];
+        assert_eq!(leading_column(&modes), Some(16.0));
+        // No row marked: no column, labels start at the row's edge.
+        assert_eq!(
+            leading_column(&[ComboRow::new("a"), ComboRow::new("b")]),
+            None
+        );
+        // A machine's dot keeps its own width; the widest wins.
+        let mut dot = ComboRow::new("machine");
+        dot.leading = Some(Leading::Dot(gpui::black()));
+        assert_eq!(
+            leading_column(&[dot.clone(), ComboRow::new("x")]),
+            Some(14.0)
+        );
+        assert_eq!(leading_column(&[dot, marked(Glyph::Shield)]), Some(16.0));
+        // An agent list's rows carry their own marks, of the agent's width.
+        let mut agent = ComboRow::new("agent");
+        agent.leading = Some(Leading::AgentMark(None));
+        assert_eq!(leading_column(&[agent, ComboRow::new("x")]), None);
     }
 
     #[test]
