@@ -1,8 +1,8 @@
 //! Projected shared names, connections and secret-name presence only.
 use super::{Shell, frame};
 use vessel_app_kit::ui::{
-    AnyElement, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, Styled, Window, div, px,
+    AnyElement, Div, InteractiveElement as _, IntoElement as _, ParentElement as _, Stateful,
+    Styled, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, fonts, settings, theme::spacing};
 use vessel_app_view::sync::{FileKind, Part, Snapshot, connection_variant};
@@ -22,12 +22,27 @@ pub(super) fn publication(
     if published.files.is_empty() {
         files = files.child(frame::message(words.empty_files, tokens));
     }
+    // The path is the row's identity: its title in the code face (cut in
+    // the middle, the whole of it in a tooltip); the hint says its kind,
+    // size and whether it runs (the same kind as the title on every row
+    // said nothing: the coordinator's review).
     for (index, file) in published.files.iter().enumerate() {
-        files = files.child(settings::row_at(
-            words.file_kind(FileKind::of(&file.path)),
-            Some(words.file_metadata(file.size, file.mode).into()),
+        files = files.child(settings::row_with_content(
+            div()
+                .w_full()
+                .min_w_0()
+                .flex()
+                .flex_col()
+                .gap(px(spacing::S1))
+                .child(path(shell, file.path.as_str(), tokens, compact, window))
+                .child(
+                    div()
+                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground_muted)
+                        .child(words.file_hint(FileKind::of(&file.path), file.size, file.mode)),
+                )
+                .into_any_element(),
             None,
-            Some(path(shell, file.path.as_str(), tokens, compact, window).into_any_element()),
             index == 0,
             compact,
             tokens,
@@ -151,21 +166,13 @@ fn path(
     compact: bool,
     window: &Window,
 ) -> Stateful<Div> {
-    // A phone's row content width, under the row's words; beside them on a
-    // pointer's width.
-    let width = if compact {
-        settings::PHONE_ROW_INSET.mul_add(-1.0, f32::from(window.viewport_size().width))
-    } else {
-        PATH_WIDTH
-    };
+    let width = title_width(window, compact);
     let shown = fonts::elide_middle(window, text, Type::Mono, width);
     let cut = shown != text;
     let element = div()
         .id(gpui::SharedString::from(format!("sync-path-{text}")))
         .w(px(width))
         .flex_none()
-        .flex()
-        .when(!compact, Styled::justify_end)
         .type_(Type::Mono)
         .whitespace_nowrap()
         .text_color(tokens.neutral.foreground)
@@ -178,5 +185,23 @@ fn path(
     state.tips.on(element, &place, text.to_owned(), compact)
 }
 
-/// A path's room beside its row's words on a pointer's width.
-const PATH_WIDTH: f32 = 320.0;
+/// A path's room as its row's title: on a phone the row's content width;
+/// on a pointer's width the settings card's inner width, 655 at its widest
+/// (measured at 1280), less in a narrower window (the sidebar's 266 and the
+/// page's margins and padding, 82, beside it).
+fn title_width(window: &Window, compact: bool) -> f32 {
+    let viewport = f32::from(window.viewport_size().width);
+    if compact {
+        settings::PHONE_ROW_INSET.mul_add(-1.0, viewport)
+    } else {
+        DESKTOP_BESIDE
+            .mul_add(-1.0, viewport)
+            .clamp(0.0, DESKTOP_CARD_INNER)
+    }
+}
+
+/// The settings card's inner width at its widest.
+const DESKTOP_CARD_INNER: f32 = 655.0;
+/// What sits beside the card's inner width on a pointer's width: the
+/// sidebar, the page's margins and the row's padding.
+const DESKTOP_BESIDE: f32 = 348.0;

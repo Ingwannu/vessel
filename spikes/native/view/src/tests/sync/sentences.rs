@@ -228,29 +228,17 @@ fn file_sizes_modes_and_connection_versions_are_readable_values() {
     let mut files = published.files.into_iter();
     let instructions = files.next().unwrap();
     let skill = files.next().unwrap();
-    assert_eq!(
-        Lang::En
-            .sync()
-            .file_metadata(instructions.size, instructions.mode),
-        "Size: 2.0 KB."
-    );
-    assert_eq!(
-        Lang::Ko
-            .sync()
-            .file_metadata(instructions.size, instructions.mode),
-        "크기: 2.0 KB."
-    );
-    assert_eq!(
-        Lang::En.sync().file_metadata(skill.size, skill.mode),
-        "Size: 3.0 MB. This file can run as a program."
-    );
-    assert_eq!(
-        Lang::Ko.sync().file_metadata(skill.size, skill.mode),
-        "크기: 3.0 MB. 실행할 수 있는 파일입니다."
-    );
+    let hint = |lang: Lang, file: &SharedFile| {
+        lang.sync()
+            .file_hint(FileKind::of(&file.path), file.size, file.mode)
+    };
+    assert_eq!(hint(Lang::En, &instructions), "Instructions · 2.0 KB");
+    assert_eq!(hint(Lang::Ko, &instructions), "지침 · 2.0 KB");
+    assert_eq!(hint(Lang::En, &skill), "Skill · 3.0 MB · executable");
+    assert_eq!(hint(Lang::Ko, &skill), "스킬 · 3.0 MB · 실행 가능");
     for (kind, en, ko) in [
         (FileKind::Instructions, "Instructions", "지침"),
-        (FileKind::Skill, "Skill file", "스킬 파일"),
+        (FileKind::Skill, "Skill", "스킬"),
         (FileKind::Other, "Shared file", "공유 파일"),
     ] {
         assert_eq!(Lang::En.sync().file_kind(kind), en);

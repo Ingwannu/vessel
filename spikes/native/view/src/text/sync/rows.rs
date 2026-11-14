@@ -41,23 +41,24 @@ impl SyncWords {
         match (self.lang, kind) {
             (Lang::En, FileKind::Instructions) => "Instructions",
             (Lang::Ko, FileKind::Instructions) => "지침",
-            (Lang::En, FileKind::Skill) => "Skill file",
-            (Lang::Ko, FileKind::Skill) => "스킬 파일",
+            (Lang::En, FileKind::Skill) => "Skill",
+            (Lang::Ko, FileKind::Skill) => "스킬",
             (Lang::En, FileKind::Other) => "Shared file",
             (Lang::Ko, FileKind::Other) => "공유 파일",
         }
     }
-    /// File size and executable flag; `size` uses the existing binary-unit formatter.
+    /// A shared file row's hint under its path: its kind, its size and,
+    /// when it can run as a program, that word; no label, no period (the
+    /// coordinator's review: the path is the row's title, these are facts
+    /// about it). `size` uses the existing binary-unit formatter.
     #[must_use]
-    pub fn file_metadata(&self, size: FileSize, mode: FileMode) -> String {
+    pub fn file_hint(&self, kind: FileKind, size: FileSize, mode: FileMode) -> String {
+        let kind = self.file_kind(kind);
         let size = size.word();
         match (self.lang, mode) {
-            (Lang::En, FileMode::Data) => format!("Size: {size}."),
-            (Lang::En, FileMode::Executable) => {
-                format!("Size: {size}. This file can run as a program.")
-            }
-            (Lang::Ko, FileMode::Data) => format!("크기: {size}."),
-            (Lang::Ko, FileMode::Executable) => format!("크기: {size}. 실행할 수 있는 파일입니다."),
+            (_, FileMode::Data) => format!("{kind} · {size}"),
+            (Lang::En, FileMode::Executable) => format!("{kind} · {size} · executable"),
+            (Lang::Ko, FileMode::Executable) => format!("{kind} · {size} · 실행 가능"),
         }
     }
     /// Preserved local files, or an explicit absent report; full count sentences.
