@@ -104,9 +104,11 @@ The reply: the owner's bubble (Paseo's reply has none): Paseo's user
 bubble mirrored (16 inside, radius 16 with the corner toward the agent
 at 4) on `surface1` edged with a hairline. It hugs its words as the
 person's bubble does (a two-word reply is a two-word bubble) and grows
-to the column at most: a wide table takes the column and its cells
-wrap, a long code line scrolls sideways inside its block; the bubble
-never passes the column. Every reply takes it the same way (the first
+to the column at most: a wide table takes the column, its cells wrap,
+and what still does not fit scrolls sideways inside the bubble (800 ×
+600: the five-column table of the fleet's `shapes` turn); a long code
+line scrolls sideways inside its block; the bubble never passes the
+column. Every reply takes it the same way (the first
 after a session is started again, a replayed conversation, a reply
 still streaming: all are the timeline's message entries); beside a turn's first reply a 28-point circle
 with the session's agent's mark (worker B's star-to-circle morph is to
