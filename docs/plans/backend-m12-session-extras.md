@@ -940,3 +940,10 @@ tree gates using detached commands and build slots. Report screen calls to
 the app owners through the normal review path; do not draw or register a
 screen. Files/HTML ADR 0047 stays after this new priority. No owned build,
 fake fleet or virtual display remains running at this checkpoint.
+
+Contract handoff: docs-only d732de4459e570ec8daf175a915e19fbbcdcd894 was
+submitted to V1 with both document hashes and the complete reference,
+compatibility, authority, lifecycle and evidence boundaries. Startup
+recovery code has not started; the next action is to resolve that contract
+review, then implement its accepted form. No additional gate was run for
+the documentation-only handoff.
