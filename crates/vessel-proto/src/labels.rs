@@ -1,4 +1,5 @@
-//! Labels on a session (ADR 0063): parsed once, valid wherever they are held.
+//! Validated session labels and bounded map operations (ADR 0063).
+//! Wire versioning, discovery requests and session lifecycle belong elsewhere.
 //!
 //! A key is trimmed, one to 64 scalars, with no `=` and no character for
 //! which `char::is_control` is true (the same refusal as [`SessionTitle`],
@@ -29,32 +30,38 @@ pub struct LabelValue(Arc<str>);
 
 /// Why a label was refused. The text names the rule, and a key only when
 /// that key is safe to print (it passed the control and length checks).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum InvalidLabel {
     /// Nothing but white space.
+    #[error("a label key is empty")]
     EmptyKey,
     /// A control character, including C1. The text is not echoed.
+    #[error("a label cannot contain a control character")]
     Control,
     /// More than [`LabelKey::MAX_CHARS`] scalars, after trimming.
+    #[error("a label key exceeds {} Unicode scalars", LabelKey::MAX_CHARS)]
     KeyTooLong,
     /// More than [`LabelValue::MAX_CHARS`] scalars.
+    #[error("a label value exceeds {} Unicode scalars", LabelValue::MAX_CHARS)]
     ValueTooLong,
     /// The key contains `=`.
+    #[error("label key '{key}' cannot contain '='")]
     Equals {
         /// The key, which is safe to print.
         key: String,
     },
     /// The key starts with `vessel.`.
+    #[error("label key '{key}' is reserved")]
     Reserved {
         /// The key, which is safe to print.
         key: String,
     },
     /// The session would have more than [`SessionLabels::MAX`] labels.
+    #[error("a session cannot hold more than {} labels", SessionLabels::MAX)]
     TooMany,
     /// A patch names no key.
+    #[error("nothing to update")]
     Empty,
-    /// A command-line label is not `key=value`.
-    NotAPair,
 }
 
 impl LabelKey {
@@ -144,24 +151,6 @@ impl fmt::Display for LabelValue {
 }
 
 serde_via_text!(LabelKey, LabelValue);
-
-impl fmt::Display for InvalidLabel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::EmptyKey => f.write_str("a label key is empty"),
-            Self::Control => f.write_str("a label cannot contain a control character"),
-            Self::KeyTooLong => f.write_str("a label key exceeds 64 Unicode scalars"),
-            Self::ValueTooLong => f.write_str("a label value exceeds 256 Unicode scalars"),
-            Self::Equals { key } => write!(f, "label key '{key}' cannot contain '='"),
-            Self::Reserved { key } => write!(f, "label key '{key}' is reserved"),
-            Self::TooMany => f.write_str("a session cannot hold more than 32 labels"),
-            Self::Empty => f.write_str("nothing to update"),
-            Self::NotAPair => f.write_str("a label is `key=value`"),
-        }
-    }
-}
-
-impl std::error::Error for InvalidLabel {}
 
 /// The labels a session carries now, or the ones a creation asked for.
 ///

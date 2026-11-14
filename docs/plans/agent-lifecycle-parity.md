@@ -2,7 +2,7 @@
 
 Labels, a background listing, a live reload, and selectors on `vessel log`.
 The decision is ADR 0063. The protocol number is the one given at merge.
-Calls and fields are gated on `lifecycle::SINCE`; this branch does not
+Calls and fields are gated on `lifecycle_version::SINCE`; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
@@ -122,7 +122,7 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 | Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. Keys and values reuse the title's control check (`char::is_control`, including C1). |
 | Marks as columns | schema 7 | Modify: the next schema append adds `labels` (JSON text, null is empty) and `listing` (`shown` default). The number is whatever the migration list's length is at merge. |
 | Unit `session.list` | `rpc/requests.rs` | Modify: a struct that still decodes `params: null`. |
-| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
+| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle_version::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
 | `Method::forwardable` and its pinned list | `forward.rs`, `rpc/tests.rs` | Modify: `session.labels` and `session.reload` are forwardable, as rename and wake are. |
 | Agent refusal | `vessel-node/src/workspace/policy.rs` | Modify: `session.labels` allowed; `session.reload` refused with its own reason, not the file-and-git sentence. |
 | Stop and `session/load` | `vessel-session/src/moving.rs`, parking's wake | Reuse from a new reload order. Do not change move, park, wake, rewind or fork. |
@@ -165,7 +165,7 @@ bounds, the map and the timestamps.
    the testkit's fakes and an event, never a sleep and never a real
    agent.
 
-The commit that first changes a wire type adds `lifecycle::SINCE` and
+The commit that first changes a wire type adds `lifecycle_version::SINCE` and
 gates the new calls and fields on it. It does not change
 `PROTOCOL_VERSION`. The integrator sets that one constant, and in the
 merge updates `docs/PROTOCOL.md`. The same code commit regenerates
@@ -186,7 +186,7 @@ No row of the crate table changes.
   with `scope: all`, and present in `session.get`. An older connection's
   list includes it and the encoded info has no listing field.
 - `session.create` with `listing: background` sent toward a negotiated
-  protocol older than `lifecycle::SINCE` is refused by the client before
+  protocol older than `lifecycle_version::SINCE` is refused by the client before
   the socket write.
 - Reload of a terminal, a parked session, an ended session, and a
   session with no harness session id does not spawn. A running turn
@@ -200,13 +200,15 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. Slice 2a adds only the validated
-  label types and their parser, atomic patch, logical-and filter and
-  bounded decoding tests. No wire field, call, store column or command
-  is enabled by this slice. No dependency or crate edge is added.
-- Half-done: slice 2b connects those types through the wire, store,
-  session actor, node, CLI and MCP. It must regenerate the wire types
-  and verify older peers before being reported.
-- Next: finish and gate slice 2b, then background (slice 3). The new
-  protocol constant and schema append land with 2b. Do not change
-  `PROTOCOL_VERSION`.
+- Done: slice 1 contract and slice 2a validated label types, atomic patch,
+  logical-and predicate and bounded decoding. The review correction keeps
+  these in `labels.rs`; discovery requests and the version constant have
+  separate modules when they land. Bound diagnostics use the declared
+  constants. The command-line-only refusal is deferred to its parser.
+- Half-done: creation and storage drafts remain separate from this slice.
+  No wire field, call, store column or command is enabled by 2a, and no
+  dependency or crate edge is added.
+- Next: gate and report the 2a review correction; then 2b creation/current
+  fields and storage, 2c discovery filter, 2d actor patch/RPC/event and
+  2e CLI/MCP ingress, before background. The protocol constant lands in
+  `lifecycle_version.rs` with 2b; do not change `PROTOCOL_VERSION`.
