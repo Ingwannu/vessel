@@ -206,17 +206,19 @@ fn a_shorter_screen_drops_blank_rows_first_then_keeps_its_top_in_history() {
 }
 
 #[test]
-fn a_narrower_screen_cuts_rows_and_a_wider_one_pads_them() {
+fn a_narrower_screen_reflows_and_a_wider_one_takes_the_lines_back() {
     let mut term = model(6, 2, 10);
-    play(&mut term, b"abcdef\x1b[2;6H");
+    play(&mut term, b"abcdef\r\n");
     resize(&mut term, 3, 2);
-    assert_eq!(screen(&term), ["abc", ""]);
-    assert_eq!(cursor(&term), Some((1, 2)));
+    assert_eq!(history(&term), ["abc"]);
+    assert_eq!(screen(&term), ["def", ""]);
+    assert_eq!(cursor(&term), Some((1, 0)));
     resize(&mut term, 8, 2);
-    assert_eq!(screen(&term), ["abc", ""]);
+    assert!(history(&term).is_empty());
+    assert_eq!(screen(&term), ["abcdef", ""]);
     // Columns gained have xterm's default stops (none below 8 here).
     play(&mut term, b"\x1b[1;1H\t!");
-    assert_eq!(screen(&term), ["abc    !", ""]);
+    assert_eq!(screen(&term), ["abcdef !", ""]);
     assert_eq!(cursor(&term), Some((0, 7)));
 }
 

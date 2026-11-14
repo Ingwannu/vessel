@@ -74,6 +74,12 @@ impl History {
         Some(line)
     }
 
+    /// Every line, oldest first, taken (a reflow rebuilds them).
+    pub(super) fn take_all(&mut self) -> Vec<Line> {
+        self.cells = 0;
+        std::mem::take(&mut self.lines).into()
+    }
+
     /// Forget every line (`CSI 3 J`, a reset).
     pub(super) fn clear(&mut self) {
         self.lines.clear();

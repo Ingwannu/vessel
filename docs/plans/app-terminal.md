@@ -399,7 +399,15 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   `nobody_answers_a_live_query_when_no_viewer_may`, the two hand-over
   tests at the model) and a flood bound (under four times the bytes,
   plus one carried answer).
-- Next: reflow; then T1's
+- P6, reflow (`grid/reflow.rs`): a width change joins the primary
+  screen's and history's soft-wrapped lines and cuts them again (a row
+  ends a cell early rather than split a wide pair; a one-column grid
+  blanks pairs), the cursor carried as an offset into its line, blank
+  rows below it dropped before any line leaves for history, a pending
+  wrap kept only on the new last column. The alternate screen is cut or
+  padded. While it shows, the primary's saved cursor is clamped, not
+  remapped.
+- Next: T1's
   screen with the kit control (agreed with the lead: a control-only
   commit, the palette in `kit/src/theme/terminal.rs` as
   `tokens.terminal`, the grid view reading only its own frame, the

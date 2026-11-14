@@ -212,6 +212,16 @@ impl Screen {
         self.lines.push(Line::blank(cols, blank));
     }
 
+    /// Every row, taken (a reflow rebuilds them).
+    pub(super) fn take_lines(&mut self) -> Vec<Line> {
+        std::mem::take(&mut self.lines)
+    }
+
+    /// `lines` as the rows; the caller gives exactly the grid's rows.
+    pub(super) fn set_lines(&mut self, lines: Vec<Line>) {
+        self.lines = lines;
+    }
+
     /// Rows held.
     pub(super) fn rows(&self) -> usize {
         self.lines.len()

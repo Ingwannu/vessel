@@ -3,7 +3,7 @@
 
 use super::{check, cursor, model, play, screen};
 use crate::terminal::TerminalModel;
-use crate::terminal::grid::{Glyph, Scroll};
+use crate::terminal::grid::Glyph;
 
 /// Row `row`'s glyphs.
 fn glyphs(term: &TerminalModel, row: usize) -> Vec<Glyph> {
@@ -97,26 +97,15 @@ fn erase_insert_and_delete_never_leave_half_a_pair() {
 }
 
 #[test]
-fn a_narrower_grid_cuts_a_wide_scalar_at_the_edge_to_a_blank() {
+fn a_narrower_alternate_screen_cuts_a_wide_scalar_at_the_edge_to_a_blank() {
+    // The alternate screen is cut, not reflowed.
     let mut term = model(4, 1, 0);
-    play(&mut term, "ab한".as_bytes());
+    play(&mut term, "\x1b[?1049hab한".as_bytes());
     if let Ok(size) = crate::terminal::GridSize::new(3, 1) {
         term.resize(size);
     }
     assert_eq!(glyphs(&term, 0), [Scalar('a'), Scalar('b'), Empty]);
     check(term.grid());
-}
-
-#[test]
-fn a_history_line_wider_than_the_grid_is_cut_whole_in_a_snapshot() {
-    let mut term = model(4, 1, 5);
-    play(&mut term, "ab한\r\n".as_bytes());
-    if let Ok(size) = crate::terminal::GridSize::new(3, 1) {
-        term.resize(size);
-    }
-    let back = term.snapshot(Scroll(1));
-    let row: Vec<Glyph> = back.cells.iter().map(|cell| cell.glyph()).collect();
-    assert_eq!(row, [Scalar('a'), Scalar('b'), Empty]);
 }
 
 #[test]

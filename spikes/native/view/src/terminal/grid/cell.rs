@@ -103,6 +103,21 @@ impl Line {
         }
     }
 
+    /// A line of `cells` ending as `wrap`.
+    pub(super) const fn from_cells(cells: Vec<Cell>, wrap: Wrap) -> Self {
+        Self { cells, wrap }
+    }
+
+    /// Its cells, taken.
+    pub(super) fn into_cells(self) -> Vec<Cell> {
+        self.cells
+    }
+
+    /// Nothing printed and nothing erased in a colour, ending hard.
+    pub(super) fn is_blank(&self) -> bool {
+        self.wrap == Wrap::Hard && self.cells.iter().all(|cell| *cell == Cell::BLANK)
+    }
+
     /// The cells.
     #[must_use]
     pub fn cells(&self) -> &[Cell] {

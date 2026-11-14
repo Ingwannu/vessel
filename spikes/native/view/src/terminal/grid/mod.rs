@@ -11,10 +11,9 @@
 //!   with xterm.js): a line that scrolls off the top of the primary screen
 //!   by a line feed goes to history when the scroll region starts at the
 //!   top; `CSI S` does not keep it; entering the alternate screen clears it
-//!   and keeps the cursor; a resize resets both regions; a taller primary
+//!   and keeps the cursor; a resize resets both regions; a width change
+//!   reflows the primary screen and history (`reflow`); a taller primary
 //!   screen takes lines back from history.
-//! - Not in this slice: reflow of soft-wrapped lines on a width change
-//!   (a resize cuts or pads each row for now), and answers to queries.
 //! - Bounds: two screens of at most 512 Ki cells each; history at most
 //!   the setting's lines and `history::CELL_LIMIT` cells; a title at most
 //!   the parser's 1,024 bytes; tab stops at most one per column.
@@ -27,6 +26,7 @@ mod modes;
 mod motion;
 mod pen;
 mod print;
+mod reflow;
 mod resize;
 mod screen;
 mod sgr;
@@ -217,14 +217,11 @@ impl Grid {
             };
             let printed = line.map_or(&[][..], Line::cells);
             let printed = printed.get(..cols.min(printed.len())).unwrap_or_default();
+            // History is reflowed on every width change, so no line is
+            // wider than the grid; the cut only guards the slice.
             let row_start = cells.len();
             cells.extend_from_slice(printed);
             cells.resize(row_start.saturating_add(cols), Cell::BLANK);
-            // A history line wider than the grid may be cut through a wide
-            // scalar at the edge.
-            if let Some(row) = cells.get_mut(row_start..) {
-                width::fix_pairs(row, cols.saturating_sub(1), cols, Cell::BLANK);
-            }
         }
         let cursor = match self.modes.visibility {
             Visibility::Shown => u16::try_from(back)
