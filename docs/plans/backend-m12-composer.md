@@ -10,7 +10,7 @@ named below with its reason.
 | Slice | Row | State |
 | --- | --- | --- |
 | a | Change the model, effort or permissions of a running session | built |
-| b | `/` the agent's commands | view logic written; needs the composer hooks |
+| b | `/` the agent's commands | kit hooks (`5f2fda69`) and list (`46932bc9`) in; view and screen next |
 | c | Attach images and files | not started |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | not started |
@@ -48,12 +48,14 @@ What Paseo does, and so the app:
 Deliberate differences:
 
 - **The toast's words.** Paseo shows the error's own message. The app's
-  rule is that a person reads the app's words in their language: each
-  refusal has a whole sentence of its own by the node's code
-  (`view::composer::running::Refusal`), in English and Korean. Where the
-  agent's own words carry the reason (it refused in its state; the
-  connection failed), they follow the sentence after a colon, as the
-  board's refused restart does; they may be English in a Korean sentence.
+  rule is that the toast's body is the app's sentence for the node's code
+  (`view::composer::running::Refusal`, English and Korean), never the
+  agent's original words; those stay in the log until the shared mapping
+  of codes (the lead's slice) gives them a tooltip or a copy. The link now
+  carries a node's refusal as its own message, not the client's wrapping.
+- **A refused effort, mode or feature stays the new chat's default**, as in
+  Paseo (it keeps those preferences before the change is sent, whatever
+  the agent answers); only a model is kept once taken.
 - **A read-only device** gets its own sentence (the node answers
   `Forbidden`); Paseo has no read-only devices.
 - **Matching answers to changes.** The link answers an act with its kind,
@@ -82,3 +84,14 @@ Not done in this slice:
   only; there is no notice on the wire.
 - Paseo's profiles on a running agent (apply or edit an agent profile):
   Vessel's profiles are chosen when a session starts.
+
+Checked (fake fleet, the app paired as a person pairs, in both themes and
+languages at 1280 and 390): the pills on a running Claude Code session with
+three prompts queued, the effort card, the permissions list (a sheet on the
+phone), a change shown once the agent reported it, and a refusal mid-turn
+(Codex's fake refuses `locked`). Captures outside the repository.
+
+Found, not this track's: the fleet's read-only device book
+(`ROOT/readonly-config`) shows its machine unreachable in the app while the
+CLI with the same book lists its sessions; the read-only refusal toast is
+therefore checked by the view's tests only.
