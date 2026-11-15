@@ -93,10 +93,15 @@ async fn retirement_after_write_dispatch_returns_original_uncertainty_without_re
         let _old = state.clients.insert("fixture".into(), Connected::new(client, Vec::new(), entry, context.clone()));
         let scope = FileScope::new(context.clone(), WorkspaceRoot::Project { project: ProjectId::random() });
         let ticket = FileTickets::default().issue().unwrap();
-        let ask = FileAsk::Save(super::Save { ticket, root: scope.root(), path: "a.txt".parse().unwrap(), text: "submitted".into(), base: None });
+        // A normal guarded save isolates retirement after write dispatch;
+        // explicit overwrite now has a separate existing-file pre-read.
+        let guard = "a".repeat(64).parse::<vessel_proto::workspace::ContentHash>().unwrap();
+        let ask = FileAsk::Save(super::Save { ticket, root: scope.root(), path: "a.txt".parse().unwrap(), text: "submitted".into(),
+            base: Some(FileVersion { size: 8, modified: 0, hash: Some(guard.clone()) }) });
         state.scoped_file(Request::file(scope.clone(), ask).unwrap());
         let dispatched = phase("observe original write frame", original.requests.as_mut().unwrap().recv()).await.unwrap();
-        assert!(matches!(dispatched.call, vessel_proto::Call::WriteFile(_)));
+        assert!(matches!(&dispatched.call, vessel_proto::Call::WriteFile(write)
+            if write.expect == vessel_proto::workspace::WriteExpect::Content { hash: guard }));
         state.clients["fixture"].retire();
         let _late = dispatched.answer.send(WireOutcome::Ok(WireReply::WriteFile(FileVersion { size: 9, modified: 0, hash: None })));
         let event = phase("settle retired original write", events.recv()).await.unwrap();

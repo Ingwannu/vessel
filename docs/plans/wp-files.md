@@ -503,3 +503,8 @@ cap; no total-heap or frame-time proof is claimed. New tests are source-only.
 Selected readonly rows use the same compact index directly; even a selection
 starting far into a document does not walk preceding rows, and end/reversed
 ranges clamp to existing rows. Source fixtures pin overshooting/reversed input.
+
+The framed write-retirement regression uses a valid normal content guard, so
+its dispatch barrier still names the original write itself after explicit
+overwrite gained a pre-read. It additionally pins that exact transmitted guard;
+the original single-write/no-replay and retained original scope assertions stay.
