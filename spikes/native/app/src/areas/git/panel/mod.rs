@@ -27,6 +27,9 @@ pub(super) struct Panels {
 }
 struct Entry {
     target: PanelTarget,
+    // The discovery key remains the owner incarnation after its reply settles.
+    // Same-root Refresh must not revive a callback from the previous entry.
+    instance: Option<vessel_app_view::workspace::git::RequestKey>,
     comparison: Comparison,
     reason: vessel_proto::workspace::GitReadReason,
     context: Option<ConnectionContext>,
@@ -47,6 +50,7 @@ impl Entry {
         };
         Self {
             target,
+            instance: None,
             comparison,
             reason: vessel_proto::workspace::GitReadReason::View,
             context,
@@ -75,3 +79,16 @@ pub(crate) use draw::render_panel;
 
 #[cfg(test)]
 mod settlement_tests;
+
+// Adapt feature identity to the ONE layout query; never keep a second target book.
+#[must_use]
+fn layout_target(target: &PanelTarget) -> vessel_app_view::layout::Target {
+    match target {
+        PanelTarget::Changes => vessel_app_view::layout::Target::Changes,
+        PanelTarget::WorkingDiff => vessel_app_view::layout::Target::WorkingDiff,
+        PanelTarget::CommitDiff(id) => vessel_app_view::layout::Target::CommitDiff(id.clone()),
+    }
+}
+
+#[cfg(test)]
+mod target_tests;

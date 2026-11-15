@@ -134,7 +134,11 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
         },
     };
     let comparison = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Show);
+    let mut keys = RequestKeys::default();
+    let instance = keys.issue().unwrap();
     let captured = ComparisonChange {
+        target: super::PanelTarget::WorkingDiff,
+        instance,
         address: PanelAddress {
             workspace: LayoutKey::Session {
                 machine: HostAlias::parse("fixture").unwrap(),
@@ -147,8 +151,15 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
         comparison: comparison.clone(),
     };
     let mut entry = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
+    entry.instance = Some(instance);
     entry.reads = Some(PanelReads::new(repository, comparison.clone()));
     assert!(captured.is_current(&entry, Some(&context)));
+    entry.instance = Some(keys.issue().unwrap());
+    assert!(
+        !captured.is_current(&entry, Some(&context)),
+        "Refresh replaced the owner"
+    );
+    entry.instance = Some(instance);
     assert!(!captured.is_current(&entry, None));
     let newer = epochs
         .admit(context.machine().clone(), context.node())

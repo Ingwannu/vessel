@@ -66,7 +66,12 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.layout_panel_visible(&address.workspace, address.tab, window) {
+        if !self.layout_tab_matches(
+            &address.workspace,
+            address.tab,
+            &super::layout_target(&target),
+        ) || !self.layout_panel_visible(&address.workspace, address.tab, window)
+        {
             return;
         }
         self.git_panels_prune();
@@ -85,7 +90,20 @@ impl Shell {
     }
 
     pub(crate) fn git_panel_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
-        if !self.layout_tab_exists(&answer.address.workspace, answer.address.tab) {
+        let current_target = self
+            .areas
+            .git
+            .panels
+            .entries
+            .get(&answer.address)
+            .is_some_and(|entry| {
+                self.layout_tab_matches(
+                    &answer.address.workspace,
+                    answer.address.tab,
+                    &super::layout_target(&entry.target),
+                )
+            });
+        if !current_target {
             let _removed = self.areas.git.panels.entries.remove(&answer.address);
             return;
         }
@@ -188,9 +206,15 @@ impl Shell {
             .git
             .panels
             .entries
-            .keys()
-            .filter(|address| !self.layout_tab_exists(&address.workspace, address.tab))
-            .cloned()
+            .iter()
+            .filter(|(address, entry)| {
+                !self.layout_tab_matches(
+                    &address.workspace,
+                    address.tab,
+                    &super::layout_target(&entry.target),
+                )
+            })
+            .map(|(address, _entry)| address.clone())
             .collect::<Vec<_>>();
         for address in closed {
             let _dropped = self.areas.git.panels.entries.remove(&address);
@@ -255,17 +279,20 @@ fn discover(
             None
         }
         (LayoutKey::Session { .. }, Some(context)) => match keys.issue() {
-            Ok(key) => match entry.binding.begin(address.clone(), context, key) {
-                Ok(ticket) => Some(Ask::Locate(ticket)),
-                Err(LocationRefusal::NeedsRegistry) => {
-                    entry.problem = Some(ReadFailure::WorkspaceUnavailable);
-                    None
+            Ok(key) => {
+                entry.instance = Some(key);
+                match entry.binding.begin(address.clone(), context, key) {
+                    Ok(ticket) => Some(Ask::Locate(ticket)),
+                    Err(LocationRefusal::NeedsRegistry) => {
+                        entry.problem = Some(ReadFailure::WorkspaceUnavailable);
+                        None
+                    }
+                    Err(LocationRefusal::DestinationChanged) => {
+                        entry.problem = Some(ReadFailure::DestinationChanged);
+                        None
+                    }
                 }
-                Err(LocationRefusal::DestinationChanged) => {
-                    entry.problem = Some(ReadFailure::DestinationChanged);
-                    None
-                }
-            },
+            }
             Err(_exhausted) => {
                 entry.problem = Some(ReadFailure::KeysExhausted);
                 None

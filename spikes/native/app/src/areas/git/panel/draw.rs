@@ -161,12 +161,17 @@ fn empty(
         .context
         .as_ref()
         .zip(entry.reads.as_ref())
-        .map(|(context, reads)| super::comparison::ComparisonChange {
-            address: address.clone(),
-            context: context.clone(),
-            repository: reads.repository(),
-            comparison: reads.comparison().clone(),
-        });
+        .zip(entry.instance)
+        .map(
+            |((context, reads), instance)| super::comparison::ComparisonChange {
+                address: address.clone(),
+                target: entry.target.clone(),
+                instance,
+                context: context.clone(),
+                repository: reads.repository(),
+                comparison: reads.comparison().clone(),
+            },
+        );
     div()
         .size_full()
         .flex()

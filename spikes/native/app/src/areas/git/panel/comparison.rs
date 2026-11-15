@@ -9,6 +9,8 @@ use vessel_app_view::workspace::git::panel::{
 
 pub(super) struct ComparisonChange {
     pub(super) address: PanelAddress,
+    pub(super) target: PanelTarget,
+    pub(super) instance: vessel_app_view::workspace::git::RequestKey,
     pub(super) context: vessel_app_view::connection::ConnectionContext,
     pub(super) repository: RepositoryKey,
     pub(super) comparison: Comparison,
@@ -20,7 +22,9 @@ impl ComparisonChange {
         entry: &super::Entry,
         current: Option<&vessel_app_view::connection::ConnectionContext>,
     ) -> bool {
-        current == Some(&self.context)
+        entry.instance == Some(self.instance)
+            && entry.target == self.target
+            && current == Some(&self.context)
             && entry.context.as_ref() == Some(&self.context)
             && matches!(
                 entry.target,
@@ -41,7 +45,12 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let address = &captured.address;
-        if !self.layout_panel_visible(&address.workspace, address.tab, window) {
+        if !self.layout_tab_matches(
+            &address.workspace,
+            address.tab,
+            &super::layout_target(&captured.target),
+        ) || !self.layout_panel_visible(&address.workspace, address.tab, window)
+        {
             return;
         }
         let current = self.git_panel_context(address);

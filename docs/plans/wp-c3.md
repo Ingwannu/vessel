@@ -791,3 +791,30 @@ No local Rust compile was started, but that metadata invocation still violates
 the VM-only Cargo instruction. Future boundary/metadata checks run on the VM;
 only standalone rustfmt, the pure file-size/token scans and text/import scans
 remain local. Earlier boundary output is not labeled workflow compliance.
+
+
+## Current target and local owner incarnation fences
+
+[Decision Log]
+- Existing asset: W12's checked portable17094/6f1a/0396 CURRENT-target query;
+  adopt only those three leaves, not its moving resources branch. It is not
+  an ABA/visit/lease/ticket proof, and our combined compilation is still owed.
+- Problem: C3 checked only tab existence/visibility, so a retained mode callback
+  or reply could run after that same tab became another target. Same-root
+  Refresh also recreated an indistinguishable local mode callback owner.
+- Choice: use the sole book's current target query before deferred opening,
+  answer installation, cleanup and mode activation; retain the already-issued
+  discovery RequestKey as the local entry incarnation after discovery settles.
+  The callback captures that key plus exact typed PanelTarget, original physical
+  context/repository/comparison. No independent layout or connection book.
+- Effect/limits: changed targets and recreated entries are refused; old replies
+  cannot evict a current replacement just because their old target differs.
+  Unobserved A-to-other-to-A on an UNRECREATED owner still needs W12's actual
+  synchronous owner-retirement hook. That producer is not ready, so no complete
+  visit/ABA/authority/UI acceptance is claimed from the current-target query.
+- Evidence prepared: actual layout retarget + direct owner callback on a test
+  window with a detached bounded Link; assert no git command and old answer
+  cannot retain its stale owner. Existing pure fixture checks new incarnation
+  on identical root/context/comparison. No test or new source check has run yet;
+  current bdeed/08b1 jobs predate this App-only source. Final package tests must
+  include this union. No layout source beyond the reviewed leaves is edited.
