@@ -26,9 +26,8 @@ pub const MAX_ACTION_INPUT_BYTES: usize = 64 * 1024;
 
 /// A validated declaration graph. Private fields prevent bypassing validation by
 /// mutating a previously valid document; catalog holders may borrow it cheaply.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(try_from = "DocumentInput")]
 pub struct ClientDocument {
     methods: Vec<RpcName>,
     contributions: Vec<Contribution>,
@@ -101,8 +100,9 @@ impl ClientDocument {
         if bytes.len() > MAX_DOCUMENT_BYTES {
             return Err(DocumentError::Bytes);
         }
-        serde_json::from_slice(bytes)
-            .map_err(|cause| DocumentError::Decode(PluginJsonError::new(cause)))
+        let input = serde_json::from_slice::<DocumentInput>(bytes)
+            .map_err(|cause| DocumentError::Decode(PluginJsonError::new(cause)))?;
+        input.try_into()
     }
 
     /// Construct an immutable graph for a helper or typed fixture.
@@ -200,6 +200,18 @@ impl ClientDocument {
             BudgetState::Available => DocumentError::Encode(PluginJsonError::new(source)),
             BudgetState::Exceeded => DocumentError::Bytes,
         })
+    }
+}
+
+impl<'de> Deserialize<'de> for ClientDocument {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // Generic serde callers (including a containing helper/RPC envelope)
+        // must get the same safe boundary. The named byte decoder above retains
+        // the concrete sealed parser cause and checks the pre-allocation cap.
+        let input = DocumentInput::deserialize(deserializer).map_err(|_untrusted| {
+            serde::de::Error::custom("invalid plugin declaration structure")
+        })?;
+        Self::try_from(input).map_err(serde::de::Error::custom)
     }
 }
 

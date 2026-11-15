@@ -161,7 +161,7 @@ fn file_pattern(raw: &str) -> Option<&str> {
 fn literal_selector(raw: &str, max_bytes: usize) -> bool {
     !raw.is_empty()
         && raw.len() <= max_bytes
-        && raw.trim() == raw
+        && crate::workspace::trim_project_text(raw) == raw
         && !raw
             .chars()
             .any(|c| c.is_control() || matches!(c, '/' | '\\' | '*' | '?'))
@@ -269,5 +269,35 @@ mod tests {
             "한".repeat(MAX_THEME_NAME_UNITS.saturating_add(1))
         );
         assert!(over.parse::<ThemeName>().is_err());
+    }
+
+    #[test]
+    fn file_selectors_reject_javascript_edge_whitespace_without_normalization() {
+        for raw in [
+            "\u{feff}",
+            "\u{feff}rs",
+            "rs\u{feff}",
+            "\u{feff}rs\u{feff}",
+            "\u{feff}.gitignore",
+            ".gitignore\u{feff}",
+        ] {
+            assert!(raw.parse::<FileExtension>().is_err());
+            assert!(raw.parse::<FileNamePattern>().is_err());
+            let json = serde_json::to_string(raw).expect("encode");
+            assert!(serde_json::from_str::<FileExtension>(&json).is_err());
+            assert!(serde_json::from_str::<FileNamePattern>(&json).is_err());
+        }
+        assert_eq!(
+            "한글+c".parse::<FileExtension>().expect("unicode").as_str(),
+            "한글+c"
+        );
+        assert_eq!(
+            ".gitignore"
+                .parse::<FileNamePattern>()
+                .expect("dotfile")
+                .as_str(),
+            ".gitignore"
+        );
+        assert!("CON".parse::<FileNamePattern>().is_ok());
     }
 }

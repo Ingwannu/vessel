@@ -135,6 +135,11 @@ before serde's input-bearing unknown-field/variant text. A fixed outer error
 alone is insufficient because tracing and CLI reporters may walk sources.
 Raw serde errors stay inside the decoding edge and must be sealed before
 being returned or emitted as diagnostics.
+The generic ClientDocument serde implementation seals structural errors too;
+this rule applies even when it is nested inside another typed envelope. File
+selectors require equality with JavaScript-edge-trimmed text rather than
+normalizing it, so BOM-only or BOM-wrapped matchers refuse at direct and serde
+construction boundaries.
 
 ### Node-side helper protocol and contribution API
 
