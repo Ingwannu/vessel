@@ -826,3 +826,10 @@ Tests retain the actual shared row frame and literal width/height expectations
 in both schemes and densities, including three-line input capped to two and
 pending/success restoring the old row height. These tests are installed but
 not executed yet. No runtime/UI/G1 consumer or full F4 pass is claimed.
+
+Announced82ca07a7 is adopted after all prior Main compile runs ended. Its delta
+from6eb is the checked W12 staged retirement hook and G2 picker receipt, not a
+new sidebar/menu renderer. The merge is clean; preserve the one picker layer
+marker and all owner code. Prior6eb/698 diagnostics and source corrections do
+not establish a pass for this later union. The separate policy run590 remains
+immutable and queued; no second Cargo or unchanged gate is started.
