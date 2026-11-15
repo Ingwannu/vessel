@@ -183,11 +183,11 @@ fn report_actions(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -
     let refresh = outline_button(
         "settings-diagnostic-refresh",
         framing.refresh(),
-        true,
+        shell.areas.settings.diagnostics.collection.can_start(),
         tokens,
     )
     .on_click(cx.listener(|shell, _event, window, cx| {
-        shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx);
+        shell.refresh_diagnostic(window, cx);
     }));
     vec![refresh.into_any_element(), copy.into_any_element()]
 }

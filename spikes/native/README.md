@@ -1169,8 +1169,9 @@ Settings > Diagnostics retains the existing app report dialog. Run collects the
 client facts and safe basic node information independently for each saved host;
 a host row runs the same report for one host. Copy becomes available only once
 all rows settle and the combined UTF-8 report passes its bound. Refresh replaces
-the active request identity and preserves the selected host. Closing discards
-late results. Host names, routes, keys and raw errors are excluded from the
+the active request identity and preserves the selected host. Refresh is disabled
+while collection is in progress, and the action checks that state again. Closing
+discards late results. Host names, routes, keys and raw errors are excluded from the
 shareable host sections.
 
 The current node does not expose a full host diagnostic, extended process
@@ -1198,3 +1199,8 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Active host RTT is deliberately omitted: Paseo performs a separate bounded
+latency probe, but the current Vessel client exposes neither that probe nor a
+transport RTT observation. The node-info deadline/success is not an RTT value;
+this omission is independent of the full daemon diagnostic producer.

@@ -206,3 +206,43 @@ process metrics and raw daemon-log viewing remain explicit Unavailable. Full
 and partial daemon report fixtures are cfg(test) only. Provider diagnostics is
 A9 and onboarding W15; no duplicate work is landed. Native watchdog/mobile
 shims and bundled web hosting are outside this app diagnostic sheet package.
+
+## V4 row173 corrections
+
+Paseo app-diagnostic-sheet.tsx185-194 disables Refresh while loading. This app
+now uses Collection.can_start for both the visual enabled state and the action
+boundary. A retained earlier enabled callback cannot replace a collecting run,
+spend a ticket or dispatch another read. A closed sheet also ignores its stale
+Refresh callback. The existing detached Link test seam holds the actual submitted
+command until a typed answer settles it; a real GPUI handler regression checks
+no replacement/extra dispatch, the next ticket after settlement, and no reopen
+after close. This restores reference behavior instead of allowing overlapping
+refreshes to exhaust the shared four permits.
+
+Deliberate remaining reference difference: Paseo lines283-287 independently
+measures Active RTT with measureLatency(timeoutMs5000), even without full daemon
+diagnostics. Vessel does not collect or render that observation. The existing
+NodeClient/RPC public boundary exposes no active latency/echo measurement or
+observed transport RTT getter. Timing node.info would include command scheduling
+and server processing and would be an RPC-duration observation, not the same
+active transport probe. No duration is inferred from node.info success or its
+10-second read deadline. This omission is independent of full-daemon API
+availability. A future explicit SDK observation can provide a typed measured
+duration with the reference five-second budget; no substitute value or invented
+call is introduced here.
+
+The collector's actual State.handle(Command::Diagnostics) path now has an
+in-memory framed held-peer regression. Four requests occupy the real permits;
+a fifth is Busy. A barrier proves the reads were sent. Paused time advances to
+one millisecond before the product deadline (no result), then expiration maps
+all four to TimedOut and releases the permits. The peer observes their RPC
+cancellations and replies successfully to a subsequent real dispatch. A separate
+20-second wall-clock watchdog bounds a broken test independently of virtual
+time. Only Tokio's existing test-only test-util feature is enabled; no product
+dependency, protocol method or timeout changes. Existing framed assertions remain.
+
+These are changes on frozen base4. Prior1302/0/2 and the inspected ready-state
+layout matrix remain their original exact-source evidence, not a new-head gate
+or capture claim. The old extra running frame shows the pre-fix enabled Refresh
+and is superseded as behavior evidence by the new handler regression and draw
+predicate. Correction narrow outcomes are pending; review approval is pending.

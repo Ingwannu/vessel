@@ -56,6 +56,11 @@ impl Shell {
     }
 }
 
+/// A detached command receiver lets area tests hold a read without any I/O.
+pub(crate) fn attach_link(shell: &mut Shell, link: Link) {
+    shell.link = Some(link);
+}
+
 pub(crate) fn init(cx: &mut TestAppContext) {
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap();

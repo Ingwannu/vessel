@@ -67,6 +67,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // A retained earlier enabled action must not replace useful in-flight work.
+        if !self.areas.settings.diagnostics.collection.can_start() {
+            return;
+        }
         self.areas.settings.diagnostics.collection.close();
         let facts = app_facts(self, window);
         let client =
@@ -97,6 +101,12 @@ impl Shell {
         self.pump_diagnostics();
         self.areas.settings.diagnostics.dialog.focus(window, cx);
         cx.notify();
+    }
+    fn refresh_diagnostic(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.settings.diagnostics.collection.phase() == &Phase::Hidden {
+            return;
+        }
+        self.run_diagnostic(self.areas.settings.diagnostics.target.clone(), window, cx);
     }
     fn failed_diagnostic(
         &mut self,
@@ -228,3 +238,6 @@ fn host_requests(
 
 #[cfg(test)]
 mod language_tests;
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod refresh_tests;

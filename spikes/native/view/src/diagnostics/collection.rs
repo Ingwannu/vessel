@@ -323,6 +323,14 @@ impl Collection {
         self.rows.clear();
         self.report = None;
     }
+    /// An explicit new run waits for the current collection to settle.
+    #[must_use]
+    pub const fn can_start(&self) -> bool {
+        match self.phase {
+            Phase::Hidden | Phase::Ready | Phase::Failed(_) => true,
+            Phase::Collecting => false,
+        }
+    }
     /// Correlation for dispatching the next pending host of this same run.
     #[must_use]
     pub const fn ticket(&self) -> Option<Ticket> {

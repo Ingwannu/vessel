@@ -42,15 +42,7 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
 async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::JoinHandle<()>) {
     let (local, mut remote) = tokio::io::duplex(FRAME_BYTES);
     let task = tokio::spawn(async move {
-        assert!(matches!(read(&mut remote).await, ClientFrame::Hello(_)));
-        write(
-            &mut remote,
-            ServerFrame::Welcome(Welcome {
-                protocol: vessel_proto::PROTOCOL_VERSION,
-                node: node(admitted),
-            }),
-        )
-        .await;
+        welcome(&mut remote, admitted).await;
         if let ClientFrame::Request { id, call } = read(&mut remote).await {
             assert!(
                 matches!(call, Call::NodeInfo(_)),
@@ -63,18 +55,7 @@ async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::J
         let mut byte = [0];
         let _closed = remote.read(&mut byte).await;
     });
-    let (reader, writer) = tokio::io::split(local);
-    let client = NodeClient::over(
-        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_BYTES).unwrap()),
-        ClientInfo {
-            name: "diagnostic-test".to_owned(),
-            version: "0".to_owned(),
-        },
-        &ClientConfig::default(),
-    )
-    .await
-    .unwrap();
-    (client, task)
+    (framed_client(local).await, task)
 }
 #[tokio::test]
 async fn node_info_projects_only_allowed_fields_without_discovery() {
@@ -142,22 +123,7 @@ async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
     let (replacement, second_task) =
         peer(node_id, Outcome::Ok(Reply::NodeInfo(node(node_id)))).await;
     let (events, mut receiving) = tokio::sync::mpsc::channel(LIFECYCLE_ROOM);
-    let state = crate::State {
-        label: "diagnostic-test".to_owned(),
-        events,
-        clients: std::collections::HashMap::new(),
-        follow: None,
-        follow_machine: None,
-        book_path: crate::machines::BookPath::File(std::path::PathBuf::from(
-            "unopened-fixture-book",
-        )),
-        workspace: crate::workspace::Hub::default(),
-        agents: crate::agents::Hub::default(),
-        device_calls: crate::devices::Hub::default(),
-        sync_calls: crate::sync::Hub::default(),
-        diagnostic_calls: Hub::default(),
-        offers: Arc::default(),
-    };
+    let state = fixture_state(events);
     let book_name = "laptop".parse::<vessel_client::book::NodeName>().unwrap();
     let machine = MachineKey::from_book(book_name.as_str());
     let mut tickets = Tickets::default();
@@ -197,4 +163,49 @@ async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
     assert!(!collection.report().unwrap().as_str().contains("Protocol:"));
     first_task.abort();
     second_task.abort();
+}
+
+async fn framed_client(local: DuplexStream) -> NodeClient {
+    let (reader, writer) = tokio::io::split(local);
+    NodeClient::over(
+        vessel_rpc::Framed::new(reader, writer, NonZeroUsize::new(FRAME_BYTES).unwrap()),
+        ClientInfo {
+            name: "diagnostic-test".to_owned(),
+            version: "0".to_owned(),
+        },
+        &ClientConfig::default(),
+    )
+    .await
+    .unwrap()
+}
+fn fixture_state(events: tokio::sync::mpsc::Sender<crate::Event>) -> crate::State {
+    crate::State {
+        label: "diagnostic-test".to_owned(),
+        events,
+        clients: std::collections::HashMap::new(),
+        follow: None,
+        follow_machine: None,
+        book_path: crate::machines::BookPath::File(std::path::PathBuf::from(
+            "unopened-fixture-book",
+        )),
+        workspace: crate::workspace::Hub::default(),
+        agents: crate::agents::Hub::default(),
+        device_calls: crate::devices::Hub::default(),
+        sync_calls: crate::sync::Hub::default(),
+        diagnostic_calls: Hub::default(),
+        offers: Arc::default(),
+    }
+}
+mod held;
+
+async fn welcome(remote: &mut DuplexStream, admitted: NodeId) {
+    assert!(matches!(read(remote).await, ClientFrame::Hello(_)));
+    write(
+        remote,
+        ServerFrame::Welcome(Welcome {
+            protocol: vessel_proto::PROTOCOL_VERSION,
+            node: node(admitted),
+        }),
+    )
+    .await;
 }
