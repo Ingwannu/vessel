@@ -19,8 +19,11 @@ pub(super) enum Acquire {
 
 impl Shell {
     fn file_destination(&self, new_chat: bool) -> Option<DraftKey> {
-        self.composer_destination()
-            .filter(|key| (*key == DraftKey::New) == new_chat)
+        self.composer_destination().filter(|key| match key {
+            DraftKey::New => new_chat,
+            DraftKey::Session { .. } => !new_chat,
+            DraftKey::Workspace { .. } => false,
+        })
     }
 
     /// Images/files consume paste; ordinary text still goes to the editor.
