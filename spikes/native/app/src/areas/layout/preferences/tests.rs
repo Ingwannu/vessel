@@ -68,7 +68,7 @@ fn actual_cache_hook_keeps_another_windows_layout_in_the_next_local_projection(
     cx: &mut TestAppContext,
 ) {
     language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update(cx, |shell, cx| {
         let (a, b) = (key(), key());
         let old = vec![record(&a)];
