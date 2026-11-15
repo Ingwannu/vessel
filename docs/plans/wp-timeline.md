@@ -1,9 +1,13 @@
 # Conversation stream parity
 
-Status: A7 native rendering is being filled in on app line `dd13ce378`
-(base6, W12 panel seam, G4 preflight, G2 modal-menu seam and lock fix);
-canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated 2026-11-15T11:39Z.
+Status: A7 native rendering is on official app base8 `91407173`, with the
+shared body kernel and owner adapters prepared. Current actual bounded evidence:
+view1157 tests at9ec; App102/Kit185 atcfa, all passing. Later shared-kernel draw
+source is unexecuted; current strict awaits S2's canonical glyph inventory seam.
+Canonical fields/echo/receipts still await W23 checked+integrator-adopted values;
+product resident storage/follow/Seat cutover remains W12's coordinated union.
+A8 approvals/questions belong to W4. No whole gate, captures or V4 package pass.
+Updated 2026-11-15T14:58Z.
 
 ## Reference and asset check
 
@@ -1164,3 +1168,8 @@ announced, then append only A7's four entries there. The two newly queued44ccd
 narrow/test runs are obsolete and canceled while still queued; retained143 logs
 are neither a compiler failure nor a pass. Their replacements wait for that seam
 rather than spending build slots on a withdrawn implementation.
+
+The shared-kernel extraction also removes the legacy diff's now-unused fluent
+builder import and keeps its bounded-preview documentation independent of a
+removed local MAX_LINES import. No stale body import or Rustdoc link is kept in
+the activation artifact. The artifact is source-only and cannot activate A8 alone.

@@ -4,7 +4,6 @@
 //! the output (the page's `features/session/tool-card.tsx`). Ordinary calls
 //! start closed as Paseo's `ToolCall` does; explicit choices survive updates.
 
-use vessel_app_kit::ui::FluentBuilder as _;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
     div, px,
@@ -232,7 +231,7 @@ fn label(paint: &Paint<'_>, text: &str) -> Div {
 }
 
 /// A diff in a box of numbered lines, at most the view's
-/// [`MAX_LINES`]; a word under it when it was cut.
+/// bounded preview; a word under it when it was cut.
 pub(super) fn diff(
     paint: &Paint<'_>,
     id: ElementId,
