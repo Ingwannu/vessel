@@ -29,7 +29,7 @@ ADDRESS = f"https://feed.example.test/{TOKEN}/"
 def rust_constants():
     """FEED_SLOT_LEN, FEED_SLOT_HEADER and FEED_SLOT_FILL as config.rs has them."""
     text = CONFIG.read_text()
-    length = re.search(r"pub const FEED_SLOT_LEN: usize = (\d+);", text)
+    length = re.search(r"(?:pub(?:\(crate\))? )?const FEED_SLOT_LEN: usize = (\d+);", text)
     header = re.search(r'const FEED_SLOT_HEADER: &\[u8\] = b"([^"]*)";', text)
     fill = re.search(r"const FEED_SLOT_FILL: u8 = b'(.)';", text)
     assert length and header and fill, "config.rs no longer declares the slot as this test reads it"

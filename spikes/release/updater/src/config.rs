@@ -64,7 +64,7 @@ use crate::{
 ///   procedure therefore runs every patched Linux build against a test
 ///   feed before the real address goes in (`tools/feed-slot-proof.sh`),
 ///   which fails if the optimiser ever folds the read.
-pub const FEED_SLOT_LEN: usize = 512;
+pub(crate) const FEED_SLOT_LEN: usize = 512;
 
 /// The slot's first bytes while nothing is written in. No byte of the
 /// marker is NUL, which is how the reader tells an unwritten slot.
