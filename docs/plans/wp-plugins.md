@@ -160,3 +160,23 @@ only category and line/column leave the edge. Canary fixtures traverse every
 exposed cause. Direct serde decoding is an internal edge, never an approved
 diagnostic path; wrap its error before returning it. No executable helper or
 native renderer is implied by these graph tests.
+
+## Live panel placement
+
+Installation retains one immutable ClientDocument. Feature owners borrow the
+same contribution graph; there is no second pane/sidebar/composer manifest.
+Registry::resolve_contribution rechecks exact node/plugin/generation/kind/id.
+Replacing a graph under an unchanged generation is refused atomically so old
+captured actions cannot gain new behavior.
+
+Registry::resolve_panel(address, context) returns a borrowed
+ResolvedPluginPanel with private fields and address/context/locations/supports
+accessors. The borrow prevents retaining that policy across registry mutation.
+W12 resolves before every new open/drop/retarget and restore availability
+check; it persists only the target and original slot/modified state. Missing,
+offline, stale or newly unsupported placement stays unavailable in its saved
+slot. Workspace/agent context must match the actual declaration; shared
+workspace ownership is checked by its owner. FilePanel selection belongs to
+W13's existing file resolver; this workspace-panel capability deliberately
+refuses File context until that owner supplies the file placement contract.
+No new node call, raw manifest or serialized capability is introduced.

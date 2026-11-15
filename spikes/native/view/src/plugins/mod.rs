@@ -5,6 +5,9 @@
 //! owner resolves theme preferences; this registry never selects another host.
 
 mod registry;
+mod placement;
+
+pub use placement::ResolvedPluginPanel;
 
 pub use registry::{
     CatalogBudget, CatalogTicket, HostSupport, Installation, Problem, Registry, SnapshotApplied,

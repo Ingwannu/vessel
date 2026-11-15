@@ -5,7 +5,10 @@ use std::fmt;
 use std::sync::Arc;
 
 use crate::devices::{Ticket, Tickets};
-use vessel_proto::plugins::{PluginAddress, PluginId, RuntimeGeneration, ThemeContribution};
+use vessel_proto::plugins::{
+    ClientDocument, Contribution, ContributionAddress, PluginAddress, PluginId,
+    RuntimeGeneration, ThemeContribution,
+};
 use vessel_proto::{ErrorCode, NodeId};
 
 const MAX_HOSTS: usize = 128;
@@ -30,6 +33,12 @@ pub enum Problem {
     /// Host ownership and uniqueness must hold before replacing any snapshot.
     #[error("the plugin catalog is invalid")]
     InvalidCatalog,
+    /// The captured contribution no longer exists in its own namespace.
+    #[error("the plugin contribution is unavailable")]
+    MissingContribution,
+    /// Context must agree with the actual panel declaration, never its title.
+    #[error("the plugin contribution does not support this context")]
+    Context,
     /// Refuse new retained state rather than silently evicting a selected host.
     #[error("the plugin catalog exceeds {0}")]
     Capacity(CatalogBudget),
@@ -93,12 +102,11 @@ impl CatalogTicket {
     }
 }
 
-/// One validated installation's retained contributions. More contribution kinds
-/// join this same entry when the complete declaration document is wired.
+/// One validated immutable declaration graph and its exact node lifetime.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Installation {
     address: PluginAddress,
-    themes: Arc<[ThemeContribution]>,
+    document: Arc<ClientDocument>,
 }
 
 impl Installation {
@@ -110,16 +118,16 @@ impl Installation {
         if themes.len() > MAX_THEMES {
             return Err(Problem::Capacity(CatalogBudget::Themes));
         }
-        let mut ids = BTreeSet::new();
-        for theme in &themes {
-            if !ids.insert(&theme.id) {
-                return Err(Problem::InvalidCatalog);
-            }
-        }
-        Ok(Self {
-            address,
-            themes: themes.into(),
-        })
+        let document = ClientDocument::new(vec![], vec![], themes)
+            .map_err(|_invalid| Problem::InvalidCatalog)?;
+        Ok(Self::from_document(address, document))
+    }
+
+    /// Accept only an already validated graph; no raw manifest crosses feature
+    /// adapters. Whole-host ownership and budgets are checked during replacement.
+    #[must_use]
+    pub fn from_document(address: PluginAddress, document: ClientDocument) -> Self {
+        Self { address, document: Arc::new(document) }
     }
 
     /// Node and helper generation captured by controls and actions.
@@ -131,7 +139,13 @@ impl Installation {
     /// Already validated palette values; appearance owns dedup and preference fallback.
     #[must_use]
     pub fn themes(&self) -> &[ThemeContribution] {
-        &self.themes
+        self.document.themes()
+    }
+
+    /// Feature owners project this one graph into their existing registries.
+    #[must_use]
+    pub fn document(&self) -> &ClientDocument {
+        &self.document
     }
 }
 
@@ -236,6 +250,7 @@ impl Registry {
         host.pending = None;
         let validated = result.and_then(|entries| {
             validate_snapshot(ticket.node, &entries)?;
+            validate_generations(&host.installations, &entries)?;
             Ok(entries)
         });
         match validated {
@@ -295,6 +310,18 @@ impl Registry {
             .find(|entry| entry.address == *address)
             .ok_or(Problem::Stale)
     }
+
+    /// Resolve a current contribution on its captured node and generation.
+    /// Retained offline declarations remain display data, never action authority.
+    ///
+    /// # Errors
+    /// Refuses offline/stale installations or a missing exact kind/id pair.
+    pub fn resolve_contribution(&self, address: &ContributionAddress) -> Result<&Contribution, Problem> {
+        self.resolve_action(&address.installation)?
+            .document().contributions().iter()
+            .find(|item| item.id == address.contribution && item.content.kind() == address.kind)
+            .ok_or(Problem::MissingContribution)
+    }
 }
 
 fn validate_snapshot(node: NodeId, entries: &[Installation]) -> Result<(), Problem> {
@@ -309,9 +336,20 @@ fn validate_snapshot(node: NodeId, entries: &[Installation]) -> Result<(), Probl
         }
         // The budget covers the whole host, preventing many individually valid
         // installations from exceeding the picker/catalog memory envelope.
-        themes = themes.saturating_add(entry.themes.len());
+        themes = themes.saturating_add(entry.themes().len());
         if themes > MAX_THEMES {
             return Err(Problem::Capacity(CatalogBudget::Themes));
+        }
+    }
+    Ok(())
+}
+
+fn validate_generations(previous: &[Installation], incoming: &[Installation]) -> Result<(), Problem> {
+    for entry in incoming {
+        if previous.iter().any(|old| old.address == entry.address && old.document != entry.document) {
+            // Semantic changes must rotate the node-owned generation. Otherwise
+            // an old captured action would silently acquire new behavior.
+            return Err(Problem::InvalidCatalog);
         }
     }
     Ok(())
