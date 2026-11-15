@@ -49,7 +49,7 @@ fn candidate(key: &str) -> Admission {
 
 fn apply_committed(db: &mut Connection, write: Write, budget: Budget) -> Result<(), StoreError> {
     let tx = db.transaction()?;
-    apply_with(&tx, write, budget)?;
+    let _receipt = apply_with(&tx, write, budget)?;
     tx.commit()?;
     Ok(())
 }

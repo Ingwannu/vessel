@@ -39,9 +39,9 @@ async fn a_committed_ack_returns_its_own_marker_even_after_a_later_commit() {
         .unwrap();
     let finished = finish.await.unwrap().unwrap();
     assert_eq!(finished.in_flight(), None);
-    let began = begin.await.unwrap().unwrap();
-    assert_eq!(began.in_flight(), Some(Stage::Workspace));
-    assert_eq!(began.snapshot().revision, expected.next().unwrap());
+    let marker = begin.await.unwrap().unwrap();
+    assert_eq!(marker.in_flight(), Some(Stage::Workspace));
+    assert_eq!(marker.snapshot().revision, expected.next().unwrap());
     assert_eq!(
         store.creation_operation(operation).await.unwrap().unwrap(),
         finished
