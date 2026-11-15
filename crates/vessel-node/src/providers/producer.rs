@@ -71,61 +71,17 @@ impl Producer {
                 let _previous = secrets.insert(name.clone(), value);
             }
         }
-        let (lookup, account, definition) = (
-            self.lookup.clone(),
-            self.account.clone(),
-            Arc::clone(&work.definition),
-        );
-        let cwd = match &work.scope {
-            CatalogueScope::Global => self.probe_dir.clone(),
-            CatalogueScope::Workspace(directory) => directory.path().to_path_buf(),
-        };
-        let launched = tokio::task::spawn_blocking(move || {
-            let default = transport
-                .program
-                .map(|program| -> Result<CommandPrefix, ProviderLaunchError> {
-                    Ok(CommandPrefix {
-                        program: program
-                            .parse()
-                            .map_err(|_invalid| ProviderLaunchError::NoDefault)?,
-                        args: Arguments::default(),
-                    })
-                })
-                .transpose()?;
-            let launch = provider_launch(
-                default.as_ref(),
-                &definition.launch,
-                &lookup,
-                &account,
-                &secrets,
-                |_| None,
-            )?;
-            let (mut command, _denied) = launch.into_parts(ToolEnforcement::Unsupported)?;
-            // Account homes are explicit values, never read from the daemon's
-            // process; configured environment values keep final precedence.
-            if let Some(variable) = transport.home
-                && !definition
-                    .launch
-                    .env
-                    .values()
-                    .keys()
-                    .any(|name| name.as_str().eq_ignore_ascii_case(variable))
-                && let Some(home) = account.var(variable)
-            {
-                command = command.env(variable, home);
-            }
-            Ok::<_, ProviderLaunchError>(command.args(transport.arguments).cwd(cwd))
-        })
-        .await;
-        let command = match launched {
-            Ok(Ok(command)) => command,
-            Ok(Err(ProviderLaunchError::Unavailable)) => {
+        let command = match self.command(&work, transport, secrets).await {
+            Ok(command) => command,
+            Err(CommandError::Policy(ProviderLaunchError::Unavailable)) => {
                 return Observation::Unavailable(UnavailableReason::NotInstalled);
             }
-            Ok(Err(_unsupported)) => {
+            Err(CommandError::Policy(_unsupported)) => {
                 return Observation::Failed(DiscoveryFailure::ConfigurationUnavailable);
             }
-            Err(_lost) => return Observation::Failed(DiscoveryFailure::ProbeFailed),
+            Err(CommandError::Task(_lost)) => {
+                return Observation::Failed(DiscoveryFailure::ProbeFailed);
+            }
         };
         let cwd = command
             .cwd
@@ -164,6 +120,68 @@ impl Producer {
             Err(_) => Observation::Failed(DiscoveryFailure::ProbeFailed),
         }
     }
+    async fn command(
+        &self,
+        work: &Work,
+        transport: vessel_harness::providers::ProviderTransport,
+        secrets: BTreeMap<vessel_proto::SecretName, vessel_proto::ResolvedValue>,
+    ) -> Result<vessel_proc::CommandSpec, CommandError> {
+        let (lookup, account, definition) = (
+            self.lookup.clone(),
+            self.account.clone(),
+            Arc::clone(&work.definition),
+        );
+        let cwd = match &work.scope {
+            CatalogueScope::Global => self.probe_dir.clone(),
+            CatalogueScope::Workspace(directory) => directory.path().to_path_buf(),
+        };
+        let command = tokio::task::spawn_blocking(move || {
+            let default = transport
+                .program
+                .map(|program| -> Result<CommandPrefix, ProviderLaunchError> {
+                    Ok(CommandPrefix {
+                        program: program
+                            .parse()
+                            .map_err(|_invalid| ProviderLaunchError::NoDefault)?,
+                        args: Arguments::default(),
+                    })
+                })
+                .transpose()?;
+            let launch = provider_launch(
+                default.as_ref(),
+                &definition.launch,
+                &lookup,
+                &account,
+                &secrets,
+                |_| None,
+            )?;
+            let (mut command, _denied) = launch.into_parts(ToolEnforcement::Unsupported)?;
+            // Account homes are explicit values, never read from the daemon's
+            // process; configured environment values keep final precedence.
+            if let Some(variable) = transport.home
+                && !definition
+                    .launch
+                    .env
+                    .values()
+                    .keys()
+                    .any(|name| name.as_str().eq_ignore_ascii_case(variable))
+                && let Some(home) = account.var(variable)
+            {
+                command = command.env(variable, home);
+            }
+            Ok::<_, ProviderLaunchError>(command.args(transport.arguments).cwd(cwd))
+        })
+        .await?;
+        Ok(command?)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum CommandError {
+    #[error("provider command lookup task did not finish")]
+    Task(#[from] tokio::task::JoinError),
+    #[error("provider command policy cannot be honored")]
+    Policy(#[from] ProviderLaunchError),
 }
 
 #[cfg(test)]
