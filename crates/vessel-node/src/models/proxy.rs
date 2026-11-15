@@ -104,11 +104,10 @@ use vessel_llm::client::{Answer, Api, Endpoint, Redactor};
 use vessel_llm::sse::{SseDecoder, SseEvent, SseFrame, encode_comment, encode_event};
 use vessel_llm::wire::{anthropic, responses};
 use vessel_llm::{front, ir, passthrough, upstream};
-use vessel_proto::{
-    DurationMs, ModelCall, ModelFailure, ModelId, ModelStop, TokenCount, TokenUsage,
-};
+use vessel_proto::{DurationMs, ModelCall, ModelFailure, ModelId, ModelStop};
 
 use super::Models;
+use super::accounting::{failure_class, stop_of, usage};
 use super::config::{Flavor, Provider, Route, model_api};
 use super::token::Holder;
 
@@ -746,40 +745,6 @@ impl Record {
             "model call"
         );
         self.holder.session.model_call(call);
-    }
-}
-
-const fn failure_class(class: ir::FailureClass) -> ModelFailure {
-    match class {
-        ir::FailureClass::RateLimited => ModelFailure::RateLimited,
-        ir::FailureClass::Overloaded => ModelFailure::Overloaded,
-        ir::FailureClass::UpstreamError => ModelFailure::UpstreamError,
-        ir::FailureClass::RefusedRequest => ModelFailure::RefusedRequest,
-        ir::FailureClass::ContextTooLong => ModelFailure::ContextTooLong,
-        ir::FailureClass::Timeout => ModelFailure::Timeout,
-        ir::FailureClass::Truncated => ModelFailure::Truncated,
-        ir::FailureClass::Unauthorized => ModelFailure::Unauthorized,
-    }
-}
-
-const fn stop_of(stop: ir::StopReason) -> ModelStop {
-    match stop {
-        ir::StopReason::EndTurn => ModelStop::EndTurn,
-        ir::StopReason::ToolUse => ModelStop::ToolUse,
-        ir::StopReason::MaxTokens => ModelStop::MaxTokens,
-        ir::StopReason::StopSequence => ModelStop::StopSequence,
-        ir::StopReason::Refusal => ModelStop::Refusal,
-        ir::StopReason::PauseTurn => ModelStop::Pause,
-    }
-}
-
-const fn usage(usage: &ir::Usage) -> TokenUsage {
-    TokenUsage {
-        input: TokenCount::new(usage.input),
-        cache_read: TokenCount::new(usage.cache_read),
-        cache_write: TokenCount::new(usage.cache_write),
-        output: TokenCount::new(usage.output),
-        reasoning: TokenCount::new(usage.reasoning),
     }
 }
 

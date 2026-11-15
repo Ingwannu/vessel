@@ -26,6 +26,7 @@
 //!   spend without bound in parallel; a call past them is refused as a rate
 //!   limit, which harnesses back off from.
 
+mod accounting;
 pub(crate) mod config;
 #[cfg(test)]
 mod generation;

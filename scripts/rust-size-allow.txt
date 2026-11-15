@@ -28,7 +28,7 @@ crates/vessel-node/src/fleet/links.rs 1192
 # -> 523 for N2's usage.limits and usage.lookup (protocol 23).
 crates/vessel-node/src/guard.rs 523
 crates/vessel-node/src/main.rs 564
-crates/vessel-node/src/models/proxy.rs 1556
+crates/vessel-node/src/models/proxy.rs 1521
 # temporary, removed by Quality B: 764 -> 772 for N1's inbox and push calls (protocol 22),
 # -> 782 for N2's usage.limits and usage.lookup (protocol 23).
 crates/vessel-node/src/node.rs 782

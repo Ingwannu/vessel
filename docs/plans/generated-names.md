@@ -749,3 +749,10 @@ that ended handle. Do not call retire from a late naming task or add pools.
 Tests owe missing/plain/malformed keys without echo, ordinary accounting,
 ended/live capacity and one real fake-runtime generation path. No real
 agent, provider or credential is used.
+
+
+Accounting extraction checkpoint: only the existing three neutral failure,
+stop and usage mappings move from proxy to accounting; the proxy imports
+them and keeps the original record/concurrency behavior. No test expectation
+changes. The proxy ratchet falls from 1556 to 1521. API naming already
+belongs to config and is reused there, rather than copied again.
