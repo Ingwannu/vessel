@@ -41,9 +41,7 @@ impl Shell {
                             self.apply_language(words, window, cx);
                         }
                     }
-                    PreferenceChange::Theme(_) | PreferenceChange::ContributedTheme(_) => {
-                        apply_theme(self, window, cx)
-                    }
+                    PreferenceChange::Theme(_) => apply_theme(self, window, cx),
                     PreferenceChange::Send(_) => apply_composer(self, window, cx),
                     PreferenceChange::InterfaceSize(_)
                     | PreferenceChange::CodeSize(_)

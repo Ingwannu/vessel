@@ -647,3 +647,16 @@ version is introduced by these controls or local preference rules.
 Reference details and deliberate platform differences are recorded beside
 the corresponding implementation. This extension remains proposed until
 the complete package's source, gate and native captures have been reviewed.
+
+### F5 closure boundary, coordinator ruling (2026-11-15)
+
+F5 closes built-in themes/System, family/size/width/syntax overrides and the
+readonly local preview. Plugin-contributed themes depend on F6's real app Hub
+and are excluded from F5's package approval. Their prepared typed selection,
+logical dedup/preferred-host/missing fallback and sole app Tokens adapter are
+preserved on `backend/m12-f6-appearance-prep` at `2c0ec0594`, not exposed as an
+unwired preference/runtime in this F5 tree. F6 owns the one read-only registry
+and calls `Shell::appearance_catalog_changed(window,cx)` outside paint after
+accepted catalog/eligibility/locale changes. W16 validates this coupled path
+when Hub lands; F5 creates neither a second registry nor a synthetic catalog.
+Generic kit colour production/projection remains independent of plugin types.

@@ -6,7 +6,6 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::lenient;
-use crate::appearance::contributed::{ContributedChoice, PluginThemeId};
 use crate::appearance::{ContentPixels, FontFamily, SyntaxTheme};
 
 /// How the app looks.
@@ -16,9 +15,6 @@ pub struct Appearance {
     /// A named palette, or the system's light/dark choice.
     #[serde(deserialize_with = "lenient")]
     pub theme: Theme,
-    /// Active or remembered plugin identity; missing contributions resolve System.
-    #[serde(deserialize_with = "lenient", skip_serializing_if = "Option::is_none")]
-    pub plugin_theme: Option<ContributedChoice>,
     /// The interface's text size.
     #[serde(deserialize_with = "lenient")]
     pub interface_size: InterfaceSize,
@@ -58,30 +54,6 @@ pub struct Appearance {
     /// Whether the app moves (Settings › Appearance › Animations).
     #[serde(deserialize_with = "lenient")]
     pub animations: Animations,
-}
-
-impl Appearance {
-    /// Select a built-in without discarding a previously chosen plugin key.
-    pub fn choose_builtin(&mut self, theme: Theme) {
-        self.theme = theme;
-        self.plugin_theme = self.plugin_theme.take().map(|choice| match choice {
-            ContributedChoice::Selected(key) | ContributedChoice::Remembered(key) => {
-                ContributedChoice::Remembered(key)
-            }
-        });
-    }
-    /// Select one valid logical plugin key, retaining the last built-in.
-    pub fn choose_plugin(&mut self, key: PluginThemeId) {
-        self.plugin_theme = Some(ContributedChoice::Selected(key));
-    }
-    /// Source shortcut starts the built-in cycle at Light from any plugin.
-    #[must_use]
-    pub const fn next_theme(&self) -> Theme {
-        match &self.plugin_theme {
-            Some(ContributedChoice::Selected(_)) => Theme::Light,
-            Some(ContributedChoice::Remembered(_)) | None => self.theme.next(),
-        }
-    }
 }
 
 /// Whether the app's changes move (the owner's word 39: every change a

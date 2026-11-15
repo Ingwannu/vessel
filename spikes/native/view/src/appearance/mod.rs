@@ -10,7 +10,6 @@
 //! - Effect: input validation and preview/commit semantics are unit-testable
 //!   without constructing a window or starting a node.
 
-pub mod contributed;
 mod family;
 pub mod form;
 mod input;

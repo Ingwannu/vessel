@@ -1181,17 +1181,6 @@ dependency (ADR 0075).
 
 ## Native app localization (milestone 12, staged)
 
-### Plugin value boundary (ADR 0079, staged)
-
-`vessel-proto::plugins` owns validated plugin/contribution/method identities,
-captured node/runtime-generation addresses and the small semantic theme
-palette. Its constructors and serde boundary refuse malformed identifiers,
-resource paths masquerading as ids and executable paint content. These
-values do no I/O and add no dependency edge. `PLUGINS` remains unassigned;
-no plugin method is registered and no helper is started by these types.
-Later native registry and supervised node-runtime layers consume this one
-contract rather than defining their own plugin identities.
-
 The separate `spikes/native` workspace keeps UI and I/O out of
 `vessel-app-view`. Its localization build script reads the Fluent source
 catalog, validates translations and generates typed accessors; only embedded
@@ -1624,13 +1613,12 @@ families through existing styling/shaping paths; local preview never mutates
 global typography. Native source differences and validation limits are in
 `docs/plans/wp-f5-appearance.md`.
 
-Plugin transport, validated installation graphs and runtime eligibility stay
-with ADR 0079's plugin owner. Appearance's pure borrowed catalog only chooses
-stable logical keys, preserves first display order, deduplicates hosts and
-resolves an unavailable selection to System without deleting it. Static
-validated offline catalogs remain eligible for palette display, while remote
-actions require the plugin owner's separate online generation check. The
-sole app adapter converts validated RGBA to generic ContributedColors, then
-uses kit's existing global/component token projection. At this staged point
-the plugin runtime's app access/change notification is not yet connected;
-no second registry, loader, RPC listener or synthetic product catalog exists.
+Plugin-contributed themes are excluded from this F5 closure by the coordinator's
+2026-11-15 ruling. Their typed selection/dedup/fallback and app token adapter
+preparation is preserved on `backend/m12-f6-appearance-prep`, pending the F6
+owner's single app Hub and real events. The future Hub supplies its one
+read-only Registry and calls `Shell::appearance_catalog_changed(window,cx)`
+after accepted catalog/eligibility/locale changes outside paint. F6 validates
+that integration; F5 creates no second registry, loader, callback subscription
+or synthetic product catalog. Generic contributed colour production in kit
+has no plugin dependency and shares the existing token projection.

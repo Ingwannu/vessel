@@ -84,20 +84,32 @@ no arbitrary unpublished base is treated as approved. Small pure model work
 can be prepared while that base is being validated. Existing cargo configs,
 font assets and other owners' pending changes are preserved.
 
-## Resume point
+## Current closure scope (coordinator ruling, 2026-11-15)
 
-- Done: original eight-choice palette producer/consumer is source/native/
-  bounded-visual passed; actual F5 survey and reference assets audited.
-- Missing: the remaining family/content/code/width/syntax draft controls,
-  preview and plugin contribution consumer.
-- Prepared: token-only tile `d266db93`, pure draft/type preparation
-  `4884b549`, new range-edge regression `589c56e4`, breakpoint `3e47b364`
-  and the single tile consumer `cc43236c`. Package base `8d5513e4` is merged
-  at `f556e55c`, without a conflict. These are not compile/runtime approvals.
-- Next: narrow checks, complete the field hooks after the shared field
-  owner's validated split, and compose all remaining rows and preview.
-- Not claimed: complete F5 parity, plugin runtime connectivity, IME/AltGr,
-  hardware GPU or mobile system-bar support.
+- F5 closes built-in themes/System, families, independent text sizes, fields,
+  content width/reset, syntax selection and readonly local preview.
+- Plugin-contributed themes are an explicit F6 dependency, not part of F5's
+  final gate/review claim. Prepared values/selection/dedup/fallback and the
+  contributed app adapter are preserved at `2c0ec0594` on
+  `backend/m12-f6-appearance-prep`. Unwired plugin preference/API/root values
+  are removed from the F5 tree so its final source has no synthetic or
+  partially active runtime choice. Root code again equals package base4.
+- Future seam: F6 owns one Hub and `Shell::plugin_registry()`; it calls K's
+  `Shell::appearance_catalog_changed(window,cx)` outside paint after accepted
+  replacement/withdrawal/offline retention/unsupported/removal/locale refresh.
+  Static offline catalogs remain eligible; online generation checks are for
+  remote actions. W16 validates the contributed path in F6 when Hub lands.
+- All control and consumer preparations are committed. Actual new field /
+  preview tests, corrected combined Clippy, local captures and the final
+  native package gate remain pending. Only the original eight-theme bounded
+  package and earlier selected121 kit tests are passed evidence.
+- Sole owned queued check is `themes-20261115T090929Z-5a4fdab5`; later source
+  is not covered by it. No new local cargo starts before12:30UTC per the
+  coordinator's core-package reservation. No partial V1 submission is made.
+
+The following sections retain the preparation history. Statements about the
+contributed model/app adapter describe the preserved F6 branch, not code in
+this narrowed F5 working tree. No old result is promoted to a new feature pass.
 
 ## Shared-control implementation
 
