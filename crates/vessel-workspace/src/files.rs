@@ -30,6 +30,12 @@ use vessel_proto::workspace::{
 
 use crate::paths::{PathError, Root, Target};
 
+pub mod binary;
+pub mod duplicate;
+pub mod inspect;
+pub mod observe;
+pub mod suggestions;
+
 /// The most entries a listing holds.
 pub const MAX_ENTRIES: usize = 5000;
 /// The largest page read.
@@ -64,6 +70,21 @@ pub enum FileError {
     /// Text longer than [`MAX_WRITE`].
     #[error("a file written here is at most {MAX_WRITE} bytes")]
     TooLarge,
+    /// A binary transfer or duplicate exceeds its whole-source budget.
+    #[error(
+        "file data is at most {} bytes",
+        vessel_proto::workspace::panel_files::MAX_FILE_BYTES
+    )]
+    TransferTooLarge,
+    /// A byte position is beyond the source's end.
+    #[error("the requested byte offset is beyond the file")]
+    Offset,
+    /// A copy cannot traverse links, special files, git metadata or an unbounded tree.
+    #[error("copy refused: links, special files, git metadata or copy limits")]
+    CopyLimit,
+    /// An actual filesystem name cannot be represented by the portable path contract.
+    #[error("a directory entry has an invalid portable path")]
+    InvalidEntry(#[source] vessel_proto::workspace::InvalidRelPath),
     /// The disk refused.
     #[error("the disk refused")]
     Io(#[source] io::Error),

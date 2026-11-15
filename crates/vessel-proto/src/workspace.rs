@@ -9,10 +9,12 @@
 
 mod approval;
 mod diff;
+pub mod directory_metadata;
 mod exec_path;
 mod file_terminals;
 mod files;
 mod git;
+pub mod panel_files;
 mod path;
 mod port_range;
 mod port_script;
@@ -20,6 +22,7 @@ mod project;
 mod project_text;
 mod service_port;
 mod service_ports;
+pub mod suggestions;
 mod support;
 mod text;
 mod url;
@@ -54,7 +57,7 @@ pub use project::{
 };
 pub use project_text::trim_project_text;
 pub use service_port::{InvalidServicePort, ServicePort};
-pub use service_ports::{InvalidServicePorts, ServicePorts};
+pub use service_ports::{InvalidServicePorts, ServicePorts, ServicePortsView};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,

@@ -242,7 +242,7 @@ impl SessionError {
             )
             | Self::StartAgent(
                 vessel_agent::AgentError::NoDriver(_)
-                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_)),
+                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_) | vessel_agent::LaunchRefusal::SystemPromptUnsupported(_)),
             )
             | Self::Unsupported { .. }
             | Self::NoOptions
@@ -381,7 +381,8 @@ const fn move_code(error: &MoveError) -> ErrorCode {
         MoveError::Restart(_) => ErrorCode::SpawnFailed,
         MoveError::Files(SessionFilesError::Io { .. })
         | MoveError::Link(LinkError::Io { .. })
-        | MoveError::Task(_) => ErrorCode::Internal,
+        | MoveError::Task(_)
+        | MoveError::Signal { .. } => ErrorCode::Internal,
     }
 }
 
@@ -475,6 +476,14 @@ mod tests {
     use vessel_proto::ErrorCode;
 
     use super::SessionError;
+
+    #[test]
+    fn a_transient_system_prompt_refusal_keeps_the_unsupported_error_code() {
+        let error = SessionError::agent_not_started(AgentError::Refused(
+            LaunchRefusal::SystemPromptUnsupported(vessel_agent::Driver::Acp),
+        ));
+        assert_eq!(error.code(), ErrorCode::Unsupported);
+    }
 
     /// A direct driver's refusal before its agent starts (ADR 0057) is
     /// answered as the ACP path answers the same problem.
