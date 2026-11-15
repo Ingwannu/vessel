@@ -948,6 +948,17 @@ and source cursor/fork boundary staying on the original entry. This remains
 unimplemented field/scope activation until W23's exact checked source handoff.
 No local copy of ToolCallScope, node association tracker or numeric gate is added.
 
+Provenance presentation join remains explicit: `presentation.ts:88-108` projects
+only AgentMessageEvent::Message into a user-shaped row with sender; the other four
+events stay delivery tools. Current typed fixture support draws the delivery
+header and literal body but does not yet supply this whole pre-grouping transform.
+The checked field/scope union must make received messages visible to user search,
+copy and turn/group classification together, preserving the original entry source
+identity. It must not unwrap a voice envelope in an external agent message, or
+guess that an external sender/server string is a local SessionId/host route.
+Sender navigation awaits a typed authenticated owner target. This is a recorded
+remaining difference, not a claim of installed inter-agent user-bubble rendering.
+
 Final capture dependency: the approved shared root binaries predate ADR0084.
 They remain valid for legacy native screenshots, but cannot prove receipt echoes,
 canonical fields/scopes or new event variants that their decoder does not carry.

@@ -79,6 +79,11 @@ before its one ordinary replacement; its retained logs are not a failure/PASS.
    identity. ProviderTurn includes actual thread+turn, SessionTurn uses its start,
    Record remains orphaned. Raw ToolCallId alone cannot merge late updates, Plan
    outcomes or disclosure identity. App code must not infer the current turn.
+   Provenance Message must become a user-shaped received bubble before grouping,
+   find and copy; Finished/Errored/PermissionRequired/Closed remain delivery rows.
+   Current fixture rendering supplies the shared delivery header/literal body,
+   not that complete presentation join. External sender ids are not SessionIds
+   and grant no sender-navigation authority.
 3. **Receipts:** W6's sole scoped ingress admits one ClientMessageId before preview,
    bytes and transport; same ID joins canonical prompt/queue/command echoes.
    W23's actual runtime outcome contract and Tail cutover land together. Unknown
