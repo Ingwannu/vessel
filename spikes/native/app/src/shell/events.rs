@@ -90,6 +90,7 @@ impl Shell {
                 self.start_failed();
                 self.notice = Some(why);
             }
+            Event::Projects(response) => self.selected_project_answer(response, cx),
             Event::Workspace { machine, answer } => {
                 // An answer that changed nothing drawn asks for no frame
                 // (an idle git panel refreshes every five seconds).

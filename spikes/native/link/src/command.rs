@@ -173,6 +173,9 @@ pub enum Command {
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
     /// by [`Event::Workspace`] (`workspace`'s module says how).
+    /// A project operation on one captured physical admission.
+    Projects(workspace::project_requests::Request),
+    /// Ask a machine about its existing workspace resources.
     Workspace {
         /// The machine.
         machine: String,

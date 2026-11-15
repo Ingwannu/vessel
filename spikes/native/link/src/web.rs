@@ -92,6 +92,7 @@ impl Link {
                 answer: Err(crate::agents::AgentsError::NoTransport),
             }),
 
+            Command::Projects(request) => self.emit(Event::Projects(request.refused())),
             Command::Devices {
                 context,
                 ticket,

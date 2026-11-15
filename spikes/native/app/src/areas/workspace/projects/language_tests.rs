@@ -18,11 +18,19 @@ fn a_fixed_project_target_ignores_settings_fallback_and_refuses_alias_rebinding(
             let mut chosen = Machine::unreachable("fixed-target".to_owned(), "fixture");
             chosen.reach = Reach::Online;
             chosen.node = Some(node);
+            let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
+            let context = epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixed-target"),
+                    node,
+                )
+                .unwrap();
+            chosen.connection_epoch = Some(context.epoch());
             shell.fleet.machines = vec![remote, chosen];
             assert_eq!(shell.projects_machine().as_deref(), Some("remote-first"));
             let target = ProjectTarget::new(Name::parse("fixed-target").unwrap(), node);
             shell
-                .open_add_for_target(AddForm::Folder, &target, window, cx)
+                .open_add_for_connection(AddForm::Folder, &context, window, cx)
                 .unwrap();
             assert_eq!(
                 shell.areas.workspace.page.form_host.as_ref(),

@@ -1,7 +1,6 @@
 //! Host-bound project hydration; forms do not own list freshness or peer identity.
 
 use crate::shell::Shell;
-use vessel_app_link::workspace::{Ask, ProjectAsk};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::{
     problem::Problem,
@@ -11,9 +10,10 @@ use vessel_proto::{NodeId, workspace::ProjectList};
 
 impl Shell {
     pub(super) fn read_projects(&mut self, host: &str) {
-        let (Some(node), Ok(name)) = (self.project_node(host), Name::parse(host)) else {
+        let (Some(context), Ok(name)) = (self.project_connection(host), Name::parse(host)) else {
             return;
         };
+        let node = context.node();
         let workspace = &mut self.areas.workspace;
         if workspace.project_reads.node(&name) != Some(node) {
             let _old = workspace
@@ -22,14 +22,19 @@ impl Shell {
         }
         let Some(key) = workspace
             .project_reads
-            .begin(ProjectTarget::new(name, node))
+            .begin_on(ProjectTarget::new(name, node), context.clone())
         else {
             let _old = workspace
                 .projects
                 .insert(host.to_owned(), ProjectsView::Failed(Problem::Unsent));
             return;
         };
-        self.ask(host, Ask::Project(ProjectAsk::List(key)));
+        self.command(vessel_app_link::Command::Projects(
+            vessel_app_link::workspace::project_requests::Request {
+                context,
+                operation: vessel_app_link::workspace::project_requests::Operation::List(key),
+            },
+        ));
     }
 
     pub(super) fn projects_read(
@@ -39,6 +44,7 @@ impl Shell {
         result: Result<ProjectList, Problem>,
     ) {
         if host != key.target().host().as_str()
+            || !self.project_cache_current(key.target().host())
             || self.project_node(host) != Some(key.target().node())
             || !self.areas.workspace.project_reads.finish(key)
         {
@@ -61,7 +67,8 @@ impl Shell {
         let Ok(name) = Name::parse(host) else {
             return;
         };
-        if self.project_node(host) == Some(node)
+        if self.project_cache_current(&name)
+            && self.project_node(host) == Some(node)
             && self.areas.workspace.project_reads.node(&name) == Some(node)
             && let Some(view) = self.areas.workspace.projects.get_mut(host)
         {
@@ -99,6 +106,14 @@ mod tests {
             let mut machine = Machine::unreachable(host.as_str().to_owned(), "fixture");
             machine.reach = Reach::Online;
             machine.node = Some(node);
+            let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
+            let context = epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book(host.as_str()),
+                    node,
+                )
+                .unwrap();
+            machine.connection_epoch = Some(context.epoch());
             shell.fleet.machines = vec![machine];
             let project = ProjectInfo {
                 id: ProjectId::random(),
@@ -121,7 +136,7 @@ mod tests {
                 .areas
                 .workspace
                 .project_reads
-                .begin(ProjectTarget::new(host.clone(), node))
+                .begin_on(ProjectTarget::new(host.clone(), node), context.clone())
                 .unwrap();
             shell.projects_read(host.as_str(), &current, Ok(list.clone()));
             let mut stale = project.clone();
@@ -185,7 +200,7 @@ mod tests {
                 .areas
                 .workspace
                 .project_reads
-                .begin(ProjectTarget::new(host.clone(), node))
+                .begin_on(ProjectTarget::new(host.clone(), node), context.clone())
                 .unwrap();
             assert_eq!(
                 shell.open_project_settings(&selected, project.id, window, cx),
@@ -205,6 +220,40 @@ mod tests {
             assert_eq!(
                 shell.setup_readiness(&host, node),
                 vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Ready
+            );
+            let next = epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book(host.as_str()),
+                    node,
+                )
+                .unwrap();
+            shell.fleet.machines[0].connection_epoch = Some(next.epoch());
+            assert_eq!(shell.setup_readiness_on(&context), vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Failed);
+            assert_eq!(shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx), Err(vessel_app_view::workspace::projects::navigation::NavigationRefusal::HostUnavailable));
+            assert_eq!(
+                shell.setup_readiness(&host, node),
+                vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Pending
+            );
+            assert_eq!(
+                shell.open_project_settings(&selected, project.id, window, cx),
+                Err(super::super::project_navigation::ProjectSettingsRefusal::Unavailable)
+            );
+            let mut delayed = project.clone();
+            delayed.name = "retired-physical-connection".parse().unwrap();
+            delayed.revision = 1000;
+            shell.selected_project_answer(
+                vessel_app_link::workspace::project_requests::Response {
+                    context,
+                    answer: vessel_app_link::workspace::Answer::Project {
+                        node,
+                        project: delayed,
+                    },
+                },
+                cx,
+            );
+            assert_eq!(
+                shell.areas.workspace.projects[host.as_str()].project(&project.id),
+                Some(&project)
             );
         });
     }

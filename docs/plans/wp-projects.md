@@ -408,3 +408,15 @@ first-alias lookup will be added. Current project display tickets cover alias/
 node/read ordering, not this full physical-admission cutover, so they remain a
 prerequisite rather than a ready runtime producer. The readiness fixture now
 uses the shared Machine constructor, retaining new base admission fields.
+
+### Captured project admission (source staged; execution owed)
+
+[Decision Log]
+- Purpose: a same-node reconnect must not inherit a project draft, cache or reply.
+- Existing constraint: NodeId and read order fence alias rebinding but do not identify a physical connection.
+- Alternatives: a second project epoch allocator or raw NodeClient cloning.
+- Choice: C1 list/mutation requests use the shared ConnectionContext and SelectedConnection; the original context is echoed through queue rejection and result application.
+- Reason: the connection actor remains the only allocator and retirement authority.
+- Impact: lists are hydrated only by the current admission, forms and removal confirmations retain their opening admission, and a retired in-flight write is OutcomeUnknown rather than a claim of rollback. No automatic replay occurs.
+
+The line lock fix dd13ce37 is merged. The queued stale-lock check023 was cancelled via its verified waiting ticket and replaced once on ad4de37f; this preserves that historical check as cancelled, not a compiler failure. New admission code is later and still requires exact changed-head checks. Clone observation uses the same selected connection and a shared bounded call budget, without introducing another node registry or inferring ownership from paths.

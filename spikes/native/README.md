@@ -1276,3 +1276,12 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+The C1 project list and person-submitted project mutations now capture the shared
+`ConnectionContext` in `link::workspace::project_requests`. The actor selects its
+original physical connection through `SelectedConnection`; replies and clone
+observations echo that context. `ProjectReads` binds cache hydration to the same
+admission, and forms/removal confirmations retain it through submission. A
+retired in-flight write remains an uncertain outcome, without automatic replay.
+This source change still awaits its exact remote checks and does not establish
+registry/provisioning/restore readiness.

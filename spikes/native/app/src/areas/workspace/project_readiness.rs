@@ -8,6 +8,28 @@ use vessel_app_view::{
 use vessel_proto::{NodeId, workspace::ProjectState};
 
 impl Shell {
+    /// Readiness is scoped to the caller's actual connection, including reconnects.
+    #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "onboarding consumes this producer after source review"
+        )
+    )]
+    pub(crate) fn setup_readiness_on(
+        &self,
+        context: &vessel_app_view::connection::ConnectionContext,
+    ) -> ProjectSetupReadiness {
+        if self.project_connection(context.machine().as_str()).as_ref() != Some(context) {
+            return ProjectSetupReadiness::Failed;
+        }
+        let Ok(host) = Name::parse(context.machine().as_str()) else {
+            return ProjectSetupReadiness::Failed;
+        };
+        self.setup_readiness(&host, context.node())
+    }
+
     /// Query a fixed authenticated host. This does not acknowledge checked suggestions.
     /// The caller must retain its own Visit and recheck it before advancing onboarding.
     #[cfg_attr(
@@ -21,7 +43,8 @@ impl Shell {
         if self.project_node(host.as_str()) != Some(node) {
             return ProjectSetupReadiness::Failed;
         }
-        if self.areas.workspace.project_reads.node(host) != Some(node)
+        if !self.project_cache_current(host)
+            || self.areas.workspace.project_reads.node(host) != Some(node)
             || self.areas.workspace.project_reads.pending(host, node)
         {
             return ProjectSetupReadiness::Pending;
@@ -82,6 +105,14 @@ mod tests {
             let mut machine = Machine::unreachable(host.as_str().to_owned(), "fixture");
             machine.reach = Reach::Online;
             machine.node = Some(node);
+            let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
+            let context = epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book(host.as_str()),
+                    node,
+                )
+                .unwrap();
+            machine.connection_epoch = Some(context.epoch());
             shell.fleet.machines.push(machine);
             assert_eq!(
                 shell.setup_readiness(&host, node),
@@ -104,11 +135,12 @@ mod tests {
                 .areas
                 .workspace
                 .project_reads
-                .begin(
+                .begin_on(
                     vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
                         host.clone(),
                         node,
                     ),
+                    context.clone(),
                 )
                 .unwrap();
             shell.projects_read(

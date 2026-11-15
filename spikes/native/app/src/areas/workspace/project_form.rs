@@ -10,7 +10,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind,
 };
-use vessel_app_link::workspace::{Ask, Form, ProjectChange};
+use vessel_app_link::workspace::{Form, ProjectChange};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::actions::ProjectAction;
@@ -20,6 +20,32 @@ use vessel_app_view::workspace::words::AddForm;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo};
 
 impl Shell {
+    /// Onboarding retains its shared physical admission across asynchronous visits.
+    ///
+    /// # Errors
+    /// A retired admission cannot open a draft on its same-node replacement.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "onboarding consumes this producer after source review"
+        )
+    )]
+    pub(crate) fn open_add_for_connection(
+        &mut self,
+        form: AddForm,
+        context: &vessel_app_view::connection::ConnectionContext,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<(), NavigationRefusal> {
+        if self.project_connection(context.machine().as_str()).as_ref() != Some(context) {
+            return Err(NavigationRefusal::HostUnavailable);
+        }
+        let host = Name::parse(context.machine().as_str())
+            .map_err(|_invalid| NavigationRefusal::HostUnavailable)?;
+        self.open_add_for_target(form, &ProjectTarget::new(host, context.node()), window, cx)
+    }
+
     /// Translate labels retained by an open form without changing its values.
     pub(crate) fn refresh_project_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let page = &self.areas.workspace.page;
@@ -65,7 +91,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Result<(), NavigationRefusal> {
-        if self.project_node(target.host().as_str()) != Some(target.node()) {
+        if self
+            .project_connection(target.host().as_str())
+            .is_none_or(|context| context.node() != target.node())
+        {
             return Err(NavigationRefusal::HostUnavailable);
         }
         self.prepare_add_form(
@@ -86,11 +115,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        let context = host
+            .as_ref()
+            .and_then(|host| self.project_connection(host.as_str()));
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
         page.actions.cancel();
         page.form_host = host;
         page.form_node = node;
+        page.form_context = context;
         page.menu = false;
         page.adding = Some(form);
         page.error = None;
@@ -119,6 +152,19 @@ impl Shell {
             .page
             .form_node
             .filter(|node| self.project_node(host.as_str()) == Some(*node))
+        else {
+            self.areas.workspace.page.error =
+                Some(self.words.projects().host_unavailable().to_owned());
+            cx.notify();
+            return;
+        };
+        let Some(context) = self
+            .areas
+            .workspace
+            .page
+            .form_context
+            .clone()
+            .filter(|context| self.project_connection(host.as_str()).as_ref() == Some(context))
         else {
             self.areas.workspace.page.error =
                 Some(self.words.projects().host_unavailable().to_owned());
@@ -170,10 +216,14 @@ impl Shell {
                 return;
             }
         };
-        self.ask(
-            host.as_str(),
-            Ask::ProjectChange(ProjectChange { key, action: ask }),
-        );
+        self.command(vessel_app_link::Command::Projects(
+            vessel_app_link::workspace::project_requests::Request {
+                context,
+                operation: vessel_app_link::workspace::project_requests::Operation::Change(
+                    ProjectChange { key, action: ask },
+                ),
+            },
+        ));
         let page = &mut self.areas.workspace.page;
         page.error = None;
         cx.notify();
@@ -370,6 +420,7 @@ fn draw_form(
                         page.adding = None;
                         page.form_host = None;
                         page.form_node = None;
+                        page.form_context = None;
                         page.actions.cancel();
                         cx.notify();
                     },

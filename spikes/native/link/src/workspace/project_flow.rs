@@ -27,6 +27,8 @@ pub struct ProjectChange {
 pub enum ProjectFailure {
     /// Captured identity no longer matches the authenticated target; no RPC was sent.
     HostChanged,
+    /// The original admission retired after dispatch; reconcile before retrying.
+    OutcomeUnknown,
     /// Typed transport, scope or node refusal.
     Call(Problem),
     /// Refresh authoritative projects before a person decides whether to retry.

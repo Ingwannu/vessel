@@ -8,7 +8,7 @@ use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
-use vessel_app_link::workspace::{Ask, ProjectChange, ProjectFailure};
+use vessel_app_link::workspace::{ProjectChange, ProjectFailure};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::projects::actions::{
     ProjectAction, ProjectActionError, ProjectActionKey, ProjectChanged, ProjectReply,
@@ -23,6 +23,7 @@ pub(super) struct Removing {
     node: NodeId,
     name: ProjectName,
     path: PathBuf,
+    context: vessel_app_view::connection::ConnectionContext,
     pending: Option<ProjectActionKey>,
     error: Option<ProjectFailure>,
 }
@@ -49,6 +50,7 @@ impl Shell {
                 self.areas.workspace.page.adding = None;
                 self.areas.workspace.page.form_host = None;
                 self.areas.workspace.page.form_node = None;
+                self.areas.workspace.page.form_context = None;
             }
             Ok(ProjectChanged::Removed(project)) => {
                 self.forgot_project(machine, project, Ok(()));
@@ -112,6 +114,17 @@ impl Shell {
         true
     }
 
+    /// Capture the shared actor admission from the same public machine snapshot.
+    pub(super) fn project_connection(
+        &self,
+        host: &str,
+    ) -> Option<vessel_app_view::connection::ConnectionContext> {
+        self.fleet
+            .online()
+            .find(|machine| machine.name == host)?
+            .connection_context()
+    }
+
     /// Only an authenticated online welcome can provide a new mutation's node identity.
     pub(super) fn project_node(&self, host: &str) -> Option<NodeId> {
         self.fleet
@@ -137,6 +150,7 @@ impl Shell {
         {
             page.form_host = None;
             page.form_node = None;
+            page.form_context = None;
             page.adding = None;
         }
         if page
@@ -166,7 +180,11 @@ impl Shell {
             cx.notify();
             return;
         };
-        if self.areas.workspace.project_reads.node(&host) != Some(node)
+        let Some(context) = self.project_connection(host.as_str()) else {
+            return;
+        };
+        if !self.project_cache_current(&host)
+            || self.areas.workspace.project_reads.node(&host) != Some(node)
             || self.areas.workspace.project_reads.pending(&host, node)
         {
             self.areas.workspace.page.error = Some(self.words().problem(&Problem::Unsent));
@@ -186,6 +204,7 @@ impl Shell {
             host,
             project,
             node,
+            context,
             name: info.name.clone(),
             path: info.root.clone(),
             pending: None,
@@ -201,7 +220,8 @@ impl Shell {
         let host = remove.host.clone();
         let project = remove.project;
         let node = remove.node;
-        if self.project_node(host.as_str()) != Some(node) {
+        let context = remove.context.clone();
+        if self.project_connection(host.as_str()).as_ref() != Some(&context) {
             self.project_host_detached(host.as_str());
             cx.notify();
             return;
@@ -213,13 +233,17 @@ impl Shell {
             remove.pending = Some(key.clone());
             remove.error = None;
         }
-        self.ask(
-            host.as_str(),
-            Ask::ProjectChange(ProjectChange {
-                key,
-                action: ProjectAction::Remove(project),
-            }),
-        );
+        self.command(vessel_app_link::Command::Projects(
+            vessel_app_link::workspace::project_requests::Request {
+                context,
+                operation: vessel_app_link::workspace::project_requests::Operation::Change(
+                    ProjectChange {
+                        key,
+                        action: ProjectAction::Remove(project),
+                    },
+                ),
+            },
+        ));
         cx.notify();
     }
 
@@ -242,7 +266,9 @@ pub(super) fn project_failure(shell: &Shell, failure: &ProjectFailure) -> String
     match failure {
         ProjectFailure::Call(problem) => shell.words().problem(problem),
         ProjectFailure::HostChanged => shell.words.projects().host_unavailable().to_owned(),
-        ProjectFailure::TimedOut => shell.words.projects().outcome_unknown().to_owned(),
+        ProjectFailure::TimedOut | ProjectFailure::OutcomeUnknown => {
+            shell.words.projects().outcome_unknown().to_owned()
+        }
     }
 }
 

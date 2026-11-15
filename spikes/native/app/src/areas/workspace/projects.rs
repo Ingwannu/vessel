@@ -40,6 +40,7 @@ pub(crate) struct Page {
     pub(super) actions: vessel_app_view::workspace::projects::actions::ProjectActions,
     pub(super) form_host: Option<vessel_app_view::machine_book::Name>,
     pub(super) form_node: Option<vessel_proto::NodeId>,
+    pub(super) form_context: Option<vessel_app_view::connection::ConnectionContext>,
     pub(super) removing: Option<super::project_actions::Removing>,
     /// Why the form's last call failed.
     pub(super) error: Option<String>,
@@ -58,6 +59,7 @@ impl Page {
             actions: vessel_app_view::workspace::projects::actions::ProjectActions::default(),
             form_host: None,
             form_node: None,
+            form_context: None,
             removing: None,
             error: None,
             failure: None,

@@ -19,6 +19,7 @@ pub(crate) mod project_form;
 pub(crate) mod project_navigation;
 mod project_readiness;
 mod project_reads;
+mod project_selected;
 mod projects;
 mod remove;
 mod sidebar;
@@ -110,9 +111,10 @@ impl Shell {
             .fleet
             .online()
             .filter_map(|machine| {
+                let context = machine.connection_context()?;
                 Some(ProjectTarget::new(
                     Name::parse(&machine.name).ok()?,
-                    machine.node?,
+                    context.node(),
                 ))
             })
             .collect();
@@ -123,14 +125,16 @@ impl Shell {
                 .workspace
                 .project_reads
                 .node(target.host())
-                .is_some_and(|old| old != target.node())
+                .is_some_and(|old| {
+                    old != target.node() || !self.project_cache_current(target.host())
+                })
             {
                 self.project_host_detached(host);
             }
         }
         self.areas.workspace.project_reads.retain_online(&online);
         for target in online {
-            if self.areas.workspace.project_reads.node(target.host()) != Some(target.node()) {
+            if !self.project_cache_current(target.host()) {
                 self.read_projects(target.host().as_str());
             }
         }

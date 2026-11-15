@@ -31,6 +31,7 @@ enum State {
 struct Read {
     key: ProjectReadKey,
     state: State,
+    context: Option<crate::connection::ConnectionContext>,
 }
 
 /// Bounded read tickets survive form cancellation; forgetting a host releases its slot.
@@ -54,10 +55,32 @@ impl ProjectReads {
             Read {
                 key: key.clone(),
                 state: State::Pending,
+                context: None,
             },
         );
         self.serial = serial;
         Some(key)
+    }
+
+    /// Capture the shared admission; a same-node reconnect is a different cache.
+    #[must_use]
+    pub fn begin_on(
+        &mut self,
+        target: ProjectTarget,
+        context: crate::connection::ConnectionContext,
+    ) -> Option<ProjectReadKey> {
+        if target.node() != context.node() || target.host().as_str() != context.machine().as_str() {
+            return None;
+        }
+        let key = self.begin(target)?;
+        self.hosts.get_mut(key.target.host())?.context = Some(context);
+        Some(key)
+    }
+
+    /// Admission that actually produced the current list request.
+    #[must_use]
+    pub fn context(&self, host: &Name) -> Option<&crate::connection::ConnectionContext> {
+        self.hosts.get(host)?.context.as_ref()
     }
 
     /// Only the current ticket settles; the app separately rechecks the online peer.

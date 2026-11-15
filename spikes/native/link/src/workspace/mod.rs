@@ -35,6 +35,7 @@ mod calls;
 mod follow;
 pub mod layout;
 mod project_flow;
+pub mod project_requests;
 mod pulls;
 mod run;
 mod start;
@@ -63,6 +64,7 @@ type FollowKey = (String, NodeId, ProjectId);
 /// project is followed once however often the list is read.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
+    project_calls: project_requests::Calls,
     /// Each clone followed by route, authenticated node and project. Rebinding
     /// cancels the old peer's task rather than keeping its client alive.
     following: Arc<Mutex<HashMap<FollowKey, AbortHandle>>>,

@@ -105,6 +105,7 @@ impl State {
                 act,
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
+            Command::Projects(request) => self.projects(request).await,
             Command::Search(ask) => self.search(ask),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
