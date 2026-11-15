@@ -120,7 +120,7 @@ fn follows(previous: CatalogCursor, next: CatalogCursor) -> bool {
 fn apply(catalog: &mut Catalog, delta: &CatalogDelta) {
     match delta {
         CatalogDelta::Upsert { label, previous } => {
-            catalog.upsert(previous.as_ref(), label.clone())
+            catalog.upsert(previous.as_ref(), label.clone());
         }
         CatalogDelta::Remove { name } => catalog.remove(name),
     }
