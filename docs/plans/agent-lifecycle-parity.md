@@ -1446,3 +1446,9 @@ cancelled admission waiters within the existing RPC lifetime rather than
 creating an unbounded detached wait queue. After admission, the single lease
 travels with the already-authorized operation through commit/publication.
 No deadline, numeric limit, permission, Origin or execution fence is added.
+
+
+The inbox cancellation test setup is split into named turn/persistence,
+before-admission and after-admission phases. Only test code moves; every input,
+poll, assertion and deadline remains the same. This keeps the resource-admission
+proof readable without weakening or lengthening its safety budget.

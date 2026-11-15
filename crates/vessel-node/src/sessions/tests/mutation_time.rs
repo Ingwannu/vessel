@@ -1,9 +1,14 @@
 //! Actual writer acknowledgements reach live and ended runtime metadata.
 
 use super::{Fixture, ready};
+use crate::sessions::Found;
 use std::time::Duration;
+use vessel_proto::{
+    AgentEvent, ContentBlock, SessionEvent, SessionInput,
+    inbox::{InboxKey, InboxRead, MarkInbox},
+};
 use vessel_proto::{Creator, EventSeq, Mark, NodeId, SessionId};
-use vessel_session::LaunchOptions;
+use vessel_session::{LaunchOptions, SessionHandle};
 
 const MUTATION_PUBLICATION_BUDGET: Duration = Duration::from_secs(30);
 
@@ -100,11 +105,6 @@ async fn live_detach_publishes_its_ack_and_repeating_it_does_not_erase_time() {
 
 #[tokio::test]
 async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
-    use crate::sessions::Found;
-    use vessel_proto::{
-        AgentEvent, ContentBlock, SessionEvent, SessionInput,
-        inbox::{InboxKey, InboxRead, MarkInbox},
-    };
     vessel_testkit::within(
         MUTATION_PUBLICATION_BUDGET,
         Box::pin(async {
@@ -116,37 +116,7 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 .unwrap();
             let handle = fixture.runtime.get(created.id).unwrap();
             let _running = ready(&handle).await.unwrap();
-            let mut follow = handle.follow(EventSeq::ZERO).unwrap();
-            handle
-                .send(SessionInput::Prompt {
-                    content: vec![ContentBlock::text("plain")],
-                })
-                .await
-                .unwrap();
-            let seq = loop {
-                let record = follow.live.recv().await.unwrap();
-                if matches!(
-                    &record.event,
-                    SessionEvent::Agent {
-                        event: AgentEvent::TurnEnded { .. }
-                    }
-                ) {
-                    break record.seq;
-                }
-            };
-            let mut durability = match fixture.sessions.find(created.id).await.unwrap() {
-                Found::Live { durability, .. } => durability,
-                Found::Stored(_) => panic!("the fake must remain live after its turn"),
-            };
-            // Publication precedes Info update. Wait for THIS known record's commit,
-            // not a possibly earlier cursor read immediately after its broadcast.
-            crate::persist::wait_until(created.id, &mut durability, seq.next().unwrap())
-                .await
-                .unwrap();
-            let key = InboxKey {
-                session: created.id,
-                seq,
-            };
+            let key = finished_key(&fixture, &handle).await;
             let before = handle.info().updated_at;
             fixture
                 .sessions
@@ -170,48 +140,8 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
                 .await
                 .unwrap();
             let before_cancel = handle.info().updated_at;
-            let held = fixture.sessions.marking.lock().await;
-            let task_count = fixture.tasks.len();
-            let waker = std::task::Waker::noop();
-            let mut waiting = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
-                key,
-                read: InboxRead::Read,
-            }));
-            assert!(
-                waiting
-                    .as_mut()
-                    .poll(&mut std::task::Context::from_waker(waker))
-                    .is_pending()
-            );
-            assert_eq!(
-                fixture.tasks.len(),
-                task_count,
-                "no retained task before admission"
-            );
-            drop(waiting);
-            drop(held);
-            assert_eq!(
-                fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
-                InboxRead::Unread
-            );
-            let mut call = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
-                key,
-                read: InboxRead::Read,
-            }));
-            assert!(
-                call.as_mut()
-                    .poll(&mut std::task::Context::from_waker(waker))
-                    .is_pending()
-            );
-            assert!(
-                fixture.tasks.len() > task_count,
-                "the admitted task exists before caller loss"
-            );
-            assert!(
-                fixture.sessions.marking.try_lock().is_err(),
-                "the task owns the same metadata order"
-            );
-            drop(call);
+            cancel_before_admission(&fixture, key).await;
+            cancel_after_admission(&fixture, key);
             fixture.runtime.shutdown().await;
             fixture.settle().await;
             assert_eq!(
@@ -233,4 +163,89 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
     )
     .await
     .unwrap();
+}
+
+// Isolate actual turn/persistence setup from the cancellation-order assertions.
+async fn finished_key(fixture: &Fixture, handle: &SessionHandle) -> InboxKey {
+    let mut follow = handle.follow(EventSeq::ZERO).unwrap();
+    handle
+        .send(SessionInput::Prompt {
+            content: vec![ContentBlock::text("plain")],
+        })
+        .await
+        .unwrap();
+    let seq = loop {
+        let record = follow.live.recv().await.unwrap();
+        if matches!(
+            &record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnEnded { .. }
+            }
+        ) {
+            break record.seq;
+        }
+    };
+    let mut durability = match fixture.sessions.find(handle.id()).await.unwrap() {
+        Found::Live { durability, .. } => durability,
+        Found::Stored(_) => panic!("the fake must remain live after its turn"),
+    };
+    // Publication precedes Info update. Wait for THIS known record's commit,
+    // not a possibly earlier cursor read immediately after its broadcast.
+    crate::persist::wait_until(handle.id(), &mut durability, seq.next().unwrap())
+        .await
+        .unwrap();
+    InboxKey {
+        session: handle.id(),
+        seq,
+    }
+}
+
+async fn cancel_before_admission(fixture: &Fixture, key: InboxKey) {
+    let held = fixture.sessions.marking.lock().await;
+    let task_count = fixture.tasks.len();
+    let waker = std::task::Waker::noop();
+    let mut waiting = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
+        key,
+        read: InboxRead::Read,
+    }));
+    assert!(
+        waiting
+            .as_mut()
+            .poll(&mut std::task::Context::from_waker(waker))
+            .is_pending()
+    );
+    assert_eq!(
+        fixture.tasks.len(),
+        task_count,
+        "no retained task before admission"
+    );
+    drop(waiting);
+    drop(held);
+    assert_eq!(
+        fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
+        InboxRead::Unread
+    );
+}
+
+fn cancel_after_admission(fixture: &Fixture, key: InboxKey) {
+    let task_count = fixture.tasks.len();
+    let waker = std::task::Waker::noop();
+    let mut call = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
+        key,
+        read: InboxRead::Read,
+    }));
+    assert!(
+        call.as_mut()
+            .poll(&mut std::task::Context::from_waker(waker))
+            .is_pending()
+    );
+    assert!(
+        fixture.tasks.len() > task_count,
+        "the admitted task exists before caller loss"
+    );
+    assert!(
+        fixture.sessions.marking.try_lock().is_err(),
+        "the task owns the same metadata order"
+    );
+    drop(call);
 }
