@@ -1753,3 +1753,18 @@ not successful persistence followed by a schedule write. The error copy avoids
 guessing that every local refusal is a full disk. A scoped snapshot regression
 covers exact readback, untouched host/settings/folders and the legacy byte bound;
 all new source still awaits checks/first-use.
+
+
+### Standalone Kit checkpoint and complete returned test batch
+
+Exact513766bf on base9: schedules-20261115T174317Z-513766bf Kit all-target
+Clippy0; schedules-20261115T175522Z-513766bf full Kit lib230/2/0. The two
+failures were the new Code event-history fixture and new Empty Retry fixture.
+The existing simulate_input helper sends a trailing empty keystroke, so the
+same engine emits the final unchanged text as a fourth Change; the literal
+history now includes it rather than changing input/event behavior. Retry had
+an id but no debug selector, so debug_bounds could not locate its real target;
+the same button now exposes a debug-only selector, with no layout/paint/input
+change. Corrected-source execution remains owed. All red logs stay pinned.
+No View/App/Link, native UI/IME, final package or later-source approval is
+inferred from the230 passing cases or prior strict0.

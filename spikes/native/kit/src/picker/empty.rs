@@ -105,7 +105,8 @@ fn retry_button<V: 'static>(
         availability,
         ControlSizing::from_compact(compact),
         tokens,
-    );
+    )
+    .debug_selector(|| "model-browser-retry".to_owned());
     if let Retry::Ready { action, .. } = retry {
         let lease = state.render_lease();
         let get = handlers.state;

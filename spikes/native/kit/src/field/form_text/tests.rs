@@ -82,6 +82,9 @@ fn code_form_uses_the_same_engine_and_reports_its_retained_source(cx: &mut TestA
                     [
                         (id, "0".to_owned()),
                         (id, "0 ".to_owned()),
+                        (id, "0 9".to_owned()),
+                        // simulate_input dispatches a final empty keystroke;
+                        // the existing engine reports that unchanged value too.
                         (id, "0 9".to_owned())
                     ]
                 );
