@@ -4163,6 +4163,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "nix 0.31.3",
+ "notify",
  "serde",
  "sha2 0.11.1",
  "tempfile",
