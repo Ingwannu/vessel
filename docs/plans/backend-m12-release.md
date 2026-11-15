@@ -1076,7 +1076,9 @@ never rebuilt.
     gate 1431/0/2) merged into this track's branch, which brings ADR 0094
     (companions off) and ADR 0099. Beyond base 8 it adds only the release
     workspace, the app's two update-words files, one `Cargo.lock` edge
-    (`flate2`) and documents.
+    (`flate2`) and documents. Its own native gate on the build VM is
+    green: tests 1431 passed, 0 failed, 2 ignored, the same counts as the
+    lead's gate on base 8.
   - Compiled on the build VM: `--release-compile 0.0.0.0.21 windows-x64
     linux-x64`, in the priority lane the coordinator opened for labels.
     It waited 50 s and took 1038 s, Windows and Linux together. This was
