@@ -527,3 +527,29 @@ async fn node_stop_does_not_read_another_directorys_malformed_service() {
     })
     .await;
 }
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_cannot_send_shutdown_when_its_service_warning_cannot_be_written() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = service_file(fixture.data());
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "personal unit").unwrap();
+        // The stderr peer was closed before exec, so the write failure has
+        // no race with a reader deciding when to drop its end of the pipe.
+        let mut child = fixture.spawn_vessel_with_closed_stderr(&["node", "stop"]);
+        let status = tokio::time::timeout(LOCAL_READ_EXIT_BUDGET, child.wait()).await;
+        assert!(
+            status.is_ok(),
+            "warning failure did not exit within {LOCAL_READ_EXIT_BUDGET:?}"
+        );
+        assert!(!status.unwrap().unwrap().success());
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}

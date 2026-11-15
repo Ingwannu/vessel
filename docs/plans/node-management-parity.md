@@ -481,3 +481,7 @@ its log must remain absent. Existing test cases remain unchanged. Fixture
 HOME, VESSEL_HOME and XDG_CONFIG_HOME are isolated before the first lookup.
 The root remains on its independent 2g2 gate commit while this source is
 prepared in a separate tree. Proc work starts at the next clean boundary.
+
+A Linux child also receives a stderr socket whose peer was closed before
+exec. Its warning write must fail and the node must stay Serving. This
+pins warning-before-RPC ordering without a race or a wire-format copy.
