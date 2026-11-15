@@ -81,5 +81,12 @@ client/server refusal tests for direct calls and all three fleet envelopes, and
 deterministic abandoned-running/queued-scan admission regression. Narrow clippy
 reported two client-test helper warnings, corrected in fa1a126e9. The combined
 library tests and generated TypeScript refresh are queued; no final gate claim.
+
+Preview text retains resource-link labels/URIs in the existing timeline's
+Markdown form. Submitted attachment chips stay outside the text; replayed file
+names use the timeline's bracketed caption. Each part streams into the bounded
+preview builder rather than first allocating a full body or URI. A projection
+regression covers both sources. Store integration/measurement test names share
+the `prompt_index` prefix so one targeted suite covers all A3 store boundaries.
 Next: narrow checks, TS generation, scan latency measurement, root gate and node
 review; then integrator protocol assignment and native consumption.

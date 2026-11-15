@@ -119,6 +119,55 @@ fn chunks_after_a_turn_start_extend_its_one_prompt_instead_of_duplicating_it() {
 }
 
 #[test]
+fn previews_keep_links_and_replayed_file_names_as_the_existing_timeline_does() {
+    use vessel_proto::AttachmentId;
+    use vessel_proto::conversation::{AttachmentKind, AttachmentRef};
+
+    let file = ContentBlock::Attachment {
+        attachment: AttachmentRef {
+            id: AttachmentId::random(),
+            name: "diagram.png".parse().unwrap(),
+            kind: AttachmentKind::Image,
+            mime: "image/png".parse().unwrap(),
+            size: 1,
+        },
+    };
+    let mut index = Index::default();
+    index
+        .take(&agent(
+            0,
+            AgentEvent::TurnStarted {
+                content: vec![
+                    text("Read "),
+                    ContentBlock::ResourceLink {
+                        name: "design".to_owned(),
+                        uri: "file:///design.md".to_owned(),
+                    },
+                    file.clone(),
+                ],
+            },
+        ))
+        .unwrap();
+    index
+        .take(&agent(
+            1,
+            AgentEvent::MessageChunk {
+                content: text("reply"),
+            },
+        ))
+        .unwrap();
+    index
+        .take(&agent(2, AgentEvent::UserMessageChunk { content: file }))
+        .unwrap();
+    let page = index.page(EventSeq::ZERO, &request()).unwrap();
+    assert_eq!(
+        page.entries()[0].preview.as_str(),
+        "Read [design](file:///design.md)"
+    );
+    assert_eq!(page.entries()[1].preview.as_str(), "[diagram.png]");
+}
+
+#[test]
 fn work_and_metadata_budgets_refuse_without_silently_omitting_prompts() {
     let mut scanned = Index {
         scanned: SCAN_RECORDS,
