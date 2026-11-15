@@ -45,6 +45,10 @@ pub struct Entry {
     pub key: EntryKey,
     /// The record that made it.
     pub seq: EventSeq,
+    /// Exclusive bound of the last record that changed or invalidated this row.
+    /// A snapshot through an earlier cursor cannot safely copy its current body.
+    /// Gaps may exist between contributing records; this is not a record range.
+    pub through: EventSeq,
     /// When that record was written.
     pub at: DateTime<Utc>,
     /// What it is.

@@ -145,6 +145,14 @@ this is not timeline behavior or package approval. No whole package gate, captur
 or V4 review yet. Real providers and new
 wire activation remain unverified; no real agent was run.
 
+The corrected Chat slice `e4ff42120` passed strict all-target app/view/kit Clippy
+in `wp-timeline-narrow-20261115T084410Z-e4ff4212`. Subsequent standalone-group
+state and source-bound changes need their own execution evidence. The local
+conversation-state run failed because base4 added three embedded Mono faces;
+the existing pinned `fonts.sh` regenerated those assets in this worktree's
+private `/data` cache, and a fresh state run is queued. No font source was copied
+from another worker and no production file permissions changed.
+
 Next: finish source-green narrow/model checks; consume the shared Chat, canonical
 protocol, Markdown callback and resident seams; then owned fake-fleet/GPUI
 captures once, one whole native gate and one V4 package review.
@@ -480,3 +488,21 @@ open a group. A call within an existing group keeps its own independent choice.
 Display/reasoning changes preserve those group choices for the same entry
 identities. A native list-state regression covers single-call arrival, explicit
 open, group formation, inner-call close and reasoning-default change.
+
+### Source bounds for draft forks
+
+[Decision Log]
+- Purpose: W2 must reject a projected prefix when a previously placed tool row
+  has incorporated a source record after the selected anchor.
+- Constraint: `Entry.seq` is the first record, and `rev` counts mutations; neither
+  identifies the last source record, particularly when records have gaps.
+- Alternatives: infer a cursor from revision, or replay an independent projection.
+- Choice: additive `Entry.through: EventSeq`, the exclusive watermark of the last
+  contributing or invalidating record. Push/change use the fold's already advanced
+  cursor, preserving the original entry key and first-record sequence.
+- Why: the existing single projection knows the exact record at every mutation;
+  consumers can conservatively reject a bound crossing their selected cursor.
+- Effects: this is not a contiguous contribution range or historical reconstruction;
+  invalidation may advance the bound even without changing visible text. Replayed
+  overlap does not advance it. Tests cover late tool updates and merged text with
+  source gaps. No protocol call or node contract is invented.

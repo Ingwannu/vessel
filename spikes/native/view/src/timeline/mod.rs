@@ -59,6 +59,9 @@ mod turns;
 mod usage;
 mod window;
 
+#[cfg(test)]
+mod bounds_tests;
+
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text, unified_lines};
 pub use disclosures::Disclosures;

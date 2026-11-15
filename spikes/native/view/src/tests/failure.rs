@@ -18,6 +18,7 @@ fn entry(seq: u64, kind: EntryKind) -> Entry {
     Entry {
         key: EntryKey::Record(EventSeq::new(seq)),
         seq: EventSeq::new(seq),
+        through: EventSeq::new(seq.saturating_add(1)),
         at: DateTime::UNIX_EPOCH,
         kind,
         rev: 0,
