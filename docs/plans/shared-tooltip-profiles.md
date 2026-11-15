@@ -57,10 +57,19 @@ handle. Delivery checks the same private pending identity and trigger lifetime;
 closed Window update refuses rather than looking up another window. The moved tip
 becomes the same controller's sole shown value; there is no second overlay state.
 
+Same-Place redraw updates pending AND shown words, side, offset and trigger
+lifetime synchronously; GPUI does not emit another hover-enter for a stationary
+pointer. A delay prop change does not restart an already scheduled hover timer:
+the original enter deadline stays fixed, and the new delay applies on the next
+enter. This follows pinned `tooltip.tsx:316-340`: scheduleOpen captures its delay,
+and the cleanup effect does not depend on delay changes. Content/position still
+reflect the current render, before the pending deadline and after it is shown.
+
 Authored literal cases cover both anchors/offsets, original default, exact 300ms,
 invalid offsets, and explicit top variant. Real GPUI fixtures exercise immediate
 legacy hover, delayed toolbar hover, A/B/A, press cancellation, unmounted trigger,
-controller drop and compact suppression using the deterministic test clock.
+controller drop, compact suppression and both pending/shown stationary redraw
+using the deterministic test clock.
 They have not run; delayed delivery/unmount behavior remains unverified until
 actual checks, review and the lead's consumer union gate. No runtime claim is
 borrowed from the earlier Toolbar geometry tests.

@@ -201,7 +201,9 @@ impl Tooltips {
             return trigger;
         }
         let lifetime = Rc::new(());
-        self.state.borrow_mut().keep_trigger(place, &lifetime);
+        self.state
+            .borrow_mut()
+            .refresh_trigger(place, &lifetime, &content, configuration);
         let hover_state = Rc::clone(&self.state);
         let hover_place = Rc::clone(place);
         let press_state = Rc::clone(&self.state);
