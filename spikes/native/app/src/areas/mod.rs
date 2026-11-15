@@ -46,6 +46,9 @@ pub(crate) struct Areas {
     pub(crate) workspace: workspace::Workspace,
     pub(crate) git: git::GitArea,
     pub(crate) layout: layout::LayoutArea,
+    // Sole future resource owner; legacy globals remain product-only until cutover.
+    #[cfg(test)]
+    pub(crate) session_residents: layout::residents::SessionResidents,
     pub(crate) pulls: pulls::PullsArea,
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
@@ -73,6 +76,8 @@ impl Areas {
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
             layout: layout::LayoutArea::new(cx),
+            #[cfg(test)]
+            session_residents: layout::residents::SessionResidents::new(),
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),
