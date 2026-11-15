@@ -79,7 +79,8 @@ projected timeline rows. Full SessionRef+entry key+revision identifies a selecte
 boundary, including inherited rows from different sources. It refuses missing
 or changed checkpoints and unavailable history, and discloses retained-only
 history separately from budget omissions. It owns no draft/context persistence;
-conversion to W6 ChatHistory/ContextText and W3 DraftSeed is still required.
+conversion into W6 ChatHistory/ContextText exists in the pure producer, while
+the actual W3 DraftSeed intake and scoped fork action remain unwired.
 
 Source read: server/agent/activity-curator.ts:308-375 and tests520-550. The full
 wrapper measures100000 UTF-16 units, metadata1000, tool summary200. Recent whole
@@ -87,6 +88,11 @@ messages win; a single oversized last message retains beginning/end with an
 explicit middle omission. Rust preserves Unicode scalars at boundaries rather
 than slicing half a surrogate. User/assistant/tool summaries are included;
 thoughts/debug logs/raw external tool input are excluded, as in Paseo's fork.
+The independent curator source at124-167 uses user item.text.trim() and assistant
+item.text.trim(). It does not apply the bubble's spoken-input display projection.
+Accordingly the producer retains canonical prompt/message text; A7's separate
+presented_prompt helper may support bubble/local-find/copy/rewind text without
+silently rewriting curated fork history or metadata/outline previews.
 The current native ToolView title supplies a tool's readable summary; detailed
 W10/W23 tool presentation can enrich this once their common type is integrated.
 Tests cover the full wrapper, Unicode, recent selection, near-budget last
