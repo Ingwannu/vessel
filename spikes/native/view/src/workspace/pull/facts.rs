@@ -192,6 +192,17 @@ pub enum Merge {
 }
 
 impl Merge {
+    /// Readiness describes an open request only. A forge may retain its
+    /// last mergeability after closing or merging; presenting that cached
+    /// value as current readiness would contradict the request's state.
+    #[must_use]
+    pub const fn for_open(summary: &PullSummary) -> Option<Self> {
+        match summary.state {
+            PullState::Open => Some(Self::of(summary.mergeable)),
+            PullState::Merged | PullState::Closed | PullState::Unknown => None,
+        }
+    }
+
     /// The forge's mergeability.
     #[must_use]
     pub const fn of(mergeable: Mergeable) -> Self {

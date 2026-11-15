@@ -416,22 +416,25 @@ fn activity(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     let verdict = pills
         .remaining_verdict(pull.summary.review)
         .words(shell.words);
-    let merge = Merge::of(pull.summary.mergeable).words(shell.words);
+    let merge = Merge::for_open(&pull.summary).map(|merge| merge.words(shell.words));
+    let standing = match (verdict, merge) {
+        (Some(verdict), Some(merge)) => Some(format!("{verdict} · {merge}")),
+        (Some(verdict), None) => Some(verdict.to_owned()),
+        (None, Some(merge)) => Some(merge.to_owned()),
+        (None, None) => None,
+    };
     div()
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
         .child(section_title(words.activity(), tokens))
         .child(row)
-        .child(
+        .children(standing.map(|text| {
             div()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground)
-                .child(match verdict {
-                    Some(verdict) => format!("{verdict} · {merge}"),
-                    None => merge.to_owned(),
-                }),
-        )
+                .child(text)
+        }))
         .into_any_element()
 }
 

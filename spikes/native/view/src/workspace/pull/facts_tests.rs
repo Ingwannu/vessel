@@ -140,3 +140,26 @@ fn review_pills_remove_only_the_same_verdict_and_preserve_different_facts() {
         }
     }
 }
+
+#[test]
+fn a_finished_or_unknown_request_never_claims_current_merge_readiness() {
+    for mergeable in [
+        Mergeable::Mergeable,
+        Mergeable::Conflicting,
+        Mergeable::Blocked,
+        Mergeable::Unstable,
+        Mergeable::Behind,
+        Mergeable::Unknown,
+    ] {
+        for state in [PullState::Merged, PullState::Closed, PullState::Unknown] {
+            let mut pull = summary(state, false);
+            pull.mergeable = mergeable;
+            assert_eq!(Merge::for_open(&pull), None);
+        }
+        for draft in [false, true] {
+            let mut pull = summary(PullState::Open, draft);
+            pull.mergeable = mergeable;
+            assert_eq!(Merge::for_open(&pull), Some(Merge::of(mergeable)));
+        }
+    }
+}

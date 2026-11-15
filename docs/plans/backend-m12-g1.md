@@ -1040,3 +1040,18 @@ the menu's read and the form's send, which the fixture cannot stage.
   facts at 800×600 after the existing code-panel occlusion seam, then exercise
   Create PR and squash merge against the disposable file-seeded forge, and
   inspect the board. No real forge or agent is used.
+
+#### A finding from the final squash-merge run
+
+The real UI write completed: its toast said `PR merged`, the header's glyph
+changed, the refreshed facts said `Merged`, and merge rows disappeared. However,
+the fixture's summary retained `mergeable`, so Activity still said `Ready to
+merge` beneath `Merged`. That is historical data, not current readiness. The
+facts projection now offers readiness only for an open request, including a
+draft. Closed, merged and unknown states omit it; their state remains in the
+header. All six mergeability values are tested across those states and both
+open/draft forms. Review pills and a distinct review verdict remain unchanged.
+This follows Paseo's state header and Activity summary (the pane has no extra
+readiness line); Vessel's additional readiness fact remains for open requests.
+The previous closeout gate passed 1139 tests with none failed and one ignored;
+this changed tree needs its own gate and merged-facts retake.
