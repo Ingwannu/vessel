@@ -2,7 +2,7 @@
 use super::*;
 use gpui::TestAppContext;
 use std::time::Duration;
-use vessel_app_view::voice::{Availability, State, Target};
+use vessel_app_view::voice::{Applied, Availability, State, Target};
 use vessel_proto::{NodeId, SessionId};
 
 fn generations() -> (Generation, Generation) {
@@ -12,8 +12,8 @@ fn generations() -> (Generation, Generation) {
         session: SessionId::random(),
     };
     let first = state.start(target, Availability::Ready).unwrap();
-    state.stop().unwrap();
-    state.stopped(first).unwrap();
+    assert_eq!(state.stop().unwrap(), first);
+    assert_eq!(state.stopped(first).unwrap(), Applied::Current);
     let second = state.start(target, Availability::Ready).unwrap();
     (first, second)
 }

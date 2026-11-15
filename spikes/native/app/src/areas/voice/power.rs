@@ -26,8 +26,8 @@ impl Inner {
     fn release(&mut self) {
         // Mark closed before dropping work: a late completion cannot reclaim it.
         self.status = Status::Released;
-        self.pending.take();
-        self.guard.take();
+        drop(self.pending.take());
+        drop(self.guard.take());
     }
 }
 
@@ -97,7 +97,7 @@ impl Power {
         self.inner.borrow().status
     }
     pub(super) fn release(&mut self) {
-        self.sleep.take();
+        drop(self.sleep.take());
         self.inner.borrow_mut().release();
     }
 }
