@@ -381,3 +381,17 @@ temporary label guard did refuse before effects. This prevents the adapter
 from sending labels that an older peer could silently ignore. No foreign
 lifecycle request or version is introduced; mutation/list APIs await that
 owner's reviewed landing.
+
+
+## Browser identity extraction
+
+The shared ToolId now wraps BrowserTool and delegates exact name parsing and
+formatting to its one closed catalogue. The protocol-only subtree is copied
+unchanged from the reviewed browser foundation d6898cb5, with its reviewed
+RFC-variant identity correction a833243c. No later human-input additions,
+proxy, browser crate, RPC, settings or runtime are imported. The browser
+producer's scoped strict/tests evidence does not substitute for this
+package's own checks. Browser names remain absent from this server's list;
+a direct allowed browser name returns a typed engine-unavailable failure.
+A disabled name still fails the shared policy first. The producer will mount
+its schemas/dispatch only with its own enable/readiness/lease checks.

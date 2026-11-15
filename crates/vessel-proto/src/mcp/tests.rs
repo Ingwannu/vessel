@@ -99,3 +99,23 @@ fn exact_turn_tracking_stays_pending_across_fleet_hops() {
     assert_eq!(forwarded.since(), MCP_PARITY);
     assert!(matches!(forwarded, Call::Forward(_)));
 }
+
+#[test]
+fn browser_policy_uses_the_producers_one_closed_catalogue() {
+    use crate::browser::{BROWSER_TOOLS, BrowserTool};
+    for &tool in BROWSER_TOOLS {
+        let id = ToolId::Browser(tool);
+        assert_eq!(ToolId::parse(tool.name()), Some(id));
+        assert_eq!(id.as_str(), tool.name());
+    }
+    let click = ToolId::Browser(BrowserTool::Click);
+    let policy = ToolPolicy::new(ToolAccess::Enabled, vec![StoredTool::Known(click)]).unwrap();
+    assert!(!policy.permits(click));
+    assert!(policy.permits(ToolId::Browser(BrowserTool::Type)));
+    let encoded = serde_json::to_value(&policy).unwrap();
+    assert_eq!(encoded["disabled"][0], "browser_click");
+    assert_eq!(
+        serde_json::from_value::<ToolPolicy>(encoded).unwrap(),
+        policy
+    );
+}

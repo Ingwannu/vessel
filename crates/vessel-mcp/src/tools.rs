@@ -134,6 +134,7 @@ impl VesselTools {
     async fn dispatch(&self, tool: id::ToolId, args: &JsonObject) -> Result<Value, ToolError> {
         let name = tool.as_str();
         match tool {
+            id::ToolId::Browser(_) => Err(ToolError::BrowserUnavailable),
             id::ToolId::LspWorkspaceSymbols
             | id::ToolId::LspDocumentSymbols
             | id::ToolId::LspDefinition
@@ -318,6 +319,9 @@ impl ServerHandler for VesselTools {
 /// Why a tool call failed.
 #[derive(Debug, thiserror::Error)]
 enum ToolError {
+    /// A shared browser identity is not a qualified engine or session admission.
+    #[error("browser tools require a qualified, enabled browser engine")]
+    BrowserUnavailable,
     /// The call itself is wrong: a JSON-RPC error.
     #[error("{0}")]
     Arguments(String),

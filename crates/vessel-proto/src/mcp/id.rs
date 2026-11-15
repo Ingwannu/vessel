@@ -4,6 +4,8 @@
 /// One tool this build advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ToolId {
+    /// Browser tools use the browser producer's one closed name catalogue.
+    Browser(crate::browser::BrowserTool),
     /// `list_nodes`.
     ListNodes,
     /// `list_sessions`.
@@ -205,7 +207,7 @@ impl ToolId {
             "vessel_lsp_incoming_calls" => Self::LspIncomingCalls,
             "vessel_lsp_outgoing_calls" => Self::LspOutgoingCalls,
             "vessel_lsp_diagnostics" => Self::LspDiagnostics,
-            _ => return None,
+            _ => return crate::browser::BrowserTool::from_name(name).map(Self::Browser),
         })
     }
 
@@ -216,6 +218,7 @@ impl ToolId {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Browser(tool) => tool.name(),
             Self::ListNodes => "list_nodes",
             Self::ListSessions => "list_sessions",
             Self::CreateSession => "create_session",
