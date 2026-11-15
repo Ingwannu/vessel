@@ -68,14 +68,18 @@ pub(crate) struct Areas {
 }
 
 impl Areas {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) fn new(
+        general: settings::PreparedGeneral,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         let mut areas = Self {
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
-            settings: settings::SettingsState::new(window, cx),
+            settings: settings::SettingsState::new(general, window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
             layout: layout::LayoutArea::new(cx),
