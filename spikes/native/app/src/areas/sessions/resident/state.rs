@@ -1,5 +1,6 @@
 //! Concrete lifecycle holds; canonical Residents alone mints/settles tickets.
 use super::{Problem, Snapshot};
+use vessel_app_link::sessions::lifecycle::Failure;
 use vessel_app_view::residents::{
     FollowBinding, FollowRetirement, HoldReason, OperationKind, OperationTicket, OwnerReadiness,
 };
@@ -8,7 +9,7 @@ use vessel_app_view::sessions::{LifecycleAction, LifecycleTicket};
 #[derive(Clone, Copy)]
 struct Decision {
     binding: FollowBinding,
-    decision: LifecycleTicket,
+    ticket: LifecycleTicket,
     action: LifecycleAction,
 }
 /// Preserve the original uncertain effect for explicit owner reconciliation.
@@ -82,12 +83,12 @@ impl LifecycleResources {
         self.next_decision = decision.next();
         self.phase = Phase::Decision(Decision {
             binding,
-            decision,
+            ticket: decision,
             action,
         });
         Ok(decision)
     }
-    /// Obtain this ticket from Residents with OperationKind::Lifecycle, after
+    /// Obtain this ticket from Residents with `OperationKind::Lifecycle`, after
     /// checking the exact decision in the same synchronous confirmation callback.
     /// This records pending UI; it grants no effect or completion authority.
     pub(crate) fn sent(
@@ -98,7 +99,7 @@ impl LifecycleResources {
         let Phase::Decision(expected) = self.phase else {
             return Err(Problem::Held);
         };
-        if expected.decision != decision {
+        if expected.ticket != decision {
             return Err(Problem::Held);
         }
         self.phase = Phase::Sending(Pending {
@@ -132,7 +133,7 @@ impl LifecycleResources {
         &mut self,
         binding: FollowBinding,
         ticket: OperationTicket,
-        failure: &vessel_app_link::sessions::lifecycle::Failure,
+        failure: &Failure,
     ) -> bool {
         let Phase::Sending(pending) = self.phase else {
             return false;
@@ -140,7 +141,6 @@ impl LifecycleResources {
         if pending.binding != binding || pending.ticket != ticket {
             return false;
         }
-        use vessel_app_link::sessions::lifecycle::Failure;
         self.phase = match failure {
             Failure::Unsent | Failure::IdentityChanged => Phase::Ready,
             Failure::Refused(_) | Failure::LostReply(_) | Failure::Uncertain => {
@@ -182,7 +182,7 @@ impl LifecycleResources {
         }
     }
     pub(crate) fn dismiss(&mut self, decision: LifecycleTicket) {
-        if matches!(self.phase, Phase::Decision(expected) | Phase::RevokedDecision(expected) if expected.decision == decision)
+        if matches!(self.phase, Phase::Decision(expected) | Phase::RevokedDecision(expected) if expected.ticket == decision)
         {
             self.phase = Phase::Ready;
         }

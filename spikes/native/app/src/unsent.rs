@@ -36,6 +36,7 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::{ErrorCode, SessionId};
 
 use crate::shell::Shell;
+mod sessions;
 
 /// How a command the link did not take settles.
 #[derive(Debug)]
@@ -65,12 +66,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             code: None,
             message: words.to_owned(),
         }),
-        Command::SessionLifecycle(request) => {
-            Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
-                ticket: request.ticket,
-                result: Err(vessel_app_link::sessions::lifecycle::Failure::Unsent),
-            })
-        }
+        Command::SessionLifecycle(request) => sessions::lifecycle(request.ticket),
         Command::Sessions(ask) => {
             Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
         }
