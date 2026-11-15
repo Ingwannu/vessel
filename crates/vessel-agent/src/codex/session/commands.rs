@@ -9,6 +9,9 @@ use super::{
 impl Session {
     pub(super) async fn command(&mut self, command: Command) {
         match command {
+            Command::NativeCommand { intent, reply } => {
+                crate::input::native_command::unsupported(intent, reply)
+            }
             // A side question's context is not carried yet (A2 carries it
             // in its next commit): refused before anything is sent, never
             // dropped (ADR 0057, N5's integration).

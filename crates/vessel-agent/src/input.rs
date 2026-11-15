@@ -1,7 +1,9 @@
 //! [`AgentInput`]: the cloneable command side of an agent session.
 
 mod identified;
+pub(crate) mod native_command;
 mod permission;
+pub use native_command::NativeCommandDispatch;
 pub use permission::PermissionDispatch;
 
 use tokio::sync::{mpsc, oneshot};
@@ -35,6 +37,10 @@ pub enum SteerOutcome {
 /// A command for the driver, answered once it has been applied.
 #[derive(Debug)]
 pub(crate) enum Command {
+    NativeCommand {
+        intent: vessel_proto::native_commands::NativeCommandIntent,
+        reply: native_command::NativeCommandReply,
+    },
     Prompt {
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,

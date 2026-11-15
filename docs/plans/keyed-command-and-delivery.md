@@ -87,3 +87,12 @@ The current wire SubmitPrompt/receipt are still prompt-only and do not call this
 entry point until the joint attachment is finished. Private fake tests cover steer
 available/absent and unsupported native intent with exact message echoes; execution
 and failure/race/saturation proof remain owed.
+
+The common internal provider carrier is now prepared as
+AgentInput::native_command(intent) → NativeCommandDispatch::{Accepted{status},
+Refused{reason},OutcomeUnknown}. Its Command variant uses the existing bounded
+input queue and a correlated reply. All current ACP/Claude/Codex arms explicitly
+return Unsupported without an RPC; W22 owns positive transport branches and
+current-run capability proof. This source checkpoint does not remove the actor's
+unsupported guard or attach a wire request/event. One in-memory queue fixture
+checks the separate correlated result; it is not native transport evidence.

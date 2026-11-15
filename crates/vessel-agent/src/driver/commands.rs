@@ -17,6 +17,9 @@ use crate::mapper;
 impl Driver {
     pub(super) async fn command(&mut self, cx: &ConnectionTo<Agent>, command: Command) {
         match command {
+            Command::NativeCommand { intent, reply } => {
+                crate::input::native_command::unsupported(intent, reply)
+            }
             Command::Prompt {
                 content,
                 attachments,

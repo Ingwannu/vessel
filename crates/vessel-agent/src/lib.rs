@@ -89,7 +89,7 @@ pub use history::{
     HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,
     NotACursor, history, history_with,
 };
-pub use input::{AgentInput, PermissionDispatch, SteerOutcome};
+pub use input::{AgentInput, NativeCommandDispatch, PermissionDispatch, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};

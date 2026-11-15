@@ -1687,3 +1687,8 @@ Trusted plugin timeline observations use the existing vessel-session actor contr
 channel (plugin_timeline). Its EventSeq acknowledgement is admission, not persistence;
 the future authorized node broker must wait for the ordinary persist watermark.
 No helper runtime, plugin authorization rule, store or RPC is introduced by this seam.
+
+The agent input seam includes a dedicated internal native-command carrier with
+closed acceptance/refusal/uncertainty. It shares the existing bounded command
+queue; every current provider refuses before RPC. Positive transports stay with
+the provider owner and cannot be enabled by a label/version guess.

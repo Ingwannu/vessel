@@ -13,6 +13,9 @@ use crate::options::OptionError;
 impl Session {
     pub(super) async fn command(&mut self, command: Command) {
         match command {
+            Command::NativeCommand { intent, reply } => {
+                crate::input::native_command::unsupported(intent, reply)
+            }
             Command::Prompt {
                 content,
                 context: side,
