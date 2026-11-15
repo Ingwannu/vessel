@@ -54,10 +54,10 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
     cx.update(|_, cx| {
         cx.global_mut::<Desktop>().remember(moved);
     });
-    let old = futures_lite::future::block_on(flushing).unwrap();
+    let old = super::super::testing::wait(flushing).unwrap();
     cx.update(|_, cx| assert!(matches!(flush_current(&old, cx), StateReadiness::Changed)));
     let flushing = cx.update(|_, cx| flush_state(cx));
-    let current = futures_lite::future::block_on(flushing).unwrap();
+    let current = super::super::testing::wait(flushing).unwrap();
     cx.update(|_, cx| {
         assert!(matches!(
             flush_current(&current, cx),
@@ -75,7 +75,7 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
         ))
     });
     let flushing = cx.update(|_, cx| flush_state(cx));
-    let written = futures_lite::future::block_on(flushing).unwrap();
+    let written = super::super::testing::wait(flushing).unwrap();
     cx.update(|_, cx| {
         assert!(matches!(
             flush_current(&written, cx),
@@ -97,7 +97,7 @@ fn equal_bounds_after_intervening_publications_still_require_a_fresh_receipt(
 ) {
     let (_root, store) = owner(cx);
     let flushing = cx.update(|cx| flush_state(cx));
-    let old = futures_lite::future::block_on(flushing).unwrap();
+    let old = super::super::testing::wait(flushing).unwrap();
     let moved = WindowState::new(Some((40.0, 50.0)), 900.0, 700.0, Presentation::Windowed).unwrap();
     cx.update(|cx| {
         let desktop = cx.global_mut::<Desktop>();
@@ -108,7 +108,7 @@ fn equal_bounds_after_intervening_publications_still_require_a_fresh_receipt(
         assert!(matches!(flush_current(&old, cx), StateReadiness::Changed));
     });
     let flushing = cx.update(|cx| flush_state(cx));
-    let current = futures_lite::future::block_on(flushing).unwrap();
+    let current = super::super::testing::wait(flushing).unwrap();
     cx.update(|cx| {
         assert!(matches!(
             flush_current(&current, cx),

@@ -402,6 +402,12 @@ and clipboard before redraw; the shortcut owner stages its real Capture test
 against the same predicate and adapter. No new shortcut table, recorder, capture
 visibility or test-only product hook is introduced. Changed-source checks remain
 pending and the staged owner regression has not been executed here.
+Windows check3 on552 independently confirmed the Shell import cascade and also
+found that App test waits named Linux-only futures_lite. The source now uses one
+test-only std Wake/park helper with a10s deadline. It intentionally does not pump
+GPUI foreground observers while waiting for the actual writer, preserving the
+pending-before-observe race being tested without any runtime/dependency change.
+No Windows runtime or corrected-source typecheck result is inferred yet.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

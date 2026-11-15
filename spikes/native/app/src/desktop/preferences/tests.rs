@@ -46,22 +46,22 @@ fn exact_failed_receipt_reports_once_after_a_newer_success_without_rolling_it_ba
     let mut refused = initial.clone();
     refused.settings.appearance.theme = Theme::Light;
     let receipt = first.publish_with_receipt(&refused).unwrap();
-    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    super::super::testing::wait(coordinator.flush()).unwrap();
     std::fs::remove_dir(&path).unwrap();
     let mut accepted = initial;
     accepted.settings.sidebar.group = Grouping::Status;
     second.publish(&accepted).unwrap();
-    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    super::super::testing::wait(coordinator.flush()).unwrap();
     let newer = coordinator.snapshot();
-    let older = futures_lite::future::block_on(receipt.completed()).unwrap();
+    let older = super::super::testing::wait(receipt.completed()).unwrap();
     assert!(older.revision() < newer.revision());
     std::fs::remove_file(&path).unwrap();
     std::fs::create_dir(&path).unwrap();
     let mut failed_again = accepted;
     failed_again.settings.appearance.theme = Theme::Light;
     let later_failure = second.publish_with_receipt(&failed_again).unwrap();
-    futures_lite::future::block_on(coordinator.flush()).unwrap();
-    let later_failure = futures_lite::future::block_on(later_failure.completed()).unwrap();
+    super::super::testing::wait(coordinator.flush()).unwrap();
+    let later_failure = super::super::testing::wait(later_failure.completed()).unwrap();
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         shell.areas.desktop.preferences = Some(first);
@@ -121,7 +121,7 @@ fn canonical_apply_preserves_another_windows_layout_in_the_next_local_save(
         .layouts
         .push(RememberedLayout::new(b.clone(), &Layout::default()));
     other.publish(&remote).unwrap();
-    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    super::super::testing::wait(coordinator.flush()).unwrap();
     let snapshot = coordinator.snapshot();
     shell.update_in(cx, |shell, window, cx| {
         apply(shell, &snapshot, window, cx);
@@ -142,7 +142,7 @@ fn canonical_apply_preserves_another_windows_layout_in_the_next_local_save(
             .unwrap();
         assert!(shell.prefs.layouts.iter().any(|entry| entry.key == b));
     });
-    futures_lite::future::block_on(coordinator.flush()).unwrap();
+    super::super::testing::wait(coordinator.flush()).unwrap();
     assert!(
         coordinator
             .current()
