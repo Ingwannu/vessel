@@ -113,6 +113,17 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
 }
 
 fn apply(shell: &mut Shell, snapshot: Snapshot, cx: &mut Context<'_, Shell>) {
+    let same_transport = shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .is_some_and(|previous| previous.same_transport(&snapshot));
+    if same_transport {
+        shell.areas.local_node.snapshot = Some(snapshot);
+        cx.notify();
+        return;
+    }
     shell.areas.local_node.target = None;
     let connection = snapshot.connection();
     shell.areas.local_node.snapshot = Some(snapshot);

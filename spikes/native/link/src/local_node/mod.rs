@@ -9,7 +9,9 @@
 
 mod actor;
 mod signals;
+mod transport;
 pub use signals::QuitSignal;
+pub use transport::TransportLease;
 pub mod registration;
 
 use std::path::PathBuf;
@@ -113,6 +115,7 @@ impl Configuration {
 pub struct Connection {
     client: NodeClient,
     provenance: LocalProvenance,
+    source: TransportLease,
 }
 
 impl std::fmt::Debug for Connection {
@@ -136,6 +139,16 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    /// Status/log updates keep the same source; a restart never matches by node ID.
+    #[must_use]
+    pub fn same_transport(&self, other: &Self) -> bool {
+        match (&self.connection, &other.connection) {
+            (Some(left), Some(right)) => left.source.same_source(&right.source),
+            (None, None) => true,
+            (Some(_), None) | (None, Some(_)) => false,
+        }
+    }
+
     /// Each window registers the same authenticated connection in its own link.
     #[must_use]
     pub fn connection(&self) -> Option<Connection> {

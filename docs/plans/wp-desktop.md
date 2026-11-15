@@ -309,3 +309,17 @@ The managed-local registry port remains reserved third after W2 and W12 land;
 its pre-base-6 adapter is not a compiling handoff. The exact generated-name helper
 uses native View's existing machine_book::Name, not root client's Book Name; no
 crate edge or second parser is added. E2 converts at its existing native edge.
+
+### Immutable controller transport correlation
+
+Local actor state now owns a non-clone Source beside its LocalNode. A successful
+new start/restart mints its opaque transport lease; ordinary state/log/failed-stop
+snapshots clone that lease. Original transport closure and Source drop publish
+irreversible retirement, and snapshots retain receivers only. The per-window
+observer preserves its registration ticket/target across same-source status
+updates instead of generating artificial reconnects. This is controller-source
+correlation, not a UI epoch allocator, a process receipt or signal permission.
+The canonical registry's lease-retirement watch and exact source-removal join
+remain part of the third-slot ManagedLocal port; this preparation does not claim
+that the legacy adapter implements them. Tests cover receiver clones surviving
+owner withdrawal, successor independence and actual original transport closure.
