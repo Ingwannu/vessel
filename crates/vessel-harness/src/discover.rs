@@ -1,5 +1,8 @@
 //! [`discover`]: which harnesses are installed, and their versions.
 
+#[cfg(test)]
+mod diagnostics;
+
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 

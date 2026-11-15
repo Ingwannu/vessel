@@ -62,9 +62,9 @@ These are source-only observations; no real Paseo daemon was exercised.
 | Row | Scope / deliverable | Required evidence | State |
 |---|---|---|---|
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
-| D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 implementation review pending |
-| D3 | Store snapshot, node collector and bounded typed journal | Actual SQLite aggregate/schema reads, runtime counts/relay/listener fixtures; unknown/read failure/too-many/timeout states; safe cached readiness; zero subprocesses; restart/loss/window fixtures; 2-permit cancellation lifetime | Not implemented |
-| D4 | After shared accessor lands: one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
+| D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
+| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source implemented; 27 focused tests passed, inventory-only narrow build cut off before tests; whole remote gate pending |
+| D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
 
@@ -125,12 +125,15 @@ D1 changes documents only: rustfmt check and whitespace/boundary inspection;
 no compilation or tests are claimed. Root size/boundary scripts are absent on
 the supplied base; native token checks are inapplicable without native changes.
 
-Code uses focused package checks while being written, then one detached whole
-root gate per changed slice. In the same environment and slot, prebuild
+Code uses focused package checks while being written, then a whole gate
+against an immutable committed tree. The approved remote node-gate runner
+now runs that gate, including root and web steps, with one stable track label;
+only committed inputs travel. Record its run id, commit, per-step return codes
+and load figures and test totals. It prebuilds both
 `cargo build -p vessel-testkit --bins` and
-`cargo build -p vessel-node --bin vesseld`; then run the root fmt, full clippy
-and workspace tests with `--no-fail-fast`. Use private mode-0700 SSD runtime
-temporary data, a unique data-disk target and front/back uptime/free records.
+`cargo build -p vessel-node --bin vesseld` before the workspace tests. Earlier
+local evidence used private mode-0700 SSD runtime temporary data, a unique
+data-disk target and front/back uptime/free records and remains separate.
 The merged head fixes the initial protocol-expectation failure. Its known
 side-question completion-race cases are recorded with their original results
 and one exact rerun where authorized; no other failure is waived. Timeout endpoint load above 32 is
@@ -148,8 +151,8 @@ implementation review. The green node head `a365d295` was merged at
 `86fbbb33` without conflicts. Its protocol/schema/tables/tests/documents
 were retained unchanged; no protocol number is assigned to diagnostics.
 
-D2 value types are implemented and gated without call plumbing; V1's
-implementation review is pending. The root whole gate passed 1,975 tests,
+D2 value types are implemented and gated without call plumbing. V1 passed
+only this value scope at `2cdeea97` / `f1e7e5e0`. The root whole gate passed 1,975 tests,
 with zero failures and twelve ignored, across 112 result summaries. Both
 TypeScript freshness tests passed without writing declarations. The web
 lint, typecheck, 417 unit tests, build and all 62 E2E tests passed. These are
@@ -177,9 +180,10 @@ exact JSON integers and explicitly mark saturation. Numeric version parsing
 uses checked decimal accumulation against its named ceiling rather than
 creating and discarding a parser error.
 
-Resume: submit the gated immutable D2 commit to V1, then continue D3.
-D3 drafts are not installed or compiled. Stage its real collector and actor
-under `cfg(test)` with tests, without a public node API. No Request, method, guard,
+D2's exact values commit has passed V1. D3 owner mechanisms are installed
+under `cfg(test)` and have focused evidence; its whole gate and staged-source
+review are pending. Run the approved remote whole gate on the clean candidate
+commit. Keep all staged code private and unreachable from a product API. No Request, method, guard,
 client, CLI or bridge registration is added before consuming the shared
 admission accessor and common RPC method metadata. No runtime diagnostic
 result or native integration is claimed.
@@ -233,8 +237,9 @@ response, phone, other OS or production behaviour is covered by this slice.
 - `b6d0e93d`: ADR 0074 and acceptance plan; contract/documents review passed.
 - `86fbbb33`: merge of the green node line `a365d295`, without conflicts.
 - `2cdeea97`: D2 bounded diagnostic values and canonical declarations; the
-  gates above apply to its exact compiled inputs. Implementation review is
-  pending; the ADR remains proposed.
+  gates above apply to its exact compiled inputs. V1 passed this value scope
+  with documents checkpoint `f1e7e5e0`; the ADR remains proposed until its
+  runtime implementation is reviewed.
 
 Next is the staged D3 source collectors, failure journal and cancellation
 fixtures under their owning modules. Off-tree drafts are not installed or
@@ -242,3 +247,67 @@ compiled and supply no implementation evidence. Cross-crate product API and
 wire wiring wait for the shared admission accessor and RPC method metadata.
 There is no callable diagnostic method for a screen or CLI to consume yet;
 the planned call/response and older-peer behaviour remain the D4 contract.
+
+
+### Staged D3 boundary and retained checks
+
+The node's private diagnostic journal and collection leases are being tested
+under `cfg(test)`. They are unreachable from the product and have no public
+Node API. Source projections stay under their existing owners; cross-crate
+composition and its deliberate visibility changes belong to actual wiring.
+No staged mechanism is product evidence before the wiring gate. The actual
+collector's cross-crate assembly, five-second response budget, listener bind
+publication and default-profile selection are part of that D4 wiring.
+
+Early narrow D3 Clippy runs found an incorrect task-token import, similar
+test variable names, a documentation formatting warning and unobserved
+tracker-close results; these are corrected. The store preflight also found
+an exported error type name, unchecked fixture write results and a redundant
+conversion; these are corrected before running its tests. The node mechanisms
+passed focused Clippy and ten tests; the store passed focused Clippy and five
+actual SQLite tests. The later combined owner checks passed Clippy and 27 tests;
+the D3 whole gate remains pending. These are staged component checks, not product
+report or wire evidence. D2's accepted immutable source is not
+changed by the working collector code.
+
+For D2, the full diff whitespace check returned status 2 with 64 warnings,
+all in canonical generated `web/src/wire/proto.ts`. The authored-path check
+excluding that generated file returned zero; official lint and both
+TypeScript freshness checks passed. Generated whitespace is retained exactly
+as emitted, not edited by hand.
+
+
+The relay projection is deliberately inside the crate that owns `LinkState`:
+its existing non-exhaustive public attribute is unchanged, and the local
+four-case match is exhaustive. A closed producer becomes unrecognized rather
+than repeating its last registered state. Only a test-gated module line and
+its private projection/tests are added; no relay API, dependency or variant
+changes. The runtime projection borrows per-actor status/parked metadata and
+does not claim one global transaction across actors. Default-profile choice,
+listener bind publication and cross-crate assembly still need the real D4
+caller; component tests do not replace that wiring evidence.
+
+
+The combined owner preflight also caught documentation code spans and an
+unnecessary clone of a Copy key in a process-projection fixture; these were
+corrected. The process projection uses the existing lifecycle receiver and
+borrows only identity/state; it does not clone the description's names,
+hostname, free-form version or key. Its monotonic-clock fixture does not
+establish the actual startup capture point, which remains D4 wiring work.
+
+
+The owner components passed 27 focused library tests (including the actual
+fake-session lifecycle and process clock). The complete inventory selector is
+also staged in the node: it borrows configured definitions, includes known
+builtins and refuses a list exceeding the named report limit before metadata
+lookups or row construction. Its Clippy check passed; its separate narrow test
+build was stopped at the build lane's time cap (status 124) while linking,
+before either test ran. That is not a test pass. The final whole remote gate
+will run both boundary cases. No report assembly or public service is implied.
+
+
+The D3 candidate is committed before remote execution so the runner receives
+only immutable repository inputs; its complete gate is still unverified until
+the recorded run completes. No untracked asset, dependency folder or local
+artifact is part of that commit. The source stays on the track branch until
+the wiring commit activates it and passes the product gate.

@@ -5,6 +5,13 @@
 //! never edited once released, only appended to. A database newer than this
 //! build is refused rather than guessed at.
 
+// Staged schema projection; wiring after shared admission/method metadata
+// removes cfg(test), without changing migrations or their order.
+#[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
+pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};
+
 use rusqlite::Connection;
 
 use crate::error::StoreError;

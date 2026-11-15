@@ -4,6 +4,8 @@
 mod attached;
 mod automation;
 mod conversation;
+#[cfg(test)]
+mod diagnostics;
 mod forge;
 mod search;
 mod usage;
