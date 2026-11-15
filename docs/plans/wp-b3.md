@@ -140,3 +140,19 @@ or get stuck querying status forever. Existing-operation admission precedes plan
 expiry and never reapplies files. Stale node/session/panel tickets still refuse
 late replies, while a detached operation's durable identity remains available for
 reconnect result lookup. These are future implementation/test obligations.
+
+### Timeline owner agreement (contract preparation only)
+
+W2 and W10 confirm that the current reviewed line has no generic turn-action
+registration API. The legacy rewind::with_row/menu remains conversation-only.
+W10 proposes one caller-owned optional element slot in A7 timeline::entry_element's
+user/turn wrapper, with the completed footer for AfterTurn. The checkpoint area
+supplies its independent button, disabled reason, dialog and action.
+
+No stable signature or consumer-ready A7 hash is promised: full A7 review and the
+product scoped SessionContext cutover remain pending. W9 must first send the
+checked node producer's exact boundary/ref/phase contract. Registration is then
+one agreed owner change, not a second menu or renderer. Dispatch captures the
+canonical accepted prompt/turn/checkpoint references and full original context,
+then resolves EntryKey/source before any numeric index. No route/context type is
+invented locally, and shared timeline/rewind files remain untouched meanwhile.
