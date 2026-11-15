@@ -183,3 +183,29 @@ sidebar package begins after that boundary and does not claim the theme's
 platform limitations as solved. Packagebase2 `6036eeb8` is merged at `5e3d4a7e`.
 Navigation's corrected first narrow run passed22 tests; the first catalog
 failure is retained. New layout/controls still require their own narrow checks.
+
+### Callout renderer checkpoint
+
+The shared `kit::sidebar_callout` follows `components/sidebar-callout.tsx:32–245`
+through the existing tokens and GPUI element engine. Its source uses a natural
+height, horizontal16/vertical12 inset and a top border only; error changes that
+border, while success remains neutral. Title14 normal clamps to two lines;
+description12 wraps. Dismiss14 has an expanded8 hit region. At most two typed
+actions use8/12 padding, radius6, text12 medium and source pressed/disabled
+opacity. These private actions are part of the strip, not another generic
+Button API. Actual bounds, one-click dispatch, disabled refusal and the expanded
+dismiss target have GPUI regressions; compilation and runtime evidence are owed.
+
+Paseo mounts the viewport in its web slot while its native slot returns null.
+The GPUI app will admit the shared strip deliberately; this is a stated
+platform mapping. Caller modules own observed facts, priority, persistence and
+dismissal; absent setup observations or remote architecture cannot invent a
+setup/Rosetta warning. W8 and the desktop owner consume this renderer. No
+provider or slot is claimed integrated by this control-only checkpoint.
+
+Packagebase4 is merged preserving its terminal presence registration and the
+sidebar-specific form policy. The exact pure-policy checkpoint5e passed its
+three sidebar policy regressions within22 filtered view tests. A local kit/view
+test ended during dependency compilation with no test result; it proves no
+control behavior. The following narrow checks use immutable commit snapshots,
+so new small F4 commits do not change their executed source or their scope.

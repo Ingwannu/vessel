@@ -57,6 +57,7 @@ pub mod segmented;
 pub mod select;
 pub mod settings;
 pub mod sheet;
+pub mod sidebar_callout;
 pub mod sidebar_header_row;
 pub mod skeleton;
 pub mod slider;
