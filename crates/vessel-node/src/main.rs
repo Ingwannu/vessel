@@ -365,6 +365,8 @@ async fn relay(args: Box<RelayArgs>) -> ExitCode {
         %trusted_proxies,
         "relay limits"
     );
+    // Before `relay listening`: a stop sent after that line must stop it.
+    let stop = vessel_node::StopSignals::listen();
     let listener = match tokio::net::TcpListener::bind(args.bind).await {
         Ok(listener) => listener,
         Err(error) => {
@@ -378,7 +380,7 @@ async fn relay(args: Box<RelayArgs>) -> ExitCode {
     let shutdown = CancellationToken::new();
     let mut serving = tokio::spawn(vessel_relay::serve(listener, config, shutdown.clone()));
     let served = tokio::select! {
-        () = vessel_node::signal() => {
+        () = stop.stopped() => {
             tracing::info!("stopping");
             shutdown.cancel();
             serving.await
@@ -459,13 +461,11 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     config.forge =
         vessel_node::ForgeSetup::found(|name| std::env::var_os(name), &config.harness_lookup);
 
-    // Before the node starts, so a hang-up during start-up cannot kill it.
+    // Before the node starts (and says it listens), so neither a hang-up
+    // nor a stop sent once it is ready can kill it.
     #[cfg(unix)]
-    let _hangups = if args.detached {
-        ignore_hangups()
-    } else {
-        None
-    };
+    let _hangups = args.detached.then(ignore_hangups).flatten();
+    let stop = vessel_node::StopSignals::listen();
     let node = match Node::start(config).await {
         Ok(node) => node,
         Err(error) => {
@@ -481,7 +481,7 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
         ));
     }
     tokio::select! {
-        () = vessel_node::signal() => {}
+        () = stop.stopped() => {}
         () = node.stop_requested() => {}
     }
     tracing::info!("stopping");

@@ -1,7 +1,8 @@
 //! One shared renderer for point-opened and right-aligned action menus.
 
+use super::input::{KeyMenu, keyboard};
 use super::item::{Leading, paint};
-use super::{Direction, MenuHandlers, MenuItem, MenuState, keyboard_choice, pointer_choice};
+use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
 use crate::fonts::Type;
@@ -10,8 +11,8 @@ use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, Pixels, Window, anchored,
-    deferred, div, px,
+    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, Window, anchored, deferred, div,
+    px,
 };
 
 /// The narrowest a menu is (Paseo's `minWidth`).
@@ -200,27 +201,47 @@ fn draw<V: 'static>(
     } = content;
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
-    let key_handlers = MenuHandlers {
-        state: get,
-        chose: Rc::clone(&handlers.chose),
+    let key_menu = KeyMenu {
+        handlers: MenuHandlers {
+            state: get,
+            chose: Rc::clone(&handlers.chose),
+        },
+        items: keys_items,
+        lease: state.render_lease(),
     };
     let on_key = cx.listener(move |view, event, window, cx| {
-        keyboard(view, event, window, cx, &key_handlers, &keys_items);
+        keyboard(view, event, window, cx, &key_menu);
     });
+    let outside_lease = state.render_lease();
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        if !get(view).accepts(&outside_lease) {
+            if layer == Layer::AboveDialog {
+                // A stale nested menu still contains this press; forwarding
+                // along A's path could dismiss the dialog underneath B.
+                cx.stop_propagation();
+            }
+            return;
+        }
         get(view).close_and_restore(window, cx);
         if layer == Layer::AboveDialog {
-            // Dismissing a nested menu is one decision, not also a scrim press.
             cx.stop_propagation();
         }
         cx.notify();
     });
+    // track_focus installs GPUI's own automatic pointer-focus listener. Fence
+    // its default behavior too, before an obsolete panel can focus old state.
+    let focus_lease = state.render_lease();
     let surfaces = Surfaces::of(tokens);
     // Paseo's page: 4 above the first row and below the last, no gap
     // between rows, the rule between groups the full width.
     let mut panel = div()
         .id(id.clone())
         .track_focus(&state.focus)
+        .capture_any_mouse_down(cx.listener(move |view: &mut V, _event, window, _cx| {
+            if !get(view).accepts(&focus_lease) {
+                window.prevent_default();
+            }
+        }))
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
@@ -312,16 +333,32 @@ fn row<V: 'static>(
     let mut element = row_body(index, item, paint, narrow);
     if item.selectable() {
         let choice = item.clone();
+        let press_lease = state.render_lease();
+        let choice_lease = press_lease.clone();
         element = element
             .cursor_pointer()
             .hover(move |style| style.bg(wash))
             .active(move |style| style.bg(wash))
-            .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                cx.stop_propagation();
-            })
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(move |view: &mut V, _event, _window, cx| {
+                    if get(view).accepts(&press_lease) {
+                        cx.stop_propagation();
+                    }
+                }),
+            )
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+                if !get(view).accepts(&choice_lease) {
+                    return;
+                }
                 if let Some(index) = pointer_choice(get(view), &choice, index) {
+                    if !get(view).same_cycle(&choice_lease) {
+                        return;
+                    }
                     get(view).restore_after_choice(window, cx);
+                    if !get(view).same_cycle(&choice_lease) {
+                        return;
+                    }
                     chose(view, index, window, cx);
                     cx.notify();
                 }
@@ -380,41 +417,6 @@ pub(super) fn ordinary_glyph(
     ink: gpui::Hsla,
 ) -> gpui::Svg {
     crate::picker::glyph(glyph, item.leading_size.points(), ink)
-}
-
-// Input routing stays separate from surface drawing; both menu entry points
-// and extended content dispatch through the same dismissal/selection guard.
-fn keyboard<V: 'static>(
-    view: &mut V,
-    event: &KeyDownEvent,
-    window: &mut Window,
-    cx: &mut Context<'_, V>,
-    handlers: &MenuHandlers<V>,
-    items: &[MenuItem],
-) {
-    let menu = (handlers.state)(view);
-    match event.keystroke.key.as_str() {
-        "escape" => menu.close_and_restore(window, cx),
-        "down" | "tab" => menu.step(items, Direction::Next),
-        "up" => menu.step(items, Direction::Previous),
-        "home" => {
-            menu.highlighted = None;
-            menu.step(items, Direction::Next);
-        }
-        "end" => {
-            menu.highlighted = None;
-            menu.step(items, Direction::Previous);
-        }
-        "enter" | "space" => {
-            if let Some(index) = keyboard_choice(menu, items) {
-                menu.restore_after_choice(window, cx);
-                (handlers.chose)(view, index, window, cx);
-            }
-        }
-        _other => return,
-    }
-    cx.stop_propagation();
-    cx.notify();
 }
 
 fn row_body(
