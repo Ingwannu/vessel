@@ -374,3 +374,37 @@ async fn returned_final_budget_and_cleanup_budget_do_not_wait_indefinitely() {
     );
     assert!(requests.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn local_protocol_admission_refuses_start_without_an_unnecessary_cancel() {
+    for source in [
+        CallError::UnassignedProtocol {
+            method: Method::StartDictation,
+        },
+        CallError::NotInProtocol {
+            method: Method::StartDictation,
+            needs: vessel_proto::PROTOCOL_VERSION,
+            negotiated: vessel_proto::MIN_PROTOCOL_VERSION,
+        },
+    ] {
+        vessel_testkit::within(TEST_LIMIT, async {
+            let (_root, path) = input_file();
+            let input = FileInput::open(&path).await.unwrap();
+            let (client, mut requests) = Client::scripted();
+            let id = DictationId::random();
+            let never = pending::<io::Result<()>>();
+            tokio::pin!(never);
+            let running = transcribe(&client, &id, input, never.as_mut());
+            let script = async {
+                let start = frame(&mut requests).await;
+                assert!(matches!(start.call, Call::StartDictation(_)));
+                start.reply.send(Err(source)).unwrap();
+            };
+            let (result, ()) = tokio::join!(running, script);
+            assert!(result.is_err());
+            assert!(requests.try_recv().is_err());
+        })
+        .await
+        .unwrap();
+    }
+}

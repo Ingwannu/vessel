@@ -833,3 +833,12 @@ context remains alive during grace; acting-as contexts share the same signal.
 The pure identity module remains transport-independent. A real memory-RPC test
 retains both contexts, closes one transport, awaits the canonical child observer
 and proves another connection remains open. This new source still owes execution.
+
+
+Binary CLI regressions now exercise the real command/renderer with an invalid
+file and invalid node target: file refusal wins, stdout stays empty and private
+file bytes never enter stderr. The actual help/missing-file parse is checked
+through the same binary. A driver case also preserves local pending/old-peer
+admission failures without issuing a needless cancel; no frame was admitted by
+the real client in those cases. No successful real-wire speech is claimed while
+the feature number remains unassigned.
