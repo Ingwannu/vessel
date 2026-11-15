@@ -50,17 +50,22 @@ pub(crate) fn session_card(
     let attach = (shell.areas.composer.attach_for == Some(false))
         .then(|| attach_menu(shell, tokens, touch, cx))
         .flatten();
-    dropped_on(composer_card(tokens, touch), false, tokens, cx)
-        .relative()
-        .children(menu)
-        .children(attach)
-        .children(files)
-        .children(
-            shell
-                .session_tray_key()
-                .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
-        )
-        .child(super::text(shell, tokens, touch, cx))
+    dropped_on(
+        composer_card(tokens, touch),
+        shell.session_tray_key(),
+        tokens,
+        cx,
+    )
+    .relative()
+    .children(menu)
+    .children(attach)
+    .children(files)
+    .children(
+        shell
+            .session_tray_key()
+            .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
+    )
+    .child(super::text(shell, tokens, touch, cx))
 }
 
 /// The new chat's card: its `/` menu, its files, its text.
@@ -77,31 +82,56 @@ pub(crate) fn draft_card(
     let attach = (shell.areas.composer.attach_for == Some(true))
         .then(|| attach_menu(shell, tokens, touch, cx))
         .flatten();
-    dropped_on(composer_card(tokens, touch), true, tokens, cx)
-        .relative()
-        .children(menu)
-        .children(attach)
-        .children(files)
-        .children(super::context::tray(
-            shell,
-            DraftKey::New,
-            tokens,
-            touch,
-            cx,
-        ))
-        .child(super::draft_text(shell, tokens, touch, cx))
+    dropped_on(
+        composer_card(tokens, touch),
+        Some(DraftKey::New),
+        tokens,
+        cx,
+    )
+    .relative()
+    .children(menu)
+    .children(attach)
+    .children(files)
+    .children(super::context::tray(
+        shell,
+        DraftKey::New,
+        tokens,
+        touch,
+        cx,
+    ))
+    .child(super::draft_text(shell, tokens, touch, cx))
 }
 
 /// Files dropped on `card` join its composer; the card's edge takes the
 /// accent while files are dragged over it.
-fn dropped_on(card: Div, new_chat: bool, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+fn dropped_on(
+    card: Div,
+    target: Option<DraftKey>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    use vessel_app_view::composer::context::{ContextAttachment, WorkspaceFile};
     let accent = tokens.neutral.accent;
     card.drag_over::<ExternalPaths>(move |style, _paths, _window, _cx| style.border_color(accent))
+        .drag_over::<WorkspaceFile>(move |style, _file, _window, _cx| style.border_color(accent))
         .on_drop(
             cx.listener(move |shell, paths: &ExternalPaths, _window, cx| {
-                shell.composer_paths(new_chat, paths.paths().to_vec(), cx);
+                if let Some(target) = target {
+                    shell.composer_paths_into(target, paths.paths().to_vec(), cx);
+                }
             }),
         )
+        .on_drop(cx.listener(move |shell, file: &WorkspaceFile, window, cx| {
+            let Some(target) = target else {
+                return;
+            };
+            let item = ContextAttachment::WorkspaceFile(file.clone());
+            if let Err(problem) =
+                shell.composer_attach_context(target, &file.scope, item, window, cx)
+            {
+                shell.composer_context_refused(problem, cx);
+            }
+        }))
 }
 
 /// The attach button across (Paseo's `TOOLBAR_CONTROL_SIZES.pointer`;

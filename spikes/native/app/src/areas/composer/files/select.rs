@@ -18,11 +18,8 @@ pub(super) enum Acquire {
 
 impl Shell {
     fn file_destination(&self, new_chat: bool) -> Option<DraftKey> {
-        if new_chat {
-            Some(DraftKey::New)
-        } else {
-            self.session_tray_key()
-        }
+        self.composer_destination()
+            .filter(|key| (*key == DraftKey::New) == new_chat)
     }
 
     /// Images/files consume paste; ordinary text still goes to the editor.
@@ -136,15 +133,13 @@ impl Shell {
 
     /// Dropped paths belong to the composer under the drop, even if the
     /// person changes conversations before inspection returns.
-    pub(super) fn composer_paths(
+    pub(super) fn composer_paths_into(
         &mut self,
-        new_chat: bool,
+        key: DraftKey,
         paths: Vec<std::path::PathBuf>,
         cx: &mut Context<'_, Self>,
     ) {
-        if let Some(key) = self.file_destination(new_chat) {
-            self.inspect_paths(key, paths, cx);
-        }
+        self.inspect_paths(key, paths, cx);
     }
 
     fn inspect_paths(

@@ -125,3 +125,18 @@ composer-image-clipboard-empty = There is no image on the clipboard
 
 # Native attachment menu action or clipboard acquisition failure; a complete label.
 composer-image-format-unsupported = This image format cannot be pasted yet. Choose a PNG, JPEG, GIF or WebP image.
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-busy = An attachment submission is already pending
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-scope = This attachment belongs to a different workspace
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-capacity = There are too many context attachments
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-unavailable = Context attachments are unavailable right now
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-invalid = This context attachment is invalid or too large

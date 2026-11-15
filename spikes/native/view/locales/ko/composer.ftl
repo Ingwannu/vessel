@@ -116,3 +116,18 @@ composer-image-clipboard-empty = 클립보드에 이미지가 없습니다
 
 # Native attachment menu action or clipboard acquisition failure; a complete label.
 composer-image-format-unsupported = 아직 붙여넣을 수 없는 이미지 형식입니다. PNG, JPEG, GIF 또는 WebP 이미지를 선택하세요.
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-busy = 첨부 전송이 이미 진행 중입니다
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-scope = 다른 작업 공간의 첨부입니다
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-capacity = 문맥 첨부가 너무 많습니다
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-unavailable = 지금 문맥 첨부를 사용할 수 없습니다
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-invalid = 문맥 첨부가 올바르지 않거나 너무 큽니다
