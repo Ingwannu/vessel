@@ -1,5 +1,6 @@
 //! Failure/retry and target lifetime; no second search or timeline owner.
 use super::{FindExit, REVEAL_DEADLINE};
+use crate::areas::conversation::ConversationArea;
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::ui::{Context, Window};
@@ -22,20 +23,7 @@ impl Shell {
     }
 
     pub(in crate::areas::conversation) fn find_failed(&mut self, failure: FindFailure) {
-        let Some(bar) = self.areas.conversation.find.as_mut() else {
-            return;
-        };
-        if bar.query.trim().is_empty() {
-            return;
-        }
-        if bar.at.is_some() && self.areas.conversation.reveal == bar.at {
-            self.areas.conversation.reveal = None;
-        }
-        bar.phase = FindPhase::Failed(failure);
-        bar.finder = None;
-        bar.generation = Rc::new(());
-        bar.at = None;
-        bar.target = Rc::new(());
+        self.areas.conversation.fail_find(failure);
     }
 
     pub(super) fn find_target(&mut self, at: EventSeq, cx: &mut Context<'_, Self>) {
@@ -74,5 +62,25 @@ impl Shell {
         }
         self.start_search(false, cx);
         cx.notify();
+    }
+}
+
+// The resource-local primitive also serves W12 retirement of a hidden resident.
+impl ConversationArea {
+    pub(in crate::areas::conversation) fn fail_find(&mut self, failure: FindFailure) {
+        let Some(bar) = self.find.as_mut() else {
+            return;
+        };
+        if bar.query.trim().is_empty() {
+            return;
+        }
+        if bar.at.is_some() && self.reveal == bar.at {
+            self.reveal = None;
+        }
+        bar.phase = FindPhase::Failed(failure);
+        bar.finder = None;
+        bar.generation = Rc::new(());
+        bar.at = None;
+        bar.target = Rc::new(());
     }
 }

@@ -266,3 +266,14 @@ fleet. The actor uses the common immutable SelectedConnection, with a named
 timeout/failure copy comes from the approved message-search domain. The session
 selection itself still uses the existing canonical open_session boundary; W12
 owns the context-bound pane/session cutover, not another A3 navigation registry.
+
+A3's staged W12 owner adapters are resource-local: `navigation_held` votes Hold
+for an open find field, active metadata read/jump, or pending hover intent;
+`navigation_retired` fails find without changing its input/field identity and
+invalidates only that resource's prompt/hover work. Both hooks remain test-only
+until W12's single registry cutover consumes them. The real current find-failure
+path already uses the same local primitive. A GPUI fixture retires a hidden area
+after replacing the active one and requires retained input/identity and no active
+area mutation. A7 moves the original area in its one TimelineSnapshot; A3 creates
+no second snapshot, map, authority or follow manager. The registry must reject
+retired binding/operation tickets before dispatching any metadata answer.

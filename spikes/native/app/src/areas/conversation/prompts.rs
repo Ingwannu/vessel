@@ -68,6 +68,15 @@ impl ConversationArea {
             || self.outline_pointer.settling()
     }
 
+    /// W12 calls this on the exact retired resource after invalidating its binding.
+    /// Input/field identity survives; only owned asynchronous navigation is retired.
+    #[cfg(test)]
+    pub(crate) fn navigation_retired(&mut self) {
+        self.fail_find(vessel_app_view::timeline::FindFailure::Connection);
+        self.clear_prompts();
+        self.outline_pointer.leave();
+    }
+
     pub(super) fn prompt_target(&self) -> Option<&IndexTarget> {
         self.prompts.index.target()
     }

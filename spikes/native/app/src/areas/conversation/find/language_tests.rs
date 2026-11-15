@@ -404,3 +404,56 @@ fn a_missing_destination_loads_then_fails_and_a_closed_target_cannot_fail_a_new_
         );
     });
 }
+
+#[gpui::test]
+fn retiring_hidden_navigation_keeps_its_input_and_cannot_mutate_the_active_resident(
+    cx: &mut gpui::TestAppContext,
+) {
+    use gpui::AppContext as _;
+    use std::rc::Rc;
+    use vessel_app_view::timeline::{FindFailure, FindPhase};
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| FocusProbe {
+        shell: cx.new(|cx| Shell::without_io(window, cx)),
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.open_find(window, cx);
+            shell
+                .areas
+                .conversation
+                .find
+                .as_ref()
+                .unwrap()
+                .field
+                .set_text("retained input", window, cx);
+            shell.find_changed("retained input".to_owned(), cx);
+            let bar = shell.areas.conversation.find.as_ref().unwrap();
+            let generation = Rc::clone(&bar.generation);
+            let target = Rc::clone(&bar.target);
+            let focus = bar.field.focus_handle(cx);
+            assert!(shell.areas.conversation.navigation_held());
+            let mut hidden = std::mem::replace(
+                &mut shell.areas.conversation,
+                crate::areas::conversation::ConversationArea::new(cx),
+            );
+            hidden.navigation_retired();
+            let bar = hidden.find.as_ref().unwrap();
+            assert_eq!(bar.query, "retained input");
+            assert_eq!(bar.field.text(cx), "retained input");
+            assert_eq!(bar.field.focus_handle(cx), focus);
+            assert_eq!(bar.phase, FindPhase::Failed(FindFailure::Connection));
+            assert!(!Rc::ptr_eq(&bar.generation, &generation));
+            assert!(!Rc::ptr_eq(&bar.target, &target));
+            assert!(bar.finder.is_none());
+            assert!(bar.at.is_none());
+            assert!(
+                hidden.navigation_held(),
+                "retained input holds its resource"
+            );
+            assert!(shell.areas.conversation.find.is_none());
+            assert!(!shell.areas.conversation.navigation_held());
+        });
+    });
+    cx.run_until_parked();
+}
