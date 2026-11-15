@@ -146,7 +146,7 @@ pub(crate) fn content(
             tokens,
         ));
     }
-    div()
+    let body = div()
         .flex()
         .flex_col()
         // The page's name for it: the page's title says About already.
@@ -154,9 +154,10 @@ pub(crate) fn content(
         // Paseo's "Connected hosts", Settings' (`settings/connected.rs`).
         .children(crate::areas::settings::connected::section(shell, tokens, compact))
         .child(settings::section(about.software(), licences, tokens))
-        .child(marks::section(shell, tokens, compact, cx))
-        .children(crate::areas::desktop::cli_section(shell,tokens,cx))
-        .into_any_element()
+        .child(marks::section(shell, tokens, compact, cx));
+    #[cfg(not(target_arch = "wasm32"))]
+    let body = body.child(crate::areas::desktop::cli_section(shell, tokens, cx));
+    body.into_any_element()
 }
 
 /// "새로운 소식": Paseo's row with a chevron, the foreground's on hover.

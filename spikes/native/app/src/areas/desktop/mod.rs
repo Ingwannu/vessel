@@ -98,20 +98,13 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn cli_section(
     shell: &Shell,
     tokens: &vessel_app_kit::Tokens,
     cx: &mut Context<'_, Shell>,
-) -> Option<vessel_app_kit::ui::Div> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        Some(cli::section(shell, tokens, cx))
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        let _browser = (shell, tokens, cx);
-        None
-    }
+) -> vessel_app_kit::ui::Div {
+    cli::section(shell, tokens, cx)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
