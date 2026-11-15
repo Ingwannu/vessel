@@ -116,7 +116,7 @@ impl Shell {
         self.send_file_for(key, FileAsk::Intelligence(ask));
     }
 
-    pub(in crate::areas::workspace) fn language_answered(
+    pub(super) fn language_answered(
         &mut self,
         key: &FileKey,
         ask: IntelligenceAsk,

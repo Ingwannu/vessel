@@ -129,7 +129,7 @@ impl Shell {
                     .as_ref()
                     .is_some_and(|pending| pending.uncertain)
                 {
-                    self.words().labels().save_failed
+                    self.words().labels().editor_save_failed
                 } else {
                     self.words().labels().file_busy
                 }
@@ -179,6 +179,7 @@ impl Shell {
         dispatched: bool,
         cx: &mut Context<'_, Self>,
     ) {
+        let uncertain_words = self.words().labels().editor_save_failed.to_owned();
         let panel = &mut self.areas.workspace.code;
         let owns = panel.mutation.as_ref().is_some_and(|pending| {
             pending.scope == *scope && pending.ticket == ticket && pending.change == *change
@@ -194,7 +195,7 @@ impl Shell {
             if let Some(pending) = panel.mutation.as_mut() {
                 pending.uncertain = true;
             }
-            panel.files.actions.refused = Some(self.words().labels().save_failed.to_owned());
+            panel.files.actions.refused = Some(uncertain_words);
             cx.notify();
             return;
         }
