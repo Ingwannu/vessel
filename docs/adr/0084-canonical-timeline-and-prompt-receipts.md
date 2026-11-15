@@ -374,3 +374,10 @@ Native async offers lacking a stable actual turn origin refuse before becoming
 actionable. The legacy unscoped source path remains available to existing typed
 store callers, with the same retained-state budget; no raw source text grants
 permission or caller authority. A restart retains the complete typed source key.
+
+The stateless legacy identity codec is not sufficient across repeated fleet
+masking. The integrator's approved direction is the connection-derived,
+downgrade-only origin described in
+[the concrete shared wire proposal](../plans/timeline-reference-provenance.md).
+That proposal requires V3 shared-wire review before runtime wiring; current
+stateless projection code is not a merge-ready compatibility claim.
