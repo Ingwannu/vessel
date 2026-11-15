@@ -1,7 +1,7 @@
 //! A caller's existing oneshot closure fences requests until transport admission.
 //!
 //! Keep the waiter local while capacity/readiness waits are cancellable. Installing
-//! it before start_send preserves reply ordering without phantom registrations.
+//! it before `start_send` preserves reply ordering without phantom registrations.
 
 use futures_util::{Sink, SinkExt as _};
 use std::future::poll_fn;

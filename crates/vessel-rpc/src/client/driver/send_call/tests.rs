@@ -119,9 +119,9 @@ fn queued(
     }
     .wait(answer)
 }
-fn request(frame: ClientFrame) -> RequestId {
+fn request(frame: &ClientFrame) -> RequestId {
     match frame {
-        ClientFrame::Request { id, .. } => id,
+        ClientFrame::Request { id, .. } => *id,
         ClientFrame::Hello(_) | ClientFrame::Cancel { .. } => panic!("expected a request"),
     }
 }
@@ -150,8 +150,8 @@ async fn a_dropped_queued_call_is_skipped_even_when_cancel_cannot_enter_the_full
     drop(discarded);
     assert_eq!(commands.capacity(), 0);
     fixture.release().await;
-    assert_eq!(request(fixture.frame().await), RequestId::new(1));
-    assert_eq!(request(fixture.frame().await), RequestId::new(3));
+    assert_eq!(request(&fixture.frame().await), RequestId::new(1));
+    assert_eq!(request(&fixture.frame().await), RequestId::new(3));
     assert_eq!(
         registered(&mut fixture),
         [RequestId::new(1), RequestId::new(3)]
@@ -173,7 +173,7 @@ async fn a_call_dropped_while_its_sink_is_pending_never_sends_or_leaves_a_reply_
     // Cancel may still be offered, but the request it names was never committed.
     let cancel = fixture.frame().await;
     assert!(matches!(cancel, ClientFrame::Cancel { id } if id == RequestId::new(1)));
-    assert_eq!(request(fixture.frame().await), RequestId::new(2));
+    assert_eq!(request(&fixture.frame().await), RequestId::new(2));
     assert_eq!(registered(&mut fixture), [RequestId::new(2)]);
     drop(kept);
     fixture.finish().await;
@@ -186,7 +186,7 @@ async fn a_request_committed_before_caller_drop_is_not_claimed_to_be_retracted()
     let committed = queued(&commands, RequestId::new(1));
     step(fixture.blocked.notified()).await;
     fixture.release().await;
-    assert_eq!(request(fixture.frame().await), RequestId::new(1));
+    assert_eq!(request(&fixture.frame().await), RequestId::new(1));
     assert_eq!(registered(&mut fixture), [RequestId::new(1)]);
     drop(committed);
     assert!(matches!(fixture.frame().await, ClientFrame::Cancel { id } if id == RequestId::new(1)));
