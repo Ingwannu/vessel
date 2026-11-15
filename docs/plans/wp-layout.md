@@ -46,6 +46,23 @@ Paths are relative to Paseo `packages/app/src/`.
 
 ## Structure and data flow
 
+Palette actions capture a `LayoutActionContext` before presentation. The layout
+owner compares the workspace, focused pane, selected tab/resource and top compact
+sheet before dispatch through the existing action handler. This prevents a menu
+opened in one workspace from acting on a later selection. Background reordering
+does not invalidate it. Refusal stays handled, including Close, so desktop window
+fallback cannot discard the guarded window. This is a UI-selection fence only;
+node effects still require the admitted resident and connection lease. Reusing
+the model projection avoids another focus manager or keyboard listener.
+
+Feature polling uses read-only `layout_tab_exists` and `layout_panel_visible`.
+They never insert a layout, and visibility requires the displayed workspace,
+selected tab and compact/maximized/top-sheet projection. The window argument is
+required to apply the current breakpoint; OS window visibility remains with the
+caller. Typed Explorer rendering is not installed yet and is not reported visible
+through this adapter. Sidebar actions use idempotent `layout_exit_focus`, rather
+than toggling into focus mode on an already ordinary layout.
+
 `view::layout` owns targets, manifests, recursive tree, placement,
 reconciliation, close plans and compact sheets. The app area adapts live
 selection, draws through feature renderers and routes lifecycle effects
