@@ -156,6 +156,22 @@ impl ReviewPills {
             unresolved: reviews.unresolved,
         }
     }
+
+    /// Keep a distinct forge verdict, but do not repeat a fact already
+    /// named by an activity pill. The node may send differing summary
+    /// and review states, so hiding every verdict would lose information.
+    #[must_use]
+    pub const fn remaining_verdict(self, decision: ReviewDecision) -> Verdict {
+        match Verdict::of(decision) {
+            Verdict::Approved if self.approved => Verdict::None,
+            Verdict::ChangesRequested if self.changes_requested => Verdict::None,
+            verdict @ (Verdict::Approved
+            | Verdict::ChangesRequested
+            | Verdict::ReviewRequired
+            | Verdict::None
+            | Verdict::Unknown) => verdict,
+        }
+    }
 }
 
 /// Whether it can merge now, as a person reads it.

@@ -1018,3 +1018,25 @@ the menu's read and the form's send, which the fixture cannot stage.
   scripted clicks below Fetch must use the row positions of the session
   driven (a click meant for "Stashes…" stashed the fixture once; it was
   restored from that entry).
+
+### PR closeout: review wording and the small facts window (2026-11-15)
+
+- Existing assets and decision: modify the existing `ReviewPills` projection,
+  shared facts dialog and Fluent catalogue; no new control, dependency or wire
+  call. The standard library and the current typed projection suffice.
+- Reference: Paseo `git/pull-request-panel/pane.tsx:259–267, 575–604`
+  counts approvals and requested changes once in Activity's summary. Vessel
+  receives review standing rather than that timeline. Keep its existing
+  documented summary, but suppress a verdict only when the matching standing
+  pill already says it. A differing verdict (including review required) stays;
+  hiding every verdict would discard a fact the forge supplied.
+- Tests cover all five verdicts against all four approval/change-request pill
+  combinations, plus whole English/Korean labels and the form title.
+- Translation review settled the Korean form title as `PR 생성`, matching the
+  menu action. English retains the reference's contextual distinction between
+  `Create PR` and `Create pull request`. Only the Korean title key changes.
+- Resume point: the inherited source passed its native gate. This closeout's
+  remote gate and fresh executable captures are pending. Retake ready/failing
+  facts at 800×600 after the existing code-panel occlusion seam, then exercise
+  Create PR and squash merge against the disposable file-seeded forge, and
+  inspect the board. No real forge or agent is used.

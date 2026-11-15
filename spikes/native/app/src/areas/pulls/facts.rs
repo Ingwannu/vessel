@@ -24,7 +24,7 @@ use vessel_app_kit::{
 };
 use vessel_app_view::workspace::git::Issue;
 use vessel_app_view::workspace::pull::{
-    ChecksOutcome, Merge, PullPhase, ReviewPills, Verdict, check_counts,
+    ChecksOutcome, Merge, PullPhase, ReviewPills, check_counts,
 };
 use vessel_proto::forge::{CheckRun, CheckState, PullRequest, PullRequestView};
 
@@ -413,7 +413,9 @@ fn activity(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
             tokens,
         ));
     }
-    let verdict = Verdict::of(pull.summary.review).words(shell.words);
+    let verdict = pills
+        .remaining_verdict(pull.summary.review)
+        .words(shell.words);
     let merge = Merge::of(pull.summary.mergeable).words(shell.words);
     div()
         .flex()

@@ -104,3 +104,39 @@ fn the_verdict_mergeability_and_pills_follow_the_forge() {
         }
     );
 }
+
+#[test]
+fn review_pills_remove_only_the_same_verdict_and_preserve_different_facts() {
+    for approved in [false, true] {
+        for changes_requested in [false, true] {
+            let pills = ReviewPills {
+                approved,
+                changes_requested,
+                unresolved: 2,
+            };
+            for (decision, expected) in [
+                (
+                    ReviewDecision::Approved,
+                    if approved {
+                        Verdict::None
+                    } else {
+                        Verdict::Approved
+                    },
+                ),
+                (
+                    ReviewDecision::ChangesRequested,
+                    if changes_requested {
+                        Verdict::None
+                    } else {
+                        Verdict::ChangesRequested
+                    },
+                ),
+                (ReviewDecision::ReviewRequired, Verdict::ReviewRequired),
+                (ReviewDecision::None, Verdict::None),
+                (ReviewDecision::Unknown, Verdict::Unknown),
+            ] {
+                assert_eq!(pills.remaining_verdict(decision), expected);
+            }
+        }
+    }
+}
