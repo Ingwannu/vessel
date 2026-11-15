@@ -304,6 +304,21 @@ impl Glyph {
             Self::PackagePlus => line_glyph!(
                 r#"<path d="M12 3.25 3.5 7.75 12 12.25l8.5-4.5L12 3.25M3.5 7.75v9L12 21.25l3-1.6M12 12.25v9M20.5 7.75v4.5M7.75 5.5l8.5 4.5M19 14.75v6.5M15.75 18h6.5"/>"#
             ),
+            // Canonical Lucide1.50 panel roles; effective provider stroke is
+            // already supplied by line_glyph, not the vendor default2.
+            Self::Columns2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M12 3v18" />"#
+            ),
+            Self::Rows2 => line_glyph!(
+                r#"<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 12h18" />"#
+            ),
+            Self::PanelMaximize => line_glyph!(
+                r#"<path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />"#
+            ),
+            Self::PanelMinimize => line_glyph!(
+                r#"<path d="M8 3v3a2 2 0 0 1-2 2H3" /><path d="M21 8h-3a2 2 0 0 1-2-2V3" /><path d="M3 16h3a2 2 0 0 1 2 2v3" /><path d="M16 21v-3a2 2 0 0 1 2-2h3" />"#
+            ),
+            Self::X => line_glyph!(r#"<path d="M18 6 6 18" /><path d="m6 6 12 12" />"#),
         }
     }
 }

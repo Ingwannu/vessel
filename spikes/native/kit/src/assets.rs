@@ -414,3 +414,6 @@ mod added_navigation_tests;
 
 #[cfg(test)]
 mod inventory_tests;
+
+#[cfg(test)]
+mod panel_role_tests;
