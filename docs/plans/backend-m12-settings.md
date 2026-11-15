@@ -867,3 +867,24 @@ Prepared engine regressions cover selection of ASCII/Hangul/emoji before
 the first edit, keyboard/paste/IME refusal, re-enable with draft retained
 and reopen. Narrow compilation/runtime and actual dialog captures are
 still owed; prepared tests are not counted as passed.
+
+
+### Compiled field handoff and package-base updates
+
+Exact source9c6ba7c1 passed kit/app/view all-target Clippy in
+settings2-narrow-20261115T081132Z-9c6ba7c1 (fonts0, cargo0). The first
+de30 run remains red for one missing callback statement semicolon; its
+fix changes no event order. The engine selection tests are queued at
+9a173ca0; they are not a runtime pass yet. Base3 6c782cb6 merged as
+9a173ca0, and announced base4 3cd0d3fc merged asf0f0f120. Each merge's
+necessary fast checks preserved original per-command outputs and rc0.
+No whole gate is repeated while the package is still being filled.
+
+K needs no Settings area changes to consume the field API. A separate
+control-only export abovebase3 preserves the original shared history:
+934c1790 is the pure move over W4 events/Editability, f231ef26 is the
+additive selection/frame/rename/tests with exact compiled9c6 blobs.
+The export adds no app/book/other-control code and claims no independent
+whole gate or review. K owns later generic event/profile/font projection
+changes, W12 owns composer layout/ButtonOnly. E2 retains selection and
+rename consumer state and reports any actual engine failure to them.

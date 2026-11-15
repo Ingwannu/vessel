@@ -1,8 +1,11 @@
 # ADR 0097: one typed client book for host identity and connections
 
-Status: proposed, 2026-11-15. Security review by V3 is required **before**
-the persisted format or credential commit path changes. This document is
-not an implemented API, migration or approval to consume staged code.
+Status: contract accepted by V3, 2026-11-15, for the amendment at
+`001d9673`. Original changed-source fast outputs at `9a173ca0` were
+independently checked. This is a docs-contract verdict, not approval of
+the prepared identifier implementation, persisted format, credential
+commit path, migration or staged runtime. Those require their own scoped
+checks and security review before handoff.
 
 ## Context and reference
 
@@ -47,7 +50,9 @@ the app merely because a typed SSH address exists.
    also not cryptographic proof of a node key.
 3. Extend the existing typed book and its one mutation path. Selected.
    Use the existing TOML and standard-library file locking assets;
-   no new storage, transport or editing-engine dependency is needed.
+   no new storage, transport or editing-engine library is needed. The
+   client's proposed direct rustix filesystem dependency still requires
+   integrator approval and the dependency-map registration before code.
 
 ## Proposed format and compatibility
 
@@ -245,8 +250,8 @@ replay. A secret must not be discarded on the pretext that a book failed.
 
 ## Verification and limits
 
-Before format code lands, V3 reviews schema, identity proof, downgrade
-rules, credential partial outcomes and locking. Implementation tests must
+V3 has reviewed this schema/identity/downgrade/partial-outcome/locking
+contract. Implementation is not covered by that verdict. Its tests must
 cover legacy byte-preserving no-op/pin edits, stable route ids and
 counter overflow, duplicate ids, unknown fields/version, missing preferred
 route, same identity/new route, key/id conflict, duplicate-alias ambiguity,

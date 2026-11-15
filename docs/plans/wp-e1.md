@@ -164,3 +164,13 @@ proposed until the amendment is reviewed. The coordinator separately
 approved the add-only shared `BookRouteId(NonZeroU32)` name/value boundary;
 its code commit introduces no RPC, persisted-format or current consumer
 change. Exact integer persistence tests are prepared, not yet passed.
+
+
+ADR0097 amendment001d9673 received V3 CONTRACT PASS after independently
+checked original fast outputs at9a173ca0. This closes the docs-contract
+review only. No format, credential writer, runtime upsert or prepared
+BookRouteId implementation is approved. The new direct rustix dependency
+must be authorized/registered before its safe-file code is introduced.
+Package base3 6c782cb6 and base4 3cd0d3fc were merged without rebase;
+base4 brings the reviewed eight-theme and L Diagnostics/Chat adapters.
+Own route/appearance models and the input slice remain separate work.
