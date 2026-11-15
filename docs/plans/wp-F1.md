@@ -466,3 +466,13 @@ They are unexecuted: remote changed-head narrow and final F1 gate remain owed,
 with no form/preview UI or real-node proof. Prepared external drafts were plain
 copied (fresh timestamps), then corrected/formatted; their former README is
 historical uninstalled preparation, not a consumer-ready API.
+
+## Corrected base6 lock
+
+Coordinator b5948bb8 announced dd13ce37 native1408/0/2 and authorized its exact
+merge. The only resulting product/build delta against the already integrated
+base6/G2 source is the native Cargo.lock dependency correction; producer result
+paragraphs stay additive. Pending F1 narrow will use --locked on this corrected
+head. No local Cargo/rustc or known-stale-lock remote run was started. The old
+prerequisite-waiting wrapper was retired before any remote submission; the two
+already registered isolated Circle/Glyph jobs remain unchanged.
