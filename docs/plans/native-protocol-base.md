@@ -145,6 +145,14 @@ parent; the earlier native pass is historical evidence, not final proof.
 
 The root gate's bootstrap-history case exposed the already documented
 sidebar-before-verified-welcome race. Its owner supplies the node-head
-receipt-wait test fix and slow-welcome regression. Only the integrator's
-announced fix head is merged; this integration does not edit or weaken the
-shared test. Both whole gates then validate the final combined commit.
+receipt-wait test fix and slow-welcome regression. Only the coordinator-designated reviewed fix head is merged; this
+integration does not edit or weaken the shared test. Both whole gates then validate the final combined commit.
+
+### Receipt regression fix selected for final validation
+
+The coordinator designated `c5da5305`, directly based on `29eebb8b`, rather
+than waiting for the next integrator batch. Its test-only changes wait for
+the verified tab-session receipt before the existing storage assertions and
+add a controlled slow-welcome regression. They do not change production web
+or native code. Both `6036eeb8` and this reviewed fix are ancestors of the
+combined package base; later integrator work is outside this validation.
