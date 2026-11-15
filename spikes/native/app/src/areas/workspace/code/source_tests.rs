@@ -309,3 +309,51 @@ fn framed_wrong_session_reply_never_installs_a_physical_root(cx: &mut TestAppCon
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn same_alias_same_node_reconnect_does_not_restamp_the_old_summary(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, _, _| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let old = shell.shown_changes_context().unwrap();
+        shell.reread_changes();
+        assert!(matches!(
+            scene.request(shell.fixture_link()).unwrap(),
+            Call::GetChanges(_)
+        ));
+        scene
+            .reply(
+                shell.fixture_link(),
+                Outcome::Ok(Reply::GetChanges(summary())),
+            )
+            .unwrap();
+        let held = answer(&mut scene, shell);
+        let replacement = scene
+            .reconnect(
+                shell.fixture_link(),
+                vessel_app_link::testing::Reconnect::SameNode,
+            )
+            .unwrap();
+        assert_eq!(replacement.node(), original.node());
+        assert_ne!(replacement.epoch(), original.epoch());
+        let (session, project) = prepare(shell, &replacement);
+        shell.code_source_answer(held);
+        assert!(shell.areas.workspace.code.root().is_none());
+        assert!(shell.shown_changes_context().is_none());
+        root(&mut scene, shell, session, project);
+        scene
+            .reply(
+                shell.fixture_link(),
+                Outcome::Ok(Reply::GetChanges(summary())),
+            )
+            .unwrap();
+        shell.code_source_answer(answer(&mut scene, shell));
+        let current = shell.shown_changes_context().unwrap();
+        assert_eq!(current.connection(), &replacement);
+        assert!(!shell.shown_changes_is_current(&old));
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

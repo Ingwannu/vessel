@@ -69,7 +69,7 @@ DiffBody next-page value, with the original parent summary and page ticket; no
 second diff body or snapshot store is introduced. This proves correlation, not
 an atomic repository snapshot across requests.
 
-The isolated preparation currently has six authored real framed App cases;
+The isolated preparation currently has seven authored real framed App cases;
 they have not run. No G4 export, selected-client method or delivery-module staging
 attribute differs from its exact producer. A typed Explorer getter is still
 unavailable until the real mount/current-target join is included; no synthetic
