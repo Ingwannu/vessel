@@ -60,7 +60,7 @@ impl Children {
         if !self.budget.retain(key) {
             return false;
         }
-        set.insert(key.to_owned());
+        let _new = set.insert(key.to_owned());
         true
     }
     fn item(

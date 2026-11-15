@@ -155,7 +155,7 @@ impl Children {
             out.extend(self.gap(ChildGap::IngestionBudget));
             return;
         }
-        child.prompts.insert(call.to_owned());
+        let _new = child.prompts.insert(call.to_owned());
         out.extend(self.wrap(
             id,
             vec![AgentEvent::UserMessageChunk {
