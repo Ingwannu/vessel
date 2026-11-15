@@ -23,7 +23,7 @@ pub(crate) enum ProjectionError {
 
 // File bytes bound decoding before item limits are checked. BundlePath
 // already caps a path at 1024 bytes; the reply cap also covers JSON escaping.
-const STATE_BYTES: u64 = 1 << 20;
+pub(super) const STATE_BYTES: u64 = 1 << 20;
 const MEMBERSHIP_BYTES: u64 = 64 << 10;
 pub(super) const MAX_CONFLICTS: usize = 512;
 const LOCAL_CONFLICTS: usize = 256;
@@ -92,7 +92,10 @@ pub(crate) fn role(files: &FleetFiles) -> Result<FleetRole, ProjectionError> {
     Ok(role)
 }
 
-fn read_json<T: DeserializeOwned>(path: &Path, bytes: u64) -> Result<Option<T>, ProjectionError> {
+pub(super) fn read_json<T: DeserializeOwned>(
+    path: &Path,
+    bytes: u64,
+) -> Result<Option<T>, ProjectionError> {
     let file = match std::fs::File::open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -126,12 +129,18 @@ pub(crate) fn finish(status: FleetSyncStatus) -> Result<FleetSyncStatus, Project
             }
         }
     }
+    within_reply(&status)?;
+    Ok(status)
+}
+
+/// Whether `reply` encodes within a reply's byte budget, checked before it
+/// is returned (`fleet.status`, `fleet.published`): no partial stand-in.
+pub(super) fn within_reply<T: serde::Serialize>(reply: &T) -> Result<(), ProjectionError> {
     // This sink allocates nothing and can fail only at the byte budget.
     let mut budget = ReplyBudget {
         remaining: REPLY_BYTES,
     };
-    serde_json::to_writer(&mut budget, &status).map_err(ProjectionError::Reply)?;
-    Ok(status)
+    serde_json::to_writer(&mut budget, reply).map_err(ProjectionError::Reply)
 }
 
 struct ReplyBudget {

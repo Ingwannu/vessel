@@ -16,6 +16,14 @@ fakes = []
 vessel-proc.workspace = true
 vessel-proto.workspace = true
 
+chrono.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+rustls-native-certs.workspace = true
+sha2.workspace = true
+tokio-util.workspace = true
+unicode-normalization.workspace = true
+zeroize.workspace = true
 dirs.workspace = true
 futures-util.workspace = true
 getrandom.workspace = true
@@ -25,7 +33,7 @@ same-file.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["io-util", "macros", "rt", "time"] }
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "time", "sync"] }
 toml_edit.workspace = true
 tracing.workspace = true
 which.workspace = true

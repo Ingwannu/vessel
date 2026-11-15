@@ -6,9 +6,10 @@ use std::path::PathBuf;
 
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, Node, VesselMcp};
-use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
+use vessel_proto::settings::{AgentDriver, GetNodeSettings, SetAgentDrivers, SetNodeSettings};
 use vessel_proto::{
-    EventSeq, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode, SessionSpec,
+    EventSeq, HarnessKind, HarnessRef, HarnessSessionId, ModelId, ProfileName, SessionMode,
+    SessionSpec,
 };
 
 use vessel_client::book::Resolved;
@@ -27,6 +28,7 @@ use crate::{
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
+        Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,
         Command::Fleet { command } => Box::pin(fleet::command(target, command)).await,
@@ -67,6 +69,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
         Command::Shell(shell) => terminals::shell(target, shell).await,
         Command::Script { command } => terminals::script(target, command).await,
         Command::Ports(ports) => terminals::ports(target, &ports).await,
+        Command::Usage { command } => crate::usage::run(target, command).await,
         Command::Schedule { command } => automation::schedule(target, command).await,
         Command::Prompt { command } => automation::prompt(target, command).await,
         Command::Attach { session, from } => {
@@ -75,8 +78,9 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             attach::attach(&connected, &info, from).await
         }
         Command::Send(send) => conversation::send(target, send).await,
-        Command::Log { session, from } => log(target, &session, from).await,
+        Command::Log(log) => log_command(target, &log).await,
         Command::Search(search) => crate::search::search(target, search).await,
+        Command::History(history) => crate::history::history(target, history).await,
         Command::Kill { session } => {
             let client = connect(target).await?.client;
             let info = session.resolve(&client).await?;
@@ -109,6 +113,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
         } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
+        NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
         NodeCommand::Status => {
             let client = connect(target).await?.client;
             let node = client.node_info().await?;
@@ -122,21 +127,50 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             read_only,
         } => devices::pair(target, label, ttl, read_only).await,
         NodeCommand::Devices { command } => devices::devices(target, command).await,
-        NodeCommand::Settings { park_after } => {
+        NodeCommand::Settings { park_after, driver } => {
             let client = connect(target).await?.client;
-            let settings = match park_after {
-                Some(park_after) => {
-                    client
-                        .call(SetNodeSettings {
-                            park_after: Some(park_after),
-                        })
-                        .await?
-                }
-                None => client.call(GetNodeSettings {}).await?,
+            let drivers = driver_change(&driver)?;
+            let settings = if park_after.is_some() || drivers.is_some() {
+                client
+                    .call(SetNodeSettings {
+                        park_after,
+                        drivers,
+                    })
+                    .await?
+            } else {
+                client.call(GetNodeSettings {}).await?
             };
-            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+            Ok(io::out(render::node_settings(&settings).as_bytes()).await?)
         }
     }
+}
+
+/// `--driver` values as a change; `None` without any.
+///
+/// # Errors
+/// An agent with no protocol of its own (Gemini).
+fn driver_change(
+    drivers: &[(HarnessKind, AgentDriver)],
+) -> Result<Option<SetAgentDrivers>, CliError> {
+    if drivers.is_empty() {
+        return Ok(None);
+    }
+    let mut change = SetAgentDrivers::default();
+    for (kind, driver) in drivers {
+        let slot = match kind {
+            HarnessKind::ClaudeCode => &mut change.claude_code,
+            HarnessKind::Codex => &mut change.codex,
+            HarnessKind::OpenCode => &mut change.open_code,
+            // `--driver` refuses it already.
+            HarnessKind::Gemini => {
+                return Err(CliError::Usage(
+                    "gemini has no protocol of its own; it always runs over ACP",
+                ));
+            }
+        };
+        *slot = Some(*driver);
+    }
+    Ok(Some(change))
 }
 
 /// `vessel session ...`.
@@ -214,6 +248,9 @@ async fn node_start(
         std::env::var_os(name)
     });
     let mut config = Config::new(data_dir(target)?, env);
+    config.limits = vessel_harness::LimitProbe::Local;
+    config.limit_environment =
+        vessel_harness::LimitEnvironment::from_vars(|name| std::env::var_os(name));
     // Terminals (protocol 11): the shell and the credentials, from this
     // binary's own environment.
     config.terminals = vessel_node::TerminalsConfig::detect(
@@ -291,6 +328,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     let mut spec = SessionSpec::new(run.harness, mode);
     spec.cwd = run.cwd.map(|cwd| node_cwd(&resolved, cwd)).transpose()?;
     spec.profile = run.profile;
+    spec.title = run.title;
     let connected = connect_to(target, &resolved, &book).await?;
     // A place (protocol 10): the node fills `cwd` with its folder.
     spec.place = workspace::place(
@@ -320,7 +358,7 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
 /// here with an error saying so, instead of being sent and failing there
 /// with a less helpful one. "This machine" is a loopback websocket node, as
 /// for the token file (`connect`); an SSH node is another machine.
-fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
+pub(crate) fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
     if cwd.is_absolute() {
         return Ok(cwd);
     }
@@ -334,10 +372,10 @@ fn node_cwd(resolved: &Resolved, cwd: PathBuf) -> Result<PathBuf, CliError> {
 }
 
 /// Print a session's log (see `log` for the order of stdout and stderr).
-async fn log(target: &Target, session: &SessionSelector, from: EventSeq) -> Result<(), CliError> {
+async fn log_command(target: &Target, log: &crate::args::Log) -> Result<(), CliError> {
     let client = connect(target).await?.client;
-    let info = session.resolve(&client).await?;
-    crate::log::print(&client, info.id, from).await
+    let info = log.session.resolve(&client).await?;
+    crate::log::print(&client, &info, log).await
 }
 
 #[cfg(test)]

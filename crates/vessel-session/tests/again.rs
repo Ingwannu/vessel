@@ -92,6 +92,7 @@ mod helpers {
             queue,
             usage: None,
             attention: None,
+            moved_through: std::collections::BTreeSet::new(),
         };
         let Reopening {
             created: Created { handle, durable },

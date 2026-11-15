@@ -17,7 +17,7 @@
 //!   Ownership and the agent limits apply to the origin (`origin_agent`).
 
 use vessel_proto::{
-    DeviceId, ErrorCode, Method, NodeId, Origin, OriginBy, Scope, SessionId, WireError,
+    DeviceId, DeviceSelf, ErrorCode, Method, NodeId, Origin, OriginBy, Scope, SessionId, WireError,
 };
 
 /// The caller behind one connection.
@@ -62,9 +62,30 @@ pub(crate) enum Principal {
 }
 
 impl Principal {
+    /// Own authority on this call, without another principal's identity.
+    /// The guard and this projection share the same admitted snapshot.
+    pub(crate) fn device_self(&self) -> DeviceSelf {
+        let (device, scopes): (_, &[Scope]) = match self {
+            Self::Owner => (None, &Scope::ALL),
+            Self::Device { id, scopes } => (Some(*id), scopes),
+            Self::Agent { scopes, .. } | Self::Delegated { scopes, .. } => (None, scopes),
+        };
+        DeviceSelf {
+            device,
+            scopes: Scope::ALL
+                .into_iter()
+                .filter(|scope| scopes.contains(scope))
+                .collect(),
+        }
+    }
+
     /// Whether this principal may call `method`; `forbidden` if not.
     pub(crate) fn permit(&self, method: Method) -> Result<(), WireError> {
-        let needed = method.scope();
+        let Some(needed) = method.scope() else {
+            // There is no anonymous Principal: transport admission already
+            // authenticated this caller. The table explicitly chose this.
+            return Ok(());
+        };
         let (who, scopes) = match self {
             Self::Owner => return Ok(()),
             Self::Device { scopes, .. } => ("device", scopes),
@@ -193,5 +214,68 @@ mod tests {
         let refused = agent.permit(Method::StopNode).unwrap_err();
         assert_eq!(refused.code, ErrorCode::Forbidden);
         assert!(refused.message.contains("agent"), "{}", refused.message);
+    }
+}
+
+#[cfg(test)]
+mod self_tests {
+    use super::*;
+
+    #[test]
+    fn own_grant_is_canonical_without_changing_permissions() {
+        let id = DeviceId::random();
+        let device = Principal::Device {
+            id,
+            scopes: vec![Scope::Sync, Scope::Read, Scope::Sync],
+        };
+        assert_eq!(
+            device.device_self(),
+            DeviceSelf {
+                device: Some(id),
+                scopes: vec![Scope::Read, Scope::Sync]
+            }
+        );
+        assert!(device.permit(Method::GetDeviceSelf).is_ok());
+        assert!(device.permit(Method::ListDevices).is_err());
+        let empty = Principal::Device { id, scopes: vec![] };
+        assert_eq!(
+            empty.device_self(),
+            DeviceSelf {
+                device: Some(id),
+                scopes: vec![]
+            }
+        );
+        assert!(empty.permit(Method::GetDeviceSelf).is_ok());
+        assert!(empty.permit(Method::ListSessions).is_err());
+        assert!(empty.permit(Method::Forward).is_err());
+        assert_eq!(
+            Principal::Owner.device_self(),
+            vessel_testkit::device_fixtures::owner_self()
+        );
+    }
+
+    #[test]
+    fn delegation_reports_the_intersection_not_the_delivering_identity() {
+        let principal = Principal::delegated(
+            DeviceId::random(),
+            &[Scope::Read],
+            Origin {
+                node: NodeId::random(),
+                by: OriginBy::Device {
+                    id: DeviceId::random(),
+                },
+                scopes: vec![Scope::Operate],
+            },
+            NodeId::random(),
+        );
+        assert_eq!(
+            principal.device_self(),
+            DeviceSelf {
+                device: None,
+                scopes: vec![]
+            }
+        );
+        assert!(principal.permit(Method::GetDeviceSelf).is_ok());
+        assert!(principal.permit(Method::ListSessions).is_err());
     }
 }

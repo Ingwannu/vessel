@@ -395,7 +395,7 @@ impl ConversationWords {
     /// `entry` as one line of text: what its row shows, without its
     /// markup. Said aloud when it arrives, and what a copy of it holds.
     #[must_use]
-    pub fn spoken(&self, entry: &Entry) -> String {
+    pub fn spoken(&self, entry: &Entry, catalog: &crate::localization::Translator) -> String {
         match &entry.kind {
             EntryKind::Ready { .. } => self.agent_ready().to_owned(),
             EntryKind::Prompt(prompt) => {
@@ -454,7 +454,7 @@ impl ConversationWords {
             },
             EntryKind::Parking(change) => self.parking_line(change),
             // The source's title is the screen's to find (the fleet's).
-            EntryKind::Forked { .. } => self.forked_from(None),
+            EntryKind::Forked { .. } => catalog.fork().from_other().to_owned(),
             EntryKind::Profile { from, to } => self.profile_line(from.as_ref(), to.as_ref()),
             EntryKind::Model(call) => format!(
                 "{} · {} · {}",

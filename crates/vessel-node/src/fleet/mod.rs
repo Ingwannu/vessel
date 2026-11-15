@@ -56,6 +56,7 @@ mod mcp;
 mod member;
 mod mutation;
 mod projection;
+mod published;
 mod secrets;
 mod state;
 mod supervisor;
@@ -83,6 +84,7 @@ pub use member::DEFAULT_GRANT;
 pub(crate) use projection::{
     ProjectionError, finish as finish_status, read as read_status, role as read_role,
 };
+pub(crate) use published::read as read_published;
 pub(crate) use secrets::secret_value;
 pub use secrets::{SecretsError, delete_secret, secret_names, set_secret};
 pub use state::{ConflictEntry, ConflictWhy, FailureEntry, FleetState, FleetStatus, Role, status};

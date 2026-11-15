@@ -1,0 +1,8 @@
+# The project-file counterpart of a named and an unnamed Paseo terminal.
+[[worktree.terminals]]
+name = "  logs  "
+command = "  tail -f dev.log  "
+
+[[worktree.terminals]]
+name = "  "
+command = "echo ready"

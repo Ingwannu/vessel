@@ -77,6 +77,7 @@ impl Fixture {
                 durable_capacity: DEFAULT_DURABLE_CAPACITY,
                 agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
                 park_after: after,
+                private_dir: None,
             },
             CancellationToken::new(),
         );
@@ -217,7 +218,7 @@ impl Log {
         self.records
             .iter()
             .filter_map(|record| {
-                if let SessionEvent::Renamed { title } = &record.event {
+                if let SessionEvent::Renamed { title, .. } = &record.event {
                     Some(title.as_str())
                 } else {
                     None

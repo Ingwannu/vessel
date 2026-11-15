@@ -20,12 +20,11 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 use bytes::Bytes;
-use tokio::io::AsyncReadExt as _;
 use vessel_client::NodeClient;
-use vessel_proto::conversation::{AttachmentName, MimeType, Upload};
+use vessel_proto::conversation::Upload;
 use vessel_proto::{
-    AttachmentRef, BlobChunk, ContentBlock, Delivery, SessionId, SessionInput, SessionMode,
-    TerminalBytes, TerminalInput,
+    AttachmentRef, ContentBlock, Delivery, SessionId, SessionInput, SessionMode, TerminalBytes,
+    TerminalInput,
 };
 
 use crate::args::{Send, Target};
@@ -84,50 +83,21 @@ async fn upload(
     session: SessionId,
     path: &Path,
 ) -> Result<AttachmentRef, CliError> {
-    let unreadable = |source| CliError::Attach {
-        path: path.to_owned(),
-        source,
-    };
-    let not_attachable = |source| CliError::NotAttachable {
-        path: path.to_owned(),
-        source,
-    };
-    let name: AttachmentName = path
-        .file_name()
-        .and_then(OsStr::to_str)
-        .unwrap_or_default()
-        .parse()
-        .map_err(not_attachable)?;
-    let mime: MimeType = mime(path).parse().map_err(not_attachable)?;
-    let mut file = tokio::fs::File::open(path).await.map_err(unreadable)?;
-    let size = file.metadata().await.map_err(unreadable)?.len();
-    let Upload { upload, chunk } = client.begin_upload(session, name, mime, size).await?;
-    let piece = usize::try_from(chunk)
-        .unwrap_or(BlobChunk::MAX_LEN)
-        .clamp(1, BlobChunk::MAX_LEN);
+    let mut file = super::file_input::FileInput::open(path).await?;
+    let Upload { upload, chunk } = client
+        .begin_upload(session, file.name.clone(), file.mime.clone(), file.size)
+        .await?;
     let mut offset = 0_u64;
-    while offset < size {
-        let left = usize::try_from(size.saturating_sub(offset)).unwrap_or(usize::MAX);
-        // One buffer per piece: the piece is handed over to be sent.
-        let mut buffer = vec![0_u8; piece.min(left)];
-        let _filled = file.read_exact(&mut buffer).await.map_err(|error| {
-            if error.kind() == std::io::ErrorKind::UnexpectedEof {
-                CliError::AttachmentChanged(path.to_owned())
-            } else {
-                unreadable(error)
-            }
-        })?;
+    while let Some(buffer) = file.next(chunk).await? {
         let length = u64::try_from(buffer.len()).unwrap_or(u64::MAX);
-        let _written = client
-            .write_upload(upload, offset, Bytes::from(buffer))
-            .await?;
+        let _written = client.write_upload(upload, offset, buffer).await?;
         offset = offset.saturating_add(length);
     }
     Ok(client.finish_upload(upload).await?)
 }
 
 /// The media type of the file at `path`, from its extension.
-fn mime(path: &Path) -> &'static str {
+pub(super) fn mime(path: &Path) -> &'static str {
     let extension = path
         .extension()
         .and_then(OsStr::to_str)
@@ -155,7 +125,7 @@ fn mime(path: &Path) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use vessel_proto::AttachmentKind;
+    use vessel_proto::{AttachmentKind, conversation::MimeType};
 
     use super::*;
 

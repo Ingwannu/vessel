@@ -149,20 +149,22 @@ pub(crate) fn usage(usage: &ContextUsage) -> String {
 
 /// A question and its form, field by field.
 pub(crate) fn question(question: &Question) -> String {
+    let mut text = question_form(question);
+    text.push_str("\n  answer it with `vessel session answer`");
+    text
+}
+
+/// The complete question content without choosing its caller's command hint.
+pub(crate) fn question_form(question: &Question) -> String {
     let mut text = format!("[question {}] {}", question.id, question.message);
     for field in &question.fields {
         let label = field.title.as_deref().unwrap_or(field.name.as_str());
         let required = if field.required { " (required)" } else { "" };
         let _infallible = write!(text, "\n  {}{required}: {label}", field.name);
         match &field.kind {
-            FieldKind::Choice {
-                options, multiple, ..
-            } => {
+            FieldKind::Choice { multiple, .. } => {
                 let several = if *multiple { ", several" } else { "" };
                 let _infallible = write!(text, " (choose{several})");
-                for option in options {
-                    let _infallible = write!(text, "\n    {}: {}", option.value, option.title);
-                }
             }
             FieldKind::Text { .. } => text.push_str(" (text)"),
             FieldKind::Number { .. } => text.push_str(" (number)"),
@@ -170,8 +172,18 @@ pub(crate) fn question(question: &Question) -> String {
             FieldKind::Boolean { .. } => text.push_str(" (yes or no)"),
             FieldKind::Unknown => text.push_str(" (a kind this build cannot fill)"),
         }
+        if let Some(description) = &field.description {
+            let _infallible = write!(text, "\n    {description}");
+        }
+        if let FieldKind::Choice { options, .. } = &field.kind {
+            for option in options {
+                let _infallible = write!(text, "\n    {}: {}", option.value, option.title);
+                if let Some(description) = &option.description {
+                    let _infallible = write!(text, "\n      {description}");
+                }
+            }
+        }
     }
-    text.push_str("\n  answer it with `vessel session answer`");
     text
 }
 
