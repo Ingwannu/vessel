@@ -572,3 +572,12 @@ checks. No FontStack/face source is copied from C2's preparation foundation.
 Physical equal-metric fonts, captures and performance measurements are not
 proved by the held-metrics test. Markdown-file width remains W13's pending
 consumer, while conversation width uses the existing F5 preference adapter.
+
+
+The combined 32e102581 narrow run themes-narrow-20261115T152342Z-32e10258
+ended FAILED: native-fonts0 and native-cargo101 after179s. Five diagnostics
+were in field/events.rs: three doc-list continuations and two redundant type
+qualifications after importing the same engine types for blur. The correction
+adds a paragraph separator and uses the imported names. No runtime branch,
+callback ordering, assertion, lint or ownership boundary changes. App strict
+completion, tests, export and F5 UI are still unverified from this run.

@@ -7,6 +7,7 @@
 //! - Choice: move the existing Handlers/listen together into this child module;
 //!   only parent visibility and imports change, with no behavioral change.
 //! - Cost: one source file; every existing constructor and caller stays intact.
+//!
 //! Window-aware Appearance hooks are one additional callback variant here;
 //! canonical Plain/Identified callbacks keep their signatures and identity.
 //! Focus flags update before notifications, as they do for ordinary fields.
@@ -63,8 +64,8 @@ pub(super) struct Handlers<V: 'static> {
     pub(super) send: Option<Rc<Cell<SendOn>>>,
 }
 
-pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
-    state: &Entity<gpui_base::input::InputBaseState<M>>,
+pub(super) fn listen<V: 'static, M: InputModeKind>(
+    state: &Entity<InputBaseState<M>>,
     handlers: Handlers<V>,
     window: &mut Window,
     cx: &mut Context<'_, V>,
