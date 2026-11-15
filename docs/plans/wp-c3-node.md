@@ -389,3 +389,16 @@ unassigned git.compare, git.compare_file and git.history stay outside
 WORKSPACE_FAMILIES_LATER. The shared family guard and the package's explicit
 Read/unary/None fixtures both remain active until assignment. This changes only
 the test guard, not node admission or a pending runtime row.
+
+## Exact history-guard library result
+
+Run wp-git-node-narrow-20261115T115802Z-860e28cc completed web-ci,
+nested-fakes, nested-vesseld and cargo with rc0/no skipped steps. All four
+changed crates actually compiled. Library counts are Client80/0/0, Node284/0/0,
+Proto301/0/0 and Workspace131/0/1: total796 passed, zero failed, one ignored.
+This executes the comparison/cache/private-index/history and pending-client
+fixtures, including 0700/0600 permissions and cancelled cleanup on that exact
+source. It does not execute later c840 write reservations,21ea queued-root
+corrections,45b family-guard correction or the ede20014 merge. It is not a whole
+root/native gate, staged-values-leaf validation, admission, real forge or UI pass.
+Those later source checks retain their separate queued runs.
