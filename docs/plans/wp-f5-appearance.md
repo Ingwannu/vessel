@@ -561,3 +561,14 @@ retains Windowed alongside Plain/Identified. E2 presentation/style separation
 remains, and presentation now uses the same FormMinimum shell/minimum rather
 than retaining a second form shell. No captured-submit or B2 press-metadata
 branch is inferred included. The merge is not an F5 compile/runtime pass.
+
+
+C2's portable af31adb76 is consumed as 200f4ba6c: retained immutable terminal
+rows and a typed FontStack identity in the draw/row key invalidate quiet
+family changes even when measured cells remain equal. C2's exact f0ea5489
+App strict check and two GPUI regressions passed, with the prior red regression
+retained. Those are C2's scoped evidence; this F5 union still needs its own
+checks. No FontStack/face source is copied from C2's preparation foundation.
+Physical equal-metric fonts, captures and performance measurements are not
+proved by the held-metrics test. Markdown-file width remains W13's pending
+consumer, while conversation width uses the existing F5 preference adapter.
