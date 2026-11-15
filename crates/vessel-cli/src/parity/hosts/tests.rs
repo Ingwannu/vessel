@@ -21,7 +21,7 @@ fn concurrent_edit_cannot_replace_the_acknowledged_host_in_the_cli_receipt() {
         error: None,
     };
     assert_eq!(
-        checked_summary(&acknowledged, observation.clone()).unwrap(),
+        checked_summary(&acknowledged, Some(observation.clone())).unwrap(),
         observation
     );
     let mut newer = observation.clone();
@@ -33,14 +33,14 @@ fn concurrent_edit_cannot_replace_the_acknowledged_host_in_the_cli_receipt() {
     };
     let mut wrong_id = observation;
     wrong_id.registration.registration_id = HostRegistrationId::random();
-    for changed in [newer, rebound] {
+    for changed in [Some(newer), Some(rebound), None] {
         assert!(matches!(
             checked_summary(&acknowledged, changed),
             Err(CliError::ParityHostObservationChanged(id)) if id == acknowledged.registration_id
         ));
     }
     assert!(matches!(
-        checked_summary(&acknowledged, wrong_id),
+        checked_summary(&acknowledged, Some(wrong_id)),
         Err(CliError::ParityInvalidReceipt(_))
     ));
 }

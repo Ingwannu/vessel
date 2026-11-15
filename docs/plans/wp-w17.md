@@ -1760,3 +1760,11 @@ allow-in-tests settings did not classify its helper bodies as test code. Change
 the module gate to cfg(all(test,unix)); no lint allowance or product rule changes.
 This run is not a strict PASS, contains no test execution and does not validate
 the later4980 host observation correction. Original logs remain retained.
+
+The same post-ack conflict applies if another writer removes the registration
+before the connectivity read. Share one optional lookup with ordinary find, and
+let acknowledgement validation map missing-after-success to the same explicit
+Conflict (no retry), rather than reporting a pre-write unknown-id usage failure.
+Add the absent observation to the existing concurrent-edit regression. This tiny
+follow-up is outside the immutable queued7705369d strict; CLI lint/execution remain
+owed on the final union. No second lookup, mutation or fallback is added.

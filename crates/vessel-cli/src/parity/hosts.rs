@@ -145,13 +145,20 @@ async fn enabled(
     show_record(client, presentation, record).await
 }
 async fn find(client: &NodeClient, id: HostRegistrationId) -> Result<HostSummary, CliError> {
-    client
+    find_optional(client, id)
+        .await?
+        .ok_or(CliError::Usage("unknown host registration ID"))
+}
+async fn find_optional(
+    client: &NodeClient,
+    id: HostRegistrationId,
+) -> Result<Option<HostSummary>, CliError> {
+    Ok(client
         .host_registrations()
         .await?
         .hosts
         .into_iter()
-        .find(|host| host.registration.registration_id == id)
-        .ok_or(CliError::Usage("unknown host registration ID"))
+        .find(|host| host.registration.registration_id == id))
 }
 async fn show_record(
     client: &NodeClient,
@@ -160,13 +167,16 @@ async fn show_record(
 ) -> Result<(), CliError> {
     // Connectivity is a later observation. A concurrent edit must not replace
     // the acknowledged mutation's metadata in the success receipt.
-    let observed = find(client, record.registration_id).await?;
+    let observed = find_optional(client, record.registration_id).await?;
     show(presentation, checked_summary(&record, observed)?).await
 }
 fn checked_summary(
     acknowledged: &HostRegistration,
-    observed: HostSummary,
+    observed: Option<HostSummary>,
 ) -> Result<HostSummary, CliError> {
+    let observed = observed.ok_or(CliError::ParityHostObservationChanged(
+        acknowledged.registration_id,
+    ))?;
     if observed.registration.registration_id != acknowledged.registration_id
         || observed.registration.source != acknowledged.source
     {
