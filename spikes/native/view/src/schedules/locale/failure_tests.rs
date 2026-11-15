@@ -53,6 +53,7 @@ struct Case {
     en: String,
     ko: String,
     retry: bool,
+    explains: bool,
     variant: ExpectedVariant,
 }
 #[test]
@@ -70,6 +71,7 @@ fn every_failure_has_catalog_words_and_input_policy_in_both_languages() {
         assert_eq!(failure(&value, en), case.en, "{}", case.id);
         assert_eq!(failure(&value, ko), case.ko, "{}", case.id);
         assert_eq!(value.retryable(), case.retry, "{}", case.id);
+        assert_eq!(value.needs_explanation(), case.explains, "{}", case.id);
         assert_eq!(value.variant(), case.variant.into(), "{}", case.id);
     }
     assert_eq!(ids.len(), 18);

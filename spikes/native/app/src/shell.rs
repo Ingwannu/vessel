@@ -412,7 +412,7 @@ impl Render for Shell {
     }
 }
 
+mod events;
 #[cfg(test)]
 pub(crate) mod language_tests;
-mod events;
 mod page;

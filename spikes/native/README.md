@@ -91,6 +91,14 @@ automatically. `schedules::locale` uses generated `locales/{en,ko}/schedules.ftl
 for new list words; accepted cadence/action/state/editor errors remain in their
 original table until the separately owned migration. None of these pure rules
 implies that the corresponding screen has been wired or visually reviewed.
+The new `link::schedules` bridge uses existing typed client calls with the same
+named request bound, retaining permits through event delivery. Local rejection
+and browser no-transport replies settle through the same app area boundary;
+no route or fixture data is implied. The shell's event dispatcher now lives in
+its ordinary `shell::events` child module with the original effective private
+boundary; the root remains the window/frame and link receiver. LinkError keeps
+its public root path through its separate private error module. See the two
+move-only plans and schedule-registration plan for the ordered gate boundary.
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with

@@ -7,7 +7,8 @@
     "en": "Update this machine to use schedules.",
     "ko": "예약을 사용하려면 이 머신을 업데이트하세요.",
     "retry": false,
-    "variant": "warning"
+    "variant": "warning",
+    "explains": true
   },
   {
     "id": "local-offline",
@@ -17,7 +18,8 @@
     "en": "Cannot reach this machine. Check its connection, then try again.",
     "ko": "머신에 연결할 수 없습니다. 연결을 확인한 뒤 다시 시도하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": false
   },
   {
     "id": "local-busy",
@@ -27,7 +29,8 @@
     "en": "Other schedule requests are still running. Try again shortly.",
     "ko": "다른 예약 요청을 처리하고 있습니다. 잠시 후 다시 시도하세요.",
     "retry": true,
-    "variant": "info"
+    "variant": "info",
+    "explains": true
   },
   {
     "id": "local-unexpected",
@@ -37,7 +40,8 @@
     "en": "The machine returned an unexpected answer. Refresh before trying again.",
     "ko": "머신에서 예상과 다른 응답을 받았습니다. 새로 고침한 뒤 다시 시도하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "local-unconfirmed",
@@ -47,7 +51,8 @@
     "en": "This action could not be confirmed. It may have completed. Check the latest state before trying again.",
     "ko": "작업 결과를 확인할 수 없습니다. 작업이 완료되었을 수도 있습니다. 최신 상태를 확인한 뒤 다시 시도하세요.",
     "retry": false,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "local-exhausted",
@@ -57,7 +62,8 @@
     "en": "Reopen the app to send more schedule requests.",
     "ko": "예약 요청을 계속하려면 앱을 다시 여세요.",
     "retry": false,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "local-no-transport",
@@ -67,7 +73,8 @@
     "en": "Schedules are unavailable in this browser build.",
     "ko": "이 브라우저 버전에서는 예약을 사용할 수 없습니다.",
     "retry": false,
-    "variant": "warning"
+    "variant": "warning",
+    "explains": true
   },
   {
     "id": "node-invalid-request",
@@ -78,7 +85,8 @@
     "en": "The machine could not accept this schedule. Refresh and check its settings.",
     "ko": "머신에서 이 예약을 처리할 수 없습니다. 새로 고침한 뒤 설정을 확인하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-unauthorized",
@@ -89,7 +97,8 @@
     "en": "Pair this device with the machine again.",
     "ko": "이 기기를 머신과 다시 연결하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-forbidden",
@@ -100,7 +109,8 @@
     "en": "This device cannot view this machine’s schedules.",
     "ko": "이 기기에서는 이 머신의 예약을 조회할 수 없습니다.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-protocol-mismatch",
@@ -111,7 +121,8 @@
     "en": "Update the app and this machine so they can connect.",
     "ko": "연결할 수 있도록 앱과 머신을 업데이트하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-not-found",
@@ -122,7 +133,8 @@
     "en": "This schedule or its target is no longer available. Refresh the list.",
     "ko": "이 예약 또는 실행 대상을 찾을 수 없습니다. 목록을 새로 고침하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-conflict",
@@ -133,7 +145,8 @@
     "en": "This schedule changed or cannot run in its current state. Refresh the list.",
     "ko": "예약이 변경되었거나 현재 상태에서 실행할 수 없습니다. 목록을 새로 고침하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-unsupported",
@@ -144,7 +157,8 @@
     "en": "This machine cannot perform that schedule action.",
     "ko": "이 머신에서 해당 예약 작업을 지원하지 않습니다.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-harness-not-installed",
@@ -155,7 +169,8 @@
     "en": "Install this schedule’s agent on the machine before running it.",
     "ko": "실행하기 전에 이 예약의 에이전트를 머신에 설치하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-spawn-failed",
@@ -166,7 +181,8 @@
     "en": "The machine could not start the agent. Check its installation and folder.",
     "ko": "머신에서 에이전트를 시작하지 못했습니다. 설치 상태와 폴더를 확인하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-unavailable",
@@ -177,7 +193,8 @@
     "en": "The machine is busy or shutting down. Try again shortly.",
     "ko": "머신이 다른 작업을 처리하거나 종료 중입니다. 잠시 후 다시 시도하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   },
   {
     "id": "node-internal",
@@ -188,6 +205,7 @@
     "en": "The machine could not finish that request. Refresh before trying again.",
     "ko": "머신에서 요청을 완료하지 못했습니다. 새로 고침한 뒤 다시 시도하세요.",
     "retry": true,
-    "variant": "error"
+    "variant": "error",
+    "explains": true
   }
 ]

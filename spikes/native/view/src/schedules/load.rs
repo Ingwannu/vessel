@@ -74,18 +74,19 @@ impl Failure {
             Self::Node(_) | Self::Offline | Self::Busy | Self::Unexpected => true,
         }
     }
-    /// Ordinary offline failures use the reference's load-error sentence. A
-    /// refusal/old protocol/correlation failure must keep its corrective words.
+    /// Ordinary offline reads use the reference's load-error sentence. Typed
+    /// refusals and local limits keep the corrective words a retry alone lacks.
     #[must_use]
-    pub fn needs_explanation(&self) -> bool {
+    pub const fn needs_explanation(&self) -> bool {
         match self {
-            Self::Node(error) => error.code == vessel_proto::ErrorCode::Forbidden,
-            Self::Older
+            Self::Node(_)
+            | Self::Older
+            | Self::Busy
             | Self::Unexpected
             | Self::Exhausted
             | Self::Unconfirmed
             | Self::NoTransport => true,
-            Self::Offline | Self::Busy => false,
+            Self::Offline => false,
         }
     }
     /// Shared Alert meaning; a caller never chooses its own warning colour.

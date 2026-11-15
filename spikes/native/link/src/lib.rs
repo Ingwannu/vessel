@@ -52,6 +52,7 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod node_settings;
+pub mod schedules;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -157,6 +158,8 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// A correlated schedule list or explicitly chosen mutation.
+    Schedules(schedules::Request),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -318,6 +321,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// One complete correlated schedule reply, including source errors.
+    Schedules(schedules::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -478,6 +483,7 @@ impl Link {
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            schedule_calls: schedules::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -542,6 +548,7 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    schedule_calls: schedules::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
@@ -586,7 +593,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
-            Command::Reload => self.reload().await,
+            Command::Schedules(request) => self.schedule(request).await,
             Command::Agents {
                 machine,
                 request,

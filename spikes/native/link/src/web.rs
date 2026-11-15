@@ -84,6 +84,10 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Schedules(request) => self.emit(Event::Schedules(crate::schedules::Answer {
+                request,
+                result: Err(crate::schedules::ScheduleError::NoTransport),
+            })),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {
