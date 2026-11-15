@@ -43,8 +43,8 @@ pub(super) struct Editing {
     pub(super) status: Option<vessel_app_kit::ui::Entity<super::editor_status::Status>>,
     /// The model's text is newer than the control's (a reload).
     pub(super) stale: bool,
-    /// Last text actually projected into or published from the existing control.
-    pub(super) mirrored: Option<String>,
+    /// Text and existing engine revision last projected or published together.
+    pub(super) mirrored: Option<super::editor_mirror::Snapshot>,
     /// Bumped by every autosave set or stopped; a timer checks it.
     pub(super) autosave: u64,
     /// Reload's question, made when first asked.
@@ -399,7 +399,7 @@ impl Shell {
             if editing.stale {
                 editing.stale = false;
                 editor.set_text(editing.model.content(), window, cx);
-                editing.mirrored = Some(editor.text(cx));
+                editing.mirrored = Some(super::editor_mirror::Snapshot::read(editor, cx));
             }
             return;
         }
@@ -434,7 +434,7 @@ impl Shell {
         let Some(editing) = viewer.edit.as_mut() else {
             return;
         };
-        editing.mirrored = Some(editor.text(cx));
+        editing.mirrored = Some(super::editor_mirror::Snapshot::read(&editor, cx));
         editing.editor = Some(editor);
         editing.status = Some(status);
         editing.find = Some(find);

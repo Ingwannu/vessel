@@ -2,8 +2,28 @@
 //! model-to-control projection. No second editor, edit queue or lease exists here.
 use super::buffers::FileKey;
 use crate::shell::Shell;
+use vessel_app_kit::code_editor::{CodeEditor, EditorRevision};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::workspace::editor::Step;
+
+/// One published control observation: equal text can still contain new edits.
+/// The revision belongs only to this retained engine, never to a disk write.
+#[derive(PartialEq, Eq)]
+pub(super) struct Snapshot {
+    text: String,
+    revision: EditorRevision,
+}
+impl Snapshot {
+    pub(super) fn read(editor: &CodeEditor, cx: &gpui::App) -> Self {
+        Self {
+            text: editor.text(cx),
+            revision: editor.revision(cx),
+        }
+    }
+    pub(super) fn text(&self) -> &str {
+        &self.text
+    }
+}
 
 impl Shell {
     pub(super) fn editor_changed_for(
@@ -22,27 +42,31 @@ impl Shell {
         let Some(editing) = self.editing_for(key) else {
             return;
         };
-        let Some(text) = editing.editor.as_ref().map(|editor| editor.text(cx)) else {
+        let Some(snapshot) = editing
+            .editor
+            .as_ref()
+            .map(|editor| Snapshot::read(editor, cx))
+        else {
             return;
         };
-        if editing.stale && editing.mirrored.as_deref() == Some(text.as_str()) {
+        if editing.stale && editing.mirrored.as_ref() == Some(&snapshot) {
             // This is unchanged old display text, not accepted new input.
             return;
         }
         let unprojected = editing.stale;
         editing.stale = false;
-        if editing.model.content() == text {
-            editing.mirrored = Some(text);
+        if editing.model.content() == snapshot.text {
+            editing.mirrored = Some(snapshot);
             return;
         }
         let step = if unprojected {
-            editing.model.edit_before_projection(&text)
+            editing.model.edit_before_projection(&snapshot.text)
         } else {
-            editing.model.edit(&text)
+            editing.model.edit(&snapshot.text)
         };
         // Reuse this already allocated snapshot; it is comparison evidence only,
         // never a writable buffer, undo history, connection or version authority.
-        editing.mirrored = Some(text);
+        editing.mirrored = Some(snapshot);
         let step = if held && matches!(&step, Step::Autosave) {
             Step::StopAutosave
         } else {

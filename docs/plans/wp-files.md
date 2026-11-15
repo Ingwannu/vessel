@@ -1109,3 +1109,32 @@ This reuses the existing owner and actor preflight; the receipt is not a live
 delivery guard. The regression preserves the original stale receipt across a
 same-root refresh, refuses both old actions, permits a fresh action, and refuses
 an action after hiding the host. It is authored but not yet executed.
+
+## Existing engine revision and pending projection
+
+[Decision Log]
+- Purpose: preserve accepted A-to-X-to-A input before a queued owner event when
+  a newer disk read is awaiting projection. Text equality alone cannot prove
+  the old visible control was unchanged.
+- Existing asset: the same InputBaseState already advances document_revision
+  synchronously. The lead assigned readonly vendor change9; it adds no counter,
+  subscription, write/reset API or editing behavior.
+- Choice: Kit exposes an opaque EditorRevision, and the existing mirror stores
+  one text/revision observation together. Mirror admission and readonly quit
+  readiness classify an old projection as unchanged only when both match.
+- Why: a queued change subscription has the same ordering gap; an additional
+  editor model or registry would create a second source of truth.
+- Costs: the existing counter wraps and is local to one retained engine. It is
+  never a file version, connection identity, remote-effect fence or permission.
+  Uncertain original writes remain held independently of this observation.
+
+The vendor-only leaf and Kit adapter are separate from the C5 consumer commit.
+The vendor regression and Kit real-editor regression both cover equal text
+with changed edit evidence. The C5 regression also installs a newer disk model,
+withholds owner mirroring, edits away and back, requires readonly readiness to
+refuse Ready, then preserves the accepted text through the conflict/late frame.
+All three are authored; no execution is claimed yet. The supported remote
+interface cannot execute the vendor-private test with its absent dev-dependency
+lock, so it remains explicitly unexecuted. A Kit result cannot be relabelled as
+execution of that private vendor case. Vendor review/adoption and the real
+quit/finalization consumer remain separate pending joins.

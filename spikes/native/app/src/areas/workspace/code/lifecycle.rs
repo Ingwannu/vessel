@@ -47,9 +47,9 @@ impl Viewer {
         let Some(editor) = &editing.editor else {
             return known;
         };
-        let text = editor.text(cx);
-        let old_projection = editing.stale && editing.mirrored.as_deref() == Some(text.as_str());
-        if !old_projection && text != editing.model.content() {
+        let snapshot = super::editor_mirror::Snapshot::read(editor, cx);
+        let old_projection = editing.stale && editing.mirrored.as_ref() == Some(&snapshot);
+        if !old_projection && snapshot.text() != editing.model.content() {
             DocumentReadiness::Dirty
         } else {
             known

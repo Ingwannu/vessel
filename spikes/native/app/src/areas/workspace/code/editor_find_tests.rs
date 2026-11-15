@@ -401,3 +401,67 @@ fn actual_document_guard_observes_unmirrored_engine_text_and_retains_it(cx: &mut
         });
     });
 }
+
+#[gpui::test]
+fn equal_text_after_accepted_edits_survives_a_pending_disk_projection(cx: &mut TestAppContext) {
+    use vessel_app_kit::code_editor::FindCase;
+    use vessel_app_view::desktop::quit::DocumentReadiness;
+    use vessel_app_view::workspace::editor::{ConflictKind, Step};
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            let before = editor.revision(cx);
+            let step = shell.editing_for(&key).unwrap().model.reconcile();
+            shell.send_step_for(&key, step);
+            let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+            shell.editor_read_answered_for(
+                &key,
+                ticket,
+                &super::super::editing::whole_read(key.root, key.path.clone()),
+                Ok(io_tests::text("newer disk")),
+                cx,
+            );
+            assert!(editing(shell).stale);
+            assert_eq!(editing(shell).model.content(), "newer disk");
+            assert_eq!(
+                super::super::lifecycle::check_documents(shell, cx),
+                DocumentReadiness::Ready,
+                "an unchanged old projection is not an edit"
+            );
+            editor.open_find(cx);
+            editor.find_query("alpha", FindCase::Sensitive, cx);
+            assert_eq!(
+                editor.find_replace("temporary", ReplaceScope::All, window, cx),
+                MatchCount(2)
+            );
+            editor.find_query("temporary", FindCase::Sensitive, cx);
+            assert_eq!(
+                editor.find_replace("alpha", ReplaceScope::All, window, cx),
+                MatchCount(2)
+            );
+            assert_eq!(editor.text(cx), "alpha beta alpha");
+            assert_ne!(editor.revision(cx), before);
+            assert_eq!(editing(shell).model.content(), "newer disk");
+            assert_eq!(
+                shell.file_documents_for_node(key.node, cx),
+                DocumentReadiness::Dirty,
+                "equal text with new engine edits cannot admit quit"
+            );
+            shell.mirror_editor_for(&key, cx);
+            assert_eq!(editing(shell).model.content(), "alpha beta alpha");
+            assert_eq!(
+                editing(shell).model.conflict(),
+                Some((ConflictKind::Changed, true))
+            );
+            shell.editor_changed_for(&key, window, cx);
+            shell.editor_frame_for(&key, window, cx);
+            assert_eq!(editor.text(cx), "alpha beta alpha");
+            assert_eq!(editing(shell).model.content(), editor.text(cx));
+            assert!(editing(shell).writing.is_none());
+            assert_eq!(shell.editing_for(&key).unwrap().model.save(), Step::None);
+        });
+    });
+}
