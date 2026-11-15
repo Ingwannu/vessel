@@ -205,7 +205,7 @@ async fn set(node: &Node, enabled: bool) {
             .service
             .0
             .settings
-            .change(change(enabled).into())
+            .change(change(enabled))
             .await
             .unwrap()
             .restart_recovery
@@ -319,7 +319,7 @@ async fn caller_loss_during_the_actual_settings_write_does_not_cancel_saved_off_
             let (entered, release) = settings.pause_write();
             let caller = {
                 let settings = Arc::clone(settings);
-                tokio::spawn(async move { settings.change(change(false).into()).await })
+                tokio::spawn(async move { settings.change(change(false)).await })
             };
             entered.await.unwrap();
             caller.abort();
@@ -330,9 +330,10 @@ async fn caller_loss_during_the_actual_settings_write_does_not_cancel_saved_off_
             assert!(!effective.restart_recovery.enabled);
             assert!(
                 !f.data
-                    .read_settings_record()
+                    .read_settings()
                     .unwrap()
                     .unwrap()
+                    .public_settings()
                     .restart_recovery
                     .unwrap()
                     .effective()
@@ -370,14 +371,15 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
             let (entered, release) = settings.pause_cleanup();
             let caller = {
                 let settings = Arc::clone(settings);
-                tokio::spawn(async move { settings.change(change(false).into()).await })
+                tokio::spawn(async move { settings.change(change(false)).await })
             };
             entered.await.unwrap();
             assert!(
                 !f.data
-                    .read_settings_record()
+                    .read_settings()
                     .unwrap()
                     .unwrap()
+                    .public_settings()
                     .restart_recovery
                     .unwrap()
                     .effective()
@@ -389,7 +391,7 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
             let _barrier = owner.call(vessel_proto::GetNode).await.unwrap();
             let next = {
                 let settings = Arc::clone(settings);
-                tokio::spawn(async move { settings.change(change(true).into()).await })
+                tokio::spawn(async move { settings.change(change(true)).await })
             };
             release.send(()).unwrap();
             assert!(next.await.unwrap().unwrap().restart_recovery.enabled);

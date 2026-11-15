@@ -10,14 +10,7 @@ async fn off_after_prompt_admission_does_not_kill_that_turn_or_reconstruct_it_la
             let owner = f.client(&node).await;
             let mut policy = change(true);
             policy.restart_recovery.as_mut().unwrap().prompt = Some("wait".parse().unwrap());
-            let installed = node
-                .secure
-                .service
-                .0
-                .settings
-                .change(policy.into())
-                .await
-                .unwrap();
+            let installed = node.secure.service.0.settings.change(policy).await.unwrap();
             assert!(installed.restart_recovery.enabled);
             assert_eq!(installed.restart_recovery.prompt.as_str(), "wait");
             let original = f.active(&node, &owner).await;

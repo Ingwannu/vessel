@@ -2,19 +2,20 @@
 use super::support::{Fixture, within};
 use vessel_node::DataDir;
 use vessel_proto::restart::SetRestartRecovery;
+use vessel_proto::settings::SetNodeSettings;
 use vessel_store::SavedNodeSettings;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unsupported_recovery_is_not_reported_as_off_and_cannot_change_saved_policy() {
     within(async {
-        let saved = SavedNodeSettings {
+        let saved = SavedNodeSettings::default().with_public_settings(SetNodeSettings {
             restart_recovery: Some(SetRestartRecovery {
                 enabled: Some(true),
                 prompt: Some("synthetic continuation".parse().unwrap()),
             }),
-            ..SavedNodeSettings::default()
-        };
+            ..SetNodeSettings::default()
+        });
         let f = Fixture::start_with(|config, _| {
-            config.data_dir.write_settings_record(&saved).unwrap();
+            config.data_dir.write_settings(&saved).unwrap();
         })
         .await;
         let shown = f.vessel(&["node", "settings"], b"").await;
@@ -35,7 +36,7 @@ async fn unsupported_recovery_is_not_reported_as_off_and_cannot_change_saved_pol
             refused.stderr
         );
         assert_eq!(
-            DataDir::new(f.data()).read_settings_record().unwrap(),
+            DataDir::new(f.data()).read_settings().unwrap(),
             Some(saved.clone())
         );
         let legacy = f
@@ -44,11 +45,12 @@ async fn unsupported_recovery_is_not_reported_as_off_and_cannot_change_saved_pol
         assert!(legacy.ok, "{}", legacy.stderr);
         assert_eq!(
             DataDir::new(f.data())
-                .read_settings_record()
+                .read_settings()
                 .unwrap()
                 .unwrap()
+                .public_settings()
                 .restart_recovery,
-            saved.restart_recovery
+            saved.public_settings().restart_recovery
         );
         f.stop().await;
     })

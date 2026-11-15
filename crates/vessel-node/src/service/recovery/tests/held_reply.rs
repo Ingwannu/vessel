@@ -28,14 +28,7 @@ impl Scenario {
         let owner = fixture.client(&node).await;
         let mut policy = change(true);
         policy.restart_recovery.as_mut().unwrap().prompt = Some(PROMPT.parse().unwrap());
-        let installed = node
-            .secure
-            .service
-            .0
-            .settings
-            .change(policy.into())
-            .await
-            .unwrap();
+        let installed = node.secure.service.0.settings.change(policy).await.unwrap();
         assert!(installed.restart_recovery.enabled);
         assert_eq!(installed.restart_recovery.prompt.as_str(), PROMPT);
         let mut originals = Vec::new();

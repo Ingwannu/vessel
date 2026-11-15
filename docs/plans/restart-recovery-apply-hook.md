@@ -155,3 +155,16 @@ budget, independent of the common writer's physical I/O safety net. Coincident
 numeric durations do not bind those different operations or change either limit.
 The real-ACK observer's three strict lint findings are corrected without changing
 admission, barriers or assertions. Corrected strict/runtime proof is still owed.
+
+
+## Concrete common owner joined
+
+The supplied common implementation is now merged: opaque Document, single
+accepted-intent lane, same-byte Opening snapshot, same Policy Arc and hook,
+canonical safe decoder, lifecycle seal and settings-before-runtime drain.
+Recovery and CLI fixtures use its actual SetNodeSettings change API and
+opaque public projection; obsolete record methods and public struct literals
+are removed. Their assertions, Case budget, process-kill flow and held-write/
+post-save cleanup boundaries remain. The joint code remains uncompiled until
+the coordinated checks and is still pending the qualified preparation API;
+this source merge is not a consumer-ready or runtime verdict.

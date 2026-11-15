@@ -82,7 +82,7 @@ async fn unassigned_client_fields_refuse_before_mutating_the_real_saved_policy()
             let node = f.start().await;
             let owner = f.client(&node).await;
             set(&node, true).await;
-            let before = f.data.read_settings_record().unwrap().unwrap();
+            let before = f.data.read_settings().unwrap().unwrap();
             assert!(matches!(
                 owner.restart_recovery().await,
                 Err(vessel_client::CallError::UnassignedProtocol {
@@ -100,7 +100,7 @@ async fn unassigned_client_fields_refuse_before_mutating_the_real_saved_policy()
                     method: vessel_proto::Method::SetNodeSettings
                 })
             ));
-            assert_eq!(f.data.read_settings_record().unwrap().unwrap(), before);
+            assert_eq!(f.data.read_settings().unwrap().unwrap(), before);
             let legacy = owner
                 .call(vessel_proto::settings::GetNodeSettings::default())
                 .await
