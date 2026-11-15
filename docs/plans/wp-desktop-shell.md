@@ -372,6 +372,12 @@ State::admit_connection using a credential-free local fake peer entry. Only that
 test blob and connection_epoch=None in the view fixture are mirrored here; no
 moving session runtime branch, fabricated validity or alias fallback is adopted.
 The source repair still needs same-head compile/test execution.
+The isolated shared dialog/popover producer now has independent green evidence:
+wp-desktop-popover-narrow-20261115T143258Z-7730d570, exact7730d570a on base8,
+native fmt/quality/all-target Clippy0 and tests1444/0/2 (Kit193/0/0,13 control
+regressions). V1 source/requested-narrow row233 is pending. This contains no E3
+App/Link policy, native-build, capture or OS approval and cannot validate this
+larger tree's canonical preferences, quit lifecycle or session-owner union.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this
