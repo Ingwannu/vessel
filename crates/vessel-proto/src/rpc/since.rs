@@ -8,6 +8,8 @@ use crate::session::{SessionInput, SessionMode};
 
 use super::Call;
 
+mod labels;
+
 impl Call {
     /// The assigned requirement for admission: [`Call::since`]. A feature
     /// awaiting a protocol number returns `None`; senders must refuse it
@@ -15,7 +17,29 @@ impl Call {
     /// call's requirement as well as their own.
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
-        self.since()
+        let method = self.method().since()?;
+        if let Self::Forward(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(method));
+        }
+        if let Self::Relay(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(method));
+        }
+        if let Self::Deliver(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(method));
+        }
+        let required = self.since()?;
+        labels::on(self).map_or(Some(required), |labels| {
+            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        })
     }
 
     /// The protocol version this call needs: its method's, or a later one
