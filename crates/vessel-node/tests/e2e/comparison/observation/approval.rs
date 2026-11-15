@@ -57,7 +57,7 @@ async fn approval_continuations_keep_common_input_and_uncertain_create_cannot_re
                     bridge.release().await;
                     let finished = changed(&job, |snapshot| matches!(snapshot.targets[1].status, TargetStatus::Started)).await;
                     let session = finished.targets[1].resources.session.unwrap();
-                    let history = turns(&owner, session).await;
+                    let history = published_turns(&owner, session).await;
                     let vessel_proto::ContentBlock::Attachment { attachment } = &history[0][1] else { panic!("file"); };
                     assert_ne!(attachment.id, file.id);
                     assert_eq!(owner.read_attachment(session, attachment.id, 0).await.unwrap().data,
@@ -76,11 +76,35 @@ async fn approval_continuations_keep_common_input_and_uncertain_create_cannot_re
                     assert_eq!(bridge.count(Method::PromptSession).await, 1);
                 }
             }
-            assert_eq!(turns(&owner, source).await.len(), 1);
+            assert_eq!(published_turns(&owner, source).await.len(), 1);
             assert_eq!(bridge.count(Method::CreateSession).await, 2);
             assert_eq!(bridge.count(Method::CreateWorktree).await, 3, "only an explicit known-no-effect approval retry");
             bridge.stop().await;
         }
         node.stop().await.unwrap();
     }).await;
+}
+
+/// The fake `plain` turn completes; its prompt ACK alone is not a log barrier.
+/// Observe its end so the earlier `TurnStarted` is already in `next_seq` when
+/// the ordinary history read captures its durable prefix. This also avoids
+/// depending on the info update of the very record that woke a subscriber.
+async fn published_turns(
+    client: &NodeClient,
+    session: SessionId,
+) -> Vec<Vec<vessel_proto::ContentBlock>> {
+    step("acknowledged comparison turn reaches the log", async {
+        let mut stream = client.follow(session, EventSeq::ZERO).await.unwrap();
+        read_until(&mut stream, &mut Vec::new(), |record| {
+            matches!(
+                record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded { .. }
+                }
+            )
+        })
+        .await;
+        turns(client, session).await
+    })
+    .await
 }
