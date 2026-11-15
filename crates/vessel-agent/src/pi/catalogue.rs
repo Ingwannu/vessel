@@ -101,7 +101,7 @@ pub(super) fn decode(models: &[u8], state: &[u8]) -> Result<Catalogue, InvalidCa
         return Err(InvalidCatalogue::TooLarge);
     }
     let models = models
-        .into_iter()
+        .iter()
         .map(|model| convert(model, state.model.as_ref()))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Catalogue {
@@ -111,7 +111,7 @@ pub(super) fn decode(models: &[u8], state: &[u8]) -> Result<Catalogue, InvalidCa
 }
 
 fn convert(
-    model: NativeModel,
+    model: &NativeModel,
     configured: Option<&NativeModel>,
 ) -> Result<Model, InvalidCatalogue> {
     for text in [&model.provider, &model.id] {
