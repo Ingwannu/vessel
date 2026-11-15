@@ -64,35 +64,14 @@ pub(crate) fn frame(
         return screen;
     };
     let mut agent = Some(screen);
-    let content = if mode(window) == LayoutMode::Compact {
-        layout
-            .root()
-            .panes()
-            .into_iter()
-            .find(|pane| pane.id() == layout.focused_pane())
-            .map_or_else(div, |pane| {
-                pane_view(
-                    (shell, &layout, &key),
-                    pane,
-                    &mut agent,
-                    tokens,
-                    (window, cx),
-                )
-            })
-    } else if let Some(pane) = shell
-        .areas
-        .layout
-        .maximized
-        .as_ref()
-        .filter(|(stored, _)| stored == &key)
-        .and_then(|(_, id)| {
+    let content = if let Some(pane) = super::queries::projected_pane(shell, &layout, &key, window)
+        .and_then(|id| {
             layout
                 .root()
                 .panes()
                 .into_iter()
-                .find(|pane| pane.id() == *id)
-        })
-    {
+                .find(|pane| pane.id() == id)
+        }) {
         pane_view(
             (shell, &layout, &key),
             pane,

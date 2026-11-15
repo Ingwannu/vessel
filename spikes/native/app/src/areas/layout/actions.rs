@@ -102,12 +102,11 @@ impl Shell {
                     Ok(pane) => {
                         if let Ok(workspace) = super::key(self) {
                             let selected = (workspace, pane);
-                            self.areas.layout.maximized =
-                                if self.areas.layout.maximized.as_ref() == Some(&selected) {
-                                    None
-                                } else {
-                                    Some(selected)
-                                };
+                            if self.areas.layout.maximized.as_ref() == Some(&selected) {
+                                self.layout_exit_focus(cx);
+                            } else {
+                                self.areas.layout.maximized = Some(selected);
+                            }
                         }
                         Ok(())
                     }
