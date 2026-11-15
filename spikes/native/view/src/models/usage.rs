@@ -55,6 +55,7 @@ mod tests {
     fn missing_profiles_unused_and_two_accounts_are_three_distinct_states() {
         let route = route();
         let mut snapshot = Snapshot {
+            node: vessel_proto::NodeId::random(),
             routes: Listed::Available(vec![route.clone()]),
             profiles: Listed::OlderNode,
             agents: vec![],

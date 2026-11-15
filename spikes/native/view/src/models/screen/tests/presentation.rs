@@ -10,6 +10,7 @@ fn selected() -> State<Problem> {
 }
 fn snapshot(routes: Listed<ModelRoute>) -> Snapshot {
     Snapshot {
+        node: vessel_proto::NodeId::random(),
         routes,
         profiles: Listed::Available(vec![]),
         agents: vec![],

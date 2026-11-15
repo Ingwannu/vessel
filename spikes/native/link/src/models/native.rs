@@ -70,6 +70,7 @@ async fn read(client: &NodeClient) -> Result<Snapshot, ModelsError> {
         Vec::new()
     };
     Ok(Snapshot {
+        node: client.node().id,
         routes,
         profiles,
         agents,

@@ -128,6 +128,14 @@ new Fleet. A regression checks old-Fleet render → new-Fleet render while
 the replacement request remains pending. Same-key connection changes still
 use only the canonical fan-out, not Fleet-difference inference.
 
+Each Models snapshot additionally carries the completing client's actual
+handshake id. A page can open after an early notice was ignored while the
+page was hidden, before the new Fleet is published. Its accepted read must
+confirm the actual id instead of retaining that earlier Fleet's id. Only
+an accepted machine/ticket changes this metadata; a stale successful reply
+cannot change it. This adds no connection hook, counter, request or wire
+field. The in-memory link test checks the read's id against its real client.
+
 ## Default-choice preflight
 
 The legacy default-choice writer silently filters ids/values past its saved

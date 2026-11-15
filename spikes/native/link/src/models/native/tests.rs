@@ -38,6 +38,7 @@ async fn one_connection_keeps_routes_profiles_and_added_agent_labels_in_node_ord
     safety(async {
         let peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Respond::Lists).await;
         let snapshot = phase("model snapshot", read(&peer.client)).await.unwrap();
+        assert_eq!(snapshot.node, peer.client.node().id);
         let Listed::Available(routes) = snapshot.routes else {
             panic!("routes unsupported")
         };

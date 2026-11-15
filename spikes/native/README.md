@@ -1081,6 +1081,7 @@ initial/cached states; the app only draws and sends `Command::Models`.
 Actual reconnect notices use the shared `connection_ready` fan-out: same-node
 reconnects also invalidate pending/cached facts without reusing a ticket.
 `link::models` reads existing model/profile/agent lists on one connection,
+and tags the completed snapshot with that client's welcome identity.
 with four dispatched reads and one 15-second snapshot deadline. Older
 methods stay distinct from empty lists. The shared actor may still delay
 initial dispatch while awaiting its own session reads; that inherited wait

@@ -25,6 +25,8 @@ pub enum Listed<T> {
 /// Facts read through one selected machine's connection.
 #[derive(Debug)]
 pub struct Snapshot {
+    /// Actual handshake identity of the client that completed this read.
+    pub node: vessel_proto::NodeId,
     /// The machine's model/provider definitions, not compatibility guesses.
     pub routes: Listed<ModelRoute>,
     /// Every configured profile, including generated defaults.
@@ -97,6 +99,7 @@ mod tests {
     use super::*;
     fn empty() -> Snapshot {
         Snapshot {
+            node: vessel_proto::NodeId::random(),
             routes: Listed::Available(vec![]),
             profiles: Listed::Available(vec![]),
             agents: vec![],
@@ -139,6 +142,7 @@ mod tests {
         assert!(page.received(
             retry,
             Ok(Snapshot {
+                node: vessel_proto::NodeId::random(),
                 routes: Listed::OlderNode,
                 profiles: Listed::OlderNode,
                 agents: vec![]
@@ -236,8 +240,8 @@ impl<E> State<E> {
         self.page = Page::default();
         true
     }
-    /// Physical identity from the last actual connection notice for this
-    /// selected machine, distinct from the editable book route.
+    /// Latest reported identity: initially the shared Fleet, then an actual
+    /// connection notice or accepted read. Snapshot facts keep their own id.
     #[must_use]
     pub const fn node(&self) -> Option<vessel_proto::NodeId> {
         self.node
@@ -279,7 +283,12 @@ impl<E> State<E> {
         if self.machine.as_ref() != Some(machine) {
             return false;
         }
-        self.page.received(ticket, result)
+        let read_node = result.as_ref().ok().map(|snapshot| snapshot.node);
+        let accepted = self.page.received(ticket, result);
+        if accepted && let Some(node) = read_node {
+            self.node = Some(node);
+        }
+        accepted
     }
 }
 /// A selected book entry and the shared Fleet's optional welcome identity.
@@ -303,6 +312,43 @@ pub struct Connection {
 mod navigation_tests {
     use super::*;
     use crate::agent_status::pages::MachineKey;
+    fn snapshot_at(node: vessel_proto::NodeId) -> Snapshot {
+        Snapshot {
+            node,
+            routes: Listed::Available(vec![]),
+            profiles: Listed::Available(vec![]),
+            agents: vec![],
+        }
+    }
+    #[test]
+    fn an_accepted_read_confirms_identity_when_an_early_notice_preceded_page_selection() {
+        let machine = MachineKey::from_book("one");
+        let old = "00000000-0000-4000-8000-000000000001".parse().unwrap();
+        let current = "00000000-0000-4000-8000-000000000002".parse().unwrap();
+        let mut state = State::<&str>::default();
+        // The notice arrived while no page was selected; Fleet has not
+        // published its new id yet. The real client still tags the read.
+        assert!(!state.connected(&Connection {
+            machine: machine.clone(),
+            node: current
+        }));
+        let selection = || Selection {
+            machine: machine.clone(),
+            node: Some(old),
+        };
+        assert!(state.select_reported(Some(selection())));
+        let ticket = state.begin().unwrap();
+        assert!(state.received(&machine, ticket, Ok(snapshot_at(current))));
+        assert_eq!(state.node(), Some(current));
+        assert_eq!(state.page().snapshot().unwrap().node, current);
+        assert!(!state.select_reported(Some(selection())));
+        assert_eq!(state.node(), Some(current));
+        let next = state.begin().unwrap();
+        assert!(!state.received(&machine, ticket, Ok(snapshot_at(old))));
+        assert_eq!(state.node(), Some(current));
+        assert_eq!(state.page().snapshot().unwrap().node, current);
+        assert_eq!(state.page().pending(), Some(next));
+    }
     #[test]
     fn shared_fleet_identity_initializes_selection_but_cannot_undo_an_early_reconnect() {
         let machine = MachineKey::from_book("one");
@@ -346,15 +392,7 @@ mod navigation_tests {
         state.select(Some(machine.clone()));
         assert!(state.connected(&connection));
         let old = state.begin().unwrap();
-        assert!(state.received(
-            &machine,
-            old,
-            Ok(Snapshot {
-                routes: Listed::Available(vec![]),
-                profiles: Listed::Available(vec![]),
-                agents: vec![],
-            }),
-        ));
+        assert!(state.received(&machine, old, Ok(snapshot_at(connection.node)),));
         assert!(state.page().snapshot().is_some());
         let pending = state.begin().unwrap();
         assert!(
