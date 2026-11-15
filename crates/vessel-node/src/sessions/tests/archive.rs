@@ -141,3 +141,38 @@ async fn idle_archive_of_an_already_ended_stored_session_preserves_identity() {
     assert!(archived.marks.archived_at.is_some());
     fixture.stop().await;
 }
+
+#[tokio::test]
+async fn legacy_archive_keeps_first_timestamp_while_new_action_refuses_replay() {
+    let fixture = Fixture::new().await;
+    let id = fixture
+        .sessions
+        .create(fixture.structured(), LaunchOptions::default(), None)
+        .await
+        .unwrap()
+        .id;
+    let first = fixture
+        .sessions
+        .mark(id, vessel_proto::Mark::Archive)
+        .await
+        .unwrap();
+    let second = fixture
+        .sessions
+        .mark(id, vessel_proto::Mark::Archive)
+        .await
+        .unwrap();
+    assert_eq!(first.marks.archived_at, second.marks.archived_at);
+    assert!(!second.status.is_live());
+    let refused = fixture
+        .sessions
+        .archive_condition(id, ArchiveCondition::Force)
+        .await;
+    assert!(matches!(
+        refused,
+        Err(ServiceError::Session(SessionError::NotArchived(
+            ArchiveRefusal::AlreadyArchived
+        )))
+    ));
+    fixture.settle().await;
+    fixture.stop().await;
+}

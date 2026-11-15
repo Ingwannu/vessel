@@ -54,6 +54,9 @@ impl Sessions {
         id: SessionId,
         mark: Mark,
     ) -> Result<SessionInfo, ServiceError> {
+        if matches!(mark, Mark::Archive) {
+            return self.archive_mark(id).await;
+        }
         if let Found::Live { handle, .. } = self.find(id).await? {
             return self.mark_live(handle, mark).await;
         }
@@ -80,7 +83,8 @@ impl Sessions {
             .ok_or(ServiceError::NotFound(id))
     }
 
-    /// [`mark`](Self::mark) for a session the runtime has.
+    /// Non-archive marks for a session the runtime has. Archive holds admission
+    /// through shutdown in archive.rs instead of stopping before taking the lock.
     ///
     /// The work runs as a task of its own: a caller that goes away (a
     /// cancelled call) must not leave the store marked and the handle not,
@@ -97,10 +101,6 @@ impl Sessions {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
-                if matches!(mark, Mark::Archive) {
-                    handle.kill();
-                    let _final = handle.ended().await;
-                }
                 let _order = sessions.marking.lock().await;
                 let kept = sessions.store.mark(id, mark, Utc::now()).await?;
                 handle.set_marks(kept);

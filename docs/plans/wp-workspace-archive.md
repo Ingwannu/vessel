@@ -135,3 +135,9 @@ closes its control channel and sets the explicit internal Stopping route when
 stop begins; direct inputs then return Ended throughout the grace period. IfIdle
 still checks at the prompt mailbox before any stop. Queue advance also observes
 the stop token, so an admitted archive/kill cannot start the next queued turn.
+
+
+Legacy session.mark Archive shares that admission core with explicit Force,
+retaining its idempotent first timestamp. The conditional session.archive method
+chooses an explicit already-archived refusal instead. This removes the old
+stop-before-marking-lock gap without creating a second stop/parentage mutex.
