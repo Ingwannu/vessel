@@ -135,3 +135,26 @@ Source static checks: 612 Rust files, the same 14 existing size exceptions,
 unchanged token entries, and valid module boundaries. Explicit-root validation
 reports English/Korean complete with no missing key. Whole package gate, review
 and screen evidence remain owed.
+
+## Borrowed toolkit binding
+
+A source review of pinned gpui-pre-shared-string 0.3.10 found another allocation
+boundary: its From<&str> delegates to SmolStr::from and copies long notes, while
+new_static retains a static reference. General and the existing Language row
+now explicitly borrow every cached plain label/hint at their widget boundaries.
+The Delivery trigger and list avoid their old intermediate owned String too;
+other settings choice branches retain their existing behavior.
+
+The existing getter allocation test now includes General's three labels/whole
+hints and the Language note, in English, Korean and pseudo. A real language/input
+test checks that the actual Delivery trigger and menu labels retain the exact
+cache addresses before and after the switch. This does not claim an entire GPUI
+frame allocates nothing: widget trees, vectors and caller data still have their
+own lifetimes. It proves the message getters/binding use the prepared strings.
+Current-source execution is still owed.
+
+The future b060-only narrow/whole controllers were stopped before any child or
+remote submission (verified command, UID, sleep state and no children); their
+metadata remains in the evidence folder. The already registered 008181b3 run
+keeps its place unchanged. Final component and package candidates include this
+binding correction; b060 is not mislabeled as the final checked source.

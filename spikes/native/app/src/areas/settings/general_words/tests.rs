@@ -2,7 +2,7 @@
 use super::PreparedGeneral;
 use crate::shell::language_tests;
 use vessel_app_view::localization::{ENGLISH, Locale, Translator};
-use vessel_app_view::prefs::Kept;
+use vessel_app_view::prefs::{Kept, TurnDelivery};
 
 const PATH: &str = "/isolated/prefs.json";
 
@@ -39,6 +39,7 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
                 path: PATH.to_owned(),
             };
             shell.refresh_general_words();
+            assert_delivery_labels_borrow_cached_text(shell);
             shell.copy_preferences_path(PATH, cx);
             assert_eq!(shell.notice.as_deref(), Some("The path was copied."));
             assert_eq!(
@@ -48,6 +49,7 @@ fn real_language_dispatch_refreshes_hint_and_owned_notice_without_changing_input
         },
         |shell| &shell.areas.session.composer,
         |shell| {
+            assert_delivery_labels_borrow_cached_text(shell);
             assert_eq!(shell.notice.as_deref(), Some("경로를 복사했습니다."));
             assert_eq!(
                 shell.areas.settings.general.hint.as_ref(),
@@ -111,6 +113,36 @@ fn changed_language_uses_the_prepared_safe_position_fallback() {
         assert_eq!(
             prepared.hint.as_ref(),
             "환경설정 보관 정보를 표시할 수 없습니다."
+        );
+    }
+}
+
+fn assert_delivery_labels_borrow_cached_text(shell: &crate::shell::Shell) {
+    use crate::areas::settings::choices::{self, List};
+    use vessel_app_kit::{Scheme, Tokens};
+    let chosen = shell
+        .words
+        .general()
+        .delivery(shell.prefs.settings.composer.delivery);
+    assert_eq!(choices::delivery_label(shell).as_ptr(), chosen.as_ptr());
+    let rows = choices::rows(List::Delivery, shell, &Tokens::of(Scheme::Dark));
+    assert_eq!(
+        rows.len(),
+        [
+            TurnDelivery::Interrupt,
+            TurnDelivery::Steer,
+            TurnDelivery::Queue
+        ]
+        .len()
+    );
+    for (row, delivery) in rows.iter().zip([
+        TurnDelivery::Interrupt,
+        TurnDelivery::Steer,
+        TurnDelivery::Queue,
+    ]) {
+        assert_eq!(
+            row.label.as_ptr(),
+            shell.words.general().delivery(delivery).as_ptr()
         );
     }
 }
