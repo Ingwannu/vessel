@@ -17,3 +17,10 @@ Joint contract agreed with W23: SubmitPrompt gains optional intent, original con
 W22 goal availability additionally requires observed version>=0.128, a proven launch with the goal flag, and tested autonomous root-turn lifecycle. No availability is inferred from version alone. The composer will consume explicit typed native catalog metadata, not infer provider execution from a label.
 
 Tests: exact names, Unicode/BOM/NEL boundaries, whole keyword matching, objective byte limits, redacted errors/debug, status-kind derivation and strict serialized shapes. Checks are pending on the build VM; no local Rust compilation, activation or parity claim is made. V3 joint wire review is required before activation.
+
+Exact50c tests compiled with TS but failed3/1: Serde's internally tagged unit
+variants ignored payload fields despite deny_unknown_fields. A private decode
+adapter uses empty struct variants to validate the identical wire shape, preserving
+the public unit variants and serialized contract. All no-payload goal variants
+and invalid compact content now have adversarial fixtures. No assertion was
+weakened; the corrected immutable head still needs VM test and strict lint proof.

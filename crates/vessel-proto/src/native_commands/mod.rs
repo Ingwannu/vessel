@@ -13,6 +13,7 @@
 //! - Cost: objective text has an explicit64KiB bound, unlike the reference's
 //!   unbounded argument. These are dormant values until the joint wire review.
 
+mod decode;
 mod objective;
 mod parse;
 
@@ -69,7 +70,7 @@ impl NativeCommandIntent {
 }
 
 /// Goal subcommands follow Paseo's exact whole-argument interpretation.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum GoalIntent {
