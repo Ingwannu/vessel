@@ -23,8 +23,10 @@
 
 mod card;
 mod facts;
+mod feedback;
 mod form;
 mod link;
+mod merge;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, DialogState, TextField};
@@ -38,7 +40,7 @@ use vessel_proto::SessionId;
 use vessel_proto::forge::{
     GetPullRequest, OpenPullRequest, OpenRefusal, PullRequestView, SessionPullRequest,
 };
-use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, WorkspaceRoot};
+use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, RefName, WorkspaceRoot};
 
 use crate::shell::Shell;
 
@@ -76,6 +78,12 @@ pub(crate) struct Form {
     pub(crate) subject: Subject,
     pub(crate) branch: String,
     pub(crate) draft: OpenDraft,
+    /// The base the node measures the folder against, as it names it
+    /// (`origin/main` for a project whose remote HEAD names it); the form
+    /// starts from it (`form::form_base`).
+    pub(crate) proposed: Option<RefName>,
+    /// Whether the person chose a base; until then `draft.base` is unused.
+    pub(crate) base_chosen: bool,
     /// The log read for the defaults, while it is out.
     pub(crate) prefilling: Option<ReadLog>,
     /// Defaults read and not yet put in the fields (the answer comes
@@ -115,6 +123,16 @@ pub(crate) struct PullsArea {
     pub(crate) draft_turn: u64,
     pub(crate) tips: vessel_app_kit::Tooltips,
     pub(crate) link_tip: vessel_app_kit::tooltip::Place,
+    /// The whole pull request last read (its merge methods).
+    pub(crate) whole: Option<merge::Whole>,
+    /// A read of it for the menu is out, for that session.
+    pub(crate) reading_whole: Option<SessionId>,
+    /// The merge sent, while it is out.
+    pub(crate) merging: Option<Box<vessel_proto::forge::MergePullRequest>>,
+    /// The feedback change sent, while it is out.
+    pub(crate) feedback_sending: Option<vessel_proto::forge::SetFeedback>,
+    /// The feedback switch's changes.
+    pub(crate) feedback_turn: u64,
 }
 
 impl PullsArea {
@@ -140,6 +158,11 @@ impl PullsArea {
             draft_turn: 0,
             tips: vessel_app_kit::Tooltips::new(),
             link_tip: vessel_app_kit::tooltip::Place::default(),
+            whole: None,
+            reading_whole: None,
+            merging: None,
+            feedback_sending: None,
+            feedback_turn: 0,
         }
     }
 }
@@ -209,10 +232,7 @@ impl Shell {
             .as_ref()
             .map(ToString::to_string)
             .unwrap_or_default();
-        let base = status
-            .base
-            .as_ref()
-            .and_then(|base| base.name.as_str().parse().ok());
+        let proposed = status.base.as_ref().map(|base| base.name.clone());
         // Without a count, the head commit alone gives the title (`gh`'s
         // one-commit rule); the node says if nothing is new.
         let limit = status
@@ -230,10 +250,9 @@ impl Shell {
         let pulls = &mut self.areas.pulls;
         pulls.form = Some(Form {
             subject,
-            draft: OpenDraft {
-                base,
-                ..OpenDraft::default()
-            },
+            draft: OpenDraft::default(),
+            proposed,
+            base_chosen: false,
             branch,
             prefilling: Some(log),
             fill: None,
@@ -291,10 +310,17 @@ impl Shell {
 
     /// Enter in the title, Mod+Enter in the description, or Create PR.
     pub(crate) fn pulls_submit(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        let base = self
+            .areas
+            .pulls
+            .form
+            .as_ref()
+            .map(|form| form::form_base(self, form));
         let pulls = &mut self.areas.pulls;
         let Some(form) = pulls.form.as_mut().filter(|form| form.sending.is_none()) else {
             return;
         };
+        form.draft.base = base.flatten();
         form.draft.title = pulls.title.text(cx);
         form.draft.body = pulls.body.text(cx);
         match open_request(form.subject.session, &form.draft) {
@@ -373,6 +399,10 @@ impl Shell {
         match answer {
             PullAnswer::Read { session, result } => self.pulls_read(machine, session, result),
             PullAnswer::Opened { ask, result } => self.pulls_opened(machine, &ask, result, cx),
+            PullAnswer::Merged { ask, result } => self.pulls_merged(&ask, result, cx),
+            PullAnswer::Feedback { ask, result } => {
+                self.pulls_feedback_answered(&ask, result, cx);
+            }
         }
         cx.notify();
     }
@@ -383,6 +413,19 @@ impl Shell {
         session: SessionId,
         result: Result<Box<PullRequestView>, Problem>,
     ) {
+        // Whoever asked, the whole pull request read is the menu's too
+        // (its merge methods).
+        let pulls = &mut self.areas.pulls;
+        if pulls.reading_whole == Some(session) {
+            pulls.reading_whole = None;
+        }
+        if let Some(pull) = result
+            .as_ref()
+            .ok()
+            .and_then(|view| view.pull_request.clone())
+        {
+            pulls.whole = Some(merge::Whole { session, pull });
+        }
         let Some(facts) =
             self.areas.pulls.facts.as_mut().filter(|facts| {
                 facts.subject.machine == machine && facts.subject.session == session
