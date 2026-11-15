@@ -1,3 +1,14 @@
+## Capture documentation correction
+
+The capture instructions now require a private authenticated display and the
+same HOME/config for the app and paired fixture CLI. A mismatched scratch
+home was observed to make stored credentials unavailable; that rejected run
+was replaced with a correctly connected isolated fleet, without changing the
+app or credential handling. The browser-only wording harness reads a FIFO
+through its existing file reader, so the instructions no longer recommend
+keeping a pairing link in a regular file. This docs-only correction changes
+no product source or gate result and makes no new browser-transport claim.
+
 ## Settings vocabulary package: Diagnostics and Chat
 
 Source checkpoint: Diagnostics `205f1e01`; native format, size, boundaries and
