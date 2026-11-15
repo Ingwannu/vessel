@@ -123,5 +123,6 @@ mod native {
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::Hub;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests;

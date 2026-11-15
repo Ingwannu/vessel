@@ -49,7 +49,7 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
         let size = usize::try_from(remote.read_u32().await.unwrap()).unwrap();
         assert!(size < 65_536);
         let mut hello = vec![0; size];
-        remote.read_exact(&mut hello).await.unwrap();
+        assert_eq!(remote.read_exact(&mut hello).await.unwrap(), hello.len());
         assert!(matches!(
             serde_json::from_slice::<vessel_proto::ClientFrame>(&hello).unwrap(),
             vessel_proto::ClientFrame::Hello(_)
