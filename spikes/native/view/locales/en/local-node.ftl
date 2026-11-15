@@ -23,9 +23,9 @@ local-node-paused = Automatic local management is paused.
 # Desktop local-node control: working. No credentials or process IDs.
 local-node-working = Updating local node state…
 # Desktop local-node control: owned. No credentials or process IDs.
-local-node-owned = Running · managed by this app
+local-node-owned = Managed by this app
 # Desktop local-node control: attached. No credentials or process IDs.
-local-node-attached = Running · started outside this app; stop and restart unavailable
+local-node-attached = Attached to an existing local node; stop and restart unavailable
 # Desktop local-node control: kept. No credentials or process IDs.
 local-node-kept = Left running after releasing app ownership.
 # Desktop local-node control: stopped. No credentials or process IDs.

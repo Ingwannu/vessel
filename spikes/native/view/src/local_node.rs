@@ -63,7 +63,7 @@ pub enum Status {
     Paused,
     /// A controller operation has not finished.
     Working,
-    /// The app owns the authenticated running child.
+    /// The app retains its launched child handle; this alone does not promise liveness.
     Owned(NodeId),
     /// The same local home already had a node; the app only attached.
     Attached(NodeId),

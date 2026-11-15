@@ -52,7 +52,7 @@ pub(super) struct ScopeState {
     reopen: Option<(Target, Layout)>,
 }
 
-pub(super) fn prepare(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+pub(super) fn prepare(shell: &mut Shell) {
     if let Some((target, layout)) = shell.areas.onboarding.scope.reopen.take() {
         if shell.areas.onboarding.model.reopen(target, layout).is_err() {
             shell.notice = Some(shell.words.desktop().setup_failed().to_owned());

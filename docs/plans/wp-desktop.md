@@ -234,3 +234,12 @@ button/menu borrow has ended. Re-reading that same entity during its mutable
 Context callback would violate GPUI's entity borrowing. Final update execution
 also performs its guard outside any Shell borrow and does not await before
 updater.restart; only a failed restart then updates the originating Shell notice.
+
+The current narrow type check reached app and found the setup hint's borrowed
+text escaping into a static element; hint/description elements now own their
+strings, and the unused scope-preparation context was removed. The earlier
+App::quit function-item mismatch is corrected by the App-level admission closure.
+Desktop-menu trait imports/unused paths are coordinated with the shell owner.
+Owned status names retained management rather than asserting the process is
+running: a failed checked wait retains that lease and displays its typed failure,
+without claiming Serving or a confirmed stop. Fleet hydration remains separate.

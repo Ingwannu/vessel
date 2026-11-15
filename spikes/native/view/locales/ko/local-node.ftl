@@ -23,9 +23,9 @@ local-node-paused = 자동 로컬 관리를 일시 중지했습니다.
 # Desktop local-node control: working. No credentials or process IDs.
 local-node-working = 로컬 노드 상태 확인 중…
 # Desktop local-node control: owned. No credentials or process IDs.
-local-node-owned = 실행 중 · 이 앱에서 관리
+local-node-owned = 이 앱에서 관리
 # Desktop local-node control: attached. No credentials or process IDs.
-local-node-attached = 실행 중 · 외부에서 시작됨. 중지 및 다시 시작할 수 없음
+local-node-attached = 기존 로컬 노드에 연결됨. 중지 및 다시 시작할 수 없음
 # Desktop local-node control: kept. No credentials or process IDs.
 local-node-kept = 앱의 관리 권한을 해제하고 계속 실행 중입니다.
 # Desktop local-node control: stopped. No credentials or process IDs.

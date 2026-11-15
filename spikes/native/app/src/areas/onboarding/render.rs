@@ -84,7 +84,9 @@ pub(crate) fn dialog(
     let content = if ready {
         crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
     } else {
-        div().child(super::scope::hint(shell)).into_any_element()
+        div()
+            .child(super::scope::hint(shell).to_owned())
+            .into_any_element()
     };
     let current = open
         .steps()
@@ -102,7 +104,7 @@ pub(crate) fn dialog(
         .gap(px(S4))
         .when(compact, |pane| pane.child(counter))
         .child(title(shell, step).to_owned())
-        .child(description(shell, step))
+        .child(description(shell, step).to_owned())
         .child(content);
     let body = div()
         .flex()

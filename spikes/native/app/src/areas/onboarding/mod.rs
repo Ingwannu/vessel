@@ -61,7 +61,7 @@ pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
         // settings widgets while this walkthrough owns the selected host.
         shell.areas.settings.machine = Some(open.host().machine().as_str().to_owned());
     }
-    scope::prepare(shell, cx);
+    scope::prepare(shell);
     let completion = if shell.prefs.onboarding.is_some()
         || matches!(shell.prefs.kept, Kept::ThisLaunch { .. })
     {
