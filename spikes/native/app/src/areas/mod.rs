@@ -20,6 +20,7 @@ pub(crate) mod git;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
+pub(crate) mod responses;
 pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
@@ -34,6 +35,7 @@ use crate::shell::Shell;
 /// Every area's state.
 pub(crate) struct Areas {
     pub(crate) about: about::AboutState,
+    pub(crate) responses: responses::Responses,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
     pub(crate) pair: pair::Pairing,
@@ -58,6 +60,7 @@ impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
             about: about::AboutState::new(cx),
+            responses: responses::Responses::default(),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
             pair: pair::Pairing::new(window, cx),

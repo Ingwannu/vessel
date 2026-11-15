@@ -60,6 +60,13 @@ pub(crate) struct Answering {
     sending: Option<ResponseAction>,
 }
 
+impl Answering {
+    /// A late reply may settle only the retained form that sent it.
+    pub(crate) fn is_sending(&self, id: QuestionId) -> bool {
+        self.id == id && self.sending.is_some()
+    }
+}
+
 /// Submit and dismiss share a request but show progress on their own button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ResponseAction {

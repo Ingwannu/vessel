@@ -18,6 +18,7 @@ impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Respond(ask) => self.respond(ask).await,
             Command::Agents {
                 machine,
                 request,

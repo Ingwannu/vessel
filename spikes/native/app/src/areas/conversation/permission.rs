@@ -76,6 +76,15 @@ impl Shell {
         let Some(area) = (P::SEAT.get_mut)(self) else {
             return;
         };
+        if !area.response_waiting(vessel_app_view::responses::Request::Permission(id))
+            || area
+                .permit_sending
+                .as_ref()
+                .is_some_and(|(asked, _)| *asked == id)
+                && area.refused.is_none()
+        {
+            return;
+        }
         area.permit_sending = Some((id, option.clone()));
         area.refused = None;
         P::answer(self, Answer::Permit(id, option), cx);

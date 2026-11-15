@@ -4,7 +4,6 @@
 //! panel, the inbox). See the parent module's second Decision Log.
 
 use vessel_app_kit::ui::Context;
-use vessel_app_link::Act;
 use vessel_app_view::timeline::ToolView;
 use vessel_proto::{PermissionId, PermissionOptionId, QuestionAnswer, QuestionId, ToolCallId};
 
@@ -71,11 +70,7 @@ pub(crate) trait Place: 'static {
     /// conversation's `refused` to the act's kind and its words. By
     /// default, the session's own act.
     fn answer(shell: &mut Shell, answer: Answer, cx: &mut Context<'_, Shell>) {
-        let act = match answer {
-            Answer::Permit(id, option) => Act::Permit(id, option),
-            Answer::Question(id, answer) => Act::Answer(id, answer),
-        };
-        shell.act_at(Self::SEAT, act);
+        shell.response_at(Self::SEAT, answer);
         cx.notify();
     }
 

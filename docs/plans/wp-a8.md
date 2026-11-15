@@ -1,6 +1,6 @@
 # A8: permissions, questions and CLI permit
 
-Status: proposed. Owner W4, PLAN section 7. This replaces the earlier A5a
+Status: first question frame built; response correlation under narrow validation. Owner W4, PLAN section 7. This replaces the earlier A5a
 assignment; its unverified skeleton is parked on `backend/m12-wp-side`
 at `fc7f3139` and is not part of this branch.
 
@@ -92,3 +92,33 @@ At package end: private fake fleet and authenticated Xvfb, inspected EN/KO
 dark/light desktop/phone/800x600 captures; one whole native gate and V4
 review. CLI/root changes get their applicable root gate and review. No
 real agents, live preview, public pushes or production changes.
+
+## Correlated response implementation
+
+`view::responses::Registry` bounds window-wide admissions to 32. Its monotonic
+RequestId ticket includes MachineKey, SessionId and the typed permission/question
+id. `areas::responses` retains the originating conversation Seat. A reply only
+changes a still-waiting, still-sending card with the complete matching identity;
+a same-session successor, cancellation, navigation or duplicate reply is ignored.
+The existing retained question TextField becomes read-only during submission;
+inline refusal preserves its drafts, caret and selected step for an explicit retry.
+
+`link::responses` uses the existing session.send typed input without offline
+queueing. The 15-second acknowledgement deadline yields Unconfirmed and triggers
+an authoritative conversation reread; it never sends a denial or retry. A bounded
+semaphore retains its permit through result delivery. Capacity refusal applies
+backpressure to the actor instead of spawning unbounded refusal tasks. Provider
+error text is not rendered; typed categories select embedded EN/KO Fluent words.
+This legacy acknowledgement is not the new ADR 0084 durable resolution receipt;
+that richer call remains pending W23's reviewed consumer contract.
+
+The in-memory framed RPC tests check exact provider option preservation, waiting
+for acknowledgement, safe refusal, uncertainty without retransmission, and local
+capacity/offline refusal. App tests cover same-session successor/cancellation,
+wrong-target replies and duplicate acknowledgement after a manual retry. These
+are tests to run, not yet a green runtime claim.
+
+Narrow evidence: app-only clippy on the question frame passed locally before the
+base merge. Remote be9cd023 run wp-side-narrow-20261115T063710Z-be9cd023 failed in
+view test targets on two unused qualifications; fixed in the next commit. No
+whole gate, inspected captures, durable rich response or V4 PASS is claimed.

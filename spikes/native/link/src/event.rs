@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Correlated response acknowledgement, refusal or uncertainty.
+    Responded(crate::responses::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

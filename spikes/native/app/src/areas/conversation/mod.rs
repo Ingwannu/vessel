@@ -70,6 +70,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+mod responses;
 mod rewind;
 pub(crate) mod search;
 mod tail;

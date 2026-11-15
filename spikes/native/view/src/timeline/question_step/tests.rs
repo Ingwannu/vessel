@@ -54,7 +54,7 @@ fn offered_schema_defaults_do_not_preanswer_the_native_card() {
         ]
     }))
     .unwrap();
-    let drafts = crate::timeline::empty_drafts(&question);
+    let drafts = empty_drafts(&question);
     assert_eq!(
         drafts.get(&"choice".parse().unwrap()),
         Some(&Draft::Picked(Vec::new()))
@@ -68,6 +68,6 @@ fn offered_schema_defaults_do_not_preanswer_the_native_card() {
         Some(&Draft::Boolean(None))
     );
     let steps = steps_of(&question);
-    assert!(!crate::timeline::step_ready(steps[0], &drafts));
+    assert!(!step_ready(steps[0], &drafts));
     assert!(!crate::timeline::step_answered(steps[0], &drafts));
 }

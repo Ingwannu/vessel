@@ -1035,3 +1035,13 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Permission and question responses
+
+`view::responses` admits each exact request once across local conversations.
+`link::responses` carries its target/request/ticket through a bounded direct call
+and acknowledgement deadline; `app::areas::responses` settles only its original
+still-waiting card. Inline translated failures retain question drafts and reread
+authoritative waiting state. An uncertain result never causes an automatic retry
+or denial. Rich permission presentation and durable receipts are tracked in
+`docs/plans/wp-a8.md` and remain dependent on the shared ADR 0084 contract.
