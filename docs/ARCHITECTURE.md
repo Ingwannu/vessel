@@ -1608,3 +1608,40 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+## Bounded node diagnostics (ADR 0074)
+
+`vessel-proto::diagnostics` owns the validated report, closed section states,
+process values and named collection/output bounds. The canonical RPC table
+registers `node.diagnostics` as a Read-only unary call with a pending protocol.
+Unassigned requests stop at the shared compatibility admission boundary before
+client transmission or server collection. Fleet forwarding is refused; direct
+authenticated agents retain their effective Read scope.
+
+The node composes facts from their existing owners: Store aggregates, runtime
+counts, immutable profile selection and cached readiness, relay watches, and
+`vessel-proc::self_process` for fixed bounded Linux metadata. It starts no
+agent, refreshes no provider and reads no arbitrary process, log or path.
+The node captures its monotonic startup clock before startup I/O and publishes
+listener state after successful binding. Sources have separate observation
+times; this is not an atomic snapshot of the whole machine.
+
+Collection capacity and shutdown tracking belong to retained leases. Each
+queued/running blocking job retains its lease after the response deadline or
+caller cancellation, so a timed-out request cannot bypass the resource bound
+or make shutdown overlook remaining work. Missing and timed-out sections are
+explicit. A bounded journal accepts only completed local call error codes and
+timestamps; canonical method shape excludes envelope duplication.
+
+`vessel-client` uses the existing connection, a named request deadline and the
+admitted node identity. The CLI renders typed fields into bounded text or JSON
+and prints safe error categories without private connection/source chains.
+Native rendering remains a separate consumer. Provider diagnostics belongs to
+its provider owner, while desktop logs/watchdogs belong to their lifecycle
+owners. This report deliberately excludes free log text, environment, endpoint
+addresses, keys, pairing links, private names/paths and version suffix text.
+
+The pending product implementation has passed strict selected-crate Clippy on
+Linux. Focused runtime checks, generated TypeScript freshness and the complete
+package gate remain outstanding; a successful assigned-protocol request is
+not claimed before integration assigns the feature.

@@ -41,7 +41,7 @@ Existing assets and reuse decision:
 | Store/schema and durable/runtime counts | Real SQLite/runtime component tests | Compose source timestamps, timeout and shutdown ownership |
 | Agent metadata/default-profile cached readiness | Metadata-only source tests; no agent invocation | Current immutable profile snapshot, bounded selection and actual caller |
 | Listener and configured/callback relay states | Owner-side watch projection | Publish actual bind state and aggregate without endpoint copies/cycles |
-| Provider diagnostics | Provider owner reports a proposed cached/refresh contract | Consume its reviewed API; do not duplicate or claim an existing endpoint |
+| Provider diagnostics | Separate A9 provider package | Preserve ownership; this package neither duplicates nor consumes its unreviewed getter |
 | Self-process metrics | Fixed bounded Linux self-status source and typed process/memory values are implemented; runtime tests pending | Check the decoder and actual collector; other operating systems explicitly report Unsupported |
 | Broader system/tool metrics | CPU, heap allocation, disk capacity, workspace/socket counts, latency and external tool probes are absent | Preserve the explicit difference from Paseo; session counts do not substitute for these metrics |
 | Daemon status and local daemon logs | Existing node description; desktop/controller owners have separate responsibilities | Reuse those owners; no arbitrary remote log/path endpoint |
