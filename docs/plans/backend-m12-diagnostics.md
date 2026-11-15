@@ -63,7 +63,7 @@ These are source-only observations; no real Paseo daemon was exercised.
 |---|---|---|---|
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
 | D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
-| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; staged-source liveness return; correction prepared, changed-tree gate pending |
+| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; staged-source liveness correction gated at `5235023a`; source re-review pending |
 | D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
@@ -383,8 +383,52 @@ the test and phase futures before constructing their async state, following
 the existing node e2e step helper; no lint is suppressed. The failed narrow
 run remains separate from later evidence.
 
-Resume point: rerun narrow Clippy on this changed source, then one changed-tree
-whole gate through the approved remote runner before resubmitting staged source.
-The original gate evidence above is retained and does not prove this correction.
+The boxed correction `5235023a` passed the second narrow all-target Clippy
+check for node/store (17 seconds). Its whole changed-tree gate then passed;
+the original gate evidence remains separate and is not substituted for this
+correction run.
 D4 remains blocked on consuming the announced shared compatibility accessor
 and method-metadata head; no wire registration or product assembly is added.
+
+
+### D3 correction gate and resume checkpoint
+
+The exact correction commit is `5235023a696bc0c3c342d71cdb80cf329098f254`,
+following `6410b5bf`. Approved remote run
+`diagnostics-20261115T022213Z-5235023a` finished with status zero. Of its 18
+listed entries, 16 executed successfully and two forge-fixture entries were
+explicitly skipped because this commit does not define that feature. Those
+two entries are not fixture passes. Admission-to-finish took ten minutes
+36 seconds after a 106-second queue wait, with eight compiler jobs and eight
+Rust test threads. Overall front/back one-minute load was 8.78/7.78; the
+workspace test step was 12.13/15.38.
+
+- The raw Rust summaries independently total 112 sections, 2,004 passed, zero
+  failed and twelve ignored. All 29 D3 component cases and twelve D2 value
+  cases passed again. Both changed test-owner crates actually recompiled.
+- Formatting, size (774 files, 31 existing exceptions), boundaries (22 crates,
+  ten external ownership rules), full all-target Clippy and TS-enabled
+  Clippy passed. Two TypeScript freshness tests passed with zero generated
+  differences. Binaries and both required nested prebuilds passed before tests.
+- Web lint, typecheck, bundle, fonts, 417 unit cases and all 62 E2E cases
+  passed; E2E took 2.1 minutes. No shared intermittent replay or waiver was used.
+- The selected input manifest has 1,739 files and SHA-256
+  `13ced8afe3418cfbc5171bd08e035e7adf98b54ba96e40b86e76b8ed4a8e8629`.
+  Every selected blob matches the immutable commit, and pre/post-run inputs
+  match. The final result notes change only this plan. This is repository
+  input evidence, not a build-machine or historical cleanup attestation.
+
+The original green run, original source return and failed first correction
+Clippy remain recorded. The correction changes only fixture liveness, its
+existing development dependency and the aggregate-validation description;
+it neither demonstrates nor repairs a product permit leak. No deadline,
+assertion or shared-head test was weakened.
+
+Resume point: submit the gated correction for staged-source review. D3 stays
+private under `cfg(test)` on this branch even if accepted. It is not ready
+for integration into the product head. The actual D4 collector, five-second
+response budget, startup clock/bind/default-profile wiring, relay aggregate,
+authority/revocation/compatibility admission, registered call, client, CLI and
+fleet workflow remain owed. First consume the coordinator-announced green
+head containing the shared compatibility accessor and common method metadata.
+`DIAGNOSTICS_PROTOCOL` remains `None`; no native file is changed.
