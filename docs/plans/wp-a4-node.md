@@ -157,3 +157,11 @@ the existing test deadline uses the checked operation as well. The remaining
 assignment block ends with a semicolon. An exhaustive consumer scan found the
 CLI/session/store/conversation masks already handle ProviderChild; no wildcard
 or lint allowance was added. Corrected-source strict remains owed.
+
+The first combined pure proto/store run atbdbd7581 executed Proto331 passed/1
+failed, stopping before Store. The one failure pins the forwardable method set:
+its explicit expected list lacked the three new session methods already declared
+forwardable by the canonical table. The list now adds session.detach,
+session.provider_children and session.provider_timeline, preserving every old
+entry and the exact assertion. Runtime forwarding/admission policy is unchanged;
+unassigned protocol methods are still refused before transport polling.

@@ -634,6 +634,9 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "session.detach",
+    "session.provider_children",
+    "session.provider_timeline",
 ];
 
 #[test]
