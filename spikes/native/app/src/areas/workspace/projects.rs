@@ -31,7 +31,7 @@ pub(crate) struct Page {
     /// The project whose detail is open.
     pub(crate) detail: Option<Detail>,
     /// Whether the add menu is open.
-    menu: bool,
+    pub(super) menu: bool,
     /// The add form open, if one.
     pub(super) adding: Option<AddForm>,
     /// The form's fields.
