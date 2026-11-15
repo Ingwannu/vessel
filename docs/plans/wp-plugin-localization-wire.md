@@ -105,3 +105,16 @@ cache, field mutation or product wiring is added by this document. Actual locale
 changes with preserved edits, partial-key fallback, renderer target bounds,
 retired namespaces and current-generation publication require execution on the
 real joined Hub/renderer before F6 acceptance.
+
+### Approved dependency boundary, conditional readiness
+
+The coordinator approves only the locale-decoder edge: exact unic-langid0.9.6,
+matching native empty features with default features off. The root lock packet
+must contain only that crate and its existing native-pinned transitive versions;
+no unrelated resolution or version bump. T must first confirm the root VM's
+complete offline archives and checksums. Missing cache stops this portion for a
+ruling; no download is authorized. Record MIT OR Apache-2.0 licences, keep the
+proto wasm32 check green, and replace the view decoder with canonical reuse.
+V3 contract review precedes code; the lead consumes the native edge through the
+normal reviewed/announced base route. This approval does not accept the larger
+localized-document/cache proposal or qualify full amount formatting.
