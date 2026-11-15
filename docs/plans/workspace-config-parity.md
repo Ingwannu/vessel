@@ -551,3 +551,17 @@ that privately retains Tokio's original cause but excludes panic payloads
 from every public formatter and source. Raw task failures in other areas
 are outside this change. This changes no helper input, process ownership,
 approval, cancellation or network admission policy; both callers stay A10.
+
+### Next package: workspace service consumer contract
+
+The Preview privacy correction is source accepted, with changed-head narrow
+execution still owed. The next proposed contract is workspace-services-api.md:
+typed workspace snapshots/control, cached generated environment, health,
+proxy metadata and dedicated Admin publication/settings. No DTO/method/SDK
+source lands in this documents commit. Read never plans or runs a helper.
+The private SavedNodeSettings envelope belongs to the settings owner; consume
+its reviewed API, never implement another file model/writer. Canonical
+incarnation is still missing, so public activation remains Unavailable.
+After security review, values/staged rows/client wrappers precede handlers
+and native consumer handover. Keep existing helper/Preview check receipts
+separate from this package and run its enclosing gate before real wiring.

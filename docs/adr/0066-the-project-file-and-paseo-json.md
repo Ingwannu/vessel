@@ -453,12 +453,13 @@ name type refuses; the collapse is what makes `web-app`, `web_app` and
 services that normalise to one name refuse the file, naming both. Nothing
 in the file runs. Paseo throws the same collision later, when a service
 is started (`assertNoServiceEnvNameCollisions`); refusing the file is
-earlier, and a silent overwrite is not allowed. The environment does not
-gain a proxy URL. The earlier split left forwarding to a preview track. The service runtime
-package now also owns proxy/routes; their authorization, listener and URL
-projection contract must be specified before wiring. A hostname and a
-reverse proxy are still not a project-file key. The current environment
-contract does not enable a proxy or claim that route URLs exist. There is
+earlier, and a silent overwrite is not allowed. The existing preparation
+does not inject a proxy URL. The service-runtime consumer contract below
+proposes HOST and generated own/peer URL variables only when its qualified
+planner/listener supplies them. It owns proxy/routes as well; authorization,
+listener and URL projection must be reviewed before wiring. A hostname and
+a reverse proxy are still not a project-file key. This preparation does not
+enable a proxy or claim that route URLs exist. There is
 no `VESSEL_WORKTREE_PORT`. Paseo's per-worktree legacy port is not a key
 of `paseo.json`.
 
@@ -1133,3 +1134,31 @@ No helper is launched and no registry API is adopted by this contract change.
   must all preserve this diagnostic boundary. Worker/socket/permit/drain
   ownership is unchanged. This does not sanitize the process-wide panic
   hook or qualify any real service/Preview backend. All callers remain A10.
+
+### Workspace services consumer contract
+
+[Decision Log]
+
+- Purpose: supply the native script/service consumer with typed snapshots,
+  generated environment plans, health/link distinctions and explicit public
+  administration instead of exposing private helper functions as an API.
+- Existing constraint: legacy script calls use project/session placement;
+  the canonical registry alone owns WorkspaceId. A healthy TCP port,
+  metadata URL or snapshot etag grants no private browser/socket authority.
+- Choice: the proposed contract in ../plans/workspace-services-api.md defines
+  bounded values, staged method rows and typed client wrappers first. No
+  call, value type or real handler is implemented by this documents change.
+- Why: staged rows make the missing runtime explicit and keep the feature
+  unassigned; app-local DTOs or old-call fallback would hide that gap.
+- Consequences: reads use cached observations/plans without running helpers;
+  mutations recheck canonical scope/automation/approval/start ownership.
+  Settings use the one private services key through dedicated Admin only,
+  consuming the existing settings owner's reviewed disk envelope. Public
+  activation stays Unavailable without canonical physical-incarnation proof.
+  No local generation, new settings writer or legacy identity inference.
+- Reach and differences: controlled service listeners and HOST default to
+  loopback regardless of node bind. Generated proxy URLs never carry node
+  credentials. Per-service anonymous public exposure needs explicit Admin
+  acknowledgement and fresh owned routes; the request cannot supply proof.
+  The linked contract names the reference, bounds, transport ordering,
+  display/refusal tests and remaining listener/header qualification.
