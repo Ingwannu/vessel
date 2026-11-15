@@ -96,8 +96,10 @@ impl<E> Pages<E> {
         true
     }
 
-    /// A snapshot answers only its own discovery request.
-    pub fn loaded(&mut self, machine: &MachineKey, id: RequestId, inventory: Inventory) {
+    /// A snapshot answers only its own discovery request. The caller may start
+    /// follow-up work only when this transition accepts that original reply.
+    #[must_use]
+    pub fn loaded(&mut self, machine: &MachineKey, id: RequestId, inventory: Inventory) -> bool {
         if let Some(page) = self.pending(machine, id)
             && matches!(
                 page.pending.as_ref().map(|ticket| &ticket.operation),
@@ -129,7 +131,9 @@ impl<E> Pages<E> {
             page.inventory = Some(inventory);
             page.pending = None;
             page.removal = RemovalFreshness::Current;
+            return true;
         }
+        false
     }
     /// Apply a check by agent/profile identity, never by the visible selection.
     pub fn checked(&mut self, machine: &MachineKey, id: RequestId, checked: Vec<AgentReadiness>) {

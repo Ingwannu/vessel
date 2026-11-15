@@ -214,8 +214,13 @@ impl Shell {
                 let _accepted = pages.catalogue_loaded(machine, request, node, catalogue);
             }
             Ok(Answer::List(inventory)) => {
-                pages.loaded(machine, request, inventory);
-                self.agent_initial_catalogue(cx);
+                // An old machine's answer must not start a registry read on
+                // the newly visible machine, even if its own page accepted it.
+                if pages.loaded(machine, request, inventory)
+                    && self.areas.settings.agents.machine.as_ref() == Some(machine)
+                {
+                    self.agent_initial_catalogue(cx);
+                }
             }
             Ok(Answer::Checked(ready)) => pages.checked(machine, request, ready),
             Ok(Answer::Installing(job)) => pages.installing(machine, request, job),
@@ -243,3 +248,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod tests;

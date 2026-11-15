@@ -8,7 +8,7 @@ fn setup() -> TestResult<(Pages<&'static str>, MachineKey, NodeId)> {
     let machine = MachineKey::from_book("fixture");
     let node = "00000000-0000-4000-8000-000000000001".parse()?;
     let ticket = pages.begin(machine.clone(), Operation::Discovery)?;
-    pages.loaded(
+    assert!(pages.loaded(
         &machine,
         ticket,
         Inventory {
@@ -19,7 +19,7 @@ fn setup() -> TestResult<(Pages<&'static str>, MachineKey, NodeId)> {
             readiness: Vec::new(),
             administration: Administration::Supported,
         },
-    );
+    ));
     Ok((pages, machine, node))
 }
 fn registry() -> TestResult<CatalogueEntry> {
@@ -208,7 +208,7 @@ fn changed_machine_node_and_registry_entry_refuse_original_intent() {
     let other = "00000000-0000-4000-8000-000000000002".parse().unwrap();
     assert!(pages.connected(&machine, other));
     let ticket = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(
+    assert!(pages.loaded(
         &machine,
         ticket,
         Inventory {
@@ -219,7 +219,7 @@ fn changed_machine_node_and_registry_entry_refuse_original_intent() {
             readiness: Vec::new(),
             administration: Administration::Supported,
         },
-    );
+    ));
     assert!(matches!(
         original.submit(&machine, &mut pages, "custom", "fake", ""),
         Err(Refused::Changed)

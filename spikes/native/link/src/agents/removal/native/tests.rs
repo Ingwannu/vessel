@@ -29,7 +29,7 @@ async fn a_confirmed_command_reaches_the_hub_and_settles_its_original_page_ticke
         let machine = MachineKey::from_book("confirmed-route");
         let mut pages = Pages::<()>::default();
         let read = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-        pages.loaded(
+        assert!(pages.loaded(
             &machine,
             read,
             Inventory {
@@ -42,7 +42,7 @@ async fn a_confirmed_command_reaches_the_hub_and_settles_its_original_page_ticke
                 readiness: Vec::new(),
                 administration: Administration::Supported,
             },
-        );
+        ));
         let confirmed = Confirmation::new(
             &pages,
             machine.clone(),

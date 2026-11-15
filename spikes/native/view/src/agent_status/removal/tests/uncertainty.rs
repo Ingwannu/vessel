@@ -38,12 +38,12 @@ fn uncertain_result_retains_facts_and_selection_but_requires_successful_discover
         Err(Refused::RefreshRequired)
     ));
     let ticket = pages.begin(machine(), Operation::Discovery).unwrap();
-    pages.loaded(&machine(), request.ticket, inventory());
+    assert!(!pages.loaded(&machine(), request.ticket, inventory()));
     assert_eq!(
         pages.get("one").unwrap().removal_freshness(),
         RemovalFreshness::RefreshRequired
     );
-    pages.loaded(&machine(), ticket, inventory());
+    assert!(pages.loaded(&machine(), ticket, inventory()));
     assert_eq!(
         pages.get("one").unwrap().removal_freshness(),
         RemovalFreshness::Current

@@ -598,3 +598,23 @@ The Models and catalogue areas replace only the previous ordinary field/API and
 horizontal search rail. The query still comes from the same editor engine, clear
 uses its regular Change path, and navigation resets stay silent. No controller,
 node call, extra input engine or consumer-owned search glyph is added.
+
+
+### Discovery completion owns its follow-up
+
+Source review found an area-level redirect: a List completion always called the
+current page's initial-catalogue helper, even when the view rejected its ticket
+or accepted it for another machine. If the newly visible page had a cached
+inventory but no registry read, that older response could initiate new I/O on
+the new selection. This is separate from the still-unimplemented canonical
+DeliveryGuard: it needs no new actor, RPC, lease or per-area epoch.
+
+Pages::loaded now returns a must-use acceptance verdict from its existing
+machine/ticket/operation gate; the mutation body is unchanged. The App starts
+its initial catalogue read only after that verdict AND an exact current book
+match. Existing fixtures assert accepted/rejected results (including stale and
+wrong-operation cases) without dropping any prior assertion. New I/O-free real
+screen-handler tests cover accepted A after switching to cached B, a duplicate
+consumed discovery, and the positive current reply still issuing exactly one
+correctly addressed catalogue read. These tests do not claim transport scopes,
+queued-lease fencing or a real node request. Changed-source checks remain owed.

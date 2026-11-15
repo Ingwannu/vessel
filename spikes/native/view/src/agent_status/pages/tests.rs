@@ -49,14 +49,14 @@ fn replies_cannot_cross_machines_or_replace_a_newer_request() {
     let b = key("two");
     let first = pages.begin(a.clone(), Operation::Discovery).unwrap();
     let other = pages.begin(b.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&b, other, inventory(Administration::OlderNode));
+    assert!(pages.loaded(&b, other, inventory(Administration::OlderNode)));
     assert!(pages.get("one").unwrap().inventory().is_none());
     pages.failed(&a, first, "disconnected");
     let next = pages.begin(a.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&a, first, inventory(Administration::OlderNode));
+    assert!(!pages.loaded(&a, first, inventory(Administration::OlderNode)));
     assert!(pages.get("one").unwrap().inventory().is_none());
     assert_eq!(pages.get("one").unwrap().pending().unwrap().id, next);
-    pages.loaded(&a, next, inventory(Administration::Supported));
+    assert!(pages.loaded(&a, next, inventory(Administration::Supported)));
     assert_eq!(
         pages
             .get("one")
@@ -87,7 +87,7 @@ fn switching_machines_does_not_lose_a_job_or_its_later_failure_output() {
         .unwrap();
     pages.installing(&a, active, job());
     let other = pages.begin(b.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&b, other, inventory(Administration::Supported));
+    assert!(pages.loaded(&b, other, inventory(Administration::Supported)));
     pages.output(&a, active, &output());
     assert!(pages.finished(&a, active, Completion::Failed(Some(7))));
     assert!(!pages.finished(&a, active, Completion::Succeeded));
@@ -178,7 +178,7 @@ fn a_reply_of_the_wrong_operation_cannot_complete_a_check_and_ids_never_wrap() {
     let request = pages
         .begin(a.clone(), Operation::Check(agent.clone()))
         .unwrap();
-    pages.loaded(&a, request, inventory(Administration::Supported));
+    assert!(!pages.loaded(&a, request, inventory(Administration::Supported)));
     assert!(pages.get("one").unwrap().inventory().is_none());
     assert!(pages.get("one").unwrap().pending().is_some());
     pages.select("one", Some(agent.clone()));
@@ -244,7 +244,7 @@ fn a_cached_refresh_keeps_the_rows_instead_of_replacing_them_with_placeholders()
     let mut pages = Pages::<&str>::default();
     let machine = key("one");
     let request = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&machine, request, inventory(Administration::Supported));
+    assert!(pages.loaded(&machine, request, inventory(Administration::Supported)));
     let refresh = pages.begin(machine, Operation::Discovery).unwrap();
     assert_eq!(pages.get("one").unwrap().pending().unwrap().id, refresh);
     assert!(!pages.get("one").unwrap().initial_discovery());

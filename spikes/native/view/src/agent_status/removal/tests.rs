@@ -57,7 +57,7 @@ fn inventory() -> Inventory {
 }
 fn load(pages: &mut Pages<&'static str>, key: &MachineKey, snapshot: Inventory) {
     let ticket = pages.begin(key.clone(), Operation::Discovery).unwrap();
-    pages.loaded(key, ticket, snapshot);
+    assert!(pages.loaded(key, ticket, snapshot));
 }
 fn pages() -> Pages<&'static str> {
     let mut pages = Pages::default();

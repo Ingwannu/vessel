@@ -16,7 +16,7 @@ fn loaded(pages: &mut Pages<&'static str>, machine: &MachineKey) -> NodeId {
     let inventory = inventory(Administration::Supported);
     let node = inventory.node;
     let ticket = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(machine, ticket, inventory);
+    assert!(pages.loaded(machine, ticket, inventory));
     node
 }
 #[test]
@@ -102,13 +102,13 @@ fn new_physical_inventory_cannot_display_the_previous_nodes_registry() {
     let ticket = pages.begin(machine.clone(), Operation::Discovery).unwrap();
     let mut changed = inventory(Administration::Supported);
     changed.node = "00000000-0000-4000-8000-000000000002".parse().unwrap();
-    pages.loaded(&machine, ticket, changed);
+    assert!(pages.loaded(&machine, ticket, changed));
     assert!(matches!(
         pages.get("one").unwrap().catalogue(),
         Read::NotRequested
     ));
     let ticket = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&machine, ticket, inventory(Administration::Supported));
+    assert!(pages.loaded(&machine, ticket, inventory(Administration::Supported)));
     assert!(matches!(
         pages.get("one").unwrap().catalogue(),
         Read::NotRequested
@@ -145,9 +145,9 @@ fn actual_reconnect_invalidates_same_id_reads_without_reusing_the_ticket() {
     assert!(!pages.catalogue_loaded(&machine, ticket, node, fetched()));
     let next = pages.begin(machine.clone(), Operation::Discovery).unwrap();
     assert_eq!(ticket.next(), Some(next));
-    pages.loaded(&machine, ticket, inventory(Administration::Supported));
+    assert!(!pages.loaded(&machine, ticket, inventory(Administration::Supported)));
     assert!(pages.get("one").unwrap().inventory().is_none());
-    pages.loaded(&machine, next, inventory(Administration::Supported));
+    assert!(pages.loaded(&machine, next, inventory(Administration::Supported)));
     assert!(matches!(
         pages.get("one").unwrap().catalogue(),
         Read::NotRequested
@@ -182,7 +182,7 @@ fn reconnect_keeps_a_known_same_nodes_interrupted_output_but_never_another_nodes
         crate::agent_status::install::Completion::Succeeded
     ));
     let read = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&machine, read, inventory(Administration::Supported));
+    assert!(pages.loaded(&machine, read, inventory(Administration::Supported)));
     let different = "00000000-0000-4000-8000-000000000002".parse().unwrap();
     assert!(pages.connected(&machine, different));
     assert!(matches!(
@@ -201,7 +201,7 @@ fn same_node_reconnect_keeps_navigation_only_until_fresh_definitions_refute_it()
     assert!(pages.connected(&machine, node));
     assert_eq!(pages.get("one").unwrap().selected(), Some(&agent));
     let ticket = pages.begin(machine.clone(), Operation::Discovery).unwrap();
-    pages.loaded(&machine, ticket, inventory(Administration::Supported));
+    assert!(pages.loaded(&machine, ticket, inventory(Administration::Supported)));
     assert!(pages.get("one").unwrap().selected().is_none());
 }
 

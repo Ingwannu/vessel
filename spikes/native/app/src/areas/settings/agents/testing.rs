@@ -66,17 +66,18 @@ pub(super) fn select(
     let key = MachineKey::from_book(name);
     let pages = &mut shell.areas.settings.agents.pages;
     let ticket = pages.begin(key.clone(), Operation::Discovery).unwrap();
-    pages.loaded(
-        &key,
-        ticket,
-        Inventory {
-            node: node(),
-            command_shell: CommandShell::Unix,
-            harnesses: Vec::new(),
-            agents,
-            readiness: Vec::new(),
-            administration: Administration::Supported,
-        },
-    );
+    assert!(pages.loaded(&key, ticket, inventory(agents),));
     shell.agent_load(false, cx);
+}
+
+// Same typed snapshot for admission and late-reply fixtures; no transport.
+pub(super) fn inventory(agents: Vec<AgentInfo>) -> Inventory {
+    Inventory {
+        node: node(),
+        command_shell: CommandShell::Unix,
+        harnesses: Vec::new(),
+        agents,
+        readiness: Vec::new(),
+        administration: Administration::Supported,
+    }
 }
