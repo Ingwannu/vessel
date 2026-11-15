@@ -34,8 +34,8 @@
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, Context, FocusHandle, KeyDownEvent, MouseButton, SharedString, Window,
-    anchored, deferred, div, point, px, relative, svg,
+    AnimationExt as _, AnyElement, App, Context, FocusHandle, KeyDownEvent, MouseButton,
+    SharedString, Window, anchored, deferred, div, point, px, relative, svg,
 };
 
 use crate::assets::Glyph;
@@ -203,18 +203,22 @@ pub fn dialog<V: 'static>(
                 cx.notify();
             }),
         );
-    let scrim = if narrow {
-        scrim.items_end().bg(popup::sheet_scrim())
+    let (scrim, shade) = if narrow {
+        (scrim.items_end(), popup::sheet_scrim())
     } else {
-        scrim.items_center().p(px(24.0)).bg(popup::scrim())
+        (scrim.items_center().p(px(24.0)), popup::scrim())
     };
-    deferred(
-        anchored()
-            .position(point(px(0.0), px(0.0)))
-            .child(scrim.child(card)),
-    )
-    .with_priority(2)
-    .into_any_element()
+    // Word 39: the scrim darkens and the card arrives over the kit's
+    // surface length; Paseo's dialog leaves at once (its Modal unmounts).
+    let card = popup::appear("dialog-appear", card, crate::motion::STANDARD);
+    let scrim = scrim.child(card).with_animation(
+        "dialog-scrim-appear",
+        crate::motion::transition(crate::motion::STANDARD),
+        move |scrim, done| scrim.bg(shade.opacity(done)),
+    );
+    deferred(anchored().position(point(px(0.0), px(0.0))).child(scrim))
+        .with_priority(2)
+        .into_any_element()
 }
 
 /// A sheet's drag handle (Gorhom's indicator; Paseo themes it zinc 600,

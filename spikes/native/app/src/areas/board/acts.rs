@@ -6,11 +6,12 @@
 //! and kind); any other answer goes on to the conversation's.
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div,
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Window, div,
 };
 use vessel_app_kit::{
-    DialogContent, DialogSize, Tokens, Type, TypeExt as _, breakpoint, button, dialog,
+    ButtonKind, ButtonState, DialogContent, DialogSize, Tokens, Type, TypeExt as _, breakpoint,
+    button, button_with_kind, dialog,
 };
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
@@ -118,15 +119,44 @@ impl Shell {
     }
 
     fn card_act(&mut self, target: &Asking, act: Act) {
+        self.send_act(
+            target.machine.clone(),
+            target.session,
+            target.short.clone(),
+            act,
+        );
+    }
+
+    /// Act on `card`'s session from another screen (the sidebar's row
+    /// menu): the answer comes back through [`Self::board_acted`], which
+    /// puts the session's new state in the fleet, so the board, the
+    /// archive and the sidebar show it at once, without a reload.
+    pub(crate) fn act_on_card(&mut self, card: &Card, act: Act) {
+        self.send_act(card.machine.clone(), card.session, card.short_id(), act);
+    }
+
+    /// Ask before archiving `card`'s session from another screen, with the
+    /// board's own question (a live session is stopped first).
+    pub(crate) fn ask_archive(
+        &mut self,
+        card: &Card,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.ask_card(Asking::of(Ask::Archive, card), window, cx);
+    }
+
+    /// Send `act` and keep it until its answer (`board_acted`).
+    fn send_act(&mut self, machine: String, session: SessionId, short: String, act: Act) {
         self.areas.board.asked.push(Asked {
-            machine: target.machine.clone(),
-            session: target.session,
+            machine: machine.clone(),
+            session,
             kind: act.kind(),
-            short: target.short.clone(),
+            short,
         });
         self.command(Command::Act {
-            machine: target.machine.clone(),
-            session: target.session,
+            machine,
+            session,
             act,
         });
     }
@@ -157,6 +187,7 @@ impl Shell {
         let said = self.t.lang.conversation();
         match answer.result {
             Ok(Acted::Session(info)) => self.fleet.put_session(&answer.machine, &info),
+            Ok(Acted::Forked(info)) => self.fleet.add_session(&answer.machine, &info),
             Ok(Acted::Deleted(deleted)) => {
                 self.fleet.drop_session(&answer.machine, answer.session);
                 let kept = deleted
@@ -169,7 +200,7 @@ impl Shell {
                 );
                 self.toast(text, ToastTone::Ok, cx);
             }
-            Ok(Acted::Done) => {}
+            Ok(Acted::Done | Acted::Conversation(_) | Acted::Log(_)) => {}
             Err(failed) => {
                 if answer.kind == ActKind::StartAgain {
                     self.toast(
@@ -229,17 +260,27 @@ pub(crate) fn confirm(
             said.delete(),
         ),
     };
-    let danger = asking.ask != Ask::Archive;
+    // Kill and delete cannot be undone: the kit's destructive button.
+    let kind = if asking.ask == Ask::Archive {
+        ButtonKind::Primary
+    } else {
+        ButtonKind::Destructive
+    };
     let footer = vec![
         button("card-confirm-dismiss", dismiss, false, tokens)
             .on_click(cx.listener(|shell, _event, window, cx| {
                 shell.dismiss_card_confirm(window, cx);
             }))
             .into_any_element(),
-        button("card-confirm-accept", accept, true, tokens)
-            .when(danger, |accept| accept.bg(tokens.neutral.destructive))
-            .on_click(cx.listener(|shell, _event, window, cx| shell.card_confirmed(window, cx)))
-            .into_any_element(),
+        button_with_kind(
+            "card-confirm-accept",
+            accept,
+            kind,
+            ButtonState::Enabled,
+            tokens,
+        )
+        .on_click(cx.listener(|shell, _event, window, cx| shell.card_confirmed(window, cx)))
+        .into_any_element(),
     ];
     Some(dialog(
         &shell.areas.board.dialog,
