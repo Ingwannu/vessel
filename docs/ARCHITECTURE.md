@@ -1788,3 +1788,16 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+
+## RPC caller-drop admission (ADR0080 prerequisite)
+
+The client writer reuses each call's existing oneshot closure instead of a
+second cancellation queue. It skips closed callers at dequeue and observes
+closure while waiting for reply-registration capacity or sink readiness.
+The private send_call helper installs the live waiter immediately before the
+synchronous start_send admission; the reader's registration-before-answer
+ordering is preserved without canceled unsent registrations. Public client
+APIs and frame/protocol shapes stay unchanged. Already admitted transport
+bytes and remote side effects remain outside retraction; post-admission
+Cancel is still best-effort. This adds no crate dependency or voice activation.
