@@ -262,20 +262,20 @@ async fn later_file_metadata_survives_an_unrelated_patch_and_reopen() {
         })).unwrap();
         std::fs::write(dir.settings_path(), &raw).unwrap();
         let settings = crate::settings::Settings::open(dir.clone(), Arc::clone(&fixture.runtime), ParkAfter::Never, false);
-        let metadata = settings.current().await.metadata;
+        let metadata = settings.metadata().await;
         assert_eq!(metadata.providers()[0].effort, Some(vessel_proto::settings::MetadataEffort::Unknown));
         assert!(fixture.models.validate_metadata(&metadata).is_err());
         let changed = settings.change(SetNodeSettings {
             drivers: Some(vessel_proto::settings::SetAgentDrivers::default()),
             ..SetNodeSettings::default()
         }).await.unwrap();
-        assert_eq!(changed.metadata, metadata);
+        assert_eq!(changed.metadata.as_ref(), Some(&metadata));
         let copies: Vec<_> = std::fs::read_dir(dir.root()).unwrap().map(|entry| entry.unwrap().path())
             .filter(|path| path.file_name().unwrap().to_string_lossy().starts_with("settings.json.later-")).collect();
         assert_eq!(copies.len(), 1);
         assert_eq!(std::fs::read(&copies[0]).unwrap(), raw);
         let reopened = crate::settings::Settings::open(dir, Arc::clone(&fixture.runtime), ParkAfter::Never, false);
-        assert_eq!(reopened.current().await.metadata, metadata);
+        assert_eq!(reopened.metadata().await, metadata);
         fixture.stop().await;
     }).await;
 }

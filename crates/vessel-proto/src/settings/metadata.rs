@@ -62,7 +62,24 @@ impl MetadataSettings {
         )
         .map_err(D::Error::custom)
     }
+
+    /// Decode an optional retained view for replies and files, keeping `None`
+    /// distinct from an available automatic selection. Patch decoding stays strict.
+    ///
+    /// # Errors
+    /// A known field is malformed or the shared candidate bound is exceeded.
+    pub fn deserialize_optional_view<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<Self>, D::Error> {
+        Option::<RetainedMetadata>::deserialize(deserializer).map(|view| view.map(|value| value.0))
+    }
 }
+
+#[derive(Deserialize)]
+#[serde(transparent)]
+struct RetainedMetadata(
+    #[serde(deserialize_with = "MetadataSettings::deserialize_view")] MetadataSettings,
+);
 
 /// A provider list past its cost bound; the raw entries are never echoed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

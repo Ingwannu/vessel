@@ -51,7 +51,7 @@ use tokio::sync::Mutex;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
@@ -170,7 +170,7 @@ impl Settings {
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
-            metadata,
+            metadata: Some(metadata),
         }
     }
 
@@ -178,6 +178,12 @@ impl Settings {
     pub(crate) async fn current(&self) -> NodeSettings {
         let saved = self.saved.lock().await;
         self.in_force(&saved)
+    }
+
+    /// Background generation reads policy itself, before any per-peer reply projection.
+    pub(crate) async fn metadata(&self) -> MetadataSettings {
+        let saved = self.saved.lock().await;
+        saved.metadata.clone().unwrap_or_default()
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is

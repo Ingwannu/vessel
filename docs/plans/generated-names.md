@@ -871,3 +871,12 @@ head fixture completion, and the declarations are regenerated from Rust.
 The next correction preserves the documented capability distinction: a
 supported settings reply must contain an empty provider list for Automatic;
 only unsupported peers omit metadata. Its wire type remains optional.
+
+
+Capability correction: readonly NodeSettings.metadata is optional. A supported
+peer receives Some(empty) for Automatic; only unsupported peers receive None.
+The original automatic-skip serializer contradicted the ADR's absence rule.
+The owner supplies actual metadata policy directly to background tasks, and
+file/reply optional decoding shares one lenient bounded entry point. Tests
+pin supported Automatic versus unassigned omission. New shape and all-current
+checks are pending before final package submission.

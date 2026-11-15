@@ -36,14 +36,14 @@ impl Task {
                 return;
             }
         };
-        let settings = self.settings.current().await;
+        let metadata = self.settings.metadata().await;
         let expected = seed.expected.clone();
         tokio::select! {
             biased;
             () = source::lost(&self.handle, &expected) => {
                 tracing::debug!(session = %self.handle.id(), "title generation cancelled after losing its first source");
             },
-            result = driver::generate(&self.models, client, &self.handle, &settings.metadata,
+            result = driver::generate(&self.models, client, &self.handle, &metadata,
                 seed, self.cwd.clone(), self.git.clone()) => {
                 match result {
                     Ok(outcome) => tracing::debug!(session = %self.handle.id(), ?outcome, "title generation finished"),

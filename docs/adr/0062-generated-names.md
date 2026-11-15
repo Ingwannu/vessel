@@ -926,3 +926,11 @@ A watch can coalesce a parked/woken pair; that pair must still cancel the
 original task. A gap or lag is conservative cancellation, never permission
 to take another source. Ready cancellation is polled before preparation.
 The actor's current eligibility check remains the final mutation authority.
+
+
+The settings reply carries optional metadata as a capability distinction:
+Some(empty providers) is supported Automatic, and None is unsupported.
+Per-peer projection clears the option while unassigned or below the threshold;
+it never hides Automatic from a supported peer. Runtime tasks read the settings
+owner's policy directly, independently of that wire projection. The nullable
+lenient view is shared by file and reply decoding; patches remain strict.

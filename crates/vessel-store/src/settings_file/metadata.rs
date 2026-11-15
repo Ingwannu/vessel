@@ -7,20 +7,17 @@ use vessel_proto::settings::{MetadataSettings, SetNodeSettings};
 struct Stored {
     #[serde(flatten)]
     known: SetNodeSettings,
-    #[serde(default)]
-    metadata: Option<MetadataView>,
+    #[serde(
+        default,
+        deserialize_with = "MetadataSettings::deserialize_optional_view"
+    )]
+    metadata: Option<MetadataSettings>,
 }
-
-#[derive(Deserialize)]
-#[serde(transparent)]
-struct MetadataView(
-    #[serde(deserialize_with = "MetadataSettings::deserialize_view")] MetadataSettings,
-);
 
 pub(super) fn decode(bytes: &[u8]) -> Result<SetNodeSettings, serde_json::Error> {
     let stored: Stored = serde_json::from_slice(bytes)?;
     let mut known = stored.known;
-    known.metadata = stored.metadata.map(|view| view.0);
+    known.metadata = stored.metadata;
     Ok(known)
 }
 

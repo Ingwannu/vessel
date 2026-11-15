@@ -41,14 +41,15 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
-    /// Generated-name routes (ADR 0062); omitted for automatic selection and older peers.
+    /// Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
+    /// `None` means this peer cannot generate.
     #[serde(
         default,
-        deserialize_with = "MetadataSettings::deserialize_view",
-        skip_serializing_if = "MetadataSettings::is_automatic"
+        deserialize_with = "MetadataSettings::deserialize_optional_view",
+        skip_serializing_if = "Option::is_none"
     )]
     #[cfg_attr(feature = "ts", ts(as = "Option<MetadataSettings>", optional))]
-    pub metadata: MetadataSettings,
+    pub metadata: Option<MetadataSettings>,
 }
 
 impl NodeSettings {
@@ -84,9 +85,9 @@ impl NodeSettings {
         names: Option<crate::ProtocolVersion>,
     ) -> Option<Self> {
         let readable = names.is_some_and(|version| protocol >= version);
-        (!readable && !self.metadata.is_automatic()).then(|| {
+        (!readable && self.metadata.is_some()).then(|| {
             let mut older = self.clone();
-            older.metadata = MetadataSettings::default();
+            older.metadata = None;
             older
         })
     }
@@ -231,7 +232,7 @@ mod tests {
                 enabled: true,
                 prompt: "custom boundary prompt".parse().unwrap(),
             },
-            metadata: MetadataSettings::default(),
+            metadata: None,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
