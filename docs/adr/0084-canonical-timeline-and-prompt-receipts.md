@@ -652,6 +652,12 @@ Canonical TimelineNotification stays {level,message}, identified by its own
 EventRecord.seq. Trusted internal provenance links later queue delivery to that
 notice sequence, so consumers do not append an extra ordinary-user bubble while
 still counting a real provider turn. Notice enqueue itself invents no turn.
+
+The coordinator assigned the missing common execution-incarnation fence to this
+package. Its proposed exact Agents/metadata-lease/actor insertion boundary is in
+docs/plans/timeline-execution-fence.md and requires V3 review before shared
+registrations. Transition call sites stay with GKS lifecycle and W2 detach. No
+private positive admission is enabled by that proposal or the correlation DTOs.
 This provenance is display/control correlation, never caller authority; any
 additive client carrier remains under the same None gate and its exact typed
 wire join requires review before activation. No new SessionEvent presentation
