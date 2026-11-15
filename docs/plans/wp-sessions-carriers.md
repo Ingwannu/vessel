@@ -123,6 +123,9 @@ Completion headers retain the original owner kind/ticket. A separate control-onl
 CorrelatedRefusal carries no fake guard or peer data: actor preflight can prove
 NotSent, whereas an attempted uncertain write must retain input. Its receiver
 must match the exact original pending admission and cannot retire a successor.
+NotSent is restricted to synchronous selection/capture failure before the request
+future is polled. Refusal from an already-started SelectedConnection::call is
+conservatively Uncertain: that shared API does not prove which poll sent bytes.
 Only observed retirement of the actual shared lease may invoke
 connection_retired(originalContext). Lost, EOF, attach failure and follow-only
 cancellation must retire the exact FollowBinding instead; another follow on the

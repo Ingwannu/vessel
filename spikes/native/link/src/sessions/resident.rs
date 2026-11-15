@@ -143,7 +143,7 @@ impl Envelope {
 pub enum FailurePhase {
     /// Actor selection failed before work could be polled.
     NotSent,
-    /// The original attempted outcome is unknown; retain input and never replay.
+    /// Any started call lacks no-send proof; retain input and never replay.
     Uncertain,
 }
 /// Control-only downgrade. Refusal never fabricates a delivery guard or success.
