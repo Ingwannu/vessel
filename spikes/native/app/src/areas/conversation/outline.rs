@@ -79,6 +79,12 @@ impl Pointer {
         self.hover.waiting()
     }
 
+    /// Pending intent or a displayed preview protects the same retained owner.
+    #[cfg(test)]
+    pub(super) fn navigation_held(&self) -> bool {
+        self.settling() || self.hover.attention().is_some() || self.shown.is_some()
+    }
+
     pub(super) fn new(cx: &App) -> Self {
         Self {
             hover: OutlineHover::default(),

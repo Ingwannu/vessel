@@ -362,3 +362,18 @@ fn origin_navigation_holds_and_retires_with_the_same_resource_tree(cx: &mut Test
         );
     });
 }
+
+#[gpui::test]
+fn full_navigation_preserves_the_base_other_owner_reveal_hold(cx: &mut TestAppContext) {
+    let (probe, cx) = harness(cx);
+    update(&probe, cx, |shell, _, _cx| {
+        shell.areas.conversation.clear_prompts();
+        shell.areas.conversation.reveal = Some(EventSeq::new(999));
+        assert!(shell.areas.conversation.navigation_held());
+        shell.areas.conversation.navigation_retired();
+        assert_eq!(shell.areas.conversation.reveal, Some(EventSeq::new(999)));
+        assert!(shell.areas.conversation.navigation_held());
+        shell.areas.conversation.reveal = None;
+        assert!(!shell.areas.conversation.navigation_held());
+    });
+}

@@ -329,3 +329,21 @@ connection at actor dispatch. That carrier is not a checked live API yet. A3
 does not add an opener or registry to bypass it; current navigation remains
 unclaimed pending the sole core cutover. Queued search preparation and test
 requirements are recorded in `wp-a3-delivery-fixture.md`.
+
+The full A3 owner now preserves the portable base hook's conservative Hold for
+any unresolved shared reveal and pending/visible hover. Its one public staged
+query/retirement entry lives beside find; prompt metadata/jump contributes an
+actual owner helper, and recursion still covers every shown origin. Retirement
+uses the full controller's Rc identities and typed failure state, clears stale
+match indices/refresh work, and retains input and other owners' reveals. This is
+a new source integration, not approval inherited from portable producer 5ab's
+V1/narrow pass. Full A3 execution and scoped callback/authority acceptance remain
+pending its own consumer union and gates.
+
+A7 has identified a displayed-prompt policy for complete spoken-input wrappers
+and an exact voice-instruction prefix. Its borrowed presentation helper is not
+yet a checked consumer dependency here. Local outline/find alignment waits for
+that union; global raw-source search and bounded streaming metadata previews
+can still expose instruction terms that the eventual presentation hides. This
+remains an explicit integration difference, not a silently completed policy or
+a second A3 text projection.

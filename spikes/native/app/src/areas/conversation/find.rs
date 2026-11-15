@@ -145,6 +145,28 @@ impl FindBar {
     }
 }
 
+// One owner entry extends the checked base vote with actual A3 controllers.
+// It remains staged until the sole resident cutover consumes this resource.
+#[cfg(test)]
+impl super::ConversationArea {
+    pub(crate) fn navigation_held(&self) -> bool {
+        self.find.is_some()
+            || self.reveal.is_some()
+            || self.outline_pointer.navigation_held()
+            || self.prompt_navigation_held()
+            || self.origin.area().is_some_and(Self::navigation_held)
+    }
+
+    pub(crate) fn navigation_retired(&mut self) {
+        self.fail_find(FindFailure::Connection);
+        self.retire_prompt_navigation();
+        self.outline_pointer.leave();
+        if let Some(origin) = self.origin.area_mut() {
+            origin.navigation_retired();
+        }
+    }
+}
+
 impl std::fmt::Debug for FindBar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FindBar")

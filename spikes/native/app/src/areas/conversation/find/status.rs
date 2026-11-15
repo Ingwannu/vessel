@@ -79,6 +79,14 @@ impl ConversationArea {
         }
         bar.phase = FindPhase::Failed(failure);
         bar.finder = None;
+        // A failed/retired projection must retain input, not stale row indices
+        // or a queued refresh of those indices. Retry rebuilds them normally.
+        bar.matches.clear();
+        bar.index = 0;
+        bar.refreshing = false;
+        bar.again = false;
+        bar.keep = None;
+        bar.said = None;
         bar.generation = Rc::new(());
         bar.at = None;
         bar.target = Rc::new(());

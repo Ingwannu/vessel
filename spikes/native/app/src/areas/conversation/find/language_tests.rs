@@ -428,7 +428,11 @@ fn retiring_hidden_navigation_keeps_its_input_and_cannot_mutate_the_active_resid
                 .field
                 .set_text("retained input", window, cx);
             shell.find_changed("retained input".to_owned(), cx);
-            let bar = shell.areas.conversation.find.as_ref().unwrap();
+            let bar = shell.areas.conversation.find.as_mut().unwrap();
+            bar.matches = vec![super::Match { entry: 0, nth: 0 }];
+            bar.keep = bar.matches.first().copied();
+            bar.refreshing = true;
+            bar.again = true;
             let generation = Rc::clone(&bar.generation);
             let target = Rc::clone(&bar.target);
             let focus = bar.field.focus_handle(cx);
@@ -446,6 +450,8 @@ fn retiring_hidden_navigation_keeps_its_input_and_cannot_mutate_the_active_resid
             assert!(!Rc::ptr_eq(&bar.generation, &generation));
             assert!(!Rc::ptr_eq(&bar.target, &target));
             assert!(bar.finder.is_none());
+            assert!(bar.matches.is_empty() && bar.keep.is_none());
+            assert!(!bar.refreshing && !bar.again);
             assert!(bar.at.is_none());
             assert!(
                 hidden.navigation_held(),

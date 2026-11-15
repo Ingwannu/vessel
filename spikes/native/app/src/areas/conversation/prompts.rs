@@ -60,31 +60,21 @@ impl ConversationArea {
         self.prompts.jump = None;
     }
 
-    /// Resident panes hold active UI/work. An inactive snapshot must still move
-    /// the pure prompt/hover identity sources intact, never default their counters.
+    /// Extend the base navigation vote with the actual metadata/jump controller.
     #[cfg(test)]
-    pub(crate) fn navigation_held(&self) -> bool {
-        self.find.is_some()
-            || self.prompts.jump.is_some()
+    pub(super) fn prompt_navigation_held(&self) -> bool {
+        self.prompts.jump.is_some()
             || matches!(
                 self.prompts.index.phase(),
                 vessel_app_view::prompt_index::IndexPhase::Reading(_)
             )
-            || self.outline_pointer.settling()
-            || self.origin.area().is_some_and(Self::navigation_held)
     }
 
-    /// W12 calls this on the exact retired resource after invalidating its binding.
-    /// Input/field identity survives; only owned asynchronous navigation is retired.
+    /// Retire only this controller; the shared base hook owns tree traversal.
     #[cfg(test)]
-    pub(crate) fn navigation_retired(&mut self) {
-        self.fail_find(vessel_app_view::timeline::FindFailure::Connection);
+    pub(super) fn retire_prompt_navigation(&mut self) {
         self.cancel_prompt_jump();
         self.prompts.index.unavailable();
-        self.outline_pointer.leave();
-        if let Some(origin) = self.origin.area_mut() {
-            origin.navigation_retired();
-        }
     }
 
     pub(super) fn prompt_target(&self) -> Option<&IndexTarget> {
