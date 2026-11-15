@@ -204,3 +204,11 @@ No missing version is replaced by a dummy number. The existing no-frame
 older-peer tests and request order are retained. The removal worker already
 has its separate explicit protocol guard and typed-client refusal handling;
 no removal product code or deadline changes in this compatibility update.
+
+Package base 4 (`3cd0d3fc`) is also merged as assigned: published language,
+Settings frame, Devices, sidebar, Git and terminal changes remain intact.
+Own Models registrations auto-merge into their existing dispatchers. The
+README retains both sets of module notes; the size list keeps slider 711
+and the base's lower demo 517. The root source is the assigned base's,
+not a node change from this app package. Narrow checks below still need
+to cover this new merged tree before any current-source claim.
