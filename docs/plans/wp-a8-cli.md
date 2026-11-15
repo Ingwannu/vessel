@@ -164,3 +164,13 @@ The original variant/message remain stored, as in the shared selected-connection
 error boundary. A canary regression verifies both retained typed data and private
 Display/Debug/source traversal. Listing/lookup still returns failure and no partial
 successful output. No response side effect or protocol change is introduced.
+
+
+Merged the integrator-announced node head82ae7c91 containing the exact reviewed
+shared output seam5b3ca1d2, through the required node-line route. The sole conflict
+was main's module registrations; preserve parity/presentation and the still-test-
+only permit module. Gate46g's reported Rust2389/0/12, e2e68/68 and forge4/0 are base
+evidence; the coordinator counted one named web load timeout, so this is not an
+all-steps-green claim or validation of A8's own code. Actual formatter wiring must
+use OutputOptions/Presentation/Headers/Row/list/render_list/single and admit only
+real consuming permit handlers in presentation::check before connection effects.

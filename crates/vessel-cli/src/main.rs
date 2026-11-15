@@ -19,6 +19,7 @@ mod error;
 mod file_terminals;
 mod fleet;
 mod forge;
+mod formatted_models;
 mod history;
 mod inbox;
 mod init;
@@ -27,9 +28,11 @@ mod log;
 mod node_ctl;
 mod nodes;
 mod pair;
-// Staged until ADR 0084's acknowledged permission responses and shared output land.
+mod parity;
+// Staged until ADR 0084's acknowledged permission responses are checked.
 #[cfg(test)]
 mod permit;
+mod presentation;
 mod project_commands;
 mod remote;
 mod render;
