@@ -139,39 +139,14 @@ impl Shell {
             cx.notify();
             return None;
         };
-        if action == LifecycleAction::Fresh && !self.areas.draft.composer.text(cx).trim().is_empty()
-        {
-            self.areas.sessions.lifecycle.error = Some((
-                LifecycleTarget {
-                    host,
-                    session: open.session,
-                },
-                Problem::ExistingDraft,
-            ));
-            cx.notify();
-            return None;
-        }
         let seed = self.areas.conversation.info.clone();
-        if action == LifecycleAction::Fresh && seed.is_none() {
-            self.areas.sessions.lifecycle.error = Some((
-                LifecycleTarget {
-                    host: host.clone(),
-                    session: open.session,
-                },
-                Problem::Busy,
-            ));
-            cx.notify();
-            return None;
-        }
-        if action == LifecycleAction::Fresh
-            && seed.as_deref().is_some_and(|info| info.profile.is_some())
-        {
+        if let Some(problem) = self.fresh_lifecycle_problem(action, seed.as_deref(), cx) {
             self.areas.sessions.lifecycle.error = Some((
                 LifecycleTarget {
                     host,
                     session: open.session,
                 },
-                Problem::ProfileUnavailable,
+                problem,
             ));
             cx.notify();
             return None;
@@ -186,6 +161,25 @@ impl Shell {
             seed,
             choices,
         })
+    }
+    fn fresh_lifecycle_problem(
+        &self,
+        action: LifecycleAction,
+        seed: Option<&SessionInfo>,
+        cx: &Context<'_, Self>,
+    ) -> Option<Problem> {
+        if action != LifecycleAction::Fresh {
+            return None;
+        }
+        if !self.areas.draft.composer.text(cx).trim().is_empty() {
+            return Some(Problem::ExistingDraft);
+        }
+        let Some(seed) = seed else {
+            return Some(Problem::Busy);
+        };
+        seed.profile
+            .is_some()
+            .then_some(Problem::ProfileUnavailable)
     }
     fn lifecycle_choices(&self, seed: Option<&SessionInfo>) -> Vec<vessel_proto::OptionChoice> {
         self.areas
@@ -220,7 +214,21 @@ impl Shell {
             return;
         };
         let after = self.areas.sessions.lifecycle.after.take();
-        match answer.result {
+        match self.apply_lifecycle_result(&request, answer.result) {
+            Ok(()) => self.areas.sessions.lifecycle.ready = after,
+            Err(problem) => {
+                self.areas.sessions.lifecycle.error = Some((request.target, problem));
+                self.reload();
+            }
+        }
+        cx.notify();
+    }
+    fn apply_lifecycle_result(
+        &mut self,
+        request: &vessel_app_view::sessions::PendingLifecycle,
+        result: Result<Acted, Failure>,
+    ) -> Result<(), Problem> {
+        match result {
             Ok(Acted::Session(info))
                 if info.id == request.target.session
                     && vessel_app_view::sessions::satisfies_lifecycle(request.action, &info) =>
@@ -232,7 +240,7 @@ impl Shell {
                 }) {
                     self.areas.conversation.info = Some(info);
                 }
-                self.areas.sessions.lifecycle.ready = after;
+                Ok(())
             }
             Ok(Acted::Deleted(deleted)) if request.action == LifecycleAction::Delete => {
                 let words = self.t.lang.conversation();
@@ -248,7 +256,7 @@ impl Shell {
                 ));
                 self.fleet
                     .drop_session(request.target.host.as_str(), request.target.session);
-                self.areas.sessions.lifecycle.ready = after;
+                Ok(())
             }
             Ok(
                 Acted::Session(_)
@@ -257,23 +265,13 @@ impl Shell {
                 | Acted::Log(_)
                 | Acted::Done
                 | Acted::Conversation(_),
-            ) => {
-                self.areas.sessions.lifecycle.error =
-                    Some((request.target.clone(), Problem::WrongReply))
-            }
-            Err(failure) => {
-                self.areas.sessions.lifecycle.error = Some((
-                    request.target.clone(),
-                    match failure {
-                        Failure::Refused(failed) => Problem::Refused(failed),
-                        Failure::Uncertain => Problem::Uncertain,
-                        Failure::Unsent => Problem::Offline,
-                    },
-                ));
-                self.reload();
-            }
+            ) => Err(Problem::WrongReply),
+            Err(failure) => Err(match failure {
+                Failure::Refused(failed) => Problem::Refused(failed),
+                Failure::Uncertain => Problem::Uncertain,
+                Failure::Unsent => Problem::Offline,
+            }),
         }
-        cx.notify();
     }
     pub(crate) fn settle_session_lifecycle(
         &mut self,
