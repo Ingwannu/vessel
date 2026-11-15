@@ -1405,3 +1405,18 @@ The obsolete66735 Kit suite was cancelled while queued under WORKER standing
 own-run supersession (cancelled143; no compilation/tests). Its immutable logs
 are retained. It predates Code/Search and the combobox105-line repair; a new
 ordinary short suite on the corrected coherent checkpoint replaces it once.
+
+
+### Announced shared picker landing and base8c successor
+
+Lead announced green6ebdf8e8 (native1473/0/2, inherited only), including our
+selected99ad admission. Merge conflicts are the same already-carried code:
+five focus/keys/lifecycle source/test blobs are independently byte-identical
+between both parents. Resolution keeps one instance, one return_to field,
+and the SAME leased renderer in the authorized combobox child with Fixed
+legacy/default +Content opt-in. No second inline renderer is retained.
+The child header assembly and named leading child preserve the current599
+root measure (not raised to the incoming805). Row guarded logic is retained,
+with only F1's additive FormGlyph slot/tests. popup::sheet_scrim is exactly
+the incoming old rgba00000073 through the canonical helper. Combined compiler,
+F1/consumer UI and final whole proof remain owed, not borrowed from1473.
