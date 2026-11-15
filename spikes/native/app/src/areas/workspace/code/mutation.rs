@@ -148,6 +148,17 @@ impl Shell {
         }
         let node = scope.node();
         let panel = &self.areas.workspace.code;
+        // The staged file-tab bridge has not joined guarded path retarget yet.
+        // A live presentation must not be silently orphaned by a path mutation.
+        if panel
+            .file_tabs
+            .files()
+            .any(|key| affected(key, node, &change))
+        {
+            self.areas.workspace.code.files.actions.refused =
+                Some(self.words().labels().file_tab_path_held.to_owned());
+            return;
+        }
         if panel.mutation.is_some() || panel.affected_busy(node, &change) {
             self.areas.workspace.code.files.actions.refused =
                 Some(self.words().labels().file_busy.to_owned());

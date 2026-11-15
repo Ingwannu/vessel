@@ -35,6 +35,7 @@ pub const KO: Labels = Labels {
     show_hidden_files: "숨김 파일 표시",
     editor_buffers_full: "다른 파일을 열기 전에 열린 파일을 저장하거나 닫아 주세요.",
     file_busy: "변경 내용을 저장하고 진행 중인 파일 작업이 끝난 뒤 다시 시도해 주세요.",
+    file_tab_path_held: "파일 경로를 바꾸거나 삭제하기 전에 열린 파일 탭을 닫아 주세요.",
     editor_confirm_saved: "저장 상태 확인",
     editor_write_unconfirmed: "원래 저장 요청의 최종 결과를 확인하지 못했습니다. 추가 저장을 차단합니다.",
     editor_conflict_unverified: "현재 파일 상태를 확인하지 못했습니다. 덮어쓰기 전에 다시 불러오세요.",

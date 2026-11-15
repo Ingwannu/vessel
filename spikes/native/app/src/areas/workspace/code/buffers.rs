@@ -93,7 +93,10 @@ impl Shell {
                 return true;
             }
             let disposable = panel.files.retained.iter().find_map(|(other, viewer)| {
-                (other != key && viewer.can_evict() && readonly_size(viewer).0 != 0)
+                (other != key
+                    && viewer.can_evict()
+                    && !panel.file_tabs.contains(other)
+                    && readonly_size(viewer).0 != 0)
                     .then(|| other.clone())
             });
             let Some(disposable) = disposable else {
@@ -117,7 +120,8 @@ impl Shell {
                     .retained
                     .iter()
                     .find_map(|(key, viewer)| {
-                        let idle = viewer.can_evict();
+                        let idle = viewer.can_evict()
+                            && !self.areas.workspace.code.file_tabs.contains(key);
                         idle.then(|| key.clone())
                     });
             let Some(disposable) = disposable else {

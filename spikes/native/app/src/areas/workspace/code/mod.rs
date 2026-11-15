@@ -41,6 +41,8 @@ mod entry_forms;
 #[cfg(test)]
 mod entry_forms_tests;
 pub(crate) mod file_open;
+mod file_tabs;
+pub(crate) use file_tabs::render_file_panel;
 mod file_search;
 mod files;
 mod found;
@@ -186,6 +188,7 @@ struct Files {
 
 /// The panel's state.
 pub(crate) struct CodePanel {
+    file_tabs: file_tabs::FileTabs,
     mutation: Option<mutation::PendingMutation>,
     find_keys: vessel_app_view::workspace::find::SearchKeys,
     searches: file_search::Searches,
@@ -217,6 +220,7 @@ struct Stale {
 impl CodePanel {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            file_tabs: file_tabs::FileTabs::default(),
             find_keys: vessel_app_view::workspace::find::SearchKeys::default(),
             searches: file_search::Searches::default(),
             open: false,

@@ -38,6 +38,8 @@ pub struct Labels {
     pub editor_buffers_full: &'static str,
     /// Root mutation cannot discard edits or race pending file I/O.
     pub file_busy: &'static str,
+    /// Bound file paths cannot mutate before their guarded tab retarget is available.
+    pub file_tab_path_held: &'static str,
     pub files_refresh: &'static str,
     /// A failed observation keeps the last source; writes retain their own guards.
     pub file_watch_paused: &'static str,

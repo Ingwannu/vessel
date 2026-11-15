@@ -765,3 +765,38 @@ existing search/read facts without granting a capability. No layout opener,
 main File renderer or close dispatcher is enabled by this values change.
 The same GPUI source fixture now covers identical-scope receipt refresh as well
 as reused-key reconnect; it still needs actual execution on this newer source.
+
+
+### Concrete file-tab owner foundation, still staged
+
+The sole registry now routes File targets to the file owner's renderer. Its
+bounded binding map contains only (LayoutKey, actual TabId) returned by layout,
+original opening facts and existing FileKey; it never allocates docking ids.
+An absent or mismatched binding stays unavailable and performs no hydration.
+The opening and binding insertion remain literal test-only staging until the
+real UI callsites and close-owner dispatcher join. The normal product therefore
+cannot open a file through this new path yet; restored targets do not acquire
+fabricated authority.
+
+Owner readiness publishes before the central editor step sends its next effect.
+A per-binding last-successful acknowledgement only coalesces identical metadata
+writes; it is never close admission. Exact tab target is checked before writing
+Modified, and missing layout does not release the buffer reference. Bound
+resources are protected from readonly-payload/cache eviction. Path mutations
+that would orphan a bound path currently refuse with an explicit close-tabs
+message until guarded layout retarget is connected; this is an unfinished
+integration boundary, not rename parity for open file tabs.
+
+New synthetic GPUI owner tests exercise actual shared layout allocation and
+resource deduplication, stale original receipt before any new tab, rollback of
+failed placement, and Unknown-write Modified retention after undo. They use no
+node client or filesystem authority. Execution remains owed. The staged renderer
+still needs file-tab-specific chrome/selection/focus/visibility and the real
+close request dispatcher before opening is exposed in the application.
+
+The cache regression additionally closes a clean tab through the real layout
+completion and verifies that mere layout absence still cannot evict its owner.
+Only a separate synthetic owner acknowledgement makes the source disposable.
+It also pins bound-path mutation refusal. Wide test geometry is explicit so
+placement-refusal assertions do not accidentally enter compact sheet promotion.
+These are owner/model regressions, not a registered close dispatcher or capture.

@@ -35,6 +35,7 @@ pub const EN: Labels = Labels {
     show_hidden_files: "Show hidden files",
     editor_buffers_full: "Save or close an open file before opening another.",
     file_busy: "Save changes and wait for pending file operations before trying again.",
+    file_tab_path_held: "Close open file tabs before renaming or deleting their paths.",
     editor_confirm_saved: "Check saved file",
     editor_write_unconfirmed: "The original write has no confirmed result. Further saves are blocked.",
     editor_conflict_unverified: "The current file could not be confirmed. Reload before overwriting.",

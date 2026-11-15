@@ -25,6 +25,7 @@ impl Shell {
     }
 
     pub(super) fn run_step_for(&mut self, key: FileKey, step: Step, cx: &mut Context<'_, Self>) {
+        self.publish_file_tabs(&key, cx);
         match step {
             Step::None => {}
             Step::Write { .. } | Step::Read { .. } => self.send_step_for(&key, step),

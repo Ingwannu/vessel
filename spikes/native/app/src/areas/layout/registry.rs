@@ -54,6 +54,9 @@ pub(super) fn render(
             agent.take().unwrap_or_else(div).into_any_element()
         }
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
+        Target::File { .. } => {
+            crate::areas::workspace::code::render_file_panel(shell, panel, tokens, window, cx)
+        }
         Target::Agent(_)
         | Target::Draft(_)
         | Target::ProviderSubagent { .. }
@@ -63,7 +66,6 @@ pub(super) fn render(
         | Target::Files
         | Target::Scripts
         | Target::PullRequest
-        | Target::File { .. }
         | Target::WorkingDiff
         | Target::Plugin { .. }
         | Target::Setup(_)

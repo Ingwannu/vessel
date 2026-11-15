@@ -5,7 +5,7 @@ use vessel_app_view::desktop::quit::DocumentReadiness;
 use vessel_app_view::workspace::editor::{EditorStatus, WriteState};
 
 impl Viewer {
-    fn document_readiness(&self) -> DocumentReadiness {
+    pub(super) fn document_readiness(&self) -> DocumentReadiness {
         let Some(editing) = &self.edit else {
             return DocumentReadiness::Ready;
         };
