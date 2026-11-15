@@ -19,6 +19,7 @@ pub(crate) enum Behaviour {
     Success,
     Page(vessel_proto::history::AgentHistoryPage),
     Session(Box<SessionInfo>),
+    Created(Box<SessionInfo>),
     Refuse(ErrorCode),
     Disconnect,
 }
@@ -130,13 +131,23 @@ pub(crate) async fn connect_at(
                     Behaviour::Success => result(call),
                     Behaviour::Page(page) => Outcome::Ok(Reply::GetAgentHistory(page)),
                     Behaviour::Session(info) => {
-                        let reply = match call {
-                            Call::GetSession(_) => Reply::GetSession(*info),
-                            Call::ResumeSession(_) => Reply::ResumeSession(*info),
-                            Call::CreateSession(_) => Reply::CreateSession(*info),
-                            other => panic!("unexpected session fixture call: {other:?}"),
+                        let reply = if matches!(call, Call::GetSession(_)) {
+                            Reply::GetSession(*info)
+                        } else {
+                            assert!(
+                                matches!(call, Call::ResumeSession(_)),
+                                "expected a reactivation call"
+                            );
+                            Reply::ResumeSession(*info)
                         };
                         Outcome::Ok(reply)
+                    }
+                    Behaviour::Created(info) => {
+                        assert!(
+                            matches!(call, Call::CreateSession(_)),
+                            "expected a create call"
+                        );
+                        Outcome::Ok(Reply::CreateSession(*info))
                     }
                     Behaviour::Refuse(code) => {
                         Outcome::Err(WireError::new(code, "untrusted peer message"))
