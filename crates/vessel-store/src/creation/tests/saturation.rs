@@ -115,7 +115,7 @@ async fn deleting_a_completed_resource_does_not_release_its_key_or_claim() {
     let Some(Resource::Agent { session }) = reserved.resource else {
         panic!("agent fixture required");
     };
-    let mut info = vessel_proto::SessionInfo::new(
+    let info = vessel_proto::SessionInfo::new(
         session,
         vessel_proto::SessionSpec::new(
             vessel_proto::HarnessKind::Codex,
@@ -127,9 +127,27 @@ async fn deleting_a_completed_resource_does_not_release_its_key_or_claim() {
         ),
         chrono::DateTime::UNIX_EPOCH,
     );
-    info.status = vessel_proto::SessionStatus::Exited { code: Some(0) };
     let mut current = store.admit_creation(admission).await.unwrap();
     store.create_session(info).await.unwrap();
+    // Store creation always starts a live log. End it through the real status
+    // projection before exercising deletion; changing SessionInfo is not one.
+    store
+        .append(
+            session,
+            vec![std::sync::Arc::new(vessel_proto::EventRecord {
+                seq: vessel_proto::EventSeq::new(0),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Status {
+                    status: vessel_proto::SessionStatus::Exited { code: Some(0) },
+                },
+            })],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        store.session(session).await.unwrap().unwrap().status,
+        vessel_proto::SessionStatus::Exited { code: Some(0) }
+    ));
     for stage in [Stage::Workspace, Stage::Resource, Stage::Prompt] {
         current = store
             .advance_creation(

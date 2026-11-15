@@ -168,3 +168,9 @@ handoff; f255's cfg(test) provisioner remains reference only. There is one
 workspace registry, no local cwd-based ownership cache and no copied persistence.
 The new driver must reserve fixed backing identities through that authority,
 keep approval/Uncertain outcomes, and hold current admission through registration.
+
+The exact5bc four-library run executed 750 passing tests and one failed fixture:
+the completed-resource deletion test set SessionInfo.status before Store create,
+but Store intentionally starts a live log. The fixture now appends the actual
+Exited status record and verifies the stored projection before deleting. The
+permanent-key/claim assertions remain unchanged; no lifecycle guard is weakened.
