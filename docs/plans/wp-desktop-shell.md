@@ -168,6 +168,10 @@ POSIX install owns only its exact symlink and never overwrites a foreign tool.
 Known shell rc edits are bounded/idempotent, preserve existing bytes/mode, create
 new files privately and otherwise expose manual PATH guidance. Onboarding and
 Settings share snapshot/set_installed; only explicit Continue applies a choice.
+One process-wide try-lock admits the entire install-plus-rc mutation. A concurrent
+Settings window or onboarding attempt receives CliOperationBusy before any file
+write, so idempotent reads cannot race into duplicate rc appends. It never waits
+on the rendering thread. A later attempt rechecks ownership and current contents.
 
 [Decision Log: Windows user PATH]
 - Purpose: support Korean and other Unicode install paths.
@@ -195,6 +199,10 @@ The release owner's739db8f2 follow-up clears stale last-error and represents a
 zero-return/success-code result as Unconfirmed, mapped honestly to Other at the
 binary bridge. Real Windows execution remains unverified; Wine packaging checks
 are separate.
+The release owner confirmed that plain windows-gnu native check is not provisioned
+on the build VM (missing C compiler and fxc environment). T is adding the agreed
+locked cargo-xwin/MSVC narrow selection with the release tool environment. Until
+that interface lands, Windows cfg compilation is pending; no local fallback runs.
 
 ## Canonical preferences and feature caches
 

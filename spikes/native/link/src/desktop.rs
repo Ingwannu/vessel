@@ -32,6 +32,9 @@ pub enum DesktopError {
     /// Installation must never replace a tool owned by another installation.
     #[error("the CLI destination belongs to another installation")]
     ForeignCli,
+    /// Settings windows and onboarding must not append the same rc entry concurrently.
+    #[error("another CLI installation change is already running")]
+    CliOperationBusy,
     /// Platform operations keep the original OS error.
     #[error("desktop file operation failed")]
     Io(#[from] std::io::Error),

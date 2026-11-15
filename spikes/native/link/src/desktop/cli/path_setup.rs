@@ -17,7 +17,7 @@ pub enum Platform {
     Mac,
     /// Bash's interactive startup is .bashrc on other supported Unix desktops.
     Unix,
-    /// The reference leaves Windows PATH changes to terminal settings.
+    /// The Installation owner changes Windows user PATH; shell rc edits are inapplicable.
     Windows,
 }
 

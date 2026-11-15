@@ -16,6 +16,10 @@ use vessel_app_link::desktop::{
 };
 use vessel_app_view::desktop::cli::{Availability, Operation, PathStatus, Snapshot, State, Status};
 
+// Multiple windows and deferred onboarding use this same process operation.
+// Refuse overlapping writes instead of blocking a UI/background executor thread.
+static MUTATION: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub(crate) struct CliPanel {
     state: State,
     installation: Option<Installation>,
@@ -131,6 +135,13 @@ fn perform(
     path: &PathSetup,
     operation: Operation,
 ) -> Result<Applied, DesktopError> {
+    let _permit = match MUTATION.try_lock() {
+        Ok(permit) => permit,
+        Err(std::sync::TryLockError::WouldBlock) => return Err(DesktopError::CliOperationBusy),
+        // Every attempt rechecks exact ownership and current PATH/rc facts;
+        // a previous unwind cannot authorize overwriting foreign content.
+        Err(std::sync::TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+    };
     let mutation = installation.mutate(operation)?;
     let (status, path_change) = match operation {
         Operation::Install => match path.ensure_change() {
@@ -383,6 +394,14 @@ mod broadcast_tests {
             Err(DesktopError::MissingCli)
         ));
         std::fs::write(source, b"nonexecuted CLI fixture").unwrap();
+        let permit = MUTATION.try_lock().unwrap();
+        assert!(matches!(
+            perform(&installation, &path, Operation::Install),
+            Err(DesktopError::CliOperationBusy)
+        ));
+        assert_eq!(installation.status().unwrap(), Status::Absent);
+        assert!(!home.0.join(".bashrc").exists());
+        drop(permit);
         let applied = perform(&installation, &path, Operation::Install).unwrap();
         assert_eq!(applied.environment, Change::Changed);
         let snapshot = finish(
