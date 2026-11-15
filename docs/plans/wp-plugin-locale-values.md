@@ -25,11 +25,14 @@ confirmation packet. This verifies cache presence, not a new feature/lock closur
 
 Both locale crates are MIT OR Apache-2.0. Root aliases EXACT=0.9.6 with defaults
 off, no extra features; the native crate's default feature list is already empty.
-Only the two native package blocks and proto's dependency-list entry are copied
-into the root lock, preserving all existing package versions/checksums/records.
-No local Cargo is used. VM --locked --offline checks must validate this exact
-closure; any missing archive, unexpected resolution or extra feature stops the
-slice for its owner ruling, never a network fetch or unrelated lock update.
+The initial manually copied two native package blocks failed all four VM
+--locked --offline checks before compilation at bdea2f4b: Cargo required a lock
+update. Those records are retained as failed evidence, not a closure proof.
+This manifest-only successor restores the exact base lock for the build-tool
+owner's narrowly authorized offline scratch resolver. No local Cargo, unlocked
+build, network fetch or unrelated lock update is used. The canonical exported
+diff must still preserve native-pinned versions/checksums and be reviewed before
+the locked checks run again; no receiving consumer can adopt this candidate yet.
 
 The canonical value retains the original closed LanguageIdentifierError rather
 than assuming it is Clone/Copy/Eq (it is not). Error classifications are byte
