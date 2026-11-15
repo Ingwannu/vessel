@@ -104,7 +104,7 @@ pub struct Primary {
 impl Drop for Primary {
     fn drop(&mut self) {
         if let Some(stop) = self.stop.take() {
-            let _ = stop.send(());
+            let _stopped = stop.send(());
         }
         if let Some(worker) = self.worker.take() {
             drop(worker.join());
@@ -156,7 +156,7 @@ fn lock_waiter(file: File) -> Result<LockWait, DesktopError> {
             let acquired = match file.try_lock() {
                 Ok(()) => Ok(file),
                 Err(std::fs::TryLockError::WouldBlock) => {
-                    let _ = started.send(());
+                    let _notified = started.send(());
                     file.lock().map(|()| file)
                 }
                 Err(std::fs::TryLockError::Error(error)) => Err(error),
