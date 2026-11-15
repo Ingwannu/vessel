@@ -1,9 +1,9 @@
 //! Principal-bound creation observations reuse the store and shared waiting limits.
 
 #[cfg(test)]
-pub(crate) mod driver;
+mod driver;
 #[cfg(test)]
-pub(crate) mod empty;
+pub(super) mod empty;
 mod failure;
 #[cfg(test)]
 mod intake;

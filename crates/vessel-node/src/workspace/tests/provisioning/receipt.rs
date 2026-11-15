@@ -1,6 +1,6 @@
 //! Join actual receipt commits to actual backing publication; no public ingress.
 use super::*;
-use crate::service::creation::empty::{PreparedEmpty, drive_empty};
+use crate::service::{PreparedEmpty, drive_empty};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use vessel_proto::{
     ErrorCode,

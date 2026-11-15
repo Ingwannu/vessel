@@ -1,7 +1,7 @@
 //! Staged empty-workspace adapter joins the real receipt and backing owners.
 //! Source/visibility must already be resolved by the server. No RPC is activated.
 use super::driver::{self, Runtime, StageReadiness, StepFailure};
-use crate::workspace::{Workspaces, provisioning::Provisioned};
+use crate::workspace::{Provisioned, Workspaces};
 use sha2::{Digest as _, Sha256};
 use std::sync::Arc;
 use vessel_proto::creation::{

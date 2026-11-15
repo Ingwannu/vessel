@@ -30,6 +30,8 @@ mod policy;
 // The actual creation controller removes this staging attribute with its caller.
 #[cfg(test)]
 mod provisioning;
+#[cfg(test)]
+pub(crate) use provisioning::Provisioned;
 mod projects;
 mod roots;
 mod scripts;

@@ -364,3 +364,12 @@ public controller. Its fake-ACP test uses the actual session runtime, Store and
 registry rather than claiming a fake effect list proves actor registration. The
 fixture's manually registered workspace does not prove project/root authority.
 New test execution and strict checks remain owed; no MCP/native API is activated.
+
+The exact7bd post-join strict run returned two private-module access errors and
+six resulting inference diagnostics. Test-only re-exports now expose only the
+Provisioned result and empty-adapter entry/types; no product module is widened.
+Announced lifecycle93970acb is merged: the shared immutable SessionListing mirror
+and tuple ListSessions are canonical, and creation appends now follow the shared
+BACKGROUND_SCHEMA. The combined old migration list measured501 product lines;
+its coordinator-approved move-only central producer is separate from the two
+owned creation registrations. No size allowance is raised or SQL rewritten.

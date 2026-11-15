@@ -51,6 +51,8 @@ mod options;
 mod again;
 mod conversation;
 mod creation;
+#[cfg(test)]
+pub(crate) use creation::empty::{PreparedEmpty, drive_empty};
 // Protocol 11's calls: agents beyond the four (ADR 0032).
 mod agents;
 mod status;
