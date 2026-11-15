@@ -390,14 +390,14 @@ mod sidebar_policy_tests {
     #[test]
     fn code_budget_and_intended_native_default_are_not_redefined() {
         assert_eq!(
-            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Beside))),
-            800.0
+            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Beside))).to_bits(),
+            800.0_f32.to_bits()
         );
         assert_eq!(
-            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Over))),
-            480.0
+            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Over))).to_bits(),
+            480.0_f32.to_bits()
         );
-        assert_eq!(sidebar_minimum(SidebarContext::Settings), 720.0);
+        assert_eq!(sidebar_minimum(SidebarContext::Settings).to_bits(), 720.0_f32.to_bits());
         assert_eq!(
             sidebar_layout(
                 1280.0,

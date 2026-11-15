@@ -171,7 +171,7 @@ fn persisted_bands_are_independent_and_default_document_stays_compatible() {
 
 #[test]
 fn persisted_input_and_growth_are_bounded_without_dropping_old_choices() {
-    for invalid in ["".to_owned(), "x\n".to_owned(), "한".repeat(MAX_KEY_BYTES)] {
+    for invalid in [String::new(), "x\n".to_owned(), "한".repeat(MAX_KEY_BYTES)] {
         assert!(invalid.parse::<Key>().is_err());
     }
     assert!("x".repeat(MAX_KEY_BYTES).parse::<Key>().is_ok());
