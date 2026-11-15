@@ -7,7 +7,10 @@ limits. No current C3 capture or final whole-package gate/review exists.
 ## Source
 
 **Current checkpoint,16:52 UTC:** the source/check chronology below is retained,
-but the current App Rust head isf1ab56456, after announced6ebdf8e8. Node head
+but the App safety batch isf1ab56456, after announced6ebdf8e8. Later1541d314b
+adds the pure accepted-summary FileReadTarget/callback-generation guard and its
+four regressions; it is UNCOMPILED and not covered by the f1ab selections.
+Its actual body consumer, pagination and retention budget remain pending. Node head
 is34bb9f843, after announced9c150c6e. The isolated control Rust head is4133964f6;
 docs000fc16e5 records V1 bounded SOURCE/requested KitClippy+diff19 clearance,
 with adoption held only for the existing ordinary syntax selection163829.
