@@ -18,12 +18,10 @@ impl ComboboxState {
         self.close();
         self.restore_after_choice(window, cx);
     }
-    fn owns_focus(&self, window: &Window, cx: &App) -> bool {
-        self.focus.contains_focused(window, cx)
-            || self.search.focus_handle(cx).contains_focused(window, cx)
-    }
     pub(super) fn capture_return_focus(&mut self, window: &Window, cx: &App) {
-        if !self.is_open() && !self.owns_focus(window, cx) {
+        if !self.is_open() {
+            // A new opening after a state-only legacy close starts a new cycle.
+            self.return_to = crate::focus::ReturnFocus::default();
             self.return_to.remember(window, cx);
         }
     }

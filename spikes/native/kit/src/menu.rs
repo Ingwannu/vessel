@@ -90,6 +90,9 @@ impl MenuState {
     }
     fn capture_return_focus(&mut self, window: &Window, cx: &App) {
         if !self.is_open() {
+            // State-only legacy close cannot restore without a Window, but a
+            // later opening is a new cycle and must not retain its old caller.
+            self.return_to = crate::focus::ReturnFocus::default();
             self.return_to.remember(window, cx);
         }
     }
