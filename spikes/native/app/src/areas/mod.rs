@@ -32,18 +32,6 @@ use vessel_app_kit::ui::{Context, Window};
 
 use crate::shell::Shell;
 
-/// Register overlays once without growing the shell past its file budget.
-pub(crate) fn overlays(
-    shell: &mut Shell,
-    tokens: &vessel_app_kit::Tokens,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> impl Iterator<Item = vessel_app_kit::ui::AnyElement> {
-    palette::render(shell, tokens, window, cx)
-        .into_iter()
-        .chain(labels::overlay(shell, tokens, window, cx))
-}
-
 /// Every area's state.
 pub(crate) struct Areas {
     pub(crate) about: about::AboutState,

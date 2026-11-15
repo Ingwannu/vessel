@@ -392,7 +392,8 @@ impl Render for Shell {
                     .children(sheet),
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::overlays(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::labels::overlay(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

@@ -95,9 +95,9 @@ Done: reference/asset analysis; manager, picker and create state models;
 EN/KO Fluent resources; adaptive manager skeleton and typed link command/event
 seam. The sidebar registers the manager; online hosts are explicitly shown
 as unsupported until the contract is integrated. No mutation can claim success.
-Registration moved to a small link feature-registration module (existing public
-paths unchanged) and an area overlay-registration function to retain both
-shared-file size ceilings. No kit renderer or dependency was added.
+The package-base merge removed the shared-file pressure. Registration now
+uses the base's direct link module declaration and one shell overlay line;
+the temporary registration wrappers were removed without changing public paths. No kit renderer or dependency was added.
 
 Fast checks: native size, boundaries and token ratchets pass. The first local
 view test could not compile because the new Fluent keys lacked per-key
@@ -119,8 +119,11 @@ a later successful toggle of a different label cannot erase an earlier
 concurrent failure; hiding/reopening a manager preserves in-flight work.
 Regression assertions cover both error-retention cases. Checks are pending.
 
-Next: merge the announced app base and node Quality B head, then obtain
-narrow compile/test results and consume
+Merged app package base `8d5513e4` into `058d380b` without conflicts.
+The node branch merged Quality B `29eebb8b` into `a6ff863c`, also without
+conflicts. Existing upstream entries and tests were unchanged.
+
+Next: obtain narrow compile/test results and consume
 and reviewed registry/session-label contracts. ADR 0086 owns the node catalog
 work in a separate node branch; that branch currently stages values, mutation
 plans and a bounded observer journal, with no registered RPC or persistence. Full native gate and inspected capture
