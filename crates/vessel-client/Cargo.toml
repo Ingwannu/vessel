@@ -33,6 +33,11 @@ tokio-tungstenite.workspace = true
 toml_edit.workspace = true
 tracing.workspace = true
 
+# ADR 0097: one client-owned safe book/credential filesystem boundary.
+# Approved workspace reuse; no dependency on store or fleet.
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["fs"] }
+
 [dev-dependencies]
 bytes.workspace = true
 chrono.workspace = true

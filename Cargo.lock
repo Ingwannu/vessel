@@ -3725,6 +3725,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "getrandom 0.4.3",
+ "rustix",
  "rustls",
  "serde",
  "serde_json",

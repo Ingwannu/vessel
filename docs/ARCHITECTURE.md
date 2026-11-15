@@ -1597,3 +1597,12 @@ connection id or wire field; its lower-crate home lets the client and
 native view share it without a dependency between those layers. Checked
 allocation exposes exhaustion. This additive value changes no method,
 protocol version, book format or current consumer.
+
+ADR 0097's client-owned private-file foundation uses the workspace's
+`rustix` with `fs` on Unix, approved by the coordinator. It opens a
+trusted directory once and uses relative NOFOLLOW/NONBLOCK final opens
+and opened-handle regular-file/owner checks. No client-to-store or fleet
+crate dependency is added. The current implementation is isolated under
+private Unix tests: legacy book/credential callers, mutation locks,
+worker/retention admission and Windows behavior remain unchanged. This
+staging is not a published file-safety or multi-route API.

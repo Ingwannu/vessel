@@ -174,3 +174,25 @@ must be authorized/registered before its safe-file code is introduced.
 Package base3 6c782cb6 and base4 3cd0d3fc were merged without rebase;
 base4 brings the reviewed eight-theme and L Diagnostics/Chat adapters.
 Own route/appearance models and the input slice remain separate work.
+
+
+## Private file foundation preparation
+
+The separate E1 worktree starts from the immutable field/capture source
+970563a2b; it does not alter the tree whose whole native gate/export is
+queued. The approved cfg(unix) workspace rustix/fs dependency prepares
+one client-owned file boundary, with matching root/native lock references
+and architecture/client ownership docs. No local Cargo runs under the
+09:2x core-capacity rule.
+
+The first implementation is deliberately private Unix test staging:
+finite input before UTF-8 decoding, directory-relative NOFOLLOW/NONBLOCK,
+opened regular-file/anchor-owner checks, fixed safe error chains and
+single-component names. Tests prepare exact/one-over byte boundaries,
+Unicode byte counts, invalid UTF-8 canaries through every error source,
+finite reader requests, directory replacement, symlink/directory/traversal,
+missing files, metadata limits and a FIFO with a named safety-net deadline.
+It is NOT wired to the legacy readers, writer, lock or worker/retention
+owner. No Windows/new upsert or production file-safety API is claimed.
+Actual narrow checks and V3 code review are still owed before integration;
+source preparation and direct rustfmt are not a compile/test pass.
