@@ -55,7 +55,8 @@ fn settings_records_multiple_steps_and_navigation_cancels_capture(cx: &mut TestA
         .expect("actual canonical row menu");
     cx.simulate_click(menu.center(), gpui::Modifiers::default());
     cx.run_until_parked();
-    cx.simulate_keystrokes("enter");
+    // Pointer-opened kit menus have no highlighted row until navigation.
+    cx.simulate_keystrokes("down enter");
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
         assert!(shell.areas.shortcuts.page.recording());
@@ -98,7 +99,7 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
     };
     use vessel_app_view::shortcuts::{Action, binding_id, default_context};
     let (shell, cx) = setup(cx);
-    shell.update_in(cx, |shell, window, _| {
+    shell.update_in(cx, |shell, window, cx| {
         use super::dispatch::{Callbacks, KeyboardHandler};
         use vessel_app_view::shortcuts::dispatcher::{Handled, Priority};
         let _owner = shell
@@ -112,6 +113,8 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
                 },
             })
             .unwrap();
+        shell.go(crate::routes::Route::Draft, window, cx);
+        shell.areas.draft.composer.focus(window, cx);
         window.activate_window();
     });
     cx.run_until_parked();
@@ -128,6 +131,8 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
             cx,
         );
     });
+    // Poll the spawned timer before advancing its executor's virtual clock.
+    cx.run_until_parked();
     cx.executor().advance_clock(Duration::from_millis(149));
     cx.run_until_parked();
     shell.update_in(cx, |shell, window, cx| {

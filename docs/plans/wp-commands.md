@@ -578,3 +578,11 @@ qualification and two semicolons. Extracted its existing menu button rendering
 into one local function; no second control/style/callback is introduced. Other
 findings corrected without relaxing lints. The next immutable combined check
 also includes the later composition registry, capability policy and shared lock.
+
+Remote App binary tests on exact5a54c0aca executed108pass/2fail/2ignore;
+the two failures exposed incomplete interaction fixtures. Pointer-opened kit
+menus intentionally start without a highlighted row, so the recorder test now
+navigates Down before Enter. The modifier test now creates the actual composer
+focus path required by GPUI key dispatch and polls its spawned timer before
+advancing virtual time. These fixes preserve production menu, focus and150ms
+policies. Kit tests were not reached after the App failure; no kit pass is claimed.
