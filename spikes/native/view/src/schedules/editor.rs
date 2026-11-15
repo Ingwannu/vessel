@@ -6,6 +6,7 @@ pub mod definition;
 pub mod fields;
 pub mod io;
 pub mod preview;
+pub mod session;
 pub mod zones;
 
 use thiserror::Error;

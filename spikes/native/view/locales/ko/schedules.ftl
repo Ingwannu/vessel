@@ -255,3 +255,6 @@ schedules-preview-out-of-range = 선택한 시각이 머신에서 지원하는 �
 
 # Whole typed preview failure; never show wire message/Display.
 schedules-preview-unknown = 머신의 미리보기 거절 사유를 보려면 앱을 업데이트하세요.
+
+# Save waits for the exact current node preview, except an explicit older-node refusal.
+schedules-form-preview-required = 저장하기 전에 현재 규칙의 실행 시각을 미리 확인하세요.

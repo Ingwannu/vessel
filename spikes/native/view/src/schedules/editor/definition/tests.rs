@@ -125,6 +125,14 @@ fn borrowed_issues_delegate_existing_tables_and_new_target_copy_in_both_language
         Issue::Target.label(ko),
         "예약에 사용할 에이전트와 폴더를 선택하세요."
     );
+    assert_eq!(
+        Issue::Preview.label(en),
+        "Preview the current rule before saving."
+    );
+    assert_eq!(
+        Issue::Preview.label(ko),
+        "저장하기 전에 현재 규칙의 실행 시각을 미리 확인하세요."
+    );
     let mut draft = Draft::create(info().definition.cadence, TimeZoneName::utc()).unwrap();
     draft.cadence.cron("bad".into());
     let cadence = draft.cadence.checked().unwrap_err();

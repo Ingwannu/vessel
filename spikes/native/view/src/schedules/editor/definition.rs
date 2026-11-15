@@ -106,6 +106,9 @@ pub enum Issue<'a> {
     /// No valid structured new-chat target was selected.
     #[error("a scheduled chat target is required")]
     Target,
+    /// No complete current node preview or explicit older-node fallback yet.
+    #[error("preview the current schedule rule before saving")]
+    Preview,
     /// An existing definition cannot be replaced safely.
     #[error("cannot edit schedule: {0}")]
     Edit(#[source] EditError),
@@ -118,6 +121,7 @@ impl Issue<'_> {
         match self {
             Self::Field(error) => error.label(catalog),
             Self::Cadence(error) => lang.cadence_error(error),
+            Self::Preview => catalog.schedules().form_preview_required().to_owned(),
             Self::Target => catalog.schedules().form_target_required().to_owned(),
             Self::Edit(error) => lang.edit_error(*error).to_owned(),
         }
@@ -218,7 +222,12 @@ impl Draft {
         let cadence = self.cadence.checked().map_err(Issue::Cadence)?.clone();
         match &self.kind {
             Kind::Create { fields, target } => {
-                let definition = definition(fields, target.as_ref(), cadence, None)?;
+                // A new chat needs a node-selected location. Opening an older edit
+                // still preserves its full stored spec, including legacy cwd.
+                let target = target
+                    .as_ref()
+                    .filter(|target| target.spec().place.is_some() || target.spec().cwd.is_some());
+                let definition = definition(fields, target, cadence, None)?;
                 super::check_definition(&definition).map_err(Issue::Edit)?;
                 Ok(Save::Create(CreateSchedule {
                     definition,

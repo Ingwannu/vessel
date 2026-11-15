@@ -198,6 +198,11 @@ impl Mailbox {
         self.0 = Outcome::Failed { request, failure };
         true
     }
+    /// An unresolved operation; presence of an old request alone is not pending.
+    #[must_use]
+    pub const fn pending(&self) -> bool {
+        matches!(self.0, Outcome::Waiting(_))
+    }
     /// The exact operation that owns the visible result, failure or spinner.
     #[must_use]
     pub const fn request(&self) -> Option<&Request> {

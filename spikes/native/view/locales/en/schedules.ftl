@@ -255,3 +255,6 @@ schedules-preview-out-of-range = The selected time is outside this machine’s s
 
 # Whole typed preview failure; never show wire message/Display.
 schedules-preview-unknown = Update the app to read this machine’s preview refusal.
+
+# Save waits for the exact current node preview, except an explicit older-node refusal.
+schedules-form-preview-required = Preview the current rule before saving.

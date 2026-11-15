@@ -566,3 +566,55 @@ strict sorted uniqueness; not executed yet. The form still must use the known
 viewer zone by default, preserve an opened rule zone even if absent from this
 app's older bundle, and offer explicit selection when the viewer is unknown.
 No preview/next_due is derived from this list; the node remains authoritative.
+
+
+## Form-visit transition skeleton (source only)
+
+[Decision Log]
+- Existing assets: typed Draft/Fields, the exact-envelope io::Mailbox, canonical
+  ConnectionContext, and the existing nonreusing Tickets issuer. No new engine,
+  transport pool, identity counter, model catalog or local cron projection.
+- Choice: editor::session owns Closed/ChoosingHost/Active. Each explicit form
+  open and create-host replacement gets one Visit. Four mailboxes retain exact
+  operation envelopes. Re-selecting the same admitted host preserves the visit;
+  switching hosts retains name/prompt/limit/cadence but clears target/options.
+- Why: widget identity alone does not identify a form visit. Every field/picker/
+  preview/save action checks its captured Visit before mutation or dispatch.
+  A submitted save blocks replacement/dismissal and duplicate dispatch; success
+  closes the model before the app can ACK its corresponding actual dialog close.
+  Connection retirement clears choices/preview, preserves a dispatched save as
+  Unconfirmed, and never installs a replacement context into the old visit.
+- Reference: pinned schedule-form-sheet.tsx316–399 (prepared target/submission),
+  467–537 (new-chat fields vs cadence-only recurring prompt),706 host selection.
+  Full opened SessionSpec/revision/unknown-unedited metadata remain preserved.
+  A create requires a node-listed ready project/location, not an implicit cwd.
+  Offered options use the existing Controls/Picks; model-category selection
+  replaces only that choice and its legacy model field, never unrelated data.
+- Deliberate safety behavior: exact node preview is required before save unless
+  that preview explicitly returned Older. Its resolved interval anchor is reused.
+  Invalid/stale/partial/other-method responses, changed candidates, Forbidden and
+  retired connections cannot authorize a write. No guessed next-run instants.
+- Tests added: old visit/host/context/reopen, ready/late preview, canonical anchor,
+  field/candidate changes, pending repeat/close, save success/uncertainty, physical
+  retirement, recurring-only edits, node-listed ready location, installed agent,
+  offered model/type/value and full spec preservation. These are source cases,
+  not executed results. New preview-required words are generated FTL EN/KO;
+  accepted cadence/edit errors remain in text/schedules.rs without duplication.
+
+Resume: this model is NOT yet wired to App's temporary mailbox, and no editor
+button/widget is exposed by this commit. App must also apply current Page's known
+scope/refusal evidence before dispatch. W4's isolated source FieldId producer is
+under source precheck with exact-head Clippy pending; reuse of a field across
+visits still needs captured original Visit plus current source identity. Its
+multiline opt-in is reserved here only after the checked producer handoff.
+
+The pure menu/control handoff remains historically SOURCE/Kit-narrow passed, but
+its old-render-A/new-open-B mutation is now an explicit P2 source return. S2 is
+sole menu engine writer for the opaque per-open admission correction; F1 must
+consume that reviewed correction, without an area close/focus workaround.
+Historical actual Linux focused-field F5 routing also remains unverified/held.
+
+Gauge/PackagePlus selected producer has since received bounded SOURCE/exact
+Kit-narrow pass (Clippy0;128/0/0). Consumers were handed only the two appended
+variants; newer inventories must be retained. Source librsvg comparisons are not
+native UI evidence. No unchanged Rust check is repeated for those reviewed blobs.
