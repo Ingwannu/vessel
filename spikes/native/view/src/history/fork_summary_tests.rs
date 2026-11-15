@@ -185,7 +185,7 @@ fn thoughts_logs_and_opaque_tool_arguments_are_excluded() {
 #[test]
 fn source_metadata_is_bounded_inside_the_same_total_budget() {
     let directory = "/".to_owned() + &"한".repeat(200_000);
-    let path = std::path::Path::new(&directory);
+    let path = Path::new(&directory);
     let source = SummarySource {
         directory: Some(path),
         ..metadata()

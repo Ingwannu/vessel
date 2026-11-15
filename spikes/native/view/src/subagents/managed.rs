@@ -35,7 +35,7 @@ pub enum TreeCoverage {
     /// Available rows only; consumers disclose that additional rows may exist.
     Partial,
 }
-/// W is W11's actual WorkspaceId at the caller, preserved without an alias.
+/// W is W11's actual `WorkspaceId` at the caller, preserved without an alias.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ManagedSnapshot<W> {
     /// Full node and managed-session identity, even across book aliases.

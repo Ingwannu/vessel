@@ -1,5 +1,5 @@
 //! Ephemeral draft-fork summary producer (Paseo activity-curator.ts:308-375).
-//! This owns no context store; W6's ChatHistory payload owns final draft intake.
+//! This owns no context store; W6's `ChatHistory` payload owns final draft intake.
 
 use crate::timeline::{Entry, EntryKey, EntryKind};
 use std::{borrow::Cow, path::Path};
@@ -84,7 +84,7 @@ pub struct ForkSummary {
     limited: bool,
 }
 impl ForkSummary {
-    /// Pass once to W6's validated ContextText at the composer intake boundary.
+    /// Pass once to W6's validated `ContextText` at the composer intake boundary.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.text
@@ -251,7 +251,7 @@ fn recent(rows: &[SummaryEntry<'_>], budget: usize, history: SummaryHistory) -> 
         let separator = usize::from(!selected.is_empty());
         let size = entry.units(remaining).saturating_add(separator);
         if size > remaining {
-            return omitted(selected, entry, remaining, budget, prefix);
+            return omitted(selected, &entry, remaining, budget, prefix);
         }
         remaining = remaining.saturating_sub(size);
         selected.push(entry.full());
@@ -265,7 +265,7 @@ fn recent(rows: &[SummaryEntry<'_>], budget: usize, history: SummaryHistory) -> 
 
 fn omitted(
     mut selected: Vec<String>,
-    entry: Activity<'_>,
+    entry: &Activity<'_>,
     mut remaining: usize,
     budget: usize,
     prefix: &str,
