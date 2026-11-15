@@ -152,7 +152,9 @@ remain after settle_settings; terminal implementation is unchanged.
 Coordinator ruling db62f27e explicitly required one additional whole native
 with priority and froze E4 on base4 through capture, review and handoff. No later
 base or node gate40 is consumed. The stale-copy fix is within this frozen base.
-The final executable-source commit is 50f0ee0bbd46bf75ae878e9e546d11a44c85e7b9.
+The captured executable-source commit is 50f0ee0bbd46bf75ae878e9e546d11a44c85e7b9.
+The reviewed correction source is 62eb56555f15300804b62f11e256d56fa0d6da79;
+its validation below is separate from the earlier binary and capture evidence.
 The prior base3 build was stopped only by its verified private process group.
 The final capture build acquired its ordinary slot before a separately approved
 one-build priority switch, so that local exception was never used.
@@ -245,7 +247,15 @@ These are changes on frozen base4. Prior1302/0/2 and the inspected ready-state
 layout matrix remain their original exact-source evidence, not a new-head gate
 or capture claim. The old extra running frame shows the pre-fix enabled Refresh
 and is superseded as behavior evidence by the new handler regression and draw
-predicate. Correction narrow outcomes are pending; review approval is pending.
+predicate. Correction validation passed on exact62eb56555f15300804b62f11e256d56fa0d6da79:
+wp-onboarding-narrow-20261115T113442Z-62eb5655, every selected step rc0
+(native-fonts, native-fmt, native-quality, native-clippy, native-test).
+The ten test-result groups sum to1304 passed /0 failed /2 ignored; both new
+Refresh and held-dispatch tests ran and passed, and view/link/app recompiled.
+Logs: /tmp/work/wp-onboarding/review-fix-testcfg-suite. This selection omits
+native-build and exports no binary: it is not another whole gate or new
+capture claim. No local Cargo/Rustc ran during this correction. V4 approval
+is pending on the same row173.
 
 Correction validation checkpoint: exact64c44a435 remote format/quality passed,
 but Clippy rejected unchecked Duration addition in the new test. Tests did not
