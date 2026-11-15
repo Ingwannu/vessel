@@ -675,3 +675,46 @@ What this decision does not do: link `sherpa-onnx`, download a model,
 open a microphone, implement voice mode (including its confidence
 flag), or choose the protocol number. The integrator sets
 `dictation::SINCE`.
+
+### Shared speech codec extraction (proposed)
+
+Purpose and intent: dictation and spoken conversation need the same mono PCM16
+conversion and RIFF framing, without sharing segmentation or recognition policy.
+The existing integer converter and WAV encoder already have synthetic source
+fixtures. ADR 0080's capture packet can borrow its samples at this boundary.
+
+Existing implementation and constraints: Paseo's agent/pcm16-resampler.ts keeps
+one carry sample and floating phase, with Math.round output; openai/stt.ts72 and
+80–104 require the provider rate and define its WAV. Dictation's integer phase
+and limited fixture differences remain as stated above. Recording and segment
+limits, silence, prompts and multipart metadata are caller policies.
+
+Alternatives considered: copying either converter would make fixes drift. Making
+voice use DictationPcm would introduce a redundant domain conversion. A new audio
+framework would add dependency size and platform work without replacing policy.
+
+Choice: a node speech_audio module owns an aligned borrowed PCM16 view, the
+existing fixed-provider-rate resampler, a redacted provider PCM result, and a
+borrowed WAV header/body view. SampleRate remains the one parsed rate type; its
+named transcription constant owns the provider rate once. Matching-rate output
+borrows the input rather than allocating another audio buffer. Converted output
+owns Bytes, and carries no earlier chunk's allocation. WAV appends to the caller's
+body after checked RIFF fields and a successful reservation, avoiding another
+copy of the complete audio. Typed errors retain numeric, allocation and header
+causes without samples. Empty codec output is permitted; nonempty capture and
+silence decisions stay with their feature owners.
+
+Why this and not the alternatives: both consumers share the algorithm and format
+while their resource and speech policies remain independent. The borrowed view
+accepts an already validated capture buffer without copying it into a dictation
+wire value. Checked allocation adds a typed refusal where allocation could fail;
+no successful waveform or WAV layout changes. No dependency or protocol number
+is introduced. Pure Rust and explicit little-endian conversions use the same
+path on Linux, Windows and macOS.
+
+Advantages, costs and effects: the shared module is initially staged under a test
+gate until its first real consumer wires it into the product. It contains no
+SegmentBuffer, silence threshold, prompt, HTTP or multipart metadata. Consumers
+own all recording/append limits. Its synthetic fixtures establish chunking,
+counts, signed-extreme rounding tolerance, WAV fields and refusal before body
+mutation; they do not establish recognition quality or real provider operation.
