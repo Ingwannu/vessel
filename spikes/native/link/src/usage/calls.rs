@@ -67,9 +67,17 @@ fn deadline(ask: &Ask) -> Duration {
 
 async fn execute(client: &NodeClient, ask: Ask) -> Answer {
     match ask {
-        Ask::Accounts { request, refresh } => {
+        Ask::Accounts {
+            surface,
+            request,
+            refresh,
+        } => {
             let result = inventory(client, refresh.as_ref()).await;
-            Answer::Accounts { request, result }
+            Answer::Accounts {
+                surface,
+                request,
+                result,
+            }
         }
         Ask::Ledger(request) => {
             let period = match request.selection.range {

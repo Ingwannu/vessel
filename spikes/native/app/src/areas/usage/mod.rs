@@ -1,9 +1,13 @@
 //! Settings Usage owns UI lifetime only; pure rules and source facts stay in view.
 mod accounts;
 mod actions;
+mod answers;
+mod sidebar;
+pub(crate) use sidebar::sidebar_summary;
 mod draw;
 mod ledger;
 mod modal;
+mod pins;
 mod rows;
 mod session;
 mod windows;
@@ -43,6 +47,8 @@ pub(crate) struct State {
     pub(super) session_owner: Option<vessel_proto::SessionId>,
     pub(super) session_epoch: Option<vessel_proto::EventSeq>,
     pub(super) ledger: Reader<LedgerSelection, UsageReport>,
+    pub(super) summary: Reader<MachineKey, Inventory>,
+    pub(super) summary_place: vessel_app_kit::select::Anchor,
     pub(super) inventory: Reader<MachineKey, Inventory>,
     pub(super) refresh_account: Option<LimitAccount>,
     pub(super) policy_pending: Option<PolicyPending>,
@@ -66,6 +72,8 @@ impl State {
             session_owner: None,
             session_epoch: None,
             ledger: Reader::default(),
+            summary: Reader::default(),
+            summary_place: vessel_app_kit::select::Anchor::default(),
             inventory: Reader::default(),
             refresh_account: None,
             policy_pending: None,

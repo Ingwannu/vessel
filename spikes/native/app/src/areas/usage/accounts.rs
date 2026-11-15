@@ -70,6 +70,7 @@ fn policy(
     let text = shell.words.usage();
     let state = &shell.areas.usage;
     let enabled = state.policy_pending.is_none();
+    let machine = state.inventory.selection().cloned();
     let action = policy.map(|policy| {
         let (next, label) = match policy {
             ExternalLookup::Off => (ExternalLookup::On, text.enable_lookup()),
@@ -79,7 +80,9 @@ fn policy(
             .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
             .when(enabled, |button| {
                 button.on_click(cx.listener(move |shell, _, _, cx| {
-                    shell.usage_set_policy(next);
+                    if let Some(machine) = &machine {
+                        shell.usage_set_policy(machine.clone(), next);
+                    }
                     cx.notify();
                 }))
             })
@@ -156,10 +159,9 @@ fn account_card(
                 }
                 let facts = quota_facts(limits, snapshot, shell.words);
                 body = body.child(draw::facts(facts, density, tokens)).children(
-                    snapshot
-                        .windows
-                        .iter()
-                        .map(|window| super::windows::draw(shell, window, tokens)),
+                    snapshot.windows.iter().map(|window| {
+                        super::windows::draw(shell, window, Some(account), tokens, cx)
+                    }),
                 );
                 let at = timestamp(snapshot.at, state.offset, shell.words);
                 let freshness = text.refreshed_at(&at).unwrap_or(at);
@@ -174,6 +176,7 @@ fn account_card(
         }
     }
     let binding = account_binding(account);
+    let machine = state.inventory.selection().cloned();
     let refresh = outline_button(
         vessel_app_kit::ui::SharedString::from(format!(
             "usage-account-refresh-{}-{}",
@@ -187,7 +190,9 @@ fn account_card(
     .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
     .when(enabled, |button| {
         button.on_click(cx.listener(move |shell, _, _, cx| {
-            shell.usage_refresh_account(binding.clone());
+            if let Some(machine) = &machine {
+                shell.usage_refresh_account(machine.clone(), binding.clone());
+            }
             cx.notify();
         }))
     });

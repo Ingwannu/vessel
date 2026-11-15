@@ -1,0 +1,137 @@
+//! Every reader settles only its own surface, selection and non-reused ticket.
+use crate::shell::Shell;
+use vessel_app_kit::ui::Context;
+use vessel_app_link::{
+    Command,
+    usage::{Answer, Ask},
+};
+use vessel_app_view::{
+    devices::{MachineKey, Target, Ticket},
+    usage::{Inventory, InventorySurface, ReadRequest, RequestFailure},
+};
+use vessel_proto::limits::{ExternalLookup, LimitRefresh};
+impl Shell {
+    pub(crate) fn usage_answer(&mut self, answer: Answer, _cx: &mut Context<'_, Self>) {
+        let next = match answer {
+            Answer::Connected { machine, node: _ } => {
+                self.usage_connected(&machine);
+                None
+            }
+            Answer::Accounts {
+                surface,
+                request,
+                result,
+            } => {
+                self.usage_accounts_answer(surface, request, result);
+                None
+            }
+            Answer::Ledger { request, result } => self
+                .areas
+                .usage
+                .ledger
+                .answer(request.ticket, result)
+                .map(Ask::Ledger),
+            Answer::Lookup {
+                machine,
+                ticket,
+                result,
+            } => {
+                self.usage_policy_answer(machine, ticket, result);
+                None
+            }
+            Answer::Session { request, result } => self
+                .areas
+                .usage
+                .session
+                .answer(request.ticket, result)
+                .map(|request| Ask::Session {
+                    request,
+                    refresh: LimitRefresh::Cached,
+                }),
+        };
+        if let Some(ask) = next {
+            self.command(Command::Usage(ask));
+        }
+    }
+    fn usage_connected(&mut self, machine: &MachineKey) {
+        let state = &mut self.areas.usage;
+        if state.inventory.selection() == Some(machine) {
+            state.inventory.close();
+            state.ledger.close();
+        }
+        if state.summary.selection() == Some(machine) {
+            state.summary.close();
+        }
+        if state
+            .session
+            .selection()
+            .is_some_and(|selected| &selected.machine == machine)
+        {
+            state.session.close();
+        }
+    }
+    fn usage_accounts_answer(
+        &mut self,
+        surface: InventorySurface,
+        request: ReadRequest<MachineKey>,
+        result: Result<Inventory, RequestFailure>,
+    ) {
+        let machine = request.selection;
+        let state = &mut self.areas.usage;
+        let next = match surface {
+            InventorySurface::Accounts => {
+                state
+                    .inventory
+                    .answer(request.ticket, result)
+                    .map(|request| Ask::Accounts {
+                        surface,
+                        request,
+                        refresh: state.refresh_account.take(),
+                    })
+            }
+            InventorySurface::Summary => {
+                state
+                    .summary
+                    .answer(request.ticket, result)
+                    .map(|request| Ask::Accounts {
+                        surface,
+                        request,
+                        refresh: None,
+                    })
+            }
+        };
+        if let Some(ask) = next {
+            self.command(Command::Usage(ask));
+        }
+        if surface == InventorySurface::Accounts {
+            self.refresh_usage_summary(&machine);
+        }
+    }
+    fn usage_policy_answer(
+        &mut self,
+        machine: MachineKey,
+        ticket: Ticket,
+        result: Result<ExternalLookup, RequestFailure>,
+    ) {
+        let state = &mut self.areas.usage;
+        let Some(pending) = &state.policy_pending else {
+            return;
+        };
+        if pending.machine != machine || pending.ticket != ticket {
+            return;
+        }
+        let problem = match result {
+            Ok(policy) if policy == pending.policy => None,
+            Ok(_) => Some(RequestFailure::InvalidReply),
+            Err(reason) => Some(reason),
+        };
+        state.policy_error = if matches!(&state.target,Target::Online(current) if current==&machine)
+        {
+            problem
+        } else {
+            None
+        };
+        state.policy_pending = None;
+        self.usage_accounts(None);
+    }
+}

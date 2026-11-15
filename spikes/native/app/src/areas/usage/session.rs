@@ -43,6 +43,15 @@ impl Shell {
                 session: open.session,
                 binding: self.areas.usage.session_epoch,
             });
+        if selected.as_ref().is_some_and(|selected| {
+            self.areas
+                .usage
+                .policy_pending
+                .as_ref()
+                .is_some_and(|pending| pending.machine == selected.machine)
+        }) {
+            return;
+        }
         let reader = &mut self.areas.usage.session;
         if selected.as_ref() == reader.selection() {
             return;
@@ -80,8 +89,11 @@ impl Shell {
             self.areas.usage.session.close();
         }
     }
-    fn usage_refresh_session(&mut self) {
+    fn usage_refresh_session(&mut self, expected: SessionSelection) {
         let reader = &mut self.areas.usage.session;
+        if reader.selection() != Some(&expected) {
+            return;
+        }
         let Some(selected) = reader.selection().cloned() else {
             return;
         };
@@ -145,17 +157,20 @@ pub(crate) fn session_card(
                 snapshot
                     .windows
                     .iter()
-                    .map(|window| super::windows::draw(shell, window, tokens)),
+                    .map(|window| super::windows::draw(shell, window, None, tokens, cx)),
             );
     }
+    let selection = state.session.selection().cloned();
     let enabled = !matches!(state.session.phase(), Phase::Loading { .. });
     Some(
         card.child(
             outline_button("usage-session-refresh", text.refresh(), enabled, tokens).when(
                 enabled,
                 |button| {
-                    button.on_click(cx.listener(|shell, _, _, cx| {
-                        shell.usage_refresh_session();
+                    button.on_click(cx.listener(move |shell, _, _, cx| {
+                        if let Some(selection) = &selection {
+                            shell.usage_refresh_session(selection.clone());
+                        }
                         cx.notify();
                     }))
                 },

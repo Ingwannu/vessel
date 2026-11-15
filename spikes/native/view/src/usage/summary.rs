@@ -30,9 +30,16 @@ pub struct SummaryAccount<S, W> {
     /// Source report order is preserved.
     pub windows: Vec<SummaryWindow<W>>,
 }
+/// A report's position in one snapshot, used only to keep visual account groups.
+/// It is never persisted, sent to a node, or treated as an account identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SummaryGroup(usize);
+
 /// The exact values selected for one line's rendering.
 #[derive(Debug)]
 pub struct PinnedWindow<'a, S, W> {
+    /// Visual grouping within the currently borrowed report list.
+    pub group: SummaryGroup,
     /// Source whose identity groups accounts.
     pub source: &'a S,
     /// Source window metadata.
@@ -90,9 +97,10 @@ pub fn pinned_windows<'a, S: Clone + Eq, W: Clone + Eq>(
         .flat_map(|source| {
             reports
                 .iter()
-                .filter(move |report| &report.source == source)
+                .enumerate()
+                .filter(move |(_, report)| &report.source == source)
         })
-        .flat_map(|report| {
+        .flat_map(|(index, report)| {
             report.windows.iter().filter_map(move |window| {
                 let pinned = effective
                     .iter()
@@ -101,6 +109,7 @@ pub fn pinned_windows<'a, S: Clone + Eq, W: Clone + Eq>(
                     .then(|| window.percentage(display))
                     .flatten()
                     .map(|percent| PinnedWindow {
+                        group: SummaryGroup(index),
                         source: &report.source,
                         window,
                         percent,

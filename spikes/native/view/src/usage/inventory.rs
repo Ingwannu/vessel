@@ -40,3 +40,12 @@ pub fn account_binding(account: &Account) -> LimitAccount {
         profile: Some(account.profile().clone()),
     }
 }
+
+/// Independent UI lifetimes cannot consume one another's equal-valued tickets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InventorySurface {
+    /// Settings and the shared Usage modal.
+    Accounts,
+    /// The optional pinned summary, whose host may differ from Settings.
+    Summary,
+}

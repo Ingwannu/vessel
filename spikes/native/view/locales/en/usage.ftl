@@ -194,3 +194,13 @@ usage-host = Host
 usage-no-hosts = No connected hosts.
 # Settings opens the shared host-filtered usage modal.
 usage-open-modal = Open usage
+# Usage summary short window labels or pinning controls.
+usage-short-five-hour = 5h
+# Usage summary short window labels or pinning controls.
+usage-short-weekly = wk
+# Usage summary short window labels or pinning controls.
+usage-show-sidebar = Show in sidebar
+# Usage summary short window labels or pinning controls.
+usage-pin = Pin window
+# Usage summary short window labels or pinning controls.
+usage-unpin = Unpin window

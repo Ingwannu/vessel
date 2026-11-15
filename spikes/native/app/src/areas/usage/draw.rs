@@ -208,13 +208,28 @@ pub(super) fn display_controls(
             })),
         );
     }
-    settings::row_at(
-        text.display(),
-        None,
-        None,
-        Some(choices.into_any_element()),
-        false,
-        compact,
-        tokens,
-    )
+    let shown = super::sidebar::visible(shell);
+    let visibility = settings::switch("usage-show-sidebar", shown, true, compact, 0, tokens)
+        .on_click(
+            cx.listener(move |shell, _, window, cx| shell.usage_show_sidebar(!shown, window, cx)),
+        );
+    div()
+        .child(settings::row_at(
+            text.show_sidebar(),
+            None,
+            None,
+            Some(visibility.into_any_element()),
+            false,
+            compact,
+            tokens,
+        ))
+        .child(settings::row_at(
+            text.display(),
+            None,
+            None,
+            Some(choices.into_any_element()),
+            false,
+            compact,
+            tokens,
+        ))
 }

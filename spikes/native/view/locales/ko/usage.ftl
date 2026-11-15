@@ -194,3 +194,13 @@ usage-host = 호스트
 usage-no-hosts = 연결된 호스트가 없습니다.
 # Settings opens the shared host-filtered usage modal.
 usage-open-modal = 사용량 열기
+# Usage summary short window labels or pinning controls.
+usage-short-five-hour = 5시간
+# Usage summary short window labels or pinning controls.
+usage-short-weekly = 주간
+# Usage summary short window labels or pinning controls.
+usage-show-sidebar = 사이드바에 표시
+# Usage summary short window labels or pinning controls.
+usage-pin = 기간 고정
+# Usage summary short window labels or pinning controls.
+usage-unpin = 기간 고정 해제

@@ -8,13 +8,20 @@ fn queue_refusals_preserve_the_exact_inventory_lifetime() {
     let machine = MachineKey::from_book("test-machine");
     let request = state.request(machine.clone()).unwrap();
     let expected = request.ticket;
-    let Answer::Accounts { request, result } = Ask::Accounts {
+    let Answer::Accounts {
+        surface,
+        request,
+        result,
+    } = Ask::Accounts {
+        surface: InventorySurface::Accounts,
         request,
         refresh: None,
     }
-    .refused(RequestFailure::Busy) else {
+    .refused(RequestFailure::Busy)
+    else {
         panic!("inventory reply")
     };
+    assert_eq!(surface, InventorySurface::Accounts);
     assert_eq!(request.ticket, expected);
     assert_eq!(request.selection, machine);
     assert!(result.is_err());

@@ -1,7 +1,7 @@
 //! Correlated usage operations carry source facts and sanitized errors only.
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::usage::{
-    Inventory, LedgerSelection, ReadRequest, RequestFailure, SessionSelection,
+    Inventory, InventorySurface, LedgerSelection, ReadRequest, RequestFailure, SessionSelection,
 };
 use vessel_proto::{
     limits::{ExternalLookup, LimitAccount, LimitRefresh, UsageLimits},
@@ -13,6 +13,8 @@ use vessel_proto::{
 pub enum Ask {
     /// Configured accounts and independent cached limits; only an explicit target refreshes.
     Accounts {
+        /// Independent consumer lifetime.
+        surface: InventorySurface,
         /// Machine and read lifetime.
         request: ReadRequest<MachineKey>,
         /// Exact configured binding explicitly selected for a vendor refresh.
@@ -50,6 +52,8 @@ pub enum Answer {
     },
     /// Whole configured inventory; individual accounts may have failed independently.
     Accounts {
+        /// Independent consumer lifetime.
+        surface: InventorySurface,
         /// Original machine and lifetime.
         request: ReadRequest<MachineKey>,
         /// Cache-only account outcomes, or an inventory read failure.
@@ -84,7 +88,10 @@ impl Ask {
     #[must_use]
     pub fn refused(self, reason: RequestFailure) -> Answer {
         match self {
-            Self::Accounts { request, .. } => Answer::Accounts {
+            Self::Accounts {
+                surface, request, ..
+            } => Answer::Accounts {
+                surface,
                 request,
                 result: Err(reason),
             },

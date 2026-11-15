@@ -25,7 +25,7 @@ pub use report::{ReportFact, coverage_facts, partial_report, total_facts};
 mod limits;
 pub use limits::{LimitStatus, LimitView, limit_failure, limit_view};
 mod inventory;
-pub use inventory::{AccountReport, Inventory, account_binding};
+pub use inventory::{AccountReport, Inventory, InventorySurface, account_binding};
 
 mod session;
 pub use session::{SessionSelection, binding_epoch};
@@ -34,7 +34,9 @@ mod quota;
 pub use quota::{quota_facts, reset_label, window_label};
 
 mod summary;
-pub use summary::{PinnedWindow, SummaryAccount, SummaryWindow, default_pins, pinned_windows};
+pub use summary::{
+    PinnedWindow, SummaryAccount, SummaryGroup, SummaryWindow, default_pins, pinned_windows,
+};
 
 mod summary_layout;
 pub use summary_layout::{

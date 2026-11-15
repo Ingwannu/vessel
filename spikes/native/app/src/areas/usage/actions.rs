@@ -1,22 +1,20 @@
 //! One UI lifetime owns cached reads; only explicit actions request external work.
 use super::{PolicyPending, State};
 use crate::{routes::Route, shell::Shell};
-use vessel_app_kit::ui::{Context, Window};
-use vessel_app_link::{
-    Command,
-    usage::{Answer, Ask},
-};
+use vessel_app_kit::ui::Window;
+use vessel_app_link::{Command, usage::Ask};
 use vessel_app_view::{
     Reach,
     devices::{MachineKey, Target},
     settings::Section,
-    usage::{LedgerSelection, Range, RequestFailure},
+    usage::{InventorySurface, LedgerSelection, Range, RequestFailure},
 };
 use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
 impl Shell {
     pub(crate) fn settle_usage(&mut self, window: &Window) {
         self.settle_session_usage();
+        self.settle_summary_usage();
         let visible = self.route == Route::Settings
             && self.areas.settings.section == Section::Usage
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
@@ -79,7 +77,7 @@ impl Shell {
             self.command(Command::Usage(Ask::Ledger(request)));
         }
     }
-    fn usage_accounts(&mut self, refresh: Option<LimitAccount>) {
+    pub(super) fn usage_accounts(&mut self, refresh: Option<LimitAccount>) {
         let state = &mut self.areas.usage;
         let Target::Online(machine) = &state.target else {
             return;
@@ -87,13 +85,20 @@ impl Shell {
         state.refresh_account = refresh;
         if let Some(request) = state.inventory.request(machine.clone()) {
             let refresh = state.refresh_account.take();
-            self.command(Command::Usage(Ask::Accounts { request, refresh }));
+            self.command(Command::Usage(Ask::Accounts {
+                surface: InventorySurface::Accounts,
+                request,
+                refresh,
+            }));
         }
     }
-    pub(crate) fn usage_refresh_account(&mut self, account: LimitAccount) {
+    pub(crate) fn usage_refresh_account(&mut self, machine: MachineKey, account: LimitAccount) {
+        if !matches!(&self.areas.usage.target,Target::Online(current) if current==&machine) {
+            return;
+        }
         self.usage_accounts(Some(account));
     }
-    pub(crate) fn usage_set_policy(&mut self, policy: ExternalLookup) {
+    pub(crate) fn usage_set_policy(&mut self, expected: MachineKey, policy: ExternalLookup) {
         let state = &mut self.areas.usage;
         if state.policy_pending.is_some() {
             return;
@@ -101,6 +106,9 @@ impl Shell {
         let Target::Online(machine) = &state.target else {
             return;
         };
+        if machine != &expected {
+            return;
+        }
         let Ok(ticket) = state.tickets.next_ticket() else {
             state.policy_error = Some(RequestFailure::Exhausted);
             return;
@@ -109,6 +117,7 @@ impl Shell {
         // Disabling immediately revokes old snapshots' publishing rights in this UI.
         state.inventory.close();
         state.session.close();
+        state.summary.close();
         state.policy_error = None;
         state.policy_pending = Some(PolicyPending {
             ticket,
@@ -121,73 +130,12 @@ impl Shell {
             policy,
         }));
     }
-    pub(crate) fn usage_answer(&mut self, answer: Answer, _cx: &mut Context<'_, Self>) {
-        let state = &mut self.areas.usage;
-        let next = match answer {
-            Answer::Connected { machine, node: _ } => {
-                if state.inventory.selection() == Some(&machine) {
-                    state.inventory.close();
-                    state.ledger.close();
-                }
-                if state
-                    .session
-                    .selection()
-                    .is_some_and(|selected| selected.machine == machine)
-                {
-                    state.session.close();
-                }
-                return;
-            }
-            Answer::Accounts { request, result } => state
-                .inventory
-                .answer(request.ticket, result)
-                .map(|request| Ask::Accounts {
-                    request,
-                    refresh: state.refresh_account.take(),
-                }),
-            Answer::Ledger { request, result } => {
-                state.ledger.answer(request.ticket, result).map(Ask::Ledger)
-            }
-            Answer::Lookup {
-                machine,
-                ticket,
-                result,
-            } => {
-                let Some(pending) = &state.policy_pending else {
-                    return;
-                };
-                if pending.machine != machine || pending.ticket != ticket {
-                    return;
-                }
-                state.policy_error = match result {
-                    Ok(policy) if policy == pending.policy => None,
-                    Ok(_) => Some(RequestFailure::InvalidReply),
-                    Err(reason) => Some(reason),
-                };
-                state.policy_pending = None;
-                // Even an uncertain mutation must be reread, never retried automatically.
-                self.usage_accounts(None);
-                return;
-            }
-            Answer::Session { request, result } => state
-                .session
-                .answer(request.ticket, result)
-                .map(|request| Ask::Session {
-                    request,
-                    refresh: vessel_proto::limits::LimitRefresh::Cached,
-                }),
-        };
-        if let Some(ask) = next {
-            self.command(Command::Usage(ask));
-        }
-    }
 }
 impl State {
     fn close(&mut self) {
         self.ledger.close();
         self.inventory.close();
         self.refresh_account = None;
-        self.policy_pending = None;
         self.policy_error = None;
     }
 }

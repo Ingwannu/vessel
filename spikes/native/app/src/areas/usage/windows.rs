@@ -1,15 +1,26 @@
 //! Every independent allowance gets one shared kit meter and its actual reset.
 use crate::shell::Shell;
-use vessel_app_kit::ui::{Div, ParentElement as _, Styled as _, div, px};
+use vessel_app_kit::ui::{
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, div, px,
+};
 use vessel_app_kit::{
     Tokens, Type, TypeExt as _,
     theme::spacing,
     usage_meter::{self, Appearance, Share},
 };
-use vessel_app_view::usage::{DisplayPercent, reset_label, window_label};
+use vessel_app_view::usage::{
+    Account, DisplayPercent, Pin, default_pins, reset_label, window_label,
+};
 use vessel_proto::{conversation::FiniteNumber, limits::LimitWindow};
 
-pub(super) fn draw(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> Div {
+pub(super) fn draw(
+    shell: &Shell,
+    window: &LimitWindow,
+    account: Option<&Account>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let text = shell.words.usage();
     let state = &shell.areas.usage;
     let used = window.used.and_then(|value| FiniteNumber::new(value.get()));
@@ -34,7 +45,7 @@ pub(super) fn draw(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> Div 
         vessel_app_view::usage::Tone::Warning => usage_meter::Tone::Warning,
         vessel_app_view::usage::Tone::Danger => usage_meter::Tone::Danger,
     };
-    div()
+    let body = div()
         .w_full()
         .min_w_0()
         .flex()
@@ -68,5 +79,43 @@ pub(super) fn draw(shell: &Shell, window: &LimitWindow, tokens: &Tokens) -> Div 
                     chrono::Utc::now(),
                     shell.words,
                 )),
-        )
+        );
+    let Some(account) = account.filter(|_| super::sidebar::visible(shell)) else {
+        return body.into_any_element();
+    };
+    let Some(machine) = state.inventory.selection().cloned() else {
+        return body.into_any_element();
+    };
+    let pin = Pin {
+        source: account.harness().clone(),
+        window: window.id.clone(),
+    };
+    let defaults = state
+        .inventory
+        .phase()
+        .observation()
+        .map(|inventory| default_pins(&super::sidebar::candidates(inventory, shell.words)))
+        .unwrap_or_default();
+    let selected = shell.prefs.settings.usage.pins.contains(&pin, &defaults);
+    let id = vessel_app_kit::ui::SharedString::from(format!(
+        "usage-pin-{}-{}-{}",
+        account.harness(),
+        account.profile(),
+        window.id
+    ));
+    body.id(id)
+        .cursor_pointer()
+        .child(vessel_app_kit::glyph(
+            vessel_app_kit::assets::Glyph::Pin,
+            14.0,
+            if selected {
+                tokens.neutral.foreground
+            } else {
+                tokens.neutral.foreground_muted
+            },
+        ))
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            shell.usage_toggle_pin(machine.clone(), pin.clone(), window, cx)
+        }))
+        .into_any_element()
 }
