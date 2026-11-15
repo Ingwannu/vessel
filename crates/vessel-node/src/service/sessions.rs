@@ -156,6 +156,7 @@ impl NodeService {
             options.questions = false;
             options.notices.push(line);
         }
+        options.title_origin = title_origin(&spec, origin.as_ref(), fork.as_ref());
         // An import says where it came from; otherwise the launcher's
         // (a call delivered from another node records `remote`).
         if origin.is_some() {
@@ -296,5 +297,21 @@ impl NodeService {
             .await
             .map(|()| Ack)
             .map_err(|error| wire(&error.into()))
+    }
+}
+
+/// A copied specification cannot attest who wrote its title. Locally
+/// derived side/fork names remain given; explicit names (including a
+/// person's schedule name) keep `SessionInfo`'s typed default.
+fn title_origin(
+    spec: &SessionSpec,
+    origin: Option<&SessionOrigin>,
+    fork: Option<&vessel_session::ForkStart>,
+) -> Option<vessel_proto::TitleOrigin> {
+    match origin {
+        Some(SessionOrigin::Imported { .. }) => Some(vessel_proto::TitleOrigin::Unknown),
+        Some(SessionOrigin::Remote { .. }) | None => (spec.side_question_of.is_some()
+            || fork.is_some())
+        .then_some(vessel_proto::TitleOrigin::Given),
     }
 }

@@ -47,6 +47,20 @@ pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
     Ok(())
 }
 
+/// A rollback fixture targets the inbox entry, independent of later appends.
+/// Only tests may rewind; production migration stays forward-only.
+#[cfg(test)]
+pub(crate) fn replay_inbox_after_rollback(connection: &mut Connection) {
+    let before = MIGRATIONS
+        .iter()
+        .position(|migration| *migration == INBOX)
+        .unwrap();
+    connection
+        .pragma_update(None, "user_version", i64::try_from(before).unwrap())
+        .unwrap();
+    migrate(connection).unwrap();
+}
+
 /// Settings every connection needs.
 pub(crate) fn configure(connection: &Connection) -> Result<(), StoreError> {
     // Wait for a lock instead of failing at once; only the checkpoint and

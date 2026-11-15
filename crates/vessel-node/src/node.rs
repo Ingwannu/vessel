@@ -18,7 +18,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
@@ -52,8 +52,10 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
-mod launch_setup;
-use launch_setup::{SessionSetup, SetupDirs};
+mod runtime;
+mod setup;
+
+use self::setup::{SessionSetup, SetupDirs};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -337,7 +339,7 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone());
+    let runtime = runtime::open(config, loader, setup.private_dir.clone());
     let stop = CancellationToken::new();
     let tasks = TaskTracker::new();
     // A value saved with `node.set_settings` wins over `--park-after`
@@ -482,26 +484,10 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let push = crate::push::Push::new(store.clone(), config.data_dir.clone());
-    #[cfg(test)]
-    let push = if let Some(origin) = &config.push_test_origin {
-        push.test_at(origin.clone())
-    } else {
-        push
-    };
-    #[cfg(test)]
-    let push = push.pausing_at(config.push_preparation.clone());
-    let push = Arc::new(push);
-    crate::push::start(Arc::clone(&push), &tasks, stop.clone())
+    let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
         .await
         .map_err(NodeError::Store)?;
-    let limits = crate::limits::Limits::start(
-        config.data_dir.clone(),
-        config.limits.clone(),
-        stop.clone(),
-        &tasks,
-    )
-    .await;
+    let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -556,27 +542,6 @@ async fn core(
         service,
         relays,
     })
-}
-
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
-    Arc::new(
-        SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: config.harness_lookup.clone(),
-                harness_env: config.harness_env.clone(),
-                ring_capacity: config.ring_capacity,
-                durable_capacity: config.durable_capacity,
-                agent_handshake_timeout: config.agent_handshake_timeout,
-                park_after: config.park_after,
-                private_dir: Some(private_dir),
-            },
-            CancellationToken::new(),
-        )
-        .with_attachments(loader),
-    )
 }
 
 /// How many prompts' attachment loads may wait for the node's loader; a

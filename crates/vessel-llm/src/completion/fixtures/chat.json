@@ -1,0 +1,21 @@
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "answer"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 17,
+    "completion_tokens": 7,
+    "prompt_tokens_details": {
+      "cached_tokens": 3
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 2
+    }
+  }
+}

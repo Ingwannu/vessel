@@ -26,6 +26,7 @@
 //! - [`error`]: what translation refuses, and what it leaves out.
 
 pub mod client;
+pub mod completion;
 pub mod error;
 #[cfg(test)]
 mod fixtures;

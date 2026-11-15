@@ -1,9 +1,6 @@
 //! Append-only recovery projection; existing sessions start ineligible.
 //! The migration number is provisional and assigned finally by integration.
 
-/// One schema fact; the migration table's array length checks its position.
-pub(super) const RESTART_SCHEMA: usize = super::migrations::LABELS_SCHEMA.saturating_add(1);
-
 /// Bounded per-session state and indexed pending/active timestamps.
 pub(super) const RESTART: &str = "
 CREATE TABLE restart_control (

@@ -40,12 +40,18 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
         )
         .await
         .unwrap();
-        let first = GetNodeSettings {}.into_call().since();
+        let first = GetNodeSettings {}
+            .into_call()
+            .since()
+            .expect("ordinary settings reads remain assigned");
         for version in first.get()..=vessel_proto::PROTOCOL_VERSION.get() {
             let version = ProtocolVersion::new(version);
             let mut socket = raw_owner(&data, &node, version).await;
             for (id, call) in ordinary_calls() {
-                if call.since() > version {
+                let required = call
+                    .since()
+                    .expect("ordinary settings calls remain assigned");
+                if required > version {
                     continue;
                 }
                 assert_hidden_reply(&mut socket, id, call).await;

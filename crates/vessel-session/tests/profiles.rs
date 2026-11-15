@@ -738,6 +738,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             // The runtime follows the node's choice, whoever created it.
             questions: false,
             fork: None,
+            title_origin: None,
         };
         let created = fixture
             .create(structured(None), options.clone())

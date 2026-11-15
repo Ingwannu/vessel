@@ -1,22 +1,25 @@
-//! Prepared directories and profile/model ingredients shared by session launches.
-//! Owns binding the existing launch seam once; it must not start transports or sessions.
+//! What sessions are created with, prepared once at node start: the
+//! node's profiles, the model routes, the launch seam and the directories
+//! sessions and probes use. Moved out of `node.rs` unchanged (Quality B),
+//! which assembles the node from it.
+
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use vessel_proto::NodeId;
+
 use crate::config::Config;
 use crate::fleet::FleetMcp;
 use crate::ipc::Endpoint;
 use crate::models::Models;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::{AgentTools, Launcher, McpSource};
-use std::path::PathBuf;
-use std::sync::Arc;
-use vessel_proto::NodeId;
 
 /// What sessions are created with: the node's profiles and the launch seam.
 pub(super) struct SessionSetup {
-    /// Profiles available to every ordinary session launch.
     pub(super) profiles: Arc<NodeProfiles>,
     /// The model routes and the proxy's tokens (ADR 0015).
     pub(super) models: Arc<Models>,
-    /// The existing harness-specific launch boundary.
     pub(super) launcher: Launcher,
     /// The fleet's MCP servers, which the fleet loop keeps current and the
     /// launcher asks for.
@@ -44,7 +47,6 @@ pub(super) struct SetupDirs {
 }
 
 impl SessionSetup {
-    /// Bind prepared paths to the profile/model launch seam without starting a transport.
     pub(super) fn new(
         config: &Config,
         id: NodeId,

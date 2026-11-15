@@ -262,3 +262,39 @@ and fixture fixes, point RESTART_SCHEMA to its newest fact plus one, adapt
 only this track's callers to Option-returning since(), and run remote narrow
 checks. The recovery service/Off cleanup/fresh grant admissions and process
 restart tests still follow; no new request field or CLI is registered yet.
+
+## Quality B merge before continued filling
+
+The coherent journal candidate is `d42fd02f`. Announced node `29eebb8b` is
+merged at that clean boundary, bringing Quality B, the title-origin migration
+and upstream labels/inbox fixture fixes. The head's protocol remains its
+named constant; the recovery feature remains Option None. New field rules
+can now use the canonical Option-returning since() boundary. The only current
+caller adaptation is this track's ordinary raw-settings fixture requiring
+Some for assigned existing calls; it never substitutes a protocol for None.
+
+Conflict resolution:
+
+- node.rs: retain the head's setup module, remove the duplicate launch_setup
+  extraction and preserve the shared settings opening/drain. Extract only
+  the unchanged runtime binding to node/runtime.rs to honor the smaller head
+  budget; the record shrinks again.
+- session/handle.rs: retain the head's title module and exports, add the
+  checkpoint/stop interfaces beside them.
+- session/lib.rs: retain TitleUpdate and every head export, add only the
+  journal/stop/prepared-resume interfaces.
+- schema/migrations.rs: retain every head entry and SQL byte for byte; append
+  only recovery after title origin. The sole recovery schema fact now lives
+  beside the head fact and derives from it, so its predecessor stays private.
+- ARCHITECTURE: retain the complete head text, append only the R2 sections;
+  the R1 section already in the head is not duplicated. README has the full
+  head plus the ordinary shared-settings paragraph.
+- rust-size-allow: retain all head reductions and lower node.rs from its head
+  record to its actual smaller count. No allowance is raised.
+
+Independent byte checks preserve the head setup, migration runner, labels
+fixture and canonical generated TypeScript. Removing only the explicitly
+authorized collectors and recovery rollback-table prefixes reproduces the
+head's seven affected test files exactly. No other assertions or deadlines
+changed. Generated TS retains its three canonical whitespace warnings; it is
+not hand-edited. Merged-source narrow and whole-package evidence are pending.

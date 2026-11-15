@@ -241,7 +241,9 @@ person reloads. There is no MCP tool for it.
   record) or the person interrupts. No sleep.
 
 Order: `--from`, then `--since`, then `--filter`, then `--tail`. Follow
-continues after the last record it printed. Rendering stays the view
+continues after the last raw record examined, including records hidden by
+a predicate or the tail. Keeping the raw cursor avoids replaying history at
+the subscription boundary. Rendering stays the view
 that already joins chunks. A terminal session has no agent events of
 those four kinds, so a filter prints nothing of its bytes.
 
@@ -262,6 +264,11 @@ An empty selection emits no records or activity banner. Paseo's one-shot
 curator emits "No activity to display." Vessel preserves its existing log
 capture contract: stdout is selected session output, stderr is selected
 status and genuine retention notices, without a fabricated activity entry.
+
+Paseo also writes a follow-start banner to stdout after history and before
+live output (`logs.ts:362-363,402`). Vessel writes no boundary banner on
+either stream: stdout remains session output and stderr remains status and
+real stream notices, preserving the same capture contract for follow.
 
 ### MCP
 

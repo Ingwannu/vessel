@@ -52,3 +52,8 @@ At package close: one immutable changed-tree root/web/CLI/TS gate, one complete
 source/evidence submission and a screen-facing typed call contract. There is
 no real-provider, live-preview, UI or other-platform claim from fake-node
 checks. Several-model and delivery work follows this package and Quality B.
+
+Quality B's announced node head is now taken at the clean kernel boundary.
+Its Option-returning method admission and pending row form replace the earlier
+wait; the next filling step may add the recovery field rules/client/CLI, with
+the feature number still unassigned. This does not change runtime approval.
