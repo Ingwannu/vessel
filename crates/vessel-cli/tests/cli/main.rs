@@ -27,6 +27,8 @@ mod init;
 #[cfg(test)]
 mod logs;
 #[cfg(test)]
+mod output;
+#[cfg(test)]
 mod mcp;
 #[cfg(test)]
 mod node_stop;

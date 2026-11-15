@@ -26,6 +26,7 @@ use crate::{
 };
 
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
+    crate::presentation::check(&cli)?;
     let target = &cli.target;
     match cli.command {
         Command::Inbox { command } => crate::inbox::command(target, command).await,

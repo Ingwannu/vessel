@@ -60,7 +60,7 @@ pub(crate) async fn run(target: &Target, presentation: Presentation) -> Result<(
 mod tests {
     use super::*;
     #[test]
-    fn model_rows_keep_wire_fields_and_route_identity() {
+    fn shared_output_model_rows_keep_wire_fields_and_route_identity() {
         let route: ModelRoute = serde_json::from_str(r#"{"name":"work","provider":"gateway","api":"openai_responses","model":"model","small_model":"small"}"#).unwrap();
         let rows = [ModelRow(&route)];
         assert_eq!(

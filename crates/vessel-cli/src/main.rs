@@ -28,6 +28,7 @@ mod log;
 mod node_ctl;
 mod nodes;
 mod parity;
+mod presentation;
 mod pair;
 mod project_commands;
 mod remote;

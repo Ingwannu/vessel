@@ -32,3 +32,10 @@ serializer escaping. Runtime errors and connection selection remain owner policy
 
 Validation pending: narrow CLI clippy and shared presentation/formatter tests.
 No consumer-ready claim, full package gate or production account test yet.
+
+V3 return 1 correction: global presentation selection is tracked independently
+from its default. Dispatch refuses unsupported explicit selections before even
+connection parsing. Default legacy commands and no-color remain usable. Compare's
+existing --json is preserved; other compare formats and raw-stream selections
+are refused. Format strings now trim whitespace and ignore ASCII case as Paseo's
+normalizeFormat does. Added root clap graph/admission and actual CLI regressions.

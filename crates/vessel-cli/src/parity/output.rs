@@ -117,7 +117,7 @@ mod tests {
         }
     }
     #[test]
-    fn output_keeps_structured_fields_and_quiet_ignores_format() {
+    fn shared_output_keeps_structured_fields_and_quiet_ignores_format() {
         let rows = [Item {
             id: 7,
             text: "한글\n\u{1b}[31m",
