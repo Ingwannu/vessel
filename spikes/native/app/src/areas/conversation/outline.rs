@@ -66,6 +66,8 @@ const CARD_TOP: f32 = -24.0;
 #[derive(Debug)]
 pub(crate) struct Pointer {
     hover: OutlineHover,
+    /// A numeric hover ticket belongs only to this retained local controller.
+    identity: std::rc::Rc<()>,
     focus: gpui::FocusHandle,
     keyboard: Option<usize>,
     shown: Option<usize>,
@@ -88,6 +90,7 @@ impl Pointer {
     pub(super) fn new(cx: &App) -> Self {
         Self {
             hover: OutlineHover::default(),
+            identity: std::rc::Rc::new(()),
             focus: cx.focus_handle(),
             keyboard: None,
             shown: None,
@@ -147,9 +150,17 @@ impl Shell {
                 cx.notify();
             }
             HoverChange::Schedule(ticket) => {
+                let identity =
+                    std::rc::Rc::clone(&self.areas.conversation.outline_pointer.identity);
                 cx.spawn(async move |this, cx| {
                     cx.background_executor().timer(OUTLINE_INTENT).await;
                     let _gone = this.update(cx, |shell, cx| {
+                        if !std::rc::Rc::ptr_eq(
+                            &shell.areas.conversation.outline_pointer.identity,
+                            &identity,
+                        ) {
+                            return;
+                        }
                         let change = shell
                             .areas
                             .conversation

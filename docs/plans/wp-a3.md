@@ -400,3 +400,27 @@ No staging attribute or shared delivery/fixture exposure is changed. All 57
 native Rust delta files pass formatting, and native size/tokens/diff checks
 pass. This is source integration evidence; no union compilation/runtime or
 navigation authority is inherited from the base's green gate.
+
+## Outline timer resource identity
+
+[Decision Log]
+- Purpose: a timer scheduled by a retired/replaced area must never activate the
+  current area's hover candidate, even before the resident cutover lands.
+- Existing assets and constraint: hover tickets are local counters, starting at
+  one in each new OutlineHover. The delayed Shell callback currently reads the
+  selected area; two independently created Pointers can therefore share a ticket.
+  FindBar already uses local Rc allocation identity for the same ABA boundary.
+- Alternatives: a second registry/allocator, a global hover counter, or requiring
+  the future resident network/admission API to fix a local timer. Each enlarges
+  authority/state beyond the existing Pointer and is unnecessary.
+- Choice: reuse the existing local Rc identity pattern, allocated once per
+  Pointer and preserved by clear/leave/snapshot moves. A timer checks that same
+  identity before touching the selected pointer, then uses its existing ticket.
+- Why: the identity is local timer ownership, never connection/follow authority;
+  it retains neither the old area nor its input or transport. Shared resident
+  callbacks still need the canonical scoped consumer at product cutover.
+- Tradeoff and validation: one tiny allocation per Pointer. An actual GPUI test
+  schedules two equal-ticket timers on replaced resources at different times;
+  the earlier timer must leave the replacement waiting, and only its own later
+  timer may activate it. Existing rail resize assertions remain unchanged. This
+  source will require execution with the next native checks, after row267 work.

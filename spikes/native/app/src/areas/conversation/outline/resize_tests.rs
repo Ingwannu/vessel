@@ -19,6 +19,28 @@ struct Probe {
     shell: Entity<Shell>,
 }
 
+/// Isolate timer ownership from the separate cached-region resize contract.
+struct TimerProbe {
+    shell: Entity<Shell>,
+}
+
+impl Render for TimerProbe {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        self.shell.update(cx, |shell, cx| {
+            let list = shell
+                .areas
+                .conversation
+                .list
+                .element(|_, _, _| div().into_any_element());
+            div()
+                .size_full()
+                .relative()
+                .child(list)
+                .children(super::rail(shell, &Tokens::of(Scheme::Dark), window, cx))
+        })
+    }
+}
+
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let timeline = self.shell.update(cx, |shell, cx| {
@@ -62,17 +84,23 @@ fn rail_shown(cx: &mut VisualTestContext, width: f32) -> bool {
     cx.debug_bounds("outline-rail").is_some()
 }
 
+fn seed(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    let area = &mut shell.areas.conversation;
+    area.open("machine", session());
+    let records = [prompt(0, "first"), prompt(1, "second")];
+    assert!(area.take(&session(), &records));
+    assert_eq!(area.outline.len(), 2);
+    // A3's local fallback still paints an exact target for stale-click checks.
+    shell.prompt_index_refresh();
+}
+
 #[gpui::test]
 fn the_rail_follows_a_resize_across_918_in_the_cached_timeline(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (_probe, cx) = cx.add_window_view(|window, cx| {
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
-            let area = &mut shell.areas.conversation;
-            area.open("machine", session());
-            let records = [prompt(0, "first"), prompt(1, "second")];
-            assert!(area.take(&session(), &records));
-            assert_eq!(area.outline.len(), 2);
+            seed(&mut shell, cx);
             shell
         });
         Probe { shell }
@@ -87,4 +115,62 @@ fn the_rail_follows_a_resize_across_918_in_the_cached_timeline(cx: &mut TestAppC
     // list's own width (the probe and the rail read the same measure).
     assert!(rail_shown(cx, 1000.0));
     assert!(!rail_shown(cx, 900.0));
+}
+
+#[gpui::test]
+fn a_replaced_resources_hover_timer_cannot_activate_the_current_pointer(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let shell = cx.new(|cx| {
+            let mut shell = Shell::without_io(window, cx);
+            seed(&mut shell, cx);
+            shell
+        });
+        TimerProbe { shell }
+    });
+    assert!(rail_shown(cx, 1280.0));
+    probe.update(cx, |probe, cx| {
+        probe
+            .shell
+            .update(cx, |shell, cx| shell.outline_point(0, cx));
+    });
+    cx.run_until_parked();
+    let half = super::OUTLINE_INTENT.checked_div(2).unwrap();
+    cx.executor().advance_clock(half);
+    probe.update(cx, |probe, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.areas.conversation = super::super::ConversationArea::new(cx);
+            seed(shell, cx);
+        });
+    });
+    settle(cx);
+    probe.update(cx, |probe, cx| {
+        probe
+            .shell
+            .update(cx, |shell, cx| shell.outline_point(0, cx));
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(half);
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| {
+        probe.shell.update(cx, |shell, _cx| {
+            let pointer = &shell.areas.conversation.outline_pointer;
+            assert!(
+                pointer.settling(),
+                "old timer must not consume a new ticket"
+            );
+            assert!(pointer.hover.attention().is_none());
+            assert!(pointer.shown.is_none());
+        });
+    });
+    cx.executor().advance_clock(half);
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| {
+        probe.shell.update(cx, |shell, _cx| {
+            let pointer = &shell.areas.conversation.outline_pointer;
+            assert!(!pointer.settling());
+            assert_eq!(pointer.hover.attention().unwrap().index(), 0);
+            assert_eq!(pointer.shown, Some(0));
+        });
+    });
 }
