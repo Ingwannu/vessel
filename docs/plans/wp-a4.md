@@ -72,7 +72,7 @@ Existing view/board/tree.rs was audited first: it keys only SessionId, derives
 parentage from immutable Creator and sorts children newest-first. It cannot be
 the current relationship source after detach and conflates equal session UUIDs
 on different nodes. The new view::subagents::ManagedTree<W> prepares one index
-for sidebar order, the child track and command-center reveal. W preserves W11's
+for session/legacy-tree order, the child track and session command-center reveal. W preserves W11's
 actual WorkspaceId at callers; it adds no workspace registry or cwd/title key.
 Existing board Row/origin compatibility will delegate once node hydration is
 integrated; no second lasting tree source is intended.
@@ -83,7 +83,7 @@ remains Unknown and cannot authorize archive/hide. Full SessionRef deduplicates
 book aliases. Conflicting snapshots fail; cycles become Unknown/Partial while
 remaining visible. Active children are oldest-first and exclude archive intent.
 Same-workspace children nest; cross-workspace children are normal rows in their
-own workspace. rows and reveal use the same index, so keyboard/sidebar jumps
+own workspace. rows and reveal use the same index, so session keyboard/tree jumps
 expand the same ancestor chain. Labels/status remain canonical card projections.
 
 Preparation caps16384 snapshot records and64 visible ancestry levels as named
@@ -91,3 +91,9 @@ UI resource bounds; over-limit input refuses rather than dropping rows, and
 invalid/deeper relationships flatten with Unknown/Partial confidence. Source
 completeness is explicit. This pure view seam is staged; authoritative link
 hydration, root/provider actions and native track controls are still owed.
+
+Fresh S2 source correction: sidebar-workspace-row.tsx and sidebar-shortcuts.ts
+operate on visible workspace placements, with at most9 numeric workspace
+targets. Managed child/session rows never enter that numeric projection. S2/W11
+own that single workspace source; this index serves only A4/session-tree and
+legacy session callers. No workspace-sidebar caller code was added here.

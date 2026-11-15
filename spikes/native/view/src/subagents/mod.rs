@@ -1,4 +1,4 @@
-//! One managed-child index for sidebar order, the child track and keyboard jumps.
+//! One managed-child index for session-tree order, the child track and session keyboard jumps.
 //! Relation is hydrated current state, never reconstructed from Creator or cwd.
 
 mod managed;

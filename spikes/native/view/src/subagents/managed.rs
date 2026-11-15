@@ -77,7 +77,7 @@ pub struct TreeRow {
     /// Prepared indentation, never inferred while painting.
     pub depth: TreeDepth,
 }
-/// Shared jump result for the sidebar and command center.
+/// Shared jump result for the session tree and session command-center actions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reveal<W> {
     /// Actual registry workspace to activate.
