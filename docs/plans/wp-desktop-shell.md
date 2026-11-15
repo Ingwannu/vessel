@@ -20,412 +20,239 @@ Paseo 0.15.4 sources read before implementation:
   `use-revealed-releases.ts:16-48`: fenced Markdown, release/section structure,
   immediate latest release, first five and ten more.
 
-This package owns windows, menus, OS links, single instance, CLI installation,
-environment inheritance, update presentation and changelog. Local node,
-onboarding and quit lifecycle have a separate owner. Session navigation uses
-the session area's authenticated NodeId resolution, never a book alias.
+This package owns windows, menus, OS links, CLI installation, single instance,
+login environment inheritance, shared updater ownership and release history.
+Onboarding, managed-node lifecycle, quit/update finalization and document guards
+belong to their feature owners. Session navigation and project registration use
+their authenticated owner adapters; desktop never substitutes a book alias.
 
-## Existing asset analysis and decision
+## Current status
 
-**Modify existing assets.** GPUI supplies bounds, URL callbacks, menus, actions
-and quit observers. Reuse the kit and Fluent catalogs. `app/src/update.rs`
-(the assigned `areas/update.rs` does not exist) and the signed updater remain.
-Reuse `view::desktop::NavigationTarget`; standard-library APIs avoid another
-desktop framework.
+Implementation is source under integration, not a completed parity claim. The
+latest application base is the package line9e18cf0db (base5 + shared pane producer),
+merged in a3dc5c099. No node head was merged directly into this application tree.
+There is no final whole native gate, inspected capture set or V4 package verdict.
+Shared producer review and narrow checks do not substitute for those proofs.
 
-## Decision log
+## Existing assets and decisions
 
-- Purpose: launches preserve window reachability and route credential-free
-  links into the authenticated session flow.
-- Existing constraints: UI and I/O live in distinct crates; signed updates
-  already work; current releases bundle the app alone.
-- Alternatives: Electron/Tauri, replacing the updater, a network launch server,
-  per-window snapshots of process-wide state.
-- Choice: extend GPUI with pure rules, private I/O and small entry modules.
-- Why: one renderer/update trust boundary, with explicit process ownership.
-- Effects: OS behavior requires separate platform evidence. No tray is added
-  (Paseo has none), and no unowned daemon is stopped.
-
-## Deliberate differences
-
-- Links use `vessel://h/<NodeId>/session/<SessionId>` and validated protocol IDs.
-- Native Rust APIs replace Electron preload IPC. Browser-pane reload belongs
-  to the browser package; a native renderer has no browser DevTools.
-- Keep the existing signed preview feed. No stable/beta selector until real
-  signed channel feeds exist.
-- No published changelog endpoint exists. Show bundled Vessel Markdown and
-  signed-feed notes; never fetch Paseo releases.
-- CLI installation refuses unrelated existing files. Missing bundled CLI is a
-  typed refusal, with no invented download or global package installation.
-
-## Resume point
-
-Reference and asset audit complete; shared link contract imported. Next: pure
-models, I/O, app registration, narrow checks, captures, full native gate, review.
-No OS behavior or package-completion gate is claimed yet.
-
-
-## Work in progress checkpoint
-
-The native models passed nine focused desktop tests (no failures). A later view
-clippy attempt correctly refused missing per-key translator comments; those
-comments have been added. No complete package gate or capture evidence exists.
-
-Implemented drafts: bounded session links, geometry restoration, Markdown release
-parsing, private serialized window saves, OS-lock/local IPC single instance,
-CLI ownership checks, login environment capture through the existing process
-crate, typed centralized preference merge/writer, GPUI windows and menu surfaces.
-These drafts are not yet consumer-ready. Native menu registration, preference
-queue refusal/rollback, update-owner sharing, CLI UI/PATH handling and platform
-integration still need completion and compilation. Session/project dispatch waits
-for the owning areas' authenticated adapters; quit registration and pre-update
-finalization are owned by the local-node package.
-
-The new `vessel-proc` dependency reuses an existing internal process primitive,
-including kill-on-drop groups/jobs. No new external library is selected. The
-native dependency table records this edge.
-
-
-## Package-base merge
-
-Merged the announced package base. In `link/src/lib.rs` the base extraction and
-registrations win byte for byte; the desktop module is registered afterward.
-In `areas/about.rs` the base's Fluent migration is retained, including the old
-release-note renderer in the merge. The desktop changelog renderer remains the
-registered entry, and the superseded renderer will be removed in the following
-implementation commit. No base test expectation was edited. Root changes in this
-merge are inherited from the announced base, not desktop wire additions.
-
-
-## Additional decisions from integration
-
-- Multiple windows revealed a stale whole-document preference overwrite. One
-  process-wide coordinator now applies typed three-way deltas to the latest
-  snapshot (including map-key removal and non-settings fields), writes through
-  the existing private Prefs helper, and broadcasts canonical snapshots. Failed
-  writes retain canonical state; bounded-queue refusals use the existing unsent
-  UI path. New persisted fields demand an explicit merge policy.
-- R's updater is owned by an App Global behind Rc, so opening/closing the first
-  window cannot start another downloader or stop updates for remaining windows.
-- The updater already marks relaunches in the child's environment. Such starts
-  wait for the kernel file lock with a finite startup deadline instead of
-  forwarding into the quitting app. Normal launches still forward. This avoids
-  a restart race without changing the updater or temporarily releasing the old
-  instance's lock. A timeout displays an error-only window with no node/writer.
-- ADR 0094 supersedes the initial sibling CLI naming: both companions use the
-  app executable directory plus `bin/vessel[.exe]` and `bin/vesseld[.exe]`. One
-  typed bundle getter serves CLI passthrough, installation and managed-node
-  startup. It only computes a location; each consumer checks presence. This
-  avoids the Windows case-insensitive app/CLI name collision without guessing
-  a macOS signing layout. macOS returns a typed unsupported-layout refusal
-  until a bundle is published; AppImage has no companions. Installation stays
-  visibly unavailable when a release lacks the CLI.
-- The release owner's initial NSIS check found a command-macro quoting error;
-  the two registry-command uses now preserve the macro as one quoted argument.
-  Packaging runtime evidence remains separate from app behavior verification.
-
-## Package-base 2 and narrow feedback
-
-Merged 6036eeb8 without changing other owners' feature drafts. Link narrow
-checks exposed strict lint failures in the new desktop modules; the fixes use
-explicit returned-value handling, borrowed worker state and documented public
-fields. The public error type is `DesktopError` to identify its boundary.
-Bundle-path tests cover both tools on Linux/Windows, relative-path refusal and
-unassigned macOS layout; no test executes a companion or assumes it exists.
-
-## Window actions and process update owner
-
-Zoom rules now live in `view::desktop::zoom`, preserving the half-level changes
-from `packages/desktop/src/features/menu.ts:119-143`. The screen applies a
-bounded multiplier to its own native scale; pure tests cover inverse steps,
-reset and both saturation endpoints. Native startup installs the shared update
-owner before opening any window; each window follows a fresh watch receiver.
-Focus-triggered checks are silent and honor automatic-update preferences. The
-existing signed updater and its timer stay unchanged. W15 still owns managed-node
-finalization and the canonical preferences flush before actual restart.
-
-A deterministic kernel-lock test waits for the failed-acquisition signal before
-releasing the old primary lock; no scheduling sleep is used. An oversized-link
-regression tests the named byte boundary before route/identifier parsing.
-These additions await the current narrow compile/test runs.
-
-## Authenticated navigation integration and context menus
-
-Merged W21's narrow-green 963ca595 provisionally (whole package review pending),
-keeping this package's bounded shared URL parser when resolving add/add history.
-Desktop startup registers `Shell::open_session_address`; after book hydration it
-passes the latest target once. W21 owns the single connection/reconnect deadline,
-identity resolution and passive session reads. Desktop adds no second host wait.
-
-The existing TextField input engine already supplies selection-aware editing
-context menus. Terminal selection and clipboard actions remain C2's; a typed
-`CopyState` and `areas::desktop::open_edit_context` adapt its admission to the
-existing application-menu state and kit renderer. The popup restores the original
-focus before dispatching toolkit actions. Its real-input test checks disabled
-Copy navigation and copy/paste behavior; C2's actual terminal consumer is pending.
-G4's reviewed return-focus primitive is awaited for dismissal restoration.
-
-Link narrow tests at 88fc1df9: 16 passed, one fixture failed before IPC startup
-because the remote runner's TMPDIR made its Unix socket address exceed SUN_LEN.
-The lock-waiter test itself passed. The IPC fixture now uses a short unique Unix
-/tmp directory, preserving its real forward/restart assertions and exact cleanup.
-Product Unix IPC still reports the original OS error for an overlong configured
-socket location; this is an OS pathname limit, not silent forwarding or fallback.
-
-## Deferred CLI setup consumer
-
-Onboarding and Settings share `areas::desktop::cli::snapshot` and
-`set_installed(Operation, cx)`, both returning background tasks with typed
-`view::desktop::cli::Snapshot` acknowledgements. The read-only query checks the
-bundled file, exact shim ownership and current PATH/known shell rc; it never
-creates or edits the rc. Only an explicit install calls `PathSetup::ensure`.
-An installed CLI with an uneditable/unknown rc returns the manual PATH hint,
-while a foreign destination remains a typed refusal. Removal preserves the rc
-and reports its remaining configuration honestly. The existing ownership writer
-is reused rather than adding onboarding-specific filesystem policy.
-
-## Shared menu policy and close admission
-
-The native OS menu bar and kit popup now use one row vocabulary. Active-window
-locale/shortcut-recording changes rebuild native labels and zoom admission, so
-capturing a shortcut cannot be consumed by a stale native zoom item. Terminal
-context admission has independent typed Copy/Paste states; read-only script or
-service terminals keep Copy/Select All and disable Paste. Help destinations use
-`Shell::run_desktop_help(HelpAction, window, cx)` for About/version, the changelog
-sheet and the public issue form. Sidebar consumers call the same handler.
-
-The existing chrome renderer gains an optional close callback; without a host
-callback its default behavior remains ordinary window removal. Desktop menus,
-custom chrome and the OS should-close hook share the host lifecycle boundary.
-On Linux/Windows the last window stays visible while W15 finalizes owned work;
-additional windows and macOS windows can close normally. The later app-quit
-observer remains a backstop. Signal observations belong to W15's shared reactor.
-
-Local app narrow 1 and remote app narrow 5 reached only the two unbound
-cancellation acknowledgements in link; fixed by standalone 8a203181. The second
-local app check was still queued (its cwd/command and waiting child were checked)
-and was cancelled in favor of the warm remote target. No app-wide green claim.
-
-## Reopen memory and close regression
-
-The remembered first-window state is updated in application memory alongside the
-serialized write, so a macOS dock reopen during the same process restores the
-latest geometry. A real GPUI-window regression exercises the installed chrome
-close callback: a pending/refused finalizer retains the last non-macOS window,
-while another window closes without requesting process quit. This test awaits
-compilation/execution; OS-native close callbacks still require platform smoke.
-
-Merged package base 3 (6c782cb6); only announced base changes touch root crates.
-This package adds no node method and has no independently changed root sources.
-
-## Package-base 4 integration
-
-Merged 3cd0d3fc while no whole gate ran. Retained W21's extracted session-open
-module and authenticated Binding while restoring base terminal follow/focus,
-Info-only hydration for terminal sessions and all three render settlement hooks.
-The session root ratchet shrinks to 660. Base terminal fixtures receive only the
-new optional archive/binding fields, without changing their expectations. C2 and
-W21 still own the bound terminal-history cutover; no safety/parity claim is made
-for that staged path until their typed adapter is integrated.
-
-App narrow 6 reached the app and found missing toolkit trait imports plus an
-escaping quit-future lifetime. Explicit precise captures (`use<>`) now make the
-cloned-channel final-save/flush futures independent of their borrowed handles.
-The callbacks still await the same existing writers; no detached save or second
-store is introduced. Source imports and the real-input fixture trait are fixed.
-Fast format, size, dependency-boundary and token ratchets pass after integration;
-app compilation and behavioral tests remain pending.
-
-## Reviewed shared dialog producer
-
-Adopted only G4's captured-close prerequisite a80e7fd3 and reviewed focus
-producer fe53a206, 42bde0bf, 11fba709. Their exact source has V1 source/narrow
-approval (118 kit tests); this is not a combined E3 gate or UI approval. New
-layout/snap configuration will extend this same renderer with existing defaults
-unchanged. G2 owns menu/select focus-helper adoption.
-
-App narrow 7 at 9ad0eea73 reached one remaining type-inference error in the menu
-click listener; its event now explicitly names GPUI ClickEvent. No complete app
-clippy or behavioral pass is claimed yet.
-
-## Concurrent default-record edits
-
-The canonical coordinator now merges fields inside machine and agent default
-records even when both windows created the same previously absent map entry.
-Previously the second insertion could replace the first window's chosen agent
-or profile. A regression covers both absent and existing entries while changing
-independent host-agent, profile and choices fields. Choices remains the view's
-validated atomic option bag (the existing AgentDefaults change API), so no merge
-can construct an oversized invalid bag. Removal remains a whole map-key delta.
-Legacy non-settings choices are likewise merged by their typed HarnessRef within
-each machine's retained vector, so independent providers cannot erase one
-another's remembered options. A second regression covers stale additions and
-per-provider removal. Each provider's option bag remains one atomic field.
-
-App narrow 8 typechecked the app but strict lints still refused unused producer
-seams and statement/result formatting. Statement/result handling is corrected;
-W15/C2/W11 must consume their real adapters before full clippy can pass. No
-blanket dead-code allowance is used to stand in for those integrations.
-
-## Configured shared changelog sheet
-
-On top of the reviewed dialog focus producer and green package base 074ade16,
-`DialogSize::Configured(DialogLayout)` extends the existing renderer. Width is a
-positive logical-pixel value; viewport percentages and the ordered pair of snap
-heights have validating constructors. Legacy Normal/Wide remain 520/640, fitting
-below the existing desktop85%/compact90% caps. Configured DesktopHeight::Exact is
-separate from AtMost, so short release notes still occupy the authored height.
-
-Changelog consumes620 + exact85% on desktop and85%/95% draggable compact stops
-from `packages/app/src/changelog/internal/changelog-sheet.tsx:80-90`. The existing
-snap state, spring, velocity projection, pointer listener and content-scroll
-handoff consume the same points; no area gesture implementation or second modal
-renderer exists. Draggable configuration is opt-in for read-only scroll bodies.
-An actual-close acknowledgement clears sheet/focus state; refused close requests
-retain the initial open stop. Changelog close/show-more/first-page callbacks are
-bound to their open cycle so stale callbacks cannot dismiss or mutate a newer
-sheet. Existing default tests and expected values are unchanged. Added bounds
-checks distinguish620 width and fixed percentage heights for short desktop and
-compact content; a drag-model regression checks the95% content-scroll handoff.
-All new control behavior still awaits narrow compilation and tests.
-
-## Published release-note provenance
-
-Bundled history includes the complete bilingual notes from the signed manifests
-for 0.0.0.0.19 and 0.0.0.0.20, including their known problems and unchecked
-flows. Their text was independently checked against the release owner’s SHA-256
-values (19: `98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae`;
-20: `f5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e`). These are authored release notes, not a new feed
-endpoint or a claim that E3 has passed its native gate.
-
-## Windows CLI PATH ownership
+**Modify existing assets.** GPUI provides native windows, URL/reopen callbacks,
+menus and quit observers. The kit supplies the one menu/dialog/snap renderer and
+Fluent owns user-facing text. Keep the release owner's signed updater unchanged.
+The assigned areas/update.rs path does not exist; app/src/update.rs is canonical.
 
 [Decision Log]
-- Purpose: make CLI installation work for Korean and other Unicode installation paths.
-- Constraint: an UTF-8 .cmd file is decoded using the Windows OEM code page, so it cannot safely preserve those paths. Native crates forbid unsafe Win32 calls.
-- Alternatives: keep a batch wrapper with code-page conversion; use a script; use the Windows registry directly through a safe maintained wrapper.
-- Decision: reuse the already locked winreg 0.56 dependency in link, Windows only, with transactions. Install/remove modifies only the exact executable-parent\bin entry of HKCU Environment Path, writing REG_EXPAND_SZ. No batch file is created.
-- Reason: raw UTF-16 preserves Unicode and unpaired Windows path units; a transaction reports competing registry changes rather than losing another process's PATH edit. Unsupported registry values and literal REG_SZ percent expressions are refused, preserving their meaning. Literal percent characters in the new directory are refused because REG_EXPAND_SZ would interpret them.
-- Impact: pure UTF-16 tests never access the real registry. Existing entries and internal empty separators survive changes; an existing trailing separator is reused on append. Matching compares whole entries case-insensitively (single-scalar Unicode uppercase, without expanding mappings), with no prefix, variable expansion or foreign-installation removal. The release installer owns matching uninstall cleanup.
+- Purpose: preserve reachable windows and credential-free navigation across native launches.
+- Constraints: view stays pure, link owns local I/O, the app owns UI callbacks, and existing signed-update trust must remain intact.
+- Alternatives: another desktop framework, a TCP launch server, independent per-window stores/updaters, or native unsafe calls.
+- Choice: extend existing controls and OS/process primitives with typed host adapters.
+- Reason: one renderer, one persistence path and one process updater avoid divergent behavior and races.
+- Consequences: native OS behavior needs platform evidence; missing platform APIs remain explicit. No tray is added and no unowned daemon is stopped.
 
-Coordinator approved the registry route and assigned the safe bounded WM_SETTINGCHANGE
-broadcast to the existing GPUI Windows platform owner. Until that producer lands,
-Configured truthfully asks for a new terminal or signing out and in; this is not
-an acknowledgment from Explorer. No Windows runtime or code-page proof is claimed.
+## Module responsibilities and data flow
 
-Release-owner source review follow-up: accepts empty, unterminated and multiply
-terminated UTF-16 registry strings, strips trailing NUL units, rejects interior
-NULs, and always writes one terminator. Extended Win32 path prefixes are converted
-to ordinary drive/UNC spelling before comparison. 8.3 short-name equivalence is
-not resolved. A disabled transaction service has a specific translated refusal;
-there is no nontransactional overwrite fallback. Real Windows execution remains
-unverified.
+| Module | Responsibility |
+| --- | --- |
+| view::desktop | Strict navigation, finite geometry, zoom rules, CLI states and structural Markdown/reveal rules. |
+| link::desktop::instance | Private kernel locks, bounded local IPC and per-window latest intents. |
+| link::desktop::store/window_writer | Versioned bounded geometry file and serialized debounce/final writes. |
+| link::desktop::environment | Bounded shell capture into child-only CommandSpec overrides. |
+| link::desktop::cli/bundle | Explicit companion locations, exact install ownership and user PATH policy. |
+| link::desktop::preferences | One canonical actor, typed structural deltas, revision-aware optimistic rebase and exact write receipts. |
+| app::desktop | Process globals, window registry, startup, callback admission and native preference broadcasts. |
+| app::areas::desktop | Shared popup/native menu vocabulary, keyboard adapter, help routing and CLI controls. |
+| app::areas::about::changelog | Bundled/signed-note history through the existing configured dialog. |
+| app::update | App Global Rc owner of the existing updater; windows follow independent watch receivers. |
 
-## Shared menu focus producer adoption
+A GUI argv or OS URL is parsed before renderer startup. Claiming a primary binds
+local IPC before releasing the short bootstrap lock; secondaries forward a
+validated bounded intent and wait for acknowledgment. Each window keeps one
+latest session and one latest directory independently. Book hydration plus an
+installed owner handler permits consumption; a missing project handler cannot
+erase or delay an independently received session link.
 
-Merged only G2's reviewed isolated producer8158be6d (V1 source and narrow,
-160 kit tests; app strict narrow separately), retaining the newer configured
-dialog/snap renderer and module/glyph union. Desktop removes its strong saved
-opener and delegates actual-close focus restoration to MenuState's existing weak
-ReturnFocus primitive before edit dispatch. Opening another desktop menu starts
-a fresh cycle; captured old row callbacks refuse actions after replacement.
-The existing real-field Copy/Paste/SelectAll keyboard test now exercises the
-shared producer's return path. Its final combined runtime result is still owed.
+Settings and nonsettings mutations still use the existing SavePrefs command.
+Desktop intercepts it before the per-window link actor, derives a delta against
+that client's acknowledged/optimistic baseline, applies it to the latest canonical
+snapshot, and uses the existing Prefs::save_at atomic private-file helper. Every
+window observes the resulting canonical revision with pending local edits rebased.
 
-Startup exit reporting retains failure until kit, canonical desktop state and the
-first window actually initialize. A failed first-window open quits Explicit mode
-rather than leaving an invisible primary holding the instance lock. CLI child
-exit handling and second-instance forwarding retain their existing status paths.
+## Windows and startup
 
-Login-shell process regressions now use a checked-in /bin/sh fixture with a
-cleared environment and nonexistent fixture HOME, never a real login rc file.
-They exercise interactive failure/noninteractive fallback, child-only/redacted
-values, stale runtime-directory exclusion, bounded output and hung-shell timeout.
-The existing vessel-proc group/job guard owns cancellation cleanup; no duplicate
-process primitive or root fake-binary build is added. Execution is pending the
-next immutable remote test suite.
+The primary restores validated geometry (1200×800 default,400×300 minimum),
+clamped to visible work areas. Additional windows start independently. Geometry
+writes debounce400ms, serialize, and flush the latest state at exit; malformed or
+newer documents are preserved. macOS reopen uses the latest in-memory geometry.
+Capture-only size overrides do not relax normal product minimums.
 
-The updater relaunch marker is app-only: the binary removes it from captured
-child environments and CLI passthrough using the updater’s public constant.
-Otherwise a CLI/node child could propagate it into a later ordinary app launch,
-which would wrongly wait for the active primary to exit. This uses CommandSpec
-removal overrides, never process-global environment mutation. Regression covers
-both inherited and captured values overriding earlier child assignments.
+The active live window is preferred, then a visible window, then the first live
+window. Closed handles and expired Shell entities cannot be routing destinations.
+Visibility is read from GPUI, without a second cached window registry.
 
-Single-instance bootstrap now serializes only OS claim/IPC binding through a
-second private kernel file lock. A second launch cannot connect in the interval
-between primary ownership and endpoint readiness; login-shell/GUI startup occurs
-after releasing this short gate. Contention has the existing named launch
-deadline and no polling. A held-gate regression refuses before creating the
-primary lock. On Windows the next named-pipe instance is listening before the
-current request receives its acknowledgment, avoiding a consecutive-launch
-PIPE_BUSY window. Windows runtime validation is still owed.
+Single instance uses private local IPC, never TCP. Packets are bounded4096bytes,
+queue32, acknowledgment deadline3s. A kernel bootstrap gate prevents a secondary
+connecting before IPC exists; the long login-shell/GUI initialization follows
+that gate. Windows publishes its next pipe instance before acknowledging the
+previous connection. Updater relaunch waits up to15s for the old process lock and
+never forwards back into the quitting process. Timeout opens a clear error-only
+window. No early primary-lock release is needed.
 
-OS intent retention uses one bounded per-window Inbox with a latest session and
-a latest project directory. Their handler readiness is independent: an arriving
-session cannot erase a project waiting for exact managed-local identity, and an
-unavailable project adapter cannot hide the session owner's bounded unknown-host
-refusal. Only the installed owner consumes its intent; no directory is trusted or
-registered automatically. Regression exercises replacement and independent drains.
+The updater's app-only relaunch marker is removed from owned child environments
+and CLI passthrough using its public constant, without global environment mutation.
+Initialization retains a failure exit code until the kit, canonical desktop state
+and first window start; a failed first window exits Explicit mode rather than
+holding an invisible primary lock.
 
-Window routing now filters closed windows and expired Shell entities before
-choosing the active window, a visible window, then the first live window. Visibility
-is read from GPUI rather than cached in a second registry. Menus and incoming
-session navigation use this same selector; with no live target a session launch
-opens a primary window. Multiwindow screen/runtime evidence remains pending.
+## Menus, shortcuts and close admission
 
-## Package base 5 and pane persistence
+Native menus and the popup share typed rows. Copy/Paste/SelectAll dispatch the
+kit's existing actions to the selection owner. EditContext admits Copy and Paste
+independently, so read-only script/service terminals can disable Paste. Desktop
+contains no second terminal parser, clipboard engine or input policy.
 
-Merged the package line9e18cf0db (base5 + reviewed W12 producer), never a node
-head directly into this app tree. Existing E3 Windows boundary documentation and
-the line's proc/store lock documentation are both retained. Prefs.layouts is
-registered in the exhaustive canonical delta: entries merge by LayoutKey,
-including removal, while each validated tree is atomic to preserve allocator and
-reference invariants. Tests cover stale edits/removals on distinct keys and
-concurrent creation from an empty list. W12's once-initialized UI book needs an
-owned refresh/rebase hook after canonical broadcast; that integration remains
-pending and no multiwindow layout PASS is claimed.
+G2's isolated8158be6d producer was adopted via103a042ac, retaining newer dialog
+configuration. MenuState is the sole weak return-focus owner. A chosen row
+restores before dispatch; a replaced app-menu cycle refuses old row actions.
+The separate strong saved opener was removed. Real-field action tests remain
+part of the pending combined evidence.
 
-The lead explicitly reapproved shared protocol23 capture binaries from6036 on
-base5 for E3 windows, menus, changelog and session navigation. The wire-name set
-and protocol remain identical, but these older binaries do not contain base5
-service-port/allocation approval, strict decode-failure handling, session.delete
-handover waits or pending-label admission. Captures must exclude those flows;
-they do not prove a same-commit root build. No root binaries are rebuilt here.
+Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Zoom uses
+pure half-level rules and is refused during shortcut recording. W22 owns the sole
+matcher/default table; CloseTab falls back to CloseWindow only after layout is
+Unhandled, and opening/refusing a close confirmation counts as handled.
 
-Client::canonical_preferences retains the last nonstale observed canonical Arc
-separately from the optimistic publish/rebase baseline. Feature-owned caches can
-compare old/new canonical records before shell.prefs is replaced without treating
-pending local intent as an acknowledgment. Existing revision regression now
-checks that publish does not advance canonical context, observed snapshots do,
-and stale failure snapshots cannot replace newer canonical state. W12 consumes
-this timing for its owned layout cache hook; no second persistence owner is added.
+On non-macOS, last-window removal goes through the quit owner before removal.
+Additional/macOS removal has an optional document-owner callback. It defers until
+the initiating Shell borrow ends, coalesces Idle/Checking, retains a refused
+window and rechecks last-window status before actual removal. It owns no second
+save/discard or quit policy. W15 owns registration and finalization integration.
 
-Bundled history now retains the release owner's complete available notes for
-labels0.0.0.0.4 through0.0.0.0.20, newest first. Earlier notes are not reconstructed
-from current behavior: known problems and unchecked flows remain exactly as
-published by that author, including Korean-only early notes. CHANGELOG.sources
-records each source text hash; only19/20 additionally have the independent
-signed-manifest note comparison supplied above. Seventeen releases exercise the
-real initial5/+10 reveal controls without invented history or an external fetch.
+## Environment and CLI
 
-Per-window removal has a typed optional document-admission callback registered
-by the quit/document owner. Additional/macOS closes defer to App after the
-initiating Shell borrow ends, coalesce while Checking, and retain refused windows.
-Both before admission and immediately before removal, non-macOS last-window
-status is revalidated and routes the normal quit finalizer. There is no second
-save/discard policy. A real GPUI regression requests close from inside the same
-Shell update twice, asserts one refusal/no removal, then permits only that window
-without quitting the remaining one. Execution and W15 callback registration remain
-pending the combined native check.
+Shell capture uses vessel-proc's existing groups/jobs and cancellation behavior,
+with one30s overall deadline, interactive then noninteractive attempts and1MiB
+output bounds. Values stay redacted and apply only to explicit child commands;
+XDG_RUNTIME_DIR is not inherited from a stale login profile. Windows/failure uses
+the inherited environment. Hermetic process tests use a checked-in /bin/sh fixture,
+cleared environment and nonexistent HOME, never a user's rc files or real agent.
 
-Optional per-write receipts now flow through the same canonical actor. A
-Receipt retains the exact Snapshot/Outcome for its own accepted write even when
-watch deliveries coalesce; the regression observes a failed write after a later
-success and refuses stale rollback. The app wrapper calls existing Settings
-prefer exactly once and captures that command’s bounded queue result, never a
-second command or a second validator. Model refusal/no native writer gives no
-receipt. Shared preference failure notice remains the only generic error
-presentation; feature owners generation-guard receipt UI and distinguish Saved
-from LaunchOnly. Canonical/rebased shortcut-cache invalidation awaits W22’s
-checked producer hook. Receipt and guard code are still unverified source.
+Companions are executable-parent/bin/vessel and bin/vesseld (with .exe on Windows).
+Missing files are normal and do not create a download/install offer. macOS has
+no published signed bundle layout and returns UnsupportedBundle instead of
+assuming executable code under Resources. AppImage has no companion assumption.
+
+POSIX install owns only its exact symlink and never overwrites a foreign tool.
+Known shell rc edits are bounded/idempotent, preserve existing bytes/mode, create
+new files privately and otherwise expose manual PATH guidance. Onboarding and
+Settings share snapshot/set_installed; only explicit Continue applies a choice.
+
+[Decision Log: Windows user PATH]
+- Purpose: support Korean and other Unicode install paths.
+- Constraint: UTF-8 .cmd text is interpreted through an OEM code page and can corrupt the path; native crates forbid unsafe Win32 calls.
+- Alternatives: OEM batch conversion or script/PInvoke bypass.
+- Choice: Windows-only winreg0.56 (already locked), raw UTF-16 HKCU Environment Path and transactional updates.
+- Reason: one exact directory entry can be added/removed without expanding or replacing unrelated entries. Transaction conflict/failure cannot fall back to an unsafe plain overwrite.
+- Consequences: REG_EXPAND_SZ is retained, malformed/interior-NUL/oversized values are refused, optional/repeated trailing NULs are accepted and written back once. A REG_SZ containing percent expressions and a new literal-percent directory are refused to preserve their meaning.
+
+Entry comparison folds single Unicode uppercase scalars without expanding
+mappings; unpaired UTF-16 units survive. Extended drive/UNC prefixes use ordinary
+installer spelling;8.3 alias equivalence is not resolved. A trailing separator is
+reused. Pure tests never touch the real registry. Disabled transactions have a
+specific translated refusal. The release installer owns corresponding cleanup.
+
+The coordinator assigned bounded WM_SETTINGCHANGE to the existing GPUI Windows
+platform owner. Until that safe producer lands, Configured honestly asks for a
+new terminal or sign out/in, without claiming Explorer acknowledged the change.
+Real Windows execution remains unverified; Wine packaging checks are separate.
+
+## Canonical preferences and feature caches
+
+Exhaustive Prefs/Preferences/nested patterns force new fields to select a merge
+policy. Per-key removal is real; independent machines, providers and default
+records survive stale windows. Provider option bags remain atomic under their
+existing bounds. Queue64 refusal is visible, unreadable files remain launch-only,
+and old failures cannot roll back newer accepted edits.
+
+Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
+so allocator/reference invariants cannot be corrupted. W12 owns the UI-book cache
+rebase, including Dirty, sheets, rename, menus, drag and resize preservation. The
+canonical map alone does not prove this cache integration complete.
+
+Client::canonical_preferences separates observed canonical context from pending
+projection. The cache hook receives old canonical before observe and new canonical
+from Snapshot, before shell.prefs is replaced. Shortcut, prepared-word and terminal
+cache invalidation remain feature-owned callbacks on canonical/rebased changes.
+
+Optional Receipt::completed retains the exact per-write Snapshot/Outcome even
+when watch updates coalesce. prefer_with_receipt wraps the existing prefer once;
+it neither duplicates validation nor emits another SavePrefs. Validation refusal
+cannot return a stale receipt. Queue refusal remains typed. Feature UI generation
+checks reject stale acknowledgments; shared notices own generic failures, while
+Saved and LaunchOnly remain distinct. The existing atomic writer is unchanged.
+
+## Updates and changelog
+
+The app starts exactly one existing updater before its first window. Each window
+uses a fresh watch receiver; closing the first window cannot stop updates. Focus
+checks respect automatic-update preference. Keep the signed preview feed, key,
+signature and no-feed build behavior. There is no invented stable/beta selector.
+W15 owns canonical pre-update flush and owned-node/document finalization; its
+checked consumer is required before claiming restart lifecycle completion.
+
+Changelog uses the shared dialog and snap engine, not another renderer:
+packages/app/src/changelog/internal/changelog-sheet.ts:80-90 specifies620 width,
+exact desktop85%, and compact85%/95% draggable stops. Legacy dialog520/640 widths
+and85%/90% fitting caps remain unchanged. Captured open cycles protect close and
+reveal callbacks; actual close alone acknowledges ReturnFocus and clears snap
+state. Configured bounds and snap/scroll handoff have regression tests.
+
+The complete available release-owner notes0.4 through0.20 are bundled newest first,
+including historical known problems/unchecked flows and Korean-only early notes.
+CHANGELOG.sources retains source hashes. Notes19/20 additionally match the supplied
+signed-manifest hashes:98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae
+andf5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e.
+Running signed-feed notes supplement that history. No published Vessel changelog
+endpoint exists; never fetch Paseo releases. Reveal is1 immediately,5 after yield,
+then10 more;17 real releases make the paging controls meaningful.
+
+## Remaining integrations and deliberate differences
+
+- W21's authenticated bounded session lookup is integrated provisionally. C2's retained Binding terminal cutover is still required; the old alias-only terminal path is not declared identity-safe.
+- W11's managed-local project adapter is not consumer-ready. Its directory intent stays queued; no first-alias fallback, implicit trust or registration occurs.
+- W15's managed-node, document/quit and update-restart consumer remains pending a checked range.
+- W22's sole dispatcher, shortcut invalidation and receipt UI remain pending its checked range. No competing keyboard listener is installed.
+- S2 owns the shared sidebar callout frame/dismissal band. Its checked source is required for update-provider adoption. No Rosetta/download fact is inferred from a remote machine or an absent macOS asset.
+- Native renderer reload refreshes native/node state; there is no browser DevTools. No Electron compositor watchdog or Chromium sandbox helper is copied into GPUI.
+- OS notification permission/delivery status is a separately assigned later platform API; GPUI's missing acknowledgment is never presented as granted/delivered success.
+
+## Verification and completion
+
+Old scoped evidence: nine early pure model tests passed. One later link desktop
+run passed16 and failed one fixture before IPC because the runner's TMPDIR exceeded
+Unix socket address length; that fixture now uses a unique short path. These are
+not current combined-source passes. Strict narrow runs reached typechecking and
+reported actual lints; fixes added no blanket allowances. The latest unit attempt
+stopped at a missing translator-context comment before tests, now fixed.
+
+One queued run ended143 during the approved build-VM resize before compilation;
+its logs remain infrastructure interruption evidence. Only one replacement was
+submitted. Current immutable unit13 targets all four native library test suites;
+its result is pending. Local source-size checks passed694 files/14 existing
+exceptions; no size allowance was increased.
+
+All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
+prescribed remote gate tool. No local compilation or metadata-Cargo invocation is
+started under the operator's VM-only rule. Direct rustfmt only formats source.
+
+Before handoff: finish owner integration, run focused checks, freeze one final
+commit/base, run the whole native gate with app-only export, then inspect EN/KO
+and dark/light captures at1280×900,390×844 and800×600. Submit one V4 review packet
+with precise works/does-not/unverified evidence; only reviewed results advance
+tracker rows or reach the release lead.
+
+The lead approved read-only protocol23 shared root binaries from6036 on base5
+for E3 windows/menus/changelog/session navigation: protocol and178 wire names are
+unchanged. They omit base5 service-port/allocation approval, strict decode-failure
+handling, session.delete handover wait and pending-label admission. Exclude those
+flows from captures and never claim a same-commit root build. Desktop does not
+rebuild these shared binaries or access the live preview/real agents.
