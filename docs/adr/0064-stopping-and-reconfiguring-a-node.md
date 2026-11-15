@@ -1034,3 +1034,36 @@ and a blocked service FIFO with child exit. Stand-in manager executables
 must record zero invocations. All fixtures isolate HOME and XDG before
 service lookup. Actual manager behavior and macOS/Windows execution remain
 unverified by Linux fixtures.
+
+## Proposed private saved settings envelope
+
+[Decision Log]
+- Purpose and intent: separate the saved disk model from the generic settings
+  wire patch before adding private service consent. Sharing a file must not
+  grant a generic patch or a Read reply authority over that private state.
+- Existing implementation and constraints: Store owns settings.json's atomic,
+  owner-only and set-aside rules; Node Settings owns saved state and publication.
+  The prerequisite repair retains its mutation guard/tracker through I/O and
+  publication despite caller drop. The disk API and saved
+  mutex currently hold SetNodeSettings directly.
+- Alternatives considered: a second private file/writer, service consent in the
+  generic patch, or an untyped placeholder. These duplicate lifetime policy,
+  expose the wrong mutation surface, or invent an unreviewed authority schema.
+- Selected approach: introduce a private-field SavedNodeSettings envelope for
+  the same Store/Node boundary, with a generic projection/replacement that
+  preserves today's typed fields. Keep serialization at the disk edge and Read
+  replies as NodeSettings. The initial model separation preserves current
+  canonical file bytes and unknown/default/set-aside/no-op behavior.
+- Why this approach: one settings owner keeps concurrent generic and later
+  dedicated mutations serialized without a second writer. Shared typed generic
+  fields avoid an independent complete CLI key list. This is Vessel authority
+  separation, not an assertion of Paseo's file schema; Paseo's mutation queue
+  reference and the required compatibility tests are in the saved settings plan.
+- Advantages, costs and effects: disk and wire models can evolve separately,
+  at the cost of explicit projection and compatibility fixtures. A later private
+  services slot requires its own qualified canonical schema/bounds and dedicated
+  Admin setter; generic set/reset/reload cannot become a route to that setter,
+  and Read cannot expose it. No slot payload or service activation is introduced
+  by this proposal. Implementation waits for the shared retained writer on the
+  accepted node base. See docs/plans/saved-node-settings.md for the dependency
+  boundary and remaining proof.
