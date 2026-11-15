@@ -220,3 +220,10 @@ Clearing prompt navigation similarly cancels only its owned pending address.
 An unrelated inbox destination is preserved. Without this boundary a body that
 arrived after cancellation could still scroll the reader. Shell regressions
 cover close, failure, unrelated addresses and disabling the outline mid-jump.
+
+Compatibility limitation on the current timeline base: its local projection
+merges user chunks only into the immediately preceding prompt. A harness-log
+entry between replay chunks can therefore produce two local fallback ticks.
+The authoritative metadata index coalesces such internal records. A7 owns the
+canonical timeline projection and has been given the exact fold/log boundary;
+A3 does not duplicate or change that renderer's folding rules.
