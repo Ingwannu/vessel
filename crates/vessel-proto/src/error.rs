@@ -57,6 +57,11 @@ pub struct WireError {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ErrorDetail {
+    /// Content-free diagnostic collection admission.
+    Diagnostics {
+        /// Resource refusal, never a source error message.
+        reason: crate::diagnostics::DiagnosticRefusal,
+    },
     /// A schedule preview could not be computed.
     SchedulePreview {
         /// The stable preview reason.

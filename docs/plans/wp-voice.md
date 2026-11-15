@@ -496,3 +496,13 @@ refuses wrong JSON scalars with a fixed error rather than serde's value-echoing
 String diagnostic. The secret-name visitor owns a different invariant and is
 not copied or widened. Numeric/boolean diagnostic and escaped/owned boundary
 tests are owed on the VM; this does not authorize real transport upload.
+
+
+The announced gate50c node base is merged with its assigned protocol/schema,
+new shared rows, workspace denial policy and aliases preserved. Voice keeps
+one None gate and its7 pending rows at the table END. The generated proto.ts
+merge uses exact announced-base bytes, never manual union/editing; it is
+intentionally stale for the added voice rows until the next named VM ts
+step returns exact artifacts. Generated whitespace inherited from that byte
+snapshot is not hand-trimmed. Narrow old-base receipts do not validate this
+merged head. Canonical Connection::life() is now available from the base.
