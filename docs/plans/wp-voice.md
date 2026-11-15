@@ -290,3 +290,16 @@ Confirmed VAD, rather than filler-partial text, remains the interruption edge.
 Incremental segmentation/partial parity remains an explicit difference, not
 something these deadline fakes prove. Product actor dispatch and real VAD
 are still prerequisites. New finalization tests await remote execution.
+
+### Spoken input and transient policy are separate boundaries
+
+Accepted final words now have a staged redacted SpokenInput wrapper following
+voice-config.ts wrapSpokenInput. It preserves the exact transcript inside the
+spoken-input/instruction blocks and produces the existing SessionInput::Prompt
+with one ContentBlock::Text, so intentional accepted words use ordinary history.
+Empty/rejected variants cannot produce an input. Its bounded allocation is the
+existing64KiB SpeechText limit plus fixed wrapper bytes; the16KiB supplemental
+system-policy cap does not apply to ordinary user messages. This is not a user
+prompt fallback for unsupported system-policy transport or explicit MCP context.
+The actor still must recheck exact lease/generation before dispatch, and this
+module sends nothing. No text or system content enters its Debug/errors.

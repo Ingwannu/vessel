@@ -16,6 +16,7 @@ mod prompt;
 mod receipts;
 mod registry;
 mod segments;
+mod spoken_input;
 mod stt_endpoint;
 mod stt_form;
 mod transcript;
