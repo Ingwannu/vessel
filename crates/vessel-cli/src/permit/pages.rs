@@ -43,7 +43,7 @@ pub(crate) struct Pages {
     phase: Phase,
     rows: Vec<Row>,
     seen: HashSet<(SessionId, PendingId)>,
-    pages: usize,
+    visited: usize,
 }
 
 impl Pages {
@@ -73,10 +73,10 @@ impl Pages {
     }
 
     fn append(&mut self, before: Option<InboxCursor>, page: InboxPage) -> Result<(), ReadError> {
-        if self.pages >= MAX_PAGES {
+        if self.visited >= MAX_PAGES {
             return Err(ReadError::Limit);
         }
-        self.pages = self.pages.saturating_add(1);
+        self.visited = self.visited.saturating_add(1);
         if let (Some(before), Some(next)) = (before, page.next)
             && next >= before
         {

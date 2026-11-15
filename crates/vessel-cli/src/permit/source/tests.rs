@@ -61,7 +61,7 @@ async fn a_late_page_failure_has_no_partial_output_result() {
     };
     assert!(matches!(
         list(&mut source).await,
-        Err(Error::Node(CallError::Disconnected))
+        Err(SourceError::Node(CallError::Disconnected))
     ));
 }
 #[tokio::test]
@@ -87,10 +87,15 @@ async fn recheck_recovers_only_the_exact_source_and_refuses_changed_or_gone_requ
         panic!("permission")
     };
     request.id = PermissionId::random();
+    enum Expected {
+        Ready,
+        Mismatch,
+        Gone,
+    }
     for (item, expected) in [
-        (Some(original.clone()), "ready"),
-        (Some(changed), "mismatch"),
-        (None, "gone"),
+        (Some(original.clone()), Expected::Ready),
+        (Some(changed), Expected::Mismatch),
+        (None, Expected::Gone),
     ] {
         let mut source = Memory {
             entries: VecDeque::from([item]),
@@ -98,12 +103,11 @@ async fn recheck_recovers_only_the_exact_source_and_refuses_changed_or_gone_requ
         };
         let result = preflight(&mut source, &rows).await;
         match expected {
-            "ready" => assert!(
+            Expected::Ready => assert!(
                 matches!(result.unwrap().as_slice(), [Ready::Permission { source, .. }] if *source == original.key)
             ),
-            "mismatch" => assert!(matches!(result, Err(Error::Mismatch))),
-            "gone" => assert!(matches!(result, Err(Error::Gone))),
-            _ => unreachable!(),
+            Expected::Mismatch => assert!(matches!(result, Err(SourceError::Mismatch))),
+            Expected::Gone => assert!(matches!(result, Err(SourceError::Gone))),
         }
         assert_eq!(source.read, vec![original.key]);
     }

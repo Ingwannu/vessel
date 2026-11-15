@@ -25,7 +25,7 @@ impl Source for NodeClient {
 
 /// Preflight errors occur before the response path has any effects.
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
+pub(crate) enum SourceError {
     #[error(transparent)]
     Pages(#[from] ReadError),
     #[error(transparent)]
@@ -52,7 +52,7 @@ pub(crate) enum Ready {
 }
 
 /// No output is published from an incomplete or failed traversal.
-pub(crate) async fn list(source: &mut impl Source) -> Result<Vec<Row>, Error> {
+pub(crate) async fn list(source: &mut impl Source) -> Result<Vec<Row>, SourceError> {
     let mut pages = Pages::default();
     while let Some(request) = pages.request()? {
         pages.accept(source.page(request).await?)?;
@@ -62,17 +62,20 @@ pub(crate) async fn list(source: &mut impl Source) -> Result<Vec<Row>, Error> {
 
 /// Recover and verify every selected full form before a batch may begin.
 /// A changed/compact item never silently receives a blind grant.
-pub(crate) async fn preflight(source: &mut impl Source, rows: &[Row]) -> Result<Vec<Ready>, Error> {
+pub(crate) async fn preflight(
+    source: &mut impl Source,
+    rows: &[Row],
+) -> Result<Vec<Ready>, SourceError> {
     let mut ready = Vec::with_capacity(rows.len());
     for row in rows {
-        let entry = source.live(row.source).await?.ok_or(Error::Gone)?;
+        let entry = source.live(row.source).await?.ok_or(SourceError::Gone)?;
         if entry.key != row.source {
-            return Err(Error::Mismatch);
+            return Err(SourceError::Mismatch);
         }
         let item = match entry.item {
             InboxItem::Permission { request, .. } => {
                 if row.id != PendingId::Permission(request.id) {
-                    return Err(Error::Mismatch);
+                    return Err(SourceError::Mismatch);
                 }
                 Ready::Permission {
                     source: entry.key,
@@ -81,16 +84,16 @@ pub(crate) async fn preflight(source: &mut impl Source, rows: &[Row]) -> Result<
             }
             InboxItem::Question { question } => {
                 if row.id != PendingId::Question(question.id) {
-                    return Err(Error::Mismatch);
+                    return Err(SourceError::Mismatch);
                 }
                 Ready::Question {
                     source: entry.key,
                     question,
                 }
             }
-            InboxItem::InSession { .. } => return Err(Error::Compact),
+            InboxItem::InSession { .. } => return Err(SourceError::Compact),
             InboxItem::Finished | InboxItem::Failed | InboxItem::Limit | InboxItem::Unknown => {
-                return Err(Error::Gone);
+                return Err(SourceError::Gone);
             }
         };
         ready.push(item);
