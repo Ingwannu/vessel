@@ -3,4 +3,5 @@ mod connection_notices;
 mod edits;
 mod errors;
 mod fixtures;
+mod layout_rename;
 use crate::testing::peer;

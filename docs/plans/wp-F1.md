@@ -362,3 +362,31 @@ All waits use the shared memory-only outer/named deadlines and peer cleanup.
 No new dependency, real agent, real node, credentials or capture process is used.
 This is a source checkpoint; remote View/Link/App narrow and V1 security review
 are still owed. No actual writes/captures or whole-package pass is claimed.
+
+## Package base6 merge (18eedad4)
+
+[Decision Log]
+- Purpose: use the coordinator's native1404/0/2 package base, including the
+  shared panel, connection preflight, plugin values and service-port adapter.
+- Existing assets: incoming button.rs/content.rs/control.rs are byte-identical
+  to reviewed82584106; incoming menu tree is byte-identical to reviewed8158be6d.
+  These comparisons were made before resolving the overlap, rather than
+  assuming that an older G2 file should win.
+- Choice: preserve incoming changes outside the overlap, keep those same shared
+  bodies plus the exact G2 Circle and reviewed Provider/modal additions, union
+  exports/docs/glyphs, and keep the lower picker644/slider711 size records.
+- Why: one button and menu renderer remain. This merge adds no hierarchy work;
+  S2 is now the sole hierarchy writer after the reviewed6ece handoff.
+- Cost and limits: local direct rustfmt, conflict-marker inspection, Rust-size
+  and token checks pass, but this merged F1 tree has no compile/test/UI verdict.
+  Isolated remote checks remain pinned to their own original commits and are
+  neither cancelled nor relabelled as proof for this merge. No local Cargo or
+  rustc was run. Incoming native Cargo.lock is explicitly known stale; no
+  --locked check will be submitted for this merged base until the lead supplies
+  its correction. The lead's original1404 result is base-only, not F1 evidence.
+
+All resolved Kit source except the incoming drag module/export is byte-identical
+to the pre-merge G2 source after direct rustfmt. Thus the incoming menu/button
+baselines and G2 additions retain their exact source while unrelated shared
+changes are adopted. Source-only connection binding5b69c58e still needs its
+View/Link/App checks and security review before real write/capture flows.

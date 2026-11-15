@@ -110,6 +110,37 @@ to guarantee the fixture precondition. Production code and the literal height
 assertions42/34/50 are unchanged. This is a fixture repair, not a changed expected
 result or an assertion that actual long consumer labels have passed UI review.
 
+## Minimal base4 producer handoff boundary
+
+This merge integrates the three ordered control-only producer commits onto the
+assigned3cd0d3fc base, with no F1 area/View/Link/menu chain. It keeps the incoming
+outline_button_with_glyph API, explicit tone and unchanged actual child-bounds
+regression through the same body renderer. The producer excludes only the menu
+TriggerSizing assertion because that alias is not defined on this base; the
+canonical ControlSizing Touch44 check remains. Existing ActivityIndicator code
+and its three vectors are exact434933b3; all prior vectors remain unchanged.
+The only size record change is slider719 to711. Its alias/lint corrections are
+included; the original b094 red check is retained. Narrow checks of this exact
+integrated head are owed, with no consumer/UI/full-feature approval yet.
+
+Base4 narrow schedules-narrow-20261115T083634Z-bfb3a809 failed at Kit lib-test
+Clippy: two missing terminal semicolons in the new input regression. Fonts0,
+cargo101; no tests ran. This test-only correction keeps every assertion and
+production byte unchanged and requires a fresh corrected-head narrow result.
+
+The exact67b723a6 base4 producer passed Kit Clippy and134/0/0 Kit tests, runs
+schedules-narrow-20261115T083948Z-67b723a6 and20261115T084249Z-67b723a6.
+This result predates the multiline correction: it is retained as prior-source
+proof, not a corrected-head gate. The new source removes invented vertical
+padding from typed content, keeps the legacy filled-label inset through an
+explicit compatibility presentation, and tests real two-line Medium42/Small34
+versus legacy50 bounds in both themes. Corrected-head narrow remains owed.
+
+Exactef93023a: Kit Clippy0, tests134/1/0. The120-wide fixture wrapped the longer
+second line again under the test font, measuring62 instead of its intended42.
+The repair uses short A/B lines so the fixture has exactly two lines. Production
+bytes and literal42/34/50 expectations are unchanged; corrected narrow owed.
+
 ## Corrected producer narrow result
 
 Isolated code8258410623994773e75dd061fa282c7e09ade8ba passed Kit all-target
