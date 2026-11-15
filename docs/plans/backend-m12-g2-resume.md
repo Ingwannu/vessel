@@ -1,6 +1,46 @@
 # G2 resume: schedules and the shared controls
 
-Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read the strict/common/app briefs and current kit ledger before changing anything. The published desktop base `56a7cbd3` was merged in `29a9834b`; see `backend-m12-g2-published-integration.md` for conflict decisions and verification limits. The schedules list is the next feature slice. Earlier stop-only instructions below are historical, not a ban on the resumed work.
+Resume on `backend/m12-app-schedules`, in this track's existing worktree.
+The active package is F1 schedules and heartbeats; saved prompts come after it.
+Current base9b a7aab9d6 is merged at700b61e32. Historical published-base and
+stop checkpoints below are records only. Read current worker/common briefs and
+the shared-control ledger before further integration. All Rust/Cargo work,
+including metadata and capture builds, runs through the remote gate only.
+
+## Live checkpoint (2026-11-15 18:1x UTC)
+
+- Latest product9440b963: F1 Code/MD textarea/Form/select/Empty, ordered prefs
+  persistence before schedule RPC, typed local refusal and canonical preferences
+  projection, decimal-prefix Max runs parity, actual footer selector. Source is
+  committed; current consumer execution/review/full gate/captures remain owed.
+- Base9b merge700b61e32 preserves own controls and canonical FieldId/Search/
+  picker/glyph union. Node heads reach App only through announced package bases.
+- Generator remains L-owned: exactd092 strict failed generated Root child_*
+  common-prefix lint. L confirmed producer defect; tuple-storage correction and
+  canonical green/review/lead handoff pending. No suppression or local generator
+  edit. Plain consumer tests are submitted to expose unrelated compile/runtime
+  defects; they do not pass that strict check.
+- Exact513 Kit all-target Clippy0, full Kitlib230/2/0. Two new fixtures returned:
+  Code literal Change history missed simulate_input's unchanged trailing event;
+  Retry id lacked the debug selector used by debug_bounds. Fixedaf52 with all
+  production input/layout unchanged. Red results/logs retained.
+- Ordinary SHORT schedules suite on exactaf52: run180912 strict then Kitlib
+  tests; queued at last observation. Separate exact9440 consumer View/Link/App
+  --lib tests submitted once, pre-receipt submit-lock wait at last observation.
+  Never kill/resubmit a pre-receipt wrapper. No priority or temporary labels.
+- Separate node productd26 has V3 row260 bounded SOURCE/NARROW PASS: strict0,
+  scheduler41/0/0 including all five new cases, independently verified27 files.
+  Receipt059f1dab merged by integrator into batch17 trialb68ae267b; combined
+  head not announced green. App known-Ended permissions remain refused until
+  that actual combined contract is available. Node note65da9bcc is docs-only.
+- Per-run isolation remains in-scope/hidden: W11/W3 provision/receipts and W21
+  archive runtime unavailable; no parallel provisioner or cwd inference.
+  W12 admitted live opener/production DeliveryGuard still unavailable: history
+  candidates stay unopened, no alias/global-follow fallback.
+- S2 owns menu hierarchy/lease and assigned FooterIconButton28/44; W12 owns
+  ToolbarButton20/32. Do not extend either in parallel. G2 remains ordinary
+  button/select/picker writer. Historical native Linux focused-field F5 HOLD
+  remains open. No own fleet/display/app or local Rust process was started.
 
 ## Resumed published-base checkpoint
 
