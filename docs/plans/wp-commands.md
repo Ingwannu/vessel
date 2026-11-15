@@ -500,3 +500,16 @@ W12 follow-up. No standalone node head was merged. The lead warns its native
 lock is stale and supplies a correction next; F4 invokes no --locked operation
 and does not generate a replacement lock locally. Current queued checks are
 older immutable source evidence and do not prove this latest union compiles.
+
+
+## Code editor composition boundary
+
+W13 approved the one registration line in CodeEditor::new. The existing weak
+TextField composition registry is extracted into kit/field/composition.rs and
+extended with EditorState; the public focused_composing API and first interceptor
+guard stay unchanged. One registry now covers form fields, composers and code
+editors, prunes dead handles and preserves registrations made during a query.
+No route/displayed-file guess, duplicate cache or composer_hooks change is added.
+The actual CodeEditor constructor + marked-text regression checks focus switches
+and commit. It is written, not executed yet. Field callback factories and K's
+pending callback/state split must be preserved when integrating their deltas.

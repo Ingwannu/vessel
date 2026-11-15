@@ -59,6 +59,7 @@ use gpui::{AnyElement, App, Context, Entity, Focusable as _, Window, div, px};
 use gpui_base::input::{Input, InputEditorStyle, InputState, Textarea, TextareaState};
 
 pub mod composer_hooks;
+pub(crate) mod composition;
 
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
@@ -77,22 +78,6 @@ enum Kind {
     Line(Entity<InputState>),
     /// Lines that grow (the composer).
     Lines(Entity<TextareaState>, MultilineStyle),
-}
-
-/// A field's text engine, held weakly for [`TextField::focused_composing`].
-enum Known {
-    Line(gpui::WeakEntity<InputState>),
-    Lines(gpui::WeakEntity<TextareaState>),
-}
-
-thread_local! {
-    /// Every field the kit made on this thread (GPUI's main thread), live
-    /// or not yet pruned.
-    static KNOWN: std::cell::RefCell<Vec<Known>> = const { std::cell::RefCell::new(Vec::new()) };
-}
-
-fn register(field: Known) {
-    KNOWN.with(|known| known.borrow_mut().push(field));
 }
 
 /// A multiline editor's shell; both presentations share one text engine.
@@ -252,7 +237,7 @@ impl TextField {
             window,
             cx,
         );
-        register(Known::Lines(state.downgrade()));
+        composition::lines(&state);
         Self {
             kind: Kind::Lines(state, style),
             focused,
@@ -288,7 +273,7 @@ impl TextField {
             window,
             cx,
         );
-        register(Known::Line(state.downgrade()));
+        composition::line(&state);
         Self {
             kind: Kind::Line(state),
             focused,
@@ -423,40 +408,7 @@ impl TextField {
     /// - Cost: one weak handle per field ever made, pruned here; a field
     ///   made outside the kit (none today) is not seen.
     pub fn focused_composing(window: &mut Window, cx: &mut App) -> bool {
-        use gpui::EntityInputHandler as _;
-
-        let known = KNOWN.with(|known| std::mem::take(&mut *known.borrow_mut()));
-        let mut alive = Vec::with_capacity(known.len());
-        let mut composing = false;
-        for field in known {
-            let marked = match &field {
-                Known::Line(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-                Known::Lines(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-            };
-            if let Some(marked) = marked {
-                composing |= marked;
-                alive.push(field);
-            }
-        }
-        KNOWN.with(|known| {
-            // Fields made while asking (none can be, but keep them).
-            let mut known = known.borrow_mut();
-            alive.append(&mut known);
-            *known = alive;
-        });
-        composing
+        composition::focused(window, cx)
     }
 
     /// Give it the keys.
