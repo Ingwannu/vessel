@@ -357,3 +357,38 @@ fn tickets_cannot_settle_another_resident_with_the_same_local_operation_ordinal(
         .settle_operation(first_binding, OperationKind::Lifecycle, first_ticket)
         .unwrap();
 }
+
+#[test]
+fn provider_child_tickets_and_holds_are_not_owned_by_the_main_timeline() {
+    let (mut residents, token, claim) = fixture();
+    ready(&mut residents, token);
+    let binding = residents.begin_follow(token).unwrap();
+    let ticket = residents
+        .admit_operation(binding, OperationKind::Subagents)
+        .unwrap();
+    residents
+        .readiness(
+            token,
+            ResourceOwner::Subagents,
+            OwnerReadiness::Hold(HoldReason::PendingEffect),
+        )
+        .unwrap();
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Timeline, ticket),
+        Err(ResidentProblem::UnadmittedOperation)
+    );
+    residents
+        .settle_operation(binding, OperationKind::Subagents, ticket)
+        .unwrap();
+    residents
+        .readiness(token, ResourceOwner::Timeline, OwnerReadiness::Ready)
+        .unwrap();
+    residents
+        .release_claim(token, &claim, Duration::ZERO)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    residents
+        .readiness(token, ResourceOwner::Subagents, OwnerReadiness::Ready)
+        .unwrap();
+    residents.retire_clean(token).unwrap();
+}

@@ -257,3 +257,12 @@ link resolution, a stale epoch after eviction/recreation, handoff to another nod
 same-node reconnect with queued old attach metadata/error/action replies, observed
 alias A→B→A, duplicate operation replies, pending upload/send/IME eviction holds,
 hard-cap refusal, cancelled attach and stale close acknowledgement. Tests use typed fakes and no real agent or live node.
+
+## Independent provider-child owner
+
+Provider-child resources have their own `ResourceOwner::Subagents` vote and
+`OperationKind::Subagents` ticket namespace. The parent bundle retains the one
+concrete child query/readonly area. Main/origin Timeline Ready cannot erase a child
+query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
+The closed owner set requires six concrete clean snapshots before dehydration;
+this value seam neither enables child resources nor promotes a live stream.
