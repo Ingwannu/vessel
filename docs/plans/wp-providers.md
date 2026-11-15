@@ -247,3 +247,22 @@ content; the native encoding accessor is only for a tested supporting adapter.
 No output-schema capability, creation field or prompt transport is enabled by
 this value alone. Existing CLI refusal remains in force until native preflight
 and transport are implemented and reviewed; no supplied schema is dropped.
+
+## Pi native parser preparation
+
+Pi rpc-types.ts and agent.ts:1122-1178,2790-2850 define one available-models
+observation plus the active native model. The new test-only agent::pi catalogue
+decoder preserves provider/model identity, reasoning availability and the native
+thinkingLevelMap. Explicit null removes a level; xhigh/max require an advertised
+mapping; the medium default clamps upward first and then downward, as Pi does.
+Nonreasoning models offer no thinking choices and Pi offers no permission modes.
+Unknown metadata is ignored inside the native decoder; malformed required data,
+oversized input and inconsistent empty reasoning choices refuse the observation.
+This last refusal replaces the reference's nonexistent `off` default when every
+level has been disabled. Provider identity containing a separator is refused
+instead of creating an ambiguous native key.
+
+This stage does not add a Driver variant, mark Pi/OMP built/selectable or change
+the existing not-built assertions. Native process framing, turn events, UI
+requests, history and fake-harness execution remain unfinished. No live Pi or
+account file is used. The parser's tests are pending execution.

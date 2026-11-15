@@ -68,6 +68,9 @@ mod opencode;
 mod options;
 mod output;
 mod permissions;
+// Staged until Pi's real transport and permission/UI handling are tested.
+#[cfg(test)]
+mod pi;
 mod probe;
 mod process;
 mod provider_catalogue;
