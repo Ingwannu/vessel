@@ -266,3 +266,58 @@ fn find_starts_at_the_hits_message_or_the_next_match() {
     );
     assert_eq!(start_at(&entries, next, &[], EventSeq::new(4)), Some(0));
 }
+
+#[test]
+fn a_warm_find_after_rewind_excludes_hidden_text_without_reindexing_live_matches() {
+    use crate::support::Log;
+    use serde_json::json;
+    use vessel_app_view::timeline::Timeline;
+    let mut log = Log::default();
+    let records = [
+        log.agent(&json!({"event":"turn_started", "content":[{"type":"text", "text":"kept needle"}]})),
+        log.agent(&json!({"event":"message_chunk", "content":{"type":"text", "text":"kept reply needle"}})),
+        log.agent(&json!({"event":"turn_ended", "reason":"end_turn"})),
+        log.agent(&json!({"event":"turn_started", "content":[{"type":"text", "text":"discarded needle"}]})),
+        log.agent(&json!({"event":"message_chunk", "content":{"type":"text", "text":"discarded reply needle"}})),
+        log.agent(&json!({"event":"turn_ended", "reason":"end_turn"})),
+    ];
+    let mut timeline = Timeline::default();
+    let _change = timeline.apply(&records);
+    let mut cache = FindCache::default();
+    assert_eq!(
+        Finder::new("needle")
+            .step_timeline(&mut cache, &timeline)
+            .unwrap()
+            .len(),
+        4
+    );
+    let records = [
+        log.record(&json!({"type":"rewound", "after":2, "harness_session":"test-branch", "files_changed":0})),
+        log.agent(&json!({"event":"turn_started", "content":[{"type":"text", "text":"new branch"}]})),
+        log.agent(&json!({"event":"message_chunk", "content":{"type":"text", "text":"live reply needle"}})),
+    ];
+    let _change = timeline.apply(&records);
+    assert!(timeline.rewound(3));
+    assert!(timeline.rewound(4));
+    let found = Finder::new("needle")
+        .step_timeline(&mut cache, &timeline)
+        .unwrap();
+    assert_eq!(
+        found,
+        [
+            Match { entry: 0, nth: 0 },
+            Match { entry: 1, nth: 0 },
+            Match { entry: 7, nth: 0 }
+        ]
+    );
+    assert_eq!(
+        timeline.entries()[7].seq,
+        EventSeq::new(8),
+        "live source addresses stay stable"
+    );
+    assert_eq!(
+        find_all(&mut cache, timeline.entries(), "needle").len(),
+        5,
+        "raw API keeps its original slice semantics"
+    );
+}
