@@ -110,20 +110,23 @@ Do not start a second theme type in the app.
 - Done: the consumer at `fb711444` is integrated on lead `d30804b2`,
   preserves the fixed menu colour and passes the full native gate:
   1,181 passed, zero failed, one existing ignored capture. Its normal
-  local app build also passed. V1 passed consumer source/native; its UI disposition is pending.
+  local app build also passed. V1 passed consumer source/native and the bounded final visual package.
 - Done: the consumer's final private-display package has 332 assigned
   original images: the eight choices in both languages/four window sizes/
   four scales, actual saved-byte restart checks, live System portal events,
   actual palette input/catalogue and the existing marks example. The
   changed regions and original-derived inspection sheets were inspected;
   representative full originals and all mark/catalogue originals were opened.
-- Half-done: V1's final visual/package disposition is pending. The separate
-  shortcut registration has an input-boundary correction pending with its
-  owner; it is not in this consumer binary. ADR 0070 remains proposed.
-- Next: submit the single final feature package under the current review
-  policy, then resolve any actual defect returned. No source changed after
-  the native pass, so no unchanged whole gate is repeated. Do not repaint
-  Light or Dark, add an absent token, or claim untested OS/GPU/IME behaviour.
+- Done: V1 passed the bounded eight-choice source/native/visual package
+  through `f14b5e07`; no additional blocker was found in the inspected scope.
+- Pending: the coordinator's capture review, lead integration and latest
+  combined-line gate. The separate shortcut registration still has its
+  owner's input-boundary correction pending and is not in this binary.
+  ADR 0070 remains proposed for the remaining parity/integration obligations.
+- Next: hand over the bounded disposition and retain the immutable evidence.
+  No source changed after the native pass, so no unchanged whole gate or
+  new capture matrix is repeated. Do not repaint Light or Dark, add an
+  absent token, or claim untested OS/GPU/IME behaviour.
 
 ### Resumption, 2026-11-15
 
@@ -425,3 +428,34 @@ stopped only after matching PID, start time, UID and executable. All 206
 recorded capture/private-bus identities were checked; no owned survivor
 remained. No real agent, preview node, push or release was used. Final
 source/native pass and final visual approval remain distinct.
+
+
+### Bounded final review disposition, 2026-11-15
+
+V1 passed the bounded native eight-choice theme package for
+`d30804b2..f14b5e07`. Executable source remains exact `fb711444`; only this
+plan changed afterward. The existing six-step native result, 1,181 passed,
+zero failed and one ignored, is retained without an unchanged rerun.
+
+The reviewer independently matched the combined manifest SHA-256
+`e17dfd02ce78e0ccbe848c9cd15b1267b13edc8e8cb0e8bbc975e9d64ea750de`,
+all 332 original image hashes/dimensions, nine proof files and the 32 grid
+sheet hashes. The reviewer personally opened 43 risk-selected originals
+and 13 eight-state derived grid sheets, not all 332 originals. Their
+inspection covered the eight-choice appearance and borders, both
+languages/window cases and four scales, all eight restored selections
+including nonblank Dark/Pure black startups, the private System/fixed
+transition, all ten final queries, both catalogues and all eight mark
+originals. No new blocker was found. This closes this package's pending
+visual scope; the audit is retained with the review evidence.
+
+The verdict does not include the separate `theme.cycle` input fix,
+AltGr/IME, a real terminal context, installed desktop OS or hardware GPU,
+general AA/accessibility, complete baseline-frame equality, or the latest
+combined line. The mark proof remains five known assets at 14/16/20, not
+12 or every product surface. Excluded failed capture attempts remain
+excluded. Runtime/cleanup scripts and events are author execution
+evidence; the reviewer did not independently execute live cleanup or
+portal transitions. Coordinator capture review, lead integration and the
+combined gate remain separate obligations. No new source, gate or capture
+matrix is needed solely to record this disposition.
