@@ -647,3 +647,9 @@ Reselecting the active step also avoids programmatic text replacement while
 composing, and unchanged text is not reapplied. A page refresh must not reset
 selection or marked text merely because the same draft is already displayed.
 This uses the same kit text/composition boundary; no new editor hooks are added.
+
+The multi-editor keyboard regression separates fixture construction and retained
+field assertions into small test helpers. Its real focus, typed input, Enter,
+sibling-isolation and retained-engine assertions stay unchanged; the split keeps
+the test within the same function budget as product code without a lint waiver.
+This is source preparation, not a new test execution claim.
