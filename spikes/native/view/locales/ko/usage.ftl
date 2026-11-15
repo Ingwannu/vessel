@@ -343,17 +343,23 @@ usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습�
 usage-runs-out-in = 소스 예측: { $duration } 후 소진
 # Source forecast has reached its reported instant; never infer a hard stopped turn.
 usage-runs-out-now = 소스 예측: 지금 소진
-# 공용 카드 상태 점 옆의 짧은 현재 시도 상태입니다.
+# 공용 카드 상태 점 옆의 짧은 현재 오류 상태입니다.
 usage-status-error = 오류
+# 공용 카드 상태 점 옆의 짧은 현재 사용 불가 상태입니다.
 usage-status-unavailable = 사용 불가
-# 실제 성공 관측 시각만으로 계산한 전체 상대 시간입니다.
+# 성공 관측 후 60초가 지나지 않았을 때의 짧은 상대 시간입니다.
 usage-fresh-just-now = 방금
-usage-fresh-minutes = { $count }분 전
-usage-fresh-hours = { $count }시간 전
-usage-fresh-days = { $count }일 전
-# 카드의 전체 갱신 시각 문구. $age는 시도 시각이 아닌 번역된 상대 시간입니다.
+# 짧은 성공 관측 상대 시간. 숫자 $count는 내림한 정수 분입니다.
+usage-fresh-minutes = { NUMBER($count) }분 전
+# 짧은 성공 관측 상대 시간. 숫자 $count는 내림한 정수 시간입니다.
+usage-fresh-hours = { NUMBER($count) }시간 전
+# 짧은 성공 관측 상대 시간. 숫자 $count는 내림한 정수 일입니다.
+usage-fresh-days = { NUMBER($count) }일 전
+# 현재 성공의 전체 갱신 시각 문구. $age는 번역된 성공 관측 상대 시간입니다.
 usage-updated = 업데이트: { $age }
+# 유지된 이전 성공의 전체 갱신 시각 문구. $age는 실패한 시도가 아닌 이전 성공의 상대 시간입니다.
 usage-last-updated = 마지막 업데이트: { $age }
+# 시도 여부와 무관하게 성공한 관측이 없을 때의 짧은 갱신 상태입니다.
 usage-never-updated = 성공한 업데이트가 없습니다
 # 이 보고서의 명시적인 새로 고침이 실패한 뒤 표시하는 전체 설명입니다.
 usage-refresh-failed = 이 보고서를 새로 고침하지 못했습니다.

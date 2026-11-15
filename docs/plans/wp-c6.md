@@ -346,3 +346,7 @@ An unknown policy supplies no false unchecked switch; the existing typed read
 status/error remains visible. Either policy mutation disables another consent
 mutation, and a switch change still rereads Cached only. No external fetch follows
 opt-in. The shared lookup disclosure and all accepted EN/KO words are unchanged.
+
+The F3 query-state/card ownership continuation and current presentation decisions
+are recorded in [wp-f3-usage.md](wp-f3-usage.md). This is part of the same package;
+its new state/card checks are not a second accepted feature or whole-package pass.

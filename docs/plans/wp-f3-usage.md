@@ -47,3 +47,10 @@ No new UI generation allocator or tooltip/card renderer is added.
 EN/KO whole-message and time-boundary projections plus actual shared card-header
 geometry probes are authored. The current delta is uncompiled; no screenshot,
 consumer focus, strict generated-catalog or whole-package pass is claimed.
+
+L's bounded wording review accepted the new EN/KO prose but required numeric age
+arguments and per-key context. Age messages now use NUMBER($count); the caller
+supplies the existing checked Number::count after a checked integer conversion.
+Abbreviated units remain whole translated messages, so adding a future plural
+selector does not change Rust argument types. This corrects the authored data
+path without changing elapsed-time thresholds or accepted earlier Usage words.

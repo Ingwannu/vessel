@@ -1,6 +1,6 @@
 //! Only a successful observation owns freshness; retry/query instants never do.
 use super::SourceView;
-use crate::localization::Translator;
+use crate::localization::{Number, Translator};
 use chrono::{DateTime, Utc};
 
 const MINUTE_SECONDS: i64 = 60;
@@ -21,15 +21,26 @@ pub fn source_freshness(
     let seconds = now.signed_duration_since(observed.at).num_seconds().max(0);
     let age = if seconds < MINUTE_SECONDS {
         text.fresh_just_now().to_owned()
-    } else if seconds < HOUR_SECONDS {
-        text.fresh_minutes(&seconds.div_euclid(MINUTE_SECONDS).to_string())
-            .unwrap_or_else(|_| text.none().to_owned())
-    } else if seconds < DAY_SECONDS {
-        text.fresh_hours(&seconds.div_euclid(HOUR_SECONDS).to_string())
-            .unwrap_or_else(|_| text.none().to_owned())
     } else {
-        text.fresh_days(&seconds.div_euclid(DAY_SECONDS).to_string())
-            .unwrap_or_else(|_| text.none().to_owned())
+        let unit = if seconds < HOUR_SECONDS {
+            MINUTE_SECONDS
+        } else if seconds < DAY_SECONDS {
+            HOUR_SECONDS
+        } else {
+            DAY_SECONDS
+        };
+        let Ok(count) = u32::try_from(seconds.div_euclid(unit)) else {
+            return text.none().to_owned();
+        };
+        let count = Number::count(count);
+        let age = if seconds < HOUR_SECONDS {
+            text.fresh_minutes(count)
+        } else if seconds < DAY_SECONDS {
+            text.fresh_hours(count)
+        } else {
+            text.fresh_days(count)
+        };
+        age.unwrap_or_else(|_| text.none().to_owned())
     };
     if view.retained {
         text.last_updated(&age)
