@@ -47,12 +47,6 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
-            Self::GetNodeSettings(settings) => {
-                settings.for_protocol(protocol).map(Self::GetNodeSettings)
-            }
-            Self::SetNodeSettings(settings) => {
-                settings.for_protocol(protocol).map(Self::SetNodeSettings)
-            }
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),

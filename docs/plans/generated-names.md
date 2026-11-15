@@ -846,3 +846,12 @@ recovery-masked result. The recovery helper and assertions stay unchanged;
 its fixture gains only the new metadata default. Earlier new-title tests
 keep their checks through the optional head contract. One whole package
 gate follows narrow checks and regeneration on this merge.
+
+
+Merged-generation checkpoint: all 26 cases pass on the Quality B merge,
+including the repaired turn-idle setup, permanent park/wake cancellation and
+checked Git-root style lookup. Cargo also reported two duplicate settings
+reply arms introduced by the automatic merge. The older-reply file is now
+exactly the head's: its existing adapters already call the composed settings
+projection, so the title work needs no additional arms there. Final merged
+Clippy and settings/protocol tests remain before the package gate.
