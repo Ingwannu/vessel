@@ -129,3 +129,11 @@ Evidence so far: the standalone staged node workflow's first 11 tests pass
 (in-memory ports only), and native view's full 870 tests pass. Node concurrent
 archive exclusion and native scoped-read/follow changes are newer and still
 require their exact-head checks. No full gate, capture or runtime parity claim.
+
+
+Composer `/exit` and `/clear` execute immediately, as
+`client-slash-commands/index.ts:17-36` and `panels/agent-panel.tsx:1579-1610`
+specify; they do not reuse the menu's Archive/Delete confirmation dialog.
+Vessel deliberately retains the visible session until authoritative archive
+acknowledgement instead of optimistically closing/retargeting before the RPC.
+Busy/refused/uncertain outcomes keep the session available with an inline error.

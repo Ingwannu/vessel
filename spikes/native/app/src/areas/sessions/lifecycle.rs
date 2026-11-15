@@ -115,14 +115,14 @@ impl Shell {
             return;
         };
         match action {
-            LifecycleAction::Archive
-            | LifecycleAction::Delete
-            | LifecycleAction::Exit
-            | LifecycleAction::Fresh => {
+            LifecycleAction::Archive | LifecycleAction::Delete => {
                 self.areas.sessions.lifecycle.asking = Some(prepared);
                 self.areas.sessions.lifecycle.dialog.focus(window, cx);
             }
-            LifecycleAction::Unarchive | LifecycleAction::Resume => {
+            LifecycleAction::Unarchive
+            | LifecycleAction::Resume
+            | LifecycleAction::Exit
+            | LifecycleAction::Fresh => {
                 self.send_session_lifecycle(prepared, cx);
             }
         }
