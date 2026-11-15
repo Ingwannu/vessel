@@ -77,6 +77,7 @@ mod bundle;
 mod dir;
 mod files;
 mod managed;
+pub mod orchestration;
 mod place;
 mod plan;
 mod rel;

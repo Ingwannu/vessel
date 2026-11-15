@@ -23,8 +23,6 @@
 //!   own (Codex's `skills/.system`), and no bundle writes there. A
 //!   [`SkillName`] can only be made by these checks.
 
-use std::fmt;
-
 pub use vessel_proto::skills::SkillName;
 
 /// Why a `SKILL.md` names no usable skill.

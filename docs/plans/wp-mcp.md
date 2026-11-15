@@ -171,5 +171,19 @@ changes or captures are required by this node-only package.
 - Done: bounded pending-permission aggregate over existing current conversation
   reads. It is explicitly sequential, not an atomic node snapshot. Fake-node
   regression verifies answered requests disappear while their log remains.
+- Done: six independently written orchestration skill assets and a directory-
+  derived embedded catalogue. Fleet validates declaration identities, portable
+  paths and byte/file/count bounds before any home can be modified. These
+  assets are not installed by build or by catalogue reads.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.
+
+## Bundled asset decision
+
+The existing fleet file/path/name machinery supplies validation and hashing.
+A small standard-library build script embeds the release's skill directory,
+rather than reading a developer checkout at runtime or hardcoding another
+list for all-selection. The bundle ships Vessel, advisor, committee, handoff,
+help and plugin guidance written for Vessel's contracts. Paseo's text is not
+copied. No build script installs files. Asset construction enforces named
+file, count and total byte budgets before any destination writes.
