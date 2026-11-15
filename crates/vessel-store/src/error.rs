@@ -73,7 +73,7 @@ pub enum StoreError {
     /// A stored normalized key disagrees with the definition or a join is missing.
     #[error("stored workspace label identity is inconsistent")]
     WorkspaceLabelIdentity,
-    /// A SQLite count did not fit the checked public count type.
+    /// A `SQLite` count did not fit the checked public count type.
     #[error("workspace label count is outside its representation")]
     WorkspaceLabelCount(#[source] std::num::TryFromIntError),
     /// Appending must never wrap and reorder an existing assignment.
@@ -284,11 +284,6 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             Self::WorkspaceLabelRefused(reason) => reason.code(),
-            Self::WorkspaceLabelName(_)
-            | Self::WorkspaceLabelColor(_)
-            | Self::WorkspaceLabelIdentity
-            | Self::WorkspaceLabelCount(_)
-            | Self::WorkspaceLabelOrder => ErrorCode::Internal,
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
@@ -304,7 +299,12 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::Io { .. }
+            Self::WorkspaceLabelName(_)
+            | Self::WorkspaceLabelColor(_)
+            | Self::WorkspaceLabelIdentity
+            | Self::WorkspaceLabelCount(_)
+            | Self::WorkspaceLabelOrder
+            | Self::Io { .. }
             | Self::NotPrivate { .. }
             | Self::Locked { .. }
             | Self::Random(_)
