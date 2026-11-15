@@ -14,6 +14,7 @@ pub mod agents;
 pub mod automation;
 mod base64_bytes;
 mod board;
+pub mod composer_commands;
 pub mod conversation;
 mod device;
 pub mod diagnostics;

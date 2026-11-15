@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use vessel_proc::{CommandSpec, Signal};
-use vessel_proto::{AgentAbilities, AgentEvent, SessionOption};
+use vessel_proto::{AgentAbilities, AgentCommand, AgentEvent, SessionOption};
 
 use crate::drivers::Driver;
 use crate::error::{AgentError, Disconnect};
@@ -86,6 +86,8 @@ pub struct Probed {
     pub abilities: AgentAbilities,
     /// What it said of itself in `initialize` (protocol 11).
     pub introduction: Introduction,
+    /// Commands observed during the handshake; None means not reported, not empty.
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 /// How the handshake ended, before the log is attached.
@@ -131,6 +133,7 @@ pub async fn probe_with(
         AgentProcess::spawn_with(driver, command, setup).map_err(ProbeError::Spawn)?;
     let mut log: Vec<String> = Vec::new();
     let mut options = None;
+    let mut commands = None;
     let mut introduction = Introduction::default();
     // The handshake has its own deadline (the same `limit`); this one only
     // covers an agent whose outputs stay open after a failure.
@@ -144,10 +147,12 @@ pub async fn probe_with(
                         options: options.take().unwrap_or_default(),
                         abilities: abilities.unwrap_or_default(),
                         introduction: std::mem::take(&mut introduction),
+                        commands: commands.take(),
                     });
                 }
                 AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),
-                AgentOutput::Event(_) | AgentOutput::Commands(_) | AgentOutput::Usage(_) => {}
+                AgentOutput::Commands(listed) => commands = Some(listed),
+                AgentOutput::Event(_) | AgentOutput::Usage(_) => {}
                 AgentOutput::Disconnected(disconnect) => {
                     return Err(Unready::Disconnected(disconnect));
                 }

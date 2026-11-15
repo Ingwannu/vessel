@@ -1534,3 +1534,5 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+Composer catalogs (ADR 0085) use `vessel-proto::composer_commands` for typed draft configuration, command kind and pending protocol projection. Provider-edge conversion belongs to `vessel-agent`; the existing workspace root and option validation remain the node's authority boundary. This adds no crate dependency.
