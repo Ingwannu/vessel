@@ -56,10 +56,10 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
     else {
         return true;
     };
-    if record.close == WindowClose::Checking {
+    if record.close.is_checking() {
         return false;
     }
-    record.close = WindowClose::Checking;
+    record.close = WindowClose::begin();
     let record = record.clone();
     // Shortcut/menu close can run while its Shell is mutably borrowed. Reading
     // its documents here would reborrow and panic, so admission runs next turn.
@@ -104,7 +104,9 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
 fn current_record(record: &WindowRecord, root: &gpui::AnyView, cx: &App) -> bool {
     cx.try_global::<Registry>().is_some_and(|registry| {
         registry.records.iter().any(|current| {
-            current.window == record.window && current.shell.entity_id() == record.shell.entity_id()
+            current.window == record.window
+                && current.shell.entity_id() == record.shell.entity_id()
+                && current.close.same_check(&record.close)
         })
     }) && record.shell.upgrade().is_some()
         && vessel_app_kit::root_contains_view(root, record.shell.entity_id(), cx)
@@ -118,6 +120,7 @@ fn reset_close(record: &WindowRecord, cx: &mut App) {
         .find(|retained| {
             retained.window == record.window
                 && retained.shell.entity_id() == record.shell.entity_id()
+                && retained.close.same_check(&record.close)
         })
     {
         retained.close = WindowClose::Idle;

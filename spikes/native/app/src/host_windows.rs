@@ -18,10 +18,31 @@ pub(crate) struct WindowRecord {
     pub(crate) close: WindowClose,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone)]
 pub(crate) enum WindowClose {
     Idle,
-    Checking,
+    Checking(std::rc::Rc<()>),
+}
+
+impl WindowClose {
+    pub(crate) fn begin() -> Self {
+        Self::Checking(std::rc::Rc::new(()))
+    }
+
+    pub(crate) const fn is_checking(&self) -> bool {
+        matches!(self, Self::Checking(_))
+    }
+
+    /// Re-registering the same Shell after replacement must not revive its old
+    /// close request. Value/handle identity alone cannot distinguish that cycle.
+    pub(crate) fn same_check(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Checking(current), Self::Checking(captured)) => {
+                std::rc::Rc::ptr_eq(current, captured)
+            }
+            _ => false,
+        }
+    }
 }
 
 #[derive(Default)]

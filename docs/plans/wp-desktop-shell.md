@@ -222,6 +222,14 @@ that coalescing boundary and A becoming stale before B becomes the last window.
 This new-source hardening awaits its own App test run; earlier unit totals do
 not qualify it.
 
+The pending close now also owns an opaque check identity. A registry A-to-B-to-A
+cycle can return to the same handle and Shell while retiring its old operation;
+identity comparisons alone would revive that operation. Both deferred admission
+and resetting Checking require this exact check token. A separate actual registry
+turnover regression keeps the original root visible, registers B then A, and
+requires the old close to perform no document/quit action. This receiving test is
+not a claim of an observed native OS root-replacement lifecycle.
+
 ## Environment and CLI
 
 Shell capture uses vessel-proc's existing groups/jobs and cancellation behavior,

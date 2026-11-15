@@ -14,7 +14,11 @@ fn enumeration_covers_all_roots_and_refuses_unregistered_or_replaced_content(
         let unknown = cx
             .open_window(gpui::WindowOptions::default(), |_, cx| cx.new(|_| Empty))
             .unwrap();
-        assert!(shells(cx).is_err(), "unknown roots cannot be omitted");
+        assert_eq!(
+            shells(cx).err(),
+            Some(Unavailable),
+            "unknown roots cannot be omitted"
+        );
         unknown
             .update(cx, |_, window, _| window.remove_window())
             .unwrap();
@@ -25,7 +29,11 @@ fn enumeration_covers_all_roots_and_refuses_unregistered_or_replaced_content(
             })
             .unwrap();
         assert!(old.downgrade().upgrade().is_some());
-        assert!(shells(cx).is_err(), "retained A cannot stand in for B");
+        assert_eq!(
+            shells(cx).err(),
+            Some(Unavailable),
+            "retained A cannot stand in for B"
+        );
         direct_window
             .update(cx, |_, window, cx| {
                 register(&replacement, window, cx);
