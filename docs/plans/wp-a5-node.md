@@ -193,3 +193,13 @@ and late old 410 preservation. Device/read/revocation/expiry predicates and
 existing tests are retained. This intentionally changes only the own half-life
 expectation and is separate from V3's earlier bound-duplication correction.
 Changed-source execution remains owed.
+
+## Unknown cannot establish untracked activity
+
+The canonical pending DTO now has explicit Untracked. Known Shell construction
+uses it; Unknown remains default/serde(other) for missing/lost/future evidence.
+The runtime reducer accepts Untracked as a no-attention starting state, but only
+explicit Working followed by Idle creates Finished. Clear loses tracking and
+returns Unknown. This fixes an information-loss bug in the earlier native
+adapter proposal. No extra wire call/number/scope/schema is introduced; reviewed
+values adoption and regenerated TypeScript are still owed.

@@ -38,9 +38,10 @@ pub(super) fn clear(
     }
     match current.activity {
         TerminalActivity::Attention { .. } => replace(current, TerminalActivity::Idle, now),
-        TerminalActivity::Unknown | TerminalActivity::Idle | TerminalActivity::Working => {
-            Ok(current)
-        }
+        TerminalActivity::Untracked
+        | TerminalActivity::Unknown
+        | TerminalActivity::Idle
+        | TerminalActivity::Working => Ok(current),
     }
 }
 
@@ -82,7 +83,8 @@ fn next_activity(current: TerminalActivity, signal: TerminalActivitySignal) -> T
             TerminalActivity::Attention {
                 reason: TerminalAttentionReason::Finished,
             } => current,
-            TerminalActivity::Unknown
+            TerminalActivity::Untracked
+            | TerminalActivity::Unknown
             | TerminalActivity::Idle
             | TerminalActivity::Attention {
                 reason: TerminalAttentionReason::NeedsInput | TerminalAttentionReason::Unknown,
@@ -192,5 +194,28 @@ mod tests {
             ),
             Err(AttentionError::Exhausted)
         );
+    }
+}
+
+#[cfg(test)]
+mod untracked_tests {
+    use super::*;
+    #[test]
+    fn untracked_is_never_finished_without_explicit_work_and_clear_loses_tracking() {
+        let initial = TerminalAttention {
+            terminal: vessel_proto::TerminalId::random(),
+            revision: TerminalAttentionRevision::default(),
+            activity: TerminalActivity::Untracked,
+            changed_at: DateTime::UNIX_EPOCH,
+        };
+        assert_eq!(
+            clear(initial, initial.revision, DateTime::UNIX_EPOCH).unwrap(),
+            initial
+        );
+        let idle = signal(initial, TerminalActivitySignal::Idle, DateTime::UNIX_EPOCH).unwrap();
+        assert_eq!(idle.activity, TerminalActivity::Idle);
+        let missing = signal(initial, TerminalActivitySignal::Clear, DateTime::UNIX_EPOCH).unwrap();
+        assert_eq!(missing.activity, TerminalActivity::Unknown);
+        assert_ne!(missing.revision, initial.revision);
     }
 }
