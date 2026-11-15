@@ -62,13 +62,16 @@
 //!
 //! Files: `name` (what a node may be called), `content` (each file as read,
 //! and the checks that turn it into entries), `file` (reading and editing
-//! the files), `resolve` (which node a command talks to), `error`.
+//! the files), `resolve` (which node a command talks to), `error`. `routes`
+//! is ADR 0097's additive checked collection; no legacy reader/writer uses
+//! it until the bounded format-2 and transaction boundary are implemented.
 
 mod content;
 mod error;
 mod file;
 mod name;
 mod resolve;
+mod routes;
 #[cfg(test)]
 mod tests;
 
@@ -84,6 +87,9 @@ pub use error::{BookError, EntryProblem};
 pub use file::{BookFile, ProjectConfig};
 pub use name::{InvalidNodeName, NodeName};
 pub use resolve::{Origin, Resolved, resolve};
+pub use routes::{
+    Connection, ConnectionProblem, ConnectionSpec, Connections, MAX_BOOK_ROUTES_PER_HOST,
+};
 
 /// Where a websocket node's token is kept.
 #[derive(Debug, Clone, PartialEq, Eq)]

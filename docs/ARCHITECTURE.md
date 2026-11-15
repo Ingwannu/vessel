@@ -1809,3 +1809,13 @@ Toasts retain the existing host and lifetime rules. The viewport sits below
 the header and centres existing cards, with responsive width and a bounded
 scrolling stack. It no longer occupies the lower composer/dock region.
 The layer's tokens, status roles, colors and dismiss actions are unchanged.
+
+
+ADR 0097's client-owned private-file foundation uses the workspace's
+`rustix` with `fs` on Unix, approved by the coordinator. It opens a
+trusted directory once and uses relative NOFOLLOW/NONBLOCK final opens
+and opened-handle regular-file/owner checks. No client-to-store or fleet
+crate dependency is added. The current implementation is isolated under
+private Unix tests: legacy book/credential callers, mutation locks,
+worker/retention admission and Windows behavior remain unchanged. This
+staging is not a published file-safety or multi-route API.

@@ -33,6 +33,10 @@ tokio-tungstenite.workspace = true
 toml_edit.workspace = true
 tracing.workspace = true
 
+# ADR 0097: client-owned book/credential filesystem boundary, not store/fleet.
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["fs"] }
+
 [dev-dependencies]
 vessel-testkit = { path = "../vessel-testkit" }
 bytes.workspace = true

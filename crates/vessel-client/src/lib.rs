@@ -21,6 +21,10 @@
 //! send (an answer to a question, a waiting prompt's new text) from what a
 //! person types or an agent gives.
 //!
+//! ADR 0097 stages bounded private-file inspection under Unix tests; it
+//! does not yet replace the production book/credential readers. Its safe
+//! filesystem dependency is owned here, without a store/fleet crate edge.
+//!
 //! No command-line parsing and no printing: the CLI, a web backend or an
 //! editor plugin all build on this the same way.
 //!
@@ -56,6 +60,9 @@ mod local;
 pub mod pairing;
 mod pinned;
 mod prompts;
+// ADR 0097 foundation: isolated until its real file owners are wired.
+#[cfg(all(test, unix))]
+mod private_files;
 mod push;
 mod resume;
 mod schedules;
