@@ -13,7 +13,7 @@ use super::request::{self, Destination, RequestMode};
 /// Backend handshake/response-header and upgrade waits are separately bounded.
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(15);
 
-pub(super) async fn serve(mut request: Request<Incoming>, context: Context) -> Response<Body> {
+pub(super) async fn serve(request: Request<Incoming>, context: Context) -> Response<Body> {
     let destination = match request::destination(&request) {
         Ok(destination) => destination,
         Err(_invalid) => return refused(StatusCode::BAD_REQUEST),
@@ -25,6 +25,16 @@ pub(super) async fn serve(mut request: Request<Incoming>, context: Context) -> R
             Err(_refused) => return refused(StatusCode::FORBIDDEN),
         },
     };
+    connected(request, destination, stream, context).await
+}
+
+// A private post-admission seam, never an alternate resolver or proxy entry point.
+async fn connected(
+    mut request: Request<Incoming>,
+    destination: Destination,
+    stream: tokio::net::TcpStream,
+    context: Context,
+) -> Response<Body> {
     if destination.mode == RequestMode::Connect {
         let upgrade = hyper::upgrade::on(&mut request);
         let task_context = context.clone();
@@ -135,3 +145,6 @@ fn refused(status: StatusCode) -> Response<Body> {
     *response.status_mut() = status;
     response
 }
+
+#[cfg(test)]
+mod tests;

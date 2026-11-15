@@ -933,3 +933,27 @@ Both original failure and corrected-state argv/completion receipts are retained.
 The worker changed no runtime, policy or file permissions. This fixture starts no
 browser: it proves the actual account can read/observe this bundle, never a
 qualified launch, isolation, Preview permission, rendering or supported engine.
+
+
+## Positive forwarding fixtures below destination admission
+
+[Decision Log]
+- Purpose: negative private-address canaries alone cannot show that accepted HTTP
+  streaming, requested WebSocket upgrades and CONNECT tunnels work or drain.
+- Existing assets: the same forwarding implementation already receives a pinned
+  TcpStream after dial_public. Reuse it, Hyper and controlled own ephemeral TCP
+  peers; no new resolver, connector trait, dependency or product policy bypass.
+- Choice: extract a private connected-stream helper, called by serve only after
+  the existing destination parser and dial_public success. Test fixtures invoke
+  that same helper with a controlled local stream after parsing their request.
+- Why: the fixture starts strictly below destination admission and exercises real
+  HTTP framing/streaming/upgrades and tracked cancellation without making a
+  loopback address public or permitting real outbound test traffic.
+- Impact: assert origin-form/Host rewrite, hop/proxy credential removal, prefix
+  delivery before the backend completes, bidirectional upgrade/tunnel bytes and
+  EOF/reset after actual joined shutdown. These fixtures do not qualify DNS,
+  public/private policy, Chromium, Preview authority, TLS or UDP isolation.
+
+The three new forwarding fixtures are UNEXECUTED source at this checkpoint;
+changed-source Rust checks wait for the required announced gate49 dependency
+join. Source-only rustfmt/size/diff checks pass; no policy/runtime result follows.
