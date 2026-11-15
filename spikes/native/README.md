@@ -1329,3 +1329,9 @@ the source values and unverified keyboard/accessibility/first-use boundaries. Ex
 Kit all-target Clippy and its two focused tests completed0; this is not a full
 Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
 from area first-use evidence.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.
