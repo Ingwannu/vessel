@@ -252,3 +252,25 @@ fn a_clean_snapshot_moves_the_real_rows_disclosures_and_scroll_while_holds_retur
         assert_eq!(restored.list.top(), before);
     });
 }
+
+#[gpui::test]
+fn retained_origin_protection_participates_in_the_parent_snapshot_vote(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        let mut parent = ConversationArea::new(cx);
+        let mut origin = ConversationArea::new(cx);
+        origin.restarting = true;
+        parent.origin = Origin::Shown(Box::new(origin));
+        assert_eq!(
+            parent.snapshot_readiness(OwnerReadiness::Ready),
+            OwnerReadiness::Hold(HoldReason::PendingEffect)
+        );
+        let Origin::Shown(origin) = &mut parent.origin else {
+            panic!("retained origin")
+        };
+        origin.restarting = false;
+        assert_eq!(
+            parent.snapshot_readiness(OwnerReadiness::Ready),
+            OwnerReadiness::Ready
+        );
+    });
+}

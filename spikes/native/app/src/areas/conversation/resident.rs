@@ -64,11 +64,12 @@ impl ConversationArea {
         {
             return OwnerReadiness::Hold(HoldReason::PendingEffect);
         }
-        match self.origin {
+        match &self.origin {
             Origin::Wanted { .. } | Origin::Reading { .. } => {
                 OwnerReadiness::Hold(HoldReason::Loading)
             }
-            Origin::None | Origin::Shown(_) | Origin::Unread { .. } => OwnerReadiness::Ready,
+            Origin::Shown(area) => area.snapshot_readiness(OwnerReadiness::Ready),
+            Origin::None | Origin::Unread { .. } => OwnerReadiness::Ready,
         }
     }
 

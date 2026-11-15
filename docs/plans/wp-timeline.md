@@ -848,3 +848,7 @@ stale-lock instruction: it predates dd13ce37. Terminal rc143 is an authorized
 queue cancellation, not a compiler result. Its single replacement contains the
 fixed lock and current coherent owner source; existing 94d80 app/kit tests remain
 queued and are not duplicated.
+A retained fork-origin Area also votes recursively before snapshot transfer, so
+an active overlay/effect in that embedded conversation cannot be skipped by a
+clean parent. The staged regression exercises an actual retained child resource;
+no product eviction or follow path is enabled by this additional vote.
