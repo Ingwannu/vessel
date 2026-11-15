@@ -219,3 +219,12 @@ connection-ready producer, so its own narrow check/test outcomes remain owed.
 The capture fleet uses the immutable, hash-verified reference binaries and
 matching baseline helper; it exercises backward-compatible node.info only.
 It cannot prove a new daemon diagnostic RPC, which is still not consumed.
+
+The first visual probe verified a working basic report on two isolated paired
+fake nodes (negotiated protocol 15) and the adaptive viewer at 390x844. A saved
+64-byte book label wraps within the compact viewer; Copy/Refresh stay visible.
+This is a development probe, not final exact-head capture evidence. The report
+now states its requested host count explicitly, independently of the saved-book
+count, so a one-host retry cannot look like a missing host in an all-host report.
+A scope-count regression preserves private label exclusion and zero-host
+report/clipboard identity.

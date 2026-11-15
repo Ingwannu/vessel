@@ -8,6 +8,9 @@ pub(super) fn combined(
     rows: &[HostRow],
 ) -> Result<ReportText, Problem> {
     let mut text = client.map_or_else(String::new, |client| client.as_str().to_owned());
+    if !rows.is_empty() {
+        let _written = write!(text, "\n  Requested host reports: {}", rows.len());
+    }
     for (index, row) in rows.iter().enumerate() {
         // Saturation only guards the ordinal; the row bound keeps it well below usize::MAX.
         let ordinal = index.saturating_add(1);

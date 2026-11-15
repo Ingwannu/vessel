@@ -251,3 +251,37 @@ fn equal_node_reconnect_invalidates_old_results_before_and_after_completion() {
         assert!(run.report().unwrap().as_str().contains("Protocol:"));
     }
 }
+
+#[test]
+fn report_scope_counts_requested_hosts_independently_of_saved_host_count() {
+    let mut tickets = Tickets::default();
+    let mut run = Collection::default();
+    let first = MachineKey::from_book("first-private-label");
+    let second = MachineKey::from_book("second-private-label");
+    run.start(
+        tickets.next_ticket().unwrap(),
+        client(),
+        [
+            (first.clone(), Err(Problem::Offline)),
+            (second, Err(Problem::Offline)),
+        ],
+    );
+    assert!(
+        run.report()
+            .unwrap()
+            .as_str()
+            .contains("Requested host reports: 2")
+    );
+    run.start(
+        tickets.next_ticket().unwrap(),
+        client(),
+        [(first, Err(Problem::Offline))],
+    );
+    assert!(
+        run.report()
+            .unwrap()
+            .as_str()
+            .contains("Requested host reports: 1")
+    );
+    assert!(!run.report().unwrap().as_str().contains("private-label"));
+}
