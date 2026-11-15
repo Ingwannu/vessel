@@ -69,3 +69,10 @@ regressions enforce Unsupported and forbid assigning a staged row a number.
 Strict checks cover proto, client and the node that consumes the canonical denial
 list. The proto/client unit suites and existing node policy tests remain owed on
 this amendment; earlier extraction checks are provenance only.
+
+The client regression uses the real in-memory framed handshake and all five SDK
+wrappers. Every wrapper must return its exact UnassignedProtocol method. A later
+accepted GetNode request is a writer barrier: the peer must receive it first at
+request id zero. This verifies absent frames and absent id allocation, rather
+than inferring either from an early empty-channel observation. It touches no
+real node, home, service or credentials. Execution remains owed.
