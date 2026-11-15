@@ -919,3 +919,14 @@ work before inspecting stored before/after images. The normal wire fixture
 remains explicitly ignored pending version assignment; this private fixture
 covers runtime ordering without inventing a production activation setting.
 No results are claimed until the immutable remote test actually executes.
+
+### Collected worker-API test attempt
+
+Run wp-checkpoints-node-20261115T124207Z-89b77cab reached the ordinary slot
+at13:57 UTC after4442s queued. web-ci and nested-fakes passed; nested-vesseld
+failed cargo101 after132s. Its root error was the missing SessionInfo import in
+sessions/read, followed by23 inference cascades in callers of get(). The import
+was already corrected in4184aa0d6; current source retains it. The old AtFlags
+warning was also corrected before the replacement. No behavior tests executed.
+The replacement runs the current runtime/GC/physical-binding fixtures rather
+than presenting the older compile attempt as their verification.
