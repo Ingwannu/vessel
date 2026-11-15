@@ -341,3 +341,16 @@ before restore is confirmed. Uncertain cleanup retains its active quota and
 session exclusion. This pure registry currently remains staged under tests;
 actual Connection::life wiring and reload/provider teardown are not supplied
 by this module or proved by its state-transition fakes.
+
+### Endpoint finalization slice
+
+The initial endpoint path emits one final transcript for the bounded utterance;
+no partial provider transcription is exposed. Paseo's streaming session can
+commit multiple segments, suppress filler-only partials and reconnect once.
+Vessel does not substitute filler classification for VAD or implicitly replay
+microphone audio after provider failure. This is incomplete incremental
+transcript parity. Finalization still uses the reference10second deadline,
+measured from the ending boundary and including worker queue delay. Timeout
+or cancellation yields no text for a prompt and closes only that job's child
+provider token. Real turn/agent dispatch stays gated on reviewed VAD and
+lifecycle support, rather than claiming that endpoint HTTP alone enables voice.

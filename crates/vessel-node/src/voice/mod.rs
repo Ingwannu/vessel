@@ -6,6 +6,7 @@
 
 mod boundary;
 mod detector_input;
+mod finalize;
 #[cfg(test)]
 mod fixture;
 mod http;

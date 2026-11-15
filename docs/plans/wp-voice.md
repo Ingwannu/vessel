@@ -269,3 +269,24 @@ there is no product connection, provider or lifecycle wiring in this commit.
 New fakes cover pending Stop before reservation, held startup completion,
 foreign/stale generations, close without confirmed restore, session exclusion,
 and both nonce-history caps. They await remote execution. SINCE stays None.
+
+### Final STT deadline owner
+
+The staged Finalization owns one sealed utterance and one generation-child
+cancellation token. Its10second deadline is captured at construction on the
+ending edge, before worker queueing. Biased cancellation/deadline selection
+precedes a ready provider result; elapsed jobs never open the provider. An
+exit guard cancels HTTP work on success, failure, timeout or dropped execution,
+while preserving the parent voice generation for another turn. The existing
+endpoint implements the typed Transcriber seam; fakes hold jobs and advance
+time without providers or credentials. Only VoiceTranscript's closed
+accepted/empty/rejected values leave success; no fallback prompt is fabricated.
+
+The current endpoint slice finalizes one bounded utterance in one request.
+Paseo voice-turn-controller.ts stores streaming provider partial/committed
+segments and can reconnect STT once; this endpoint slice exposes no partial
+transcript stream and does not silently reconnect/replay captured speech.
+Confirmed VAD, rather than filler-partial text, remains the interruption edge.
+Incremental segmentation/partial parity remains an explicit difference, not
+something these deadline fakes prove. Product actor dispatch and real VAD
+are still prerequisites. New finalization tests await remote execution.
