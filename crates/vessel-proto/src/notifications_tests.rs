@@ -44,6 +44,7 @@ fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
         ATTENTION_NOTIFICATIONS_PROTOCOL
     );
     let focus = crate::push::ReportPushPresence {
+        idle_age: None,
         focus: crate::push::PushFocus::Terminal {
             terminal: TerminalId::random(),
         },
@@ -131,4 +132,20 @@ fn a_legacy_terminal_snapshot_has_no_fabricated_activity() {
     })
     .unwrap();
     assert!(encoded.contains("terminal.attention_clear"));
+}
+
+#[test]
+fn elapsed_idle_is_gated_even_when_focusing_no_terminal_and_cannot_encode_future_activity() {
+    let request = crate::push::ReportPushPresence {
+        focus: crate::push::PushFocus::Elsewhere,
+        activity: crate::push::PushActivity::Unchanged,
+        idle_age: Some(crate::push::PushIdleAge::new(180_001)),
+    }
+    .into_call();
+    assert_eq!(request.since(), ATTENTION_NOTIFICATIONS_PROTOCOL);
+    assert!(serde_json::from_str::<crate::push::PushIdleAge>("-1").is_err());
+    let legacy: crate::push::ReportPushPresence =
+        serde_json::from_str(r#"{"focus":{"focus":"background"},"activity":"unchanged"}"#).unwrap();
+    assert_eq!(legacy.idle_age, None);
+    assert!(!serde_json::to_string(&legacy).unwrap().contains("idle_age"));
 }

@@ -94,7 +94,7 @@ pub use error::{Column, Quantity, StoreError};
 pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
 pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
-pub use push::{PushAttention, StoredPush};
+pub use push::{PUSH_LEASE, PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};
 pub use settings_file::{SetAside, SettingsFileError};
 pub use side_context::{LatestPlan, SideContext};

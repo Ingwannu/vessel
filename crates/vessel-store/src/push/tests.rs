@@ -134,3 +134,76 @@ fn explicit_unsubscribe_removes_a_renewal_without_an_attempt_identity() {
     .unwrap();
     assert!(list(&db, now()).unwrap().is_empty());
 }
+
+#[test]
+fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal() {
+    let db = database();
+    let lease = stored(device(&db, vec![Scope::Read]));
+    subscribe(&db, &lease, now()).unwrap();
+    apply(
+        &db,
+        &PushWrite::Renew {
+            device: lease.device,
+            now: now() + TimeDelta::hours(24),
+        },
+    )
+    .unwrap();
+    assert_eq!(list(&db, now()).unwrap()[0].expires_at, lease.expires_at);
+    let later = now() + TimeDelta::hours(25);
+    apply(
+        &db,
+        &PushWrite::Renew {
+            device: lease.device,
+            now: later,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        list(&db, later).unwrap()[0].expires_at,
+        later + TimeDelta::hours(48)
+    );
+    apply(&db, &PushWrite::Expire(Box::new(lease))).unwrap();
+    assert_eq!(list(&db, later).unwrap().len(), 1);
+}
+#[test]
+fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
+    for state in 0..3 {
+        let db = database();
+        let lease = stored(device(&db, vec![Scope::Read]));
+        subscribe(&db, &lease, now()).unwrap();
+        let later = if state == 2 {
+            now() + TimeDelta::hours(49)
+        } else {
+            now() + TimeDelta::hours(25)
+        };
+        match state {
+            0 => devices::revoke(&db, lease.device, now()).unwrap(),
+            1 => {
+                let _changed = db
+                    .execute(
+                        "UPDATE devices SET scopes='[]' WHERE id=?1",
+                        [lease.device.to_string()],
+                    )
+                    .unwrap();
+            }
+            _ => {}
+        }
+        apply(
+            &db,
+            &PushWrite::Renew {
+                device: lease.device,
+                now: later,
+            },
+        )
+        .unwrap();
+        let expiry: i64 = db
+            .query_row(
+                "SELECT expires_at FROM push_subscriptions WHERE device=?1",
+                [lease.device.to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(time_from_sql(expiry), lease.expires_at);
+        assert!(list(&db, later).unwrap().is_empty());
+    }
+}

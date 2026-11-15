@@ -37,6 +37,17 @@ impl Store {
         })
         .await
     }
+    /// Renew this paired caller's existing active lease after its half-life.
+    /// Revoked, read-less, missing and expired leases are never resurrected.
+    /// # Errors
+    /// The committed writer update or node-assigned timestamp cannot be stored.
+    pub async fn renew_push(&self, device: DeviceId, now: DateTime<Utc>) -> Result<(), StoreError> {
+        self.write(|done| Write::Push {
+            write: PushWrite::Renew { device, now },
+            done,
+        })
+        .await
+    }
     /// Remove only the exact lease whose HTTP attempt returned 404/410.
     /// Renewing the same capability with a later expiry keeps the new lease.
     ///

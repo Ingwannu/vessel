@@ -95,52 +95,57 @@ async fn simultaneous_admission_is_once_only_and_survives_restart() {
     store.close().await;
 }
 
-async fn permission_source(
-    store: &vessel_store::Store,
-) -> (
-    vessel_proto::SessionId,
-    vessel_proto::PermissionId,
-    PushAttention,
-) {
-    let mut info = new_session(0);
-    info.spec.mode = SessionMode::Structured {
-        model: None,
-        resume: None,
-        options: Vec::new(),
-    };
-    store.create_session(info.clone()).await.unwrap();
-    let request = vessel_proto::PermissionRequest {
-        id: vessel_proto::PermissionId::random(),
-        tool_call: vessel_proto::ToolCallId::new("tool"),
-        options: Vec::new(),
-    };
-    let request_id = request.id;
-    store
-        .append(
-            info.id,
-            vec![record(
-                0,
-                SessionEvent::Agent {
-                    event: AgentEvent::PermissionRequested(request),
-                },
-            )],
-        )
-        .await
-        .unwrap();
-    let entry = store
-        .inbox(ListInbox::default())
-        .await
-        .unwrap()
-        .entries
-        .into_iter()
-        .next()
-        .unwrap();
-    let source = PushAttention {
-        key: entry.key,
-        cursor: entry.cursor,
-    };
-    (info.id, request_id, source)
+#[cfg(test)]
+mod source_fixture {
+    use super::*;
+    pub(super) async fn permission_source(
+        store: &vessel_store::Store,
+    ) -> (
+        vessel_proto::SessionId,
+        vessel_proto::PermissionId,
+        PushAttention,
+    ) {
+        let mut info = new_session(0);
+        info.spec.mode = SessionMode::Structured {
+            model: None,
+            resume: None,
+            options: Vec::new(),
+        };
+        store.create_session(info.clone()).await.unwrap();
+        let request = vessel_proto::PermissionRequest {
+            id: vessel_proto::PermissionId::random(),
+            tool_call: vessel_proto::ToolCallId::new("tool"),
+            options: Vec::new(),
+        };
+        let request_id = request.id;
+        store
+            .append(
+                info.id,
+                vec![record(
+                    0,
+                    SessionEvent::Agent {
+                        event: AgentEvent::PermissionRequested(request),
+                    },
+                )],
+            )
+            .await
+            .unwrap();
+        let entry = store
+            .inbox(ListInbox::default())
+            .await
+            .unwrap()
+            .entries
+            .into_iter()
+            .next()
+            .unwrap();
+        let source = PushAttention {
+            key: entry.key,
+            cursor: entry.cursor,
+        };
+        (info.id, request_id, source)
+    }
 }
+use source_fixture::permission_source;
 #[tokio::test]
 async fn a_revoked_device_cannot_claim_the_owners_current_permission() {
     let (_temp, dir) = data_dir();

@@ -84,14 +84,19 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
-            Self::ReportPushPresence(request) => match request.focus {
-                crate::push::PushFocus::Terminal { .. } => {
+            Self::ReportPushPresence(request) => {
+                let terminal = match request.focus {
+                    crate::push::PushFocus::Terminal { .. } => true,
+                    crate::push::PushFocus::Session { .. }
+                    | crate::push::PushFocus::Elsewhere
+                    | crate::push::PushFocus::Background => false,
+                };
+                if terminal || request.idle_age.is_some() {
                     Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get())
+                } else {
+                    None
                 }
-                crate::push::PushFocus::Session { .. }
-                | crate::push::PushFocus::Elsewhere
-                | crate::push::PushFocus::Background => None,
-            },
+            }
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
             Self::PromptSession(request) => request.notify.then_some(11),

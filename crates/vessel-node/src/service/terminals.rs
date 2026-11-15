@@ -101,7 +101,7 @@ impl NodeService {
         )
         .with_creator(creator(principal))
         .with_title(request.title);
-        let activity = crate::terminals::producer_auth(id).map_err(wire)?;
+        let activity = terminals::producer_auth(id).map_err(wire)?;
         let handle = self
             .start_shell(&shell, info, &folder, size, activity.as_ref())
             .await
@@ -136,7 +136,7 @@ impl NodeService {
     ) -> Result<TerminalHandle, TerminalsError> {
         let runner = &self.terminals.runner;
         let spec = terminals::shell_spec(shell, folder, &runner.config.removed);
-        let spec = crate::terminals::producer_env(spec, activity, runner.endpoint.path());
+        let spec = terminals::producer_env(spec, activity, runner.endpoint.path());
         start_shell(ShellStart {
             info,
             spec,

@@ -89,7 +89,7 @@ fn concurrent_terminal_claims_admit_one_revision_once() {
             .count(),
         1
     );
-    handle.clear_attention(needs.revision).unwrap();
+    let _cleared = handle.clear_attention(needs.revision).unwrap();
     assert_eq!(
         handle.claim_attention(needs.revision),
         NotificationClaim::NoAttention

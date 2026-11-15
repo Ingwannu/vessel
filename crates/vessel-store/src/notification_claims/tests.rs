@@ -109,22 +109,24 @@ fn foreign_cursors_and_a_missing_or_revoked_device_cannot_admit() {
         claim(&db, NotificationAuthority::Device(device), source),
         Err(StoreError::NotificationDenied)
     ));
-    db.execute("INSERT INTO devices(id,label,secret_hash,scopes,created_at) VALUES(?1,'test',X'00','[\"read\"]',0)", [device.to_string()]).unwrap();
+    let _changed = db.execute("INSERT INTO devices(id,label,secret_hash,scopes,created_at) VALUES(?1,'test',X'00','[\"read\"]',0)", [device.to_string()]).unwrap();
     assert!(admissible(&db, NotificationAuthority::Device(device), source).unwrap());
-    db.execute(
-        "UPDATE devices SET revoked_at=1 WHERE id=?1",
-        [device.to_string()],
-    )
-    .unwrap();
+    let _changed = db
+        .execute(
+            "UPDATE devices SET revoked_at=1 WHERE id=?1",
+            [device.to_string()],
+        )
+        .unwrap();
     assert!(matches!(
         claim(&db, NotificationAuthority::Device(device), source),
         Err(StoreError::NotificationDenied)
     ));
-    db.execute(
-        "UPDATE devices SET revoked_at=NULL,scopes='[\"operate\"]' WHERE id=?1",
-        [device.to_string()],
-    )
-    .unwrap();
+    let _changed = db
+        .execute(
+            "UPDATE devices SET revoked_at=NULL,scopes='[\"operate\"]' WHERE id=?1",
+            [device.to_string()],
+        )
+        .unwrap();
     assert!(matches!(
         claim(&db, NotificationAuthority::Device(device), source),
         Err(StoreError::NotificationDenied)
@@ -138,11 +140,12 @@ fn removing_attention_cascades_its_admission_and_old_sources_never_reappear() {
         claim(&db, NotificationAuthority::Owner, source).unwrap(),
         LocalAdmission::Admitted
     );
-    db.execute(
-        "DELETE FROM inbox WHERE cursor=?1",
-        [cursor(source).unwrap()],
-    )
-    .unwrap();
+    let _changed = db
+        .execute(
+            "DELETE FROM inbox WHERE cursor=?1",
+            [cursor(source).unwrap()],
+        )
+        .unwrap();
     let rows: i64 = db
         .query_row("SELECT COUNT(*) FROM notification_claims", [], |row| {
             row.get(0)
@@ -161,7 +164,7 @@ fn internal_and_agent_created_attention_remains_readable_without_notification_ad
         let db = database();
         let source = source(&db);
         if internal {
-            let parent = vessel_proto::SessionId::random();
+            let parent = SessionId::random();
             let _changed = db
                 .execute(
                     "UPDATE sessions SET spec=json_set(spec,'$.side_question_of',?1) WHERE id=?2",
@@ -171,7 +174,7 @@ fn internal_and_agent_created_attention_remains_readable_without_notification_ad
         } else {
             let creator = vessel_proto::Creator::Agent {
                 node: vessel_proto::NodeId::random(),
-                session: vessel_proto::SessionId::random(),
+                session: SessionId::random(),
             };
             let _changed = db
                 .execute(

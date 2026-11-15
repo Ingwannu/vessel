@@ -10,7 +10,7 @@ mod worker;
 pub(crate) use worker::start;
 #[cfg(test)]
 mod tests;
-use chrono::{TimeDelta, Utc};
+use chrono::Utc;
 use crypto::{Crypto, CryptoError};
 use delivery::{Delivered, DeliveryError};
 use policy::{Plan, Presence};
@@ -184,7 +184,7 @@ impl Push {
         crypto.delivery.validate(&subscription.endpoint).await?;
         let now = Utc::now();
         let expires_at = now
-            .checked_add_signed(TimeDelta::hours(48))
+            .checked_add_signed(vessel_store::PUSH_LEASE)
             .ok_or(PushError::Clock)?;
         self.store
             .subscribe_push(
@@ -197,6 +197,10 @@ impl Push {
             )
             .await?;
         Ok(PushLease { expires_at })
+    }
+    pub(crate) async fn renew(&self, device: DeviceId) -> Result<(), PushError> {
+        self.store.renew_push(device, Utc::now()).await?;
+        Ok(())
     }
     pub(crate) async fn unsubscribe(&self, device: DeviceId) -> Result<(), PushError> {
         Ok(self.store.remove_push(device).await?)

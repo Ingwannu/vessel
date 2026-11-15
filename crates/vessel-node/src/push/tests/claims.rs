@@ -35,6 +35,7 @@ async fn only_elected_connection_can_consume_a_source_and_consumption_is_once() 
             .present(
                 caller,
                 ReportPushPresence {
+                    idle_age: None,
                     focus: PushFocus::Elsewhere,
                     activity: PushActivity::Active,
                 },
@@ -114,6 +115,7 @@ async fn visible_source_suppresses_claim_without_spending_the_opportunity() {
         .present(
             caller,
             ReportPushPresence {
+                idle_age: None,
                 focus: PushFocus::Session { session: target },
                 activity: PushActivity::Active,
             },
@@ -129,6 +131,7 @@ async fn visible_source_suppresses_claim_without_spending_the_opportunity() {
         .present(
             caller,
             ReportPushPresence {
+                idle_age: None,
                 focus: PushFocus::Elsewhere,
                 activity: PushActivity::Unchanged,
             },

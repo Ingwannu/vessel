@@ -163,3 +163,19 @@ A hook without an explicit revision is scoped to its terminal and follows the
 reference producer's event ordering. It does not attest which provider command
 generation produced an event. Revision-supplied reports and all attention-clear
 callbacks retain exact revision checks; no stronger causal ordering is claimed.
+
+## Desktop idle evidence and lease renewal
+
+An optional push.presence idle_age is a nonnegative elapsed millisecond newtype,
+not an absolute client timestamp. It uses the same pending feature constant as
+terminal focus; older peers never receive it. The server computes its own now
+minus the elapsed age, and never moves activity behind newer actual input.
+Native samples retain their monotonic observation time so queueing and repeated
+heartbeats age the evidence instead of keeping an idle window present forever.
+Unknown platform evidence is absent; ordinary in-app input remains independent.
+
+Paired heartbeat renews only its caller's existing active Web Push lease, after
+half of the 48h lifetime. The committed update rechecks current Read/revocation
+and never resurrects an expired or missing lease. Node-owner and agent/delegated
+origins cannot borrow another device's subscription identity. A renewed expiry
+also prevents a late old 410 from deleting that newer lease.
