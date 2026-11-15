@@ -157,4 +157,92 @@ describe("one visible usage query at a time", () => {
       report,
     });
   });
+
+  it("hides another agent/profile before its request effect and compares added agents by identity", () => {
+    const selection: UsageSelection = {
+      ...first,
+      scope: { kind: "agent", harness: { added: "helper" }, profile: null },
+    };
+    const read = { kind: "ready", selection, report: usageReport() } as const;
+    expect(
+      usageFor(read, {
+        ...selection,
+        scope: { kind: "agent", harness: { added: "helper" }, profile: null },
+      }),
+    ).toBe(read);
+    const named: UsageSelection = {
+      ...first,
+      scope: { kind: "agent", harness: { added: "helper" }, profile: "work" },
+    };
+    expect(usageFor(read, named)).toEqual({
+      kind: "loading",
+      selection: named,
+    });
+    const machine = { ...read, selection: first };
+    expect(usageFor(machine, { ...first, scope: { kind: "machine" } })).toBe(
+      machine,
+    );
+  });
+
+  it("owns a queued scope even if its caller reuses and mutates the input object", async () => {
+    const held = deferred();
+    const reader = new UsageReader(() => held.promise);
+    const scope = {
+      kind: "agent",
+      harness: { added: "helper" },
+      profile: "work",
+    } as const;
+    const harness: { added: string } = { added: "helper" };
+    const mutable = { ...scope, harness, profile: "work" };
+    reader.request({ ...first, scope: mutable });
+    mutable.harness.added = "other";
+    mutable.profile = "changed";
+    const done = ready(reader);
+    held.complete({ ok: true, value: usageReport() });
+    await done;
+    expect(reader.store.get()).toEqual({
+      kind: "ready",
+      selection: { ...first, scope },
+      report: usageReport(),
+    });
+  });
+
+  it("retains only all-agent names on one machine, then clears them on move/stop before a late reply", async () => {
+    const report = usageReport();
+    report.agents = [
+      { harness: "claude-code", profile: "work", totals: report.totals },
+    ];
+    const held = deferred();
+    const reader = new UsageReader((selection) =>
+      selection.node === second.node
+        ? held.promise
+        : Promise.resolve({
+            ok: true,
+            value: selection.scope?.kind === "agent" ? usageReport() : report,
+          }),
+    );
+    let done = ready(reader);
+    reader.request(first);
+    await done;
+    const names = reader.names.get();
+    expect(names).toEqual({
+      node: first.node,
+      incomplete: false,
+      groups: [{ harness: "claude-code", profile: "work" }],
+    });
+    done = ready(reader);
+    reader.request({
+      ...first,
+      scope: { kind: "agent", harness: "claude-code", profile: "work" },
+    });
+    await done;
+    expect(reader.names.get()).toBe(names);
+    reader.request(second);
+    expect(reader.names.get()).toBeNull();
+    reader.stop();
+    held.complete({ ok: true, value: report });
+    await held.promise;
+    expect(reader.names.get()).toBeNull();
+    expect(reader.store.get()).toEqual({ kind: "idle" });
+  });
 });
