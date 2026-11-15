@@ -122,9 +122,9 @@ The Vessel column names the baseline equivalent, including meaningful difference
 | `heartbeat create <prompt>` | `--cron <expr>` **required**: Five-field cron cadence<br>`--timezone <iana>`: IANA time zone<br>`--name <name>`: Heartbeat name<br>`--max-runs <n>`: Maximum number of runs<br>`--expires-in <duration>`: Time to live | schedule create --session CALLER (no heartbeat ownership wrapper) | W17 | Different argument/output contract; not full parity. | W; scheduleSchema; 0/1 | `packages/cli/src/commands/heartbeat/index.ts:157` |
 | `heartbeat update <id>` | `--cron <expr>` **required**: Five-field cron cadence<br>`--timezone <iana>`: IANA time zone | schedule update --session CALLER (no heartbeat ownership wrapper) | W17 | Different argument/output contract; not full parity. | W; scheduleSchema; 0/1 | `packages/cli/src/commands/heartbeat/index.ts:168` |
 | `heartbeat delete <id>` | — | schedule delete --session CALLER (no heartbeat ownership wrapper) | W17 | Different argument/output contract; not full parity. | W; heartbeatDeleteSchema; 0/1 | `packages/cli/src/commands/heartbeat/index.ts:176` |
-| `permit ls ` | — | inbox list / session.conversation (permission options differ; no acknowledgement call) | W17 | Different argument/output contract; not full parity. | W; permitLsSchema; 0/1 | `packages/cli/src/commands/permit/index.ts:11` |
-| `permit allow <agent> [req_id]` | `--all`: Allow all pending permissions for this agent<br>`--input <json>`: Modified input parameters (JSON) | session answer ID REQUEST OPTION (permission options differ; no acknowledgement call) | W17 | Different argument/output contract; not full parity. | W: PermissionResponseItem[] (requestId,agentId,agentShortId,name,result); 0/1 | `packages/cli/src/commands/permit/index.ts:15` |
-| `permit deny <agent> [req_id]` | `--all`: Deny all pending permissions for this agent<br>`--message <msg>`: Denial reason message<br>`--interrupt`: Stop agent after denial | session answer ID REQUEST --decline (permission options differ; no acknowledgement call) | W17 | Different argument/output contract; not full parity. | W: PermissionResponseItem[] (requestId,agentId,agentShortId,name,result); 0/1 | `packages/cli/src/commands/permit/index.ts:25` |
+| `permit ls ` | — | inbox list / session.conversation (permission options differ; no acknowledgement call) | W4 permissions CLI | Owned elsewhere; W17 supplies the common output seam. | W; permitLsSchema; 0/1 | `packages/cli/src/commands/permit/index.ts:11` |
+| `permit allow <agent> [req_id]` | `--all`: Allow all pending permissions for this agent<br>`--input <json>`: Modified input parameters (JSON) | session answer ID REQUEST OPTION (permission options differ; no acknowledgement call) | W4 permissions CLI | Owned elsewhere; W17 supplies the common output seam. | W: PermissionResponseItem[] (requestId,agentId,agentShortId,name,result); 0/1 | `packages/cli/src/commands/permit/index.ts:15` |
+| `permit deny <agent> [req_id]` | `--all`: Deny all pending permissions for this agent<br>`--message <msg>`: Denial reason message<br>`--interrupt`: Stop agent after denial | session answer ID REQUEST --decline (permission options differ; no acknowledgement call) | W4 permissions CLI | Owned elsewhere; W17 supplies the common output seam. | W: PermissionResponseItem[] (requestId,agentId,agentShortId,name,result); 0/1 | `packages/cli/src/commands/permit/index.ts:25` |
 | `provider ls ` | — | agents / harnesses / profiles (different projection) | W17 | Different argument/output contract; not full parity. | W; providerLsSchema; 0/1 | `packages/cli/src/commands/provider/index.ts:11` |
 | `provider models <provider>` | `--thinking`: Include thinking option IDs for each model | harness.options (client call only) | W17 | Different argument/output contract; not full parity. | W; options.thinking ? providerModelsWithThinkingSchema : providerModelsSchema; 0/1 | `packages/cli/src/commands/provider/index.ts:15` |
 | `provider diagnostic <provider>` | — | agents status PROVIDER (readiness only) | W17 | Different argument/output contract; not full parity. | W; providerDiagnosticSchema; 0/1 | `packages/cli/src/commands/provider/index.ts:23` |
@@ -333,3 +333,15 @@ List/create/pause/resume/run-once share a typed schedule row with all global for
 and logs currently serialize native ScheduleInfo/ScheduleRun rather than pretending node data
 contains Paseo's run output/error report or target discriminator. Those projection differences
 remain explicit. No scheduler/node RPC is added by this adapter.
+
+## Pending provider and usage consumers
+
+Provider ls/models/diagnostic and usage default/ls/inspect now have dedicated clap grammar.
+Provider selectors are CLI-local text only; no provisional ProviderId/ReportId wire DTO is
+invented. Until W22/W5 deliver reviewed contracts they return Unsupported before connecting.
+In particular, manifest availability, generic harness options, account/profile identities and
+token consumption are not mislabeled as provider snapshots or quota reports. Usage parent
+--agent/--refresh options conflict with subcommands, so usage --agent ID inspect REPORT cannot
+silently choose one scope. Legacy explicit usage scopes remain available with their existing
+output. The full reference table above is the baseline; these status sections describe staged
+work and do not claim 117 paths have passed parity checks.

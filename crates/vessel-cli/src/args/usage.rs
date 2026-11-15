@@ -1,6 +1,6 @@
 //! Usage selectors; rolling periods have names, not raw second counts.
 use crate::selector::SessionSelector;
-use clap::{Subcommand, ValueEnum};
+use clap::{Args, Subcommand, ValueEnum};
 use vessel_proto::{EventSeq, HarnessRef, ProfileName};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -10,6 +10,14 @@ pub(crate) enum Period {
 }
 #[derive(Debug, Subcommand)]
 pub(crate) enum UsageCommand {
+    /// List account quota reports (not token-consumption totals).
+    Ls(UsageList),
+    /// Inspect one canonical quota report ID.
+    Inspect {
+        report: ReportSelector,
+        #[arg(long)]
+        refresh: bool,
+    },
     /// Latest saved sign-in limits of one configured agent profile.
     Limits {
         harness: HarnessRef,
@@ -58,3 +66,35 @@ pub(crate) enum LookupChoice {
     Off,
     On,
 }
+
+#[derive(Debug, Default, Args)]
+pub(crate) struct UsageList {
+    #[arg(long)]
+    pub(crate) agent: Option<SessionSelector>,
+    #[arg(long)]
+    pub(crate) refresh: bool,
+}
+/// CLI selection text stays local until W5's canonical report identity can decode it.
+#[derive(Debug, Clone)]
+pub(crate) struct ReportSelector(String);
+impl std::str::FromStr for ReportSelector {
+    type Err = CliError;
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        const MAX_REPORT_ID_UNITS: usize = 1024;
+        if text.trim().is_empty()
+            || text.encode_utf16().count() > MAX_REPORT_ID_UNITS
+            || text.chars().any(char::is_control)
+        {
+            return Err(CliError::Usage(
+                "quota report ID must be bounded nonempty text without controls",
+            ));
+        }
+        Ok(Self(text.to_owned()))
+    }
+}
+impl ReportSelector {
+    pub(crate) fn text(&self) -> &str {
+        &self.0
+    }
+}
+use crate::error::CliError;

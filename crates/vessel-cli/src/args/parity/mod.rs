@@ -8,6 +8,7 @@ mod host;
 mod identifier;
 mod invocation;
 pub(crate) mod output;
+mod provider;
 mod provider_argument;
 mod schedule;
 mod terminal;
@@ -30,6 +31,11 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// Provider snapshots/models/diagnostics await the canonical provider contract.
+    Provider {
+        #[command(subcommand)]
+        command: provider::ProviderCommand,
+    },
     /// Clone a complete Git remote or explicitly selected GitHub shorthand.
     Clone(Clone),
     /// Manage real workspace identities independently of projects/worktrees.

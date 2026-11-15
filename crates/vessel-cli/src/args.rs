@@ -38,7 +38,7 @@ pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
-pub(crate) use usage::{LookupChoice, Period, UsageCommand};
+pub(crate) use usage::{LookupChoice, Period, UsageCommand, UsageList};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
@@ -203,9 +203,12 @@ pub(crate) enum Command {
     /// The TCP ports the node's sessions and terminals listen on.
     Ports(Ports),
     /// Reported tokens and cost, by session, agent or machine.
+    #[command(args_conflicts_with_subcommands = true)]
     Usage {
+        #[command(flatten)]
+        options: UsageList,
         #[command(subcommand)]
-        command: UsageCommand,
+        command: Option<UsageCommand>,
     },
     /// Schedules: prompts the node sends on its own, at times or every so
     /// often (protocol 11, ADR 0033).

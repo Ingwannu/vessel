@@ -75,7 +75,13 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
         Command::Shell(shell) => terminals::shell(target, shell).await,
         Command::Script { command } => terminals::script(target, command).await,
         Command::Ports(ports) => terminals::ports(target, &ports).await,
-        Command::Usage { command } => crate::usage::run(target, command).await,
+        Command::Usage { command, options } => {
+            crate::usage::run(
+                target,
+                command.unwrap_or(crate::args::UsageCommand::Ls(options)),
+            )
+            .await
+        }
         Command::Schedule { command } => {
             automation::schedule(target, cli.output.presentation(), command).await
         }

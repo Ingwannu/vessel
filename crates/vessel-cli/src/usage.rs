@@ -8,8 +8,35 @@ use std::fmt::Write as _;
 use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageSampleKind, UsageScope, UsageTotals};
 
 pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), CliError> {
+    match &command {
+        UsageCommand::Ls(options) => {
+            let _requested_agent = options.agent.as_ref();
+            let _refresh = options.refresh;
+            return Err(CliError::ParityBlocked(
+                "usage report discovery awaits W5's reviewed account report/source contract",
+            ));
+        }
+        UsageCommand::Inspect { report, refresh } => {
+            let _report_id = report.text();
+            let _refresh = refresh;
+            return Err(CliError::ParityBlocked(
+                "usage inspect awaits W5's canonical report-ID contract; report IDs are not harness/profile IDs",
+            ));
+        }
+        UsageCommand::Limits { .. }
+        | UsageCommand::SessionLimits { .. }
+        | UsageCommand::Lookup { .. }
+        | UsageCommand::Machine { .. }
+        | UsageCommand::Agent { .. }
+        | UsageCommand::Session { .. } => {}
+    }
     let client = connect(target).await?.client;
     let (scope, period, after) = match command {
+        UsageCommand::Ls(_) | UsageCommand::Inspect { .. } => {
+            return Err(CliError::ParityBlocked(
+                "quota reports await the reviewed report contract",
+            ));
+        }
         UsageCommand::Limits {
             harness,
             profile,

@@ -25,6 +25,7 @@ pub(crate) async fn run(
     command: ParityCommand,
 ) -> Result<(), CliError> {
     let command = match command {
+        ParityCommand::Provider { command } => return Err(command.pending()),
         ParityCommand::Clone(args) => return projects::clone(target, output, args).await,
         ParityCommand::Workspace { command } => {
             command.validate()?;
