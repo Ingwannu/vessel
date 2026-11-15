@@ -320,3 +320,20 @@ empty Inbox deliberately marked unread, then work, pending request and actual
 clear. This is source wiring; changed-source native checks and actual assigned
 node/runtime behavior remain owed. The node tree owns runtime integration;
 this app-only values adoption is not a whole-root gate claim.
+
+## Safe manual-open boundary
+
+W21 confirmed that legacy Open::of(Card), even after a UI G4 context check,
+does not retain the original admission through queued attach/follow after a
+rebind. Inbox removes that legacy route rather than inventing another resolver
+or stream owner. The Open control is explicitly unavailable with Sessions
+fallback copy until W21 supplies a reviewed bound opener. OS activation already
+keeps exact Inbox selection. This is an outstanding integration, not navigation
+parity or an approved permanent difference; request answers/shared marks remain
+available under their existing selected-call fence.
+
+Native strict wp-inbox-adapter-20261115T132516Z-5171bbca returned three own View
+lints: doc path backticks, elidable groups lifetime and indexed route replacement.
+They are corrected; route selection uses iter_mut/find with unchanged same-node
+admission semantics. The immutable failure remains retained. No current native
+PASS is inferred from source corrections.

@@ -92,12 +92,12 @@ impl Inbox {
     pub fn read_routes(&self, candidates: impl IntoIterator<Item = Source>) -> Vec<Source> {
         let mut routes: Vec<Source> = Vec::new();
         for source in candidates {
-            if let Some(index) = routes
-                .iter()
-                .position(|known| known.node() == source.node())
+            if let Some(known) = routes
+                .iter_mut()
+                .find(|known| known.node() == source.node())
             {
                 if self.nodes.iter().any(|node| node.source == source) {
-                    routes[index] = source;
+                    *known = source;
                 }
             } else {
                 routes.push(source);

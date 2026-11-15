@@ -1,8 +1,7 @@
 //! Detail actions are single-flight and refer to the source event confirmed by
 //! the node, never whichever request happens to be first in a session now.
-use super::super::session::Open;
 use crate::shell::Shell;
-use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::ui::Context;
 use vessel_app_link::{
     Command,
     inbox::{Ask, Input},
@@ -142,23 +141,5 @@ impl Shell {
             input,
             request,
         }));
-    }
-
-    pub(crate) fn inbox_open(&mut self, key: Key, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(source) = self.inbox_source(key) else {
-            return;
-        };
-        let open = self
-            .fleet
-            .machines
-            .iter()
-            .filter(|machine| machine.connection_context().as_ref() == Some(source.context()))
-            .flat_map(|machine| &machine.sessions)
-            .find(|card| card.session == key.session)
-            .map(Open::of);
-        if let Some(open) = open {
-            self.open_session(open, window, cx);
-            self.conversation_reveal(key.seq, cx);
-        }
     }
 }

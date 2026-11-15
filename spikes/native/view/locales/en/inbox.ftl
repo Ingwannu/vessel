@@ -124,3 +124,6 @@ inbox-terminal-unknown = Activity unknown
 
 # Bounded local delivery queue overflow; durable items are not lost.
 inbox-combined = Several alerts were combined. All current items remain in this inbox.
+
+# Exact-source opening awaits the shared bound opener; keep an honest fallback.
+inbox-open-unavailable = Open this conversation from Sessions for now.

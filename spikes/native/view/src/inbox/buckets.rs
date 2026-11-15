@@ -57,12 +57,12 @@ pub struct Group<'a> {
 /// Filter once and derive each status once; sorting does not repeatedly scan
 /// the attention store. Names break equal-time ties deterministically.
 #[must_use]
-pub fn groups<'a>(
-    fleet: &'a Fleet,
+pub fn groups(
+    fleet: &Fleet,
     view: SidebarView,
     limit: usize,
     attention: impl Fn(&Card) -> Option<SessionAttention>,
-) -> Vec<Group<'a>> {
+) -> Vec<Group<'_>> {
     let mut cards: Vec<_> = crate::sidebar::listed(
         fleet.machines.iter().flat_map(|machine| &machine.sessions),
         view,

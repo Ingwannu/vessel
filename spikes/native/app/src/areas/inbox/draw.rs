@@ -221,9 +221,11 @@ fn detail(
     if let Some(problem) = area.detail.problem() {
         body = body.child(note(words::problem(problem, shell.words), tokens));
     }
-    let open = outline_button("inbox-open", labels.open(), true, tokens)
-        .on_click(cx.listener(move |shell, _event, window, cx| shell.inbox_open(key, window, cx)));
-    body = body.child(open);
+    // The legacy alias-based opener cannot retain this exact admission through
+    // queued attach. W21 owns the real bound opener; keep the safe Inbox here.
+    body = body
+        .child(outline_button("inbox-open", labels.open(), false, tokens))
+        .child(note(labels.open_unavailable(), tokens));
     let Some(entry) = area.detail.entry() else {
         return body
             .when(
