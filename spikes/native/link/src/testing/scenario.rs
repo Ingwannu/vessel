@@ -82,7 +82,7 @@ impl Scenario {
         let home = Home::try_new()?;
         let (events, outbox) = mpsc::channel(crate::CHANNEL);
         let mut state = make_state(&home, link.commands.downgrade(), events);
-        let (peer, context) = runtime(&link).block_on(async {
+        let (peer, context) = owned_runtime(&link).block_on(async {
             let mut peer =
                 peer::try_controlled(name.as_str(), vessel_proto::NodeId::random()).await?;
             let context = driver::admit(&mut state, &mut peer, name.as_str())?;
@@ -104,7 +104,7 @@ impl Scenario {
                 stopped,
             },
         );
-        let task = runtime(&link).spawn(async move {
+        let task = owned_runtime(&link).spawn(async move {
             failure::phase_with_limit(Phase::Control, OUTER, driver.run()).await?
         });
         let scenario = Self {
@@ -143,7 +143,7 @@ impl Scenario {
                 mpsc::error::TrySendError::Full(_control) => FixtureError::Full,
                 mpsc::error::TrySendError::Closed(_control) => FixtureError::Closed(Phase::Control),
             })?;
-        runtime(link).block_on(async {
+        owned_runtime(link).block_on(async {
             failure::phase(Phase::Control, receive)
                 .await?
                 .map_err(|_closed| FixtureError::Closed(Phase::Control))?
@@ -246,7 +246,7 @@ impl Scenario {
     pub fn close(&mut self, link: &Link) -> Result<(), FixtureError> {
         self.done(link, Control::Stop)?;
         if let Some(task) = self.task.as_mut() {
-            runtime(link).block_on(async {
+            owned_runtime(link).block_on(async {
                 failure::phase(Phase::Close, task)
                     .await?
                     .map_err(|_raw_worker| FixtureError::Worker)?
@@ -280,7 +280,7 @@ impl std::fmt::Debug for Scenario {
 
 // The product Link retains its existing keep-alive field and Drop ordering.
 // Only the explicit scenario borrows that owner; no runtime/handle is exported.
-fn runtime(link: &Link) -> &tokio::runtime::Runtime {
+fn owned_runtime(link: &Link) -> &tokio::runtime::Runtime {
     let Link {
         _runtime: runtime, ..
     } = link;
