@@ -211,6 +211,13 @@ policy. Per-key removal is real; independent machines, providers and default
 records survive stale windows. Provider option bags remain atomic under their
 existing bounds. Queue 64 refusal is visible, unreadable files remain launch-only,
 and old failures cannot roll back newer accepted edits.
+After a queue refusal the Client also refuses later full snapshots until canonical
+observation reconciles that window. Otherwise a second, unrelated edit could
+implicitly include the first refused field while its UI rollback is still queued.
+This admission latch covers settings and nonsettings without another writer or
+changing Shell::prefer's unit-return API. A deterministic filled-pending-queue
+test checks refusal after the physical writer drains and successful recovery only
+from the reconciled canonical projection; its new-head execution is pending.
 
 Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
 so allocator/reference invariants cannot be corrupted. W12 owns the UI-book cache
