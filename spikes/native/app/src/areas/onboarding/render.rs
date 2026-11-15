@@ -3,25 +3,13 @@
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog as kit_dialog};
 use vessel_app_kit::theme::spacing::{S2, S4};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, button, outline_button, settings};
 use vessel_app_view::onboarding::{State, Step};
 
 use crate::shell::Shell;
-
-/// Setup is above the command palette; both reuse their existing dialog focus.
-pub(crate) fn overlays(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
-) -> impl Iterator<Item = AnyElement> {
-    crate::areas::palette::render(shell, tokens, window, cx)
-        .into_iter()
-        .chain(dialog(shell, tokens, window, cx))
-}
 
 pub(super) fn title(shell: &Shell, step: Step) -> &str {
     let words = shell.words.desktop();

@@ -16,7 +16,7 @@ use vessel_app_view::workspace::projects::ProjectsView;
 
 use crate::{routes::Route, shell::Shell};
 
-pub(crate) use render::{overlays, setup_row};
+pub(crate) use render::{dialog, setup_row};
 
 /// One model lives with the window; render never recreates an asynchronous visit.
 pub(crate) struct Onboarding {
@@ -47,7 +47,6 @@ impl Onboarding {
 
 /// Called after fleet/project events settle, rather than deciding from an empty loading list.
 pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
-    shell.settle_settings(window);
     if cfg!(any(target_os = "android", target_os = "ios")) {
         return;
     }

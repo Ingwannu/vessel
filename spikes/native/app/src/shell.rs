@@ -296,6 +296,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
+        self.settle_settings(window);
         areas::onboarding::prepare(self, window, cx);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
@@ -392,7 +393,8 @@ impl Render for Shell {
                     .children(sheet),
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::onboarding::overlays(self, &tokens, window, cx))
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::onboarding::dialog(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
