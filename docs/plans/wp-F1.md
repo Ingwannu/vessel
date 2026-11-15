@@ -878,3 +878,15 @@ has offered a model select; no invented model name is serialized. Recurring
 cadence-only edits retain their separate path. This reuses the typed node option
 catalog; source regression covers pending, removed opened model and explicit
 replacement. New source is not the frozen c79 narrow evidence or consumer UI.
+
+
+### Text feedback and submit validity are separate
+
+The form's existing cached parsing still decides whether save is valid. A typed
+Name/Prompt/Limit selector now exposes each edited field's own feedback, so a
+new blank prompt blocks submission without showing an error before interaction,
+and a malformed run count does not disappear behind that untouched prompt.
+One cached source error remains authoritative; no parsing or translation occurs
+inside drawing. Opened wire fields begin unedited, and an actual edit owns its
+feedback until corrected. This is F1 source, not a new field engine or an
+assertion about the still-unimplemented editor screen's runtime behavior.

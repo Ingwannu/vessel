@@ -113,3 +113,26 @@ fn prompt_validation_counts_utf8_bytes_and_refuses_control_characters() {
     fields.set_prompt("hello\tworld\r\n안녕".into());
     assert!(fields.error().is_none());
 }
+
+#[test]
+fn feedback_belongs_to_the_edited_field_without_hiding_save_validation() {
+    let mut fields = Fields::empty();
+    assert!(matches!(fields.error(), Some(FieldError::Prompt(_))));
+    assert!(fields.feedback(Field::Prompt).is_none());
+    fields.set_limit("bad".into());
+    assert!(matches!(
+        fields.feedback(Field::Limit),
+        Some(FieldError::Number(_))
+    ));
+    assert!(fields.feedback(Field::Prompt).is_none());
+    fields.set_prompt(" ".into());
+    assert!(matches!(
+        fields.feedback(Field::Prompt),
+        Some(FieldError::Prompt(_))
+    ));
+    fields.set_prompt("Check the build".into());
+    assert!(fields.feedback(Field::Prompt).is_none());
+    assert!(fields.values().is_err());
+    fields.set_limit("".into());
+    assert!(fields.values().is_ok());
+}
