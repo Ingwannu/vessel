@@ -1,6 +1,7 @@
 # ADR 0076: Named launch profiles
 
-Status: contract accepted, 2026-11-15; implementation is not approved.
+Status: initial contract accepted, 2026-11-15; implementation is not approved.
+The A10 expansion below is proposed for contract/security review before code.
 Core value definitions are being built; catalogue/storage/wiring remain
 unbuilt. The integrator allocated the store migration; no migration or
 protocol assignment is made here. No method in this document is available.
@@ -263,7 +264,7 @@ No launch-profile id is recorded as a live binding: later edits/deletion
 never mutate or restart existing sessions. The new profile contains no
 system prompt, environment or process override.
 
-This package does not add a running-session bundle-apply call. Existing
+The initial CRUD contract did not add a running-session bundle-apply call. Existing
 `session.set_option` applies one choice at a time, Operate/ownership checked;
 several such calls are partial and may interleave. CRUD support must not
 be advertised as Paseo's `agentConfigApply` support, nor enable a pretend
@@ -279,7 +280,8 @@ revision CAS replace daemon-config array patching; harness plus named
 account replaces a provider string; agent-reported ordered choices replace
 fixed model/mode/thinking fields and arbitrary feature values. Unavailable
 choices are refused at launch rather than silently removing a mode. CRUD
-is independently useful; running bundle apply remains unsupported. These
+is independently useful; running bundle apply is unbuilt and proposed in
+the A10 expansion below. These
 follow Vessel's existing owners and prevent credential exposure, lost
 updates and an unrequested permission-mode change.
 
@@ -307,3 +309,158 @@ transport hop; CLI/MCP and seeded fake-fleet reads/mutations. Tests use
 existing fake binaries, `within` and named finite phases, including owned
 child kill/reap. No real agent is prompted. Per-commit narrow checks precede
 the package's one complete root gate and implementation review.
+
+## A10 expansion: draft/live application and legacy favorites (proposed)
+
+The expanded parity assignment requires the complete profile workflow,
+including running application and legacy migration. This section replaces
+only the initial package's deliberate omission of running apply. It does
+not weaken creation's existing fail-on-unoffered-choice rule or authorize
+an account/process change. It is not implementation approval.
+
+Additional source read: Paseo's complete
+`agent-profiles/internal/use-agent-profile-picker.ts`,
+`agent-profiles/migration/index.ts` and all its tests; client
+`daemon-client.ts::applyAgentConfig` and server
+`session/agent-config/agent-config-session.ts::applyBundle`. The caller's
+config request uses the session RPC timeout. Migration is client-local,
+with one in-flight job per host and a completion marker only after success.
+No-favorites completes without a catalogue read. A catalogue failure or
+failed host write leaves the migration retryable.
+
+### Roles and materialization
+
+A stored choice gains a typed reported `OptionCategory` hint, defaulting
+only to Other when no category is known. This is placement/order metadata,
+not execution authority or a replacement for the driver's validation.
+The existing opaque id and select/toggle payload remain unchanged. Keeping
+this hint is necessary to recognize a retired saved mode even when its id
+has disappeared from the live catalogue. There is no provider-id string
+switch, fixed mode-id table or arbitrary feature JSON.
+
+Draft materialization is one pure transition returning harness, account
+selector and concrete choices for ordinary creation. It retains the
+existing strict launch behavior. Live materialization is separate:
+await an authoritative live option snapshot; keep the running agent and
+account immutable; omit only a saved mode absent from the known live mode
+choices, leaving the live mode alone. Unknown/not-yet-read modes defer the
+whole application. Other unsupported choices are not silently removed.
+The prepared result records omitted modes for the caller. Retired model
+or feature values still reach their normal validation/refusal path.
+
+Application order is the reported model, mode, thinking category, then
+remaining features, stable within a category. An explicit direct API choice
+is not a request to silently omit an invalid mode: the profile materializer
+performs that reconciliation before submitting the bundle. This matches
+Paseo's client reconciliation and server refusal boundary, while creation
+continues to reject an unoffered permission mode.
+
+### One live mutation boundary
+
+Proposed additional call: `session.apply_options`,
+`ApplySessionOptions { session, options: LaunchChoices }`, Operate,
+targeted by the normal session ownership guard. It accepts no profile id,
+provider, account selector, environment or process override. Agent and
+fleet-origin callers meet exactly the same scope/ownership rules as
+`session.set_option`; terminal/ended/moving sessions keep their existing
+refusals. A parked session uses the existing wake path and captures one
+resulting agent-process input handle for the entire bundle.
+
+The current ACP setter starts an asynchronous provider request and returns
+to its driver loop. Merely looping the public setter in a node RPC would
+therefore allow other clients' changes between steps. Extend the shared
+`AgentInput` configuration boundary with one bounded owner per process.
+Both existing single-option mutations and a bundle pass through it. It
+waits for each actual provider completion before the next step; provider
+outputs, permission answers and stop/cancel processing continue normally.
+A model request/prompt must not be synthesized by this owner.
+
+The owner returns a typed completed prefix and either complete success or
+the first refused choice/reason. Earlier changes remain applied and their
+normal option events continue; later choices are not sent. A typed optional
+provider notice accompanies completion: retain the first notice without
+skipping subsequent setters. Only a notice the driver reports is carried;
+no notice is invented from an opaque option id or raw stderr. A driver
+without a notice reports none. The internal completion seam must carry this
+fact rather than claiming a generic Vec-of-options already contains it.
+
+No caller-owned mutex or dropped RPC future may release the mutation fence
+while the provider still has an in-flight setter. A lost acknowledgement,
+client timeout or disconnect is an uncertain result, not permission to
+retry the bundle or to claim rollback. The owned job remains fenced until
+actual completion or closure of that same process. A hung provider can
+hold its own lane; stopping the process closes it and drains replies. New
+work is bounded and other sessions/metadata reads remain independent.
+The client uses the source session-RPC budget for this new operation;
+existing call/test deadlines are not raised. This promises finite admission
+and lifecycle cleanup, not a fabricated provider acknowledgement at timeout.
+
+Shared configuration queue/admission bounds are named beside the owner;
+apply admission is separate from metadata/probe admission so hung setters
+cannot consume every profile-list slot. Queued/running jobs and completion
+handoffs retain ownership through cancellation. No second unbounded queue,
+process switch, hidden restart, retry or central session-map mutex is added.
+Tests drive the real owner with fake provider completions, barriers and
+finite safety clocks, including a competing old single-field call, partial
+failure, first-notice continuation, dropped callers, delayed acknowledgement,
+process replacement/closure and cleanup with held external input handles.
+
+### Legacy migration ownership and stable identity
+
+The checked native preference schema has remembered agent choices, not a
+favorite-model list. No existing Vessel favorite key or completion marker
+was found; remembered choices must not be reinterpreted as favorites.
+The app owns validated device-local legacy input, a per-NodeId completion
+marker and one in-flight migration per host. N3 supplies a shared typed
+client planning/application helper over the ordinary host list/CAS calls.
+It never opens another application's data or credential directories. The
+app's existing preference writer remains its owner's, not a node file.
+
+Legacy input is a bounded ordered set of opaque provider/model keys, mapped
+through the relevant reported catalogue into a real harness/account/model
+choice. Unsupported mappings remain retryable; no account is guessed.
+Deduplicate legacy pairs, existing equivalent provider/model selections
+(including profiles with extra mode choices), and previously imported ids.
+Existing profiles stay first and untouched. New labels follow the source's
+model label, provider/model disambiguation and suffix order. A label or
+whole list beyond a named bound produces a typed unresolved result; it is
+not truncated or falsely marked complete.
+
+The profile id remains a UUID. For imported favorites use deterministic
+namespaced UUIDs over the canonical typed provider/model pair and a fixed
+versioned namespace. Enabling the existing `uuid` crate's v5 feature is the
+proposed dependency-feature change: it replaces a custom hash/escaping
+scheme and preserves retry-stable ids while keeping the accepted UUID
+representation. This id is public metadata, never a credential or bearer
+authority. The source uses reversible `legacy_favorite:...` ids; this UUID
+representation is a deliberate difference. No credential value is hashed,
+logged, copied or associated with the migration.
+
+Migration checks both CRUD and live-apply protocol availability before
+consuming a local completion marker. With no favorites, completion needs
+neither catalogue nor host mutation. Otherwise catalogue resolution must
+succeed before appending. The source loading retry schedule is preserved
+as one named client constant for explicit transient pending/busy catalogue
+resolution; ordinary authentication/validation/provider errors stop the
+attempt, leaving completion unset. The node probe normally awaits a final
+answer, so it does not manufacture a Loading catalogue or silently treat
+all Unavailable errors as retryable. Timed backoff is tested with a driven
+clock, not wall sleeps in a test.
+
+Host replacement uses the current revision. A stale migration plan may
+re-read and rebuild its append-only additions, never overwrite a manual
+edit; it is distinct from blindly resubmitting a stale editor replacement.
+Conflict/failure, unresolved mapping, unknown acknowledgement and failed
+local marker persistence leave migration retryable. A lost host reply is
+resolved by reading and deduplicating, not repeating an unconfirmed write.
+Only successful append/already-present/no-favorites writes completion;
+later user deletion does not recreate favorites once that marker exists.
+The bounded retry/terminal states and source migration fixtures are shared
+with the app rather than copied into its screens.
+
+The new live call uses the same pending feature/table/accessor after the
+announced Quality B head is consumed. The store allocation remains the
+integrator's; this amendment adds no migration entry or protocol number.
+All new state, outcome, notice, legacy-key and result types need the same
+constructor/decoder/serialized-budget discipline as the accepted values.
+Implementation and the complete A10 package gate remain outstanding.

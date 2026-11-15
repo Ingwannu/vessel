@@ -1,5 +1,11 @@
 # Named launch profiles (ADR 0076)
 
+The expanded package plan is `wp-a10-node.md`. Its proposed contract
+amendment includes serialized live application and legacy favorite
+migration; it supersedes the initial CRUD-only package boundary below.
+That new behavior requires review and shared agent/session ownership
+coordination before code. The checked core value stage remains unchanged.
+
 ## State
 
 V3 accepted ADR source `3f0ae46d` as contract/documents only. The node

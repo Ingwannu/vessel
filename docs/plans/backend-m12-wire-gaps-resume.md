@@ -1,5 +1,24 @@
 # N3 current checkpoint
 
+## Current: A10 expansion contract ready for review
+
+The core-value stage is checked and recorded by `82776280`; all owned
+checks have ended. The next package is `wp-a10-node.md`. ADR0076 now has
+a proposed A10 amendment for draft/live application, common single/bundle
+mutation ownership, typed partial outcomes and device-local legacy
+migration over host CAS. The original running-apply omission is no longer
+the target scope. These additional behaviors are not implemented or approved.
+
+V3 reviews the amended security contract. The common `vessel-agent` /
+`vessel-session` boundary needs coordinator ownership confirmation before
+edits there: the existing ACP single setter spawns asynchronous work, so a
+node-side loop cannot provide the required no-interleaving guarantee.
+Vendor policy/parsers remain with their existing owner. The app owner
+confirmed no existing favorite schema on the checked app line; remembered
+choices must not be migrated as favorites. No personal preferences were read.
+Quality B is still unannounced; register no pending or dummy call before
+consuming that head. Schema allocation is known, but no migration is added.
+
 ## Current: core-value narrow checks passed; A10 expansion next
 
 Core source `9375732b` passed TS-enabled proto all-target Clippy and all
