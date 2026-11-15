@@ -99,9 +99,12 @@ impl Shell {
     }
 
     /// Fold or unfold a plan request's plan.
-    fn permit_plan_toggle(&mut self, seat: Seat, cx: &mut Context<'_, Self>) {
+    fn permit_plan_toggle(&mut self, seat: Seat, id: PermissionId, cx: &mut Context<'_, Self>) {
         if let Some(area) = (seat.get_mut)(self) {
-            area.plan_folded = !area.plan_folded;
+            if !area.response_waiting(vessel_app_view::responses::Request::Permission(id)) {
+                return;
+            }
+            area.plan_folded = (area.plan_folded != Some(id)).then_some(id);
             cx.notify();
         }
     }
@@ -178,7 +181,15 @@ pub(crate) fn card<P: Place>(
         cx,
     );
     let footer = footer(answers, refused, *words, tokens);
-    let body = body((shell, area, seat), &card, tool, head, tokens, window, cx);
+    let body = body(
+        (shell, area, seat, id),
+        &card,
+        tool,
+        head,
+        tokens,
+        window,
+        cx,
+    );
     Some(frame(body, footer, narrow, tokens))
 }
 
@@ -315,7 +326,7 @@ fn answers<P: Place>(
 /// The card's body: a plan's head and Markdown, or the head and the
 /// tool's detail (a shell call's `$ command`, an edit's diff).
 fn body(
-    (shell, area, seat): (&Shell, &ConversationArea, Seat),
+    (shell, area, seat, id): (&Shell, &ConversationArea, Seat, PermissionId),
     card: &PermissionCard<'_>,
     tool: Option<&ToolView>,
     head: Div,
@@ -325,9 +336,9 @@ fn body(
 ) -> AnyElement {
     let column = div().flex().flex_col().gap(px(8.0));
     if let Some(plan) = &card.plan {
-        let folded = area.plan_folded;
+        let folded = area.plan_folded == Some(id);
         return column
-            .child(head_with_chevron(head, (seat, folded), tokens, cx))
+            .child(head_with_chevron(head, (seat, id, folded), tokens, cx))
             .when(!folded, |body| {
                 // Paseo's plan card scrolls with the conversation; over the
                 // composer the plan scrolls inside the card instead, so the
@@ -394,7 +405,7 @@ fn body(
 /// before the title, folding the plan.
 fn head_with_chevron(
     head: Div,
-    (seat, folded): (Seat, bool),
+    (seat, id, folded): (Seat, PermissionId, bool),
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -411,7 +422,7 @@ fn head_with_chevron(
         .min_h(px(24.0))
         .cursor_pointer()
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.permit_plan_toggle(seat, cx);
+            shell.permit_plan_toggle(seat, id, cx);
         }))
         .child(vessel_app_kit::glyph(
             chevron,
@@ -421,3 +432,6 @@ fn head_with_chevron(
         .child(head.flex_1())
         .into_any_element()
 }
+
+#[cfg(test)]
+mod tests;

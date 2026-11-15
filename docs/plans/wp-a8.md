@@ -270,3 +270,12 @@ Markdown and all callers are unchanged. The label/body distinction matches
 Paseo question-form-card.tsx154. W12b owns link/image behavior; notify it with
 the resulting hash. The regression must click actual rendered label text, not
 row padding, so a selectable renderer cannot accidentally satisfy the test.
+
+
+Plan disclosure is keyed to the exact PermissionId instead of one bool retained
+across every approval in an area. A successor opens expanded; a queued chevron
+from a resolved/canceled request cannot fold the new plan. The existing single
+visible-plan slot retains only its folded request id, so no second disclosure
+manager or unbounded map is needed. The GPUI controller regression covers repeat
+toggle, successor and stale chevron order. Shared W10 Plan rendering stays the
+consumer seam; its final typed outcome/renderer integration is still pending.

@@ -153,7 +153,7 @@ pub(crate) struct ConversationArea {
     pub(crate) permit_sending: Option<permission::Sending>,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
     /// unfolded).
-    pub(crate) plan_folded: bool,
+    pub(crate) plan_folded: Option<vessel_proto::PermissionId>,
     /// What the node says waits in the session now, for the requests and
     /// questions whose records the log read no longer holds
     /// (`view::timeline::Live`).
@@ -215,7 +215,7 @@ impl ConversationArea {
             forking: fork::Forking::new(cx),
             origin: origin::Origin::None,
             permit_sending: None,
-            plan_folded: false,
+            plan_folded: None,
             live: Live::default(),
             reveal: None,
             outline: Vec::new(),
@@ -283,7 +283,7 @@ impl ConversationArea {
         self.answering = None;
         self.permit_sending = None;
         self.response_failures = vessel_app_view::responses::Failures::default();
-        self.plan_folded = false;
+        self.plan_folded = None;
         self.live = Live::default();
         self.reveal = None;
         self.outline_pointer = outline::Pointer::default();
