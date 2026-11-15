@@ -68,6 +68,11 @@ impl AgentProcess {
         command: &CommandSpec,
         setup: AgentSetup,
     ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        if setup.system_prompt.is_some()
+            && driver.system_prompt_support() == vessel_harness::SystemPromptSupport::Unsupported
+        {
+            return Err(crate::LaunchRefusal::SystemPromptUnsupported(driver).into());
+        }
         if !driver.built() {
             return Err(AgentError::NoDriver(driver));
         }

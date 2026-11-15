@@ -1624,6 +1624,21 @@ this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
 
+The staged node `speech_audio` module is shared by dictation and spoken
+conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
+fixed-provider-rate conversion and checked in-memory WAV framing. Recording
+budgets, silence, segmentation, prompts and multipart fields stay with callers.
+It adds no crate edge or dependency; consumers remove its test gate when wiring
+real product callers. Payload-bearing Debug is redacted and no audio file is
+created by the codec.
+
+The staged node `connection_life` primitive owns an opaque Arc identity and
+context-lifetime close/drop signal. It contains no quota, presence id, transport
+or worker. The real connection setup will own one instance and acting-as contexts
+will clone it; resources retain only its identity/close observer and observe
+transport closure as well. Dictation, spoken conversation and later resources
+consume that connection accessor rather than creating another ownership key.
+
 ### Process observation boundary
 
 ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
@@ -1643,3 +1658,14 @@ never retries a delayed numeric group id. Legacy wait, release capability and
 ProcessLifetime revocation remain compatible; neither an observer nor a stored
 PID supplies this receipt. Its accepted cleanup request does not assert every
 descendant's observed OS death (docs/plans/checked-process-cleanup.md).
+## Transient system-context launch boundary
+
+`vessel-agent::setup` owns AgentSetup separately from the ACP handshake state
+machine and re-exports preserve the existing public path. Its optional
+SystemPromptOverride is a bounded non-serializable instruction value.
+`vessel-harness::system_prompt` owns the transport capability beside launch
+policy; no transport currently advertises support. AgentProcess refuses an
+unsupported override before process spawn, with a typed Unsupported mapping.
+The field does not enter SessionSpec, user messages, argv or environment.
+Reload orchestration and actual native override/restore transports are separate
+work; see docs/plans/provider-transient-context.md. No dependency edge changes.
