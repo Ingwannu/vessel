@@ -1,13 +1,15 @@
 # C3 git runtime
 
-Status: staged implementation. No new method has an assigned protocol number.
-ADR 0087 defines the contract; the Quality B base 29eebb8b is merged.
+Status: unadmitted runtime implementation. No new method has an assigned protocol
+number. ADR 0087 defines the contract; the announced node head ede20014 is
+merged as7594368f after the own queued-root correction. Existing remote runs keep
+their original earlier commits; the new combined tree is not yet gated.
 
 ## Structure and decisions
 
 `vessel-proto::workspace::panel` defines comparison/whitespace/page identity
 without changing legacy DiffScope or its admitted calls. `git::diff::scope`
-stages committed-only resolution; `git::diff::all_index` stages All through a
+implements committed-only resolution; `git::diff::all_index` implements All through a
 private index. Both reuse the protected runner and typed summary/file parsers.
 The shared readers accept a node-owned optional index; legacy scopes leave it
 absent. File explorer state and workspace registry identity are separate.
@@ -33,8 +35,11 @@ The existing workspace-pinned tempfile dependency is now a normal dependency
 for the complete comparison read API; ADR0087 and ARCHITECTURE record its
 license, alternative and tradeoff. Each entry point awaits private-index cleanup
 on success and failure. Bound cancellation reaches all helper commands. Node
-TaskTracker ownership and its bounded execution queue are the next caller;
-there is still no new admitted RPC, cache or transport.
+TaskTracker ownership and its bounded execution queue retain active comparison
+and history work; the node cache coalesces completed/active comparison payloads.
+The runtime table rows remain pending with GIT_PANEL=None, so no new RPC is
+admitted. The separate values-only leaf awaits the shared staged-row prerequisite
+and V3 recheck; it contains no runtime or cache.
 
 ## Verification boundaries
 
@@ -52,7 +57,7 @@ there is still no new admitted RPC, cache or transport.
 - Post-base submissions of 4331b5b2/ea58824d ended before registration during a
   build-helper lock fault. They have no step evidence and were not rerun as
   successes. Registered earlier red/green runs remain unchanged.
-- No RPC, live node, UI, real forge, OS cleanup or complete parity claim.
+- No new RPC admission, live node, UI, real forge, OS cleanup or complete parity claim.
 
 ## Resume point
 
