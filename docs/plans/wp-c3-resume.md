@@ -309,7 +309,7 @@ resident source are preserved, with no resource promotion. This is not adoption
 of an unannounced moving line. W10b's dispatch extraction still waits for its
 announced checked line before the next coherent App compile.
 
-## 16:13 UTC: announced helper base and current correction split
+## Announced helper base and current correction split
 
 Merged announced green6ebdf8e8 after c342. README retained both the mapped audit
 note and incoming picker admission note; dispatch merged W10b's awaited boxed
@@ -330,3 +330,21 @@ and removes the unused import. Its sole run
 wp-git-control-tests-20261115T160840Z-25951c81 is queued, not a pass or proof of
 which iteration. It preserves all production bytes from0813. Both prior0813
 runs are terminal RED: tests15/1/0, Clippy unused size import only.
+
+## Changed-source batch receipts after helper integration
+
+- Isolated4133964f6: wp-git-consumer-tests-20261115T161114Z-4133964f
+  (code_editor::diff) and wp-git-kit-narrow-20261115T161114Z-4133964f
+  (Kit all-target strict Clippy), both queued/short/no priority.
+- App15a5fb35d: wp-git-narrow-20261115T161115Z-15a5fb35, all4 native crates
+  strict all-target Clippy, queued/short/no priority. Helper101 budget blocker
+  is removed by the announced6eb base, not an own dispatcher fork.
+- Diagnostic25951 source remains actual0813 production + named failure context;
+  queued sole run160840. Current19-case successor has extra horizontal and
+  ordinaryNone/vertical-overflow tests plus both-theme alpha policy test.
+-16 owned Rust blobs match across isolated producer and App; whole Kit differs
+  through unowned shared controls, so exact isolated proof stays separate.
+  Standalone rustfmt/import/conflict/diff scans, pure size689/656 and token
+  ratchet pass. No local metadata/Cargo, new whole gate or new UI capture.
+- W8 owns common97 retirement promotion and Scripts startup; do not race its
+  cfg attributes. Git init/retire consumer waits for that checked promoted union.

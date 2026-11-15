@@ -141,9 +141,10 @@ Shared machine node identity and input editability come from that base.
 
 Existing kit split-button ownership is confirmed. Its returned corrections
 (one-line typed density, menu-only shape, named parameters and its own radius)
-will be a control-only change within C3. The current reference compact height
-is CONTROL_HEIGHTS.sm = 28, not the older note's 32; native touch keeps the
-44-point target required by ADR 0036. Shared loaders remain the loader owner's
+will be a control-only change within C3. The reference header is pointer26 /
+touch32: control-geometry.ts HEADER_CONTROL_HEIGHT uses the touch sm value32,
+not the ordinary pointer sm value28. Native touch keeps the44-point target
+required by ADR0036. Shared loaders remain the loader owner's
 producer, with no area spinner. The current integrated menu producer is not
 ready; historical source clears are not a current API handoff.
 
@@ -151,7 +152,7 @@ ready; historical source clears are not a current API handoff.
 
 The existing `kit::split_button` is extended, not duplicated. Current reference:
 `git/actions-split-button.tsx` (whole component/styles) and
-`components/ui/control-geometry.ts`: pointer26, compact28; inset8/12, gap4/8,
+`components/ui/control-geometry.ts`: pointer26, touch32; inset8/12, gap4/8,
 borderAccent1, own md radius6, body14/21. Native touch remains44 (ADR0036).
 `Density` selects one-line words or just the required glyph, chosen by the
 caller from available panel width. Literal label breaks are folded through the
@@ -856,3 +857,21 @@ root viewport width before entering their callback; no panel-width claim is
 made for that full-window setup. Existing assertions stay; no vendor fix or
 shared width API was installed. All three08b1 failures and20 test/example lint
 diagnostics remain actual red evidence until changed-source selections execute.
+
+## Toolbar source audit still owed in the full C3 consumer
+
+Current reference whole actions-split-button.tsx + control-geometry.ts use
+pointer26/touch32, with native44 still the documented ADR0036 departure. The
+earlier compact28 note confused the ordinary pointer sm size with touch header
+height; geometry here was not silently changed. The old Rust module comment
+quoting28 needs the same documentation correction at its next source checkpoint.
+
+Source observations are NOT an approved toolbar UI result: use-actions.tsx
+isActionDisabled includes pending, and the primary disabled style applies0.6,
+including its pending spinner. Current native Busy is nonactivating but does not
+apply that opacity. The reference only draws a caret when secondary actions
+exist and keeps its separate overflow trigger/menu(width220); the legacy toolbar
+currently puts its remaining actions in one caret menu. These need the existing
+shared control/pure Git policy integration, not an area-owned replacement menu.
+No Busy opacity/shape/source callback change is installed by this audit. It is
+not part of the isolated patch7/diff-style producer or its checks.
