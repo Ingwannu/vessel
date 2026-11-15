@@ -251,3 +251,19 @@ optional recovery field. Ordinary Get uses its default capability selection.
 No existing assertion or budget is weakened. Isolated settings fixtures keep
 a separate real Store directory with worker state, preserving the original
 file-layout/no-op assertions while retaining SQL resources through final drain.
+
+## Producer/engine qualification split
+
+The joint producer excludes the recovery coordinator's start, restart runtime,
+Journal/session wiring and recovery CLI options. They remain an unqualified
+consumer reference until their physical preparation and independent recovery
+conditions are met. The producer still uses the real Policy and Store SQL
+hook: no fake policy, fallback or second writer can stand in for settlement.
+It qualifies the opaque document, accepted lane, one-read Opening, protected
+field, same-value debt retry and stop/drain/teardown ordering.
+
+This source line is isolated from the portable engine ancestry; the earlier
+full union is retained separately rather than reverted or rewritten. The
+engine-only Policy admission extension and its assertions belong to the later
+consumer. Common core state/SQL/queue/drain tests remain actual producer tests.
+No executable engine dispatch is enabled just to give a future API a caller.

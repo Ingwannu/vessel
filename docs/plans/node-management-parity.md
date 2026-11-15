@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The common Settings producer is split from the unqualified recovery engine.
+  It retains the real Policy/SQL hook, bounded lane, opaque record, one-read boot
+  snapshot and early drain/teardown ordering. Recovery start/runtime remain off
+  on this line. Core policy extraction and joint strict/tests/gate are owed;
+  earlier full-union source does not qualify this producer.
+
+
 - Drafted the one-read startup handoff: canonical Store snapshot computes
   preservation from the same bytes, Opening carries it across Store startup,
   and Settings consumes it without file I/O. Compatibility coverage diagnostics

@@ -54,6 +54,8 @@ mod opening;
 mod recovery_apply;
 pub(crate) use opening::Opening;
 pub(crate) use recovery_apply::RecoveryApply;
+#[cfg(test)]
+mod shutdown_tests;
 mod writer;
 #[cfg(test)]
 mod writer_tests;
@@ -126,6 +128,8 @@ struct State {
     #[cfg(test)]
     gate: writer_tests::GateSlot,
     #[cfg(test)]
+    cleanup_gate: writer_tests::GateSlot,
+    #[cfg(test)]
     fixture_store: std::sync::Mutex<Option<tempfile::TempDir>>,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
@@ -197,6 +201,8 @@ impl Settings {
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
             #[cfg(test)]
+            cleanup_gate: writer_tests::GateSlot::default(),
+            #[cfg(test)]
             fixture_store: std::sync::Mutex::default(),
             kept,
             later: AtomicBool::new(matches!(
@@ -220,6 +226,31 @@ impl Settings {
             admission: admission::SettingsAdmission::start(Arc::clone(&state)),
             state,
         }
+    }
+
+    /// One shared policy Arc binds the settings fence to actual recovery enqueue.
+    pub(crate) fn policy(&self) -> Arc<crate::recovery::policy::Policy> {
+        self.state.recovery.policy()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pause_write(
+        &self,
+    ) -> (
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::oneshot::Sender<()>,
+    ) {
+        self.state.gate.install()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pause_cleanup(
+        &self,
+    ) -> (
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::oneshot::Sender<()>,
+    ) {
+        self.state.cleanup_gate.install()
     }
 
     /// The settings in force.

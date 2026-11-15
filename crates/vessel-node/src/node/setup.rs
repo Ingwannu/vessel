@@ -238,3 +238,17 @@ pub(super) fn runtime(
         .with_attachments(loader),
     )
 }
+
+/// OS identity and timezone reads stay off async workers, preserving startup
+/// diagnostics while the settings lane is composed before serving.
+pub(super) async fn node_info(
+    config: &Config,
+    id: NodeId,
+    keypair: &Arc<vessel_secure::NodeKeypair>,
+) -> Result<vessel_proto::NodeInfo, NodeError> {
+    let name = config.name.clone();
+    let public_key = *keypair.public();
+    tokio::task::spawn_blocking(move || crate::identity::node_info(id, name, public_key))
+        .await
+        .map_err(NodeError::Task)
+}
