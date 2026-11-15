@@ -159,8 +159,8 @@ fn an_uncertain_result_preserves_the_card_and_cannot_be_reopened_by_stale_reads(
         assert!(shell.areas.conversation.response_waiting(pending.request));
         let permission = shell.areas.conversation.live.permissions[0].clone();
         let stale_live = shell.areas.conversation.live.clone();
-        shell.areas.conversation.live = stale_live;
-        shell.areas.conversation.reconcile_responses();
+        let reply = snapshot_reply(&pending, stale_live);
+        let _followup = shell.areas.conversation.answered(reply);
         assert!(
             !shell
                 .areas
@@ -285,4 +285,23 @@ fn unoffered_options_and_invalid_question_values_do_not_admit_network_work(
             Some(Problem::Invalid)
         );
     });
+}
+
+fn snapshot_reply(pending: &Pending, live: Live) -> vessel_app_link::ActAnswer {
+    let held = vessel_proto::Conversation {
+        queue: Default::default(),
+        commands: Vec::new(),
+        usage: None,
+        permissions: live.permissions,
+        questions: live.questions,
+        abilities: None,
+        limits: vessel_proto::AttachmentLimits::DEFAULT,
+    };
+    vessel_app_link::ActAnswer {
+        terminal: None,
+        machine: pending.target.connection.machine().as_str().to_owned(),
+        session: pending.target.session,
+        kind: vessel_app_link::ActKind::Conversation,
+        result: Ok(vessel_app_link::Acted::Conversation(Box::new(held))),
+    }
 }
