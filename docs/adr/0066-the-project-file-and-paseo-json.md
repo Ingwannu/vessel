@@ -921,3 +921,89 @@ cannot establish that relationship. Preparation tests must show that two
 workspaces using the same checkout keep distinct literal identifiers, and
 that switching local/worktree placement never substitutes either legacy id.
 No helper is launched and no registry API is adopted by this contract change.
+
+
+### Connected peer observations before forwarding
+
+[Decision Log]
+
+- Purpose and intent: a fresh listener snapshot followed by a later TCP dial
+  can cross a normal stop/rebind race. Another workspace may acquire that
+  port before the first application byte is sent. The proof must describe
+  the accepted endpoint of the actual connected stream, not just the
+  address that was safe to dial earlier.
+- Reference: Paseo's `server/local-service-connection.ts:4–28` connects to
+  loopback, and `server/service-proxy.ts:319–400` forwards HTTP or websocket
+  data once connected. It supplies no accepted-peer/process-generation
+  observation. The extra proof is a deliberate security floor for the
+  node-owned private Preview boundary, not a claimed Paseo behavior.
+- Existing assets and constraints: `vessel-proc::listening` owns bounded
+  process trees, socket tables and descriptor observations. Its legacy
+  decoder reports listeners, skips unreadable rows and retains one socket
+  owner; those display semantics do not prove a complete unique connected
+  peer. Proc's generic process reader and seeded identity work have their
+  own prerequisites. The current assigned head does not provide their
+  qualified identity API, so no raw PID or stored identity record replaces
+  that missing producer. `ProcessLifetime` is authority revocation, not
+  kernel liveness or proof of which process accepted a TCP connection.
+- Alternatives: pass an immutable origin to a browser and let it dial;
+  rescan only listening ports after the dial; add another OS parser in the
+  browser/node; or extend the existing Proc inspection boundary and return
+  one lease-owned verified connection. Choose the last. A replacement
+  listener need not own an already accepted connection, and duplicated OS
+  parsing would diverge from the process primitives.
+- Choice: add one focused `vessel-proc::socket_peer` module, not changes to
+  Child ownership or another reaper. It observes the accepted peer's owning
+  process evidence from the actual connected TCP socket. Reuse the existing
+  socket decoder/scanner and the qualified shared process reader/identity
+  when available. Shared decoder extraction must preserve the legacy
+  listener path and its tests; strict connected-peer decoding is a distinct
+  behavior. No parallel parser or collector is introduced in the node or
+  browser. The module itself neither dials nor writes application data.
+- Completeness and identity: observe the server-side connection tuple and
+  socket inode/holder, with the actual owning process identity and verified
+  ancestry to the expected run. A listening row alone, first matching PID,
+  cached port or snapshot timestamp is insufficient. Ambiguous ownership
+  across runs, missing/changed identity, unreadable required evidence,
+  malformed records or any relevant truncation refuse the observation.
+  Family/mapped-address handling is explicit kernel-format comparison;
+  it must never grant a different canonical browser origin. Recheck the
+  identity and connection association before returning a positive result.
+  ProcessId remains a value, never an admission credential.
+- Resource bounds: reuse `ScanLimits` process/descriptor/table budgets and
+  the shared reader's named record cap; do not duplicate their values.
+  Strict completeness cannot use the legacy scan's silent-drop behavior
+  as a positive proof. The node owns finite admission and a tracked blocking
+  worker. Its permit and actual socket stay inside the work through caller
+  cancellation or timeout until that physical work finishes; late results
+  cannot issue a lease or start forwarding. Blocking OS I/O cannot be
+  forcibly aborted merely by dropping an async future.
+- Node/browser integration: a trusted lease owns `connect_verified`, the
+  dial and the actual stream. Before forwarding any HTTP headers/body,
+  websocket upgrade bytes or HTTPS TLS bytes, it verifies the accepted
+  peer and the canonical registry/actual-run/approval binding. The returned
+  owned AsyncRead/AsyncWrite wrapper retains its lease, run cancellation
+  and capacity for the stream's real lifetime. Revocation closes active
+  relays before profile/capacity reuse. It offers no client-constructible
+  peer proof, unrestricted raw stream or independent browser dial path.
+  Warnings, public consent and credential-forwarding policy remain the
+  separate proxy/settings contract; this observation grants none of them.
+- Failure/platform policy: missing qualified reader/seeded identity,
+  unsupported kernel evidence or a platform without this proof returns a
+  typed Unavailable/Unsupported refusal, with a fixed diagnostic such as
+  “connected service ownership cannot be verified on this platform”.
+  Source causes are retained without raw process/socket records. Linux is
+  the first proposed backend; no Windows/macOS behavior is inferred from
+  their listener tools. Keep preparation test-only and consumers closed
+  until those real producers and the integration gate exist. No fake is
+  reachable by a product build and no new wire/dependency is added here.
+- Required tests and limits: IPv4/IPv6 exact accepted-peer association;
+  listener replacement that is not the connected peer; foreign workspace,
+  root/run/PID reuse and shared-socket ambiguity; missing/malformed/capped
+  records; cancellation while a blocking worker retains its permit; late
+  proof refusal; no payload before proof; active-stream cancellation and
+  capacity retention; explicit unsupported-platform refusal. Fakes test
+  policy and decoder ordering only. Controlled real loopback peers are
+  needed for the actual backend; no such execution or proof is claimed
+  by this document. Same-account arbitrary process manipulation remains
+  the documented host trust limit, not a promised OS sandbox.
