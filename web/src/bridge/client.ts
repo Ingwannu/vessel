@@ -31,7 +31,7 @@ import type {
   StreamId,
   StreamState,
 } from "../wire/bridge";
-import type { EventRecord, Reply, SessionId } from "../wire/proto";
+import type { EventRecord, NodeId, Reply, SessionId } from "../wire/proto";
 
 export { CallFailed, describeFailure } from "./failure";
 export type { LinkState } from "./socket";
@@ -111,12 +111,16 @@ export class Bridge {
     node: NodeKey,
     method: M,
     params: frames.ParamsOf<M>,
+    expectedNode?: NodeId,
   ): Promise<frames.ResultOf<M>> {
     const id = callIdOf(this.#id());
     const reply = await new Promise<Reply>((resolve, reject) => {
       this.#calls.set(id, { resolve, reject });
-      const call = frames.callOf(method, params);
-      if (!this.#socket.send({ type: "call", id, node, call })) {
+      if (
+        !this.#socket.send(
+          frames.frameOf(id, node, method, params, expectedNode),
+        )
+      ) {
         this.#calls.delete(id);
         reject(
           new CallFailed({

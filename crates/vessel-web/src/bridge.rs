@@ -42,7 +42,7 @@ use serde::Deserialize;
 use tokio::sync::{Semaphore, broadcast, mpsc, oneshot, watch};
 use tokio::task::JoinSet;
 use tokio_tungstenite::tungstenite::Message;
-use vessel_proto::RawJson;
+use vessel_proto::{NodeId, RawJson};
 
 use crate::calls;
 use crate::keep::{Answer, Keeper};
@@ -317,7 +317,12 @@ impl<S: NodeSource> Tab<S> {
             ClientFrame::Hello { .. } => {
                 unreadable(&self.out, "this socket is already welcomed".to_owned()).await;
             }
-            ClientFrame::Call { id, node, call } => self.call(id, node, call).await,
+            ClientFrame::Call {
+                id,
+                node,
+                call,
+                expected_node,
+            } => self.call(id, node, call, expected_node).await,
             ClientFrame::Follow {
                 stream,
                 node,
@@ -353,7 +358,13 @@ impl<S: NodeSource> Tab<S> {
         }
     }
 
-    async fn call(&mut self, id: CallId, node: NodeKey, call: RawJson) {
+    async fn call(
+        &mut self,
+        id: CallId,
+        node: NodeKey,
+        call: RawJson,
+        expected_node: Option<NodeId>,
+    ) {
         let Ok(permit) = Arc::clone(&self.calls).try_acquire_owned() else {
             let outcome = CallOutcome::Err(calls::busy());
             let _gone = self.out.send(ServerFrame::Reply { id, outcome }).await;
@@ -362,7 +373,7 @@ impl<S: NodeSource> Tab<S> {
         let registry = Arc::clone(&self.registry);
         let out = self.out.clone();
         let _call = self.tasks.spawn(async move {
-            let outcome = calls::forward(&registry, &node, call).await;
+            let outcome = calls::forward(&registry, &node, call, expected_node).await;
             let _gone = out.send(ServerFrame::Reply { id, outcome }).await;
             drop(permit);
         });

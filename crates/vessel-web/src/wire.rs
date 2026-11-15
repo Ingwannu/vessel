@@ -31,7 +31,7 @@ mod ops;
 mod prefs;
 pub use auth::{AuthMode, InvalidAuthValue, LaunchId, Nonce};
 pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
-pub use ops::{Op, OpFailure, OpOutcome, OpResult};
+pub use ops::{Op, OpFailure, OpOutcome, OpResult, SubmitCheck};
 pub use prefs::{
     ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, Bounded, ChoiceKey,
     ChoiceKeyTooLong, Choices, ChoicesError, CodeSize, Composer, ContentWidth, ConversationDisplay,
@@ -81,6 +81,9 @@ pub enum ClientFrame {
         /// answered, by id.
         #[cfg_attr(feature = "ts", ts(as = "vessel_proto::Call"))]
         call: RawJson,
+        /// Prepared calls refuse if the book key now reaches another node.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        expected_node: Option<NodeId>,
     },
     /// Follow a session from a record on.
     Follow {

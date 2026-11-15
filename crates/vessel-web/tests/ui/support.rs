@@ -231,9 +231,28 @@ impl Tab {
         let id = self.id();
         let call = RawJson::from_serialize(call).unwrap();
         self.send(&ClientFrame::Call {
+            expected_node: None,
             id,
             node: node.parse().unwrap(),
             call,
+        })
+        .await;
+        id
+    }
+
+    /// A prepared call must keep its authenticated recipient across book changes.
+    pub(crate) async fn prepared_call(
+        &mut self,
+        node: &str,
+        expected_node: NodeId,
+        call: &Call,
+    ) -> CallId {
+        let id = self.id();
+        self.send(&ClientFrame::Call {
+            id,
+            node: node.parse().unwrap(),
+            expected_node: Some(expected_node),
+            call: RawJson::from_serialize(call).unwrap(),
         })
         .await;
         id
@@ -243,6 +262,7 @@ impl Tab {
     pub(crate) async fn call_text(&mut self, node: &str, call: &str) -> CallId {
         let id = self.id();
         self.send(&ClientFrame::Call {
+            expected_node: None,
             id,
             node: node.parse().unwrap(),
             call: RawJson::from_text(call).unwrap(),

@@ -27,6 +27,7 @@ pub(crate) async fn forward<S: NodeSource>(
     registry: &Arc<Registry<S>>,
     node: &NodeKey,
     call: RawJson,
+    expected_node: Option<vessel_proto::NodeId>,
 ) -> CallOutcome {
     let call = match decode(&call) {
         Ok(call) => call,
@@ -36,6 +37,9 @@ pub(crate) async fn forward<S: NodeSource>(
         Ok(client) => client,
         Err(failure) => return CallOutcome::Err(failure),
     };
+    if let Err(failure) = crate::submission::recipient(client.node().id, expected_node) {
+        return CallOutcome::Err(failure);
+    }
     match client.call_any(call).await {
         Ok(reply) => CallOutcome::Ok(Box::new(reply)),
         Err(error) => CallOutcome::Err(failure(error)),
@@ -259,7 +263,7 @@ const fn forwardable(method: Method) -> bool {
     }
 }
 
-fn failure(error: CallError) -> Failure {
+pub(crate) fn failure(error: CallError) -> Failure {
     match error {
         CallError::Remote(error) => Failure::Remote { error },
         CallError::NotInProtocol {

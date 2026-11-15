@@ -9,7 +9,8 @@ use super::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use vessel_proto::PairingOffer;
+use vessel_proto::timeline::SubmitPrompt;
+use vessel_proto::{NodeId, PairingOffer};
 
 /// An op's answer.
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,6 +51,15 @@ pub enum OpFailure {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Op {
+    /// Check this one prepared submission's protocol and recipient without dispatch.
+    CheckSubmit {
+        /// Book key currently selected by the page.
+        node: NodeKey,
+        /// Captured authenticated node identity; a retarget can only refuse.
+        expected_node: NodeId,
+        /// Its final policy/identity, before attachment references are available.
+        request: Box<SubmitPrompt>,
+    },
     /// The nodes to show: the book's and this machine's.
     Nodes,
     /// Connect to a node again now (after it failed, or while waiting to
@@ -131,6 +141,11 @@ pub enum Op {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum OpResult {
+    /// Result of the local SDK preflight; no node call was sent.
+    CheckSubmit {
+        /// Typed support/refusal, never an inferred acceptance.
+        check: SubmitCheck,
+    },
     /// [`Op::Nodes`].
     Nodes {
         /// The nodes, in the order to show them.
@@ -196,4 +211,26 @@ pub enum OpResult {
     },
     /// [`Op::SaveDraft`].
     SaveDraft,
+}
+
+/// Local preflight checks support and recipient only; it grants no input authority.
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum SubmitCheck {
+    /// The actual connection supports this call and still names the captured node.
+    Ready {
+        /// Frozen recipient for every prepared upload and submission frame.
+        node: NodeId,
+    },
+    /// No submission was sent; legacy compatibility may be selected before preparation.
+    Unsupported {
+        /// The SDK's typed protocol refusal.
+        failure: super::Failure,
+    },
+    /// No submission was sent, but recipient/connectivity refused preparation.
+    Refused {
+        /// The actual local refusal, not provider output.
+        failure: super::Failure,
+    },
 }

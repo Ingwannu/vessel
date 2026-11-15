@@ -10,7 +10,7 @@
 // these. What they catch is a frame of another kind or version.
 
 import type { CallId, NodeKey, OpFailure, ServerFrame } from "../wire/bridge";
-import type { Call, EventRecord, Reply } from "../wire/proto";
+import type { Call, EventRecord, NodeId, Reply } from "../wire/proto";
 
 /** The kinds of frame the bridge sends. */
 const SERVER_FRAMES: ReadonlySet<string> = new Set([
@@ -97,6 +97,8 @@ export interface CallFrame<M extends Method> {
   id: CallId;
   node: NodeKey;
   call: CallOf<M>;
+  /** A captured authenticated recipient; mismatches refuse before dispatch. */
+  expected_node?: NodeId;
 }
 
 /** The reply to method `M`, the same way. */
@@ -116,6 +118,23 @@ export function callOf<M extends Method>(
   params: ParamsOf<M>,
 ): CallOf<M> {
   return { method, params };
+}
+
+/** A prepared recipient constraint is omitted for ordinary legacy calls. */
+export function frameOf<M extends Method>(
+  id: CallId,
+  node: NodeKey,
+  method: M,
+  params: ParamsOf<M>,
+  expectedNode?: NodeId,
+): CallFrame<M> {
+  return {
+    type: "call",
+    id,
+    node,
+    call: callOf(method, params),
+    ...(expectedNode === undefined ? {} : { expected_node: expectedNode }),
+  };
 }
 
 /** Whether `reply` answers `method`. */

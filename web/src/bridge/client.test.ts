@@ -2,6 +2,12 @@
 import { createHmac } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
 import { Bridge } from "./client";
+import { Fleet } from "../data/fleet";
+import {
+  checkSubmit,
+  preparedUploads,
+  submitPrepared,
+} from "../data/submission-calls";
 import { fixtureId } from "../testing/ids";
 import type { ServerFrame } from "../wire/bridge";
 
@@ -227,3 +233,84 @@ test("an op's failure keeps the bridge's reason, and a lost socket says so", asy
   socket.cut();
   await expect(lost).rejects.toMatchObject({ reason: "disconnected" });
 });
+
+test("prepared uploads and submission keep the captured recipient, without retry", async () => {
+  const { bridge, socket } = start();
+  socket.message(await answer(socket));
+  await vi.waitFor(() => expect(bridge.link.kind).toBe("open"));
+  const fleet = new Fleet(bridge);
+  const node = fixtureId("NodeKey", "box");
+  const expected = fixtureId("NodeId", "captured-machine");
+  const session = fixtureId("SessionId", "session");
+  const request = {
+    session,
+    message: fixtureId("ClientMessageId", "retained-message"),
+    content: [{ type: "text" as const, text: "original" }],
+    delivery: "steer_or_interrupt" as const,
+  };
+  const checking = checkSubmit(fleet, node, expected, request);
+  const checked = sentFrame(socket);
+  expect(checked.op).toEqual({
+    op: "check_submit",
+    node,
+    expected_node: expected,
+    request,
+  });
+  socket.message({
+    type: "op_reply",
+    id: checked.id,
+    outcome: {
+      ok: {
+        op: "check_submit",
+        check: {
+          status: "unsupported",
+          failure: {
+            kind: "failed",
+            message: "Unassigned feature",
+          },
+        },
+      },
+    },
+  });
+  expect(await checking).toMatchObject({
+    ok: true,
+    value: { status: "unsupported" },
+  });
+  expect(socket.sent).toHaveLength(2); // Authentication and local preflight only.
+  const uploads = preparedUploads(fleet, node, expected, session);
+  const upload = fixtureId("UploadId", "upload");
+  const tasks = [
+    () => uploads.begin("file.txt", "text/plain", 1),
+    () => uploads.write(upload, 0, "YQ=="),
+    () => uploads.finish(upload),
+    () => submitPrepared(fleet, node, expected, request),
+  ];
+  for (const task of tasks) {
+    const before = socket.sent.length;
+    const pending = task();
+    const frame = sentFrame(socket);
+    expect(frame.expected_node).toBe(expected);
+    expect(frame.node).toBe(node);
+    socket.message({
+      type: "reply",
+      id: frame.id,
+      outcome: {
+        err: {
+          kind: "refused",
+          message: "Selected machine changed",
+        },
+      },
+    });
+    expect(await pending).toMatchObject({ ok: false });
+    expect(socket.sent).toHaveLength(before + 1);
+  }
+});
+
+function sentFrame(socket: Socket): Record<string, unknown> {
+  const value: unknown = JSON.parse(socket.sent.at(-1) ?? "{}");
+  if (isObject(value)) return value;
+  throw new Error("No outgoing frame");
+}
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

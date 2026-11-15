@@ -1710,3 +1710,11 @@ execution owners are unchanged. Separating local operation values from socket
 frames keeps wire.rs under the ordinary budget before adding submit preflight.
 Existing schema/serialization checks remain the behavior check; no new protocol,
 node method, capability or dependency is introduced by this extraction.
+
+Prepared browser calls use the same registry-selected NodeClient for identity
+comparison and dispatch. submission.rs exposes local CheckSubmit using the SDK's
+check_call, which sends no node frame. Optional expected_node on a call can only
+refuse a changed recipient. Browser submission-calls reuses the chunk uploader's
+UploadCalls interface with that constraint on begin/write/finish and final submit.
+No new node method, provider work or dependency is introduced; composer retention
+and activation remain separate. See docs/plans/web-submit-preflight.md.

@@ -92,14 +92,35 @@ pub(crate) enum Routed {
 /// codes ([`Op`]'s variants of the same names).
 #[derive(Debug)]
 pub(crate) enum BridgeOp {
+    CheckSubmit {
+        node: NodeKey,
+        expected_node: vessel_proto::NodeId,
+        request: Box<vessel_proto::timeline::SubmitPrompt>,
+    },
     Nodes,
-    Retry { node: NodeKey },
-    Inspect { link: SecretText },
-    Pair { name: BookName, link: SecretText },
-    Qr { text: SecretText },
-    Forget { node: BookName },
-    Rename { node: BookName, name: BookName },
-    Default { node: NodeKey },
+    Retry {
+        node: NodeKey,
+    },
+    Inspect {
+        link: SecretText,
+    },
+    Pair {
+        name: BookName,
+        link: SecretText,
+    },
+    Qr {
+        text: SecretText,
+    },
+    Forget {
+        node: BookName,
+    },
+    Rename {
+        node: BookName,
+        name: BookName,
+    },
+    Default {
+        node: NodeKey,
+    },
 }
 
 /// Which way `op` goes. Exhaustive, so a new op must choose.
@@ -112,6 +133,15 @@ pub(crate) fn route(op: Op) -> Routed {
         Op::Drafts => kept(KeptOp::Drafts(DraftsAsk::All)),
         Op::Draft { key } => kept(KeptOp::Drafts(DraftsAsk::One(key))),
         Op::SaveDraft { key, text } => kept(KeptOp::Drafts(DraftsAsk::Save(key, text))),
+        Op::CheckSubmit {
+            node,
+            expected_node,
+            request,
+        } => bridge(BridgeOp::CheckSubmit {
+            node,
+            expected_node,
+            request,
+        }),
         Op::Nodes => bridge(BridgeOp::Nodes),
         Op::Retry { node } => bridge(BridgeOp::Retry { node }),
         Op::Inspect { link } => bridge(BridgeOp::Inspect { link }),
@@ -131,6 +161,13 @@ pub(crate) async fn answer<S: NodeSource>(
     let failed = |message| OpError::failed(message);
     let source = |error: S::Error| OpError::failed(chain(&error));
     match op {
+        BridgeOp::CheckSubmit {
+            node,
+            expected_node,
+            request,
+        } => Ok(OpResult::CheckSubmit {
+            check: crate::submission::check(registry, &node, expected_node, *request).await,
+        }),
         BridgeOp::Nodes => book_now(registry)
             .await
             .map(|nodes| OpResult::Nodes { nodes }),

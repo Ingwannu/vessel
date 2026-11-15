@@ -13,4 +13,6 @@ mod prefs;
 #[cfg(test)]
 mod server;
 #[cfg(test)]
+mod submission;
+#[cfg(test)]
 mod support;
