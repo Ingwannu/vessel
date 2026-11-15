@@ -165,7 +165,10 @@ explicit reveal projects it for up to thirty seconds or until expiry,
 whichever comes first. Copy, focus loss and navigation mask it. Its pure
 state and stale-response tests live in `view/src/devices/`. Device rows
 have one access/last-use hint; exact pairing/last-use dates and all scopes
-stay in their tooltip. Ordinary paired rows have no repeated state badge.
+stay in their tooltip and in the read-only details opened by the row, so
+touch does not depend on hover. Details and revoke use one view selection
+rule and never open a revoked/missing row or replace a pending confirmation.
+Ordinary paired rows have no repeated state badge.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).

@@ -379,3 +379,87 @@ lead's head.
     their badge in the hint (V1's first finding, G4's follow-up).
 - A Sync read the link did not take settles as the devices page's does.
 - Offline: both pages say the app's sentence, no transport text.
+
+## Resume point (2026-11-15): device list and revoke
+
+The branch merged the published app head `56a7cbd3` without conflicts
+(fast-forward). All earlier G4 commits, including `c7636345` and the
+`1a91edee` checkpoint, were already ancestors of that head. The lead's
+finishing notes above describe the intervening completion; those changes
+are reused rather than reconstructed. Settings already places this page
+under the chosen machine as **Pair device**, with slug `pair-device`.
+Sync remains hidden, and is not enabled by this slice.
+
+Decision: modify the existing page and kit composition. The list, exact
+local dates, semantic badges, disabled pending controls, typed destructive
+confirmation, request tickets and safe RPC error boundary are reused.
+No external dependency or kit control is added. The remaining problem is
+that the full grants and pairing date were available only through hover,
+which cannot expose them on touch. A row now selects public metadata for
+the existing adaptive dialog. Its three ordinary settings rows show the
+paired date, last-seen date (or an explicit absent record), and every
+independent grant; Close has no destructive effect. The row's existing
+Revoke action opens only its confirmation, with click propagation stopped.
+Details and revoke selection share the tested view rule; stale, revoked,
+offline and pending selections are refused before focus or network work.
+A successful list reconciles the selected public record, and navigation
+discards it. Nothing here guesses the caller's identity or privileges.
+
+Source comparison, Paseo 0.15.4:
+
+- `packages/app/src/styles/settings.ts:24–59`: the existing card, title,
+  one hint and trailing control; values remain the kit's tokens.
+- `packages/app/src/screens/settings/host-page.tsx:499–555`: the comparable
+  named row and trailing removal action. Lines 398–493 retain a pending
+  confirmation and disable its cancel/destructive actions.
+- `packages/app/src/components/adaptive-modal-sheet.tsx:87–115,639–707`:
+  the existing kit's normal adaptive dialog, including its standard
+  desktop width and ordinary body/header/footer. No new dialog geometry.
+- `packages/app/src/screens/settings/host-page.tsx:1095–1125` and
+  `desktop/components/pair-device-modal.tsx:15–34`: Pair device's current
+  navigation opens pairing. The invitation/QR surface is the next slice;
+  this slice retains its existing route and credential policy.
+
+Deliberate differences: Paseo has no paired-device list or per-device
+revocation surface. Vessel's node provides them, so they use Paseo's
+existing settings rows and adaptive confirmation. Read-only device details
+are an additional surface required to make dates and all grants available
+without hover; it uses the same dialog and rows, with no new control.
+Long device names wrap, as the existing accepted Vessel page requires.
+The original `backend/m11:web/src/data/devices.test.ts` filtering/age
+fixtures remain;
+additional pure tests cover details selection, pending confirmation,
+removed/revoked records, navigation and whole English/Korean metadata.
+
+The existing link admission and deadline are unchanged; this slice adds no
+bound, node method, wire version, authorization policy or retry. A separate
+bounds-only cleanup was deferred to keep the behavior commit focused.
+The published base lacks `device.self`; caller identity/authority therefore
+remain unknown instead of being inferred from a label or another device.
+
+Current evidence: formatting, size, boundary and token checks passed. The
+filtered native view Devices run passed 35 tests, with 680 unrelated tests
+filtered out, from a cold build folder; view all-target Clippy also passed
+with warnings denied. The initial app Clippy found one unused import; it
+was removed and its narrow replay passed with warnings denied. Both logs
+are retained. These are narrow checks, not a whole gate. No whole
+native gate is run on this machine under the resumed build policy. The
+second-machine native gate and its exact-commit result, a normal app build,
+and fresh authenticated-Xvfb captures are still pending. Earlier captures
+and gates do not validate these new details interactions. A temporary Xvfb
+check accepted the authenticated client and refused one without its cookie;
+its 0600 authority file and owned process were removed afterwards. Checks
+run as the development account (UID/GID 1000), with no service or permission
+change. Details use the kit dialog transition; idle CPU and real-GPU motion
+remain unmeasured until the new build can be run.
+
+Next: finish narrow checks of changed crates; commit this device-list and
+revoke slice; run the supplied native gate on the second build machine;
+verify list/loading/empty/refused/offline/long/details/confirm/pending and
+completed revoke against the disposable fleet, in both languages/themes
+and required sizes. Inspect every retained capture before V1 submission.
+The old Diagnostics draft remains separately backed up and uncompiled.
+The quality audit also identifies existing Devices/Sync target and queue
+shape duplication; it is not expanded here. Consolidating it is a separate
+behavior-preserving change, rather than a new shared framework in this
+interaction slice.

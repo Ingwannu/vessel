@@ -164,6 +164,9 @@ fn device_row(
     )
     .when(!pending, |button| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
+            // Revoke opens its confirmation only, never the enclosing
+            // row's read-only details on the same bubbling click.
+            cx.stop_propagation();
             shell.devices_choose_revoke(id, window, cx);
         }))
     });
@@ -187,7 +190,13 @@ fn device_row(
         compact,
         tokens,
     )
-    .id(format!("device-row-{id}"));
+    .id(format!("device-row-{id}"))
+    .when(!pending, |row| {
+        row.cursor_pointer()
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.devices_inspect(id, window, cx);
+            }))
+    });
     let row = match state.places.get(&id) {
         Some(place) => state.tips.on(
             row,
