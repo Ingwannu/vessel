@@ -183,13 +183,12 @@ shown and a partial comparison cannot claim the commands are unchanged.
   stopgap; display/comparison lands together with the native card's work.
   The native lead owns its card and exhaustive adapter. This track owns
   the web refusal now and its later terminal display/comparison.
-- In progress: 2b begins with validated `ServicePort` and `PortRange`
-  values. They are not yet fields of a request, reply or project file;
-  parsing, digests and execution are unchanged. Bounds and refusal text
-  share constants so a diagnostic cannot drift from the accepted grammar.
-  The existing serde
-  conversion pattern is reused; the observed-listener DTO is a separate
-  fact, not a declared or allocated service port.
+- Implemented port values: `ServicePort` and `PortRange` keep checks and
+  refusal text on shared constants. `ServicePort` now occurs in the nested
+  declaration field below; `PortRange` is still outside project parsing and
+  approval snapshots. The existing serde conversion pattern is reused;
+  observed listeners remain a separate fact from a declared or allocated
+  service port.
 - Implemented value contract: `ExecPath` keeps private literal text and
   its Unix, Windows or shared grammar. Its decoder and serde check raw
   components without filesystem access or native normalization; five
@@ -220,10 +219,19 @@ shown and a partial comparison cannot claim the commands are unchanged.
   comparison now have focused modules with complete entry projections.
   Existing output and comparison expectations stay unchanged; no field
   or approval behavior is added.
+- Implemented declaration boundary: `ScriptEntry` privately owns kind/port;
+  constructor and serde refuse a plain script with a port. The CLI names
+  every borrowed view field, the web names every nested field and refuses
+  current, previous or folder snapshots with declarations. The port is
+  covered by the reserved version-three digest slot; old vectors stay fixed.
+  File parsing still supplies no port. Native constructor/getter/card
+  adaptation remains the native lead's integration condition. No allocator
+  or health execution path is present.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and
-  comparison must name nested entry fields too. No implementation yet.
+  comparison name nested entry fields too. The declaration boundary above
+  implements this part; the native adaptation remains owed.
 - Then: add the file parser, digest and approval fields. A relative bare
   program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
