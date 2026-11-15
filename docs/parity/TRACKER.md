@@ -24,7 +24,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 18 | A1 | W3 | agent-controls policy/labels and composer agent controls | A-lifecycle.md | skeleton (staged; checks/runtime integration pending) |
 | 19 | A1 | W3 | CLI paseo run (+ options, workspace policy, output schema) | A-lifecycle.md | unknown |
 | 20 | A1 | W3 | CLI agent ls/stop/delete/archive/reload/detach/update/import/open/wait/send/inspect/logs/attach/mode | A-lifecycle.md | unknown |
-| 21 | A2 | W21 | Archive / unarchive / close_items (cascade to children, detach rules) | A-lifecycle.md | skeleton (atomic archive pending API + conditional current-parent child API; full cascade/workspace and resident hooks not ready) |
+| 21 | A2 | W21 | Archive / unarchive / close_items (cascade to children, detach rules) | A-lifecycle.md | skeleton (pending atomic IfIdle and current-parent child APIs; stored/resume tests written; full cascade/resident wiring and final gates owed) |
 | 22 | A2 | W21 | App archive UX (optimistic caches, archived callout, tab close policy) | A-lifecycle.md | skeleton |
 | 23 | A2 | W21 | Auto-archive on merge | A-lifecycle.md | unknown |
 | 24 | A2 | W21 | Delete agent | A-lifecycle.md | skeleton |
@@ -32,10 +32,10 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 26 | A1 | W3 | Refresh/reload agent (refresh_agent_request, stale session reload) | A-lifecycle.md | unknown |
 | 27 | A1 | W3 | Idle runtime cleanup ("park"), no explicit wake | A-lifecycle.md | unknown |
 | 28 | A1 | W3 (app) / N5 (node) | Restart recovery (resumeOnStartup, resumePrompt) and shutdown capture | A-lifecycle.md | node: built; app: unknown |
-| 29 | A4 | W2 | Import from provider history: list (fetch_recent_provider_sessions) | A-lifecycle.md | built (import base strict passed; native Codex history + admission upgrade checks pending) |
-| 30 | A4 | W2 | Import from provider history: import_agent_request and archived re-activation | A-lifecycle.md | built (resume/import + account map; final tests/review pending) |
+| 29 | A4 | W2 | Import from provider history: list (fetch_recent_provider_sessions) | A-lifecycle.md | built (native Codex peer4/process2 tests passed; current merged strict/TS pending) |
+| 30 | A4 | W2 | Import from provider history: import_agent_request and archived re-activation | A-lifecycle.md | built (same-id restore/import; automatic open parked; corrected strict/tests pending) |
 | 31 | A4 | W2 | Plugin session history | A-lifecycle.md | missing (canonical intake reserved; plugin provider registration pending) |
-| 32 | A4 | W2 | Import session sheet (app) | A-lifecycle.md | built (native sheet strict Clippy passed; final tests/captures pending) |
+| 32 | A4 | W2 | Import session sheet (app) | A-lifecycle.md | built (R223 source corrected; scope popups parked pending G2; exact deb strict/tests and final captures pending) |
 | 33 | A4 | W2 | Fork (fork_context request, curated chat history attachment) | A-lifecycle.md | skeleton (bounded canonical ChatHistory producer; draft action pending) |
 | 34 | A4 | W2 | Fork app flow (useForkAgent, draft seeding, cwd remap) | A-lifecycle.md | skeleton (W3 seed/W12 existing-workspace target pending) |
 | 35 | A4 | W2 | Rewind (agent.rewind.request, capabilities, app menu) | A-lifecycle.md | built (parity audit: native conversation rewind exists; files/both remain W9 checkpoint gap) |
@@ -48,7 +48,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 42 | A2 | W21 | Agent deep links (build/parse, route, desktop, CLI open) | A-lifecycle.md | skeleton |
 | 43 | A1 | W3 | Agent directory fetch/subscribe (fetch_agents, agent_update) | A-lifecycle.md | unknown |
 | 44 | A1 | W3 | Agent history fetch and search | A-lifecycle.md | unknown |
-| 45 | A2 | W21 | Sessions screen | A-lifecycle.md | skeleton |
+| 45 | A2 | W21 | Sessions screen | A-lifecycle.md | skeleton (chronological UI, host/search/page models and unavailable state; current union checks and captures owed) |
 | 46 | A1 | W3 | Sidebar agent list entries and state buckets (app) | A-lifecycle.md | unknown |
 | 47 | A9 | G3 | Provider model: AgentProvider, AgentClient, AgentSession (the contract every provider implements) | B-providers.md | unknown |
 | 48 | A9 | G3 | `AgentClient` (one per provider id, long lived, `S/agent/agent-sdk-types.ts:764-830`) | B-providers.md | unknown |
@@ -298,16 +298,16 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 292 | A1 | W3 | 14 Archive cancellation of setup. | p1-projects-workspaces.md | unknown |
 | 293 | A2 | W21 | 15 Optimistic workspace archive, rollback and route cleanup. | p1-projects-workspaces.md | unknown |
 | 294 | A2 | W21 | 15 Bulk-workspace archive helpers and partial errors (production UI caller not found). | p1-projects-workspaces.md | unknown |
-| 295 | A2 | W21 | 15 Workspace ownership archive versus worktree-scope archive. | p1-projects-workspaces.md | unknown |
-| 296 | A2 | W21 | 15 Teardown and last-reference owned directory deletion. | p1-projects-workspaces.md | unknown |
-| 297 | A2 | W21 | 15 Unowned/failed-removal directory preservation and empty-project persistence. | p1-projects-workspaces.md | unknown |
+| 295 | A2 | W21 | 15 Workspace ownership archive versus worktree-scope archive. | p1-projects-workspaces.md | skeleton (canonical WorkspaceId claim/drain workflow + fake only; registry adapter not wired) |
+| 296 | A2 | W21 | 15 Teardown and last-reference owned directory deletion. | p1-projects-workspaces.md | skeleton (last-reference/drain contract; strict terminal completion source only, spawned descendant proof and root adapter still unavailable) |
+| 297 | A2 | W21 | 15 Unowned/failed-removal directory preservation and empty-project persistence. | p1-projects-workspaces.md | skeleton (staged preservation/partial-failure tests; no physical backing deletion or empty-project integration) |
 | 298 | A2 | W21 | 16 Host automatic-archive-after-merge toggle. | p1-projects-workspaces.md | unknown |
 | 299 | A2 | W21 | 16 Open-to-merged same-URL latch, fresh snapshot and per-cwd dedupe. | p1-projects-workspaces.md | unknown |
 | 300 | A2 | W21 | 16 Dirty/ahead/ownership checks, consumed merged URL and optional-hook boundary versus manual archive. | p1-projects-workspaces.md | unknown |
-| 301 | A2 | W21 | 17 Inspect archived workspace recovery. | p1-projects-workspaces.md | unknown |
-| 302 | A2 | W21 | 17 Unarchive existing directory. | p1-projects-workspaces.md | unknown |
-| 303 | A2 | W21 | 17 Restore deleted worktree and original subdirectory. | p1-projects-workspaces.md | unknown |
-| 304 | A2 | W21 | 17 Missing-source/unavailable/unsupported/inspection-error states and retry. | p1-projects-workspaces.md | unknown |
+| 301 | A2 | W21 | 17 Inspect archived workspace recovery. | p1-projects-workspaces.md | skeleton (typed inspection DTO/model and fake workflow; real registry/generation adapter unavailable) |
+| 302 | A2 | W21 | 17 Unarchive existing directory. | p1-projects-workspaces.md | skeleton (exclusive restore claim + fake unarchive; canonical generation and real adapter unavailable) |
+| 303 | A2 | W21 | 17 Restore deleted worktree and original subdirectory. | p1-projects-workspaces.md | skeleton (recreate/revalidate workflow + fake; physical root/provisioning adapter unavailable) |
+| 304 | A2 | W21 | 17 Missing-source/unavailable/unsupported/inspection-error states and retry. | p1-projects-workspaces.md | skeleton (typed unavailable/unknown/error outcomes; native recovery page/RPC wiring still missing) |
 | 305 | A6 | W10b | 18 Workspace label picker/search/check/uncheck. | p1-projects-workspaces.md | skeleton |
 | 306 | A6 | W10b | 18 Create-and-assign label with host catalog color. | p1-projects-workspaces.md | skeleton |
 | 307 | A6 | W10b | 18 Case-insensitive name normalization and assignment persistence. | p1-projects-workspaces.md | skeleton |
@@ -334,11 +334,11 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 328 | F4 | S2+W22 | 24 Workspace copy/rename/read/pin/label/folder/archive actions. | p1-projects-workspaces.md | unknown |
 | 329 | F4 | S2+W22 | 24 Branch/host/PR/check/service/label metadata row. | p1-projects-workspaces.md | unknown |
 | 330 | F4 | S2+W22 | 24 Manual/created/last-prompt order, filters and loading states. | p1-projects-workspaces.md | unknown |
-| 331 | D2 | W8 | 25 Workspace script/service list and health tones. | p1-projects-workspaces.md | skeleton |
-| 332 | D2 | W8 | 25 Start and script terminal reveal. | p1-projects-workspaces.md | skeleton |
-| 333 | D2 | W8 | 25 Stop and state-observed restart. | p1-projects-workspaces.md | skeleton |
+| 331 | D2 | W8 | 25 Workspace script/service list and health tones. | p1-projects-workspaces.md | skeleton (legacy card and pure health tones; runtime snapshot contract pending) |
+| 332 | D2 | W8 | 25 Start and script terminal reveal. | p1-projects-workspaces.md | skeleton (legacy settings execution; pane refuses pending exact-target query) |
+| 333 | D2 | W8 | 25 Stop and state-observed restart. | p1-projects-workspaces.md | skeleton (typed existing-call adapter; final VM tests and UI checks owed) |
 | 334 | D2 | W8 | 25 SDK/CLI named script list/start/stop status contract. | p1-projects-workspaces.md | unknown |
-| 335 | D2 | W8 | 25 Service URL route preference/copy and sidebar health. | p1-projects-workspaces.md | skeleton |
+| 335 | D2 | W8 | 25 Service URL route preference/copy and sidebar health. | p1-projects-workspaces.md | skeleton (validated observed URL/copy; proxy routes and sidebar producer pending) |
 | 336 | C2 | W15 | 26 New-tab launcher built-ins, plugin panels and terminal profiles. | p1-projects-workspaces.md | unknown |
 | 337 | C2 | W15 | 26 Tab target identity and workspace-local persistence key. | p1-projects-workspaces.md | skeleton |
 | 338 | C2 | W15 | 26 Agent/terminal hydration-safe reconciliation and subagent ownership. | p1-projects-workspaces.md | skeleton |
@@ -371,85 +371,85 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 365 | C1 | W11 | 33 Open Project home Add/Import/Providers/Pair device links and host errors. | p1-projects-workspaces.md | unknown |
 | 366 | C3 | G1 | Protocol: checkout_status_request/response/checkout_status_update | p2-git.md | skeleton |
 | 367 | C3 | G1 | Protocol: checkout.diff.get.request/response (one-shot diff) | p2-git.md | skeleton |
-| 368 | C3 | G1 | Protocol: subscribe_checkout_diff_request/response, checkout_diff_update, unsubscribe_checkout_diff_request | p2-git.md | unknown |
-| 369 | C3 | G1 | Protocol: checkout.refresh.request/response | p2-git.md | unknown |
-| 370 | C3 | G1 | Protocol: checkout_commit_request/response | p2-git.md | unknown |
-| 371 | C3 | G1 | Protocol: checkout_merge_request/response (merge into base, merge/squash) | p2-git.md | unknown |
-| 372 | C3 | G1 | Protocol: checkout_merge_from_base_request/response | p2-git.md | unknown |
-| 373 | C3 | G1 | Protocol: checkout_pull_request/checkout_pull_response | p2-git.md | unknown |
-| 374 | C3 | G1 | Protocol: checkout_push_request/response | p2-git.md | unknown |
-| 375 | C3 | G1 | Protocol: checkout.discard_changes.request/response | p2-git.md | unknown |
+| 368 | C3 | G1 | Protocol: subscribe_checkout_diff_request/response, checkout_diff_update, unsubscribe_checkout_diff_request | p2-git.md | missing |
+| 369 | C3 | G1 | Protocol: checkout.refresh.request/response | p2-git.md | skeleton |
+| 370 | C3 | G1 | Protocol: checkout_commit_request/response | p2-git.md | skeleton |
+| 371 | C3 | G1 | Protocol: checkout_merge_request/response (merge into base, merge/squash) | p2-git.md | missing |
+| 372 | C3 | G1 | Protocol: checkout_merge_from_base_request/response | p2-git.md | missing |
+| 373 | C3 | G1 | Protocol: checkout_pull_request/checkout_pull_response | p2-git.md | skeleton |
+| 374 | C3 | G1 | Protocol: checkout_push_request/response | p2-git.md | skeleton |
+| 375 | C3 | G1 | Protocol: checkout.discard_changes.request/response | p2-git.md | skeleton |
 | 376 | C3 | G1 | Protocol: checkout.commits.list.request/response, checkout.commits.file_diff.request/response | p2-git.md | skeleton |
-| 377 | C3 | G1 | Protocol: checkout_switch_branch_request/response, checkout.rename_branch.request/response | p2-git.md | unknown |
-| 378 | C3 | G1 | Protocol: validate_branch_request/response, branch_suggestions_request/response | p2-git.md | unknown |
-| 379 | C3 | G1 | Protocol: stash_save/pop/list request/response | p2-git.md | unknown |
+| 377 | C3 | G1 | Protocol: checkout_switch_branch_request/response, checkout.rename_branch.request/response | p2-git.md | skeleton |
+| 378 | C3 | G1 | Protocol: validate_branch_request/response, branch_suggestions_request/response | p2-git.md | skeleton |
+| 379 | C3 | G1 | Protocol: stash_save/pop/list request/response | p2-git.md | skeleton |
 | 380 | C3 | G1 | Protocol: authorization scopes per message; CheckoutError codes; ParsedDiffFile/DiffHunk/DiffLine schemas; CheckoutDiffCompare; ProjectCheckoutLite; W | p2-git.md | skeleton |
-| 381 | C3 | G1 | Server: CheckoutSession read side (status, branch validate, suggestions, diff read/subscribe, refresh) | p2-git.md | unknown |
-| 382 | C3 | G1 | Server: CheckoutSession write side (commit, discard, switch/rename branch, merge, merge from base, pull, push, stash) | p2-git.md | unknown |
-| 383 | C3 | G1 | Server: commit message generation (git-metadata-generator.ts) | p2-git.md | unknown |
-| 384 | C3 | G1 | Server: GitMutationService (notifyGitMutation, checkoutExistingBranch, createBranchFromBase) | p2-git.md | unknown |
-| 385 | C3 | G1 | Server: status-projection.ts (snapshot -> checkout status payload) | p2-git.md | unknown |
-| 386 | C3 | G1 | Server: CheckoutDiffManager (targets, debounce, fingerprints, working-tree watch) | p2-git.md | unknown |
+| 381 | C3 | G1 | Server: CheckoutSession read side (status, branch validate, suggestions, diff read/subscribe, refresh) | p2-git.md | skeleton |
+| 382 | C3 | G1 | Server: CheckoutSession write side (commit, discard, switch/rename branch, merge, merge from base, pull, push, stash) | p2-git.md | skeleton |
+| 383 | C3 | G1 | Server: commit message generation (git-metadata-generator.ts) | p2-git.md | missing |
+| 384 | C3 | G1 | Server: GitMutationService (notifyGitMutation, checkoutExistingBranch, createBranchFromBase) | p2-git.md | skeleton |
+| 385 | C3 | G1 | Server: status-projection.ts (snapshot -> checkout status payload) | p2-git.md | skeleton |
+| 386 | C3 | G1 | Server: CheckoutDiffManager (targets, debounce, fingerprints, working-tree watch) | p2-git.md | missing |
 | 387 | C3 | G1 | Server: CheckoutDiffCache (LRU 64, 15 s / 2 s windows, invalidation) | p2-git.md | skeleton |
 | 388 | C3 | G1 | Server: getCheckoutDiff computation and size limits (checkout-git.ts) | p2-git.md | skeleton |
 | 389 | C3 | G1 | Server: commits list and per-commit file diff (checkout-git.ts) | p2-git.md | skeleton |
-| 390 | C3 | G1 | Server: branch suggestions / resolveBranchCheckout / checkoutResolvedBranch | p2-git.md | unknown |
-| 391 | C3 | G1 | Server: WorkspaceGitService snapshots, refresh pipeline, auxiliary caches | p2-git.md | unknown |
-| 392 | C3 | G1 | Server: working tree + repo metadata watchers, degraded polling, recovery ladder | p2-git.md | unknown |
-| 393 | C3 | G1 | Server: background git fetch (workspace-git-fetch.ts) | p2-git.md | unknown |
-| 394 | C3 | G1 | Server: git-metadata-event-rules.ts, git-observation-paths.ts, workspace-git-metadata.ts | p2-git.md | unknown |
-| 395 | C3 | G1 | Server: WorkspaceGitObserverService (checkout_status_update + workspace_update fan-out) | p2-git.md | unknown |
+| 390 | C3 | G1 | Server: branch suggestions / resolveBranchCheckout / checkoutResolvedBranch | p2-git.md | skeleton |
+| 391 | C3 | G1 | Server: WorkspaceGitService snapshots, refresh pipeline, auxiliary caches | p2-git.md | missing |
+| 392 | C3 | G1 | Server: working tree + repo metadata watchers, degraded polling, recovery ladder | p2-git.md | missing |
+| 393 | C3 | G1 | Server: background git fetch (workspace-git-fetch.ts) | p2-git.md | missing |
+| 394 | C3 | G1 | Server: git-metadata-event-rules.ts, git-observation-paths.ts, workspace-git-metadata.ts | p2-git.md | missing |
+| 395 | C3 | G1 | Server: WorkspaceGitObserverService (checkout_status_update + workspace_update fan-out) | p2-git.md | missing |
 | 396 | C3 | G1 | Client: DaemonClient git methods and capability flags | p2-git.md | skeleton |
-| 397 | C3 | G1 | App: checkout status query + push cache (use-status-query, checkout-status-cache, query-keys) | p2-git.md | unknown |
-| 398 | C3 | G1 | App: checkout diff subscription (use-diff-query, push-router, diff-sharing, diff-order) | p2-git.md | unknown |
+| 397 | C3 | G1 | App: checkout status query + push cache (use-status-query, checkout-status-cache, query-keys) | p2-git.md | skeleton |
+| 398 | C3 | G1 | App: checkout diff subscription (use-diff-query, push-router, diff-sharing, diff-order) | p2-git.md | missing |
 | 399 | C3 | G1 | App: working diff comparison state (uncommitted/base/all) and useWorkingDiff | p2-git.md | skeleton |
 | 400 | C3 | G1 | App: commits query, commit file diff queries, useCommitDiffFiles | p2-git.md | skeleton |
 | 401 | C3 | G1 | App: ChangesSurface / diff pane (header, mode menu, options, refresh, empty/loading/error/too-large states) | p2-git.md | skeleton |
 | 402 | C3 | G1 | App: working_diff, changes_tree, commit_diff panels and persisted panel state / preferences | p2-git.md | skeleton |
 | 403 | C3 | G1 | App: changed-files tree, folder rows, file header, file context menu | p2-git.md | skeleton |
-| 404 | C3 | G1 | App: jump-to-file sheet (compact) | p2-git.md | unknown |
-| 405 | C3 | G1 | App: commits section (graph rows, collapse persistence) | p2-git.md | unknown |
-| 406 | C3 | G1 | App: discard/revert file changes (uncommitted mode only) | p2-git.md | unknown |
-| 407 | C3 | G1 | App: branch switcher with stash-and-switch and stash restore | p2-git.md | unknown |
+| 404 | C3 | G1 | App: jump-to-file sheet (compact) | p2-git.md | missing |
+| 405 | C3 | G1 | App: commits section (graph rows, collapse persistence) | p2-git.md | missing |
+| 406 | C3 | G1 | App: discard/revert file changes (uncommitted mode only) | p2-git.md | skeleton |
+| 407 | C3 | G1 | App: branch switcher with stash-and-switch and stash restore | p2-git.md | skeleton |
 | 408 | C3 | G1 | App: git actions policy (primary/secondary selection, availability messages) | p2-git.md | skeleton |
 | 409 | C3 | G1 | App: git actions store (pending/success states) and useGitActions (toasts, ship default, archive promotion) | p2-git.md | skeleton |
 | 410 | C3 | G1 | App: GitActionsSplitButton / WorkspaceActions / menu-only variant | p2-git.md | skeleton |
-| 411 | C3 | G1 | App: worktree archive warning | p2-git.md | unknown |
+| 411 | C3 | G1 | App: worktree archive warning | p2-git.md | missing |
 | 412 | C3 | G1 | App: diff document model (virtualized rows, split/unified, wrap, collapse, anchors) | p2-git.md | skeleton |
 | 413 | C3 | G1 | App: diff document web canvas surface (selection, copy, context menu, sticky headers) | p2-git.md | skeleton |
-| 414 | C3 | G1 | App: diff document native Skia slab surface | p2-git.md | unknown |
+| 414 | C3 | G1 | App: diff document native Skia slab surface | p2-git.md | skeleton |
 | 415 | C3 | G1 | App: diff too-large / binary states | p2-git.md | skeleton |
 | 416 | C3 | G1 | App: keyboard shortcut for Changes tab | p2-git.md | unknown |
-| 417 | C4 | G1+W16 | Forge manifest (5 forges, neutral fallback, sign-in recipes, check traits) | p3-forge-review.md | unknown |
-| 418 | C4 | G1+W16 | Forge registry / resolver / host probing (cloud match, CLI auth probe, SSH alias resolution, caches) | p3-forge-review.md | unknown |
-| 419 | C4 | G1+W16 | Forge CLI runner and error classes (gh/glab/tea, timeouts, auth/missing/command errors) | p3-forge-review.md | unknown |
-| 420 | C4 | G1+W16 | ForgeService adapter contract (reads, writes, polling, invalidation, ForgeReadOptions force/reason) | p3-forge-review.md | unknown |
-| 421 | C4 | G1+W16 | GitHub adapter (gh): list/view/search/timeline/check details/create/merge/auto-merge/repo search, batched GraphQL poller + rate-limit guard | p3-forge-review.md | unknown |
-| 422 | C4 | G1+W16 | GitLab adapter (glab): MR lookup, approvals, discussions, pipeline stages/jobs, create/merge/auto-merge, guards | p3-forge-review.md | unknown |
-| 423 | C4 | G1+W16 | Gitea/Forgejo/Codeberg adapter (tea): PR list/view, timeline, commit status/Actions, merge, no auto-merge, family detection | p3-forge-review.md | unknown |
-| 424 | C4 | G1+W16 | Generic non-GitHub PR-status poller (20 s / 120 s / 300 s backoff) | p3-forge-review.md | unknown |
-| 425 | C4 | G1+W16 | Current-branch PR status (snapshot, `checkout_pr_status_*`, `checkout_status_update.prStatus`, caching, hooks, authState) | p3-forge-review.md | unknown |
-| 426 | C4 | G1+W16 | Workspace descriptor `githubRuntime` + `forge`; sidebar PR badge, CI indicator, hover card, menu entry | p3-forge-review.md | unknown |
-| 427 | C4 | G1+W16 | PR actions: Create PR (with LLM-generated title/body), merge (3 methods), enable/disable auto-merge, View PR, ship default, primary-action policy | p3-forge-review.md | unknown |
-| 428 | C4 | G1+W16 | Merge capability per forge (github/gitlab/gitea) and server-side merge guards | p3-forge-review.md | unknown |
-| 429 | C4 | G1+W16 | Pull/Push RPCs (named `checkout_pull_request`, not PR checkout) | p3-forge-review.md | unknown |
-| 430 | C4 | G1+W16 | PR tab (panel kind, auto-open, open-location setting, content states, discovery/demand) | p3-forge-review.md | unknown |
-| 431 | C4 | G1+W16 | PR pane: header/state, toolbar, checks section (ring, groups, presentation classes), GitLab pipeline + approvals, activity timeline (threads, review n | p3-forge-review.md | unknown |
-| 432 | C4 | G1+W16 | PR timeline RPC (`pull_request_timeline_*`) and unsupported-daemon fallback | p3-forge-review.md | unknown |
-| 433 | C4 | G1+W16 | Check details RPC (`checkout.forge.get_check_details.*`, legacy github twin), failed jobs/log tails, annotations | p3-forge-review.md | unknown |
-| 434 | C4 | G1+W16 | Add-to-chat context attachments for comments/reviews/threads/checks | p3-forge-review.md | unknown |
-| 435 | C4 | G1+W16 | Forge search RPC (`forge.search.*`, legacy `github_search_*`) and query hook | p3-forge-review.md | unknown |
-| 436 | C4 | G1+W16 | Composer forge auto-attach from pasted URLs; forge URL/ref parsing; forge URL builders ("Open on <forge>") | p3-forge-review.md | unknown |
-| 437 | C4 | G1+W16 | New-workspace PR picker and picker-owned PR attachment | p3-forge-review.md | unknown |
-| 438 | C4 | G1+W16 | Create worktree/workspace from PR (checkoutSource, intent resolution, fetch refs, fork branch naming, push remotes, metadata hint) | p3-forge-review.md | unknown |
-| 439 | C4 | G1+W16 | MCP workspace-create `checkout-pr` mode; plugin worktree hook intent kinds | p3-forge-review.md | unknown |
-| 440 | C4 | G1+W16 | GitHub repository search + clone RPCs and add-project UI; CLI `clone` | p3-forge-review.md | unknown |
-| 441 | C4 | G1+W16 | CLI: `worktree create --mode checkout-pr`, `workspace create --mode checkout-pr --forge`, `run --worktree-mode checkout-pr` | p3-forge-review.md | unknown |
-| 442 | C4 | G1+W16 | Review: draft store (persisted), draft keys per mode/base/whitespace, inline editor + threads + geometry, compact comment sheet, keyboard shortcuts | p3-forge-review.md | unknown |
-| 443 | C4 | G1+W16 | Review attachment snapshot (context lines, hunk header) and workspace attachment publishing | p3-forge-review.md | unknown |
-| 444 | C4 | G1+W16 | Review feedback send workflow (recipients, disabled reasons, steer/interrupt, partial clear), success toast | p3-forge-review.md | unknown |
-| 445 | C4 | G1+W16 | Server rendering of review/forge attachments as agent prompt text | p3-forge-review.md | unknown |
-| 446 | C4 | G1+W16 | Auto-archive on merge (connection only) | p3-forge-review.md | unknown |
+| 417 | C4 | G1 | Forge manifest (5 forges, neutral fallback, sign-in recipes, check traits) | p3-forge-review.md | unknown |
+| 418 | C4 | G1 | Forge registry / resolver / host probing (cloud match, CLI auth probe, SSH alias resolution, caches) | p3-forge-review.md | unknown |
+| 419 | C4 | G1 | Forge CLI runner and error classes (gh/glab/tea, timeouts, auth/missing/command errors) | p3-forge-review.md | unknown |
+| 420 | C4 | G1 | ForgeService adapter contract (reads, writes, polling, invalidation, ForgeReadOptions force/reason) | p3-forge-review.md | unknown |
+| 421 | C4 | G1 | GitHub adapter (gh): list/view/search/timeline/check details/create/merge/auto-merge/repo search, batched GraphQL poller + rate-limit guard | p3-forge-review.md | unknown |
+| 422 | C4 | G1 | GitLab adapter (glab): MR lookup, approvals, discussions, pipeline stages/jobs, create/merge/auto-merge, guards | p3-forge-review.md | unknown |
+| 423 | C4 | G1 | Gitea/Forgejo/Codeberg adapter (tea): PR list/view, timeline, commit status/Actions, merge, no auto-merge, family detection | p3-forge-review.md | unknown |
+| 424 | C4 | G1 | Generic non-GitHub PR-status poller (20 s / 120 s / 300 s backoff) | p3-forge-review.md | unknown |
+| 425 | C4 | G1 | Current-branch PR status (snapshot, `checkout_pr_status_*`, `checkout_status_update.prStatus`, caching, hooks, authState) | p3-forge-review.md | unknown |
+| 426 | C4 | G1 | Workspace descriptor `githubRuntime` + `forge`; sidebar PR badge, CI indicator, hover card, menu entry | p3-forge-review.md | unknown |
+| 427 | C4 | G1 | PR actions: Create PR (with LLM-generated title/body), merge (3 methods), enable/disable auto-merge, View PR, ship default, primary-action policy | p3-forge-review.md | unknown |
+| 428 | C4 | G1 | Merge capability per forge (github/gitlab/gitea) and server-side merge guards | p3-forge-review.md | unknown |
+| 429 | C4 | G1 | Pull/Push RPCs (named `checkout_pull_request`, not PR checkout) | p3-forge-review.md | unknown |
+| 430 | C4 | G1 | PR tab (panel kind, auto-open, open-location setting, content states, discovery/demand) | p3-forge-review.md | unknown |
+| 431 | C4 | G1 | PR pane: header/state, toolbar, checks section (ring, groups, presentation classes), GitLab pipeline + approvals, activity timeline (threads, review n | p3-forge-review.md | unknown |
+| 432 | C4 | G1 | PR timeline RPC (`pull_request_timeline_*`) and unsupported-daemon fallback | p3-forge-review.md | unknown |
+| 433 | C4 | G1 | Check details RPC (`checkout.forge.get_check_details.*`, legacy github twin), failed jobs/log tails, annotations | p3-forge-review.md | unknown |
+| 434 | C4 | G1 | Add-to-chat context attachments for comments/reviews/threads/checks | p3-forge-review.md | unknown |
+| 435 | C4 | G1 | Forge search RPC (`forge.search.*`, legacy `github_search_*`) and query hook | p3-forge-review.md | unknown |
+| 436 | C4 | G1 | Composer forge auto-attach from pasted URLs; forge URL/ref parsing; forge URL builders ("Open on <forge>") | p3-forge-review.md | unknown |
+| 437 | C4 | G1 | New-workspace PR picker and picker-owned PR attachment | p3-forge-review.md | unknown |
+| 438 | C4 | G1 | Create worktree/workspace from PR (checkoutSource, intent resolution, fetch refs, fork branch naming, push remotes, metadata hint) | p3-forge-review.md | unknown |
+| 439 | C4 | G1 | MCP workspace-create `checkout-pr` mode; plugin worktree hook intent kinds | p3-forge-review.md | unknown |
+| 440 | C4 | G1 | GitHub repository search + clone RPCs and add-project UI; CLI `clone` | p3-forge-review.md | unknown |
+| 441 | C4 | G1 | CLI: `worktree create --mode checkout-pr`, `workspace create --mode checkout-pr --forge`, `run --worktree-mode checkout-pr` | p3-forge-review.md | unknown |
+| 442 | C4 | G1 | Review: draft store (persisted), draft keys per mode/base/whitespace, inline editor + threads + geometry, compact comment sheet, keyboard shortcuts | p3-forge-review.md | unknown |
+| 443 | C4 | G1 | Review attachment snapshot (context lines, hunk header) and workspace attachment publishing | p3-forge-review.md | unknown |
+| 444 | C4 | G1 | Review feedback send workflow (recipients, disabled reasons, steer/interrupt, partial clear), success toast | p3-forge-review.md | unknown |
+| 445 | C4 | G1 | Server rendering of review/forge attachments as agent prompt text | p3-forge-review.md | unknown |
+| 446 | C4 | G1 | Auto-archive on merge (connection only) | p3-forge-review.md | unknown |
 | 447 | C5 | W13 | Path safety, binary detection, limits (shared rules, server `file-explorer/service.ts`) | p4-files.md | skeleton |
 | 448 | C5 | W13 | Protocol: file explorer read RPC (`file_explorer_request/response`) | p4-files.md | skeleton |
 | 449 | C5 | W13 | Binary file-transfer frames (`FileBegin/FileChunk/FileEnd`) | p4-files.md | skeleton |
@@ -489,7 +489,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 483 | D1 | C2 | Terminal resize and focus claim logic | area-4-terminals-scripts-browser.md | unknown |
 | 484 | D1 | C2 | Terminal paste (bracketed paste, image paste), file paste upload queue, file drop routing | area-4-terminals-scripts-browser.md | skeleton (pure bracketed-paste codec staged; clipboard/upload/drop pending) |
 | 485 | D1 | C2 | Terminal local file links and external links | area-4-terminals-scripts-browser.md | unknown |
-| 486 | D1 | C2 | xterm.js web emulator (addons, key handling, fonts, scrollback setting) | area-4-terminals-scripts-browser.md | unknown |
+| 486 | D1 | C2 | xterm.js web emulator (addons, key handling, fonts, scrollback setting) | area-4-terminals-scripts-browser.md | skeleton (pure modes staged; stated difference: VTE retains standalone ESC across chunks while Paseo regex tracker loses it; canonical239-step checks owed; consumers pending) |
 | 487 | D1 | C2 | Native grid terminal renderer (selection handles, scroll, hidden input) | area-4-terminals-scripts-browser.md | skeleton (T1 grid/scroll passed; D1 selection/input pending) |
 | 488 | D1 | C2 | Terminal find | area-4-terminals-scripts-browser.md | missing |
 | 489 | D1 | C2 | Virtual key bar / soft keyboard controls | area-4-terminals-scripts-browser.md | unknown |
@@ -504,13 +504,13 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 498 | C2 | W15 | Mobile three-panel shell (motion model, gestures, thresholds, gesture blocking) | area-4-terminals-scripts-browser.md | unknown |
 | 499 | C2 | W15 | Compact workspace sheets and layout modes | area-4-terminals-scripts-browser.md | skeleton |
 | 500 | D2 | W8 | `paseo.json` scripts/services/servicePorts configuration and project settings editor | area-4-terminals-scripts-browser.md | missing |
-| 501 | D2 | W8 | Script/service launch, stop, restart, exit handling, runtime store | area-4-terminals-scripts-browser.md | skeleton |
+| 501 | D2 | W8 | Script/service launch, stop, restart, exit handling, runtime store | area-4-terminals-scripts-browser.md | skeleton (legacy calls wired; canonical Workspace runtime contract pending) |
 | 502 | D2 | W8 | Service env and port plan/allocation (range, portScript, free port) | area-4-terminals-scripts-browser.md | missing |
-| 503 | D2 | W8 | Port discovery (not found) | area-4-terminals-scripts-browser.md | skeleton |
+| 503 | D2 | W8 | Port discovery (not found) | area-4-terminals-scripts-browser.md | skeleton (observed port.list adapter; final VM/UI verification owed) |
 | 504 | D2 | W8 | Service proxy: hostnames, routes, HTTP/WebSocket proxying, 404/502 behaviour, standalone listener, public base URL, branch rename re-route | area-4-terminals-scripts-browser.md | missing |
 | 505 | D2 | W8 | Script health monitor | area-4-terminals-scripts-browser.md | missing |
 | 506 | D2 | W8 | Script status projection and `script_status_update` delivery | area-4-terminals-scripts-browser.md | missing |
-| 507 | D2 | W8 | Scripts menu UI (rows, link selector, route preference store, open service URL behaviour) | area-4-terminals-scripts-browser.md | skeleton |
+| 507 | D2 | W8 | Scripts menu UI (rows, link selector, route preference store, open service URL behaviour) | area-4-terminals-scripts-browser.md | skeleton (passive panel registered; exact-target query and route contract pending) |
 | 508 | A9 | W22 | Managed-process ledger | area-4-terminals-scripts-browser.md | missing |
 | 509 | D3 | W18 | In-app browser pane (toolbar, device presets, store, resident webviews, profile, shortcuts, new-tab requests, browser data clear) | area-4-terminals-scripts-browser.md | skeleton |
 | 510 | D3 | W18 | Browser element annotate/screenshot attachments | area-4-terminals-scripts-browser.md | unknown |
@@ -570,7 +570,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 564 | E3 | W19b | Changelog sheet (What's new) | area-5-hosts-devices-desktop.md | skeleton |
 | 565 | E4 | W15 | Onboarding (steps, decision rules, orchestration choices, re-run) | area-5-hosts-devices-desktop.md | skeleton |
 | 566 | E4 | N1+W20 | App diagnostic sheet (client + desktop + per-host report, redaction) | area-5-hosts-devices-desktop.md | passed |
-| 567 | E4 | N1+W20 | Daemon diagnostics RPC (`diagnostics.request`) and report sections | area-5-hosts-devices-desktop.md | missing |
+| 567 | E4 | N1+W20 | Daemon diagnostics RPC (`diagnostics.request`) and report sections | area-5-hosts-devices-desktop.md | built |
 | 568 | A9 | G3+W22 | Provider diagnostics RPC (`provider_diagnostic_request`) | area-5-hosts-devices-desktop.md | missing |
 | 569 | E4 | N1+W20 | Process diagnostics and daemon log (`daemon.log`) viewing | area-5-hosts-devices-desktop.md | skeleton |
 | 570 | E4 | N1+W20 | App native watchdog / render trace (`PaseoNativeTrace`) and macOS compositor watchdog | area-5-hosts-devices-desktop.md | unknown |
@@ -584,7 +584,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 578 | F1 | G2 | Run execution: agent-target (steer) and new-agent (workspace per run, archive on finish, isolation local/worktree, output capture) | A.md | unknown |
 | 579 | F1 | G2 | Schedule ops: create (runOnCreate), createOrReplace (idempotent by name+target), update (+ newAgentConfig patch), pause, resume, delete, run-once, ins | A.md | unknown |
 | 580 | F1 | G2 | Schedule RPC messages (`schedule/*` + `/response`, `rpc_error` code `schedule_request_failed`) and `DaemonClient` schedule methods | A.md | unknown |
-| 581 | F1 | G2 | Schedules screen (`/schedules`, sidebar row, command-center entry, Active/Ended filter, host filter, empty/loading/error/host-error banner states) | A.md | skeleton |
+| 581 | F1 | G2 | Schedules screen (`/schedules`, sidebar row, command-center entry, Active/Ended filter, host filter, empty/loading/error/host-error banner states); known gap: Vessel user docs do not exist yet | A.md | skeleton |
 | 582 | F1 | G2 | Aggregated schedules across hosts (react-query, per-host errors, reconnect invalidation) | A.md | skeleton |
 | 583 | F1 | G2 | Schedule row (derived state badge, title/target/meta line, kebab menu: Resume/Pause/Run now/Edit/Delete, delete confirm, optimistic pause/resume/delet | A.md | skeleton |
 | 584 | F1 | G2 | Schedule form sheet (create/edit new-agent schedule, heartbeat cadence-only edit; host/project/model/thinking/mode/isolation/archive-on-finish/max run | A.md | skeleton |
@@ -597,9 +597,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 591 | F2 | W21 | Paseo tools visibility: settings card (`mcp.injectIntoAgents`), `--no-mcp`/`--no-inject-mcp`, per-provider `paseoTools {enabled, disabledTools}` | A.md | skeleton (typed node policy/inject built; native card/CLI integration and gates pending) |
 | 592 | F2 | W21 | Tool catalog scoping (agent vs top-level), `serverId` host fan-out, plugin tools, result serialisation | A.md | skeleton (policy/scoping/machine/structured-result edge built; plugin producer integration pending) |
 | 593 | F2 | W21 | MCP tools: agents (12), workspaces/scripts (7), terminals (5), schedules/heartbeats (11), providers/hosts/voice (6), browser (22) | A.md | skeleton (existing-call facade built; creation/provider/launch-profile/host/browser/voice dependencies pending) |
-| 594 | F2 | W18 | Skills settings section (install switch, Update, uninstall confirm, picker sheet, destructive-removal confirm) | A.md | built (native typed owner/cards/picker/confirmation/recovery source; view/link9 tests passed; UI/union checks, whole gate, captures/review owed; MCP_PARITY=None) |
+| 594 | F2 | W18 | Skills settings section (install switch, Update, uninstall confirm, picker sheet, destructive-removal confirm) | A.md | built (native typed owner/cards/picker/confirmation/recovery source; retired-input retention added; older view/link9 passed; actual UI/guard union, latest checks, whole gate, captures/review owed; MCP_PARITY=None) |
 | 595 | F2 | W15 | Onboarding "orchestration" step (tools, skills, CLI) | A.md | skeleton |
-| 596 | F2 | W21 | Skills protocol (`agent.skills.*` requests/responses) + client methods | A.md | built (typed pending rows/client methods; MCP_PARITY=None; whole gate/review owed) |
+| 596 | F2 | W21 | Skills protocol (`agent.skills.*` requests/responses) + client methods | A.md | built (typed node pending rows/SDK; separate staged portable carrier V3 source passed and exact strict0; carrier unit/TS plus full runtime gate/review owed; MCP_PARITY=None) |
 | 597 | F2 | W21 | Skills controller/queue, status diff, sync with managed-file manifest, crash-safe transactions, startup auto-update | A.md | built (node writer/filesystem transaction machinery; scoped tests only; whole gate/review owed) |
 | 598 | F2 | W21 | Selection store (`agents.skills.selection`, default all) and legacy desktop selection migration | A.md | built (private all/custom store and explicit import-only-if-unset/AlreadySet; no automatic legacy file: Vessel never wrote one, per coordinator; gates/review owed) |
 | 599 | F2 | W21 | Bundled skills: paseo, paseo-advisor, paseo-committee, paseo-handoff, paseo-help, paseo-plugin; install targets `~/.agents/skills`, `~/.claude/skills` | A.md | built (six independent Vessel guides and shared/Claude targets; whole gate/review owed) |
@@ -655,10 +655,10 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 649 | F4 | S2+W22 | What the user sees | C.md | unknown |
 | 650 | F4 | S2+W22 | How it works | C.md | skeleton |
 | 651 | F4 | S2+W22 | States, limits | C.md | skeleton |
-| 652 | F4 | S2+W22 | Sidebar header nav rows (sidebar-nav) | C.md | unknown |
-| 653 | F4 | S2+W22 | What the user sees | C.md | unknown |
-| 654 | F4 | S2+W22 | How it works | C.md | unknown |
-| 655 | F4 | S2+W22 | Settings section "Sidebar" | C.md | unknown |
+| 652 | F4 | S2+W22 | Sidebar header nav rows (sidebar-nav) | C.md | skeleton |
+| 653 | F4 | S2+W22 | What the user sees | C.md | skeleton |
+| 654 | F4 | S2+W22 | How it works | C.md | skeleton |
+| 655 | F4 | S2+W22 | Settings section "Sidebar" | C.md | skeleton |
 | 656 | F4 | S2+W22 | Workspace list: grouping, filtering, sorting, pinning | C.md | unknown |
 | 657 | F4 | S2+W22 | What the user sees | C.md | unknown |
 | 658 | F4 | S2+W22 | How it works | C.md | unknown |
@@ -677,8 +677,8 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 671 | F4 | S2+W22 | What the user sees | C.md | skeleton |
 | 672 | F4 | S2+W22 | How it works | C.md | skeleton |
 | 673 | F4 | S2+W22 | Binding to action routing (`routeKeyboardShortcut`) | C.md | skeleton |
-| 674 | F4 | S2+W22 | Default shortcut table (binding id, action, combo; `when` summary) | C.md | skeleton |
-| 675 | F4 | S2+W22 | Shortcut help dialog | C.md | skeleton |
+| 674 | F4 | S2+W22 | Default shortcut table (binding id, action, combo; `when` summary) | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
+| 675 | F4 | S2+W22 | Shortcut help dialog | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
 | 676 | F4 | S2+W22 | Settings > Shortcuts (rebinding) | C.md | skeleton |
 | 677 | F4 | S2+W22 | Keyboard shift (mobile on-screen keyboard) | C.md | unknown |
 | 678 | F4 | S2+W22 | Command center | C.md | skeleton |
@@ -692,7 +692,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 686 | F4 | S2+W22 | Project action menus and metadata status rows | C.md | unknown |
 | 687 | F4 | S2+W22 | Sidebar setup/changelog/host-permission callouts | C.md | unknown |
 | 688 | F4 | S2+W22 | Keyboard binding scopes, contexts and override persistence | C.md | skeleton |
-| 689 | F4 | S2+W22 | Reserved/native editing and IME shortcut exclusions | C.md | skeleton |
+| 689 | F4 | S2+W22 | Reserved/native editing and IME shortcut exclusions | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
 | 690 | F4 | S2+W22 | Shortcut help and rebinding conflict/reset states | C.md | skeleton |
 | 691 | F4 | S2+W22 | Mobile keyboard shift behavior | C.md | unknown |
 | 692 | F4 | S2+W22 | Command center search ranking, group navigation and nested pages | C.md | skeleton |
@@ -700,12 +700,12 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 694 | F4 | S2+W22 | Plugin command-center contribution integration | C.md | skeleton |
 | 695 | F5 | E2+K+L | Settings shell and navigation; app settings store; General; Sending; Chat; Terminal; Editor; Files; Open location; Browser data; Integrations; Notific | D.md | unknown |
 | 696 | F6 | W16 | Plugin model, trust and `pluginsEnabled`; manifest; directory/git/npm/registry install; reviewed updates; reload/enable/disable/remove; logs; subproce | E.md | skeleton |
-| 697 | A8 | W4 | Permission cards and plan/mode approval | gaps.md | skeleton (simultaneous native cards/shared Plan source built; rich actions/plan runtime pending) |
-| 698 | A8 | W4 | Agent question forms and answer encoding | gaps.md | skeleton (retained multi-request fields/navigation/retry source built; metadata/preview/empty rules pending) |
+| 697 | A8 | W4 | Permission cards and plan/mode approval | gaps.md | skeleton (simultaneous cards/shared Plan/uncertainty hold source; rich actions/plan runtime and VM proof pending) |
+| 698 | A8 | W4 | Agent question forms and answer encoding | gaps.md | skeleton (retained fields/navigation/refusal-versus-uncertainty source; metadata/preview/empty rules and VM proof pending) |
 | 699 | A8 | W4 | Nonblocking Codex questions and durable pending requests | gaps.md | skeleton |
 | 700 | A8 | W4 | Permission event fan-out, cancellation and mode policy | gaps.md | skeleton |
 | 701 | A8 | W11 | Agent attention policy — corrections and missing boundary details | gaps.md | unknown |
-| 702 | A8 | W4 | CLI permission listing, allow and deny | gaps.md | skeleton (parser/preflight/confirmation staged; checked output/respond wiring pending) |
+| 702 | A8 | W4 | CLI permission listing, allow and deny | gaps.md | skeleton (canonical archived read/preflight/parser/confirmation source; output adopted, rich handlers/VM proof pending) |
 | 703 | A10 | N3+G3 | Host agent profiles: create, edit, remove and reorder | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
 | 704 | A10 | N3+G3 | Applying profiles to drafts and existing agents | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
 | 705 | A10 | N3+G3 | Legacy favorites migration and account boundary | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
@@ -734,9 +734,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 728 | A8 | W4 | Question response failure/retry and header-keyed encoding | gaps.md | skeleton |
 | 729 | A8 | W4 | Codex asynchronous questions: active-turn steer and idle follow-up | gaps.md | skeleton |
 | 730 | A8 | W4 | Runtime permission maps, persistence metadata and offline stripping | gaps.md | skeleton |
-| 731 | A8 | W4 | Cross-client request/resolution events, direct acknowledgement and cancellation | gaps.md | skeleton (selected-connection response fence source built; durable receipts/live resident cutover pending) |
+| 731 | A8 | W4 | Cross-client request/resolution events, direct acknowledgement and cancellation | gaps.md | skeleton (selected-connection and retained uncertainty/source-node fences; exact-record staged recovery; durable/live cutover pending) |
 | 732 | A8 | W11 | Presence selection, delegated callback suppression and unread corrections | gaps.md | unknown |
-| 733 | A8 | W4 | CLI permit listing, batch allow default, deny flags and confirmation errors | gaps.md | skeleton |
+| 733 | A8 | W4 | CLI permit listing, batch allow default, deny flags and confirmation errors | gaps.md | skeleton (asymmetric selection and canonical archived listing source; rich response activation/gates pending) |
 | 734 | A10 | N3+G3 | Profile CRUD, order, notes, glyph/color and catalog-backed form | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
 | 735 | A10 | N3+G3 | Profile draft apply, live bundle apply, invalid-mode omission and partial failure | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
 | 736 | A10 | N3+G3 | Legacy favorite migration markers, deduplication and catalog retry | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
