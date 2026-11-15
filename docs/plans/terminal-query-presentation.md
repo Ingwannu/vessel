@@ -95,3 +95,32 @@ backticks; correction also retains both previously-unused test reply results.
 The31 existing cell checkpoints now also compare the byte-wise multiplexer
 and its query-stripped old raw client against the unchanged golden authority,
 including resize. New exact test/strict checks are owed.
+
+## Physical viewport markers
+
+[Decision Log]
+- Purpose: retain inspected rows across output, trim and width reflow without
+  inventing tail offsets or replaying old ANSI.
+- Existing assets: the sole vendored grid owns row mutations. The exact server
+  headless334 Buffer::addMarker642–677 adjusts physical rows on trim/insert/
+  delete; reflow emits edits at530–539. It does not track a logical cell offset.
+- Alternatives: per-row Arc identities, an unbounded row-remap log, or a second
+  app/node viewport registry. They add allocation/history or duplicate ownership.
+- Choice: a bounded marker table inside each engine grid, with typed facade
+  handles bound to one Screen allocation, buffer and reset epoch. Caller-owned
+  markers have explicit create/resolve/release/replace lifetime. Node view slots
+  bind those handles to authenticated connection/terminal/actor authority.
+- Why: marker adjustment belongs to the same row surgery as reflow/retention.
+  It cannot drift from parsed grid geometry, and nodes never infer it from logs.
+- Cost: finite marker slots refuse explicitly; epochs distinguish Reset from
+  actual eviction and release. Anchor identity never grants transport access.
+
+The actual pinned headless public registerMarker oracle has5 programs and15
+checkpoints: output/trim, capacity shrink, wider/narrower wrapped rows, explicit
+IL/DL and scroll region, primary/alternate/history clear/RIS. Its observed
+physical semantics are deliberate: wider resize disposes a removed continuation
+row's marker; region scrolling can replace the contents at a retained physical
+position. A marker is not a frozen text snapshot or logical-grapheme bookmark.
+The original raw outputs are retained in scratch marker-oracle.json.
+Implementation/tests remain owed. Node agreed this lifetime has no glue conflict;
+wire IDs alone never authorize a read/release or select another route.

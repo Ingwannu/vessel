@@ -177,3 +177,14 @@ The parity oracle freshly invokes the real reference tracker on the accumulated
 original prefix once at every239 checkpoints. Its outputs are not edited, and
 no expected value is deleted or flipped. This is reference observation, not
 ANSI replay into a Vessel engine.
+
+## Viewport marker ownership
+
+Use the same grid's bounded physical-row markers, following the pinned server
+Buffer's trim/insert/delete/reflow adjustment rather than tracking distance
+from the moving tail. One engine allocation, buffer and reset epoch identify
+a handle; create/resolve/release/replace are explicit. FollowLive and disconnect
+release node-owned view slots. Retained/Evicted/Reset/Released and inactive
+buffer state are typed; no anchor selects a transport or authorizes a read.
+No per-row identity allocation or unbounded remap log is required. These APIs
+are a follow-up contract until their exact implementation/verification lands.
