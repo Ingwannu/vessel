@@ -46,6 +46,7 @@ fn request_message(error: &DiagnosticError) -> &'static str {
                         ErrorDetail::DeviceInvite { .. }
                         | ErrorDetail::FleetControl { .. }
                         | ErrorDetail::SchedulePreview { .. }
+                        | ErrorDetail::Browser { .. }
                         | ErrorDetail::Unknown,
                     )
                     | None => "diagnostics unavailable: node is overloaded or stopping",

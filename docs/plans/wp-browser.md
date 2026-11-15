@@ -1110,3 +1110,11 @@ selection checks the declaration against the decoder's omission/null contract.
 Default-feature strict/functional runs stay pinned to0b because this change is
 feature-ts metadata/test only; the still-queued TS run is superseded once after
 terminal cancellation, and its new exact-head compilation/generation is owed.
+
+The exact0b strict run stopped at the CLI diagnostic error projection: its
+closed ErrorDetail match needed Browser in the existing non-diagnostic fallback.
+That explicit arm preserves the safe generic diagnostic text; browser reasons
+are not interpreted as diagnostic collector evidence. No wildcard or private
+error text is exposed. The announced gate52 head1c762ccf is merged before the
+corrected strict run; the earlier functional and TS jobs retain their exact
+source provenance and do not qualify this later union.
