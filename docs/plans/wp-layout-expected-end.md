@@ -89,6 +89,115 @@ Exact method and notice names belong to the reviewed source amendment. There is
 no public bypass flag, second completion map, raw client or admission-from-reply.
 W21 and W12 must consume the same policy in one checked carrier/call-site union.
 
+## W21 call-site and carrier agreement
+
+W21 confirms the direction above. This section identifies existing code and the
+required coordinated replacement; it does not promote the legacy adapter or
+approve implementation. W12 must confirm this handoff and V1 must close the
+contract before either owner changes expected-end source.
+
+### Existing source and the replacement boundary
+
+The A2 prototype's `app/src/areas/sessions/lifecycle.rs` has these actual sites:
+`prepare_session_lifecycle` and `confirm_session_lifecycle` validate a decision;
+`composer_exit` and `composer_fresh` enter that same path; then
+`send_session_lifecycle` sends `Command::SessionLifecycle`. The corresponding
+`link/src/sessions/lifecycle.rs::State::session_lifecycle` translates exactly
+`LifecycleAction::{Archive, Exit, Fresh}` to `Act::Mark(Mark::Archive)` and calls
+`session::run`, whose Mark branch calls the existing typed node mark operation.
+The answer reaches `sessions_lifecycle_answer` / `apply_lifecycle_result`, and
+`settle_session_lifecycle` later receives the actual Window for navigation or
+fresh-draft work. This is the concrete ordering problem, not a new stop RPC.
+
+That prototype retains alias/node and a local UI ticket, not the complete
+physical admission. None of those legacy checks authorizes the new path. The
+coordinated call-site union replaces its global decision/send/answer/window
+state with scoped lifecycle resources in W12's sole SessionResources bundle.
+`LifecycleResources::prepare` and `sent` are the existing staged owner hooks;
+the local LifecycleTicket identifies a UI decision only. W12's existing opaque
+OperationTicket with `OperationKind::Lifecycle` is the network capability.
+
+Immediately before the wire call, the validated original typed action and
+current decision go through W12's atomic admission. Only Archive, Exit and
+Fresh may arm the one existing stop ticket. Unarchive, Resume, Delete, generic
+Lifecycle operations and history operations lacking that resident admission
+do not acquire an expectation. Archive without closing still needs its typed
+acknowledgement. Child hide remains local layout work and cannot arm a stop.
+Any stricter node archive API, when assigned and adopted, must preserve this
+typed classification rather than deriving it from response or status.
+
+### Actual carrier and outcome classification
+
+The staged carrier is `link/src/sessions/resident.rs`: Scope captures the
+SelectedConnection's original DeliveryGuard, an immutable original
+ConnectionContext and full FollowBinding. Envelope retains these exact facts;
+its Completion retains the original Operation kind/ticket and typed RPC result.
+Successful SessionInfo metadata and completion must name the binding's session;
+the context node must name the resident's node. No latest-alias lookup supplies
+missing provenance. The real call must use that same selected connection.
+
+The current `Payload::Eof` is only a prototype marker. The coordinated source
+must distinguish a typed ordered normal end from `Lost`, request/stream error,
+physical retirement and cancellation. Only the same selected follow pump,
+after installing preceding batches, may submit that normal-end envelope. A
+SessionEnded record is ordinary ordered data, never that classification. W21
+passes the checked outcome and exact binding to W12; only W12 decides whether
+the original pre-armed ticket permits sealing. W21 does not call full
+retire_follow for a seal that preserves that ticket. Other follow failures
+retire only their exact binding; only actual shared-lease evidence authorizes
+connection_retired. Neither can invalidate a successor by inference.
+
+Envelope installation validates the original guard and identity before
+exposing data. In the real union that same guard must also be validated
+immediately before canonical receive or settle, with no intervening await or
+owner mutation. Canonical settle consumes the exact ticket before invoking the
+owner transition. A rejected/dropped envelope does not become a success path.
+CorrelatedRefusal remains control-only and cannot fabricate a guard. Definite
+actor pre-poll/pre-effect refusal maps to local Disposition::NoSend; an attempted
+call with lost reply, late error, cancellation or timeout maps conservatively
+to Uncertain. The prototype's broad peer-error mapping is not no-send proof.
+
+### Pending, typed acknowledgement, then exact Window commit
+
+1. Before sending, capture the originating Window's lifetime, authoritative
+   LayoutKey, PanelClaim/tab and original resident/binding with the validated
+   action. Close also retains the original immutable ClosePlan; Fresh retains
+   its scoped launch choices and draft preconditions. This owner-held pending
+   state is not another operation allocator, lookup cache or settlement map.
+2. Ordered normal end leaves LifecycleResources Sending/Pending and its
+   PendingEffect hold intact. It cannot call acknowledged, become Ready,
+   release an owner hold, close a tab or clear input. Full retirement instead
+   reports the exact sent operation as Uncertain and retains protected input.
+3. A successful typed original reply must satisfy the requested action and
+   session identity. After immediate original-guard validation, W12 consumes
+   the exact Lifecycle ticket once; only then does W21 record acknowledged
+   pending Window work. The current staged acknowledged-to-Ready transition
+   is insufficient and must change in the reviewed union. The consumed ticket
+   is never reissued, refreshed or copied into another settlement ledger.
+4. Acknowledged Window work keeps the resource held until the originating
+   Window can commit synchronously. Immediately before commit, validate the
+   original guard again and recheck current binding/resource, key/claim/tab,
+   immutable target, dirty/owner votes and action-specific draft preconditions.
+   No await, latest selected resource or reused TabId may bridge this check.
+   Full retirement/reattach invalidates pending Window work as well as pending
+   wire work, including retirement after ACK and before Window processing.
+5. Only that successful exact Window callback may approve the keyed layout
+   close through layout_close_settled with the original key/plan, or perform
+   the original scoped Fresh transition. Archive without local navigation
+   still finishes its owner state in this exact callback. Failure, missing
+   Window or stale plan leaves a typed held/refused state for reconciliation;
+   it never mutates the replacement target, clears retained input, resends the
+   operation or restarts its deadline. Readiness is released only after this
+   final commit and all independent owner holds still apply.
+
+The required union must exercise the real caller, selected framed stream,
+Envelope, canonical ledger, LifecycleResources and Window callback together.
+A pure EOF marker test or a manually manufactured acknowledgement does not
+prove this handoff. In particular, test retirement both before canonical ACK
+settlement and after settlement but before Window commit, as well as an actual
+normal End preceding the typed Mark reply. No SDK error or transport EOF alone
+is an archive acknowledgement or a node execution-incarnation fact.
+
 ## Required counterfactual evidence
 
 Use the actual framed producer to emit normal SessionEnded/EOF before a real
