@@ -111,7 +111,7 @@ impl Sessions {
     }
 
     /// Human-only Read-scoped ingress; it cannot perform any general mark.
-    /// Same ordering/cancellation boundary as mark_live, with both live and
+    /// Same ordering/cancellation boundary as `mark_live`, with both live and
     /// durable pending requests checked before the shared mark transaction.
     pub(crate) async fn read_attention(
         self: &Arc<Self>,

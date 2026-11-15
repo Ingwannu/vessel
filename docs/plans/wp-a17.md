@@ -396,3 +396,10 @@ counts, matching the sidebar. An empty/pruned Inbox with a deliberate unread
 mark must still enter the existing deferred read policy and whole-session Read
 transaction; exact-entry Seen never clears that flag. This fixes the remaining
 app observation that checked only the count. Native union checks remain owed.
+
+Root union preflight found the retained activity capability fixture still had
+the already-corrected node-tree length/default lints. Only the test section is
+aligned after checking the entire product prefix is byte-identical; the narrow
+read method's existing doc reference is backticked. This imports no node runtime
+behavior or branch ancestry. The app root strict predecessor is obsolete while
+queued; its record must be kept if superseded under the standing rule.
