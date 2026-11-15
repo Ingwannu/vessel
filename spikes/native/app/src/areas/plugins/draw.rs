@@ -1,4 +1,4 @@
-use super::{SurfaceEvent, SurfaceView};
+use super::{Opener, SurfaceEvent, SurfaceView};
 use gpui::StatefulInteractiveElement as _;
 use std::{cell::Cell, rc::Rc, sync::Arc};
 use vessel_app_kit::{
@@ -66,7 +66,7 @@ fn draw_control(
             .text_color(tokens.neutral.foreground)
             .child(text.as_str().to_owned())
             .into_any_element(),
-        ControlContent::Markdown { text } => markdown(view, &control.id, text, cx),
+        ControlContent::Markdown { text } => markdown(view, &control.id, text),
         ControlContent::Stack { surface: nested } => {
             surface(view, nested, tokens, live, window, cx).into_any_element()
         }
@@ -301,31 +301,13 @@ fn markdown(
     view: &SurfaceView,
     control_id: &ContributionId,
     text: &vessel_proto::plugins::ContentText,
-    cx: &mut Context<'_, SurfaceView>,
 ) -> AnyElement {
-    let opener = Arc::clone(&view.opener);
-    let owner = cx.weak_entity();
     let markdown = vessel_app_kit::markdown_guarded(
         identity(view, control_id),
         text.as_str().to_owned(),
         vessel_app_kit::MarkdownGuards {
             images: vessel_app_kit::ImagePolicy::RefuseAll,
-            on_link: Arc::new(move |link, _event, window, cx| {
-                match link.as_str().parse::<AttachmentUrl>() {
-                    Ok(url) => {
-                        drop(owner.update(cx, |view, cx| {
-                            match view.with_registry(|registry| view.state.check_current(registry))
-                            {
-                                Ok(()) => opener(&url, window, cx),
-                                Err(problem) => cx.emit(SurfaceEvent::Rejected(problem)),
-                            }
-                        }));
-                    }
-                    Err(_untrusted) => {
-                        drop(owner.update(cx, |_view, cx| cx.emit(SurfaceEvent::LinkRejected)));
-                    }
-                }
-            }),
+            on_link: Arc::clone(&view.markdown_link),
         },
     );
     div()
@@ -333,4 +315,27 @@ fn markdown(
         .debug_selector(|| "plugin-surface-markdown".to_owned())
         .child(markdown)
         .into_any_element()
+}
+
+/// Install once so drawing and delayed delivery retain the exact same handler.
+pub(super) fn link_handler(
+    opener: Opener,
+    cx: &Context<'_, SurfaceView>,
+) -> vessel_app_kit::MarkdownLinkHandler {
+    let owner = cx.weak_entity();
+    Arc::new(
+        move |link, _event, window, cx| match link.as_str().parse::<AttachmentUrl>() {
+            Ok(url) => {
+                drop(owner.update(cx, |view, cx| {
+                    match view.with_registry(|registry| view.state.check_current(registry)) {
+                        Ok(()) => opener(&url, window, cx),
+                        Err(problem) => cx.emit(SurfaceEvent::Rejected(problem)),
+                    }
+                }));
+            }
+            Err(_untrusted) => {
+                drop(owner.update(cx, |_view, cx| cx.emit(SurfaceEvent::LinkRejected)));
+            }
+        },
+    )
 }

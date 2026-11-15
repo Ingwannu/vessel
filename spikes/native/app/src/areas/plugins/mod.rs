@@ -53,6 +53,7 @@ struct SurfaceView {
     menu: MenuState,
     shown_menu: Option<menus::Shown>,
     opener: Opener,
+    markdown_link: vessel_app_kit::MarkdownLinkHandler,
 }
 impl EventEmitter<SurfaceEvent> for SurfaceView {}
 
@@ -103,6 +104,7 @@ impl SurfaceView {
             ));
             let _old = fields.insert(identity, field);
         }
+        let markdown_link = draw::link_handler(Arc::clone(&opener), cx);
         Self {
             state,
             body,
@@ -117,6 +119,7 @@ impl SurfaceView {
             menu: MenuState::new(cx),
             shown_menu: None,
             opener,
+            markdown_link,
         }
     }
 

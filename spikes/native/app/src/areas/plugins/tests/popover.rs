@@ -10,13 +10,23 @@ fn popup_fixture() -> (Rc<RefCell<Registry>>, ContributionAddress) {
                 availability: Availability::Enabled,
                 behavior: ButtonBehavior::Popover {
                     surface: Surface {
-                        controls: vec![Control {
-                            id: "inside".parse().expect("identity"),
-                            content: ControlContent::TextField {
-                                label: "Input".parse().expect("caption"),
-                                submit: "act".parse().expect("method"),
+                        controls: vec![
+                            Control {
+                                id: "link".parse().expect("identity"),
+                                content: ControlContent::Markdown {
+                                    text: "[Open](https://example.invalid/page)"
+                                        .parse()
+                                        .expect("Markdown"),
+                                },
                             },
-                        }],
+                            Control {
+                                id: "inside".parse().expect("identity"),
+                                content: ControlContent::TextField {
+                                    label: "Input".parse().expect("caption"),
+                                    submit: "act".parse().expect("method"),
+                                },
+                            },
+                        ],
                     },
                 },
             },
@@ -34,11 +44,13 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
     let owner = Rc::clone(&registry);
     let captured = Rc::new(RefCell::new(Vec::new()));
     let events = Rc::clone(&captured);
+    let opened = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let fake = Arc::clone(&opened);
     let (view, cx) = cx.add_window_view(move |window, cx| {
         let view = SurfaceView::new(
             &owner,
             address,
-            Arc::new(|_, _, _| panic!("fake only")),
+            Arc::new(move |url, _, _| fake.lock().expect("fake opener").push(url.clone())),
             window,
             cx,
         )
@@ -65,6 +77,52 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
             .expect("actual shared popover opened");
         (opening.body.clone(), opening.lease.clone())
     });
+    assert!(
+        cx.debug_bounds("plugin-surface-markdown").is_some(),
+        "actual popup Markdown rendered"
+    );
+    // Clone the exact Arc which the actual rendered Markdown passed to kit.
+    // Direct invocation intentionally reaches it beyond the UI input fence.
+    let handler = old.read_with(cx, |view, _| Arc::clone(&view.markdown_link));
+    let url: gpui::SharedString = "https://example.invalid/page".into();
+    let click = gpui::ClickEvent::Mouse(gpui::MouseClickEvent::default());
+    cx.update(|window, cx| handler(&url, &click, window, cx));
+    assert_eq!(
+        opened.lock().expect("fake opener").len(),
+        1,
+        "live positive control"
+    );
+    opened.lock().expect("fake opener").clear();
+    let node = old.read_with(cx, |view, _| view.state.address().installation.node);
+    registry.borrow_mut().offline(node);
+    cx.update(|window, cx| handler(&url, &click, window, cx));
+    cx.run_until_parked();
+    assert!(opened.lock().expect("fake opener").is_empty());
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Offline))
+    )));
+    let entry = registry.borrow().installed(node).expect("retained catalog")[0].clone();
+    let snapshot = ClientCatalog::new(
+        node,
+        vec![
+            ClientInstallation::new(
+                entry.address().clone(),
+                vessel_proto::PROTOCOL_VERSION,
+                entry.document().clone(),
+            )
+            .expect("canonical installation"),
+        ],
+    )
+    .expect("canonical snapshot");
+    let ticket = registry
+        .borrow_mut()
+        .begin(node, HostSupport::Supported)
+        .expect("reconnect");
+    assert_eq!(
+        registry.borrow_mut().apply(ticket, Ok(snapshot)),
+        Ok(SnapshotApplied::Applied)
+    );
     let inside: ContributionId = "inside".parse().expect("identity");
     let old_id = old.read_with(cx, |view, cx| view.fields[&inside].read(cx).editor.id());
     view.update_in(cx, |view, window, cx| {
@@ -109,11 +167,15 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
         // Retained old entities can exist externally, but cannot forward input.
         assert!(!old.inputs.is_live());
     });
+    // The same pre-close Markdown handler must refuse after ancestor retirement,
+    // even though its old entity/Arc are deliberately retained and reachable.
+    cx.update(|window, cx| handler(&url, &click, window, cx));
     cx.run_until_parked();
     assert!(old_events.borrow().iter().any(|event| matches!(
         event,
         SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Stale))
     )));
+    assert!(opened.lock().expect("fake opener").is_empty());
     assert!(
         !captured
             .borrow()

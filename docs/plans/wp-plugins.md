@@ -546,3 +546,18 @@ case is authored, with execution still owed alongside the opening cases.
 Dismissal admission also checks the body's ancestor input lifetime before kit
 may acknowledge focus; a separately retained nested owner cannot admit close
 after its ancestor retires, even if its local kit lease still compares current.
+
+
+### Returned Markdown guard regression correction
+
+V4 returned the new source checkpoint because removing the live/input guard
+would leave the previous tests green. Each SurfaceView now installs ONE typed
+MarkdownLinkHandler Arc; drawing clones that exact Arc into the unchanged kit
+Markdown renderer. The actual popup fixture retains the same installed handler
+past its first rendered frame. It invokes it directly with a valid HTTPS link:
+live fake opener1, offline fake opener0 plus safe Offline refusal, then after
+canonical reconnect and ancestor close/reopen fake opener0 plus safe Stale.
+Direct callback delivery intentionally bypasses the shared UI input fence so
+that fence cannot conceal a missing owner guard. No network or browser opens.
+The original security assertions and live positive control remain required.
+These new assertions have not executed yet; original returned records remain.
