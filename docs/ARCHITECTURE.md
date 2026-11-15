@@ -1687,3 +1687,7 @@ the resident `ConversationArea`. Its asks and replies still pass through the
 same Shell methods. This keeps a resident replacement from discarding a global
 query or multiplying cross-node work. A destination enters the normal session
 selection boundary; only find, prompt navigation and hover state are resident.
+
+The standalone search-residency prerequisite and its actual GPUI regression are
+recorded in `docs/plans/wp-a3-search-residency.md`; the integrated A3 controller
+also invalidates old query tickets immediately before scheduling node work.

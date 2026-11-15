@@ -50,6 +50,9 @@ use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
 use crate::areas::session::Open;
 use crate::shell::Shell;
 
+#[cfg(test)]
+mod residency_tests;
+
 /// How long the words rest before they are searched.
 const SETTLE: Duration = Duration::from_millis(150);
 

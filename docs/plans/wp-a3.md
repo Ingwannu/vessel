@@ -249,3 +249,10 @@ Session. This closes find, preserves its remembered query, cancels local prompt/
 hover work and invalidates its old tasks. Route departure calls the same boundary.
 Without it, a task whose Shell getter changed could abandon the hidden resident's
 search in progress. A GPUI regression deactivates without changing the route.
+
+The standalone global-controller prerequisite `f9d7f460` is now ancestry of A3.
+At union its extraction overlapped the existing owner implementation: keep the
+head immediate-ticket invalidation and single palette field; add its actual GPUI
+residency regression, with only the new shared Machine epoch fixture field.
+Keep the existing identical detached-command helper once. Standalone narrow
+proof does not approve this wider A3 union; it remains pending its own gate.
