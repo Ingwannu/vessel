@@ -378,6 +378,12 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Typed blocking/durable question response with committed resolution (ADR 0084).
+            RespondQuestion / respond_question / "session.respond_question" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondQuestion => $crate::timeline::RespondQuestionReply;
+            /// Rich permission response acknowledged after durable resolution (ADR 0084).
+            RespondPermission / respond_permission / "session.respond_permission" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondPermission => $crate::timeline::RespondPermissionReply;
+            /// Identified delivery with durable replay protection (ADR 0084).
+            SubmitPrompt / submit_prompt / "session.submit_prompt" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::SubmitPrompt => $crate::timeline::SubmitPromptReply;
         }
     };
 }

@@ -7,8 +7,6 @@
 //! crate, so an ACP version bump never changes Vessel's wire format; the
 //! mapping lives in `vessel-agent`.
 
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
 
 use crate::conversation::{AgentAbilities, AttachmentRef, Question, QuestionOutcome, TurnUsage};
@@ -16,6 +14,10 @@ use crate::id::{
     AgentMessageId, HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId,
 };
 use crate::raw::RawJson;
+use crate::timeline::{PermissionAction, PermissionPresentation, TimelineTaskId};
+
+mod tool;
+pub use tool::{ToolCall, ToolCallContent, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation};
 
 /// Where a fork or a rewind can start (protocol 14, ADR 0052): the end of a
 /// turn, named as the agent names it.
@@ -56,6 +58,9 @@ pub enum AgentEvent {
     },
     /// A user turn began (echoes the prompt as the harness received it).
     TurnStarted {
+        /// Caller identity for optimistic reconciliation, absent on legacy prompts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_message_id: Option<crate::timeline::ClientMessageId>,
         /// The prompt.
         content: Vec<ContentBlock>,
     },
@@ -115,6 +120,17 @@ pub enum AgentEvent {
         /// Human-readable reason.
         message: String,
     },
+    /// A non-terminal provider error; it does not settle the current turn.
+    Error {
+        /// Human-readable failure explanation.
+        message: String,
+    },
+    /// Provider status with explicit severity, independent of turn completion.
+    Notification(crate::timeline::TimelineNotification),
+    /// Context maintenance progress, independent of turn completion.
+    Compaction(crate::timeline::Compaction),
+    /// Bounded opaque contribution interpreted only by its owning plugin.
+    Plugin(crate::timeline::PluginTimelineItem),
     /// A line the harness wrote to stderr. Kept because login and
     /// configuration problems surface only there.
     HarnessLog {
@@ -124,6 +140,9 @@ pub enum AgentEvent {
     /// A message added to the running turn (protocol 10): a prompt
     /// delivered `steer`, which the agent took into its turn.
     Steered {
+        /// Caller identity for optimistic reconciliation, absent on legacy prompts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_message_id: Option<crate::timeline::ClientMessageId>,
         /// The message.
         content: Vec<ContentBlock>,
     },
@@ -172,136 +191,6 @@ pub enum ContentBlock {
     },
 }
 
-/// What kind of work a tool call does. Lets clients pick an icon and a
-/// default rendering without knowing harness tool names.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(rename_all = "snake_case")]
-pub enum ToolKind {
-    /// Reads files or data.
-    Read,
-    /// Modifies files.
-    Edit,
-    /// Deletes files.
-    Delete,
-    /// Moves or renames files.
-    Move,
-    /// Searches.
-    Search,
-    /// Runs a command.
-    Execute,
-    /// Internal reasoning step.
-    Think,
-    /// Fetches from the network.
-    Fetch,
-    /// Changes the session mode.
-    SwitchMode,
-    /// Anything else.
-    Other,
-}
-
-/// Progress of a tool call.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(rename_all = "snake_case")]
-pub enum ToolCallStatus {
-    /// Announced, not started (possibly awaiting permission).
-    Pending,
-    /// Running.
-    InProgress,
-    /// Finished successfully.
-    Completed,
-    /// Finished with an error, or was rejected.
-    Failed,
-}
-
-/// A file location a tool call touches.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ToolLocation {
-    /// Path on the node.
-    pub path: PathBuf,
-    /// 1-based line, if known.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub line: Option<u32>,
-}
-
-/// Output attached to a tool call.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ToolCallContent {
-    /// Regular content.
-    Content {
-        /// The content.
-        content: ContentBlock,
-    },
-    /// A file edit.
-    Diff {
-        /// File being changed.
-        path: PathBuf,
-        /// Previous text (`None` for a new file).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        old_text: Option<String>,
-        /// New text.
-        new_text: String,
-    },
-}
-
-/// A tool call as first announced.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ToolCall {
-    /// Harness-assigned id.
-    pub id: ToolCallId,
-    /// Short human-readable description.
-    pub title: String,
-    /// Category.
-    pub kind: ToolKind,
-    /// Initial status.
-    pub status: ToolCallStatus,
-    /// Content produced so far.
-    #[serde(default)]
-    pub content: Vec<ToolCallContent>,
-    /// Files involved.
-    #[serde(default)]
-    pub locations: Vec<ToolLocation>,
-    /// The tool's raw input arguments, forwarded and never interpreted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub raw_input: Option<RawJson>,
-}
-
-/// A change to an announced tool call. `None` fields are unchanged; `Some`
-/// collections replace the previous value.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ToolCallUpdate {
-    /// Which call.
-    pub id: ToolCallId,
-    /// New title.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    /// New category.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kind: Option<ToolKind>,
-    /// New status.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status: Option<ToolCallStatus>,
-    /// Replacement content.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub content: Option<Vec<ToolCallContent>>,
-    /// Replacement locations.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub locations: Option<Vec<ToolLocation>>,
-    /// The tool's raw input arguments, when the harness sends them only with
-    /// an update (Claude's adapter often does). Forwarded, never interpreted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub raw_input: Option<RawJson>,
-    /// The tool's raw output, forwarded and never interpreted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub raw_output: Option<RawJson>,
-}
-
 /// Priority of a plan entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -332,6 +221,12 @@ pub enum PlanStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PlanEntry {
+    /// Stable provider task identity survives text and order changes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<TimelineTaskId>,
+    /// Running-form label reported by the provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_form: Option<String>,
     /// What the step is.
     pub content: String,
     /// Importance.
@@ -359,6 +254,9 @@ pub enum PermissionOptionKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PermissionOption {
+    /// Provider semantics for this existing option id; never an invented action.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<PermissionAction>,
     /// Harness-assigned option id, echoed back when chosen.
     pub id: PermissionOptionId,
     /// Label to show.
@@ -371,6 +269,12 @@ pub struct PermissionOption {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PermissionRequest {
+    /// Scope of the proposed tool; absence is legacy attribution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_scope: Option<Box<crate::timeline::ToolCallScope>>,
+    /// Typed approval semantics and plan Markdown, when reported.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presentation: Option<PermissionPresentation>,
     /// Node-assigned id clients answer with.
     pub id: PermissionId,
     /// The tool call needing approval.

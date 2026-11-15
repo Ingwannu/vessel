@@ -292,6 +292,7 @@ mod tests {
             })
         );
         let conversation = crate::Conversation {
+            through: None,
             queue: crate::PromptQueue::default(),
             commands: Vec::new(),
             usage: Some(replayed),
@@ -303,9 +304,11 @@ mod tests {
         let mut older = conversation.clone();
         older.usage = Some(current);
         let reply = crate::Reply::Deliver(crate::forward::Forwarded {
+            reference_origin: None,
             reply: Box::new(crate::Reply::GetConversation(conversation)),
         });
         let expected = crate::Reply::Deliver(crate::forward::Forwarded {
+            reference_origin: None,
             reply: Box::new(crate::Reply::GetConversation(older)),
         });
         assert_eq!(

@@ -95,7 +95,7 @@ pub enum InboxItem {
         /// Request the session actor still owns.
         request: PermissionRequest,
         /// Last announced tool state, when available.
-        tool: Option<ToolCall>,
+        tool: Option<Box<ToolCall>>,
         /// Large tool bodies stay in the session.
         detail: InboxDetail,
     },
@@ -108,6 +108,9 @@ pub enum InboxItem {
     InSession {
         /// The request remains pending, and is never silently dropped.
         request: InboxRequest,
+        /// Lifetime/actionability survives a bounded full-form degradation.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        question: Option<crate::timeline::QuestionReference>,
     },
     /// A normal turn finished.
     Finished,

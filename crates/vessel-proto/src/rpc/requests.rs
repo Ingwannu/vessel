@@ -112,20 +112,32 @@ impl EventPage {
     /// record needs a stand-in (see `SessionEvent::for_protocol`).
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        let changed = self
+        self.for_protocol_with_reference(protocol, crate::timeline::ReferenceContext::CANONICAL)
+    }
+
+    pub(crate) fn for_protocol_with_reference(
+        &self,
+        protocol: ProtocolVersion,
+        context: crate::timeline::ReferenceContext,
+    ) -> Option<Self> {
+        let mut changed = false;
+        let records = self
             .records
             .iter()
-            .any(|record| record.event.for_protocol(protocol).is_some());
-        changed.then(|| Self {
-            records: self
-                .records
-                .iter()
-                .map(|record| {
-                    record
-                        .for_protocol(protocol)
-                        .unwrap_or_else(|| record.clone())
-                })
-                .collect(),
+            .map(|record| {
+                record
+                    .for_protocol_with_reference(protocol, context)
+                    .map_or_else(
+                        || record.clone(),
+                        |adapted| {
+                            changed = true;
+                            adapted
+                        },
+                    )
+            })
+            .collect();
+        changed.then_some(Self {
+            records,
             next: self.next,
             at_end: self.at_end,
         })

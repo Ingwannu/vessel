@@ -50,6 +50,7 @@ mod device_self;
 mod error;
 pub mod file_fault;
 mod fleet_control;
+mod identified;
 mod inbox;
 mod local;
 pub mod pairing;

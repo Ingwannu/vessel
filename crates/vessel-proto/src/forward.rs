@@ -118,6 +118,10 @@ pub struct Deliver {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Forwarded {
+    /// Read-only node ingress provenance; never accepted as caller authority.
+    /// Carried only between peers supporting `TIMELINE_PARITY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reference_origin: Option<crate::timeline::TimelineReferenceOrigin>,
     /// What the target answered.
     pub reply: Box<Reply>,
 }
@@ -312,6 +316,9 @@ impl Method {
             | Self::SessionOptions
             | Self::SetSessionOption
             | Self::RenameSession
+            | Self::RespondQuestion
+            | Self::RespondPermission
+            | Self::SubmitPrompt
             | Self::PromptSession
             | Self::ChangeQueue
             | Self::GetConversation

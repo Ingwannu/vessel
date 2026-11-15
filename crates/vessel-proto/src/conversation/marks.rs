@@ -103,8 +103,8 @@ impl SessionEvent {
             Self::Agent { event } => match event {
                 AgentEvent::TurnEnded { .. }
                 | AgentEvent::TurnFailed { .. }
-                | AgentEvent::PermissionRequested(_)
-                | AgentEvent::QuestionAsked(_) => true,
+                | AgentEvent::PermissionRequested(_) => true,
+                AgentEvent::QuestionAsked(question) => question.delivery_state.is_pending(),
                 AgentEvent::Ready { .. }
                 | AgentEvent::TurnStarted { .. }
                 | AgentEvent::UserMessageChunk { .. }
@@ -114,7 +114,11 @@ impl SessionEvent {
                 | AgentEvent::ToolCallUpdate(_)
                 | AgentEvent::Plan { .. }
                 | AgentEvent::PermissionResolved { .. }
-                | AgentEvent::HarnessLog { .. }
+                | AgentEvent::Notification(_)
+| AgentEvent::Compaction(_)
+| AgentEvent::Plugin(_)
+| AgentEvent::Error { .. }
+| AgentEvent::HarnessLog { .. }
                 | AgentEvent::Steered { .. }
                 | AgentEvent::QuestionResolved { .. } => false,
             },
@@ -300,6 +304,8 @@ mod tests {
         let started = SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
                 content: Vec::new(),
+
+                client_message_id: None,
             },
         };
         assert!(!started.asks_for_attention());

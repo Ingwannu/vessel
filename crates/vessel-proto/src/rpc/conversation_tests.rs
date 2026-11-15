@@ -140,6 +140,8 @@ fn session_events_of_ten_reach_older_clients_as_log_lines() {
         queued_at: DateTime::UNIX_EPOCH,
         revision: 0,
         by: Creator::Owner,
+
+        client_message_id: None,
     };
     let held = SessionEvent::QueueChanged {
         queue: PromptQueue {
@@ -192,6 +194,8 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let agent = |event| SessionEvent::Agent { event };
     let steered = agent(AgentEvent::Steered {
         content: vec![text("\n  also run the tests\nplease")],
+
+        client_message_id: None,
     });
     assert_eq!(steered.required_protocol(), Some(V10));
     assert_eq!(
@@ -199,10 +203,14 @@ fn agent_events_of_ten_reach_older_clients_too() {
         log("vessel: steered: also run the tests")
     );
     let asked = agent(AgentEvent::QuestionAsked(Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Which one?\nPick one".to_owned(),
         tool_call: None,
         fields: Vec::new(),
+
+        lifetime: crate::timeline::QuestionLifetime::Turn,
+        delivery_state: crate::timeline::QuestionDeliveryState::Pending,
     }));
     assert_eq!(
         asked.for_protocol(V9),
@@ -222,6 +230,8 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let id = image.id;
     let started = agent(AgentEvent::TurnStarted {
         content: vec![text("look"), ContentBlock::Attachment { attachment: image }],
+
+        client_message_id: None,
     });
     assert_eq!(started.required_protocol(), Some(V10));
     assert_eq!(
@@ -234,10 +244,14 @@ fn agent_events_of_ten_reach_older_clients_too() {
                     name: "shot.png".to_owned(),
                 },
             ],
+
+            client_message_id: None,
         }))
     );
     let plain = agent(AgentEvent::TurnStarted {
         content: vec![text("look")],
+
+        client_message_id: None,
     });
     assert_eq!(plain.required_protocol(), Some(ProtocolVersion::new(2)));
     assert_eq!(plain.for_protocol(V9), None);

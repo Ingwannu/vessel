@@ -161,6 +161,9 @@ impl Reply {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
+            | Self::RespondQuestion(_)
+            | Self::RespondPermission(_)
+            | Self::SubmitPrompt(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::GetConversation(_)
@@ -410,6 +413,7 @@ mod tests {
             None
         );
         let forwarded = Reply::Forward(Forwarded {
+            reference_origin: None,
             reply: Box::new(added),
         });
         assert_eq!(forwarded.withheld(V10), Some(unreadable()));

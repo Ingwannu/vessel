@@ -22,6 +22,7 @@ fn original_messages() -> Vec<AgentEvent> {
         },
         AgentEvent::TurnStarted {
             content: vec![text()],
+            client_message_id: None,
         },
         AgentEvent::UserMessageChunk { content: text() },
         AgentEvent::MessageChunk { content: text() },
@@ -44,6 +45,7 @@ fn original_messages() -> Vec<AgentEvent> {
 fn tool_events() -> Vec<AgentEvent> {
     vec![
         AgentEvent::ToolCall(ToolCall {
+            scope: None,
             id: ToolCallId::new("call"),
             title: "fixture".into(),
             kind: ToolKind::Read,
@@ -51,8 +53,13 @@ fn tool_events() -> Vec<AgentEvent> {
             content: vec![],
             locations: vec![],
             raw_input: None,
+
+            detail: None,
+            failure: None,
+            agent_message: None,
         }),
         AgentEvent::ToolCallUpdate(ToolCallUpdate {
+            scope: None,
             id: ToolCallId::new("call"),
             title: None,
             kind: None,
@@ -61,11 +68,18 @@ fn tool_events() -> Vec<AgentEvent> {
             locations: None,
             raw_input: None,
             raw_output: None,
+
+            detail: None,
+            failure: None,
+            agent_message: None,
         }),
         AgentEvent::PermissionRequested(PermissionRequest {
+            tool_scope: None,
             id: PermissionId::random(),
             tool_call: ToolCallId::new("call"),
             options: vec![],
+
+            presentation: None,
         }),
         AgentEvent::PermissionResolved {
             id: PermissionId::random(),
@@ -78,12 +92,17 @@ fn newer_events() -> Vec<AgentEvent> {
     vec![
         AgentEvent::Steered {
             content: vec![text()],
+            client_message_id: None,
         },
         AgentEvent::QuestionAsked(Question {
+            tool_scope: None,
             id: QuestionId::random(),
             message: "fixture".into(),
             tool_call: None,
             fields: vec![],
+
+            lifetime: crate::timeline::QuestionLifetime::Turn,
+            delivery_state: crate::timeline::QuestionDeliveryState::Pending,
         }),
         AgentEvent::QuestionResolved {
             id: QuestionId::random(),
@@ -94,8 +113,12 @@ fn newer_events() -> Vec<AgentEvent> {
 
 // This exhaustive match makes a new variant choose a test fixture/requirement
 // deliberately instead of silently missing the all-variant contract test.
-fn expected(event: &AgentEvent) -> ProtocolVersion {
+fn expected(event: &AgentEvent) -> Option<ProtocolVersion> {
     match event {
+        AgentEvent::Notification(_)
+        | AgentEvent::Compaction(_)
+        | AgentEvent::Plugin(_)
+        | AgentEvent::Error { .. } => crate::timeline::TIMELINE_PARITY,
         AgentEvent::Ready { .. }
         | AgentEvent::TurnStarted { .. }
         | AgentEvent::UserMessageChunk { .. }
@@ -108,10 +131,10 @@ fn expected(event: &AgentEvent) -> ProtocolVersion {
         | AgentEvent::PermissionResolved { .. }
         | AgentEvent::TurnEnded { .. }
         | AgentEvent::TurnFailed { .. }
-        | AgentEvent::HarnessLog { .. } => ProtocolVersion::new(2),
+        | AgentEvent::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         AgentEvent::Steered { .. }
         | AgentEvent::QuestionAsked(_)
-        | AgentEvent::QuestionResolved { .. } => ProtocolVersion::new(10),
+        | AgentEvent::QuestionResolved { .. } => Some(ProtocolVersion::new(10)),
     }
 }
 
@@ -122,7 +145,7 @@ fn every_agent_variant_propagates_its_assigned_requirement() {
         .chain(tool_events())
         .chain(newer_events())
     {
-        let requirement = expected(&event);
+        let requirement = expected(&event).expect("legacy variant has an assigned version");
         assert_eq!(event.required_protocol(), Some(requirement), "{event:?}");
         assert_eq!(event.for_protocol(requirement), None);
         let enclosing = SessionEvent::Agent {
@@ -156,6 +179,7 @@ fn attachment_content_propagates_and_projects_without_losing_the_cursor() {
     for event in [
         AgentEvent::TurnStarted {
             content: vec![text(), content.clone()],
+            client_message_id: None,
         },
         AgentEvent::UserMessageChunk { content },
     ] {

@@ -19,6 +19,9 @@
 //!   refused here, before any call; one outside the field's bounds only
 //!   by the node.
 
+mod headers;
+pub use headers::fill_headers;
+
 use std::collections::BTreeMap;
 
 use vessel_proto::conversation::{AnswerValue, FieldKind, FieldName, FiniteNumber, QuestionField};
@@ -27,6 +30,12 @@ use vessel_proto::{ContentBlock, Question, QuestionAnswer};
 /// Why values do not make an answer to a question.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum FillError {
+    /// A display header matches multiple canonical fields.
+    #[error("question header `{0}` is ambiguous; use canonical field names")]
+    AmbiguousHeader(String),
+    /// Canonical constraints reject the decoded answer before any call.
+    #[error(transparent)]
+    Invalid(vessel_proto::conversation::InvalidAnswer),
     /// A name none of the question's fields has.
     #[error("the question has no field `{0}`")]
     UnknownField(String),
@@ -156,6 +165,8 @@ mod tests {
             description: None,
             required: false,
             kind,
+
+            presentation: None,
         }
     }
 
@@ -166,6 +177,8 @@ mod tests {
                     value: value.to_owned(),
                     title: value.to_uppercase(),
                     description: None,
+
+                    preview: None,
                 })
                 .to_vec(),
             multiple,
@@ -177,6 +190,7 @@ mod tests {
 
     fn question() -> Question {
         Question {
+            tool_scope: None,
             id: QuestionId::random(),
             message: "Which way?".to_owned(),
             tool_call: None,
@@ -212,6 +226,9 @@ mod tests {
                 field("ways", choice(true)),
                 field("later", FieldKind::Unknown),
             ],
+
+            lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+            delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
         }
     }
 

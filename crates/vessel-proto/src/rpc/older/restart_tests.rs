@@ -46,9 +46,11 @@ fn forward_relay_deliver_and_nested_settings_use_the_same_projection() {
                     Some(expected_envelope.clone())
                 );
                 let nested = Reply::Forward(Forwarded {
+                    reference_origin: None,
                     reply: Box::new(envelope),
                 });
                 let expected_nested = Reply::Forward(Forwarded {
+                    reference_origin: None,
                     reply: Box::new(expected_envelope),
                 });
                 assert_eq!(nested.for_protocol(protocol), Some(expected_nested));
@@ -73,12 +75,15 @@ fn replies(settings: NodeSettings) -> [Reply; 2] {
 fn envelopes(reply: Reply) -> [Reply; 3] {
     [
         Reply::Forward(Forwarded {
+            reference_origin: None,
             reply: Box::new(reply.clone()),
         }),
         Reply::Relay(Forwarded {
+            reference_origin: None,
             reply: Box::new(reply.clone()),
         }),
         Reply::Deliver(Forwarded {
+            reference_origin: None,
             reply: Box::new(reply),
         }),
     ]

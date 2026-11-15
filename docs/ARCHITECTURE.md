@@ -1659,3 +1659,5 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+Canonical timeline consumer contracts are described in [timeline-consumer-contract](plans/timeline-consumer-contract.md) and [ADR0084](adr/0084-canonical-timeline-and-prompt-receipts.md). The proto/client-only checkpoint keeps its single protocol boundary pending; runtime ownership, forwarding ingress and activation remain separate node work.

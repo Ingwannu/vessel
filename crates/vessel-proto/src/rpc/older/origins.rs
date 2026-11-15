@@ -91,6 +91,7 @@ fn an_old_event_variant_still_adapts_its_new_field_through_pages_and_envelopes()
     let wrappers: [fn(Forwarded) -> Reply; 3] = [Reply::Forward, Reply::Relay, Reply::Deliver];
     for wrap in wrappers {
         reply = wrap(Forwarded {
+            reference_origin: None,
             reply: Box::new(reply),
         });
         let adapted = reply.for_protocol(ProtocolVersion::new(9)).unwrap();

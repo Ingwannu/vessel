@@ -46,8 +46,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::agent::{AgentEvent, ContentBlock};
-use crate::conversation::{AgentCommand, ContextUsage, PromptQueue, QuestionOutcome, QueueHold};
+use crate::agent::AgentEvent;
+use crate::conversation::{AgentCommand, ContextUsage, PromptQueue, QueueHold};
 use crate::id::EventSeq;
 use crate::model::ModelCall;
 use crate::name::ProfileName;
@@ -187,11 +187,19 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        self.for_protocol_with_reference(protocol, crate::timeline::ReferenceContext::CANONICAL)
+    }
+
+    pub(crate) fn for_protocol_with_reference(
+        &self,
+        protocol: ProtocolVersion,
+        context: crate::timeline::ReferenceContext,
+    ) -> Option<Self> {
         // An assigned enclosing variant can still contain optional fields
         // introduced later. Always let the inner event mask those fields.
         if let Self::Agent { event } = self {
             return event
-                .for_protocol(protocol)
+                .for_protocol_with_reference(protocol, context)
                 .map(|event| Self::Agent { event });
         }
         let readable = self
@@ -214,7 +222,7 @@ impl SessionEvent {
         match self {
             Self::Status { .. } | Self::Terminal(_) => None,
             Self::Agent { event } => event
-                .for_protocol(protocol)
+                .for_protocol_with_reference(protocol, context)
                 .map(|event| Self::Agent { event }),
             Self::ProfileChanged { from, to } => log(profile_line(from.as_ref(), to.as_ref())),
             Self::ModelCall(call) => log(model_line(call)),
@@ -253,132 +261,9 @@ impl SessionEvent {
             )),
         }
     }
-
-    /// One origin rule shared with synthetic assigned-threshold tests,
-    /// without changing the durable event's own protocol version.
-    pub(crate) fn origin_for_protocol(
-        &self,
-        protocol: ProtocolVersion,
-        assigned: Option<ProtocolVersion>,
-    ) -> Option<Self> {
-        if let Self::Renamed { title, origin } = self {
-            let adapted = origin.for_protocol(protocol, assigned);
-            return (adapted != *origin).then(|| Self::Renamed {
-                title: title.clone(),
-                origin: adapted,
-            });
-        }
-        None
-    }
 }
 
-impl AgentEvent {
-    /// The first protocol version that can decode this event: its
-    /// variant's, or 10 for a prompt holding an attachment. A feature
-    /// awaiting its assigned protocol returns `None`; it must never be
-    /// published as though it belonged to the current protocol.
-    #[must_use]
-    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
-        match self {
-            Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
-                Some(ProtocolVersion::new(10))
-            }
-            Self::TurnStarted { content } if content.iter().any(is_attachment) => {
-                Some(ProtocolVersion::new(10))
-            }
-            Self::UserMessageChunk { content } if is_attachment(content) => {
-                Some(ProtocolVersion::new(10))
-            }
-            Self::Ready { .. }
-            | Self::TurnStarted { .. }
-            | Self::UserMessageChunk { .. }
-            | Self::MessageChunk { .. }
-            | Self::ThoughtChunk { .. }
-            | Self::ToolCall(_)
-            | Self::ToolCallUpdate(_)
-            | Self::Plan { .. }
-            | Self::PermissionRequested(_)
-            | Self::PermissionResolved { .. }
-            | Self::TurnEnded { .. }
-            | Self::TurnFailed { .. }
-            | Self::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
-        }
-    }
-
-    /// What a client speaking `protocol` receives instead, or `None` when
-    /// it can read this event as it is.
-    #[must_use]
-    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self
-            .required_protocol()
-            .is_some_and(|since| since <= protocol)
-        {
-            return None;
-        }
-        let log = |line: String| Some(Self::HarnessLog { line });
-        match self {
-            Self::Steered { content } => log(match first_line(content) {
-                Some(line) => format!("vessel: steered: {line}"),
-                None => "vessel: steered".to_owned(),
-            }),
-            Self::QuestionAsked(question) => log(format!(
-                "vessel: the agent asks: {}",
-                question.message.lines().next().unwrap_or_default()
-            )),
-            Self::QuestionResolved { outcome, .. } => log(match outcome {
-                QuestionOutcome::Answered { .. } => "vessel: question answered",
-                QuestionOutcome::Declined => "vessel: question declined",
-                QuestionOutcome::Cancelled => "vessel: question cancelled",
-            }
-            .to_owned()),
-            Self::TurnStarted { content } => Some(Self::TurnStarted {
-                content: content.iter().map(link_for_attachment).collect(),
-            }),
-            Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
-                content: link_for_attachment(content),
-            }),
-            Self::Ready { .. }
-            | Self::MessageChunk { .. }
-            | Self::ThoughtChunk { .. }
-            | Self::ToolCall(_)
-            | Self::ToolCallUpdate(_)
-            | Self::Plan { .. }
-            | Self::PermissionRequested(_)
-            | Self::PermissionResolved { .. }
-            | Self::TurnEnded { .. }
-            | Self::TurnFailed { .. }
-            | Self::HarnessLog { .. } => None,
-        }
-    }
-}
-
-const fn is_attachment(block: &ContentBlock) -> bool {
-    matches!(block, ContentBlock::Attachment { .. })
-}
-
-/// An attachment as a version 2-9 client can decode it: a link to
-/// `attachment:<id>`, named after its file. Other blocks as they are.
-fn link_for_attachment(block: &ContentBlock) -> ContentBlock {
-    match block {
-        ContentBlock::Attachment { attachment } => ContentBlock::ResourceLink {
-            uri: format!("attachment:{}", attachment.id),
-            name: attachment.name.to_string(),
-        },
-        ContentBlock::Text { .. }
-        | ContentBlock::ResourceLink { .. }
-        | ContentBlock::Opaque { .. } => block.clone(),
-    }
-}
-
-/// The first line of a message's first text, for a log line.
-fn first_line(content: &[ContentBlock]) -> Option<&str> {
-    content.iter().find_map(|block| match block {
-        ContentBlock::Text { text } => text.lines().map(str::trim).find(|line| !line.is_empty()),
-        ContentBlock::ResourceLink { .. }
-        | ContentBlock::Opaque { .. }
-        | ContentBlock::Attachment { .. } => None,
-    })
-}
+mod agent_compat;
 
 fn profile_line(from: Option<&ProfileName>, to: Option<&ProfileName>) -> String {
     let name = |profile: Option<&ProfileName>| {
@@ -471,11 +356,21 @@ impl EventRecord {
     /// it needs no change. The position and time stay the same.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.event.for_protocol(protocol).map(|event| Self {
-            seq: self.seq,
-            at: self.at,
-            event,
-        })
+        self.for_protocol_with_reference(protocol, crate::timeline::ReferenceContext::CANONICAL)
+    }
+
+    pub(crate) fn for_protocol_with_reference(
+        &self,
+        protocol: ProtocolVersion,
+        context: crate::timeline::ReferenceContext,
+    ) -> Option<Self> {
+        self.event
+            .for_protocol_with_reference(protocol, context)
+            .map(|event| Self {
+                seq: self.seq,
+                at: self.at,
+                event,
+            })
     }
 }
 
@@ -485,3 +380,8 @@ mod admission_tests;
 #[cfg(test)]
 #[path = "event/protocol_tests.rs"]
 mod protocol_tests;
+
+mod optional;
+
+#[cfg(test)]
+mod timeline_tests;

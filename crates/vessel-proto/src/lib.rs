@@ -58,6 +58,9 @@ pub mod settings;
 pub mod side_questions;
 mod terminal;
 pub mod terminals;
+mod text;
+pub mod timeline;
+pub use text::trim_ecmascript;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
@@ -206,6 +209,7 @@ mod tests {
             at: chrono::DateTime::UNIX_EPOCH,
             event: SessionEvent::Agent {
                 event: AgentEvent::ToolCall(ToolCall {
+                    scope: None,
                     id: ToolCallId::new("call_1"),
                     title: "Run tests".to_owned(),
                     kind: ToolKind::Execute,
@@ -213,6 +217,10 @@ mod tests {
                     content: Vec::new(),
                     locations: Vec::new(),
                     raw_input: Some(RawJson::from_text(r#"{"cmd":"cargo test"}"#).unwrap()),
+
+                    detail: None,
+                    failure: None,
+                    agent_message: None,
                 }),
             },
         };
