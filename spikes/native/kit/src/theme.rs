@@ -7,6 +7,7 @@
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
+pub mod identity;
 pub mod spacing;
 
 /// The desktop command panel's scrim: black at 50 % (track S3's, after

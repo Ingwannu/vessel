@@ -1035,3 +1035,11 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Identity paint
+
+`kit::theme::identity` owns generic identity hues, scheme-dependent ink and
+stable translucent grounds after the reference identity-color table. Label,
+project and host surfaces map their own domain values to `Hue`; the kit never
+depends on protocol types. The named palette builder and brand accents remain
+independent because identity colors identify a choice rather than a status.

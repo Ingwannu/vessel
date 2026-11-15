@@ -79,6 +79,18 @@ confirmed planned SetLabels merge-only semantics (no clear/delete), which is
 a documented difference from nullable manager-level Paseo patches. This was reported before implementation. Do not add root RPC
 or store code in this package without a routed contract.
 
+## Shared identity paint
+
+The theme owner approved the additive token-only `kit::theme::identity`
+module; no new control or renderer was needed. `Hue` is generic, with
+`foreground(Hue, Scheme)` and `tint(Hue)`; no protocol dependency or change
+to the named palette builder. Read reference
+`packages/app/src/styles/identity-colors.ts:16–117`,
+`workspace-labels/swatch.tsx:13–180` and `chip.tsx:1–135`.
+The foreground uses the source's light/dark contrast bands; tint retains
+exact alpha 0x1a. App label colors map to this generic hue at the drawing
+edge. Narrow kit checks and the package review are pending.
+
 ## Differences and limits
 
 - Product refuses unavailable label operations explicitly until the node
