@@ -75,11 +75,8 @@ impl ProjectReads {
 
     /// Which authenticated peer owns the cache under this route alias.
     #[must_use]
-    pub fn node(&self, host: &str) -> Option<NodeId> {
-        self.hosts
-            .iter()
-            .find(|(name, _)| name.as_str() == host)
-            .map(|(_, read)| read.key.target.node())
+    pub fn node(&self, host: &Name) -> Option<NodeId> {
+        self.hosts.get(host).map(|read| read.key.target.node())
     }
 
     /// A fixed-target readiness query must wait for an unsettled authoritative refresh.
@@ -100,8 +97,8 @@ impl ProjectReads {
     }
 
     /// Cancel hydration authority, without undoing any already sent node operation.
-    pub fn detach(&mut self, host: &str) {
-        self.hosts.retain(|name, _| name.as_str() != host);
+    pub fn detach(&mut self, host: &Name) {
+        let _previous = self.hosts.remove(host);
     }
 }
 
@@ -125,9 +122,9 @@ mod tests {
         assert!(!reads.finish(&newest));
         let rebound = target("laptop");
         let replacement = reads.begin(rebound.clone()).unwrap();
-        assert_eq!(reads.node("laptop"), Some(rebound.node()));
+        assert_eq!(reads.node(rebound.host()), Some(rebound.node()));
         assert!(!reads.finish(&newest));
-        reads.detach("laptop");
+        reads.detach(rebound.host());
         assert!(!reads.finish(&replacement));
         let returned = reads.begin(original).unwrap();
         assert!(!reads.finish(&old));
@@ -140,7 +137,7 @@ mod tests {
         let target = target("laptop");
         let old = reads.begin(target.clone()).unwrap();
         reads.retain_online(&[]);
-        assert_eq!(reads.node("laptop"), None);
+        assert_eq!(reads.node(target.host()), None);
         let current = reads.begin(target.clone()).unwrap();
         reads.retain_online(std::slice::from_ref(&target));
         assert!(!reads.finish(&old));
@@ -160,7 +157,7 @@ mod tests {
             let _key = reads.begin(target(&format!("host-{n}"))).unwrap();
         }
         assert!(reads.begin(target("extra")).is_none());
-        assert_eq!(reads.node("first"), Some(first.node()));
+        assert_eq!(reads.node(first.host()), Some(first.node()));
         let existing = reads.begin(first).unwrap();
         assert!(reads.finish(&existing));
     }

@@ -15,7 +15,7 @@ impl Shell {
             return;
         };
         let workspace = &mut self.areas.workspace;
-        if workspace.project_reads.node(host) != Some(node) {
+        if workspace.project_reads.node(&name) != Some(node) {
             let _old = workspace
                 .projects
                 .insert(host.to_owned(), ProjectsView::Loading);
@@ -58,8 +58,11 @@ impl Shell {
         node: NodeId,
         project: vessel_proto::workspace::ProjectInfo,
     ) {
+        let Ok(name) = Name::parse(host) else {
+            return;
+        };
         if self.project_node(host) == Some(node)
-            && self.areas.workspace.project_reads.node(host) == Some(node)
+            && self.areas.workspace.project_reads.node(&name) == Some(node)
             && let Some(view) = self.areas.workspace.projects.get_mut(host)
         {
             view.replace(project);

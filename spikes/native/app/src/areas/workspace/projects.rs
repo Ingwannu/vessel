@@ -337,12 +337,9 @@ fn project_row(
     let words = shell.words();
     let opened = project.id;
     let target = shell.projects_machine().and_then(|host| {
-        Some(
-            vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
-                vessel_app_view::machine_book::Name::parse(&host).ok()?,
-                shell.areas.workspace.project_reads.node(&host)?,
-            ),
-        )
+        let name = vessel_app_view::machine_book::Name::parse(&host).ok()?;
+        let node = shell.areas.workspace.project_reads.node(&name)?;
+        Some(vessel_app_view::workspace::projects::navigation::ProjectTarget::new(name, node))
     });
     let name = project.name.to_string();
     // Paseo's project row: the project's mark (its initial on a tile, 16),

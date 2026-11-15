@@ -21,7 +21,7 @@ impl Shell {
         if self.project_node(host.as_str()) != Some(node) {
             return ProjectSetupReadiness::Failed;
         }
-        if self.areas.workspace.project_reads.node(host.as_str()) != Some(node)
+        if self.areas.workspace.project_reads.node(host) != Some(node)
             || self.areas.workspace.project_reads.pending(host, node)
         {
             return ProjectSetupReadiness::Pending;

@@ -122,7 +122,7 @@ impl Shell {
                 .areas
                 .workspace
                 .project_reads
-                .node(host)
+                .node(target.host())
                 .is_some_and(|old| old != target.node())
             {
                 self.project_host_detached(host);
@@ -130,13 +130,7 @@ impl Shell {
         }
         self.areas.workspace.project_reads.retain_online(&online);
         for target in online {
-            if self
-                .areas
-                .workspace
-                .project_reads
-                .node(target.host().as_str())
-                != Some(target.node())
-            {
+            if self.areas.workspace.project_reads.node(target.host()) != Some(target.node()) {
                 self.read_projects(target.host().as_str());
             }
         }

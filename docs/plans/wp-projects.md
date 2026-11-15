@@ -384,3 +384,7 @@ Opening a removal confirmation also requires a settled project list from the
 same authenticated peer. A new welcome cannot grant removal authority to an old
 peer's cached project id. The headless race case checks refusal before a
 confirmation exists, followed by normal confirmation on the verified peer.
+
+Read-ticket lookup and detachment take the existing validated book Name type,
+using direct map lookup instead of scanning string labels. Book hooks retain
+that type until they reach older display-only helpers. The RPC remains unchanged.

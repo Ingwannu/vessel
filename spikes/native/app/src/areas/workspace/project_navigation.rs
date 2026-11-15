@@ -33,7 +33,7 @@ impl Shell {
     ) -> Result<(), ProjectSettingsRefusal> {
         let workspace = &self.areas.workspace;
         if self.project_node(target.host().as_str()) != Some(target.node())
-            || workspace.project_reads.node(target.host().as_str()) != Some(target.node())
+            || workspace.project_reads.node(target.host()) != Some(target.node())
         {
             return Err(ProjectSettingsRefusal::Unavailable);
         }
