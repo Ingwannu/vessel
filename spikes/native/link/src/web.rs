@@ -84,6 +84,9 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Usage(ask) => self.emit(Event::Usage(
+                ask.refused(vessel_app_view::usage::RequestFailure::Unsupported),
+            )),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

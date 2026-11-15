@@ -174,3 +174,15 @@ usage-disable-lookup = 계정 조회 끄기
 usage-scoped-window = { $scope } · { $period }
 # Account limits: explicit policy action or whole window label, with provider-supplied data.
 usage-duration-window = 보고된 한도 ({ $milliseconds }ms)
+# Explicit vendor account fact; absence is not false.
+usage-has-credits = 크레딧 사용 가능
+# Explicit vendor account fact; absence is not false.
+usage-unlimited = 무제한 크레딧
+# Explicit vendor account fact; absence is not false.
+usage-allowed = 제공업체 사용 허용
+# Explicit vendor account fact; absence is not false.
+usage-limit-reached = 제공업체 한도 도달 보고
+# Explicit vendor account fact; absence is not false.
+usage-yes = 예
+# Explicit vendor account fact; absence is not false.
+usage-no = 아니요

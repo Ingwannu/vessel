@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Usage reads and explicit account-limit actions.
+    Usage(crate::usage::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

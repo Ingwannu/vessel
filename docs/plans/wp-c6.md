@@ -35,13 +35,13 @@ the distinction between ledger totals and account limits.
   account's independent limits in the existing Settings frame.
 - Existing implementation and constraints: Usage is an unregistered
   section. The initial app baseline lacks the newer node contracts;
-  centralized baseline integration precedes real-call wiring.
+  centralized baseline integration has supplied the protocol 23 calls.
 - Alternatives considered: duplicate the wire types locally; reconstruct
   totals from conversation history; fetch vendor APIs in the app; reuse
   existing typed node replies and the shared settings kit.
 - Choice: modify existing assets. Add pure usage state/rules under
   `view/src/usage`, a bounded typed call boundary in `link/src/usage`,
-  and `app/src/areas/settings/usage` drawing shared controls.
+  and `app/src/areas/usage` drawing shared controls.
 - Why: the node already validates, scopes and retains the source data;
   only it knows whether usage was reported and costs are visible.
 - Advantages, costs and effects: no new dependencies or crate edges.
@@ -62,6 +62,15 @@ the distinction between ledger totals and account limits.
   fallback or automatic paid continuation is implied.
 - Runtime support and old-node refusals must come from actual typed calls;
   this client introduces no protocol number or invented method.
+
+## Current implementation boundary
+
+The shared area now owns Settings rendering and typed legacy ledger/account calls.
+The separate generic source/report family remains pending on the node line; no
+caller sends an invented method. Cards use the approved shared kit meter, and
+policy mutation closes the old reader before the acknowledgement is read back.
+Cached reads do not enable lookup or refresh vendors. Modal, sidebar, session
+quota/notice, persisted pins and additional sources remain in progress.
 
 ## Verification and delivery
 

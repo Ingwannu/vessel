@@ -36,6 +36,13 @@ impl DisplayPercent {
             DisplayAs::Remaining => FULL_PERCENT - used,
         })
     }
+    /// Integer drawing shares avoid a float-to-integer cast at the kit boundary.
+    #[must_use]
+    pub fn whole(self) -> u8 {
+        (0..=100_u8)
+            .find(|value| f64::from(*value) >= self.0.round())
+            .unwrap_or(100)
+    }
     /// Rounded whole percentages match Paseo's usage window labels.
     #[must_use]
     pub fn text(self) -> String {

@@ -1,81 +1,118 @@
-//! Typed usage boundary. No credentials or vendor error text can enter its replies.
-//! Inventory uses the existing profile.list contract; accounting and quota calls
-//! are registered only after their node contracts reach the native baseline.
+//! Correlated usage operations carry source facts and sanitized errors only.
+use vessel_app_view::devices::{MachineKey, Ticket};
+use vessel_app_view::usage::{
+    Inventory, LedgerSelection, ReadRequest, RequestFailure, SessionSelection,
+};
+use vessel_proto::{
+    limits::{ExternalLookup, LimitAccount, LimitRefresh, UsageLimits},
+    usage::UsageReport,
+};
 
-use vessel_app_view::devices::MachineKey;
-use vessel_app_view::usage::{Account, ReadRequest, RequestFailure};
-
-/// Usage operations retain the exact identity reserved by the view model.
+/// Each operation carries the identity reserved before enqueueing.
 #[derive(Debug, Clone)]
 pub enum Ask {
-    /// Configured bindings, including defaults; never scans login files.
-    Accounts(ReadRequest<MachineKey>),
+    /// Configured accounts and independent cached limits; only an explicit target refreshes.
+    Accounts {
+        /// Machine and read lifetime.
+        request: ReadRequest<MachineKey>,
+        /// Exact configured binding explicitly selected for a vendor refresh.
+        refresh: Option<LimitAccount>,
+    },
+    /// Retained reported token/cost totals, independent of vendor quota.
+    Ledger(ReadRequest<LedgerSelection>),
+    /// Persisted credential-use policy; never automatically retried.
+    Lookup {
+        /// Parsed machine key.
+        machine: MachineKey,
+        /// Mutation correlation.
+        ticket: Ticket,
+        /// Explicit administrator choice.
+        policy: ExternalLookup,
+    },
+    /// The node resolves the session's immutable launch association.
+    Session {
+        /// Session, machine and observed binding epoch.
+        request: ReadRequest<SessionSelection>,
+        /// Cached read or explicitly requested vendor refresh.
+        refresh: LimitRefresh,
+    },
 }
 
-/// Typed observations stay separate from the UI's request-lifetime decisions.
+/// Reply identity is preserved even when a queue or connection refuses the operation.
 #[derive(Debug)]
 pub enum Answer {
-    /// Configured account inventory, or its sanitized failure.
+    /// Whole configured inventory; individual accounts may have failed independently.
     Accounts {
-        /// The original correlation and machine selection.
+        /// Original machine and lifetime.
         request: ReadRequest<MachineKey>,
-        /// Human account labels and typed profile identities only.
-        result: Result<Vec<Account>, RequestFailure>,
+        /// Cache-only account outcomes, or an inventory read failure.
+        result: Result<Inventory, RequestFailure>,
+    },
+    /// Ledger totals for exactly one rolling range.
+    Ledger {
+        /// Original selection and lifetime.
+        request: ReadRequest<LedgerSelection>,
+        /// Node accounting, or safe failure.
+        result: Result<UsageReport, RequestFailure>,
+    },
+    /// Acknowledged policy, or an uncertain/refused mutation that must be read back.
+    Lookup {
+        /// Original machine.
+        machine: MachineKey,
+        /// Mutation correlation.
+        ticket: Ticket,
+        /// What the node acknowledged; no raw error text.
+        result: Result<ExternalLookup, RequestFailure>,
+    },
+    /// Saved account facts for one session's current launch association.
+    Session {
+        /// Original session scope and lifetime.
+        request: ReadRequest<SessionSelection>,
+        /// Factual account limits; never a diagnosis of why a turn stopped.
+        result: Result<UsageLimits, RequestFailure>,
     },
 }
 impl Ask {
-    /// A full queue, closed link or unsupported surface settles its own request.
+    /// All variants settle their own exact correlation when not admitted.
     #[must_use]
     pub fn refused(self, reason: RequestFailure) -> Answer {
         match self {
-            Self::Accounts(request) => Answer::Accounts {
+            Self::Accounts { request, .. } => Answer::Accounts {
+                request,
+                result: Err(reason),
+            },
+            Self::Ledger(request) => Answer::Ledger {
+                request,
+                result: Err(reason),
+            },
+            Self::Lookup {
+                machine, ticket, ..
+            } => Answer::Lookup {
+                machine,
+                ticket,
+                result: Err(reason),
+            },
+            Self::Session { request, .. } => Answer::Session {
                 request,
                 result: Err(reason),
             },
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use vessel_app_view::usage::{Phase, Reader, configured_accounts};
-
-    /// A plain in-memory node implementation has no path to credentials or processes.
-    struct FakeNode;
-    impl FakeNode {
-        fn answer(ask: Ask) -> Answer {
-            match ask {
-                Ask::Accounts(request) => Answer::Accounts {
-                    request,
-                    result: Ok(configured_accounts(&[])),
-                },
-            }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn machine(&self) -> &MachineKey {
+        match self {
+            Self::Accounts { request, .. } => &request.selection,
+            Self::Ledger(request) => &request.selection.machine,
+            Self::Lookup { machine, .. } => machine,
+            Self::Session { request, .. } => &request.selection.machine,
         }
     }
-
-    #[test]
-    fn the_fake_boundary_and_queue_refusal_keep_correlation() {
-        let mut state: Reader<MachineKey, Vec<Account>> = Reader::default();
-        let machine = MachineKey::from_book("test-machine");
-        let request = state.request(machine.clone()).unwrap();
-        let expected = request.ticket;
-        let Answer::Accounts { request, result } = FakeNode::answer(Ask::Accounts(request));
-        assert_eq!(request.selection, machine);
-        assert_eq!(request.ticket, expected);
-        assert!(state.answer(request.ticket, result).is_none());
-        assert!(matches!(state.phase(), Phase::Ready(accounts) if accounts.is_empty()));
-        let request = state.request(machine.clone()).unwrap();
-        let Answer::Accounts { request, result } =
-            Ask::Accounts(request).refused(RequestFailure::Busy);
-        assert_eq!(request.selection, machine);
-        assert!(state.answer(request.ticket, result).is_none());
-        assert!(matches!(
-            state.phase(),
-            Phase::Failed {
-                reason: RequestFailure::Busy,
-                retained: Some(_)
-            }
-        ));
-    }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod calls;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use calls::Hub;
+
+#[cfg(test)]
+mod tests;

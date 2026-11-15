@@ -174,3 +174,15 @@ usage-disable-lookup = Disable account checks
 usage-scoped-window = { $scope } · { $period }
 # Account limits: explicit policy action or whole window label, with provider-supplied data.
 usage-duration-window = Reported window ({ $milliseconds } ms)
+# Explicit vendor account fact; absence is not false.
+usage-has-credits = Credits available
+# Explicit vendor account fact; absence is not false.
+usage-unlimited = Unlimited credits
+# Explicit vendor account fact; absence is not false.
+usage-allowed = Vendor allows use
+# Explicit vendor account fact; absence is not false.
+usage-limit-reached = Vendor reports limit reached
+# Explicit vendor account fact; absence is not false.
+usage-yes = Yes
+# Explicit vendor account fact; absence is not false.
+usage-no = No
