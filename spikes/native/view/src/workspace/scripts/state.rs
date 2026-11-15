@@ -68,7 +68,8 @@ impl Target {
 /// Facts read independently; an unavailable port scanner does not hide scripts.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Snapshot {
-    /// Suggested direct host from the saved book; never a relay endpoint.
+    /// Optional admitted-route suggestion. The current adapter supplies None;
+    /// a mutable saved-book alias is not an admitted route preimage.
     pub host: Option<PreviewHost>,
     /// Node-approved configuration and retained supervised runs.
     pub scripts: ScriptList,

@@ -90,7 +90,7 @@ impl Shell {
         );
         self.areas.workspace.scripts.selection = Some((machine, project));
         self.areas.workspace.scripts.model.select(None);
-        self.read_scripts();
+        self.read_scripts(window, cx);
         if !self.areas.workspace.scripts.polling {
             self.areas.workspace.scripts.polling = true;
             Self::poll_scripts(window, cx);
@@ -136,12 +136,14 @@ impl Shell {
             && self.selected_scripts_target().as_ref() == Some(expected)
             && self.areas.workspace.scripts.model.target.as_ref() == Some(expected)
     }
-    fn read_scripts(&mut self) {
+    fn read_scripts(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let current = self.selected_scripts_target();
-        let model = &mut self.areas.workspace.scripts.model;
-        if model.target != current {
-            model.select(current);
+        let scripts = &mut self.areas.workspace.scripts;
+        if scripts.model.target != current {
+            scripts.host.clear(window, cx);
+            scripts.model.select(current);
         }
+        let model = &mut scripts.model;
         let Some(target) = model.target.clone() else {
             return;
         };
@@ -161,9 +163,9 @@ impl Shell {
             loop {
                 cx.background_executor().timer(REFRESH_EVERY).await;
                 if this
-                    .update_in(cx, |shell, window, _cx| {
+                    .update_in(cx, |shell, window, cx| {
                         if window.is_window_active() && shell.scripts_visible() {
-                            shell.read_scripts();
+                            shell.read_scripts(window, cx);
                         }
                     })
                     .is_err()
@@ -283,10 +285,11 @@ impl Shell {
     pub(super) fn refresh_scripts(
         &mut self,
         expected: &Option<Target>,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         if self.scripts_visible() && &self.areas.workspace.scripts.model.target == expected {
-            self.read_scripts();
+            self.read_scripts(window, cx);
             cx.notify();
         }
     }
@@ -334,14 +337,14 @@ impl Shell {
         &mut self,
         surface: &Surface,
         target: &Option<Target>,
-        window: &Window,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         if !window.is_window_active() {
             return;
         }
         match surface {
-            Surface::Project => self.refresh_scripts(target, cx),
+            Surface::Project => self.refresh_scripts(target, window, cx),
             Surface::Panel { .. } => self.refresh_script_panel(surface, target, window, cx),
         }
     }

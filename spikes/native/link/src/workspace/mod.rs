@@ -38,7 +38,6 @@ mod follow;
 pub mod layout;
 mod pulls;
 mod run;
-mod script_host;
 mod scripts;
 mod start;
 

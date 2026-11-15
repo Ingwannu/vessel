@@ -1,5 +1,5 @@
-//! Workspace registration stays small in the shared link actor. Script reads
-//! additionally resolve safe direct-host metadata on the blocking pool.
+//! Workspace registration stays small in the shared link actor. Script calls
+//! use the exact shared connection admission, never a later alias resolution.
 use super::{Answer, Ask, Hub, Reply};
 use crate::State;
 use vessel_app_view::workspace::problem::Problem;
@@ -23,19 +23,8 @@ impl State {
                     return;
                 }
             };
-            let path = self.book_path.path().ok().map(std::path::Path::to_owned);
             drop(tokio::spawn(async move {
-                let (mut answer, host) = tokio::join!(
-                    super::scripts::run(&client, ask),
-                    super::script_host::read(path, machine.clone())
-                );
-                if let super::ScriptAnswer::Read {
-                    result: Ok(snapshot),
-                    ..
-                } = &mut answer
-                {
-                    snapshot.host = host;
-                }
+                let answer = super::scripts::run(&client, ask).await;
                 Reply { machine, events }
                     .send(Answer::Scripts(answer))
                     .await;

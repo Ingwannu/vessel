@@ -131,7 +131,7 @@ pub(crate) fn render(
                         if window.is_window_active()
                             && shell.layout_panel_visible(workspace, tab, window)
                         {
-                            shell.read_script_panel(&observed);
+                            shell.read_script_panel(&observed, window, cx);
                             cx.notify();
                         }
                         true
@@ -190,7 +190,12 @@ impl Shell {
             window.is_window_active() && self.layout_panel_visible(workspace, tab, window)
         }) && self.script_panel_is_current(expected)
     }
-    pub(super) fn read_script_panel(&mut self, surface: &Surface) {
+    pub(super) fn read_script_panel(
+        &mut self,
+        surface: &Surface,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let current = target(self, surface);
         let Some((workspace, tab)) = key(surface) else {
             return;
@@ -204,6 +209,7 @@ impl Shell {
                 return;
             }
             if controls.model.target != current {
+                controls.host.clear(window, cx);
                 controls.model.select(current);
             }
             let Some(target) = controls.model.target.clone() else {
@@ -316,7 +322,7 @@ impl Shell {
         &mut self,
         surface: &Surface,
         expected: &Option<Target>,
-        window: &Window,
+        window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let Some((workspace, tab)) = key(surface) else {
@@ -334,7 +340,7 @@ impl Shell {
             .get(&(workspace.clone(), tab))
             .is_some_and(|controls| &controls.model.target == expected);
         if same {
-            self.read_script_panel(surface);
+            self.read_script_panel(surface, window, cx);
             cx.notify();
         }
     }

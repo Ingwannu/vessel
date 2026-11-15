@@ -287,3 +287,15 @@ The settings-card timer also uses the captured window and stops reads while
 the OS window is inactive. Mutation receipts only settle state; the visible
 window timer performs reconciliation, so a late reply cannot restart polling
 in the background. Final URL/lifecycle callback dispatch checks OS activity.
+
+A changed shared connection admission clears an entered service-host override
+before the first new read. Host text chosen for an earlier physical peer must
+not silently migrate to its replacement, even under the same saved alias.
+
+G4 confirmed that SelectedConnection has no reviewed safe direct-route
+projection. The earlier saved-book host suggestion is removed: rereading an
+alias after admission could describe its replacement binding. Current reads
+therefore supply no suggested host; a person explicitly chooses the host their
+system browser can reach. A future suggestion requires E2's coordinated
+authority-binding projection. No connection internals or extra route resolver
+are added by this feature.

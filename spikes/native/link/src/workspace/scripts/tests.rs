@@ -100,6 +100,7 @@ async fn discovery_uses_only_existing_script_and_port_calls_and_keeps_partial_er
     assert_eq!(returned_key, key);
     let snapshot = result.unwrap();
     assert_eq!(snapshot.scripts, empty());
+    assert_eq!(snapshot.host, None);
     assert!(snapshot.ports.is_err());
     let calls = peer.calls.lock().unwrap();
     assert_eq!(calls.len(), 2);
