@@ -386,3 +386,11 @@ completion ordering/association and actual prompt release on a held node deadlin
 These are unrun source fixtures. The node still must wait for SQL durability of
 the anchor/TurnEnded before starting real filesystem work; the remaining ignored
 storage-ordering obligation is explicit. No product checkpoint controller is live.
+
+The 448e2550 all-target remote clippy reached compilation and stopped on five
+local findings: four unnecessary Future qualifications (Rust 2024 prelude) and a
+pause-refusal method whose receiver was used only by test controls. The former
+now use Future directly; pause refusal is an associated operation and closes
+unavailable test-only control replies while paused. No lint exemption was added.
+The unchanged earlier source's registered test job remains queued; a latest-head
+clippy will cover the subsequent actor/event/lifecycle work as well.

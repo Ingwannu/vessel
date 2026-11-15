@@ -83,7 +83,7 @@ pub fn start_script_admitted<A, Admit, F, Hold, E>(
 where
     A: Fn() -> bool + Send + Sync + 'static,
     Admit: Fn() -> F + Send + Sync + 'static,
-    F: std::future::Future<Output = Result<Hold, E>> + Send + 'static,
+    F: Future<Output = Result<Hold, E>> + Send + 'static,
     Hold: Send + 'static,
     E: std::fmt::Display + Send + 'static,
 {
@@ -159,7 +159,7 @@ impl<A: Fn() -> bool, Admit> ScriptActor<A, Admit> {
     async fn run<F, Hold, E>(mut self)
     where
         Admit: Fn() -> F,
-        F: std::future::Future<Output = Result<Hold, E>>,
+        F: Future<Output = Result<Hold, E>>,
         E: std::fmt::Display,
     {
         self.log.status(SessionStatus::Starting);
@@ -276,7 +276,7 @@ impl<A: Fn() -> bool, Admit> ScriptActor<A, Admit> {
     async fn admitted<F, Hold, E>(&mut self) -> Result<Hold, Ended>
     where
         Admit: Fn() -> F,
-        F: std::future::Future<Output = Result<Hold, E>>,
+        F: Future<Output = Result<Hold, E>>,
         E: std::fmt::Display,
     {
         let admitted = tokio::select! {
@@ -295,7 +295,7 @@ impl<A: Fn() -> bool, Admit> ScriptActor<A, Admit> {
     async fn once<F, Hold, E>(&mut self, first: &mut bool, attempt: u32) -> Ended
     where
         Admit: Fn() -> F,
-        F: std::future::Future<Output = Result<Hold, E>>,
+        F: Future<Output = Result<Hold, E>>,
         E: std::fmt::Display,
     {
         let hold = match self.admitted().await {

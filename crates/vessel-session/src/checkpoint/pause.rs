@@ -101,7 +101,7 @@ impl StructuredActor {
         }
         let _advanced = self.advance().await;
     }
-    pub(crate) fn refuse_file_paused(&mut self, control: Control) {
+    pub(crate) fn refuse_file_paused(control: Control) {
         match control {
             Control::Move(order) => {
                 let _gone = order.reply.send(Err(MoveError::FilesPaused));
@@ -129,12 +129,12 @@ impl StructuredActor {
             }
             #[cfg(test)]
             Control::PrivateDir(reply) => {
-                let _gone = reply.send(self.launch.setup.private_dir.clone());
+                drop(reply);
             }
             #[cfg(test)]
             Control::RefuseNextStop { source, ready } => {
-                self.stop_signal_error = Some(source);
-                let _gone = ready.send(());
+                let _refused = source;
+                drop(ready);
             }
         }
     }

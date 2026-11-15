@@ -129,7 +129,7 @@ impl StructuredActor {
                 control = self.control.recv(), if control_open => {
                     self.parking.touch();
                     match control {
-                        Some(control) if self.file_pause.active() => self.refuse_file_paused(control),
+                        Some(control) if self.file_pause.active() => Self::refuse_file_paused(control),
                         Some(Control::PauseFiles(reply)) => self.pause_files(reply),
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
