@@ -646,6 +646,7 @@ const FORWARDABLE: &[&str] = &[
     "session.respond_question",
     "session.respond_permission",
     "session.submit_prompt",
+    "session.observe_prompt_receipt",
 ];
 
 #[test]

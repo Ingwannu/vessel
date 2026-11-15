@@ -94,3 +94,10 @@ Authored pure fixtures cover every checkpoint's encoded key bound and UUID
 validation, distinct request namespaces, the unmodified original observation
 request, binding wire identity and missing versus uncertain outcomes. Current
 changed-source compilation and execution are still owed.
+
+The observation row is now explicitly staged under TIMELINE_PARITY None, with
+the agent policy deny arm and an SDK wrapper. Its generated default handler
+remains Unsupported; it is not a node read implementation or an assigned method.
+SubmitPrompt's SDK documentation now explicitly calls it read-or-admit, never a
+recovery query. The later owner-wiring commit must supply ordinary session and
+Creator checks and change the row to pending together with the real handler.

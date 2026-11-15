@@ -410,6 +410,8 @@ macro_rules! method_table {
             RespondPermission / respond_permission / "session.respond_permission" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondPermission => $crate::timeline::RespondPermissionReply;
             /// Identified delivery with durable replay protection (ADR 0084).
             SubmitPrompt / submit_prompt / "session.submit_prompt" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::SubmitPrompt => $crate::timeline::SubmitPromptReply;
+            /// Observe the original retained receipt without admitting or dispatching work.
+            ObservePromptReceipt / observe_prompt_receipt / "session.observe_prompt_receipt" [Read, (staged $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::ObservePromptReceipt => $crate::timeline::ObservePromptReceiptReply;
         }
     };
 }

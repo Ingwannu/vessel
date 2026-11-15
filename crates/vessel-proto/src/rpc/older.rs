@@ -223,6 +223,7 @@ impl Reply {
             | Self::RespondQuestion(_)
             | Self::RespondPermission(_)
             | Self::SubmitPrompt(_)
+            | Self::ObservePromptReceipt(_)
             | Self::PromptSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
