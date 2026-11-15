@@ -128,6 +128,8 @@ pub(crate) fn render_file_panel(
     use vessel_app_kit::ui::{ParentElement as _, Styled as _, div};
     div()
         .size_full()
+        .flex()
+        .flex_col()
         .child(super::viewer::viewer_element(
             shell, viewer, tokens, window, cx,
         ))

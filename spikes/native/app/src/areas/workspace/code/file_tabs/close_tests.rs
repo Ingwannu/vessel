@@ -87,6 +87,26 @@ fn dirty_prompt_suspends_writes_cancel_keeps_and_discard_closes(cx: &mut TestApp
         assert!(shell.areas.workspace.code.file_effect_held(&file));
         shell.flush_file();
         shell.editor_save_for(&file, cx);
+        // An older Reload confirmation is also a new destructive intent.
+        let reload = shell.next_file_ticket().unwrap();
+        shell.editing_for(&file).unwrap().reload = Some(super::super::editing::ReloadPrompt {
+            ticket: reload,
+            dialog: vessel_app_kit::dialog::DialogState::new(cx),
+        });
+        shell.editor_reload_answered(
+            &file,
+            reload,
+            super::super::editing::ReloadDecision::Reload,
+            cx,
+        );
+        assert_eq!(shell.editing_for(&file).unwrap().model.content(), "draft");
+        assert!(shell.editing_for(&file).unwrap().reading.is_none());
+        shell.editor_reload_answered(
+            &file,
+            reload,
+            super::super::editing::ReloadDecision::Keep,
+            cx,
+        );
         assert!(shell.editing_for(&file).unwrap().writing.is_none());
         assert!(shell.editing_for(&file).unwrap().model.writing().is_none());
         shell.file_close_answered(ticket, Decision::Keep, cx);

@@ -358,6 +358,12 @@ impl Shell {
         choice: ReloadDecision,
         cx: &mut Context<'_, Self>,
     ) {
+        // A dialog opened before the hold is still a NEW reload intent.
+        // Its queued confirmation cannot bypass mutation/close admission.
+        if choice == ReloadDecision::Reload && self.refuse_file_mutation(key) {
+            cx.notify();
+            return;
+        }
         let Some(editing) = self.editing_for(key) else {
             return;
         };

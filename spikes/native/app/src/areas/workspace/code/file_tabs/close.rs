@@ -43,6 +43,7 @@ fn unsettled(viewer: &super::super::Viewer) -> bool {
     viewer.reading.is_some()
         || viewer.edit.as_ref().is_some_and(|editing| {
             editing.reading.is_some()
+                || editing.reload.is_some()
                 || editing.writing.is_some()
                 || editing.model.writing().is_some()
                 || editing.model.write_state().is_some()
