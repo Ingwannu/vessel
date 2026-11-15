@@ -159,6 +159,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgeLogin", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
+    ("GoalObjective", Alias::Content),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),

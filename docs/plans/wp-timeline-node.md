@@ -428,3 +428,12 @@ existing 128-observation admission cap; it adds no eviction or guessed attributi
 Other pending-state constructors receive the same explicit enum value. These
 are corrections to failed immutable snapshots, not claims those snapshots passed.
 Current-source strict/tests and the enclosing package gate remain required.
+
+The TS generator run wp-timeline-ts-next-20261115T145012Z-4e2ea316 compiled the
+current proto/agent/session/store/node/client/web libraries, then executed the
+three selected TS tests: two passed; declaration generation refused the new
+GoalObjective alias before writing fresh wire bytes. GoalObjective is now
+classified once as Alias::Content: a user-authored objective is carried text,
+not a minted handle or an action capability. This classification becomes reachable
+through the unified SubmitPrompt intent; predecessor unregistered command values
+could not prove this generator path. No failed artifact bytes were applied.
