@@ -355,3 +355,6 @@ mod words;
 
 mod general;
 pub use general::StorageError;
+
+mod refusal;
+pub use refusal::RefusalWordsError;

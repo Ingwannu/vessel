@@ -46,6 +46,8 @@ mod nav;
 mod overview;
 pub(crate) mod page;
 mod prefer;
+mod prepared_refusal;
+use prepared_refusal::PreparedRefusal;
 mod sections;
 mod theme;
 
@@ -90,8 +92,8 @@ pub(crate) struct SettingsState {
     pub(crate) open: Option<List>,
     /// Where each trigger was drawn.
     pub(crate) anchors: Anchors,
-    /// The last change the store refused, in words.
-    pub(crate) refused: Option<String>,
+    /// The last refused cause and its message prepared before drawing.
+    pub(crate) refused: Option<PreparedRefusal>,
     pub(crate) agents: agents::AgentSettings,
 
     pub(crate) devices: devices::Devices,
@@ -405,7 +407,7 @@ fn section_page(
                 .px(px(4.0))
                 .type_(Type::Body)
                 .text_color(tokens.neutral.destructive)
-                .child(refused.clone())
+                .child(refused.words.clone())
         }))
         .child(body);
     let body = if state.turn == 0 {
