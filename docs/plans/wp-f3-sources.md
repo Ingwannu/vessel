@@ -307,3 +307,16 @@ Quantity: it is a numeric disclosure revision, not a node-minted identity. The
 generator's existing complete alias classification check covers this boundary.
 Its failure is retained; no partial artifact is presented as fresh wire output.
 The corrected generator run must produce and verify the declarations remotely.
+
+### Scoped runtime evidence, before the shared-context correction
+Run `wp-usage-source-tests-20261115T122718Z-05b7a342` tested exact
+`05b7a342f520095e940c8cca5f4cb9961bbf1efe`: harness 75, node 269, proto 325
+and store 77 passed, total 746 passed / 0 failed / 0 ignored. Web preparation,
+nested fake executables and the test daemon build also passed. The actual guarded
+service consent/refresh/read-discovery/redaction/retained-success regression,
+both pending-origin barriers, captured-binding ABA and aggregate deadline passed.
+The normal test run emitted a Future qualification warning, subsequently corrected;
+it is not strict lint proof. This snapshot precedes the fixture FIFO gate and
+the shared-context correction. Their changed-head strict, mixed-family runtime,
+TS freshness, assigned wire and whole package proofs remain owed. No actual
+vendor sign-in, real endpoint, additional-source Session or F6 execution is proven.
