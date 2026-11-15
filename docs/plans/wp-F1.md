@@ -1585,3 +1585,14 @@ comparisons in the new FormGlyph test. Corrected together without suppressions
 or changed behavior: literal18/16 expectations now compare exact f32 bits. No
 Kit tests, View or App step ran in this failed suite. The actual outcome stays
 pinned to ce36; no later-source or final-package proof is inferred.
+
+
+### Cron text profile also applies to presets
+
+Pinned cadence-editor.tsx106–121 always renders the expression input, including
+a selected preset; its cronInput uses the mono family. F1's existing profile
+choice incorrectly covered only Custom. The same typed Code profile now covers
+every cron expression; only an elapsed interval count uses Body. Placeholder
+follows that same parsed cadence distinction. No new font override/control or
+parse-during-paint was introduced. This later source is not covered by queued
+2a20's outcome; combined consumer proof remains owed.

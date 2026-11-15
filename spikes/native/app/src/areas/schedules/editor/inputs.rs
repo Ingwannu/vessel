@@ -92,21 +92,18 @@ impl Inputs {
 }
 fn rule(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -> Option<TextField> {
     let draft = shell.areas.schedules.data.editor.draft()?;
-    let custom =
-        draft.cadence.choice() == vessel_app_view::schedules::editor::cadence::Choice::Custom;
+    // Presets still expose their cron expression (pinned cadence-editor.tsx106–121).
+    // Only a retained elapsed interval uses the ordinary numeric form text.
+    let cron = draft.cadence.unit().is_none();
     let field = TextField::with_source_text(
-        if custom {
+        if cron {
             shell.words.schedules().form_cron_placeholder()
         } else {
             ""
         },
         submit,
         change,
-        if custom {
-            FormText::Code
-        } else {
-            FormText::Body
-        },
+        if cron { FormText::Code } else { FormText::Body },
         window,
         cx,
     );
