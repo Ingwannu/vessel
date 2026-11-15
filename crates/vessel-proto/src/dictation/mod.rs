@@ -71,6 +71,12 @@ const MAX_TRANSCRIPT_BYTES: usize = 64 * KIB_BYTES;
 pub struct DictationId(String);
 
 impl DictationId {
+    /// Mint an independent client stream token with the existing UUID source.
+    #[must_use]
+    pub fn random() -> Self {
+        Self(uuid::Uuid::new_v4().simple().to_string())
+    }
+
     /// Encode the validated token at an output or correlation boundary.
     #[must_use]
     pub fn as_str(&self) -> &str {

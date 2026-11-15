@@ -281,7 +281,7 @@ impl Registry {
         {
             // No admission can register a worker after the close/wait boundary.
             let _admission = self.state.entries.lock().await;
-            self.state.tasks.close();
+            let _first_close = self.state.tasks.close();
         }
         self.state.tasks.wait().await;
     }

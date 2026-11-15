@@ -1103,3 +1103,31 @@ SegmentBuffer, silence threshold, prompt, HTTP or multipart metadata. Consumers
 own all recording/append limits. Its synthetic fixtures establish chunking,
 counts, signed-extreme rounding tolerance, WAV fields and refusal before body
 mutation; they do not establish recognition quality or real provider operation.
+
+### File-client completion and diagnostics (implementation amendment)
+
+The file client reuses the existing NodeClient and asynchronous WAV decoder.
+It mints a DictationId with the workspace's existing UUID generator, rather than
+borrowing a session id or adding another randomness dependency. Every chunk is
+acknowledged before the next is sent; next updates are drained concurrently.
+This deliberately bounded test-client ordering differs from the app reference's
+128-chunk flush bursts; microphone capture remains a different consumer.
+
+One pinned Ctrl-C future covers validation, connection and the complete stream.
+Finish-acceptance waiting is bounded by WithinMs::MAX; after acceptance, the
+node's returned bounded budget covers waiting for Final. These are client wait
+limits only; they never extend or reset the node's first finish deadline. An
+early Final stays private until finish is accepted. Unknown updates, bad acks
+and missing final text fail rather than fabricate success. Cleanup has one named
+five-second cancellation budget; if it cannot be confirmed, the original failure
+stays primary with a fixed unconfirmed-cancellation note. No audio is resent.
+
+The CLI's main error renderer walks every Error::source. A remote error message
+can itself contain private speech, so the dictation command keeps its concrete
+call/file/signal/output and cleanup causes privately behind a safe Display/Debug
+boundary. No public source accessor reopens them. It displays fixed operation
+classes and typed dictation reasons, never a foreign message, partial or audio.
+This is a command boundary, not another DTO decoder. Tests must establish an
+early Final cannot finish before the acknowledgement, concurrent partial drain,
+no resend, cancellation/cleanup failure precedence, bounded waits and a marker
+in a retained remote cause absent from every public diagnostic/source.

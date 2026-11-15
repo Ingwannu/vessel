@@ -119,3 +119,12 @@ fn registered_dictation_calls_share_pending_admission_operate_and_node_local_pol
         assert!(!method.forwardable());
     }
 }
+
+#[test]
+fn minted_stream_ids_are_independent_and_obey_the_same_wire_validator() {
+    let first = DictationId::random();
+    let second = DictationId::random();
+    assert_ne!(first, second);
+    assert_eq!(first.as_str().parse::<DictationId>().unwrap(), first);
+    assert_eq!(second.as_str().parse::<DictationId>().unwrap(), second);
+}

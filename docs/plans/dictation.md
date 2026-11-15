@@ -785,3 +785,14 @@ race. Product handover must consume the shared tracked OwnedMutexGuard writer
 and its deterministic real-I/O regression, rather than introducing a second
 writer here. Our write gate is before spawn and proves deletion/write-refusal
 ordering, not cancellation safety inside a blocking write.
+
+## File-command implementation decision
+
+Reuse the existing async FileInput preflight and NodeClient/Unary APIs. A closed
+client adapter has an actual node plus a cfg(test)-only bounded scripted edge
+using the existing Call/Reply table, so tests introduce no duplicate method
+protocol. Sender and next reader run concurrently after readiness; only the
+accepted Final reaches stdout. Existing UUID generation mints an independent
+stream handle. ADR0067 records wait/cleanup budgets, no resend and the private
+command-error boundary required by main's source-chain renderer. No dependency
+is introduced. This contract/code checkpoint has no CLI execution evidence yet.

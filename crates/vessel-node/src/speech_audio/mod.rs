@@ -1,6 +1,6 @@
-//! Shared in-memory little-endian mono PCM16 codecs, staged until a real speech consumer wires them.
+//! Shared in-memory little-endian mono PCM16 codecs for node speech consumers.
 //!
-//! The first consumer removes the outer test gate. No recording limits, silence,
+//! Dictation is the first product consumer. No recording limits, silence,
 //! segmentation, prompts, providers or multipart metadata belong here. Producers
 //! own their byte budgets; this edge owns alignment, rate conversion and RIFF.
 
