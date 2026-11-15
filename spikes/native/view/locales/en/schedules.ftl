@@ -211,9 +211,17 @@ schedules-failed-not-enabled = This schedule feature is not available in this bu
 
 # Cadence preset picker labels; not the saved row’s full cadence description.
 schedules-preset-minute = Every minute
+
+# Hourly cadence preset picker label; not a saved cadence description.
 schedules-preset-hour = Every hour
+
+# Daily-at-nine cadence preset picker label; keep short.
 schedules-preset-daily = Daily 9:00
+
+# Monday-to-Friday-at-nine cadence preset picker label; keep short.
 schedules-preset-weekdays = Weekdays 9:00
+
+# Monday-at-nine cadence preset picker label; keep short.
 schedules-preset-mondays = Mondays 9:00
 
 # Original selected physical admission retired before an operation; no retarget/retry.

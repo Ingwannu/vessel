@@ -686,3 +686,16 @@ wrong schedule/admission, exact cap and ordering, same-node reconnect, read-only
 and ended rules, offline cached rows and outcome-derived links. They are not
 executed yet. Link and App history routing is still absent; no unwired history
 menu item is exposed. The e86d remote suite predates this source addition.
+
+
+### Earlier exact narrow failure retained
+
+The eed5 admission/editor checkpoint's remote Clippy run ended at View's catalog
+build validation: schedules-preset-daily lacked its own translator-context
+comment. Thus Clippy returned101 (runner1), no tests ran, and none of the new
+Rust rules are proved by this run. The shared preset comment only attached to
+the first key; each subsequent EN/KO key now has its own explicit context.
+The existing catalog validator is the regression that rejects this defect.
+A read-only source scan finds no remaining schedules key without a context.
+The already registered e86d snapshot predates this repair and stays untouched;
+its actual outcome will not be relabelled as evidence for the correction.

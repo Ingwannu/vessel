@@ -211,9 +211,17 @@ schedules-failed-not-enabled = 이 버전에서는 해당 예약 기능을 사�
 
 # Cadence preset picker labels; not the saved row’s full cadence description.
 schedules-preset-minute = 매분
+
+# Hourly cadence preset picker label; not a saved cadence description.
 schedules-preset-hour = 매시간
+
+# Daily-at-nine cadence preset picker label; keep short.
 schedules-preset-daily = 매일 09:00
+
+# Monday-to-Friday-at-nine cadence preset picker label; keep short.
 schedules-preset-weekdays = 평일 09:00
+
+# Monday-at-nine cadence preset picker label; keep short.
 schedules-preset-mondays = 월요일 09:00
 
 # Original selected physical admission retired before an operation; no retarget/retry.
