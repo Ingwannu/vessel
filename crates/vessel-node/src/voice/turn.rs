@@ -53,7 +53,9 @@ pub(super) enum Failure<E: Error + 'static> {
     #[error("voice boundary clock exhausted")]
     Boundary(#[from] super::boundary::ClockExhausted),
     #[error("voice inference failed")]
-    Detector(#[source] E),
+    // The native cause can contain paths/tensors. Do not expose it through
+    // Error::source either: generic diagnostic chains must stop at this rule.
+    Detector(E),
     #[error("voice final transcription could not start")]
     Finalization(#[from] super::finalize::Failure),
     #[error("voice detector produced conflicting boundaries")]

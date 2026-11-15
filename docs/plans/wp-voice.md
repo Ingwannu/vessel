@@ -545,3 +545,14 @@ separate isolated prerequisite review: its 58 memory-transport tests passed,
 strict review is owed, and real voice upload remains disconnected until node
 integration. These scoped receipts do not replace final package gates or
 physical-device, Windows, model/provider or user-interface evidence.
+
+
+### Detector diagnostic chain privacy
+
+The staged Turn failure already used static Display/Debug, but its detector
+variant still exposed the foreign native cause through Error::source. Reuse
+the existing failure boundary and remove that source edge so generic diagnostic
+chains cannot expand future tensor/path messages. The actual failing-detector
+regression now checks the source chain as well as Display/Debug and retained
+sample cleanup. No native loader or detector execution is introduced; its new
+assertion awaits the next VM voice-runtime suite.

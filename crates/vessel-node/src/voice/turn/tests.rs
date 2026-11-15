@@ -174,6 +174,7 @@ fn inference_failure_clears_every_retained_sample_and_never_calls_a_later_window
     let error = turn.append(&request).unwrap_err();
     assert!(matches!(error, Failure::Detector(_)));
     assert!(!format!("{error:?} {error}").contains("tensor"));
+    assert!(std::error::Error::source(&error).is_none());
     assert_eq!(calls.load(Ordering::Acquire), 1);
     assert_eq!(resets.load(Ordering::Acquire), 1);
     assert!(turn.buffer.seal().is_none());
