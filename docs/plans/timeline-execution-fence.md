@@ -173,3 +173,23 @@ an owned lease into the later actor command; it neither adds a second mutex nor
 captures a parent, verifies a grant, or enables private admission. The actual
 capsule and held-command/caller-loss tests are still owed. No public API or
 unused future entry point is added by this conversion.
+
+
+## Staged capture checkpoint (A10)
+
+The next source module is test-only until the finish-admission actor capsule is
+implemented and wired. It captures only a direct local Agent whose actual Agents
+entry has the matching registered, non-ended SessionHandle and both current
+Read/Operate scopes intersected with the authenticated principal. Subscription
+precedes UUID reading under that same registry guard. The non-serialized object
+retains the actual registry, original stamp/ceiling and watch; a read-only
+observation can cancel a watcher but never authorize a later queue effect.
+
+Private fake SessionHandles cover unregistered handles, Owner/Device/Delegated
+and foreign-agent refusal, both principal and registry grant ceilings, rotation,
+fresh versus retained capture, and retirement. One named 120-second safety owner
+covers setup and runtime shutdown/task settlement/store cleanup. These fixtures
+are authored only. No capture API is exposed in product yet; no metadata lease,
+actor capsule, actual atomic check/insertion, transition qualification or private
+notice capability is inferred from this staged capture. Exact all-target and
+fake runtime evidence plus source review remain owed.

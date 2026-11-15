@@ -7,6 +7,12 @@ use tokio::sync::watch;
 use vessel_proto::timeline::ExecutionInvalidation;
 use vessel_proto::{ExecutionIncarnationId, SessionId};
 
+// Staged until the finish-admission actor capsule joins this runtime capture.
+#[cfg(test)]
+mod capture;
+#[cfg(test)]
+pub(crate) use capture::{CaptureRefusal, ExecutionObservation};
+
 #[derive(Debug, Clone, Copy)]
 struct Change {
     incarnation: ExecutionIncarnationId,
