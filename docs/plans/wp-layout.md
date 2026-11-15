@@ -36,6 +36,8 @@ Paths are relative to Paseo `packages/app/src/`.
   `stores/workspace-layout-constants.ts:1`: depth bound and minimum ratio.
 - `components/split-container.tsx:146-230`: recursive groups, pane focus,
   Explorer outside split rendering and maximize projection.
+- `constants/layout.ts:37-56` and `workspace-tabs/layout-mode-publisher.tsx:5-18`:
+  workspace compact mode is below 600 points; wide touch remains single-pane.
 - `screens/workspace/workspace-deck-retention.ts:3-34,70-125`: warm web
   deck count/TTL; native keeps only active workspace mounted.
 - `workspace/open-in-editor/planner.ts:59-104`: desktop targets require
@@ -65,6 +67,11 @@ than toggling into focus mode on an already ordinary layout.
 Drawing and visibility queries share the effective pane projection. A stale
 maximized pane id, including after closing an empty pane, falls back to the
 surviving tree; it cannot suppress every resource renderer or poller.
+Workspace renderers, placement and command availability use the same public
+`areas::layout::mode(window)` and pure `LayoutMode::for_width` policy. This uses
+Paseo's 600-point workspace boundary, rather than inheriting the legacy shell's
+768-point sidebar breakpoint. Keeping that distinction explicit prevents the
+command palette advertising a split which its owner refuses at 600–767 points.
 
 The staged preferences hook rebases an initialized layout cache against old/new
 canonical preferences by workspace key. It installs unrelated additions/removals
