@@ -47,7 +47,7 @@ pub(crate) fn apply(
             expected,
         } => super::leases::claim(connection, *workspace, *resource, *expected)?,
         RegistryWrite::Settle { lease, settled } => {
-            super::leases::settle(connection, lease, *settled)?
+            super::leases::settle(connection, lease, *settled)?;
         }
         RegistryWrite::RecoverCreating => {
             let changed = connection.execute("UPDATE workspace_registry_reservations SET stage='uncertain' WHERE stage='creating'",[])?;
