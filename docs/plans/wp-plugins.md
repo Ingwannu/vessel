@@ -319,9 +319,13 @@ The concrete workspace FileError is retained behind fixed safe diagnostics and
 a closed source chain so missing private paths cannot leak through reporters.
 Tests use isolated temporary files, including escaping symlinks, directories,
 malformed/binary/oversized data, changed bytes and diagnostic canaries. These
-new filesystem cases have not yet executed; pending earlier narrow jobs do not
-cover them. Full artifact pinning and a cancellation-safe installer remain
-required before activation.
+filesystem cases executed in the exact716 Node suite:19 passed,0 failed,0
+ignored, including the inspection/source/target cases by name. The real helper
+feature suite at a6ff separately executed22 unit and6 integration cases. Strict
+all-target plugin/node/proto checking passed at bac after the three Node style
+corrections; unchanged artifacts were cached and changed Node source checked.
+Full artifact pinning and a cancellation-safe installer remain required before
+activation. These selected results do not qualify an installed Node host.
 
 A client-only package cannot advertise callback methods without any declared
 helper; cross-file inspection refuses that incomplete capability instead of
@@ -393,3 +397,16 @@ all output modes with a deliberately malformed node URL and an empty environment
 no node connection or credential/config discovery should occur. The tests also
 check canonical client decoding, existing-content refusal, symlink refusal,
 private Unix modes and retained ownership. Execution is still owed.
+
+
+## Selected checkpoint evidence
+
+V3 accepted row219's selected runtime execution and strict obligations using
+run wp-plugins-runtime-test-20261115T135543Z-a6ff56c2 (28/0/0) and
+wp-plugins-runtime-20261115T150339Z-bac2fafb (strict rc0). Row235 separately
+accepted Node admission run wp-plugins-node-tests-20261115T143928Z-716021ac
+(19/0/0) and the same strict correction. The canonical proto catalog's earlier
+39/0 result is predecessor evidence, not a current union/runtime/consumer claim.
+The local CLI scaffold row238 is source-reviewed only; its real CLI and strict
+checks remain queued. Installed Node lifecycle, settings, source acquisition,
+public transport, native UI and final F6 package gates are still owed.
