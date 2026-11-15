@@ -122,10 +122,7 @@ pub use lsp_config::{LspConfigError, load_lsp_config};
 pub use models::ModelsError;
 pub use node::Node;
 pub use profiles::ProfilesFileError;
-pub use providers::{
-    ProviderCacheError, ProviderChange, ProviderConfigurationError, ProviderDiscoveryError,
-    ProviderRegistrations,
-};
+pub use providers::{ProviderCacheError, ProviderConfigurationError, ProviderDiscoveryError};
 pub use shutdown::{StopSignals, signal};
 pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build

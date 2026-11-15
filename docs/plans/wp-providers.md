@@ -607,3 +607,14 @@ process policy, assertions and transport payloads are unchanged. Original
 strict logs remain provider-core-strict-node46. The already queued db553 runtime
 selection stays unchanged; this correction needs a new strict selection before
 any replacement whole gate. No strict/runtime/whole PASS is inferred here.
+
+## V3 row207 correction: stage host-only execution
+
+The trusted registration facade had no actual product host/plugin consumer;
+storing it on Node did not establish one. Remove the Node field/getter and
+frontend assembly/export. Keep the facade, plugin-replacement mailbox variant
+and change-feed execution under cfg(test), preserving their staged regression
+source until the genuine owner consumes them. The real pending RPC metadata,
+discovery, enabled configuration and startup/shutdown paths remain product.
+No dummy consumer or inferred A10 exception is introduced. SecureGateway's
+remaining Node field is test-only, so its import is test-only as well.

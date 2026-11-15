@@ -4,7 +4,6 @@
 
 use super::Core;
 use crate::{
-    ProviderRegistrations,
     agents::Agents,
     config::Config,
     guard::Guarded,
@@ -29,7 +28,6 @@ pub(super) struct Frontends {
     pub(super) relays: Arc<Relays>,
     pub(super) lifecycle: Lifecycle,
     pub(super) stop: CancellationToken,
-    pub(super) provider_registrations: ProviderRegistrations,
 }
 
 /// Move the same core handles into the frontends and their ordered teardown.
@@ -59,7 +57,6 @@ pub(super) fn prepare(
         config.rpc.clone(),
         closing.clone(),
     ));
-    let provider_registrations = service.0.providers.registrations();
     let secure = SecureGateway {
         keypair,
         channel: vessel_secure::Config::default(),
@@ -89,6 +86,5 @@ pub(super) fn prepare(
         relays,
         lifecycle,
         stop,
-        provider_registrations,
     }
 }

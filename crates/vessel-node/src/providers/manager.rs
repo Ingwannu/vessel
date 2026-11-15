@@ -1,5 +1,5 @@
 //! Provider service composition: passive readers, explicit discovery and one
-//! trusted local contribution handle. Neither startup nor subscription probes.
+//! test-staged local contribution handle. Startup performs no discovery.
 
 use super::{
     cache::Refresh,
@@ -11,6 +11,7 @@ use crate::{config::Config, profiles::launch::McpSource};
 use futures_util::{StreamExt as _, stream};
 use std::{path::PathBuf, sync::Arc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
+#[cfg(test)]
 use vessel_harness::providers::PluginDefinition;
 use vessel_proto::providers::{
     CatalogueScope, DiagnosticRead, Enabled, ProviderDiagnostic, ProviderId, ProviderSnapshotEntry,
@@ -20,17 +21,19 @@ use vessel_store::DataDir;
 /// Trusted node-side plugin supervision publishes inert definitions through
 /// this handle after provenance/trust checks. It grants no helper execution or
 /// caller RPC authority and must never be given to an untrusted plugin process.
+#[cfg(test)]
 #[derive(Debug, Clone)]
-pub struct ProviderRegistrations {
+pub(super) struct ProviderRegistrations {
     configuration: Configuration,
     cache: Owner,
 }
 
+#[cfg(test)]
 impl ProviderRegistrations {
     /// Scoped cache invalidations for trusted host-side consumers. Slow readers
     /// must reread after Lagged; shutdown emits Stopped/closes late receivers.
     #[must_use]
-    pub fn changes(&self) -> tokio::sync::broadcast::Receiver<super::owner::Change> {
+    pub(super) fn changes(&self) -> tokio::sync::broadcast::Receiver<super::owner::Change> {
         self.cache.changes()
     }
     /// Passive diagnostic projection for host diagnostics and other trusted node
@@ -38,7 +41,7 @@ impl ProviderRegistrations {
     ///
     /// # Errors
     /// Unknown provider, exhausted bounded cache, or owner shutdown.
-    pub async fn cached(
+    pub(super) async fn cached(
         &self,
         provider: ProviderId,
         scope: CatalogueScope,
@@ -52,7 +55,7 @@ impl ProviderRegistrations {
     /// # Errors
     /// Invalid/colliding definitions retain the previous generation. A stopped
     /// node refuses updates, including handles retained after shutdown.
-    pub async fn replace_plugins(
+    pub(super) async fn replace_plugins(
         &self,
         definitions: Vec<PluginDefinition>,
     ) -> Result<(), ConfigurationFailure> {
@@ -130,7 +133,8 @@ pub(crate) struct Providers {
 }
 
 impl Providers {
-    pub(crate) fn registrations(&self) -> ProviderRegistrations {
+    #[cfg(test)]
+    pub(super) fn registrations(&self) -> ProviderRegistrations {
         ProviderRegistrations {
             configuration: self.configuration.clone(),
             cache: self.cache.clone(),

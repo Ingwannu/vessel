@@ -55,6 +55,7 @@ enum Edit {
         enabled: Enabled,
         reply: Reply,
     },
+    #[cfg(test)]
     Plugins {
         definitions: Vec<PluginDefinition>,
         reply: Reply,
@@ -189,6 +190,7 @@ impl Configuration {
     }
 
     /// The plugin runtime owns trust/execution; this accepts inert definitions.
+    #[cfg(test)]
     pub(super) async fn plugins(
         &self,
         definitions: Vec<PluginDefinition>,
@@ -232,6 +234,7 @@ async fn run(
             }
             #[cfg(test)]
             Edit::Replace { overrides, reply } => (overrides, plugins.clone(), reply),
+            #[cfg(test)]
             Edit::Plugins { definitions, reply } => (overrides.clone(), definitions, reply),
             Edit::Enabled {
                 provider,

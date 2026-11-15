@@ -34,6 +34,8 @@ use crate::lifecycle::Lifecycle;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::relays::{self, Relays};
+#[cfg(test)]
+use crate::secure::SecureGateway;
 use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};
 use crate::sessions::Sessions;
@@ -68,7 +70,6 @@ pub struct Node {
     relays: Arc<Relays>,
     stop: CancellationToken,
     task: JoinHandle<Result<(), NodeError>>,
-    provider_registrations: crate::ProviderRegistrations,
 }
 
 impl Node {
@@ -120,7 +121,6 @@ impl Node {
             relays,
             lifecycle,
             stop,
-            provider_registrations,
         } = frontends::prepare(&config, core, keypair, store);
         let token = Arc::new(token);
 
@@ -165,7 +165,6 @@ impl Node {
             relays,
             stop,
             task,
-            provider_registrations,
         })
     }
 
@@ -195,13 +194,6 @@ impl Node {
     #[must_use]
     pub fn info(&self) -> NodeInfo {
         self.lifecycle.info()
-    }
-
-    /// Trusted host-side plugin supervision can publish inert provider
-    /// contributions. This handle grants no plugin execution or RPC authority.
-    #[must_use]
-    pub fn provider_registrations(&self) -> crate::ProviderRegistrations {
-        self.provider_registrations.clone()
     }
 
     /// Resolves once the node was asked to stop, by [`Node::stop`] or by a

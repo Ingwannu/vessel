@@ -1690,7 +1690,8 @@ both owners and their ordered shutdown alongside node tasks. Cached reads are
 passive; Discover joins/reuses cache work and Refresh supersedes an observation.
 Both active intents additionally need local person/Operate authority. Admin
 participation edits preserve other overrides. Trusted plugin supervision uses
-ProviderRegistrations, with the same cache projection and inert definition
+test-staged ProviderRegistrations (no product host consumer yet), with the same
+cache projection and inert definition
 replacement, rather than self-RPC or another collector. Missing native drivers,
 plugin session execution and atomic creation integration remain separate work. Existing ACP sessions and node
 settings retain their current behaviour. No crate edge or external dependency

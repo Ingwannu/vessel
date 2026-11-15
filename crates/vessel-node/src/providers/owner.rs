@@ -4,7 +4,9 @@
 use super::cache::{Admission, Cache, CacheError, Observation, Refresh, Ticket, Work, WorkBudget};
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use std::{collections::BTreeMap, future::Future, sync::Arc, time::Duration};
-use tokio::sync::{Semaphore, broadcast, mpsc, oneshot};
+#[cfg(test)]
+use tokio::sync::broadcast;
+use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 use vessel_harness::providers::ProviderRegistry;
 use vessel_proto::providers::{
@@ -19,14 +21,16 @@ const MAX_JOBS: usize = 32;
 const MAX_WAITERS: usize = 64;
 const MAILBOX: usize = 32;
 /// Slow subscribers receive Lagged and must reread a cached snapshot.
+#[cfg(test)]
 const CHANGE_CAPACITY: usize = 32;
 
 type Answer = oneshot::Sender<Result<ProviderDiagnostic, OwnerError>>;
 
 /// Notifications are invalidation hints. Consumers reread after lag and never
 /// confuse an observation for one workspace with another workspace's state.
+#[cfg(test)]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Change {
+pub(super) enum Change {
     /// One scoped observation became available.
     Observed {
         /// Canonical cache scope of the provider family.
@@ -94,6 +98,7 @@ struct Pending {
 #[derive(Debug, Clone)]
 pub(super) struct Owner {
     mail: mpsc::Sender<Mail>,
+    #[cfg(test)]
     changes: broadcast::Sender<Change>,
 }
 
@@ -120,14 +125,17 @@ impl Owner {
         F: Future<Output = Observation> + Send + 'static,
     {
         let (mail, commands) = mpsc::channel(MAILBOX);
+        #[cfg(test)]
         let (changes, _initial) = broadcast::channel(CHANGE_CAPACITY);
         let owner = Self {
             mail,
+            #[cfg(test)]
             changes: changes.clone(),
         };
         let task = tokio::spawn(run(
             Cache::new(registry),
             commands,
+            #[cfg(test)]
             changes,
             Arc::new(producer),
         ));
@@ -179,6 +187,7 @@ impl Owner {
         response.await.map_err(|_closed| OwnerError::Stopped)
     }
 
+    #[cfg(test)]
     pub(super) fn changes(&self) -> broadcast::Receiver<Change> {
         let subscription = self.changes.subscribe();
         if self.mail.is_closed() {
@@ -203,7 +212,7 @@ impl Owner {
 async fn run<P, F>(
     mut cache: Cache,
     mut commands: mpsc::Receiver<Mail>,
-    changes: broadcast::Sender<Change>,
+    #[cfg(test)] changes: broadcast::Sender<Change>,
     producer: Arc<P>,
 ) where
     P: Fn(Work, CancellationToken) -> F + Send + Sync + 'static,
@@ -241,6 +250,7 @@ async fn run<P, F>(
                 Some(Mail::Replace { registry, reply }) => {
                     permits.retain(|id, _| registry.get(id).is_some());
                     for ticket in cache.replace(registry) { cancel(&mut pending, ticket, &OwnerError::Superseded); }
+                    #[cfg(test)]
                     let _unobserved = changes.send(Change::Registry);
                     let _gone = reply.send(());
                 }
@@ -253,6 +263,7 @@ async fn run<P, F>(
                     if let Some(pending) = waiters {
                         for waiter in pending.waiters { let _gone = waiter.send(Ok(value.clone())); }
                     }
+                    #[cfg(test)]
                     let _unobserved = changes.send(Change::Observed { scope: work.scope, diagnostic: Arc::new(value) });
                 } else if let Some(pending) = waiters {
                     for waiter in pending.waiters { let _gone = waiter.send(Err(OwnerError::Superseded)); }
@@ -269,6 +280,7 @@ async fn run<P, F>(
         }
     }
     drop(jobs);
+    #[cfg(test)]
     let _unobserved = changes.send(Change::Stopped);
 }
 
