@@ -112,3 +112,12 @@ canonicalization, session byte saturation, each count/byte predicate, retained
 state after log pruning, committed session deletion, restart/corruption and
 concurrent same-key/final-slot admissions. They have not yet run. Durable
 question and node/provider dispatch work remain unimplemented.
+
+The staged question store now preserves provider-source deduplication separately
+from node-minted request ids, validates typed answers before a durable claim,
+retains the exact foreground target, and only settles a claim after an explicit
+accepted result. A known-not-sent refusal can restore Pending; restart turns
+unacknowledged admitted answers into OutcomeUnknown. Tests are written for
+deduplication, resolution/tombstones, invalid/concurrent answers, refusal retry
+and uncertain recovery, but are not yet executed. This is storage behavior
+only: no actor or real provider steering is connected or claimed.

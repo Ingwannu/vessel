@@ -10,7 +10,7 @@ use vessel_proto::{
 
 use super::*;
 
-fn database() -> Connection {
+pub(super) fn database() -> Connection {
     let mut db = Connection::open_in_memory().unwrap();
     crate::schema::configure(&db).unwrap();
     crate::schema::migrate(&mut db).unwrap();
@@ -18,7 +18,7 @@ fn database() -> Connection {
     db
 }
 
-fn session(db: &Connection) -> SessionId {
+pub(super) fn session(db: &Connection) -> SessionId {
     let info = SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(

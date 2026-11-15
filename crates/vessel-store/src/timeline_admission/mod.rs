@@ -3,6 +3,7 @@
 //! production mutation must remain on the store writer's transaction.
 
 mod fingerprint;
+mod question;
 mod receipt;
 #[cfg(test)]
 mod tests;
@@ -30,6 +31,8 @@ CREATE TABLE timeline_admissions (
     state TEXT NOT NULL,
     PRIMARY KEY(session, kind, identity)
 ) STRICT, WITHOUT ROWID;
+CREATE UNIQUE INDEX timeline_question_request ON timeline_admissions
+    (session,json_extract(state,'$.question.id')) WHERE kind='question';
 CREATE TABLE timeline_admission_meta (
     singleton INTEGER NOT NULL PRIMARY KEY CHECK(singleton=1),
     records INTEGER NOT NULL CHECK(records>=0),
