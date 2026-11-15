@@ -1056,3 +1056,28 @@ nine root tests belong to that integration receipt, still awaited here;
 the app receives them through an announced base. No app ancestry is
 merged into the node line. Native appearance compatibility and E1's
 private-files/routes implementation remain separate unfinished work.
+
+
+### Same-package V4 return: previous failure belongs to the old draft
+
+V1 forwarded the final packet to V4 under the review-balance rule. V4
+row239 verified the exact six-step gate, exported binary and all56 images,
+but returned one actual consumer defect: typing after a failed save cleared
+the validation error only; the dialog still displayed Editing.refused.
+The retry-editable originals truthfully show the old failed-save sentence
+alongside the new draft. Those scenes are evidence of that defect, not a
+passed error-clearing state. Existing selection/pending/retry checks still
+have their recorded narrower outcomes; the package is not approved.
+
+Paseo rename-modal.handleChange clears all displayed error on edit. The
+correction keeps the existing TextField subscription and clears both
+previous validation and book refusal only while that rename is editable.
+Pending/mismatched-answer behavior and editing engine are unchanged. A real
+consumer regression renders the actual dialog, dispatches through a detached
+link, injects mismatched then matching failed answers, types through the
+real TextField and checks absent prior error, retained new draft and exact
+retry command. No model-only stand-in or network/file task is involved.
+Its execution and changed-source checks/export/affected scenes are owed;
+no unchanged whole gate or full matrix is requested by the return. The
+earlier sibling policy and disclosed typography/label adaptations stay
+separate.
