@@ -67,41 +67,9 @@ pub(super) fn render(
         } => {}
     }
     if let Some(snapshot) = model.read.shown() {
-        match Listed::of(&snapshot.scripts.commands) {
-            Some(listed) => {
-                if !listed.approved {
-                    body = body.child(ports::notice(words.approval(), tokens));
-                }
-                let mut card = rows(tokens);
-                for (index, entry) in listed.scripts.iter().map(Entry::of).enumerate() {
-                    let run = latest_run(entry.name, &snapshot.scripts.runs);
-                    card = card.child(divided(
-                        script_row(shell, entry, run, tokens, cx),
-                        index,
-                        tokens,
-                    ));
-                }
-                body = body.child(if listed.scripts.is_empty() {
-                    empty(words.empty(), tokens)
-                } else {
-                    card
-                });
-            }
-            None => body = body.child(empty(words.empty(), tokens)),
-        }
-        let mut retained = rows(tokens);
-        for (index, run) in retained_runs(&snapshot.scripts).into_iter().enumerate() {
-            if let Some(entry) = Entry::retained(run) {
-                retained = retained.child(divided(
-                    script_row(shell, entry, Some(run), tokens, cx),
-                    index,
-                    tokens,
-                ));
-            }
-        }
-        if !retained_runs(&snapshot.scripts).is_empty() {
-            body = body.child(section(words.retained(), None, retained, tokens));
-        }
+        body = body
+            .child(configured(shell, snapshot, tokens, cx))
+            .child(retained(shell, snapshot, tokens, cx));
         body = body.child(ports::scan(shell, tokens));
     }
     body = body
@@ -114,6 +82,57 @@ pub(super) fn render(
                 .child(words.host_hint()),
         );
     section(words.title(), Some(div().child(refresh)), body, tokens)
+}
+
+fn configured(
+    shell: &Shell,
+    snapshot: &vessel_app_view::workspace::scripts::Snapshot,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let words = shell.words.scripts();
+    let Some(listed) = Listed::of(&snapshot.scripts.commands) else {
+        return empty(words.empty(), tokens);
+    };
+    let mut body = div().flex().flex_col().gap(px(spacing::S3));
+    if !listed.approved {
+        body = body.child(ports::notice(words.approval(), tokens));
+    }
+    if listed.scripts.is_empty() {
+        return body.child(empty(words.empty(), tokens));
+    }
+    let mut card = rows(tokens);
+    for (index, entry) in listed.scripts.iter().map(Entry::of).enumerate() {
+        let run = latest_run(entry.name, &snapshot.scripts.runs);
+        card = card.child(divided(
+            script_row(shell, entry, run, tokens, cx),
+            index,
+            tokens,
+        ));
+    }
+    body.child(card)
+}
+fn retained(
+    shell: &Shell,
+    snapshot: &vessel_app_view::workspace::scripts::Snapshot,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let runs = retained_runs(&snapshot.scripts);
+    if runs.is_empty() {
+        return div();
+    }
+    let mut card = rows(tokens);
+    for (index, run) in runs.into_iter().enumerate() {
+        if let Some(entry) = Entry::retained(run) {
+            card = card.child(divided(
+                script_row(shell, entry, Some(run), tokens, cx),
+                index,
+                tokens,
+            ));
+        }
+    }
+    section(shell.words.scripts().retained(), None, card, tokens)
 }
 
 fn script_row(
@@ -132,35 +151,7 @@ fn script_row(
     } = entry;
     let model = &shell.areas.workspace.scripts.model;
     let state = run_state(run);
-    let mut actions = div().flex().flex_wrap().gap(px(spacing::S1_5));
-    if let Some(run) = run.filter(|run| run.status.is_live()) {
-        actions = actions
-            .child(action(
-                shell,
-                Action::Restart(run.id),
-                words.restart(),
-                format!("script-restart-{name}"),
-                tokens,
-                cx,
-            ))
-            .child(action(
-                shell,
-                Action::Stop(run.id),
-                words.stop(),
-                format!("script-stop-{name}"),
-                tokens,
-                cx,
-            ));
-    } else {
-        actions = actions.child(action(
-            shell,
-            Action::Run(name.clone()),
-            words.run(),
-            format!("script-run-{name}"),
-            tokens,
-            cx,
-        ));
-    }
+    let actions = row_actions(shell, name, run, tokens, cx);
     let pending = model
         .writing
         .as_ref()
@@ -220,6 +211,46 @@ fn script_row(
         .child(actions)
         .child(ports::for_run(shell, run, tokens, cx))
 }
+fn row_actions(
+    shell: &Shell,
+    name: &vessel_proto::scripts::ScriptName,
+    run: Option<&TerminalInfo>,
+    tokens: &Tokens,
+    cx: &Context<'_, Shell>,
+) -> Div {
+    let words = shell.words.scripts();
+    let mut actions = div().flex().flex_wrap().gap(px(spacing::S1_5));
+    if let Some(run) = run.filter(|run| run.status.is_live()) {
+        actions = actions
+            .child(action(
+                shell,
+                Action::Restart(run.id),
+                words.restart(),
+                format!("script-restart-{name}"),
+                tokens,
+                cx,
+            ))
+            .child(action(
+                shell,
+                Action::Stop(run.id),
+                words.stop(),
+                format!("script-stop-{name}"),
+                tokens,
+                cx,
+            ));
+    } else {
+        actions = actions.child(action(
+            shell,
+            Action::Run(name.clone()),
+            words.run(),
+            format!("script-run-{name}"),
+            tokens,
+            cx,
+        ));
+    }
+    actions
+}
+
 fn action(
     shell: &Shell,
     action: Action,

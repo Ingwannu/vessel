@@ -29,6 +29,11 @@ def main() -> None:
             address = urlparse(route)
             assert address.hostname in {"127.0.0.1", "localhost", "::1"}, "loopback routes only"
             assert address.port not in FORBIDDEN_PORTS, "live-preview route refused"
+    for pid in (root / "pids").read_text().splitlines():
+        process=Path("/proc") / str(int(pid))
+        assert process.stat().st_uid==os.geteuid(), "the fleet must belong to this development account"
+        assert (process / "exe").resolve()==target / "vesseld", "unexpected fleet process"
+        assert str(root).encode() in (process / "cmdline").read_bytes(), "process root mismatch"
     adapter = (root / "laptop-bin/claude-agent-acp").read_text()
     assert str(target / "fake-acp") in adapter, "a real adapter was refused"
     project = root / "work/script-lifecycle-fixture"
