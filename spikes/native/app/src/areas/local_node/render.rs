@@ -184,7 +184,8 @@ fn prompt_content(
     if matches!(prompt.intent, Intent::Quit) {
         footer.push(
             outline_button("local-quit-keep", words.keep_quit(), true, tokens)
-                .on_click(cx.listener(|shell, _event, _window, cx| {
+                .on_click(cx.listener(|shell, _event, window, cx| {
+                    shell.areas.local_node.prompt_dialog.dismissed(window, cx);
                     shell.areas.local_node.prompt = None;
                     shell.keep_local_node(true, cx);
                     crate::local_node::request_keep_quit(cx);
@@ -201,7 +202,8 @@ fn prompt_content(
         };
         footer.push(
             outline_button("local-confirm-interrupt", label, true, tokens)
-                .on_click(cx.listener(move |shell, _event, _window, cx| {
+                .on_click(cx.listener(move |shell, _event, window, cx| {
+                    shell.areas.local_node.prompt_dialog.dismissed(window, cx);
                     shell.areas.local_node.prompt = None;
                     match intent {
                         Intent::Quit => {
@@ -225,7 +227,8 @@ fn prompt_content(
     }
     footer.push(
         outline_button("local-confirm-cancel", words.cancel_quit(), true, tokens)
-            .on_click(cx.listener(|shell, _event, _window, cx| {
+            .on_click(cx.listener(|shell, _event, window, cx| {
+                shell.areas.local_node.prompt_dialog.dismissed(window, cx);
                 shell.areas.local_node.prompt = None;
                 cx.notify();
             }))
@@ -270,7 +273,8 @@ pub(crate) fn dialog(
             tokens,
             window,
             crate::areas::draft::compact(window),
-            |shell: &mut Shell, _window, cx| {
+            |shell: &mut Shell, window, cx| {
+                shell.areas.local_node.prompt_dialog.dismissed(window, cx);
                 shell.areas.local_node.prompt = None;
                 cx.notify();
             },
@@ -299,7 +303,8 @@ pub(crate) fn dialog(
         tokens,
         window,
         crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, cx| {
+        |shell: &mut Shell, window, cx| {
+            shell.areas.local_node.logs_dialog.dismissed(window, cx);
             shell.areas.local_node.logs = Logs::Closed;
             cx.notify();
         },

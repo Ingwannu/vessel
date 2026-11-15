@@ -53,3 +53,12 @@ desktop-cli = 명령줄 연동
 
 # Setup integration status read retry; this action does not install anything.
 desktop-retry = 다시 시도
+
+# Compact walkthrough progress; both values are the fixed opening's step positions.
+desktop-step-counter = { $total }단계 중 { $current }단계
+# Walkthrough appearance step description, below its title.
+desktop-appearance-note = 먼저 모양을 골라 보세요.
+# Walkthrough providers step description; uses the selected setup machine.
+desktop-providers-note = Vessel은 이 기기에 설치된 에이전트 CLI를 사용합니다.
+# Walkthrough projects step description, above project registration controls.
+desktop-projects-note = 에이전트가 작업할 프로젝트를 골라 보세요.

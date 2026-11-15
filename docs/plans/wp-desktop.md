@@ -162,3 +162,11 @@ stays above the current screen rather than navigating away from setup.
 These changes are source checkpoints. Their remote native type check and the
 combined root checks remain queued; no current-head runtime or capture claim is
 made from the older passing model/process suites.
+
+The package line's shared dialog dismissal/focus seam is now merged. Actual
+setup completion and local-node prompt/log dismissal acknowledge the shared
+DialogState only after closing; step changes keep the same opening cycle.
+Compact setup renders the fixed opening's current/total step counter and the
+step descriptions in English and Korean. The wide modal still uses the shared
+kit header/footer with an 880×640 bound and 200-point rail; this renderer reuse
+is a deliberate native composition difference from Paseo's rail-only brand header.

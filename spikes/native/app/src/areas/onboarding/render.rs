@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, button, button_with_kind, outline_button, settings,
 };
-use vessel_app_view::onboarding::{State, Step};
+use vessel_app_view::onboarding::{Open, State, Step, Visit};
 
 use crate::shell::Shell;
 
@@ -24,6 +24,17 @@ pub(super) fn title(shell: &Shell, step: Step) -> &str {
         Step::Projects => words.projects(),
         Step::Orchestration => words.orchestration(),
         Step::Phone => words.phone(),
+    }
+}
+
+fn description(shell: &Shell, step: Step) -> &str {
+    let words = shell.words.desktop();
+    match step {
+        Step::Appearance => words.appearance_note(),
+        Step::Providers => words.providers_note(),
+        Step::Projects => words.projects_note(),
+        Step::Orchestration => words.tools_note(),
+        Step::Phone => words.phone_note(),
     }
 }
 
@@ -68,6 +79,57 @@ pub(crate) fn dialog(
     let step = open.step();
     let visit = open.visit();
     let compact = crate::areas::draft::compact(window);
+    let ready = super::scope::actionable(shell);
+    let advancing = ready && (step != Step::Orchestration || !super::orchestration::busy(shell));
+    let content = if ready {
+        crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
+    } else {
+        div().child(super::scope::hint(shell)).into_any_element()
+    };
+    let current = open
+        .steps()
+        .iter()
+        .position(|item| *item == step)
+        .map_or(1, |index| index + 1);
+    let counter = words
+        .step_counter(&current.to_string(), &open.steps().len().to_string())
+        .unwrap_or_else(|_format| words.setup().to_owned());
+    let pane = div()
+        .flex()
+        .flex_col()
+        .flex_1()
+        .min_w_0()
+        .gap(px(S4))
+        .when(compact, |pane| pane.child(counter))
+        .child(title(shell, step).to_owned())
+        .child(description(shell, step))
+        .child(content);
+    let body = div()
+        .flex()
+        .flex_row()
+        .gap(px(S4))
+        .when(!compact, |body| body.child(rail(shell, open, tokens, cx)))
+        .child(pane);
+    let last = open.steps().last() == Some(&step);
+    let footer = footer(shell, step, visit, last, advancing, tokens, cx);
+    Some(kit_dialog(
+        &shell.areas.onboarding.dialog,
+        DialogContent {
+            title: words.setup().into(),
+            body: body.into_any_element(),
+            footer,
+            size: DialogSize::Setup,
+        },
+        tokens,
+        window,
+        compact,
+        |shell: &mut Shell, window, cx| shell.setup_complete(window, cx),
+        cx,
+    ))
+}
+
+fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let step = open.step();
     let mut rail = div()
         .flex()
         .flex_col()
@@ -88,29 +150,20 @@ pub(crate) fn dialog(
             })),
         );
     }
-    let ready = super::scope::actionable(shell);
-    let advancing = ready && (step != Step::Orchestration || !super::orchestration::busy(shell));
-    let content = if ready {
-        crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
-    } else {
-        div().child(super::scope::hint(shell)).into_any_element()
-    };
-    let pane = div()
-        .flex()
-        .flex_col()
-        .flex_1()
-        .min_w_0()
-        .gap(px(S4))
-        .child(title(shell, step).to_owned())
-        .child(content);
-    let body = div()
-        .flex()
-        .flex_row()
-        .gap(px(S4))
-        .when(!compact, |body| body.child(rail))
-        .child(pane);
-    let last = open.steps().last() == Some(&step);
-    let footer = vec![
+    rail
+}
+
+fn footer(
+    shell: &Shell,
+    step: Step,
+    visit: Visit,
+    last: bool,
+    advancing: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Vec<AnyElement> {
+    let words = shell.words.desktop();
+    vec![
         button("setup-skip", words.skip(), false, tokens)
             .when(last, |button| button.invisible())
             .on_click(cx.listener(|shell, _event, window, cx| shell.setup_complete(window, cx)))
@@ -138,19 +191,5 @@ pub(crate) fn dialog(
             )
         })
         .into_any_element(),
-    ];
-    Some(kit_dialog(
-        &shell.areas.onboarding.dialog,
-        DialogContent {
-            title: words.setup().into(),
-            body: body.into_any_element(),
-            footer,
-            size: DialogSize::Setup,
-        },
-        tokens,
-        window,
-        compact,
-        |shell: &mut Shell, window, cx| shell.setup_complete(window, cx),
-        cx,
-    ))
+    ]
 }

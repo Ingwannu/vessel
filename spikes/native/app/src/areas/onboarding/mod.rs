@@ -248,6 +248,7 @@ impl Shell {
     }
 
     fn persist_setup_completion(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.areas.onboarding.dialog.dismissed(window, cx);
         orchestration::leave(self);
         orchestration::closed(self);
         self.prefs.onboarding = Some(CompletionRecord {

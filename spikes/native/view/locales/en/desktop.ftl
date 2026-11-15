@@ -53,3 +53,12 @@ desktop-cli = Command-line integration
 
 # Setup integration status read retry; this action does not install anything.
 desktop-retry = Try again
+
+# Compact walkthrough progress; both values are the fixed opening's step positions.
+desktop-step-counter = Step { $current } of { $total }
+# Walkthrough appearance step description, below its title.
+desktop-appearance-note = Let's start by picking a look.
+# Walkthrough providers step description; uses the selected setup machine.
+desktop-providers-note = Vessel runs the agent CLIs installed on this machine.
+# Walkthrough projects step description, above project registration controls.
+desktop-projects-note = Choose where your agents will work.
