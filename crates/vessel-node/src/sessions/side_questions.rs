@@ -52,9 +52,10 @@ impl Sessions {
 ///
 /// [Decision Log]
 /// - Purpose: between a session's end and the store serving it, its log is
-///   still being written; a side question's reset and `session.delete`
-///   arriving in that gap were refused at once (`LogWriting`), which a
-///   client that just saw the end (its stream closed) cannot avoid.
+///   still being written. A side question's reset already waited for the
+///   hand-over (with this same budget); `session.delete` arriving in that
+///   gap was refused at once (`LogWriting`), which a client that just saw
+///   the end (its stream closed) cannot avoid. Delete now waits too.
 /// - Reference: Paseo's delete closes the agent and then flushes its queued
 ///   persistence before removing it (server/session.ts
 ///   handleDeleteAgentRequest), so it waits rather than refusing.
