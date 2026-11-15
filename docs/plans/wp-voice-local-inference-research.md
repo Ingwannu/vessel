@@ -73,3 +73,18 @@ read separately; they do not establish this release asset's provenance.
 No inference dependency/model was selected, linked or executed. The coordinator
 was asked to confirm ownership/slicing of this prerequisite while endpoint and
 fake-driven capture/playback/UI work continues. LocalNotBuilt remains explicit.
+
+Coordinator ruling10:3x: local speech runtime/distribution remains W19's later
+slice after endpoint B4, with no second owner. Before any further model/native
+runtime download, shipment or load, submit an ADR0080 amendment to V3 naming
+exact archives, hashes, licenses/third-party notices and a Vessel notice file.
+The Kokoro espeak-ng data requires explicit GPL handling or a different model;
+it is not approved by the root model's Apache notice. Previously fetched
+research candidates remain isolated scratch; none was linked, loaded, shipped
+or enabled as a product download. No further candidate/model download is made.
+
+Endpoint STT/TTS still needs a real reference-compatible turn detector: the pure
+Silero boundary is not an inference engine. A minimal VAD/runtime amendment must
+precede that activation too. Until then endpoint mechanisms can be tested with
+typed detector fakes, but neither endpoint success nor those fakes advertise
+working conversation voice.
