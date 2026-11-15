@@ -428,7 +428,7 @@ Half-done: staged input source and eleven tests cover held-tail acknowledgement,
 matching finish, gap unlocking one chunk at a time, duplicate/overflow priority,
 unchanged state on bad shape, count/byte reorder bounds, current-chunk admission
 with full holds, duration, finish without audio and filling gaps after finish.
-Narrow clippy and all eleven input tests pass; this commit's whole gate remains
+Narrow clippy and all eleven input tests pass; the package's whole gate remains
 owed. The pure owner does not test canceled RPC replies or provider backpressure; those remain actor tests.
 
 ## Transcript and finish arithmetic implementation
@@ -446,7 +446,7 @@ results, empty/interior spacing, JS edges, pending counts and aggregate UTF-8/
 separator limits before join allocation. Budget covers independent terms, the
 whole unacknowledged suffix, fractional rounding, zero floor and saturation at
 the shared wire cap. Narrow node/proto clippy and all 49 staged dictation tests
-pass; the exact commit's whole gate is still owed.
+pass; the package's whole gate is still owed.
 
 ## Unregistered request and update values
 
@@ -461,4 +461,17 @@ Half-done: four value tests for ack omission/negative refusal, forward decoding,
 redacted parent Debug plus nested PCM validation, and model-bearing refusal.
 No method row, client method, ErrorDetail variant, NodeSettings field or protocol
 assignment is added. Narrow proto clippy and the four value tests pass; TS
-regeneration tests pass with no generated diff. The whole gate remains owed.
+regeneration tests pass with no generated diff. The package gate remains owed.
+
+## Bounded update ownership
+
+Decision: a pure outgoing buffer, reusing Transcript and Tokio oneshot replies.
+It owns two partials, one terminal and one waiter. Generic failure payloads keep
+typed internal causes out of this buffer's policy, ready for the RPC boundary.
+Failed delivery restores ownership synchronously; no update is coalesced, and
+a later terminal is returned instead of replacing the first.
+
+Narrow clippy and four buffer tests pass: backpressure/FIFO, canceled response
+restoration, extra-wait refusal/replacement and immutable selected terminal.
+This proves the buffer only; actor control races, provider job
+cancellation and quota/connection integration remain the package's tests.

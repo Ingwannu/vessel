@@ -19,3 +19,4 @@ mod owner;
 mod provider_json;
 mod roots;
 mod text;
+mod updates;
