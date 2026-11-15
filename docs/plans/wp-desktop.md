@@ -387,3 +387,9 @@ GPUI/OS-exit/node integration and Windows/macOS remain unverified.
 The reserved ManagedLocal actor transition mechanics and weak-observer lifetime
 are recorded in [desktop-managed-admission-order.md](desktop-managed-admission-order.md).
 This preparation does not lift the W2/W12 product-promotion source hold.
+
+Quit refusal distinguishes state-persistence failure from the typed node-control
+failure. Preferences/geometry errors do not claim the local node could not stop
+and cannot offer interruption approval. Only an actual ActiveSessions snapshot
+from the controller opens that fixed process confirmation. Update state-flush
+failure uses the same localized save/retry notice after releasing finalization.

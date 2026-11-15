@@ -6,3 +6,6 @@ quit-documents-pending = 문서 쓰기가 끝난 뒤 다시 시도하세요.
 quit-documents-failed = 저장하지 못한 문서가 있습니다. 편집기에서 해결한 뒤 종료하거나 다시 시작하세요.
 # Additional window close waits for the already admitted app quit/update attempt.
 quit-finalizing = Vessel이 현재 종료 또는 다시 시작 요청을 처리하고 있습니다.
+
+# Saving app preferences/window state failed; this does not claim a node stop failure.
+quit-state-unsaved = 설정 또는 창 위치를 저장하지 못해 Vessel을 열어 두었습니다. 다시 시도하세요.

@@ -152,7 +152,7 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
             return;
         }
         if let Err(error) = before.await {
-            cx.update(|cx| failed(cx, &error, None));
+            cx.update(|cx| failed(cx, &error, Failure::State));
             return;
         }
         let after = after.unwrap_or_else(|| {
@@ -169,27 +169,39 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
                         end_finalization(cx);
                     }
                 }),
-                Err(error) => cx.update(|cx| failed(cx, &error, None)),
+                Err(error) => cx.update(|cx| failed(cx, &error, Failure::State)),
             },
-            Err(error) => cx.update(|cx| failed(cx, &error, error.failure_snapshot().cloned())),
+            Err(error) => {
+                cx.update(|cx| failed(cx, &error, Failure::Node(error.failure_snapshot().cloned())))
+            }
         }
     })
     .detach();
 }
 
-pub(crate) fn failed(
-    cx: &mut App,
-    error: &dyn std::fmt::Display,
-    snapshot: Option<vessel_app_link::local_node::Snapshot>,
-) {
+enum Failure {
+    State,
+    Node(Option<vessel_app_link::local_node::Snapshot>),
+}
+
+fn failed(cx: &mut App, error: &dyn std::fmt::Display, failure: Failure) {
     tracing::warn!(%error,"quit finalization did not complete; app remains open");
     end_finalization(cx);
     if cx.windows().is_empty() {
         crate::desktop::open_additional(cx);
     }
     crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
-        shell.local_node_quit_refused(snapshot);
-        shell.notice = Some(shell.words.local_node().quit_refused().to_owned());
+        let message = match failure {
+            Failure::State => {
+                shell.local_node_quit_refused(None);
+                shell.words.quit().state_unsaved()
+            }
+            Failure::Node(snapshot) => {
+                shell.local_node_quit_refused(snapshot);
+                shell.words.local_node().quit_refused()
+            }
+        };
+        shell.notice = Some(message.to_owned());
         cx.notify();
     });
 }

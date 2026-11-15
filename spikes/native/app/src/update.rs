@@ -306,7 +306,7 @@ impl Shell {
                 tracing::warn!(%error, "update restart could not flush canonical preferences");
                 cx.update(crate::local_node::end_finalization);
                 let _closed = this.update(cx, |shell, cx| {
-                    shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
+                    shell.notice = Some(shell.words.quit().state_unsaved().to_owned());
                     cx.notify();
                 });
                 return;
