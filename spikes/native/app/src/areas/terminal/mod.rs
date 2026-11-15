@@ -13,6 +13,8 @@ mod draw;
 mod grid;
 mod presentation;
 mod replay;
+#[cfg(test)]
+mod row_reuse_tests;
 mod scroll;
 #[cfg(test)]
 mod scroll_tests;
