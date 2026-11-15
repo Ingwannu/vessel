@@ -222,6 +222,7 @@ pub(crate) struct LocalGateway {
     pub(crate) token: Arc<NodeToken>,
     pub(crate) connections: TaskTracker,
     pub(crate) agents: AgentGateway,
+    pub(crate) terminals: Arc<crate::terminals::Terminals>,
 }
 
 /// What an agent's connection needs: its own server, closed with its
@@ -258,6 +259,8 @@ enum Admitted {
     Owner,
     /// A session's agent, closed when its session ends.
     Agent(Principal, Registration),
+    /// An activity-only handler, with no owner/agent principal at all.
+    Terminal(vessel_session::terminals::TerminalHandle, CancellationToken),
 }
 
 /// Accept local connections until `stop` is cancelled.
@@ -319,6 +322,15 @@ where
     };
     let served = match admitted {
         Admitted::Owner => gateway.rpc.serve(framed, Connection::owner).await,
+        Admitted::Terminal(handle, closing) => {
+            let server = Server::new(
+                Arc::new(crate::terminals::ActivityProducer::new(handle)),
+                gateway.agents.info.clone(),
+                gateway.agents.config.clone(),
+                closing,
+            );
+            server.serve(framed, |_peer| ()).await
+        }
         Admitted::Agent(principal, registration) => {
             let agent = &gateway.agents;
             let server = Server::new(
@@ -343,6 +355,14 @@ where
 /// object); `None` for anything else.
 fn admit(gateway: &LocalGateway, frame: &str) -> Option<Admitted> {
     if frame.starts_with('{') {
+        if let Ok(auth) =
+            serde_json::from_str::<vessel_proto::notifications::TerminalActivityAuth>(frame)
+        {
+            return gateway
+                .terminals
+                .admit_producer(&auth)
+                .map(|(handle, closing)| Admitted::Terminal(handle, closing));
+        }
         let auth: AgentAuth = serde_json::from_str(frame).ok()?;
         let (principal, registration) = gateway
             .agents

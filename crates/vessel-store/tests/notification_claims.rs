@@ -95,10 +95,13 @@ async fn simultaneous_admission_is_once_only_and_survives_restart() {
     store.close().await;
 }
 
-#[tokio::test]
-async fn revocation_before_a_queued_claim_and_read_before_confirmation_suppress_delivery() {
-    let (_temp, dir) = data_dir();
-    let store = open(&dir, StoreConfig::default()).await;
+async fn permission_source(
+    store: &vessel_store::Store,
+) -> (
+    vessel_proto::SessionId,
+    vessel_proto::PermissionId,
+    PushAttention,
+) {
     let mut info = new_session(0);
     info.spec.mode = SessionMode::Structured {
         model: None,
@@ -136,6 +139,13 @@ async fn revocation_before_a_queued_claim_and_read_before_confirmation_suppress_
         key: entry.key,
         cursor: entry.cursor,
     };
+    (info.id, request_id, source)
+}
+#[tokio::test]
+async fn a_revoked_device_cannot_claim_the_owners_current_permission() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let (_session, _request, source) = permission_source(&store).await;
     let device = DeviceId::random();
     store
         .add_device(
@@ -158,6 +168,20 @@ async fn revocation_before_a_queued_claim_and_read_before_confirmation_suppress_
             .await,
         Err(StoreError::NotificationDenied)
     ));
+    assert_eq!(
+        store
+            .claim_notification(NotificationAuthority::Owner, source)
+            .await
+            .unwrap(),
+        LocalAdmission::Admitted
+    );
+    store.close().await;
+}
+#[tokio::test]
+async fn read_and_exact_resolution_after_commit_suppress_notification_delivery() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let (session, request_id, source) = permission_source(&store).await;
     assert_eq!(
         store
             .claim_notification(NotificationAuthority::Owner, source)
@@ -193,7 +217,7 @@ async fn revocation_before_a_queued_claim_and_read_before_confirmation_suppress_
     );
     store
         .append(
-            info.id,
+            session,
             vec![record(
                 1,
                 SessionEvent::Agent {

@@ -31,14 +31,15 @@ async fn only_elected_connection_can_consume_a_source_and_consumption_is_once() 
     let first = PresenceId::new();
     let second = PresenceId::new();
     for caller in [first, second] {
-        push.present(
-            caller,
-            ReportPushPresence {
-                focus: PushFocus::Elsewhere,
-                activity: PushActivity::Active,
-            },
-        )
-        .unwrap();
+        let _watch = push
+            .present(
+                caller,
+                ReportPushPresence {
+                    focus: PushFocus::Elsewhere,
+                    activity: PushActivity::Active,
+                },
+            )
+            .unwrap();
     }
     let elected = if push.recipient(first, target) == NotificationClaim::Admitted {
         first
@@ -109,28 +110,30 @@ async fn visible_source_suppresses_claim_without_spending_the_opportunity() {
             .unwrap(),
         NotificationClaim::NoPresentClient
     );
-    push.present(
-        caller,
-        ReportPushPresence {
-            focus: PushFocus::Session { session: target },
-            activity: PushActivity::Active,
-        },
-    )
-    .unwrap();
+    let _watch = push
+        .present(
+            caller,
+            ReportPushPresence {
+                focus: PushFocus::Session { session: target },
+                activity: PushActivity::Active,
+            },
+        )
+        .unwrap();
     assert_eq!(
         push.claim_session(caller, NotificationAuthority::Owner, source)
             .await
             .unwrap(),
         NotificationClaim::Suppressed
     );
-    push.present(
-        caller,
-        ReportPushPresence {
-            focus: PushFocus::Elsewhere,
-            activity: PushActivity::Unchanged,
-        },
-    )
-    .unwrap();
+    let _watch = push
+        .present(
+            caller,
+            ReportPushPresence {
+                focus: PushFocus::Elsewhere,
+                activity: PushActivity::Unchanged,
+            },
+        )
+        .unwrap();
     assert_eq!(
         push.claim_session(caller, NotificationAuthority::Owner, source)
             .await

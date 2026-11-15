@@ -2,9 +2,32 @@
 //! Calls live only in the shared method table; the integrator assigns their
 //! protocol after routing, semantic producers and consumers are reviewed.
 use crate::inbox::{InboxCursor, InboxKey};
+use crate::key::secret;
 use crate::{ProtocolVersion, TerminalId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+secret! {
+    /// A local terminal's activity-only capability. Never grants session,
+    /// filesystem, inbox, push, or normal node-operation authority.
+    TerminalActivitySecret, 32
+}
+/// Local IPC authentication for an activity-only terminal producer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct TerminalActivityAuth {
+    /// The only terminal this capability can report on.
+    pub terminal: TerminalId,
+    /// Short-lived capability, redacted by Debug and invalid after terminal end.
+    pub secret: TerminalActivitySecret,
+}
+/// Environment name of the exact terminal activity target.
+pub const TERMINAL_ACTIVITY_ID_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_ID";
+/// Environment name of the terminal's activity-only credential.
+pub const TERMINAL_ACTIVITY_SECRET_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_SECRET";
+/// Local socket or named-pipe endpoint; never a newly opened hook listener.
+pub const TERMINAL_ACTIVITY_SOCKET_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_SOCKET";
 
 /// Unassigned until node admission, terminal producers, native rendering and
 /// exact-source older-peer refusal are available together at integration.
@@ -177,8 +200,10 @@ pub enum TerminalActivitySignal {
 pub struct ReportTerminalActivity {
     /// Terminal owned by the authenticated producer or person.
     pub terminal: TerminalId,
-    /// Revision the producer is advancing; stale producers receive Conflict.
-    pub revision: TerminalAttentionRevision,
+    /// Normal clients must name the observed revision. An activity-only
+    /// producer may omit it to advance its own terminal's current state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision: Option<TerminalAttentionRevision>,
     /// Explicit semantic lifecycle signal, never decoded PTY output text.
     pub signal: TerminalActivitySignal,
 }

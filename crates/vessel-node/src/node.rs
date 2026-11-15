@@ -182,6 +182,7 @@ impl Node {
             rpc,
             token,
             connections,
+            terminals: secure.service.0.terminal_producers(),
             agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
         };
         let task = tokio::spawn(serve(
@@ -423,6 +424,7 @@ async fn core(
     // Terminals beside sessions (protocol 11, ADR 0031): the node's tasks,
     // so its stop ends them and waits for their ends; memory only.
     let terminals = Terminals::new(Runner {
+        endpoint: Endpoint::of(&config.data_dir, id),
         config: Arc::new(config.terminals.clone()),
         shutdown: stop.clone(),
         tasks: tasks.clone(),

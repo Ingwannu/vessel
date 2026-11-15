@@ -125,3 +125,36 @@ Resume: contract proposal only. No new call is registered. Value contracts and t
 producer report carries the exact observed revision; stale hooks conflict
 instead of completing a newer run. Next are store admission tests, connection
 policy integration, then pending Quality B rows and older-peer projections.
+
+## Activity-only local producer capability
+
+Paseo CLI hooks.ts uses per-terminal activity attribution and silently ignores
+missing setup or failed reports. Vessel uses the existing local IPC endpoint,
+not another HTTP listener. A TerminalActivityAuth frame authenticates a random
+256-bit per-terminal secret; only its constant-time-verified hash is retained.
+The capability is injected into a shell only after the protocol is assigned,
+with an exact terminal id and socket/pipe path. Its credential dies at terminal
+end, explicit removal or node shutdown. Inherited hook target/secret/socket are
+scrubbed before another terminal receives its own capability. CommandSpec Debug
+already hides environment values; the new auth/secret Debug is redacted too.
+
+[Decision Log]
+- Purpose: a CLI/provider hook may report its own terminal without acquiring
+  owner, agent, session, inbox, filesystem or push authority.
+- Existing constraints: normal terminal.activity requires Operate and the exact
+  observed revision, but a hook must work without a general node credential.
+- Alternatives: fabricate an owner/agent principal; add a public HTTP hook port;
+  add a terminal role to every principal match and hope other methods refuse it.
+- Choice: a separate ActivityProducer Handler generated from the same one method
+  table. It holds only TerminalHandle, accepts only ReportTerminalActivity for
+  that id, and rejects every other current or future method by construction.
+- Why: no general principal is fabricated and no second method list or listener
+  is introduced. Local capability authentication precedes the usual handshake.
+- Impact: normal clients still require a revision; this activity-only handler may
+  advance its own current revision when absent. Explicit supplied stale revisions
+  still conflict. This never writes session turn state. CLI maps provider events
+  to the semantic signal and retains its bounded, silent failure behavior.
+
+The producer contract, environment injection, closure/denial tests and actual
+CLI consumer must pass before the feature's pending protocol is assigned. A
+wire test with the final assigned protocol remains required at integration.

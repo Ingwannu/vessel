@@ -9,7 +9,7 @@ use vessel_store::{LocalAdmission, NotificationAuthority, PushAttention};
 
 impl Push {
     /// Stable ordering breaks equal-activity ties identically on every claim,
-    /// unlike HashMap iteration. No lock is held across a store operation.
+    /// unlike `HashMap` iteration. No lock is held across a store operation.
     pub(crate) fn recipient(&self, caller: PresenceId, session: SessionId) -> NotificationClaim {
         self.recipient_for(caller, vessel_proto::push::PushFocus::Session { session })
     }

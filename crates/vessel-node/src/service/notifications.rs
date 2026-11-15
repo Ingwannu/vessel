@@ -32,6 +32,10 @@ fn activity_error(error: vessel_session::terminals::AttentionError) -> WireError
     WireError::new(code, error.to_string())
 }
 impl NodeService {
+    pub(crate) fn terminal_producers(&self) -> std::sync::Arc<crate::terminals::Terminals> {
+        std::sync::Arc::clone(&self.terminals)
+    }
+
     pub(crate) async fn claim_notification(
         &self,
         connection: &Connection,
@@ -63,7 +67,7 @@ impl NodeService {
             NotificationSource::Terminal { terminal, revision } => {
                 let entry = self
                     .terminal_for(connection.principal(), terminal)
-                    .map_err(|error| error.wire())?;
+                    .map_err(crate::terminals::TerminalsError::wire)?;
                 if let NotificationAuthority::Device(device) = authority {
                     let granted = self
                         .devices
@@ -86,7 +90,14 @@ impl NodeService {
             }
         }
     }
-    pub(crate) async fn clear_terminal_attention(
+    pub(crate) fn clear_terminal_attention(
+        &self,
+        connection: &Connection,
+        request: ClearTerminalAttention,
+    ) -> std::future::Ready<Result<TerminalAttention, WireError>> {
+        std::future::ready(self.clear_terminal_attention_now(connection, request))
+    }
+    fn clear_terminal_attention_now(
         &self,
         connection: &Connection,
         request: ClearTerminalAttention,
@@ -99,23 +110,38 @@ impl NodeService {
         }
         let entry = self
             .terminal_for(connection.principal(), request.terminal)
-            .map_err(|error| error.wire())?;
+            .map_err(crate::terminals::TerminalsError::wire)?;
         entry
             .handle
             .clear_attention(request.revision)
             .map_err(activity_error)
     }
-    pub(crate) async fn report_terminal_activity(
+    pub(crate) fn report_terminal_activity(
+        &self,
+        connection: &Connection,
+        request: ReportTerminalActivity,
+    ) -> std::future::Ready<Result<TerminalAttention, WireError>> {
+        std::future::ready(self.report_terminal_activity_now(connection, request))
+    }
+    fn report_terminal_activity_now(
         &self,
         connection: &Connection,
         request: ReportTerminalActivity,
     ) -> Result<TerminalAttention, WireError> {
         let entry = self
             .terminal_for(connection.principal(), request.terminal)
-            .map_err(|error| error.wire())?;
+            .map_err(crate::terminals::TerminalsError::wire)?;
         entry
             .handle
-            .report_activity(request.revision, request.signal)
+            .report_activity(
+                request.revision.ok_or_else(|| {
+                    WireError::new(
+                        ErrorCode::InvalidRequest,
+                        "normal clients must supply the observed terminal revision",
+                    )
+                })?,
+                request.signal,
+            )
             .map_err(activity_error)
     }
 }

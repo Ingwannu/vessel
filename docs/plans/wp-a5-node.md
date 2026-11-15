@@ -49,3 +49,13 @@ before other variants, corrected. Subsequent contract clippy/tests are pending.
 Size gate is blocked solely by shared rpc.rs 503/500 with the three added rows;
 requested W17's approved contract extraction from the integrator. No budget raised.
 No whole gate, V3 security review or app consumer handover has occurred.
+
+## Producer extension
+
+Activity-only local authentication now reuses the existing IPC transport with
+TerminalActivityAuth and a generated, deliberately restricted Handler holding
+only TerminalHandle. No new Principal variant, public listener or second method
+table is introduced. Normal clients still need Operate/ownership/exact revision;
+the hook capability can advance only its own terminal. W17 owns CLI hook grammar
+and bounded silent invocation, waiting for the reviewed DTO/hash before wiring.
+Capability/env injection and denial tests are drafted, not yet compile verified.
