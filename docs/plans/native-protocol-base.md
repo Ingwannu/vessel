@@ -131,3 +131,20 @@ when this integration began; the package parent is `8d5513e4`. Their
 histories are retained by a merge commit. The node's exported table and
 Option-valued admission decision are documented in `rpc.rs` and
 `rpc/since.rs`; no new Paseo behaviour is introduced by this integration.
+
+### Updated package seams
+
+The subsequent accepted package base `6036eeb8` is retained as another
+merge parent. It supplies optional node identity on the machine that
+answered a book entry, extracts shared kit field events, and shares typed
+retained-input editability while preserving existing field callers. These
+changes stay where the package lead placed them. No protocol adapter or
+second implementation is added here. The whole native gate must run again
+because these accepted native sources differ from the earlier package
+parent; the earlier native pass is historical evidence, not final proof.
+
+The root gate's bootstrap-history case exposed the already documented
+sidebar-before-verified-welcome race. Its owner supplies the node-head
+receipt-wait test fix and slow-welcome regression. Only the integrator's
+announced fix head is merged; this integration does not edit or weaken the
+shared test. Both whole gates then validate the final combined commit.
