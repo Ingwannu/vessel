@@ -653,3 +653,11 @@ field assertions into small test helpers. Its real focus, typed input, Enter,
 sibling-isolation and retained-engine assertions stay unchanged; the split keeps
 the test within the same function budget as product code without a lint waiver.
 This is source preparation, not a new test execution claim.
+
+Run wp-side-narrow-20261115T143210Z-975c9de5 finished with actual native
+cargo rc101. App reported a sibling test helper's private method, the viewport
+arithmetic lint, two deferred callback semicolons and a collapsible validation
+branch. The fixture now names its retained form directly, the existing pixel
+conversion uses the same one-half ratio through mul_add, and callback/validation
+formatting follows the strict lint rules. No lint waiver or size record changed.
+This failed run does not prove runtime behavior or the later input-visit changes.

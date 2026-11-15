@@ -50,7 +50,7 @@ pub(crate) fn card<P: Place>(
             .any(|question| area.answering.get(question.id).is_none())
     {
         cx.defer_in(window, |shell, window, cx| {
-            shell.question_prepare::<P>(window, cx)
+            shell.question_prepare::<P>(window, cx);
         });
     }
     let cards: Vec<_> = pending
@@ -84,7 +84,7 @@ pub(crate) fn card_at<P: Place>(
         .find(|question| question.id == id)?;
     let Some(answering) = area.answering.get(id) else {
         cx.defer_in(window, |shell, window, cx| {
-            shell.question_prepare::<P>(window, cx)
+            shell.question_prepare::<P>(window, cx);
         });
         return None;
     };

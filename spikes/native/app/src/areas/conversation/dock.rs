@@ -89,7 +89,11 @@ pub(crate) fn requests<P: Place>(
             vec![
                 div()
                     .id("pending-request-stack")
-                    .max_h(window.viewport_size().height * REQUEST_HEIGHT_FRACTION)
+                    .max_h(px(window
+                        .viewport_size()
+                        .height
+                        .as_f32()
+                        .mul_add(REQUEST_HEIGHT_FRACTION, 0.0)))
                     .overflow_y_scroll()
                     .flex()
                     .flex_col()

@@ -217,7 +217,7 @@ fn dismiss_progress_belongs_to_the_clicked_action_even_when_the_answer_is_accept
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         prepare(shell, false, window, cx);
-        let id = shell.first_question::<SessionPlace>().unwrap();
+        let id = shell.areas.conversation.answering.as_ref().unwrap().id;
         let question = waiting_at::<SessionPlace>(shell, id).unwrap();
         let values = std::collections::BTreeMap::new();
         shell.question_send::<SessionPlace>(

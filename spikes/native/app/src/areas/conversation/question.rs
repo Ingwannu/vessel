@@ -358,10 +358,10 @@ impl Shell {
                     step.field.name == *name || step.other.is_some_and(|other| other.name == *name)
                 })
             });
-            if let Some(area) = (P::SEAT.get_mut)(self) {
-                if let Some(form) = area.answering.get_mut(id) {
-                    form.validation = Some(message);
-                }
+            if let Some(area) = (P::SEAT.get_mut)(self)
+                && let Some(form) = area.answering.get_mut(id)
+            {
+                form.validation = Some(message);
             }
             if let Some(at) = at {
                 self.question_show_at::<P>(id, at, window, cx);
