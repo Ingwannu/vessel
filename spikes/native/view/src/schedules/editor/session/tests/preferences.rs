@@ -60,7 +60,7 @@ fn fresh_choices_restore_only_offered_selection_categories_and_never_override_a_
         panic!("not a new session");
     };
     assert!(
-        matches!(spec.mode, SessionMode::Structured { model: None, ref options, .. } if options == &[pick("old-model")])
+        matches!(spec.mode, SessionMode::Structured { model: None, ref options, .. } if options.as_slice() == [pick("old-model")].as_slice())
     );
     assert!(model.close(opened.visit));
     let _next = model

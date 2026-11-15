@@ -482,4 +482,4 @@ schedules-form-model-retrying = 다시 시도 중...
 schedules-form-model-no-matches = 검색과 일치하는 모델이 없습니다
 
 # Local preference persistence failed before the schedule RPC; no node action occurred.
-schedules-failed-preferences = 모델 선택 사항을 저장하지 못해 예약을 보내지 않았습니다. 이 기기의 저장 공간을 확인한 뒤 다시 시도하세요.
+schedules-failed-preferences = 모델 선택 사항을 저장하지 못해 예약을 보내지 않았습니다.

@@ -1731,3 +1731,15 @@ lineHeight; this is not a claim that source explicitly declares16. Literal
 both-theme font/ink/no-chrome/wrap tests are authored, actual first-use is owed.
 Targets/read-only/typed local failures retain their separately applicable Alert
 profiles; no area colour/geometry override or input engine was added.
+
+
+Preference projection uses only the first named Model/ThoughtLevel/Mode select
+slots, in the agent's original option order, matching the existing Controls
+projection. Duplicate or unrelated categories are not silently persisted. Before
+mutating the current-launch cache, the app verifies the original pending mailbox
+and compares the canonical Prefs readback to the requested choices. Existing
+choice bounds/defaults remain unchanged; lossy filtering is a local refusal,
+not successful persistence followed by a schedule write. The error copy avoids
+guessing that every local refusal is a full disk. A scoped snapshot regression
+covers exact readback, untouched host/settings/folders and the legacy byte bound;
+all new source still awaits checks/first-use.

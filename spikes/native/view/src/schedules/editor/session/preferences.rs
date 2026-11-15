@@ -4,11 +4,18 @@ use super::{Model, Visit};
 use vessel_proto::{
     ChoiceValue, HarnessRef, OptionCategory, OptionChoice, OptionKind, SessionMode,
 };
-fn remembered_category(category: OptionCategory) -> bool {
-    matches!(
-        category,
-        OptionCategory::Model | OptionCategory::ThoughtLevel | OptionCategory::Mode
-    )
+const REMEMBERED_CATEGORIES: [OptionCategory; 3] = [
+    OptionCategory::Model,
+    OptionCategory::ThoughtLevel,
+    OptionCategory::Mode,
+];
+fn named_option(
+    options: &[vessel_proto::SessionOption],
+    category: OptionCategory,
+) -> Option<&vessel_proto::SessionOption> {
+    options.iter().find(|option| {
+        option.category == category && matches!(&option.kind, OptionKind::Select { .. })
+    })
 }
 impl Model {
     /// Prefer the remembered available provider for a fresh project, else the first available one.
@@ -44,22 +51,25 @@ impl Model {
         let options = self.options()?;
         let picks = picks_for(spec, options)?;
         let offered = crate::with_picks(&options.options, &picks);
+        let named = REMEMBERED_CATEGORIES.map(|category| named_option(&offered, category));
         Some(
             offered
-                .into_iter()
+                .iter()
                 .filter_map(|option| {
-                    if !remembered_category(option.category) {
+                    if !named.iter().flatten().any(|entry| entry.id == option.id) {
                         return None;
                     }
-                    let OptionKind::Select { current, values } = option.kind else {
+                    let OptionKind::Select { current, values } = &option.kind else {
                         return None;
                     };
                     values
                         .iter()
-                        .any(|value| value.id == current)
+                        .any(|value| value.id == *current)
                         .then_some(OptionChoice {
-                            id: option.id,
-                            value: ChoiceValue::Select { value: current },
+                            id: option.id.clone(),
+                            value: ChoiceValue::Select {
+                                value: current.clone(),
+                            },
                         })
                 })
                 .collect(),
@@ -87,10 +97,12 @@ impl Model {
         let mut changed = false;
         for choice in choices {
             let relevant = self.options().is_some_and(|options| {
-                options
-                    .options
-                    .iter()
-                    .any(|option| option.id == choice.id && remembered_category(option.category))
+                options.options.iter().any(|option| {
+                    REMEMBERED_CATEGORIES.iter().any(|category| {
+                        named_option(&options.options, *category)
+                            .is_some_and(|named| named.id == choice.id)
+                    })
+                })
             });
             if relevant {
                 changed = self.option(visit, choice.clone()) || changed;

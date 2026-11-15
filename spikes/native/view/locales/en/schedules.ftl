@@ -482,4 +482,4 @@ schedules-form-model-retrying = Retrying...
 schedules-form-model-no-matches = No models match your search
 
 # Local preference persistence failed before the schedule RPC; no node action occurred.
-schedules-failed-preferences = Could not save these model choices. No schedule was sent. Check this device’s storage and try again.
+schedules-failed-preferences = Could not save these model choices. No schedule was sent.
