@@ -35,6 +35,12 @@ fn revision(value: RegistryRevision) -> Result<i64, StoreError> {
 
 pub(crate) fn apply(connection: &Connection, mutation: &RegistryWrite) -> Result<(), StoreError> {
     match mutation {
+        RegistryWrite::RecoverCreating => {
+            let changed = connection.execute("UPDATE workspace_registry_reservations SET stage='uncertain' WHERE stage='creating'",[])?;
+            if changed == 0 {
+                return Ok(());
+            }
+        }
         RegistryWrite::Workspace { record, expected } => put(connection, record, *expected)?,
         RegistryWrite::Membership {
             workspace,

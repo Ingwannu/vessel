@@ -28,6 +28,9 @@ mod forge;
 mod git;
 mod policy;
 mod projects;
+// Staged until the registry RPC wiring uses the shared pending method table.
+#[cfg(test)]
+mod registry;
 mod roots;
 mod scripts;
 mod setup;
@@ -225,6 +228,7 @@ impl Workspaces {
         .await;
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
+        store.recover_registry_reservations().await?;
         let workspaces = Arc::new(Self {
             git: found.git,
             support: found.support,

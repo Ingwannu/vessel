@@ -92,6 +92,7 @@ pub struct RegistryReservation {
 /// One writer transaction applies a mutation and bumps the snapshot version.
 #[derive(Debug)]
 pub(crate) enum RegistryWrite {
+    RecoverCreating,
     Completed(Box<RegistryRecord>),
     Workspace {
         record: Box<RegistryRecord>,

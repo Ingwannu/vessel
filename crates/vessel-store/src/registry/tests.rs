@@ -234,3 +234,70 @@ fn failed_mutation_rolls_back_even_when_global_revision_is_exhausted() {
     ));
     assert!(workspace(&db, first.descriptor.id).unwrap().is_none());
 }
+
+#[test]
+fn restart_marks_interrupted_creation_uncertain_without_reallocating_ids() {
+    let mut db = db();
+    let reservation = RegistryReservation {
+        workspace: WorkspaceId::random(),
+        intent: WorkspaceProvision {
+            project: ProjectId::random(),
+            isolation: WorkspaceIsolation::Local,
+            title: None,
+            visibility: WorkspaceVisibility::Foreground,
+        },
+        worktree: None,
+        stage: ReservationStage::Creating,
+    };
+    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
+    apply(&mut db, RegistryWrite::RecoverCreating).unwrap();
+    let found = super::reservation(&db, reservation.workspace)
+        .unwrap()
+        .unwrap();
+    assert_eq!(found.workspace, reservation.workspace);
+    assert_eq!(found.stage, ReservationStage::Uncertain);
+    let before = load(&db).unwrap();
+    apply(&mut db, RegistryWrite::RecoverCreating).unwrap();
+    assert_eq!(load(&db).unwrap(), before);
+}
+
+#[test]
+fn descriptor_and_ready_stage_commit_or_roll_back_together() {
+    let mut db = db();
+    let record = record(WorkspaceId::random());
+    let reservation = RegistryReservation {
+        workspace: record.descriptor.id,
+        intent: WorkspaceProvision {
+            project: record.descriptor.project,
+            isolation: WorkspaceIsolation::Local,
+            title: None,
+            visibility: WorkspaceVisibility::Foreground,
+        },
+        worktree: None,
+        stage: ReservationStage::Reserved,
+    };
+    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
+    assert!(matches!(
+        apply(&mut db, RegistryWrite::Completed(Box::new(record.clone()))),
+        Err(StoreError::RegistryConflict)
+    ));
+    assert!(workspace(&db, record.descriptor.id).unwrap().is_none());
+    apply(
+        &mut db,
+        RegistryWrite::Stage {
+            workspace: record.descriptor.id,
+            expected: ReservationStage::Reserved,
+            stage: ReservationStage::Creating,
+        },
+    )
+    .unwrap();
+    apply(&mut db, RegistryWrite::Completed(Box::new(record.clone()))).unwrap();
+    assert_eq!(workspace(&db, record.descriptor.id).unwrap(), Some(record));
+    assert_eq!(
+        super::reservation(&db, reservation.workspace)
+            .unwrap()
+            .unwrap()
+            .stage,
+        ReservationStage::Ready
+    );
+}

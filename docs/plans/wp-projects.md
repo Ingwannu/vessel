@@ -135,3 +135,12 @@ Resume: staged contract 702277bd passed 5 proto registry tests; its narrow Clipp
 is queued. Store persistence and Archiving/root adapter are implemented locally,
 awaiting narrow store checks. No node RPC is registered, no app wire integration,
 no full gate or captures yet. Shared registry types are not called reviewed.
+
+The staged provisioning service reuses existing worktree creation with a fixed,
+durable backing id. Local provisioning creates only a registry record. Replays
+return the same descriptor; an id with a different intent is refused. Approval
+is returned before a worktree is made. Startup marks interrupted Creating
+reservations Uncertain; no automatic filesystem replay occurs. Descriptor
+publication and reservation Ready are one transaction. The node module remains
+test-only until pending RPC wiring; existing worktree.create still chooses a
+random id before delegating to the same implementation.

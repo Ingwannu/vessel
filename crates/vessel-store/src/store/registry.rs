@@ -10,6 +10,14 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
 
 impl Store {
+    /// Startup-only reconciliation: an interrupted side effect cannot be reissued blindly.
+    ///
+    /// # Errors
+    /// The database write failed; callers must not start registry provisioning then.
+    pub async fn recover_registry_reservations(&self) -> Result<(), StoreError> {
+        self.registry_write(RegistryWrite::RecoverCreating).await
+    }
+
     /// Publish the descriptor and complete its backing reservation atomically.
     ///
     /// # Errors
