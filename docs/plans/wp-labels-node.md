@@ -196,3 +196,12 @@ methods are now assigned protocol 25; this package's five label calls remain
 None. W11's later membership read leaf is source-only and was not adopted;
 the held-read-transaction label hydration is retained. Current merged source
 still owes its own narrow/tests/TS/whole evidence.
+
+
+Run `wp-labels-node-narrow-20261115T171412Z-8c1c31bc` executed the six-package
+all-target strict check and stopped on one owned proto-test lint: the new empty
+label-list sample repeated the existing empty-request match body. Merged its
+explicit method pattern into that existing arm, preserving the same sample bytes
+and exhaustive coverage. Store strict checking completed before this failure;
+Node/test execution is not accepted by this partial result. Current strict and
+all new runtime tests remain owed. No test expectation or lint allowance changed.
