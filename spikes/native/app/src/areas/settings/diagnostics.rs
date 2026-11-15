@@ -38,6 +38,11 @@ impl State {
 impl Shell {
     /// Only a settled bounded report can cross the clipboard boundary.
     fn copy_diagnostic(&mut self, report: &ReportText, cx: &mut Context<'_, Self>) {
+        // An earlier frame's enabled button can run after refresh or close.
+        // Only the current settled payload may cross the clipboard boundary.
+        if self.areas.settings.diagnostics.collection.report() != Some(report) {
+            return;
+        }
         cx.write_to_clipboard(ClipboardItem::new_string(report.as_str().to_owned()));
         let copied = self.words.diagnostics().copied();
         self.areas.settings.diagnostics.copied_notice = Some(copied);

@@ -157,3 +157,15 @@ order after settle_settings. No private terminal logic is changed. The
 obsolete base3 build was stopped only by its verified private process group.
 The base3 ruling is not claimed as approval of this later native-source union;
 its merged checks, capture artifact and closeout ruling remain to be recorded.
+
+## Current-payload clipboard admission
+
+A final consumer audit found that an old rendered Copy closure retains an old
+ReportText after refresh/close. The copy boundary now checks equality with the
+current settled Collection report before writing or announcing a copy. Thus
+a delayed callback cannot bypass invalidation, even if its old button was
+enabled. A real GPUI handler test preserves a sentinel clipboard across close,
+refusal, a pending replacement and a different completed replacement. Existing
+L copy/language assertions remain; its second fixture now admits its report
+explicitly and additionally proves the real copy occurred before the unrelated
+notice replaces it. This is a fix within frozen base4, not a later base merge.
