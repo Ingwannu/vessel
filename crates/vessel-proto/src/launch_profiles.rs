@@ -12,6 +12,7 @@ mod calls;
 mod catalogue;
 mod choices;
 mod codec;
+mod legacy;
 mod list;
 mod profile;
 mod text;
@@ -24,6 +25,7 @@ pub use calls::{
 pub use catalogue::{LaunchAccount, LaunchAccountKind, LaunchCatalogue, LaunchCatalogueOptions};
 pub use choices::{LaunchChoice, LaunchChoices};
 pub use codec::LaunchPayload;
+pub use legacy::{LegacyFavorite, LegacyFavorites, LegacyModelKey, LegacyProviderKey};
 pub use list::{LaunchProfiles, LaunchProfilesSnapshot};
 pub use profile::{LaunchProfile, LaunchProfileRevision, LaunchSelection};
 pub use text::{
@@ -68,6 +70,15 @@ pub enum InvalidLaunchValue {
         LaunchChoice::MAX_ID_BYTES
     )]
     ChoiceId,
+    /// Source model/provider identities stay opaque and bounded.
+    #[error(
+        "a legacy provider/model key must be nonempty without controls and at most {} bytes",
+        LaunchChoice::MAX_ID_BYTES
+    )]
+    LegacyKey,
+    /// Source inputs are never silently truncated before deduplication.
+    #[error("legacy favorites exceed {} entries", LegacyFavorites::MAX_ENTRIES)]
+    LegacyFavorites,
     /// The whole reported catalogue must fit its finite control/text budgets.
     #[error(
         "the reported launch catalogue exceeds its supported bounds or has inconsistent controls"

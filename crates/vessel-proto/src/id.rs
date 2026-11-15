@@ -9,6 +9,10 @@
 //!   opaque strings, compared but never parsed;
 //! - per-connection or per-session counters (`RequestId`, `SubscriptionId`,
 //!   `EventSeq`): `u64`, advanced only through checked methods.
+//! Named-profile migration metadata also has a dedicated deterministic
+//! `UUIDv5` namespace; no authentication/session id uses that constructor.
+
+mod launch_profile;
 
 use std::fmt;
 use std::str::FromStr;

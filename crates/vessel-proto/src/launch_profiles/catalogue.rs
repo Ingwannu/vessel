@@ -204,7 +204,7 @@ impl LaunchAccount {
     }
     /// Canonical name selected by the node's existing account owner.
     #[must_use]
-    pub const fn name(&self) -> &ProfileName {
+    pub const fn account_name(&self) -> &ProfileName {
         &self.name
     }
     /// Whether an omitted selector names this actual account.

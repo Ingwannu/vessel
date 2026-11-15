@@ -165,3 +165,14 @@ package does not edit that crate concurrently. MCP wrappers receive only
 the reviewed, assigned integration handoff; their execution evidence is a
 separate consumer obligation. Existing account-profile/harness-options
 wrappers never impersonate named launch presets.
+
+Legacy input values and deterministic identity are now staged in source:
+exact bounded provider/model keys, a count-bounded input list retaining
+source duplicates, and a fixed-namespace canonical typed-pair UUID id.
+The existing `uuid` dependency gains `v5`; lockfile addition `sha1_smol`
+is confined to metadata identity, with a golden-id fixture and explicit
+rationale in ADRs 0001/0076. No other identifier or credential path changes.
+The first client-stage selected Clippy stopped on the canonical account
+getter colliding with the TS trait's `name`; it is renamed `account_name`.
+The raw failure remains preserved. Pure migration planning/application,
+actual runtime checks and the package gate remain incomplete.

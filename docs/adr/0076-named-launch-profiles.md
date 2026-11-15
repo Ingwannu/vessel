@@ -497,3 +497,10 @@ allow an apply request to override the running account. Unknown future
 account kinds never authorize default inference. The complete catalogue
 byte budget includes these facts. This is an implementation refinement of
 the accepted canonical account boundary, subject to package review.
+
+The fixed version-one migration namespace is
+`a2d6b727-54e9-49d4-8f85-5c1f76578ce2`. Its canonical name is compact UTF-8
+JSON `[provider,model]`, with exact validated opaque keys and no whitespace
+normalization. A golden-id fixture freezes this representation. The
+existing `uuid` crate's `v5` feature supplies the metadata identity; the
+new lockfile dependency is not used for credentials or authorization.

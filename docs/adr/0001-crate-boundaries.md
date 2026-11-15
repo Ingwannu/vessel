@@ -325,3 +325,11 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+Named launch-profile migration (ADR 0076) enables the existing workspace
+`uuid` dependency's `v5` feature in addition to `v4` and serde. Its small
+transitive hash implementation replaces hand-written deterministic-id
+encoding/hashing. Only a dedicated metadata namespace and canonical typed
+provider/model pair use it; random identifiers and bearer credentials are
+unchanged. No workspace crate dependency edge is added. The manifest and
+lockfile change belongs to the package's implementation review.
