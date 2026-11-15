@@ -44,3 +44,8 @@ pending; no compiler or runtime pass is claimed yet. The corrected run
 `i18n-narrow-20261115T143045Z-b1dd1a48` then found an ambiguous fixture-map
 value type after changing its default insertion. The fixture now declares its
 string map explicitly. Further validation uses the ordinary lane.
+
+The deep fixture's getter/key tables are shared statics iterated by reference,
+so the regression neither copies large const arrays nor depends on Clippy's
+large-const-array policy. The obsolete queued fixture check was superseded
+before taking a slot; that cancellation is not a compiler result.
