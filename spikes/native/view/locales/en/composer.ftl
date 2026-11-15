@@ -124,7 +124,7 @@ composer-paste-image = Paste image
 composer-image-clipboard-empty = There is no image on the clipboard
 
 # Native attachment menu action or clipboard acquisition failure; a complete label.
-composer-image-format-unsupported = This image format cannot be pasted yet. Choose a PNG, JPEG, GIF or WebP image.
+composer-image-format-unsupported = This image could not be processed within the image limits. Try a smaller PNG or JPEG image.
 
 # Context intake rejection, shared by file/browser/review/history/plugin producers.
 composer-context-busy = An attachment submission is already pending

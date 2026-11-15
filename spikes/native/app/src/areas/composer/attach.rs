@@ -142,7 +142,7 @@ impl Shell {
                 >= vessel_app_view::composer::trays::Trays::MAX
         {
             self.composer_context_refused(
-                vessel_app_view::composer::context::ContextProblem::Busy,
+                vessel_app_view::composer::context::ContextProblem::Capacity,
                 cx,
             );
             return;
