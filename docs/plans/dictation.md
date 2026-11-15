@@ -1080,3 +1080,15 @@ Its protocol, schema, session selection behavior, cases and architecture text
 remain unchanged. The generated-wire merge takes that head's complete snapshot;
 the combined Rust tree must regenerate dictation's declarations again, rather
 than hand-combining conflicting generated type blocks.
+
+### Preserve baseline diagnostics and file omission
+
+The first combined run exposed two regressions in the owned lenient projection.
+Its flattened baseline settings lost the failing field's tracked path, and a
+future-only block became Some(empty overrides) and appeared in a later rewrite.
+Direct typed file fields with exhaustive conversion preserve the central
+decoder's existing path and force future field owners to update this view.
+Default-only projected overrides normalize to absent; the original remains in
+the existing later-file copy. The central decoder, startup logger, shared test
+assertions and deadlines are unchanged. A new file regression exercises empty
+and future-only blocks through actual read, copy and write. Execution is owed.

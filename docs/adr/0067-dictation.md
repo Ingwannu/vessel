@@ -1201,3 +1201,17 @@ change the common writer's result contract. Reusing its established guard/task
 and applying only these ownership adaptations avoids a second persistence path.
 The selection-before-write test gate stays separate from the common writer's
 real blocking-I/O cancellation test gate.
+
+### File-projection diagnostic fidelity
+
+The lenient file view uses direct typed fields, not a flattened wire patch.
+Serde flattening buffers values and erases the failing baseline field's tracked
+location before the central safe decoder sees it. Direct fields preserve that
+single-pass diagnostic path without inspecting the private error message or
+changing the decoder. An exhaustive SetNodeSettings construction deliberately
+forces a future settings-field addition to update this file view; it cannot
+silently forget a new known field. This is the cost of the strict wire/lenient
+file distinction. A missing, empty or ignored future-only dictation file block
+contributes no known overrides. Its original representation is still copied by
+the existing later-file preservation rule before a rewriting change. The wire
+patch's present/omitted distinction and pending admission stay unchanged.

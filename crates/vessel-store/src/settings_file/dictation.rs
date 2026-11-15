@@ -8,19 +8,34 @@ use vessel_proto::dictation::{
     DictationChange, DictationProvider, DictationSwitch, EndpointBase, EndpointModel, Language,
     LocalModelId, SecretReference, SetDictation,
 };
-use vessel_proto::settings::SetNodeSettings;
+use vessel_proto::{
+    parking::ParkAfter,
+    settings::{SetAgentDrivers, SetNodeSettings},
+};
 
-#[derive(Deserialize)]
+// Flatten buffers foreign values before decoding the baseline settings and
+// loses their serde_path_to_error location. Direct fields preserve that single
+// parse; exhaustive construction makes every future setting update this view.
+#[derive(Deserialize, Default)]
+#[serde(default)]
 pub(super) struct FileSettings {
-    #[serde(default)]
+    park_after: Option<ParkAfter>,
+    drivers: Option<SetAgentDrivers>,
     dictation: Option<FileDictation>,
-    #[serde(flatten)]
-    settings: SetNodeSettings,
 }
 impl FileSettings {
-    pub(super) fn into_settings(mut self) -> SetNodeSettings {
-        self.settings.dictation = self.dictation.map(FileDictation::into_overrides);
-        self.settings
+    pub(super) fn into_settings(self) -> SetNodeSettings {
+        SetNodeSettings {
+            park_after: self.park_after,
+            drivers: self.drivers,
+            // An ignored future-only block contributes no known overrides.
+            // Keep its original bytes through the existing later-file backup,
+            // rather than introducing a spurious empty block on the next write.
+            dictation: self
+                .dictation
+                .map(FileDictation::into_overrides)
+                .filter(|overrides| overrides != &SetDictation::default()),
+        }
     }
 }
 
