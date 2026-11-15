@@ -376,7 +376,7 @@ impl Render for Shell {
                                                 areas::about::updated(self, updated, &tokens, cx)
                                             }))
                                             .child(page::arriving(self, frame))
-                                            .children(self.notice.clone().map(|notice| {
+                                            .children(areas::local_node::notice(self, cx).map(|notice| {
                                                 self.foot(notice, &tokens, touch)
                                             })),
                                     )

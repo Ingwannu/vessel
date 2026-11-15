@@ -157,7 +157,9 @@ write tickets. Dirty, Pending and Failed refuse; no implicit Save All or Discard
 is introduced. New edit/write intent is refused before effect while finalizing,
 but already accepted edit mirrors and original write replies still settle. The
 same owner guards additional/macOS window close after the initiating Shell borrow
-ends. No second window/document registry or recovery journal exists.
+ends. Finalization is projected temporarily into the existing frame foot without
+replacing retained notices; onboarding hides/disables new host-effect admission
+while this phase is active, and original operation acknowledgements still settle. No second window/document registry or recovery journal exists.
 
 Manual Stop/Restart/confirmed interrupts enter this same phase, query every live
 Shell for the sealed intent's node, then enqueue the controller request. NodeId

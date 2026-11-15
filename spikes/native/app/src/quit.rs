@@ -113,7 +113,8 @@ pub(crate) fn readiness(shell: &Shell, cx: &App) -> DocumentReadiness {
 #[must_use]
 pub(crate) fn admit_shell(shell: &mut Shell, cx: &mut gpui::Context<'_, Shell>) -> bool {
     if is_finalizing(cx) {
-        shell.notice = Some(shell.words.quit().finalizing().to_owned());
+        // The frame projects temporary finalization status without replacing
+        // an accepted editor error or another area's retained notice.
         cx.notify();
         return false;
     }

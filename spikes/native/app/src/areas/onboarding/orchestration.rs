@@ -94,7 +94,7 @@ pub(super) fn apply(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
-    if busy(shell) {
+    if busy(shell) || !super::effects_allowed(cx) {
         return;
     }
     let mut offered = BTreeMap::new();
@@ -211,6 +211,7 @@ fn settled(
     cx.notify();
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn install_query(setup: &mut Setup, ticket: Ticket, facts: Facts) -> bool {
     if setup.query != Some(ticket) {
         return false;
@@ -219,6 +220,7 @@ fn install_query(setup: &mut Setup, ticket: Ticket, facts: Facts) -> bool {
     true
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn install_mutation(setup: &mut Setup, facts: Facts) {
     // An authorized mutation outranks every earlier status read, including a
     // read from a flow that was closed/reopened while the operation continued.
@@ -355,7 +357,7 @@ pub(crate) fn render(
         .into_any_element()
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use vessel_app_view::desktop::cli::PathStatus;

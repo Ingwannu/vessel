@@ -136,7 +136,10 @@ pub(super) fn release(shell: &mut Shell, visit: Visit) {
     shell.command(Command::Onboarding(Ask::Release(visit)));
 }
 
-pub(super) fn actionable(shell: &Shell) -> bool {
+pub(super) fn actionable(shell: &Shell, cx: &gpui::App) -> bool {
+    if !super::effects_allowed(cx) {
+        return false;
+    }
     let ModelState::Open(open) = shell.areas.onboarding.model.state() else {
         return false;
     };

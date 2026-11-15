@@ -80,13 +80,17 @@ pub(crate) fn dialog(
     let step = open.step();
     let visit = open.visit();
     let compact = crate::areas::draft::compact(window);
-    let ready = super::scope::actionable(shell);
+    let ready = super::scope::actionable(shell, cx);
     let advancing = ready && (step != Step::Orchestration || !super::orchestration::busy(shell));
     let content = if ready {
         crate::areas::settings::onboarding::step(shell, step, tokens, compact, window, cx)
     } else {
         div()
-            .child(super::scope::hint(shell).to_owned())
+            .child(if super::effects_allowed(cx) {
+                super::scope::hint(shell).to_owned()
+            } else {
+                shell.words.quit().finalizing().to_owned()
+            })
             .into_any_element()
     };
     let current = open

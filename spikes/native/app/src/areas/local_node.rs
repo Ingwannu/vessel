@@ -72,6 +72,15 @@ enum Logs {
     Failed,
 }
 
+/// Temporary lifecycle status uses the existing foot, preserving the prior notice.
+pub(crate) fn notice(shell: &Shell, cx: &gpui::App) -> Option<String> {
+    if crate::quit::is_finalizing(cx) {
+        Some(shell.words.quit().finalizing().to_owned())
+    } else {
+        shell.notice.clone()
+    }
+}
+
 /// The host picker can resume a bundled node without choosing a remote alias.
 pub(crate) fn enable_option(shell: &Shell) -> bool {
     shell

@@ -15,3 +15,7 @@ pub(crate) fn prepare(
     _cx: &mut gpui::Context<'_, crate::shell::Shell>,
 ) {
 }
+
+pub(crate) fn notice(shell: &crate::shell::Shell, _cx: &gpui::App) -> Option<String> {
+    shell.notice.clone()
+}

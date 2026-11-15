@@ -135,6 +135,18 @@ fn selected_host(shell: &Shell) -> Option<&vessel_app_view::Machine> {
     shell.fleet.machines.first()
 }
 
+fn effects_allowed(cx: &gpui::App) -> bool {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        !crate::quit::is_finalizing(cx)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _browser = cx;
+        true
+    }
+}
+
 fn layout(window: &Window) -> Layout {
     if crate::areas::draft::compact(window) {
         Layout::Compact
@@ -217,7 +229,7 @@ impl Shell {
     }
 
     fn setup_continue(&mut self, visit: Visit, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if !scope::actionable(self) {
+        if !scope::actionable(self, cx) {
             return;
         }
         if matches!(self.areas.onboarding.model.state(), State::Open(open) if open.visit() == visit && open.step() == Step::Orchestration)
@@ -229,7 +241,7 @@ impl Shell {
     }
 
     fn advance_setup(&mut self, visit: Visit, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if !scope::actionable(self) {
+        if !scope::actionable(self, cx) {
             return;
         }
         match self.areas.onboarding.model.next(visit) {
