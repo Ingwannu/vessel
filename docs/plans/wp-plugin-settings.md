@@ -166,3 +166,25 @@ latter from a saved flag or ProcessLifetime revocation.
 
 Until that concrete private schema, producer, saved-envelope join and lifecycle
 pass review and actual execution, plugin settings/installation remain unavailable.
+
+
+## Current shared-owner dependency status
+
+The announced9c150c6e lineage contains the retained generic writer and private
+file decoder; the later1c762ccf head changes registry metadata methods, not the
+plugin saved slot. The envelope owner confirms there is still no source-ready
+whole-plugins slot, protected projection or concrete boot/admission API. Its
+shared-settings-operation-owner contract is source accepted; opaque generic
+Document migration and the owned lane/Opening/RecoveryApply join remain separate
+work. This package therefore does not edit common Settings/Store, manufacture
+an opaque private plugin placeholder or duplicate a storage operation lane.
+
+The eventual NodeHost must register its synchronous spawn plus owned supervisor
+under one start/close fence. The real Supervisor::spawn API already returns its
+owner synchronously after creating/registering the actor; initialization is a
+later state. A start admitted before close may register and then be cleaned up;
+a late persisted enable which reaches apply after close must never spawn or
+publish Running. An independent cancellation-token check alone is insufficient
+for that ordering. Actual shared close/admission and tracked shutdown joins must
+come from the reviewed owner, with held-I/O and cancelled-caller tests on the
+real joined path. No fake settings bridge is treated as that qualification.

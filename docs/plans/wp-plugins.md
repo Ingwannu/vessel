@@ -3,13 +3,18 @@
 ADR: 0079 (architecture CONTRACT PASS by V3; implementation unreviewed).
 Scope: F6/W16 in PLAN.md section 7, which supersedes duplicate assignments.
 
-Current node source is the clean export on ede20014 plus portable checked-wait
-b37a3ee8, with no W15 release/desktop ancestry. Its helper/manifest/catalog
-models are staged, not activated by node methods. Earlier checkpoints below
-name their historical bases and exact evidence; those passes do not prove this
-current combined source. The app remains on its separately merged shared line.
-F6 is still skeleton, with installer/management/public RPC/Hub/rendering and
-whole-package evidence outstanding.
+Current node source includes the announced1c762ccf shared head (protocol25,
+store schema20), merged through9c150c6e; portable checked-wait b37a3ee8 is now
+on that shared lineage. It contains no old W15 release/desktop join. The separate
+portable runtime API export is1cbafe18b on9c150c6e; its own exact source review
+passed, with current strict/fixture execution and integrator adoption still owed.
+The helper/manifest/catalog models in this feature tree remain staged, with no
+node method, installer, global settings field or process activation. The app
+uses only its separately announced line and the explicit canonical-values
+private development exception. Historical checkpoints below retain their exact
+bases/evidence and do not qualify the current complete union. F6 remains
+skeleton: actual saved-owner/installer/NodeHost/broker/hooks/public RPC, real Hub
+routing and feature adapters, translations/themes and final package proof remain.
 Reference source is Paseo 0.15.4. ADR 0079's source table and differences
 are the contract for this package; do not duplicate its protocol list.
 
