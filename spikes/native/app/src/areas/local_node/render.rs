@@ -169,6 +169,7 @@ fn prompt_content(
                         .fleet
                         .machines
                         .iter()
+                        .filter(|machine| matches!(prompt.snapshot.status, Status::Owned(node) if machine.node == Some(node)))
                         .flat_map(|machine| &machine.sessions)
                         .find(|card| card.session == *id)
                         .map(|card| card.title.clone());

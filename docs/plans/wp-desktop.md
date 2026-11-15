@@ -174,3 +174,11 @@ is a deliberate native composition difference from Paseo's rail-only brand heade
 Unsupported companion bundle layouts (including the unpublished macOS layout)
 render the same ordinary Not installed state as an absent Linux/Windows daemon.
 Initialization errors remain Failed. No guessed macOS helper path is spawned.
+
+The Phone step reuses Vessel's existing authenticated device invitation and
+credential reveal/expiry controls for its fixed setup host. Paseo's App Store
+and Google Play entries install a different product and cannot connect to Vessel;
+no Vessel mobile distribution or compatible store URL has been supplied. Those
+store entries and Paseo-specific relay/Tailscale documentation are consequently
+not copied. Device pairing remains usable through the existing native owner.
+This is a product availability difference, not evidence of mobile app parity.
