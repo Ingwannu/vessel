@@ -17,7 +17,7 @@ use vessel_proto::NodeId;
 pub struct AdmissionExhausted;
 
 /// A node-book name already parsed by the client at the book boundary.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MachineKey(String);
 
 impl MachineKey {
@@ -35,7 +35,7 @@ impl MachineKey {
 
 /// One admitted connection in the lifetime of the app's link actor.
 /// Display is for stateful control identities, never a user-facing value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Hash)]
 pub struct ConnectionEpoch(std::num::NonZeroU64);
 
 impl std::fmt::Display for ConnectionEpoch {
@@ -46,7 +46,7 @@ impl std::fmt::Display for ConnectionEpoch {
 
 /// Public connection facts only. A caller cannot attach scopes, credentials
 /// or file paths to this identity, or substitute a display name for `NodeId`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ConnectionContext {
     machine: MachineKey,
     node: NodeId,
@@ -177,5 +177,25 @@ mod tests {
         assert_eq!(legacy.connection_context(), None);
         machine.node = None;
         assert_eq!(machine.connection_context(), None);
+    }
+}
+
+#[cfg(test)]
+mod hash_admissions {
+    use super::*;
+    use std::collections::HashSet;
+    #[test]
+    fn clones_share_a_key_but_reconnect_and_another_alias_are_distinct_admissions() {
+        let node = NodeId::random();
+        let mut owner = ConnectionEpochs::default();
+        let first = owner.admit(MachineKey::from_book("first"), node).unwrap();
+        let reconnected = owner.admit(MachineKey::from_book("first"), node).unwrap();
+        let another_alias = owner.admit(MachineKey::from_book("second"), node).unwrap();
+        let mut keys = HashSet::new();
+        assert!(keys.insert(first.clone()));
+        assert!(keys.contains(&first.clone()));
+        assert!(keys.insert(reconnected));
+        assert!(keys.insert(another_alias));
+        assert_eq!(keys.len(), 3);
     }
 }
