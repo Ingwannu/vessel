@@ -538,9 +538,11 @@ enter the actual wire graph; local DTO export tests retain their shape checks.
 The subsequent announced `1c762ccf` node-base merge assigns only upstream
 registry methods; voice feature numbers remain pending.
 
-The full Proto runtime suite on the new joined head is still pending. In
-particular the bounded SpeechText visitor's new scalar-redaction/escaped-input
-regressions are not covered by the earlier 340-test run. RPC caller-drop has a
+The full Proto TS-enabled runtime suite on exact `49e82dd3` passed391/0/0,
+including all19 existing dictation cases, ten voice-settings cases, and both
+bounded SpeechText scalar-redaction/escaped-input regressions. The following
+node-only detector-error and fixture-cleanup changes still await their runtime
+suite; no result is inferred from the earlier 340-test run. RPC caller-drop has a
 separate isolated prerequisite review: its 58 memory-transport tests passed,
 strict review is owed, and real voice upload remains disconnected until node
 integration. These scoped receipts do not replace final package gates or
