@@ -26,7 +26,7 @@ impl Fixture {
         let node = CancellationToken::new();
         let (source, requests) = mpsc::channel(super::super::MAX_IN_FLIGHT_COMMITS);
         let (handle, task) = spawn(
-            SampleRate::try_from(PROVIDER_HZ).unwrap(),
+            SampleRate::new(PROVIDER_HZ).unwrap(),
             Source::Fake(source),
             CloseSignals {
                 owner: owner.clone(),
@@ -58,7 +58,7 @@ fn text(value: &str) -> Transcript {
     Transcript::try_from(value.to_owned()).unwrap()
 }
 fn pcm(sample: i16) -> DictationPcm {
-    DictationPcm::try_from(
+    DictationPcm::new(
         sample
             .to_le_bytes()
             .repeat(usize::try_from(PROVIDER_HZ).unwrap()),
@@ -121,7 +121,7 @@ async fn a_short_tail_is_acked_early_and_sealed_before_the_finish_estimate() {
             f.handle
                 .chunk(
                     seq,
-                    DictationPcm::try_from(1000_i16.to_le_bytes().to_vec()).unwrap()
+                    DictationPcm::new(1000_i16.to_le_bytes().to_vec()).unwrap()
                 )
                 .await
                 .unwrap(),

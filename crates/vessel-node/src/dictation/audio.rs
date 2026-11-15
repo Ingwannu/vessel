@@ -177,7 +177,7 @@ pub(super) struct SegmentBuffer {
 
 impl SegmentBuffer {
     /// Convert the single provider-rate constant once, with no numeric cast.
-    fn new() -> Result<Self, AudioError> {
+    pub(super) fn new() -> Result<Self, AudioError> {
         let rate = usize::try_from(PROVIDER_HZ).map_err(AudioError::Count)?;
         Ok(Self {
             pcm: Vec::new(),

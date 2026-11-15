@@ -7,7 +7,7 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
         let mut first = Fixture::new();
         let second = Fixture::with_owner(first.owner.clone());
         feed(&first.handle, 0, COMMIT_SECONDS, 1000).await;
-        let mut request = first.request().await;
+        let request = first.request().await;
         let (reply, response) = oneshot::channel();
         first.handle.next.send(reply).await.unwrap();
         let error = match first.handle.next().await {
@@ -18,7 +18,17 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
             error.as_ref(),
             StreamError::Read(ReadRefusal::Waiting)
         ));
-        first.handle.cancel().await;
+        let cancel = first.handle.cancel();
+        tokio::pin!(cancel);
+        assert!(
+            std::future::poll_fn(|cx| std::task::Poll::Ready(cancel.as_mut().poll(cx)))
+                .await
+                .is_pending()
+        );
+        // Select cancel synchronously, then make a provider failure ready before
+        // the actor runs again: neither result scheduling order may relabel it.
+        request.reply.send(Err(ProviderError::KeyAbsent)).unwrap();
+        cancel.await;
         match response.await.unwrap() {
             Reply::Update(Event::End(End::Failed(error))) => {
                 assert_eq!(error.reason(), Some(DictationReason::Cancelled))
@@ -27,7 +37,6 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
                 panic!("missing cancel")
             }
         }
-        request.reply.closed().await;
         assert!(!first.owner.is_cancelled());
         first.task.await.unwrap();
         assert_eq!(
@@ -42,11 +51,16 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
     .unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn an_already_selected_failure_survives_replace_cancel_and_close() {
     tokio::time::timeout(TEST_LIMIT, async {
         let mut f = Fixture::new();
         feed(&f.handle, 0, COMMIT_SECONDS, 1000).await;
+        let within = f
+            .handle
+            .finish(ChunkSeq::new(u32::try_from(COMMIT_SECONDS).unwrap()))
+            .await
+            .unwrap();
         f.request()
             .await
             .reply
@@ -56,8 +70,24 @@ async fn an_already_selected_failure_survives_replace_cancel_and_close() {
         let mut selected = f.handle.control.subscribe();
         drop(selected.wait_for(Option::is_some).await.unwrap());
         let first = f.handle.control.chosen().unwrap();
-        f.handle.replace().await;
-        f.handle.cancel().await;
+        tokio::time::advance(
+            Duration::from_millis(u64::from(within.get())) + Duration::from_millis(1),
+        )
+        .await;
+        let replace = f.handle.replace();
+        tokio::pin!(replace);
+        assert!(
+            std::future::poll_fn(|cx| std::task::Poll::Ready(replace.as_mut().poll(cx)))
+                .await
+                .is_pending()
+        );
+        let cancel = f.handle.cancel();
+        tokio::pin!(cancel);
+        assert!(
+            std::future::poll_fn(|cx| std::task::Poll::Ready(cancel.as_mut().poll(cx)))
+                .await
+                .is_pending()
+        );
         f.owner.cancel();
         f.node.cancel();
         assert!(Arc::ptr_eq(&first, &f.handle.control.chosen().unwrap()));
@@ -78,7 +108,7 @@ async fn transport_and_node_close_abort_pending_work_without_connection_guard_ow
         let (closed, transport) = oneshot::channel();
         let (source, _requests) = mpsc::channel(super::super::super::MAX_IN_FLIGHT_COMMITS);
         let (handle, task) = spawn(
-            SampleRate::try_from(PROVIDER_HZ).unwrap(),
+            SampleRate::new(PROVIDER_HZ).unwrap(),
             Source::Fake(source),
             CloseSignals {
                 owner: CancellationToken::new(),
@@ -97,7 +127,7 @@ async fn transport_and_node_close_abort_pending_work_without_connection_guard_ow
     .unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn repeated_finish_keeps_the_original_budget_and_conflicts_do_not_change_it() {
     tokio::time::timeout(TEST_LIMIT, async {
         let f = Fixture::new();
@@ -111,7 +141,15 @@ async fn repeated_finish_keeps_the_original_budget_and_conflicts_do_not_change_i
         let error = f.handle.finish(ChunkSeq::new(1)).await.unwrap_err();
         assert_eq!(error.reason(), Some(DictationReason::BadAudio));
         assert_eq!(f.handle.finish(last).await.unwrap(), first);
-        f.stop().await;
+        let half = Duration::from_millis(u64::from(first.get()).div_euclid(2));
+        tokio::time::advance(half).await;
+        assert_eq!(f.handle.finish(last).await.unwrap(), first);
+        tokio::time::advance(
+            Duration::from_millis(u64::from(first.get())) - half + Duration::from_millis(1),
+        )
+        .await;
+        failed(&f.handle, DictationReason::TimedOut).await;
+        f.task.await.unwrap();
     })
     .await
     .unwrap();

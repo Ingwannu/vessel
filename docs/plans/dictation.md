@@ -510,3 +510,12 @@ update buffer and provider-job narrow checks have passed. Registry quotas,
 secret preparation, settings persistence, RPC policy/transport wiring and the
 file CLI remain unimplemented. This is source under development, not product
 or end-to-end evidence. The feature package gets its whole gate at completion.
+
+Actor narrow compile follow-up: the first check refused a private buffer
+constructor and test fixtures calling constructors these types do not offer.
+Use the existing validating `SampleRate::new` and `DictationPcm::new`; widen
+only the buffer constructor the real actor now calls. First-stop tests also
+force a provider failure ready after cancel selection, and replacement/cancel,
+closure and an expired deadline after an already selected failure. Repeated
+finish is checked against the original actual expiry, not only equal budgets.
+These source corrections still await the next narrow check and runtime tests.
