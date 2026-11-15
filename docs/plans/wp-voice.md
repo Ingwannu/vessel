@@ -86,7 +86,10 @@ Start prerequisites before any side effect; old peer refusal in both
 directions; bad PCM/rate/sequence rejection before work; cross-owner and
 agent capture refusal; speak restricted to its current voice session;
 busy capture; rollback on node/capture start failure; late-generation audio
-and receipts; partial/full queue cancellation; interrupted and failed
+and receipts; partial/full queue cancellation; held/rejected/lost remote-stop
+reply with full capture/playback queues: no post-Stop PCM sends or late
+callback upload, local capture released on every failure, uncertain remote
+record still visible and no implicit restart; interrupted and failed
 playback acknowledgements; barge-in during TTS and agent work; empty,
 filler-only and low-confidence speech; 260-unit segmentation including
 Unicode; prefetch two; timeout cleanup; key edit/delete visibility; URL,
@@ -102,7 +105,10 @@ reference survey/source read; ADR 0067 owner consulted; coordinator gave
 both-side ownership; integrator asked once for pending feature/version.
 Direct candidate archives measured; no manifest or product code changed.
 
-Current: ADR 0080 proposed for V3. Local native inference distribution
+Current: ADR 0080 initially returned for ordinary Stop ordering. Corrected:
+local generation fence/upload gate/queued PCM discard/playback and capture
+release precede every remote await; uncertain remote cleanup is independent.
+Resubmitted to V3 before any node product code or dependency change. Local native inference distribution
 and transitive audio dependency inventory remain explicit prerequisites.
 
 Next: obtain V3 architecture verdict; implement node and app skeletons
