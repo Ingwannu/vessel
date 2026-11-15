@@ -452,3 +452,10 @@ future RPC consumer. It requires both broad code and typed reason for precise
 label failures and never parses or retains peer diagnostics. Its three draft
 tests remain uncompiled; no production transport or shared delivery hook is
 enabled by that preparation.
+
+The four-crate strict run `wp-labels-narrow-20261115T153246Z-3365de18` stopped
+at two pre-existing View-test lints (manual equality assertion and Vec get/unwrap),
+before establishing App strict acceptance. Replaced them with assert_eq and a
+typed host-identity lookup. The failure log is retained. The replacement narrow
+check includes base 8c and the new search callback fence; no lint suppression or
+test weakening was introduced.

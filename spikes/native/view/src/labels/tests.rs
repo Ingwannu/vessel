@@ -51,7 +51,7 @@ fn ready_catalog() -> Catalog {
 fn identity_collapses_whitespace_without_changing_host_spelling() {
     let normalized = name("  In\tProgress\n ");
     assert_eq!(normalized.as_str(), "In Progress");
-    assert!(normalized.key() == name("in  progress").key());
+    assert_eq!(normalized.key(), name("in  progress").key());
     assert_ne!(normalized, name("in progress"));
     assert!(" \t\n".parse::<Name>().is_err());
     assert_eq!(name(&"가".repeat(2048)).as_str().chars().count(), 2048);
@@ -145,7 +145,11 @@ fn projections_choose_target_then_host_order_and_retain_connected_failed_caches(
             label("ready", Color::Sky)
         ]
     );
-    assert!(hosts.get(2).unwrap().catalog.get(&name("hidden")).is_some());
+    let offline = hosts
+        .iter()
+        .find(|host| host.key == key("offline"))
+        .unwrap();
+    assert!(offline.catalog.get(&name("hidden")).is_some());
 }
 
 #[test]
