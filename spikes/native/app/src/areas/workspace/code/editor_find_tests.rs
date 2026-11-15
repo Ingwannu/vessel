@@ -155,3 +155,49 @@ fn keyboard_find_replace_and_escape_reach_the_retained_document(cx: &mut TestApp
         );
     });
 }
+
+#[gpui::test]
+fn source_navigation_uses_scalars_and_clamps_stale_line_targets(cx: &mut TestAppContext) {
+    use std::num::NonZeroU32;
+    use vessel_app_view::workspace::file_location::FileLocation;
+    use vessel_proto::lsp::{Position, Range};
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    cx.update(|window, _| window.activate_window());
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            editor.set_text("한😀글\nsecond", window, cx);
+            let location = FileLocation::try_from(Range {
+                start: Position {
+                    line: NonZeroU32::MIN,
+                    column: NonZeroU32::new(2).unwrap(),
+                },
+                end: Position {
+                    line: NonZeroU32::MIN,
+                    column: NonZeroU32::new(3).unwrap(),
+                },
+            })
+            .unwrap();
+            super::super::editor_io::reveal_location(&editor, location, window, cx);
+            assert_eq!(editor.cursor(cx), (1, 3));
+            assert_eq!(editor.selected_lines(cx), Some((1, 1)));
+        });
+    });
+    cx.run_until_parked();
+    cx.simulate_input("X");
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            assert_eq!(editor.text(cx), "한X글\nsecond");
+            assert_eq!(editing(shell).model.content(), "한X글\nsecond");
+            super::super::editor_io::reveal_location(
+                &editor,
+                FileLocation::line(NonZeroU32::MAX),
+                window,
+                cx,
+            );
+            assert_eq!(editor.cursor(cx), (2, 1));
+        });
+    });
+}

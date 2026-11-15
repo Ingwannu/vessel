@@ -149,3 +149,20 @@ impl Shell {
         .detach();
     }
 }
+
+/// The renderer boundary converts canonical one-based source coordinates
+/// once, leaving navigation out of the retained file identity.
+pub(super) fn reveal_location(
+    editor: &vessel_app_kit::code_editor::CodeEditor,
+    location: vessel_app_view::workspace::file_location::FileLocation,
+    window: &mut vessel_app_kit::ui::Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    use vessel_app_kit::code_editor::SourcePoint;
+    let range = location.range();
+    let point = |position: vessel_proto::lsp::Position| SourcePoint {
+        line: position.line.get().saturating_sub(1),
+        character: position.column.get().saturating_sub(1),
+    };
+    editor.reveal_range(&(point(range.start)..point(range.end)), window, cx);
+}

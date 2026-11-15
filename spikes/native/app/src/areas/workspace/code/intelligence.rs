@@ -160,8 +160,11 @@ impl Shell {
             .as_path()
             .to_str()
             .and_then(|text| text.parse().ok());
-        if let Some(path) = path {
-            self.open_file_at(path, Some(location.range.start.line.get()), cx);
+        if let (Some(path), Ok(location)) = (
+            path,
+            vessel_app_view::workspace::file_location::FileLocation::try_from(location.range),
+        ) {
+            self.open_file_location(path, Some(location), cx);
         } else if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
             viewer.intelligence = State::Refused(Refusal::Path);
             cx.notify();

@@ -8,6 +8,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, VirtualList};
+use vessel_app_view::workspace::file_location::FileLocation;
 use vessel_app_view::workspace::file_tree::Listing;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::syntax::{language_of, line_states};
@@ -178,6 +179,18 @@ impl Shell {
         line: Option<u32>,
         cx: &mut Context<'_, Self>,
     ) {
+        let location = line.map(|line| {
+            FileLocation::line(std::num::NonZeroU32::new(line).unwrap_or(std::num::NonZeroU32::MIN))
+        });
+        self.open_file_location(path, location, cx);
+    }
+
+    pub(super) fn open_file_location(
+        &mut self,
+        path: RelPath,
+        location: Option<FileLocation>,
+        cx: &mut Context<'_, Self>,
+    ) {
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -198,13 +211,19 @@ impl Shell {
             cx.notify();
             return;
         }
-        self.show_file(&machine, root, path, line);
+        self.show_file(&machine, root, path, location);
         cx.notify();
     }
 
     /// Show `path`: edited in place at a desktop's width (read whole, in
     /// one page of at most 1 MiB), read-only at a phone's (Paseo's rule).
-    fn show_file(&mut self, machine: &str, root: WorkspaceRoot, path: RelPath, line: Option<u32>) {
+    fn show_file(
+        &mut self,
+        machine: &str,
+        root: WorkspaceRoot,
+        path: RelPath,
+        location: Option<FileLocation>,
+    ) {
         let workspace_dir = self
             .areas
             .workspace
@@ -216,8 +235,8 @@ impl Shell {
             return;
         };
         if let Some(mut viewer) = files.retained.remove(&key) {
-            if line.is_some() {
-                viewer.goto = line;
+            if location.is_some() {
+                viewer.goto = location;
             }
             files.viewer = Some(viewer);
             return;
@@ -230,7 +249,7 @@ impl Shell {
             path: path.clone(),
             text: Shown::Loading,
             list: VirtualList::new(false),
-            goto: line,
+            goto: location,
             chosen: None,
             edit: editable.then(super::editing::Editing::new),
         });
@@ -333,8 +352,23 @@ impl Shell {
             Shown::Loading | Shown::Binary | Shown::Failed(_) => 0,
         };
         viewer.list.reset(rows);
-        if let Some(line) = viewer.goto.take() {
-            super::search::reveal_line(&viewer.list, line);
+        if let Some(location) = viewer.goto.take() {
+            let range = location.range();
+            let line_count = if let Shown::Text { lines, .. } = &viewer.text {
+                lines.len()
+            } else {
+                0
+            };
+            let last = u32::try_from(line_count).unwrap_or(u32::MAX).max(1);
+            let start = range.start.line.get().min(last);
+            let end = range.end.line.get().min(last).max(start);
+            viewer.chosen = location.selects().then(|| {
+                (
+                    usize::try_from(start.saturating_sub(1)).unwrap_or(usize::MAX),
+                    usize::try_from(end.saturating_sub(1)).unwrap_or(usize::MAX),
+                )
+            });
+            super::search::reveal_line(&viewer.list, start);
         }
     }
 }

@@ -193,3 +193,34 @@ explicitly attempts a readonly replacement before releasing the hold and
 replacing normally. Narrow clippy on `336f69e5` reached all app targets;
 remaining failures were test helper/line-count lints and one lazy Option
 closure. They are fixed here; no executed test result is claimed yet.
+
+## Panel resolver and source navigation
+
+The pure `view::workspace::file_panels` model follows Paseo's catalogue and
+resolver. It filters by real file kind and literal selectors, suppresses the
+Source floor beside a built-in renderer, chooses explicit tab selection
+before a valid association before catalogue order, and asks only when a
+plugin is among multiple candidates. Exact filename claims use a separate
+association namespace; extensions fold Unicode case. Plugin identities are
+generic and will use W16's canonical `ContributionAddress`; selectors borrow
+projections of its validated declarations. No plugin registry/runtime or
+renderer is introduced here. PDF/SVG identities cannot appear unless their
+owner registers real candidates; the resolver does not promise an available
+renderer merely from a filename. Catalogue work is bounded at 128 entries.
+
+`FileLocation` validates one-based scalar ranges using existing protocol LSP
+positions. W12 confirms that locations remain an owner payload separate
+from its root/path `Target`. The kit adapts them once to the rope engine's
+zero-based scalar coordinates, clamps stale lines/columns to the loaded
+source and preserves UTF-8 boundaries. Definition navigation now includes
+its actual range, and rename preserves both caret line and column. A GPUI
+fixture selects an emoji between Korean characters, replaces it through
+actual input and checks the model, then reveals an out-of-range line.
+These latest resolver/navigation additions are source-only until their
+narrow checks run.
+
+Validation: exact app `0df7abd9` strict all-target clippy passed in remote
+run `wp-files-narrow-20261115T075904Z-0df7abd9` (native-fonts and native-cargo
+rc0). Focused app code tests for that same commit are queued separately in
+`wp-files-narrow-20261115T080536Z-0df7abd9`; a clippy pass is not a test pass.
+No whole package gate or screenshot approval exists yet.

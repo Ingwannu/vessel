@@ -23,6 +23,7 @@
 //!   caret stops blinking while motion is held, the engine's own rule).
 
 mod find;
+mod navigation;
 mod syntax;
 
 use std::rc::Rc;
@@ -35,6 +36,7 @@ use gpui_base::input::{
 };
 
 pub use find::{FindCase, FindDirection, FindRevision, FindState, MatchCount, ReplaceScope};
+pub use navigation::SourcePoint;
 pub use syntax::{LineSyntax, Runs, SyntaxKind};
 
 use crate::theme::spacing;
@@ -155,9 +157,7 @@ impl CodeEditor {
             line: line.saturating_sub(1),
             character: 0,
         };
-        self.state.update(cx, |state, cx| {
-            state.set_cursor_position(position, window, cx);
-        });
+        self.reveal_range(&(position..position), window, cx);
     }
 
     /// Wrap long lines at the editor's width (prose), or keep each line on

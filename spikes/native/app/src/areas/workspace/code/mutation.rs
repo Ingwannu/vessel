@@ -258,7 +258,16 @@ fn rewrite_viewer(
     // a rename; the clean model and cursor intent remain resource-owned.
     if let Some(editing) = viewer.edit.as_mut() {
         if let Some(editor) = editing.editor.as_ref() {
-            viewer.goto = Some(editor.cursor(cx).0);
+            let (line, column) = editor.cursor(cx);
+            viewer.goto = Some(
+                vessel_app_view::workspace::file_location::FileLocation::point(
+                    vessel_proto::lsp::Position {
+                        line: std::num::NonZeroU32::new(line).unwrap_or(std::num::NonZeroU32::MIN),
+                        column: std::num::NonZeroU32::new(column)
+                            .unwrap_or(std::num::NonZeroU32::MIN),
+                    },
+                ),
+            );
         }
         editing.editor = None;
         editing.find = None;

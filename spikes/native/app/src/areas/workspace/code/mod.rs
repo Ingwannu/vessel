@@ -129,7 +129,7 @@ struct Viewer {
     text: Shown,
     list: VirtualList,
     /// The line to bring to the top once read (from 1: a search's hit).
-    goto: Option<u32>,
+    goto: Option<vessel_app_view::workspace::file_location::FileLocation>,
     /// The lines chosen for the composer (from 0, first and last).
     chosen: Option<(usize, usize)>,
     /// The file edited in place (a desktop's width, at most 1 MiB of

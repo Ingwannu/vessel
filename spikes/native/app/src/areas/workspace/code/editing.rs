@@ -269,8 +269,8 @@ impl Shell {
             return;
         }
         if let Some(editor) = editing.editor.as_ref() {
-            if let Some(line) = viewer.goto.take() {
-                editor.reveal_line(line, window, cx);
+            if let Some(location) = viewer.goto.take() {
+                super::editor_io::reveal_location(editor, location, window, cx);
             }
             if editing.stale {
                 editing.stale = false;
@@ -300,8 +300,8 @@ impl Shell {
             editor.set_wrapping(true, window, cx);
         }
         let goto = viewer.goto.take();
-        if let Some(line) = goto {
-            editor.reveal_line(line, window, cx);
+        if let Some(location) = goto {
+            super::editor_io::reveal_location(&editor, location, window, cx);
         }
         let status = super::editor_status::Status::new(editor.clone(), cx);
         let find = super::editor_find::FindPanel::new(editor.clone(), key, labels, window, cx);
