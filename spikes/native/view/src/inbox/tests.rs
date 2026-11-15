@@ -442,7 +442,7 @@ fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
     let mut inbox = Inbox::default();
     inbox.connect(fake.source.clone());
     assert!(fake.read(&mut inbox).is_empty());
-    assert!(inbox.take_terminal_notices().is_empty());
+    assert!(inbox.take_terminal_notices().0.is_empty());
     state.revision = state.revision.next().unwrap();
     state.activity = TerminalActivity::Attention {
         reason: TerminalAttentionReason::NeedsInput,
@@ -450,17 +450,17 @@ fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
     fake.snapshot.terminals.as_mut().unwrap()[0].attention = Some(state);
     assert!(fake.read(&mut inbox).is_empty());
     assert_eq!(
-        inbox.take_terminal_notices(),
+        inbox.take_terminal_notices().0,
         vec![(fake.source.clone(), state)]
     );
     assert!(fake.read(&mut inbox).is_empty());
-    assert!(inbox.take_terminal_notices().is_empty());
+    assert!(inbox.take_terminal_notices().0.is_empty());
     inbox.disconnect(fake.source.node());
     state.revision = state.revision.next().unwrap();
     fake.snapshot.terminals.as_mut().unwrap()[0].attention = Some(state);
     inbox.connect(fake.source.clone());
     assert!(fake.read(&mut inbox).is_empty());
-    assert!(inbox.take_terminal_notices().is_empty());
+    assert!(inbox.take_terminal_notices().0.is_empty());
 }
 
 #[test]

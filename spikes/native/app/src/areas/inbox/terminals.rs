@@ -29,12 +29,15 @@ pub(super) struct Terminals {
 impl Shell {
     pub(super) fn inbox_terminal_action(&mut self, source: Source, action: Action) {
         let area = &mut self.areas.inbox;
-        if area.terminals.pending.len() >= MAX_PENDING_NOTICES
-            || area
-                .terminals
-                .pending
-                .iter()
-                .any(|(known, pending, _)| *known == source && *pending == action)
+        if area.terminals.pending.len() >= MAX_PENDING_NOTICES {
+            area.problem = Some(Problem::Refused(vessel_proto::ErrorCode::Unavailable));
+            return;
+        }
+        if area
+            .terminals
+            .pending
+            .iter()
+            .any(|(known, pending, _)| *known == source && *pending == action)
         {
             return;
         }

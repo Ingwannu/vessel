@@ -83,6 +83,9 @@ fn list(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEleme
         body = body.child(note(words::problem(problem, shell.words), tokens));
     }
     body = machine_notes(body, shell, tokens);
+    if area.coalescing == vessel_app_view::inbox::notices::Coalescing::Combined {
+        body = body.child(note(labels.combined(), tokens));
+    }
     if let Some(problem) = area.read_problem {
         body = body.child(note(words::problem(problem, shell.words), tokens));
     }

@@ -12,7 +12,7 @@ pub enum Coalescing {
     /// Every pending source is represented individually.
     #[default]
     Individual,
-    /// Show one generic inbox notification; durable rows remain authoritative.
+    /// Show an in-app coalescing notice; OS delivery still needs each source claim.
     Combined,
 }
 

@@ -114,11 +114,16 @@ impl Shell {
                         .store
                         .receive_visible(source.node(), request, result);
                 changed = visible;
-                let opportunities = self.areas.inbox.store.take_terminal_notices();
+                let (opportunities, coalescing) = self.areas.inbox.store.take_terminal_notices();
                 let queued = &mut self.areas.inbox.terminals.queued;
                 let remaining = vessel_app_view::inbox::notices::MAX_PENDING_NOTICES
                     .saturating_sub(queued.len());
+                let overflow = opportunities.len() > remaining;
                 queued.extend(opportunities.into_iter().take(remaining));
+                if overflow || coalescing == vessel_app_view::inbox::notices::Coalescing::Combined {
+                    self.areas.inbox.coalescing =
+                        vessel_app_view::inbox::notices::Coalescing::Combined;
+                }
                 let area = &mut self.areas.inbox;
                 area.notices.retain(|key| area.store.entry(*key).is_some());
                 area.notices.extend(notices);

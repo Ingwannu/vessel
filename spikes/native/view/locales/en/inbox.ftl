@@ -124,3 +124,6 @@ inbox-terminal-untitled = Untitled terminal
 inbox-terminal-idle = Idle
 # Plain shells and unsupported activity producers remain unknown.
 inbox-terminal-unknown = Activity unknown
+
+# Bounded local delivery queue overflow; durable items are not lost.
+inbox-combined = Several alerts were combined. All current items remain in this inbox.

@@ -383,3 +383,9 @@ retirement removes it and its receipt ticket. A replacement connection cannot
 receive the old view's automatic mark even when it authenticates as the same
 node. The pure Reader still owns watermark/focus/deferred-input semantics and
 node ingress remains responsible for current pending-request vetoes.
+
+Bounded delivery overflow now leaves a translated in-app coalescing notice.
+It never sends an unclaimed summary OS notification: each actual OS alert still
+requires its exact node claim. Durable Inbox items and counters are unaffected.
+Terminal manual actions that meet the queue limit get a typed unavailable error
+instead of silently pretending that a clear was queued.

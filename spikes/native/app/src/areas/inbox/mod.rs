@@ -48,6 +48,7 @@ pub(crate) struct InboxArea {
     pub(crate) tool: Option<ToolView>,
     pub(crate) notice_routes: vessel_app_view::inbox::notices::NoticeRoutes,
     pub(crate) notices: vessel_app_view::inbox::notices::NoticeQueue,
+    pub(super) coalescing: vessel_app_view::inbox::notices::Coalescing,
 }
 impl InboxArea {
     pub(crate) fn new(
@@ -79,6 +80,7 @@ impl InboxArea {
             tool: None,
             notice_routes: vessel_app_view::inbox::notices::NoticeRoutes::default(),
             notices: vessel_app_view::inbox::notices::NoticeQueue::default(),
+            coalescing: vessel_app_view::inbox::notices::Coalescing::Individual,
         }
     }
 }

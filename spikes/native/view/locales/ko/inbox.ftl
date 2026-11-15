@@ -124,3 +124,6 @@ inbox-terminal-untitled = 이름 없는 터미널
 inbox-terminal-idle = 대기 중
 # Plain shells and unsupported activity producers remain unknown.
 inbox-terminal-unknown = 활동 상태를 알 수 없음
+
+# Bounded local delivery queue overflow; durable items are not lost.
+inbox-combined = 여러 알림을 모았습니다. 현재 항목은 이 받은함에서 확인할 수 있습니다.

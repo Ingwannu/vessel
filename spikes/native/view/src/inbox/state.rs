@@ -75,6 +75,7 @@ pub struct Inbox {
     serial: u64,
     selected: Option<Key>,
     terminal_notices: Vec<(Source, vessel_proto::notifications::TerminalAttention)>,
+    terminal_coalescing: super::notices::Coalescing,
 }
 impl Inbox {
     /// Retained node scopes for list rendering and failure reporting.
@@ -242,6 +243,8 @@ impl Inbox {
             for state in super::terminals::fresh(previous, &snapshot) {
                 if self.terminal_notices.len() < super::notices::MAX_PENDING_NOTICES {
                     self.terminal_notices.push((node.source.clone(), state));
+                } else {
+                    self.terminal_coalescing = super::notices::Coalescing::Combined;
                 }
             }
         }
@@ -261,8 +264,14 @@ impl Inbox {
     #[must_use]
     pub fn take_terminal_notices(
         &mut self,
-    ) -> Vec<(Source, vessel_proto::notifications::TerminalAttention)> {
-        std::mem::take(&mut self.terminal_notices)
+    ) -> (
+        Vec<(Source, vessel_proto::notifications::TerminalAttention)>,
+        super::notices::Coalescing,
+    ) {
+        (
+            std::mem::take(&mut self.terminal_notices),
+            std::mem::take(&mut self.terminal_coalescing),
+        )
     }
 
     /// A node-book removal discards its attention and invalidates selection.

@@ -71,7 +71,10 @@ impl Shell {
 
     fn inbox_claim_notices(&mut self, window: &Window) {
         let delivery = Delivery::of(self.prefs.settings.notifications.alerts);
-        let (notices, _coalescing) = self.areas.inbox.notices.take();
+        let (notices, coalescing) = self.areas.inbox.notices.take();
+        if coalescing == vessel_app_view::inbox::notices::Coalescing::Combined {
+            self.areas.inbox.coalescing = coalescing;
+        }
         let visible = self.inbox_visibility(window);
         let area = &mut self.areas.inbox;
         area.admission
