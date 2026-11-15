@@ -7,6 +7,7 @@
 
 use gpui::{Hsla, rgb, rgba};
 
+use crate::syntax::SyntaxStyle;
 use crate::theme::Scheme;
 
 /// The code colours of one scheme.
@@ -53,7 +54,6 @@ impl CodeTokens {
                 rgba(0xfb49_341a).into(),
             ),
         };
-        use crate::syntax::SyntaxStyle;
         Self {
             plain: colors.colour(SyntaxStyle::Variable),
             tag: colors.colour(SyntaxStyle::Tag),

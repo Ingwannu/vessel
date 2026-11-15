@@ -21,7 +21,7 @@
 //! - Cost: one additional public type step; no font asset or editing engine.
 
 mod size;
-pub use size::{FontSize, TextSizes};
+pub use size::{CODE_LINE_RATIO, CONTENT_LINE_RATIO, FontSize, TextSizes};
 mod stack;
 pub use stack::{FontStack, Typeface, active};
 
@@ -85,7 +85,7 @@ pub struct FontError(String);
 /// The fallback list every style carries: Pretendard after Geist.
 #[must_use]
 pub fn fallbacks() -> FontFallbacks {
-    stack::active(Typeface::Interface).fallbacks()
+    active(Typeface::Interface).fallbacks()
 }
 
 /// The interface's text size the scale is drawn at (Settings ›
@@ -154,13 +154,13 @@ pub fn code_size() -> f32 {
 /// Code/diff lines follow the source's rounded 1.5x coupling.
 #[must_use]
 pub fn code_line_height() -> f32 {
-    code_size().mul_add(1.5, 0.0).round()
+    code_size().mul_add(CODE_LINE_RATIO, 0.0).round()
 }
 
 /// Content lines follow the source's rounded 1.4x coupling.
 #[must_use]
 pub fn content_line_height() -> f32 {
-    content_size().mul_add(1.4, 0.0).round()
+    content_size().mul_add(CONTENT_LINE_RATIO, 0.0).round()
 }
 
 /// `points` of interface text (written for 14) at the chosen size.
@@ -256,21 +256,21 @@ impl Type {
             | Self::Card
             | Self::Tiny => Typeface::Interface,
         };
-        stack::active(role).fallbacks()
+        active(role).fallbacks()
     }
 
     /// The family.
     #[must_use]
     pub fn family(self) -> SharedString {
         match self {
-            Self::Mono | Self::MonoBody => stack::active(Typeface::Code).family(),
+            Self::Mono | Self::MonoBody => active(Typeface::Code).family(),
             Self::Title
             | Self::Body
             | Self::Label
             | Self::Meta
             | Self::Kicker
             | Self::Card
-            | Self::Tiny => stack::active(Typeface::Interface).family(),
+            | Self::Tiny => active(Typeface::Interface).family(),
         }
     }
 }

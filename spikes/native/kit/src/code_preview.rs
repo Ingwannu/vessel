@@ -2,16 +2,16 @@
 //!
 //! [Decision Log]
 //! - Purpose: match Paseo appearance-preview.tsx with local typography drafts.
-//! - Constraint: preserve the existing classifier and CodeStyles resolver;
+//! - Constraint: preserve the existing classifier and `CodeStyles` resolver;
 //!   the kit accepts only semantic byte runs and no view/plugin identities.
-//! - Choice: one StyledText row renderer, validated UTF-8 ranges and local
+//! - Choice: one `StyledText` row renderer, validated UTF-8 ranges and local
 //!   FontStack/FontSize. No input entity, caret, history or global mutation.
 //! - Reference: card surface1/border1/r8/py8, rows px12, caption px12/pb8;
-//!   full-row source tints and diff marker text colours live in theme::output.
+//!   full-row source tints and diff marker text colours live in `theme::output`.
 use crate::{
     Tokens,
     code_editor::CodeStyles,
-    fonts::{FontSize, FontStack},
+    fonts::{CODE_LINE_RATIO, CONTENT_LINE_RATIO, FontSize, FontStack},
     output::Tone,
     syntax::CodeRun,
     theme::output::PreviewDiff,
@@ -26,8 +26,6 @@ const INSET_Y: f32 = 8.0;
 const INSET_X: f32 = 12.0;
 const RADIUS: f32 = 8.0;
 const MARKER_BYTES: usize = 2;
-const CONTENT_LEADING: f32 = 1.4;
-const CODE_LEADING: f32 = 1.5;
 
 /// Local resolved typography. Drawing it never changes a global preference.
 #[derive(Debug, Clone)]
@@ -74,13 +72,13 @@ pub enum PreviewError {
 
 impl PreviewRow {
     /// Prepare source code with its unified-diff marker and semantic runs.
-    /// Existing output::Tone supplies context/add/remove meaning.
+    /// Existing `output::Tone` supplies context/add/remove meaning.
     ///
     /// # Errors
     /// Refuses multiline text and malformed/overlapping UTF-8 byte runs.
     pub fn new(
         id: impl Into<ElementId>,
-        source: SharedString,
+        source: &str,
         tone: Tone,
         mut runs: Vec<CodeRun>,
     ) -> Result<Self, PreviewError> {
@@ -124,7 +122,7 @@ impl PreviewRow {
                 .ok_or(PreviewError::Length)?,
         )?;
         text.push_str(prefix);
-        text.push_str(&source);
+        text.push_str(source);
         Ok(Self {
             id: id.into(),
             text: text.into(),
@@ -165,7 +163,7 @@ pub fn code_preview(
                 .pb(px(INSET_Y))
                 .font(font(&typography.content))
                 .text_size(px(content_size))
-                .line_height(px(content_size.mul_add(CONTENT_LEADING, 0.0).round()))
+                .line_height(px(content_size.mul_add(CONTENT_LINE_RATIO, 0.0).round()))
                 .text_color(neutral.foreground)
                 .child(caption.into()),
         )
@@ -207,7 +205,7 @@ fn row_element(
         .bg(background)
         .font(font(&typography.code))
         .text_size(px(size))
-        .line_height(px(size.mul_add(CODE_LEADING, 0.0).round()))
+        .line_height(px(size.mul_add(CODE_LINE_RATIO, 0.0).round()))
         .text_color(tokens.neutral.foreground)
         .whitespace_nowrap()
         .child(StyledText::new(row.text.clone()).with_highlights(highlights))

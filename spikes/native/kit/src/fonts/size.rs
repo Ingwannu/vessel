@@ -2,6 +2,11 @@
 //! owned by view; the kit only requires drawable committed point sizes.
 use std::num::NonZeroU8;
 
+/// Paseo prose's rounded line-height multiplier.
+pub const CONTENT_LINE_RATIO: f32 = 1.4;
+/// Paseo code/diff's rounded line-height multiplier.
+pub const CODE_LINE_RATIO: f32 = 1.5;
+
 /// A nonzero committed text size in logical points, not an arbitrary number.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FontSize(NonZeroU8);

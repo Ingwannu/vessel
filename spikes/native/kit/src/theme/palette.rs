@@ -117,15 +117,15 @@ fn neutrals(tint: Tint, base: &Neutrals) -> Neutrals {
 fn tinted(tint: Tint) -> Tokens {
     let base = Tokens::of(Scheme::Dark);
     let neutral = neutrals(tint, &base.neutral);
-    mapped(base, neutral, rgb(tint::DARK_RING).into())
+    mapped(&base, &neutral, rgb(tint::DARK_RING).into())
 }
 
 // One neutral-to-token mapping serves authored tints and validated custom
 // paints. The two shipped constructors remain untouched.
-fn mapped(base: Tokens, neutral: Neutrals, ring: Hsla) -> Tokens {
+fn mapped(base: &Tokens, neutral: &Neutrals, ring: Hsla) -> Tokens {
     Tokens {
         scheme: base.scheme,
-        neutral,
+        neutral: *neutral,
         bg_shell: neutral.surface_sidebar,
         bg_base: neutral.surface0,
         bg_surface: neutral.surface1,

@@ -2,7 +2,7 @@
 //! and onboarding. Selection and contribution identity stay with the caller.
 //!
 //! [Decision Log]
-//! - Purpose: one ThemePicker drawing for built-in and contributed palettes.
+//! - Purpose: one `ThemePicker` drawing for built-in and contributed palettes.
 //! - Constraint: the kit cannot know the view preference or a plugin/host id.
 //! - Choice: Single/Split token previews and Chosen/Idle state; the caller
 //!   supplies its label, id and click action. Reuse ordinary GPUI elements.
@@ -76,10 +76,14 @@ const BUBBLE_HEIGHT: f32 = 10.0;
 const BUBBLE_RADIUS: f32 = 5.0;
 const MUTED_OPACITY: f32 = 0.6;
 
-/// The ThemePicker grid's half-gap cancellation, without its choices.
+/// The `ThemePicker` grid's half-gap cancellation, without its choices.
 #[must_use]
 pub fn grid() -> Div {
-    div().flex().flex_row().flex_wrap().m(px(-HALF_GAP))
+    div()
+        .flex()
+        .flex_row()
+        .flex_wrap()
+        .m(px(HALF_GAP.mul_add(-1.0, 0.0)))
 }
 
 /// Place a caller-owned interactive tile in the reference's grid cell.

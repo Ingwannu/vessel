@@ -41,10 +41,12 @@ pub use crate::syntax::SyntaxStyle as SyntaxKind;
 pub struct CodeStyles(SyntaxColors);
 impl CodeStyles {
     /// Resolve the current independent syntax choice for this app scheme.
+    #[must_use]
     pub fn of(scheme: crate::Scheme) -> Self {
         Self(crate::syntax::selected().colours(scheme))
     }
     /// The same semantic span style used by editor and readonly rows.
+    #[must_use]
     pub fn highlight(&self, kind: SyntaxKind) -> HighlightStyle {
         HighlightStyle {
             color: Some(self.0.colour(kind)),

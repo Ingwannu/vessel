@@ -3,12 +3,12 @@
 use super::Scheme;
 use gpui::{Hsla, rgb};
 
-/// GOAT output::diff_line's existing wash, unchanged by Appearance.
+/// GOAT `output::diff_line`'s existing wash, unchanged by Appearance.
 pub(crate) const OUTPUT_WASH: f32 = 0.08;
 const PREVIEW_ADDED_ALPHA: f32 = 0.15;
 const PREVIEW_REMOVED_ALPHA: f32 = 0.1;
 
-/// Paseo AppearancePreview's exact marker and full-row paint.
+/// Paseo `AppearancePreview`'s exact marker and full-row paint.
 #[derive(Debug, Clone, Copy)]
 pub struct PreviewDiff {
     /// theme.colors.diffAddition.

@@ -57,7 +57,7 @@ impl Tokens {
             accent: colors.accent,
             accent_foreground: colors.background,
         };
-        super::mapped(base, neutral, colors.ring)
+        super::mapped(&base, &neutral, colors.ring)
     }
 }
 

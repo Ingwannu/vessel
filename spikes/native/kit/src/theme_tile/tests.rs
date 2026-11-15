@@ -1,4 +1,4 @@
-//! Bounds from the actual renderer, against the authored ThemePicker geometry.
+//! Bounds from the actual renderer, against the authored `ThemePicker` geometry.
 use super::*;
 use crate::Scheme;
 use gpui::{Bounds, Context, Pixels, Render, TestAppContext, Window};
@@ -42,7 +42,7 @@ impl Render for Probe {
 
 fn near(actual: Pixels, expected: f32) {
     assert!(
-        (f32::from(actual) - expected).abs() < EPSILON,
+        expected.mul_add(-1.0, f32::from(actual)).abs() < EPSILON,
         "{actual:?} != {expected}"
     );
 }

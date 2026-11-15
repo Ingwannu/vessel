@@ -20,7 +20,7 @@ pub enum SyntaxPalette {
     Catppuccin,
     /// Dracula syntax colours.
     Dracula,
-    /// TokyoNight syntax colours.
+    /// `TokyoNight` syntax colours.
     TokyoNight,
     /// One syntax colours.
     #[default]
@@ -232,14 +232,17 @@ impl SyntaxPalette {
     /// Resolve the chosen syntax brand with only the app light/dark axis.
     #[must_use]
     pub fn colours(self, scheme: Scheme) -> SyntaxColors {
-        use palettes::*;
+        use palettes::{
+            CATPPUCCIN_LATTE, CATPPUCCIN_MOCHA, DRACULA, GITHUB_DARK, GITHUB_LIGHT, GRUVBOX_DARK,
+            GRUVBOX_LIGHT, NORD_DARK, NORD_LIGHT, ONE_DARK, ONE_LIGHT, SOLARIZED_DARK,
+            SOLARIZED_LIGHT, TOKYO_DAY, TOKYO_NIGHT,
+        };
         match (self, scheme) {
             (Self::Github, Scheme::Light) => GITHUB_LIGHT,
             (Self::Github, Scheme::Dark) => GITHUB_DARK,
             (Self::Catppuccin, Scheme::Light) => CATPPUCCIN_LATTE.expand(),
             (Self::Catppuccin, Scheme::Dark) => CATPPUCCIN_MOCHA.expand(),
-            (Self::Dracula, Scheme::Light) => DRACULA.expand(),
-            (Self::Dracula, Scheme::Dark) => DRACULA.expand(),
+            (Self::Dracula, Scheme::Light | Scheme::Dark) => DRACULA.expand(),
             (Self::TokyoNight, Scheme::Light) => TOKYO_DAY.expand(),
             (Self::TokyoNight, Scheme::Dark) => TOKYO_NIGHT.expand(),
             (Self::One, Scheme::Light) => ONE_LIGHT.expand(),
