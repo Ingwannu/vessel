@@ -117,18 +117,7 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
                     ..vessel_store::SavedNodeSettings::default()
                 })
                 .unwrap();
-            let mut command = tokio::process::Command::new(std::env::current_exe().unwrap());
-            let _configured = command
-                .args(["--exact", NAME, "--nocapture", "--test-threads=1"])
-                .env(CHILD, "1")
-                .env("VESSEL_RECOVERY_TEST_DATA", f.data.root())
-                .env("VESSEL_RECOVERY_TEST_HOME", &f.home)
-                .env("VESSEL_RECOVERY_TEST_BIN", &f.bin)
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::inherit())
-                .kill_on_drop(true);
-            let mut process = command.spawn().unwrap();
+            let mut process = child_command(&f).spawn().unwrap();
             let mut lines = BufReader::new(process.stdout.take().unwrap()).lines();
             let url = loop {
                 let line = step("child node becomes ready", lines.next_line())
@@ -207,4 +196,19 @@ async fn step<T>(label: &str, work: impl Future<Output = T>) -> T {
     tokio::time::timeout(super::WAIT, work)
         .await
         .unwrap_or_else(|_| panic!("recovery crash step timed out: {label}"))
+}
+
+fn child_command(f: &Fixture) -> tokio::process::Command {
+    let mut command = tokio::process::Command::new(std::env::current_exe().unwrap());
+    let _configured = command
+        .args(["--exact", NAME, "--nocapture", "--test-threads=1"])
+        .env(CHILD, "1")
+        .env("VESSEL_RECOVERY_TEST_DATA", f.data.root())
+        .env("VESSEL_RECOVERY_TEST_HOME", &f.home)
+        .env("VESSEL_RECOVERY_TEST_BIN", &f.bin)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .kill_on_drop(true);
+    command
 }

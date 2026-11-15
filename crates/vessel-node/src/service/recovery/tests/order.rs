@@ -28,20 +28,7 @@ async fn only_two_auto_loads_start_and_a_manual_queued_resume_consumes_its_inten
                 std::collections::BTreeSet::from([first.clone(), second.clone()]),
                 expected
             );
-            let listed = owner.sessions().await.unwrap();
-            assert_eq!(
-                listed
-                    .iter()
-                    .filter(|info| info.status == SessionStatus::Starting)
-                    .count(),
-                Recovery::MAX_ATTEMPTS
-            );
-            for (_, id, _, _) in candidates.iter().skip(Recovery::MAX_ATTEMPTS) {
-                assert_eq!(
-                    owner.session(*id).await.unwrap().status,
-                    SessionStatus::Interrupted
-                );
-            }
+            assert_held_load_bound(&owner, &candidates).await;
             // A queued candidate can be resumed explicitly while both automatic
             // slots are held. Its ordinary resume consumes that old boot intent.
             let manual_id = candidates[MANUAL].1;
@@ -171,4 +158,21 @@ async fn completed(stream: &mut vessel_client::SessionStream) {
 }
 fn started(record: &EventRecord, text: &str) -> bool {
     matches!(&record.event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content } } if content == &vec![ContentBlock::Text { text: text.to_owned() }])
+}
+
+async fn assert_held_load_bound(owner: &NodeClient, candidates: &[Candidate]) {
+    let listed = owner.sessions().await.unwrap();
+    assert_eq!(
+        listed
+            .iter()
+            .filter(|info| info.status == SessionStatus::Starting)
+            .count(),
+        Recovery::MAX_ATTEMPTS
+    );
+    for (_, id, _, _) in candidates.iter().skip(Recovery::MAX_ATTEMPTS) {
+        assert_eq!(
+            owner.session(*id).await.unwrap().status,
+            SessionStatus::Interrupted
+        );
+    }
 }

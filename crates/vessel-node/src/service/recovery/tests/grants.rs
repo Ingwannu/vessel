@@ -95,7 +95,7 @@ async fn invalidated(change: Invalidate) {
                 .await
                 .unwrap()
                 .records;
-            assert!(!records.iter().any(|record| restart::continuation(record)));
+            assert!(!records.iter().any(restart::continuation));
             assert!(!owner.session(original.id).await.unwrap().status.is_live());
             // A completed boot owner cannot later stop a manual takeover.
             f.profile(None);

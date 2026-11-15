@@ -64,7 +64,7 @@ async fn acknowledged_person_stop_is_not_recovered_at_the_next_start() {
                 .await
                 .unwrap()
                 .records;
-            assert!(!records.iter().any(|record| continuation(record)));
+            assert!(!records.iter().any(continuation));
             assert!(!owner.session(original.id).await.unwrap().status.is_live());
             node.stop().await.unwrap();
         }),
