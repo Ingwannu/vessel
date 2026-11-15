@@ -18,3 +18,10 @@ The joint SDK consumer range now merges announced node head `9c150c6e` by the
 integrator's direction. The three original owned leaves are preserved; this
 merge does not transfer unrelated CLI diagnostics or registry ownership.
 Current union checks and V3 disposition remain required.
+
+The current SDK range also merges announced `1c762ccf` (registry protocol 25).
+The web stream consumer handles the same fatal identity refusal in its existing
+Failed/Error/last arm; wire states and ordinary RPC errors remain unchanged.
+Global exhaustive-consumer audit found the CLI and web matches; MCP uses generic
+stream results. Native selected-follow domain adaptation remains an app-line
+integration task, separate from this root-only range.
