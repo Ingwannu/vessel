@@ -97,7 +97,9 @@ mod tests {
                 },
             )
             .with_cwd(self.work());
-            let Created { handle, durable } = self.runtime.create(spec).await.unwrap();
+            let Created {
+                handle, durable, ..
+            } = self.runtime.create(spec).await.unwrap();
             let drain = tokio::spawn(drain(durable));
             until(&handle, Target::Running).await;
             (handle, drain)

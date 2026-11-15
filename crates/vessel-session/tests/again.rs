@@ -95,7 +95,9 @@ mod helpers {
             moved_through: std::collections::BTreeSet::new(),
         };
         let Reopening {
-            created: Created { handle, durable },
+            created: Created {
+                handle, durable, ..
+            },
             gate,
         } = fixture
             .runtime

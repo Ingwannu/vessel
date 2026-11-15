@@ -179,6 +179,9 @@ impl SessionRuntime {
         durable: mpsc::Receiver<Arc<EventRecord>>,
     ) -> Created {
         let handle = SessionHandle(shared);
+        // The actor can publish as soon as it is spawned. Its row must start
+        // from this earlier map/cursor pair even if persistence starts later.
+        let initial = Box::new(handle.info());
         let id = handle.id();
         let span = tracing::info_span!("session", session = %id);
         drop(self.tasks.spawn(actor.instrument(span)));
@@ -189,6 +192,10 @@ impl SessionRuntime {
                 .insert(id, handle.clone()),
         );
         tracing::info!(session = %id, harness = %handle.info().spec.harness, "session started");
-        Created { handle, durable }
+        Created {
+            initial,
+            handle,
+            durable,
+        }
     }
 }

@@ -177,7 +177,9 @@ impl Sessions {
         let id = ended.info.id;
         let next = ended.info.next_seq;
         let Reopening {
-            created: Created { handle, durable },
+            created: Created {
+                handle, durable, ..
+            },
             gate,
         } = self.runtime.start_again(continued(ended), launch).await?;
         let (durability, reopened) = {

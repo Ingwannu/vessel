@@ -1249,3 +1249,25 @@ collection still owns lookup, tracking and handover. The extracted methods keep
 all existing ordering, cleanup, conditions and return values, including the
 late handle snapshot that the following behavior correction will replace.
 No test expectation or deadline changes in this extraction.
+
+
+### Frozen creation seed prerequisite
+
+The runtime now captures a boxed initial Info immediately before spawning its
+actor and returns it with Created. Node creation stores that seed, while its
+ordinary reply and subsequent publications still use the handle. Reopen keeps
+its existing authoritative stored-row flow and ignores the extra initial seed.
+This extends the existing start boundary, with one bounded snapshot clone per
+run and no new queue, lock, dependency or wire field. The store still accepts
+an explicitly supplied current map; it does not replace it with spec.labels.
+
+A fake-actor regression holds the durable receiver, completes a rename and
+checks that the returned empty-log seed still has the creation title and zero
+cursor. This forces publication ahead of persistence without a sleep or a
+new product hook. It does not yet prove future LabelsChanged behavior.
+A node regression then stores that seed before draining the held receiver,
+checks the zero-cursor creation title and verifies the changed title appears
+only after the actual durable append. Existing Created destructuring in
+resume, diagnostics and private-dir/detach fixtures gains only `..`; no
+existing assertion or deadline is changed.
+The mutation-clock and explicit label-coverage contracts remain proposed.

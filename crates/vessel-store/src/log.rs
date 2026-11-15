@@ -22,8 +22,9 @@ use crate::error::StoreError;
 /// Only the session's identity, spec, profile, creator, origin, model
 /// route, title and current labels come from `info`. Its status is
 /// stored as `Starting` and live, and everything else is derived from the
-/// records appended later: `info` is a snapshot the runtime took after the
-/// process started, and a session that ends within milliseconds would
+/// records appended later. The node supplies the runtime's frozen initial
+/// snapshot, before its actor publishes: a late current metadata map must
+/// not be paired with this empty log. A session that ends within milliseconds would
 /// otherwise be stored as ended with no end time and an empty log (and be
 /// the first one retention prunes, under the appends still coming).
 pub(crate) fn create_session(

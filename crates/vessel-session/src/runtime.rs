@@ -76,6 +76,10 @@ pub struct SessionRuntime {
 /// A session that was just started.
 #[derive(Debug)]
 pub struct Created {
+    /// The row's seed, captured before its actor can publish. Persistence must
+    /// use this instead of a late handle snapshot: an advanced current map
+    /// cannot seed an empty log. Boxed to keep startup futures small.
+    pub initial: Box<SessionInfo>,
     /// The session.
     pub handle: SessionHandle,
     /// Every record, in order, exactly once. The node must drain it into the
