@@ -24,48 +24,8 @@
 //!   [`SkillName`] can only be made by these checks.
 
 use std::fmt;
-use std::str::FromStr as _;
 
-use vessel_proto::BundlePath;
-
-/// A skill's name, checked: usable as one directory name everywhere, not
-/// starting with `.`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SkillName(String);
-
-impl SkillName {
-    /// The name.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
-    fn checked(name: &str) -> Result<Self, SkillNameError> {
-        // A dot name is a harness's own (Codex keeps `skills/.system`).
-        let usable = !name.is_empty()
-            && !name.starts_with('.')
-            && !name.contains(['/', '\\'])
-            && BundlePath::from_str(&format!("{}/{name}", crate::SKILLS))
-                .is_ok_and(|path| path.segments().count() == 2);
-        if usable {
-            Ok(Self(name.to_owned()))
-        } else {
-            Err(SkillNameError::NotAName(name.to_owned()))
-        }
-    }
-}
-
-impl fmt::Display for SkillName {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
-    }
-}
-
-impl PartialEq<str> for SkillName {
-    fn eq(&self, other: &str) -> bool {
-        self.0 == other
-    }
-}
+pub use vessel_proto::skills::SkillName;
 
 /// Why a `SKILL.md` names no usable skill.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -148,7 +108,8 @@ pub fn skill_name(text: &str) -> Result<SkillName, SkillNameError> {
         Some(Quoted::Plain(plain)) => plain,
         None => return Err(SkillNameError::Unclear(value.to_owned())),
     };
-    SkillName::checked(name)
+    name.parse()
+        .map_err(|_invalid| SkillNameError::NotAName(name.to_owned()))
 }
 
 /// The value of a top-level line whose key is `name` (`name: x`,

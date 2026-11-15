@@ -14,7 +14,7 @@ impl<'de, const MAX: usize> DeserializeSeed<'de> for Excess<MAX> {
     }
 }
 
-pub(super) fn decode<'de, D, T, const MAX: usize>(input: D) -> Result<Vec<T>, D::Error>
+pub(crate) fn decode<'de, D, T, const MAX: usize>(input: D) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de>,

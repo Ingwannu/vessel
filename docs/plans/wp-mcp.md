@@ -114,8 +114,11 @@ to previous/next durable selection. Inputs name bundled skills, never paths.
 Targets are explicit configured agent homes; libraries never read HOME.
 No writes to the operator's actual agent configuration are part of testing.
 
-Missing node capabilities (one package-level report): pending-permission
-snapshot, cross-node finish subscriptions, reloadable MCP launch policy and
+Baseline inventory correction: `session.conversation` already returns current
+pending permissions (`conversation/mod.rs:43-66`); an aggregate MCP read can
+reuse it rather than adding a second node permission store or read call.
+Missing node capabilities (one package-level report): cross-node finish
+subscriptions, reloadable MCP launch policy and
 inject setting, and skills status/reconcile/uninstall/save-selection/import
 plus durable selection. Existing provider discovery/launch-bundle additions
 belong to the provider package; workspace registry additions belong to the
@@ -133,7 +136,13 @@ SQLite schema change.
 and notification routing. Store owns durable files; fleet's bundle rules
 remain the shared path/skill-name validation. The existing client carries
 requests through the same grant intersection locally and across nodes.
-No new crate/dependency edge is planned.
+No new crate/dependency edge is planned. Fleet's portable skill directory-name
+value is moved down to `vessel-proto::skills`; its frontmatter parser stays in
+fleet. This reuses exactly the existing bundle-path check instead of creating
+a second directory-name rule. Skill selection/status/request values add no
+registered call or filesystem side effect. Invalid selections are refused,
+where Paseo coerces malformed inputs to all: silently broadening installation
+on malformed wire input is not accepted.
 
 Per commit: fmt, size/boundaries and narrow changed-crate checks. One whole
 root gate at package end on the exact commit through the remote gate. All
@@ -154,5 +163,7 @@ changes or captures are required by this node-only package.
 - Draft adapter now applies one immutable policy to listing and direct calls,
   exposes `machine` beside compatible `node`, and refuses local-only routing
   before mutation. This is not yet a persisted node launch setting.
+- Done: skills selection/status/request value skeleton, plus one shared portable
+  skill name used by fleet and skills. No skill file is installed by these values.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.

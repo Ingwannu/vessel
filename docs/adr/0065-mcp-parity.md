@@ -580,3 +580,12 @@ Skills management uses the same typed node boundary as other host settings;
 its explicit homes and filesystem transaction rules are recorded in the
 package plan before implementation. The skill service is Admin-only and
 never an MCP tool: agents cannot install or remove their own instructions.
+
+
+The shared skill name is the existing fleet bundle-path invariant moved to
+`vessel-proto::skills`. Fleet keeps its YAML-frontmatter reader and error
+mapping; only the directory value moves down. Selection is all/custom and
+normalizes names before use. Malformed selections are typed refusals instead
+of Paseo's fallback to all, to avoid accidentally broadening installation.
+Skill names and operation lists are bounded by `MAX_SKILLS`; this is a stated
+resource limit beyond Paseo's unbounded arrays. No new dependency is added.

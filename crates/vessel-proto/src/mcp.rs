@@ -5,7 +5,7 @@ mod id;
 
 pub use id::{AddedId, ToolId};
 
-mod bounded;
+pub(crate) mod bounded;
 mod name;
 mod policy;
 
