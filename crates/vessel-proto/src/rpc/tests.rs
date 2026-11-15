@@ -609,8 +609,6 @@ const FORWARDABLE: &[&str] = &[
     "agent.status",
     "usage.query",
     // Semantic terminal state can forward; local connection claims cannot.
-    "terminal.attention_clear",
-    "terminal.activity",
     // The inbox reads/marks forward; device-scoped push calls never do.
     "inbox.list",
     "inbox.get",
@@ -637,6 +635,8 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "terminal.attention_clear",
+    "terminal.activity",
 ];
 
 #[test]
