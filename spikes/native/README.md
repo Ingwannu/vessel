@@ -310,6 +310,10 @@ returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
 
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
 the heading and footer actions retain their size and remain reachable.
