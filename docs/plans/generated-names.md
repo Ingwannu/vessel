@@ -454,3 +454,10 @@ credential, socket or request access. Narrow node all-targets Clippy and
 eight real-parser rule cases pass. This is not the all-candidate settings
 validator or the encoded API preflight. Its whole gate remains owed, and
 A10 requires production wiring and another whole gate before node merge.
+
+Review correction checkpoint: complete-response stop always retains the
+provider's report, including a normal end paired with tool/refusal content.
+That content remains unusable through the typed text error. Adjacent tests
+assert both facts on all supported APIs. The actor contract also states
+that a session with no given title is left alone. These clarify existing
+contracts; no Node caller or model request is added.
