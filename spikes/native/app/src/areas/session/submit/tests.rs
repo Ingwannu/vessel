@@ -25,6 +25,7 @@ fn hidden_or_differently_selected_session_input_cannot_dispatch_or_clear_text(
         shell.route = Route::Session;
         for target in [Target::Scripts, Target::Agent(SessionId::random())] {
             let _tab = shell.layout_open_target(&key, target, OpenIntent::New, Placement::Focused, window, cx).unwrap();
+            assert!(matches!(commands.try_recv().unwrap(), Command::SavePrefs(_)));
             assert_eq!(shell.composer_destination(), None);
             shell.submit_prompt("retained input".into(), window, cx);
             assert!(commands.try_recv().is_err());
@@ -33,6 +34,7 @@ fn hidden_or_differently_selected_session_input_cannot_dispatch_or_clear_text(
             assert!(shell.areas.session.resuming.is_none());
         }
         let _tab = shell.layout_open_target(&key, Target::Agent(session), OpenIntent::New, Placement::Focused, window, cx).unwrap();
+        assert!(matches!(commands.try_recv().unwrap(), Command::SavePrefs(_)));
         assert_eq!(shell.composer_destination(), Some(DraftKey::Session { session }));
         shell.submit_prompt("retained input".into(), window, cx);
         assert!(matches!(commands.try_recv().unwrap(), Command::Prompt { session: sent, text, .. } if sent == session && text == "retained input"));
