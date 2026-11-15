@@ -127,6 +127,17 @@ fn picker(
                 .child(problem(shell, cause).to_owned()),
         );
     }
+    if page.skills.requires_read() && !shell.areas.settings.orchestration.exhausted {
+        body = body.child(action(
+            "orchestration-picker-refresh",
+            words.refresh(),
+            config(ButtonKind::Secondary, !working, compact),
+            page.scope(),
+            Intent::Refresh,
+            tokens,
+            cx,
+        ));
+    }
     Some(DialogContent {
         title: words.choose().into(),
         body: body.into_any_element(),
@@ -152,7 +163,8 @@ fn picker(
                 } else {
                     config(
                         ButtonKind::Primary,
-                        !shell.areas.settings.orchestration.exhausted,
+                        !shell.areas.settings.orchestration.exhausted
+                            && !page.skills.requires_read(),
                         compact,
                     )
                 },

@@ -38,6 +38,19 @@ impl<T> Load<T> {
     pub const fn pending(&self) -> bool {
         matches!(self, Self::Pending { .. })
     }
+    /// An unknown mutation outcome requires a fresh read before another write.
+    #[must_use]
+    pub const fn requires_read(&self) -> bool {
+        matches!(
+            self.problem(),
+            Some(Problem::TimedOut | Problem::InvalidReply)
+        )
+    }
+    /// Controls may not replay a mutation based on an unconfirmed prior value.
+    #[must_use]
+    pub const fn writes_blocked(&self) -> bool {
+        self.pending() || self.requires_read()
+    }
     /// Safe recovery cause.
     #[must_use]
     pub const fn problem(&self) -> Option<Problem> {

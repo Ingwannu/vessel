@@ -83,3 +83,10 @@ view rejects same-node reconnect answers as well as alias/node changes. A
 retirement event drops that page and fences older queued snapshots. Window
 reactivation refreshes current state without reseeding an open draft. These
 changed union paths still need their exact narrow/native results.
+
+An unconfirmed timeout or invalid acknowledgement now blocks another write
+until a successful status read. Error recovery offers Refresh in the host
+header and within the selection dialog, including when a previous confirmed
+value is still shown. Refresh preserves the user's draft. This avoids a
+misleading retry based on stale installed/injection state; no automatic retry
+or rollback claim is made. A pure transition regression covers this boundary.

@@ -81,7 +81,7 @@ impl Page {
     /// Change only the injection switch after its current value was read.
     #[must_use]
     pub fn toggle_tools(&mut self, ticket: Ticket) -> Option<Task> {
-        if self.tools.pending() {
+        if self.tools.writes_blocked() {
             return None;
         }
         let current = self.tools.value()?;
@@ -96,7 +96,7 @@ impl Page {
     /// An installed switch opens confirmation; an uninstalled switch installs.
     #[must_use]
     pub fn toggle_skills(&mut self, ticket: Ticket) -> Option<Task> {
-        if self.skills.pending() || self.picker.is_some() {
+        if self.skills.writes_blocked() || self.picker.is_some() {
             return None;
         }
         let status = self.skills.value()?;
@@ -111,7 +111,7 @@ impl Page {
     }
     /// Offer only add/update operations, never unselected deletions.
     pub fn ask_update(&mut self) {
-        if self.skills.pending() || self.picker.is_some() {
+        if self.skills.writes_blocked() || self.picker.is_some() {
             return;
         }
         if let Some(status) = self.skills.value() {
@@ -147,7 +147,7 @@ impl Page {
     /// First save never preconfirms deletions from a stale UI status.
     #[must_use]
     pub fn save_picker(&mut self, ticket: Ticket) -> Option<Task> {
-        if self.skills.pending() || self.confirmation.is_some() {
+        if self.skills.writes_blocked() || self.confirmation.is_some() {
             return None;
         }
         let picker = self.picker.as_mut()?;
@@ -161,7 +161,7 @@ impl Page {
     /// Confirm only the action actually shown, on this fixed visit's target.
     #[must_use]
     pub fn confirm(&mut self, ticket: Ticket) -> Option<Task> {
-        if self.skills.pending() {
+        if self.skills.writes_blocked() {
             return None;
         }
         let action = match self.confirmation.take()? {

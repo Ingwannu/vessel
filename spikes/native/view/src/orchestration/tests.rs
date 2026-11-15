@@ -253,3 +253,30 @@ fn update_confirms_only_maintenance_in_stable_order_and_wrong_reply_refuses() {
     }));
     assert_eq!(page.skills.problem(), Some(Problem::InvalidReply));
 }
+
+#[test]
+fn uncertain_mutation_requires_a_fresh_read_and_keeps_the_picker_draft() {
+    let mut tickets = Tickets::default();
+    let mut page = page(&mut tickets);
+    loaded(&mut page, &mut tickets, snapshot());
+    page.choose();
+    page.picker.as_mut().unwrap().toggle_all();
+    page.picker
+        .as_mut()
+        .unwrap()
+        .toggle(&"vessel-advisor".parse().unwrap());
+    let draft = page.picker.as_ref().unwrap().draft.clone();
+    let save = page.save_picker(next(&mut tickets)).unwrap();
+    assert!(page.answered(save.refused(Problem::TimedOut)));
+    assert!(page.skills.requires_read());
+    assert!(page.save_picker(next(&mut tickets)).is_none());
+    assert!(page.confirm(next(&mut tickets)).is_none());
+    let read = page.read_skills(next(&mut tickets)).unwrap();
+    assert!(page.answered(Answer {
+        task: read,
+        result: Ok(Output::Skills(snapshot()))
+    }));
+    assert_eq!(page.picker.as_ref().unwrap().draft, draft);
+    assert!(!page.skills.requires_read());
+    assert!(page.save_picker(next(&mut tickets)).is_some());
+}

@@ -67,10 +67,29 @@ pub(crate) fn render(
     )
     .on_click(cx.listener(|_shell, _event, _window, cx| cx.open_url(DOCS)))
     .into_any_element();
+    let mut actions = div().flex().flex_wrap().items_center().gap(px(spacing::S2));
+    if let Some(page) = &state.page {
+        if (page.tools.problem().is_some() || page.skills.problem().is_some()) && !state.exhausted {
+            actions = actions.child(
+                button_with_kind_at(
+                    "orchestration-status-refresh",
+                    words.refresh(),
+                    ButtonKind::Ghost,
+                    enabled(!page.tools.pending() && !page.skills.pending()),
+                    ControlSizing::from_compact(compact),
+                    tokens,
+                )
+                .when(!page.tools.pending() && !page.skills.pending(), |button| {
+                    button.on_click(intent_handler(page.scope(), Intent::Refresh, cx))
+                }),
+            );
+        }
+    }
+    let actions = actions.child(docs).into_any_element();
     body.child(settings::section_with_trailing(
         words.skills_section(),
         skills,
-        Some(docs),
+        Some(actions),
         tokens,
     ))
     .into_any_element()
@@ -86,7 +105,7 @@ fn tools(
     let Some(value) = page.tools.value() else {
         return waiting(shell, page, page.tools.problem(), tokens, compact, cx);
     };
-    let enabled = !page.tools.pending();
+    let enabled = !page.tools.writes_blocked();
     let switch = settings::switch(
         "orchestration-tools",
         value.inject == Injection::On,
@@ -122,6 +141,7 @@ fn skills(
         return waiting(shell, page, page.skills.problem(), tokens, compact, cx);
     };
     let working = page.skills.pending();
+    let writable = !page.skills.writes_blocked();
     let installed = status.state != SkillsState::NotInstalled;
     let update = status.state == SkillsState::Drift
         && status.ops.iter().any(|op| {
@@ -130,7 +150,7 @@ fn skills(
                 SkillOperation::Add { .. } | SkillOperation::Update { .. }
             )
         });
-    let can_toggle = !working && (installed || has_selection(status));
+    let can_toggle = writable && (installed || has_selection(status));
     let mut controls = div().flex().items_center().flex_wrap().gap(px(spacing::S2));
     if update {
         controls = controls.child(
@@ -142,11 +162,11 @@ fn skills(
                     words.update()
                 },
                 ButtonKind::Outline,
-                enabled(!working),
+                enabled(writable),
                 ControlSizing::from_compact(compact),
                 tokens,
             )
-            .when(!working, |button| {
+            .when(writable, |button| {
                 button.on_click(intent_handler(page.scope(), Intent::Update, cx))
             }),
         );
@@ -157,11 +177,11 @@ fn skills(
                 "orchestration-choose",
                 ButtonContent::Icon(ButtonIcon::muted(Glyph::Sliders)),
                 ButtonKind::Ghost,
-                enabled(!working),
+                enabled(!page.skills.pending()),
                 ControlSizing::from_compact(compact),
                 tokens,
             )
-            .when(!working, |button| {
+            .when(!page.skills.pending(), |button| {
                 button.on_click(intent_handler(page.scope(), Intent::Choose, cx))
             }),
         )
