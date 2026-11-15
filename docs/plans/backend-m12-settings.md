@@ -686,3 +686,32 @@ click; it must not stop capture phase or add a second click callback.
 Current resume: first fix and capture the long-name row; then add a
 failing parent-release event regression and the small shared-control
 repair. Select-all follows those changes and the field module split.
+
+### Parent-release control decision
+
+[Decision Log]
+- Purpose: an enabled rename action consumes its left-button release as
+  well as its press, so a parent's mouse-up action does not also run.
+- Existing implementation: the shared action stops mouse-down only. Its
+  caller still owns the editor callback; disabled callers attach none.
+- Source: pinned `gpui-pre` 0.3.10, `elements/div.rs` registers custom
+  mouse-up listeners before its generated click listener (2848 and
+  3143); `window.rs:5992-6008` dispatches capture forward and bubble in
+  reverse. The generated caller click therefore runs before a custom
+  bubble mouse-up listener on the same element.
+- Alternatives: capture-phase suppression can prevent the caller's
+  generated click; another click callback would obscure callback order;
+  global button occlusion is a separate kit policy.
+- Choice: add a left-button bubble mouse-up stop only for Enabled, after
+  the existing mouse-down wiring. Keep the API, geometry and paint.
+- Validation: a real GPUI event test first demonstrates the leaked parent
+  release, then verifies caller-once, no parent release, Disabled with no
+  handler, and a neighbour outside the rename hit remaining reachable.
+- Limit: the later-sibling overlap case keeps its neighbour-only
+  expectation and remains an open finding pending the global kit policy.
+
+The long-name fix is `ad2d4ef3`. Its local app build passed; four
+scheme/language/layout cases show the maximum-length name with its label
+and action preserved. The temporary book rename was restored byte for
+byte, with mode 0600, as the development account. Its complete native
+gate remains queued; no gate pass is claimed for it yet.
