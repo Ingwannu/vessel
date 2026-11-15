@@ -49,3 +49,8 @@ The deep fixture's getter/key tables are shared statics iterated by reference,
 so the regression neither copies large const arrays nor depends on Clippy's
 large-const-array policy. The obsolete queued fixture check was superseded
 before taking a slot; that cancellation is not a compiler result.
+
+Run `i18n-narrow-20261115T145206Z-b92a3bf3` passed remote quality and failed
+Clippy on three discarded command-builder references in the test helper.
+The helper now threads those returned references into the final process call.
+Its regression has still not executed; corrected ordinary validation is owed.

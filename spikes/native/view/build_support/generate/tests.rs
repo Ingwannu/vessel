@@ -42,7 +42,7 @@ fn compiler(clippy: bool) -> PathBuf {
 
 fn compile(directory: &Path, clippy: bool) -> Output {
     let mut command = Command::new(compiler(clippy));
-    command
+    let command = command
         .current_dir(directory)
         .env_remove("CLIPPY_ARGS")
         .env("CLIPPY_CONF_DIR", directory)
@@ -54,17 +54,17 @@ fn compile(directory: &Path, clippy: bool) -> Output {
             "-D",
             "warnings",
         ]);
-    if clippy {
+    let command = if clippy {
         command.args([
             "--emit=metadata",
             "-D",
             "clippy::too_many_lines",
             "-o",
             "checked.rmeta",
-        ]);
+        ])
     } else {
-        command.arg("-o").arg(executable(directory));
-    }
+        command.arg("-o").arg(executable(directory))
+    };
     command.output().unwrap()
 }
 
