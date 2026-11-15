@@ -300,6 +300,12 @@ impl Glyph {
             Self::Monitor => line_glyph!(
                 r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
             ),
+            Self::Gauge => line_glyph!(
+                r#"<path d="M4.75 18.5a9 9 0 1 1 14.5 0"/><path d="m12 13.5 4.5-4.5"/>"#
+            ),
+            Self::PackagePlus => line_glyph!(
+                r#"<path d="M12 3.25 3.5 7.75 12 12.25l8.5-4.5L12 3.25M3.5 7.75v9L12 21.25l3-1.6M12 12.25v9M20.5 7.75v4.5M7.75 5.5l8.5 4.5M19 14.75v6.5M15.75 18h6.5"/>"#
+            ),
         }
     }
 }
