@@ -35,14 +35,7 @@ impl Shell {
     ) -> Result<T, LayoutError> {
         #[cfg(test)]
         let before = super::registry::retirement::Before::layout(self, workspace);
-        let result = super::with_layout_at(self, workspace, |layout| {
-            // Feature batches commit only as a whole. Otherwise an Err after
-            // one retarget could change the resource without retiring its owner.
-            let mut next = layout.clone();
-            let value = change(&mut next)?;
-            *layout = next;
-            Ok(value)
-        });
+        let result = super::with_layout_at(self, workspace, change);
         #[cfg(test)]
         if result.is_ok() {
             self.layout_retired(before, super::registry::retirement::Source::Local, cx);
