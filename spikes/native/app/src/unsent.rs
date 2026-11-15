@@ -103,6 +103,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             session,
             act,
         } => Event::Acted(ActAnswer {
+            terminal: act.terminal_opening().cloned(),
             machine,
             session,
             kind: act.kind(),
@@ -242,6 +243,34 @@ mod tests {
         let failed = answer.result.expect_err("refused");
         assert_eq!(failed.code, Some(ErrorCode::Unavailable));
         assert_eq!(failed.message, WORDS);
+    }
+
+    /// A terminal read retains ownership even before a node can receive it.
+    #[test]
+    fn terminal_history_queue_refusal_keeps_its_opening_identity() {
+        let (link, inbox) = Link::detached(1).expect("a runtime");
+        drop(inbox);
+        let session = SessionId::random();
+        let opening = vessel_app_link::TerminalOpening::new("laptop".parse().unwrap(), session);
+        let act = Act::TerminalLog {
+            opening: opening.clone(),
+            until: vessel_app_view::timeline::Until::Time(chrono::DateTime::UNIX_EPOCH),
+        };
+        let unsent = link
+            .submit(Command::Act {
+                machine: "laptop".into(),
+                session,
+                act,
+            })
+            .unwrap_err();
+        let Settle::Answer(event) = settle(unsent, WORDS) else {
+            panic!("an act receipt");
+        };
+        let Event::Acted(answer) = *event else {
+            panic!("an act receipt");
+        };
+        assert_eq!(answer.terminal, Some(opening));
+        assert!(answer.result.is_err());
     }
 
     /// A prompt keeps its text; a command nothing waits on is said.

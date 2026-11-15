@@ -120,3 +120,11 @@ fn pairing_browser_words_capture() {
             cx.activate(true);
         });
 }
+
+/// Visual fixture; the installed app contains no terminal-state override.
+#[cfg(all(test, target_os = "linux"))]
+#[test]
+#[ignore = "requires a private display and a disposable fake fleet"]
+fn terminal_states_capture() {
+    areas::terminal::capture::run();
+}
