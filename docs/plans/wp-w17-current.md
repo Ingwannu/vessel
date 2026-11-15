@@ -2,8 +2,10 @@
 
 Product checkpoint: gate-50c merge adaptation on node head
 `9c150c6efbff583762d02e6a8576b3fa66cc7ae9`, with move-only startup seam
-`7489af9ed` and conditional C2 source integration (`0d7cf46e` product,
-`c0abda32` docs; full consumer qualification open).
+`7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
+and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
+source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer
+qualification is open. The newer source-reviewed frame producer is not adopted.
 This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
 remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
@@ -32,8 +34,10 @@ node258/0, proto329/1, rpc53/0, session72/0, store77/0, frozen screen11/0.
 Only the pinned forwardable inventory missed terminal.capture; ea9fc2fe adds that
 name without weakening the assertion. These runs predate the shared TUI adapter.
 The cf252 strict run was cancelled while queued before compilation (terminal143)
-for the announced9c base adaptation. Corrected combined-head strict is still owed,
-as are latest CLI processes, common/TUI actor units, fresh named TypeScript generation,
+for the announced9c base adaptation. One corrected strict is queued on exactece8
+as wp-cli-narrow-20261115T163614Z-ece8d091; it does not cover the later sealed EOF
+owner or real-queue fixture. Their strict/runtime proof is still owed, as are latest
+CLI processes, common/TUI actor units, fresh named TypeScript generation,
 full package and A12. Neither scoped library results nor source review qualifies C2
 row217 or activates NodeAuthority. Actual Guarded/actor fixture proof is distinct
 from credentials or a callable pending RPC. The new base's diagnostics privacy and
