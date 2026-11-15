@@ -53,6 +53,45 @@ impl ToolbarButton {
         config: ToolbarConfig,
         tokens: &crate::Tokens,
     ) -> Self {
+        Self::with_content(
+            id,
+            label,
+            icon.render(config.sizing(), tokens),
+            config,
+            tokens,
+        )
+    }
+
+    /// The pinned usage refresh's numeric14/18 `ActivityIndicator` uses the SAME
+    /// shared masks/750ms motion. Loading chrome is disabled and acquires no click
+    /// handler; the owner still retains original request/context admission.
+    pub fn loading(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        ink: ToolbarInk,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
+        let id = id.into();
+        let points = match config.sizing() {
+            crate::ControlSizing::Pointer => crate::loading::Points::FOURTEEN,
+            crate::ControlSizing::Touch => crate::loading::Points::EIGHTEEN,
+        };
+        let content = crate::loading::activity_indicator(
+            ElementId::NamedChild(std::sync::Arc::new(id.clone()), "activity".into()),
+            crate::loading::Size::Numeric(points),
+            ink.colour(tokens),
+        );
+        Self::with_content(id, label, content, config.disabled(), tokens)
+    }
+
+    fn with_content(
+        id: impl Into<ElementId>,
+        label: impl Into<SharedString>,
+        content: impl IntoElement,
+        config: ToolbarConfig,
+        tokens: &crate::Tokens,
+    ) -> Self {
         let label = label.into();
         let hover = fill(config, Phase::Hovered, tokens);
         let pressed = fill(config, Phase::Pressed, tokens);
@@ -74,7 +113,7 @@ impl ToolbarButton {
             .when(config.availability() == ButtonState::Enabled, |element| {
                 element.cursor_pointer()
             })
-            .child(icon.render(config.sizing(), tokens));
+            .child(content);
         Self {
             element,
             config,
