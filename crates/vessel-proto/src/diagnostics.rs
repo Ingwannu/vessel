@@ -1,4 +1,4 @@
-//! A bounded, content-free node report (ADR 0074), not a registered RPC.
+//! A bounded, content-free node report and pending RPC (ADR 0074).
 //!
 //! [Decision Log]
 //! Existing node/harness objects contain paths, keys and arbitrary output.
@@ -7,9 +7,15 @@
 //! raw log/text block. No request or method may be added before the shared
 //! unassigned-protocol admission accessor reaches the node line.
 
+mod admission;
 mod bounded;
+pub use admission::{DiagnosticRefusal, MAX_DIAGNOSTIC_COLLECTIONS};
 mod error;
+mod process;
 mod protocol;
+pub use process::{
+    DiagnosticMemory, DiagnosticProcess, DiagnosticProcessId, MIN_DIAGNOSTIC_PROCESS_ID,
+};
 mod report;
 mod scalar;
 mod sections;
@@ -40,10 +46,17 @@ pub use version::{
     MIN_DIAGNOSTIC_VERSION_DIGITS, VERSION_COMPONENTS,
 };
 
-/// Unassigned until the shared `required_protocol` accessor is on the node
-/// line and the node, typed client, CLI and native Diagnostics consumer all
-/// refuse an unassigned/older feature. The integrator alone assigns Some.
-pub const DIAGNOSTICS_PROTOCOL: Option<crate::ProtocolVersion> = None;
+/// Request a bounded metadata-only report. Never refreshes providers or agents.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct GetDiagnostics {}
+
+/// Protocol 24 (2026-11-15): `node.diagnostics` is served from this version
+/// on; the node, typed client and CLI refuse it below 24 through the shared
+/// `required_protocol` accessor. The integrator alone assigns this number.
+pub const DIAGNOSTICS_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(24));
 
 #[cfg(test)]
 mod tests;
