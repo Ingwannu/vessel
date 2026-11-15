@@ -104,7 +104,7 @@ async fn retirement_after_write_dispatch_returns_original_uncertainty_without_re
         let (original_context, outcome) = reply.into_parts();
         assert_eq!(original_context, context);
         let Outcome::File(reply) = outcome else { panic!("file outcome") };
-        let (original_scope, answer, may_have_run) = reply.into_parts();
+        let (original_scope, answer, may_have_run) = (*reply).into_parts();
         assert_eq!(original_scope, scope);
         assert!(may_have_run);
         assert!(matches!(answer, super::FileAnswer::Saved { ticket: original, saved: Saved::Uncertain(_), .. } if original == ticket));

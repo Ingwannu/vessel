@@ -55,7 +55,7 @@ impl Shell {
                 self.install_code_session_read(session, result);
             }
             Outcome::File(reply) => {
-                let (scope, answer, dispatched) = reply.into_parts();
+                let (scope, answer, dispatched) = (*reply).into_parts();
                 self.file_scoped_answer(&scope, answer, current, dispatched, cx);
             }
         }

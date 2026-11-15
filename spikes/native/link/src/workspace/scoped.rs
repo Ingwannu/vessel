@@ -31,7 +31,7 @@ enum Work {
     },
     File {
         scope: FileScope,
-        ask: FileAsk,
+        ask: Box<FileAsk>,
     },
 }
 impl Request {
@@ -50,7 +50,10 @@ impl Request {
         }
         Ok(Self {
             context: scope.connection().clone(),
-            work: Work::File { scope, ask },
+            work: Work::File {
+                scope,
+                ask: Box::new(ask),
+            },
         })
     }
     /// Settle original tickets when the command queue refused the operation.
@@ -65,11 +68,11 @@ impl Request {
                 ticket,
                 result: Err(problem.clone()),
             },
-            Work::File { scope, ask } => Outcome::File(FileReply {
+            Work::File { scope, ask } => Outcome::File(Box::new(FileReply {
                 dispatched: false,
                 scope,
-                answer: ask.refused(problem),
-            }),
+                answer: (*ask).refused(problem),
+            })),
         };
         Reply {
             context: self.context,
@@ -109,7 +112,7 @@ pub enum Outcome {
         result: Result<Box<SessionInfo>, Problem>,
     },
     /// A root-confined file operation from the one existing implementation.
-    File(FileReply),
+    File(Box<FileReply>),
 }
 /// Replies preserve the original context even when admission or polling failed.
 #[derive(Debug)]
@@ -141,16 +144,11 @@ impl Default for Hub {
 impl crate::State {
     pub(crate) fn scoped_file(&self, request: Request) {
         let selected = self.selected_connection(&request.context);
-        let slots = if matches!(
-            &request.work,
-            Work::File {
-                ask: FileAsk::Observe { .. },
-                ..
+        let slots = match &request.work {
+            Work::File { ask, .. } if matches!(ask.as_ref(), FileAsk::Observe { .. }) => {
+                &self.workspace.file_calls.observations
             }
-        ) {
-            &self.workspace.file_calls.observations
-        } else {
-            &self.workspace.file_calls.slots
+            Work::Root { .. } | Work::File { .. } => &self.workspace.file_calls.slots,
         };
         let slot = slots.clone().try_acquire_owned();
         let events = self.events.clone();
@@ -167,11 +165,11 @@ impl crate::State {
                                 .await
                                 .map(Box::new),
                         },
-                        Work::File { scope, ask } => Outcome::File(FileReply {
+                        Work::File { scope, ask } => Outcome::File(Box::new(FileReply {
                             dispatched: true,
                             scope,
-                            answer: super::file_run::run(&client, ask).await,
-                        }),
+                            answer: super::file_run::run(&client, *ask).await,
+                        })),
                     };
                     Reply {
                         context: request.context,
