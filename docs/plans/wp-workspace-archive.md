@@ -103,6 +103,17 @@ filesystem/process shutdown or registered workspace RPC.
 
 ## Atomic session archive admission (CLI consumer)
 
+Deletion shares the same admission mutex as archive and resume publication.
+Waiting for an old ended run's persistence happens before admission; deletion
+then re-finds the target under the mutex and keeps it through the store commit.
+A stored snapshot outside that critical section cannot authorize deleting a
+newly published resumed run. The admitted delete runs as node-owned tracked work
+so a cancelled RPC waiter cannot interrupt its commit. The new regression holds
+the actual publication mutex, observes tracked deletion without any row removal,
+cancels its waiter, then releases admission and checks the committed deletion.
+This test is written but has not executed. Physical worktree/terminal cleanup
+admission remains separate and is not established by this session-row guard.
+
 W17 identified a separate A2 node gap: a CLI snapshot preflight cannot safely
 implement archive-without-force, because a prompt can be admitted before the stop.
 `session_archive::ArchiveSession { session, condition: IfIdle | Force }` therefore

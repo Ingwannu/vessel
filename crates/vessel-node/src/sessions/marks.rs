@@ -113,14 +113,28 @@ impl Sessions {
     /// Delete an ended session whole: its log, marks, queue and
     /// attachments, files included. A session that has just ended is
     /// waited for until the store serves it (`HAND_OVER_WAIT`).
-    pub(crate) async fn delete(&self, id: SessionId) -> Result<(), ServiceError> {
-        let found = match self.find(id).await? {
-            Found::Live { handle, .. } if handle.has_ended() => {
-                self.wait_stored(id).await?;
-                self.find(id).await?
-            }
-            found @ (Found::Live { .. } | Found::Stored(_)) => found,
-        };
+    pub(crate) async fn delete(self: &Arc<Self>, id: SessionId) -> Result<(), ServiceError> {
+        if let Found::Live { handle, .. } = self.find(id).await?
+            && handle.has_ended()
+        {
+            // Persistence can finish independently; do not hold publication
+            // admission while waiting for the old run to hand over.
+            self.wait_stored(id).await?;
+        }
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _admission = sessions.marking.lock().await;
+                sessions.delete_locked(id).await
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
+    /// Resume publication uses this same admission. Re-find under it before
+    /// deletion, and keep the admitted commit alive if the RPC waiter leaves.
+    async fn delete_locked(&self, id: SessionId) -> Result<(), ServiceError> {
+        let found = self.find(id).await?;
         match found {
             Found::Live { handle, .. } if handle.has_ended() => Err(ServiceError::LogWriting(id)),
             Found::Live { .. } => Err(ServiceError::Live(id)),

@@ -2,6 +2,7 @@
 //! cannot record one; what a session looks like once handed over.
 
 mod archive;
+mod deletion;
 mod handover;
 mod subagents;
 
