@@ -1,7 +1,6 @@
 //! A real App fence rejects resize/edit events between capture, acknowledgment and exit.
 
 use super::*;
-use crate::desktop::{WindowClose, WindowRecord};
 use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_link::desktop::{
@@ -46,13 +45,7 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, crate::desktop::preferences::start);
     cx.update(|window, cx| {
-        cx.default_global::<crate::host_windows::Registry>()
-            .records
-            .push(WindowRecord {
-                window: window.window_handle(),
-                shell: shell.downgrade(),
-                close: WindowClose::Idle,
-            });
+        crate::host_windows::register(&shell, window, cx);
     });
     cx.run_until_parked();
     let flushing = cx.cx.update(|cx| flush_state(cx));

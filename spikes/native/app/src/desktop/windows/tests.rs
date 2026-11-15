@@ -168,11 +168,7 @@ fn two_window_close_requests_recheck_the_last_window_before_removal(cx: &mut Tes
 
 fn registered_probe(window: &mut Window, cx: &mut Context<'_, Shell>) -> Shell {
     let shell = Shell::without_io(window, cx);
-    cx.default_global::<Registry>().records.push(WindowRecord {
-        window: window.window_handle(),
-        shell: cx.entity().downgrade(),
-        close: WindowClose::Idle,
-    });
+    crate::host_windows::register(&cx.entity(), window, cx);
     shell
 }
 

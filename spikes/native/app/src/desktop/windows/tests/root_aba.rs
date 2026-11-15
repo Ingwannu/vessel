@@ -5,13 +5,7 @@ use gpui::Entity;
 
 fn replace(window: &mut Window, cx: &mut App) -> Entity<Shell> {
     let replacement = window.replace_root(cx, Shell::without_io);
-    let records = &mut cx.default_global::<Registry>().records;
-    records.retain(|record| record.window != window.window_handle());
-    records.push(WindowRecord {
-        window: window.window_handle(),
-        shell: replacement.downgrade(),
-        close: WindowClose::Idle,
-    });
+    crate::host_windows::register(&replacement, window, cx);
     replacement
 }
 

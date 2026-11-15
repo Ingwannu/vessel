@@ -10,6 +10,7 @@
 
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Entity, Global, WeakEntity, Window};
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct WindowRecord {
@@ -21,25 +22,26 @@ pub(crate) struct WindowRecord {
 #[derive(Clone)]
 pub(crate) enum WindowClose {
     Idle,
-    Checking(std::rc::Rc<()>),
+    Checking(Rc<()>),
 }
 
 impl WindowClose {
+    #[must_use]
     pub(crate) fn begin() -> Self {
-        Self::Checking(std::rc::Rc::new(()))
+        Self::Checking(Rc::new(()))
     }
 
+    #[must_use]
     pub(crate) const fn is_checking(&self) -> bool {
         matches!(self, Self::Checking(_))
     }
 
     /// Re-registering the same Shell after replacement must not revive its old
     /// close request. Value/handle identity alone cannot distinguish that cycle.
+    #[must_use]
     pub(crate) fn same_check(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Checking(current), Self::Checking(captured)) => {
-                std::rc::Rc::ptr_eq(current, captured)
-            }
+            (Self::Checking(current), Self::Checking(captured)) => Rc::ptr_eq(current, captured),
             _ => false,
         }
     }

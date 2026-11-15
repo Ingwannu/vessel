@@ -427,7 +427,7 @@ rustfmt and the size/token scripts are the only local source checks.
 | App24, run170102Z | 7d70dc15;118/0/2 including real two-window prefer_with_receipt, physical save failure followed by another window's success before observation |13 pending owner API warnings; no App strict or later base9/zoom proof. |
 | Unit25, run173910Z | b5cf516a;1476/0/2: App127/0/2, Kit215, Link143, View991 | Actual production zoom/DPI/bounds, both limits, extra window, queued root replacement and legacy store migration passed; later close-admission hardening excluded. |
 | Windows4, run151309Z | b0cef8c4; fonts0 and locked MSVC all-target App check0 | Normal/test warnings20/14. Typecheck only; no Windows runtime/root cross-check or later writer/base/zoom proof. |
-| Current close-admission App27 | a006a921; submitted once on the ordinary short lane | Result pending; old root A cannot be assumed safe from earlier same-root tests. |
+| Close-admission App27 | a006a921; stopped before tests with E0502 in registered_probe | Fixture borrowed the registry before capturing its Shell. The receiving repair uses the real shared register operation, without changing assertions. |
 
 Library strict26 and Windows5 on b5cf516a remain queued independently. No App
 strict result, final whole native gate, native-build/export, inspected capture
