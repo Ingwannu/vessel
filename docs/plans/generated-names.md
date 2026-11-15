@@ -864,3 +864,10 @@ shortened. The RPC test for a semantically invalid metadata patch checks both
 settings and file remain unchanged: pending builds refuse before sending;
 a later assigned build must reject the invalid route before writing. Strict
 unknown-key decoding remains covered separately by the protocol tests.
+
+
+Generated TypeScript checkpoint: all four selected TS tests pass after the
+head fixture completion, and the declarations are regenerated from Rust.
+The next correction preserves the documented capability distinction: a
+supported settings reply must contain an empty provider list for Automatic;
+only unsupported peers omit metadata. Its wire type remains optional.
