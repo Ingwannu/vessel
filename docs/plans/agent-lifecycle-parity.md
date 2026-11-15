@@ -515,8 +515,8 @@ feature constant, and an unassigned constant makes the whole call None.
 
 Current preparation: integrated discovery is merged; nonempty patches and the
 metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
-contracts below await design review before their implementation. No new event
-or mutation RPC is registered. Historical checkpoint text follows.
+contracts below have passed source review. Their implementation and execution
+checks are in progress. No new event or mutation RPC is registered. Historical checkpoint text follows.
 
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
@@ -1388,3 +1388,26 @@ validation/observation, exact SQL text and parameter order, indexing/retention,
 clock timing and savepoint behavior are unchanged. No bound, assertion or
 deadline is altered. This is a separate behavior-preserving correction;
 the original strict failure remains in the validation history.
+
+
+### Live acknowledgement publication
+
+The existing kept-metadata lock now overlays the latest acknowledged mutation
+time as well as kept marks/receipt. It takes the maximum known acknowledged
+clock and never clears it with Unknown. Crucially, an append's newer time does
+not authorize discarding an earlier mark that still needs publication: marks
+retain the node's original serialized order, while only the scalar clock uses
+a high-water rule. No extra actor queue, mutex, writer or authority is added.
+
+Creation, persistence, live marking, reopen and detach consume their actual
+Store acknowledgements. Persistence applies the clock before advancing its
+durability notification. Reopen seeds/restores the canonical stored time before
+opening its existing gate. The raw actor watch omits this separately kept time,
+as it already omits kept marks; SessionHandle::info adds the current overlay,
+including after actor EOF. Stored replies use the canonical row snapshot.
+
+New unit tests force delayed/Unknown clock acknowledgements and verify the
+older mark still applies without regressing time. Real fake-node tests exercise
+create/append/mark/handover and live detach/repeat publication. Existing error,
+cleanup, authority, cancellation, deadlines and assertions are unchanged. This
+still establishes no label-map coverage, new label event or reload behavior.

@@ -64,7 +64,7 @@ impl Sessions {
                 let mut result = sessions.store.detach(id, Utc::now()).await?;
                 sessions.agents.detach(id);
                 if let Found::Live { handle, .. } = found {
-                    handle.set_detach_receipt(Some(result.receipt));
+                    handle.set_committed_detach(Some(result.receipt), result.session.updated_at);
                     result.session = Box::new(handle.info());
                 }
                 Ok(result)
@@ -85,7 +85,7 @@ impl Sessions {
             .session(handle.id())
             .await?
             .ok_or(StoreError::UnknownSession(handle.id()))?;
-        handle.set_detach_receipt(info.detach_receipt);
+        handle.set_committed_detach(info.detach_receipt, info.updated_at);
         handle.set_marks(kept);
         if info.detach_receipt.is_some() {
             self.agents.detach(handle.id());

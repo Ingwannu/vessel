@@ -82,7 +82,7 @@
 //!   publishes as `renamed` in order with the log and answers once the info
 //!   has it. Only the actor publishes, so a title can never disagree with
 //!   the log the store rebuilds it from.
-//! - Marks (protocol 10, ADR 0026, `marks`): the node applies a mark in the
+//! - Marks (protocol 10, ADR 0026, `kept_metadata`): the node applies a mark in the
 //!   store and hands the store's result to [`SessionHandle::set_marks`];
 //!   the publisher notes each record that asks for attention.
 //!   [`SessionHandle::info`] adds both to the info, so a session the

@@ -45,7 +45,12 @@ impl Sessions {
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
         let durability = self.track(&handle, EventSeq::ZERO);
-        if let Err(error) = self.store.create_session(*initial).await {
+        if let Err(error) = self
+            .store
+            .create_session_committed(*initial)
+            .await
+            .map(|committed| handle.acknowledge_time(committed.updated_at()))
+        {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
             // `durable` lets it finish without waiting for us.

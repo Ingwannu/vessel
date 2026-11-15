@@ -1853,5 +1853,7 @@ metadata changes inside their current savepoints. A helper takes that same
 connection so future transactional workspace selection can reuse the clock
 without a second read engine. Reads, retention and index maintenance do not
 advance it. It describes committed local mutation order; it is neither actor
-log coverage nor an execution authorization fact. Public snapshot propagation
-and protocol availability remain part of the unfinished lifecycle package.
+log coverage nor an execution authorization fact. Typed write acknowledgements carry each operation's own time before later
+queued writes; runtime kept metadata applies that known clock monotonically.
+The raw actor watch omits it and normal Info reads overlay it. Public protocol
+availability remains pending, and this does not establish label-map coverage.

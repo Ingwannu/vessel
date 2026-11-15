@@ -114,7 +114,13 @@ impl SessionRuntime {
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (metadata, metadata_changes) = mpsc::channel(METADATA_CAPACITY);
         let (forge, forge_view) = watch::channel(None);
-        let state = (seen, KeptMetadata::after(attention, info.detach_receipt));
+        // The raw actor watch carries no separately acknowledged row clock.
+        // SessionHandle::info overlays the kept copy, including after actor EOF.
+        let updated_at = info.updated_at.take();
+        let state = (
+            seen,
+            KeptMetadata::after(attention, info.detach_receipt, updated_at),
+        );
         let channels = (model_calls, metadata, forge);
         let (info, kill, shared) = self.shared(info, (input, process), control, channels, state);
         let _previous = shared.limits.send_replace(limits);
