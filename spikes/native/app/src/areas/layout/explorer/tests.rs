@@ -118,6 +118,11 @@ fn cold_absent_workspace_does_not_allocate_an_explorer_or_call_its_body(cx: &mut
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(shell);
     shell.update_in(cx, |shell, _window, _cx| {
+        // The real Shell may already render and initialize its cache while the
+        // window is attached. Establish the empty remembered/cold precondition
+        // synchronously here, without relying on an initial frame's timing.
+        assert!(shell.prefs.layouts.is_empty());
+        *shell.areas.layout.book.borrow_mut() = None;
         assert!(shell.areas.layout.book.borrow().is_none());
         assert_eq!(
             shell.layout_with_explorer(PanelFocus::Focused, |_| true),
