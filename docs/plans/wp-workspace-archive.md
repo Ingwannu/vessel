@@ -206,6 +206,15 @@ aborts its caller and proves cleanup continues while a subsequent mark remains
 blocked until completion. Existing terminal close-timeout semantics remain;
 workspace backing cleanup still requires its separate verified drain contract.
 
+Stored-session IfIdle admission takes marking before find, not after a caller's
+ended snapshot. Resume may prepare a gated runtime first, but publishes its
+durability entry and store reopening under that same lock. If resume wins, archive
+re-finds the live run and the actor refuses an active/starting turn without Force.
+If archive wins, a later explicit resume is ordered after its durable mark. Added
+fake-backed regressions observe a real gated resume held behind stored archive
+completion, and an active resumed run after a stale ended snapshot. These new
+tests are written, not executed; the earlier 30-test result does not cover them.
+
 Real recovery additionally depends on W11's pending canonical admission/backing
 generation extension. Archived→Restoring advances it atomically, even when an
 existing directory is only unarchived; checked overflow refuses before effects.

@@ -5,6 +5,7 @@ use vessel_proto::{ContentBlock, SessionInput, session_archive::ArchiveCondition
 use vessel_session::{ArchiveRefusal, SessionError};
 
 mod child;
+mod resume;
 
 const SAFETY_NET: Duration = Duration::from_secs(30);
 
