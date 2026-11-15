@@ -216,11 +216,18 @@ async fn a_full_owner_queue_past_both_old_deadlines_still_settles_the_exact_impo
         let Event::History(answer) = incoming.try_recv().unwrap() else {
             panic!("terminal history")
         };
-        assert!(model.answer(answer.into_reply()));
+        let terminal = answer.into_reply();
+        assert!(model.answer(terminal.clone()));
         assert!(!model.importing());
         assert!(model.requires_refresh());
         assert_eq!(model.outcomes()[0].result, Err(Problem::Uncertain));
         assert!(model.refresh().unwrap().is_some());
+        let fresh = model.loading().clone();
+        assert!(
+            !model.answer(terminal),
+            "duplicate terminal cannot settle the fresh read"
+        );
+        assert_eq!(model.loading(), &fresh);
         assert!(incoming.try_recv().is_err());
         assert_eq!(
             peer.calls.lock().unwrap().len(),
