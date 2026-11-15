@@ -915,7 +915,7 @@ fn checkpoint_recovery_resolves_only_a_verified_whole_before_image_and_never_suc
     )
     .unwrap();
     super::paths::prepare(&connection, &operation).unwrap();
-    super::recovery::pending(&connection).unwrap();
+    let _count = super::recovery::pending(&connection).unwrap();
     let wrong = ObservedSnapshot::new(
         plan.current.clone(),
         SnapshotEvidence::new(
@@ -1014,7 +1014,7 @@ fn checkpoint_recovery_refuses_equal_contents_on_a_replacement_inode() {
     )
     .unwrap();
     super::paths::prepare(&connection, &operation).unwrap();
-    super::recovery::pending(&connection).unwrap();
+    let _count = super::recovery::pending(&connection).unwrap();
     let path = plan.evidence.entries().first().unwrap().path.clone();
     let evidence = SnapshotEvidence::new(
         plan.evidence.physical(),

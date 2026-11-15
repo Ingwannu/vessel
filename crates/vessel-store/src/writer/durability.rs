@@ -39,7 +39,7 @@ pub(super) fn finish(
 pub(super) fn rejected(write: Write, error: &Arc<rusqlite::Error>) -> Answer {
     let failure = Err(StoreError::Commit(Arc::clone(error)));
     match write {
-        Write::Mark { done, .. } => {
+        Write::Mark { done, .. } | Write::Reopen { done, .. } => {
             Answer::Marked(done, Err(StoreError::Commit(Arc::clone(error))))
         }
         Write::Checkpoint { done, .. }
@@ -55,9 +55,6 @@ pub(super) fn rejected(write: Write, error: &Arc<rusqlite::Error>) -> Answer {
         | Write::Workspace { done, .. }
         | Write::Forge { done, .. }
         | Write::Automation { done, .. } => Answer::Done(done, failure),
-        Write::Reopen { done, .. } => {
-            Answer::Marked(done, Err(StoreError::Commit(Arc::clone(error))))
-        }
     }
 }
 #[cfg(test)]

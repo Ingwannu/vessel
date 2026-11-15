@@ -81,11 +81,7 @@ async fn checkpoint_owner_drains_an_admitted_lease_after_the_last_client_drops()
     let (gate, mut owner) = RootGate::start(BTreeSet::new()).unwrap();
     let lease = gate.claim(root(1), deadline()).await.unwrap();
     drop(gate);
-    assert!(
-        tokio::time::timeout_at(Instant::now(), &mut owner)
-            .await
-            .is_err()
-    );
+    assert!(timeout_at(Instant::now(), &mut owner).await.is_err());
     drop(lease);
     owner.await.unwrap();
 }

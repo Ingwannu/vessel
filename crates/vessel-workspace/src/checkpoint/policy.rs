@@ -151,7 +151,7 @@ impl Inputs {
     ) -> Result<IgnoreFingerprint, Error> {
         let mut hash = Sha256::new();
         hash.update(b"vessel-checkpoint-ignore-v1\0");
-        hash.update(&self.configuration);
+        feed_name(&mut hash, &self.configuration)?;
         let mut total = 0_u64;
         for path in &self.local {
             feed_name(&mut hash, path.relative().as_str().as_bytes())?;

@@ -178,3 +178,8 @@ inode. Resolution is idempotent for the same durable rollback decision; differen
 terminal decisions refuse. The caller must hold root exclusion through actual
 verification and the FULL-sync acknowledgement. Startup filesystem replay and
 post-resolution physical garbage collection still need production assembly.
+
+The root-admission scoped clippy on `a8a3e67b` found four local lint defects
+(unused qualification, identical writer error arms and two unused results).
+They are corrected without weakening checks; the corrected head still needs
+its compiled run. Its written behavior cases are not passing evidence yet.

@@ -167,7 +167,7 @@ fn admit(
                 Err(RootRefusal::Busy)
             } else {
                 let release = CancellationToken::new();
-                active.insert(root, release.clone());
+                let _previous = active.insert(root, release.clone());
                 Ok(RootLease {
                     root,
                     release,

@@ -21,7 +21,7 @@ fn fixture() -> (Connection, CaptureKey) {
         },
         generation: CaptureGeneration::FIRST,
     };
-    connection
+    let _changed = connection
         .execute(
             "INSERT INTO sessions(id) VALUES (?1)",
             [key.session.to_string()],
