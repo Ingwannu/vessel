@@ -211,3 +211,11 @@ and actions so no long renderer owns unrelated page and dialog composition.
 This changes no labels, controls, layout values or data decisions. The compact
 settings registration converts its existing boolean into a local layout enum
 for the extracted card helpers; no second control renderer is introduced.
+
+The authorized retry of b7a9d390 completed compilation and found only two
+redundant type qualifications in the collection tests; those are corrected.
+The current head additionally includes the accepted localization and actual
+connection-ready producer, so its own narrow check/test outcomes remain owed.
+The capture fleet uses the immutable, hash-verified reference binaries and
+matching baseline helper; it exercises backward-compatible node.info only.
+It cannot prove a new daemon diagnostic RPC, which is still not consumed.

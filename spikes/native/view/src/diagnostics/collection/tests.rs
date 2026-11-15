@@ -19,7 +19,7 @@ fn result(node: NodeId) -> HostResult {
     HostResult {
         admitted: node,
         facts: Ok(facts(node)),
-        daemon: crate::diagnostics::DaemonSnapshot::Unavailable(Problem::Unavailable),
+        daemon: DaemonSnapshot::Unavailable(Problem::Unavailable),
     }
 }
 
@@ -100,7 +100,7 @@ fn duplicate_unrequested_and_mismatched_answers_are_refused() {
         Ok(HostResult {
             admitted,
             facts: Ok(facts(NodeId::random())),
-            daemon: crate::diagnostics::DaemonSnapshot::Unavailable(Problem::Unavailable),
+            daemon: DaemonSnapshot::Unavailable(Problem::Unavailable),
         }),
     );
     assert!(matches!(

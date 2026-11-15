@@ -61,10 +61,7 @@ enum PageLayout {
 }
 impl PageLayout {
     const fn compact(self) -> bool {
-        match self {
-            Self::Compact => true,
-            Self::Wide => false,
-        }
+        matches!(self, Self::Compact)
     }
 }
 fn host_card(
