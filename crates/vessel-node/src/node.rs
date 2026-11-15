@@ -191,7 +191,7 @@ impl Node {
             teardown,
             lock,
         ));
-        listening(id, address, &local_endpoint);
+        setup::listening(id, address, &local_endpoint);
         Ok(Self {
             address,
             local: local_endpoint,
@@ -249,16 +249,6 @@ impl Node {
         self.stop.cancel();
         self.task.await.map_err(NodeError::Task)?
     }
-}
-
-/// Say where the node listens.
-fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
-    tracing::info!(
-        node = %id,
-        address = ?address,
-        local = %local.path().display(),
-        "node listening"
-    );
 }
 
 /// Open the event log, closing sessions a previous run left live.

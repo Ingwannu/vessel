@@ -90,3 +90,13 @@ pub(super) fn lsp_config(config: &Config) -> vessel_lsp::Config {
     lsp
 }
 
+/// Say where the node listens.
+pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local: &Endpoint) {
+    tracing::info!(
+        node = %id,
+        address = ?address,
+        local = %local.path().display(),
+        "node listening"
+    );
+}
+
