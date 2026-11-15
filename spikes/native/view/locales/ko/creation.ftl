@@ -20,3 +20,12 @@ creation-outcome-unknown = 결과를 확인하기 전에 연결이 끊겼습니�
 creation-registered-retry = 세션이 생성되었습니다. 해당 세션에서 첫 메시지를 다시 보내세요.
 # Retries delivery to the already-created session.
 creation-retry-first-message = 첫 메시지 다시 보내기
+
+# Workspace launch and primary action; empty Chat creates only a workspace.
+creation-create-workspace = 워크스페이스 만들기
+
+# Launch target: a chat, or only a workspace when there is no payload.
+creation-launch-chat = 대화
+
+# Launch target: the node configured shell, distinct from a stored profile.
+creation-launch-shell = 빈 터미널

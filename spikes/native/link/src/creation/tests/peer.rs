@@ -4,9 +4,9 @@ use super::{Scenario, TestResult};
 use chrono::DateTime;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream};
 use vessel_proto::{
-    Call, ClientFrame, Delivered, ErrorCode, HarnessKind, NodeId, NodeInfo, NodeState, Outcome,
-    ProtocolRange, Reply, RequestId, ServerFrame, SessionId, SessionInfo, SessionMode, SessionSpec,
-    Welcome, WireError,
+    Call, ClientFrame, Delivered, HarnessKind, NodeId, NodeInfo, NodeState, Outcome, ProtocolRange,
+    Reply, RequestId, ServerFrame, SessionId, SessionInfo, SessionMode, SessionSpec, Welcome,
+    WireError,
 };
 
 async fn read(stream: &mut DuplexStream) -> TestResult<Option<ClientFrame>> {
@@ -74,22 +74,25 @@ async fn register(stream: &mut DuplexStream, scenario: Scenario) -> TestResult<O
             let info = fixture(expected);
             (info.clone(), Reply::GetSession(info))
         }
+        (Call::GetSession(request), Scenario::WrongRetryReply(expected))
+            if request.session == expected =>
+        {
+            let info = fixture(SessionId::random());
+            (info.clone(), Reply::GetSession(info))
+        }
         (
             Call::CreateSession(request),
             Scenario::Accept
-            | Scenario::RefusePrompt
+            | Scenario::RefusePrompt(_)
             | Scenario::DisconnectPrompt
-            | Scenario::RefuseCreate,
+            | Scenario::RefuseCreate(_),
         ) => {
-            if matches!(scenario, Scenario::RefuseCreate) {
+            if let Scenario::RefuseCreate(code) = scenario {
                 write(
                     stream,
                     ServerFrame::Response {
                         id,
-                        outcome: Outcome::Err(WireError::new(
-                            ErrorCode::Forbidden,
-                            "private diagnostics",
-                        )),
+                        outcome: Outcome::Err(WireError::new(code, "private diagnostics")),
                     },
                 )
                 .await?;
@@ -115,15 +118,23 @@ async fn prompt(stream: &mut DuplexStream, id: RequestId, scenario: Scenario) ->
         Scenario::Accept | Scenario::Retry(_) => {
             Outcome::Ok(Reply::PromptSession(Delivered::Started))
         }
-        Scenario::RefusePrompt => {
-            Outcome::Err(WireError::new(ErrorCode::Conflict, "private diagnostics"))
-        }
+        Scenario::RefusePrompt(code) => Outcome::Err(WireError::new(code, "private diagnostics")),
         Scenario::DisconnectPrompt => return Ok(()),
-        Scenario::RefuseCreate | Scenario::WrongNode => {
+        Scenario::RefuseCreate(_) | Scenario::WrongNode | Scenario::WrongRetryReply(_) => {
             return Err(std::io::Error::other("no prompt allowed").into());
         }
     };
     write(stream, ServerFrame::Response { id, outcome }).await
+}
+async fn await_close(stream: &mut DuplexStream) -> TestResult {
+    // A success/refusal fixture models a still-admitted connection. Dropping
+    // immediately after its reply instead races the post-await liveness guard
+    // and correctly makes even that reply uncertain. Keep transport loss an
+    // explicit scenario, and still reject any extra create/prompt dispatch.
+    if read(stream).await?.is_some() {
+        return Err(std::io::Error::other("no request after the terminal reply").into());
+    }
+    Ok(())
 }
 pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestResult {
     welcome(&mut stream).await?;
@@ -134,7 +145,7 @@ pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestR
         return Ok(());
     }
     let Some(session) = register(&mut stream, scenario).await? else {
-        return Ok(());
+        return await_close(&mut stream).await;
     };
     if let Some(frame) = read(&mut stream).await? {
         let ClientFrame::Request {
@@ -148,6 +159,9 @@ pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestR
             return Err(std::io::Error::other("wrong retry destination").into());
         }
         prompt(&mut stream, id, scenario).await?;
+        if !matches!(scenario, Scenario::DisconnectPrompt) {
+            await_close(&mut stream).await?;
+        }
     }
     Ok(())
 }

@@ -11,6 +11,8 @@ mod tests;
 
 use std::sync::Arc;
 
+use vessel_app_view::composer::drafts::DraftKey;
+use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::creation::{Failure, Stage, Ticket};
 use vessel_app_view::machine_book::Name;
 use vessel_proto::{NodeId, SessionId, SessionInfo, SessionSpec};
@@ -45,8 +47,14 @@ impl std::fmt::Debug for FirstInput {
 /// A validated machine/spec and one local submission's identity.
 #[derive(Debug, Clone)]
 pub struct Ask {
+    /// The payload owner; tickets are local to this exact draft.
+    pub source: DraftKey,
+    /// Original actor admission, including reconnect/credential retirement.
+    pub context: ConnectionContext,
     /// Local correlation, not a connection's request counter.
     pub ticket: Ticket,
+    /// Canonical first-input identity retained across preparation and child retry.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// Existing node-book entry, parsed once by the app.
     pub machine: Name,
     /// Pin the welcome identity, so reusing a book name cannot retarget effects.
@@ -62,10 +70,14 @@ pub struct Ask {
 pub enum Answer {
     /// Creation committed; failures from here belong to this resource.
     Registered {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Node-book identity, retained even after navigation.
         machine: Name,
+        /// Original admission, retained for the eventual resident handoff.
+        context: ConnectionContext,
         /// Welcome identity of the client that actually registered the resource.
         node: NodeId,
         /// Exact session returned by the existing create call.
@@ -73,15 +85,19 @@ pub enum Answer {
     },
     /// Progress of the matching payload.
     Progress {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Side effect currently awaited.
         stage: Stage,
     },
     /// The legacy flow finished; deferred files remain their owner's concern.
-    Complete(Ticket),
+    Complete(DraftKey, Ticket),
     /// A known refusal or uncertain side effect, without raw server text.
     Failed {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Last attempted side effect.
@@ -89,6 +105,19 @@ pub enum Answer {
         /// Safe typed presentation reason.
         failure: Failure,
     },
+}
+
+impl Answer {
+    /// A reply cannot settle another draft with the same local ticket.
+    #[must_use]
+    pub const fn source(&self) -> DraftKey {
+        match self {
+            Self::Registered { source, .. }
+            | Self::Progress { source, .. }
+            | Self::Failed { source, .. }
+            | Self::Complete(source, _) => *source,
+        }
+    }
 }
 
 impl Ask {
@@ -100,6 +129,7 @@ impl Ask {
             Target::Registered(_) => Stage::InitialInput,
         };
         Answer::Failed {
+            source: self.source,
             ticket: self.ticket,
             stage,
             failure,
@@ -111,17 +141,16 @@ impl Ask {
 impl crate::State {
     /// A slow creation must not hold fleet refresh or commands for another node.
     pub(crate) fn create(&self, ask: Ask) {
-        let client = self
-            .clients
-            .get(ask.machine.as_str())
-            .map(|connected| connected.client.clone());
+        let client = self.selected_connection(&ask.context);
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             match client {
-                Some(client) => run::create(&client, ask, &events).await,
-                None => {
+                Ok(client) => run::create(&client, ask, &events).await,
+                Err(_changed) => {
                     let _closed = events
-                        .send(crate::Event::Creation(ask.refused(Failure::Offline)))
+                        .send(crate::Event::Creation(
+                            ask.refused(Failure::Refused(vessel_proto::ErrorCode::Conflict)),
+                        ))
                         .await;
                 }
             }
