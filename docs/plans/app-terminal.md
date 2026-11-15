@@ -437,7 +437,7 @@ history replay and old output replay on each side of the new history
 handover, and verifies the log cursor too. Product code is unchanged by
 this extra coverage. The queued gate was cancelled before execution so
 the next whole gate includes the strengthened test.
-Private captures have been inspected; the whole native gate remains owed.
+Private captures have been inspected; the final whole native gate passed.
 The burst regression now sends real ordered records through the terminal
 record handler, with each payload smaller than the parser feed budget and
 their aggregate larger than it. Its final screen and log cursor are checked.
@@ -449,8 +449,11 @@ The product at `2ce9d83b` is unchanged by the subsequent test-only
 strengthening. Native run `appconv-20261115T041605Z-92be8aa6` passed
 all six steps: 1,150 passed, zero failed, two ignored (the explicit Linux
 display fixtures). The final geometry/burst assertions also pass their
-13-test area run and strict all-target app clippy; their exact whole gate
-is still owed. The earlier narrow app/link/view terminal run was 114/0/1.
+13-test area run and strict all-target app clippy. Their exact whole gate,
+`appconv-20261115T045213Z-f7f51e06`, passed all six steps on `f7f51e06`:
+1,150 passed, zero failed, two ignored. Logs are retained under
+`/tmp/work/m12-conv-c2/rgate/repair-3/`; start/end loads were 9.90/19.21.
+The earlier narrow app/link/view terminal run was 114/0/1.
 
 The inspected matrix has 33 images: every combination of 1280×800,
 1024×700, 800×600 and 390×844 with EN/KO and light/dark; 800×600 glyphs
