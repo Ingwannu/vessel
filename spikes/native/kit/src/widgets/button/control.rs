@@ -92,6 +92,12 @@ impl Button {
     pub(super) fn new(element: Stateful<Div>, state: ButtonState) -> Self {
         Self { element, state }
     }
+    /// Name an icon action through the same button's accessibility node.
+    /// This forwards role/label; it does not create a keyboard binding.
+    pub fn aria_label(mut self, label: impl Into<gpui::SharedString>) -> Self {
+        self.element = self.element.role(gpui::Role::Button).aria_label(label);
+        self
+    }
     /// Attach only when enabled, even if a consumer supplies a callback while
     /// pending. View must still guard its own state transition at dispatch.
     pub fn on_click(

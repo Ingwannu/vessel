@@ -1183,3 +1183,12 @@ adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
 Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
 no-Window signatures remain Pointer. The published outline glyph API retains
 its explicit tone and immediate-child geometry in the same shared renderer.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.
