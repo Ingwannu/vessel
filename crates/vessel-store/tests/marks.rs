@@ -305,12 +305,14 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    fixtures::undo_registry_schema(&connection);
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN title_origin;
+            "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;
              DROP TABLE usage_samples;
              DROP TABLE usage_meta;
              ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
