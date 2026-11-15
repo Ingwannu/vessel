@@ -1035,3 +1035,14 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Shared ActivityIndicator
+
+`loading::activity_indicator(id, Size, colour)` is the source activity profile:
+Small20, Large36 or Numeric(Points); TEN/SIXTEEN are validated numeric constants.
+Opaque32-unit track/arc masks retain the source radius14/stroke4/arc20 geometry.
+The track takes20% element opacity after GPUI's mask gamma correction; the
+foreground shares the existing750ms linear rotation path and App motion flag.
+Legacy slider::spinner retains its vector/API/800ms through the same rotation
+helper. Combined ActivityIndicator asset stays registered for compatibility.
+See docs/plans/backend-m12-g2-loading-019-producer.md for source/gate/UI scope.
