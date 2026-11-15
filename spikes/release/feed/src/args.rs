@@ -12,7 +12,7 @@ usage:
   vessel-app-feed publish --key FILE --feed DIR --channel NAME --label LABEL
                           [--notes FILE] [--published TEXT]
                           --artifact TARGET:PACKAGING:PATH ...
-  vessel-app-feed sums --key FILE DIR
+  vessel-app-feed sums --key FILE --label LABEL DIR
   vessel-app-feed check --feed DIR --public KEY --channel NAME
   vessel-app-feed check-sums --public KEY DIR";
 
@@ -45,6 +45,7 @@ pub(crate) enum Command {
     Publish(Publish),
     Sums {
         key: PathBuf,
+        label: Label,
         dir: PathBuf,
     },
     Check {
@@ -118,9 +119,11 @@ pub(crate) fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command,
         "sums" => {
             let [dir] = take_positional::<1>(positional)?;
             let key = options.required("key")?.into();
+            let label = parse_value("label", &options.required("label")?)?;
             options.none_left()?;
             Ok(Command::Sums {
                 key,
+                label,
                 dir: dir.into(),
             })
         }
@@ -265,6 +268,8 @@ mod tests {
             "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:../a",
             "check --feed f --public p",
             "sums --key",
+            "sums --key k d",
+            "sums --key k --label nope d",
         ] {
             assert!(run(line).is_err(), "{line:?} accepted");
         }
