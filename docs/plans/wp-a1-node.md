@@ -243,6 +243,12 @@ remains cfg(test) until the real tracked receipt driver is wired. No lease
 checks current Store/resource absence, root authority or workspace start
 admission on behalf of that missing adapter.
 
+The staged failure settlement accepts only the same operation's committed
+Resource/Known refusal and an unchanged unregistered/unused entry. Unknown,
+another operation, or an entry already used by an agent cannot release count.
+The actual spawner must still prove the no-effect classification before
+writing that failure; receipt metadata alone is not a process-state oracle.
+
 The internal refused outcome carries the canonical creation Certainty value
 explicitly. Generic backing refusals currently retain Uncertain reservations
 and return Unknown, so a future caller cannot mistake the typed refusal reason

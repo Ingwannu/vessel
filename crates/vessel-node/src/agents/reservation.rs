@@ -1,5 +1,5 @@
 //! Count admission belongs to Agents; a receipt attempt owns only its rollback.
-use super::Agents;
+use super::{Agents, Entry};
 use std::sync::Arc;
 use vessel_proto::{AgentSecret, SessionId};
 
@@ -11,6 +11,8 @@ pub(crate) struct AgentReservation<'a> {
     marker: Arc<()>,
     secret: Option<AgentSecret>,
     rollback: bool,
+    #[cfg(test)]
+    operation: Option<vessel_proto::WorkspaceOperationId>,
 }
 
 impl<'a> AgentReservation<'a> {
@@ -26,6 +28,8 @@ impl<'a> AgentReservation<'a> {
             marker,
             secret,
             rollback: true,
+            #[cfg(test)]
+            operation: None,
         }
     }
 
@@ -45,7 +49,8 @@ impl<'a> AgentReservation<'a> {
         receipt: &vessel_proto::creation::Receipt,
     ) -> Result<(), vessel_proto::creation::CreationError> {
         use vessel_proto::creation::{CreationError, Resource, Stage};
-        if receipt.in_flight() != Some(Stage::Resource)
+        if self.operation.is_some()
+            || receipt.in_flight() != Some(Stage::Resource)
             || receipt.snapshot().reserved.resource
                 != Some(Resource::Agent {
                     session: self.session,
@@ -54,13 +59,58 @@ impl<'a> AgentReservation<'a> {
             return Err(CreationError::InvalidTransition);
         }
         let entries = self.agents.lock();
-        if !entries.get(&self.session).is_some_and(|entry| {
-            Arc::ptr_eq(&entry.reservation, &self.marker) && entry.session.is_none()
-        }) {
+        if !entries
+            .get(&self.session)
+            .is_some_and(|entry| self.owns_pending(entry))
+        {
             return Err(CreationError::InvalidTransition);
         }
+        self.operation = Some(receipt.snapshot().reserved.operation);
         self.rollback = false;
         Ok(())
+    }
+
+    /// Caller must classify proven no-spawn refusal, then supply its exact
+    /// committed failure acknowledgement. Generic process/task errors are not
+    /// such proof. A registered/replaced/credential-used entry cannot roll back.
+    #[cfg(test)]
+    pub(crate) fn refused(
+        &mut self,
+        receipt: &vessel_proto::creation::Receipt,
+    ) -> Result<(), vessel_proto::creation::CreationError> {
+        use vessel_proto::creation::{Certainty, CreationError, Phase, Resource, Stage};
+        if self.operation != Some(receipt.snapshot().reserved.operation)
+            || receipt.in_flight().is_some()
+            || receipt.snapshot().reserved.resource
+                != Some(Resource::Agent {
+                    session: self.session,
+                })
+            || !matches!(
+                receipt.snapshot().phase,
+                Phase::Failed {
+                    stage: Stage::Resource,
+                    certainty: Certainty::Known,
+                    ..
+                }
+            )
+        {
+            return Err(CreationError::InvalidTransition);
+        }
+        let entries = self.agents.lock();
+        if !entries
+            .get(&self.session)
+            .is_some_and(|entry| self.owns_pending(entry))
+        {
+            return Err(CreationError::InvalidTransition);
+        }
+        self.rollback = true;
+        Ok(())
+    }
+
+    fn owns_pending(&self, entry: &Entry) -> bool {
+        Arc::ptr_eq(&entry.reservation, &self.marker)
+            && entry.session.is_none()
+            && entry.connections.is_empty()
     }
 }
 
@@ -70,11 +120,10 @@ impl Drop for AgentReservation<'_> {
             return;
         }
         let mut entries = self.agents.lock();
-        if entries.get(&self.session).is_some_and(|entry| {
-            Arc::ptr_eq(&entry.reservation, &self.marker)
-                && entry.session.is_none()
-                && entry.connections.is_empty()
-        }) {
+        if entries
+            .get(&self.session)
+            .is_some_and(|entry| self.owns_pending(entry))
+        {
             drop(entries.remove(&self.session));
         }
     }

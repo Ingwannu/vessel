@@ -134,3 +134,87 @@ fn a_stale_guard_cannot_cross_begin_after_its_entry_was_replaced() {
     assert!(agents.is_live(id));
     agents.forget(id);
 }
+
+#[test]
+fn only_its_own_known_resource_refusal_can_release_a_begun_count_entry() {
+    use vessel_proto::creation::Certainty;
+    for certainty in [Certainty::Known, Certainty::Unknown] {
+        let agents = Agents::new(NodeId::random());
+        let id = SessionId::random();
+        let mut lease = agents
+            .reserve_creation(id, &Principal::Owner, false)
+            .unwrap();
+        let mut receipt = marker(id);
+        lease.begin(&receipt).unwrap();
+        let mut other_operation = marker(id);
+        other_operation
+            .advance(
+                other_operation.snapshot().revision,
+                Advance::Fail {
+                    code: vessel_proto::ErrorCode::Forbidden,
+                    certainty: Certainty::Known,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            lease.refused(&other_operation),
+            Err(CreationError::InvalidTransition)
+        );
+        assert_eq!(lease.begin(&receipt), Err(CreationError::InvalidTransition));
+        receipt
+            .advance(
+                receipt.snapshot().revision,
+                Advance::Fail {
+                    code: vessel_proto::ErrorCode::Forbidden,
+                    certainty,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            lease.refused(&receipt).is_ok(),
+            certainty == Certainty::Known
+        );
+        drop(lease);
+        assert_eq!(agents.is_live(id), certainty == Certainty::Unknown);
+        agents.forget(id);
+    }
+}
+
+#[test]
+fn an_already_used_credential_prevents_even_known_refusal_from_releasing_count() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let id = SessionId::random();
+    let mut lease = agents
+        .reserve_creation(id, &Principal::Owner, true)
+        .unwrap();
+    let mut receipt = marker(id);
+    lease.begin(&receipt).unwrap();
+    let secret = lease.secret.as_ref().unwrap().clone();
+    let (_principal, connection) = agents
+        .admit(
+            &AgentAuth {
+                session: id,
+                secret,
+            },
+            &CancellationToken::new(),
+        )
+        .unwrap();
+    receipt
+        .advance(
+            receipt.snapshot().revision,
+            Advance::Fail {
+                code: vessel_proto::ErrorCode::Forbidden,
+                certainty: vessel_proto::creation::Certainty::Known,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        lease.refused(&receipt),
+        Err(CreationError::InvalidTransition)
+    );
+    drop(lease);
+    assert!(agents.is_live(id));
+    assert!(!connection.closing().is_cancelled());
+    agents.retire(id);
+    assert!(connection.closing().is_cancelled());
+}
