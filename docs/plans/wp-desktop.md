@@ -573,3 +573,11 @@ introduced to bypass that owner handoff.
 Persistence deadlines and timers use the same GPUI executor clock, so the total
 budget follows the platform clock in production and controlled time in fixtures;
 wall-clock Instant is not mixed with a simulated executor timer.
+
+The desktop-shell owner's Windows test-only correction b0cef8c41 replaces the
+copied persistence fixture's Linux-only futures-lite waiter with a standard Wake/
+Thread parker bounded to ten real seconds. It deliberately does not pump GPUI
+foreground observations, preserving the receipt-before-UI-observation barrier.
+The explicit no-home fixture retains this snapshot's absent broadcast-field
+adaptation. No production dependency or behavior changes; Windows execution and
+changed-source native tests are still owed.
