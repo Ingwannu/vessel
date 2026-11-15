@@ -66,6 +66,8 @@ mod forking;
 #[cfg(test)]
 mod history;
 #[cfg(test)]
+mod inbox;
+#[cfg(test)]
 #[cfg(unix)]
 mod meeting;
 #[cfg(test)]

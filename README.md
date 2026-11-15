@@ -1185,14 +1185,25 @@ where the code stands against them, and
 
 ```bash
 cargo fmt --all
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+node scripts/gate.mjs
 ```
 
-CI runs exactly those three on Linux, Windows and macOS. Lints are strict
+The runner prebuilds the test harnesses and product node before the test
+clocks, then checks both the default workspace and the forge fixture feature.
+CI runs the same Rust checks on Linux, Windows and macOS, with the fast source
+checks on Linux. Lints are strict
 (no `unwrap`, no panics, no indexing, no raw arithmetic); see the workspace
 `Cargo.toml`. Changes to `web/` also need its checks ("Web UI" above),
 which CI runs on Linux.
+
+For account-free pull-request fixtures, build the separate
+`vessel-forge-fixture` executable with `--features vessel-node/forge-fixture`.
+It loads a bounded, typed JSON seed into the existing in-memory forge;
+product `vesseld` has no fake-forge selector. Workspace checks alone skip
+required-feature binaries, so the gate and CI explicitly enable `forge-fixture`
+for Clippy and its launcher tests. Normal product/release builds never enable
+that feature. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
+and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
 
 ## License
 
@@ -1320,3 +1331,25 @@ if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
 reproducible preview; `--count` is 1–10. API callers reuse the returned
 cadence when saving so an interval keeps its preview anchor. `vessel status`
 also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
+
+### Inbox and push
+
+`vessel inbox list` shows the selected machine's waiting approvals/questions
+and finished, failed or limited sessions. `vessel inbox show ENTRY` fetches one
+current request, including a large question omitted from the list, without
+marking it read or answering it. Use `vessel inbox answer ENTRY
+OPTION` for an approval, or `vessel inbox answer ENTRY field=value ...` for a
+question; `--decline` uses the existing request's decline path. `vessel inbox
+read ENTRY` and `unread ENTRY` share attention with other devices without
+answering the request. Entry numbers are stable for their lifetime; a request
+answered elsewhere disappears, so list again if a number is no longer current.
+Session read-through and archive also apply when a published event reaches
+storage later: an already-read source stays read, and archived attention stays
+out of the inbox.
+
+Protocol 22 also defines paired-device Web Push registration for a future
+phone/browser host. The node owns its VAPID identity, encrypts only a generic
+attention payload, expires subscriptions and rechecks device access before
+sending. No hosted account is required. This is the node/API side; an installed
+phone subscription UI is not included. See ADRs 0040–0041 for privacy, bounds
+and the dependency licence inventory.

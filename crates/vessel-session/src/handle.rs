@@ -281,6 +281,25 @@ impl SessionHandle {
         }
     }
 
+    /// Recover one current inbox form without cloning unrelated requests.
+    ///
+    /// # Errors
+    /// [`SessionError::Terminal`] for a terminal session.
+    pub fn inbox_request(
+        &self,
+        request: vessel_proto::inbox::InboxRequest,
+    ) -> Result<Option<vessel_proto::inbox::InboxItem>, SessionError> {
+        match &self.0.input {
+            Input::Terminal(_) => Err(SessionError::Terminal("an inbox request")),
+            Input::Structured(_) => Ok(self
+                .0
+                .seen
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .inbox_request(request)),
+        }
+    }
+
     /// Give the session `title` (protocol 9): a `renamed` record, in order
     /// with the rest of its log, then the info as it is with it.
     ///

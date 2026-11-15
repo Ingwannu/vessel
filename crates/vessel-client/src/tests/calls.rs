@@ -287,3 +287,4 @@ async fn usage_direct_and_every_envelope_are_refused_locally_on_an_old_hop() {
         "no direct or wrapped usage frame was sent"
     );
 }
+mod inbox;

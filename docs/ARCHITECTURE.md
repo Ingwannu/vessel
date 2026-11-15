@@ -56,7 +56,7 @@ and 0013).
 | `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal; `list_projects`, `list_worktrees`, `create_worktree` (following setup) and `create_session`'s `project`/`worktree` (protocol 10); `get_pull_request` and `open_pull_request` (protocol 11: an agent's open never pushes; merging and feedback are not offered); `create_terminal`, `list_terminals`, `read_terminal`, `write_terminal` (marked destructive and open-world), `close_terminal` and `list_ports` (protocol 11, ADR 0031: only where both profiles set `agent_terminals`, only its own; scripts are not offered); the schedule tools, `list_saved_prompts` and `notify` on a prompt, on the agent's own node (protocol 11, ADR 0033). | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Nothing about sessions, nodes or harnesses. | proto |
-| `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, one GraphQL read, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). Nothing about sessions, the store or principals. | proto, proc |
+| `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, one GraphQL read, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). ADR 0060 adds `fake/seed`: bounded, versioned files seed that same provider, with per-repository failures and refused merges. The separate `vessel-forge-fixture` node executable requires `vessel-node/forge-fixture`, explicit scratch paths and loopback listeners; product `vesseld` has no fake-provider selector. No new crate dependency edge. Nothing about sessions, the store or principals. | proto, proc |
 | `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page; each text file with the brotli and gzip forms the web build made, one chosen per request by `Accept-Encoding`, milestone 11), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams (and terminals', `follow_terminal`, protocol 11) that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0028). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
 | `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7); `vessel project`, `vessel worktree` and `vessel run --project/--worktree/--new-worktree` (milestone 11); `vessel pr` (list, show, open, merge, feedback, status), `vessel shell`, `vessel script`, `vessel ports`, `vessel schedule` and `vessel prompt` (protocol 11); `vessel search`, `vessel session park/wake/fork/rewind`, `vessel node settings` (`--driver`, protocol 18) and `vessel history` (protocol 12); `vessel session compare` (ADR 0046), a bounded manifest and one common input with complete partial-result reporting. | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). With the `authority-fixtures` feature, typed caller-authority fixtures built from `vessel-proto`'s types (protocol 20); the fake binaries keep no wire dependency. | proto |
@@ -1128,6 +1128,43 @@ reports counted as unaccounted. Intermediate sums never return to binary
 floats. No provider access is involved in reported accounting.
 
 
+## Inbox and disconnected attention (protocol 22, ADRs 0040–0041)
+
+`vessel-proto::{inbox,push}` owns typed pages, source keys, shared read state,
+validated subscription capabilities and connection presence. `vessel-store`
+projects attention in the log append transaction (`inbox`, bounded `tools`),
+keeps paired-device leases (`push`) and the independent owner-only VAPID
+identity (`push_key`, `push-vapid.key`). The migration backfills retained
+ended-session outcomes once; startup recovery withdraws interrupted requests.
+Each attention insert reads the stored session marks in that same transaction:
+archive blocks delayed attention, and delayed records inherit the kept read
+watermark and explicit unread mark. Backfill uses the identical rule. Neither
+projection nor read marking creates another answer validator.
+
+`vessel-node::service::{inbox,push}` checks principals; existing session calls
+still enforce Operate and first answer wins. The node enriches a page with
+current project/session labels. Its `push` worker wakes on committed attention,
+coalesces a burst, rechecks current authority/read state/presence and encrypts
+only a fixed generic payload. `crypto`/`vapid` use web-push-native and RustCrypto
+p256; `delivery` pins public DNS addresses and sends over existing reqwest /
+rustls, with redirects/proxies off. The relay sees only the existing encrypted
+transport. A late HTTP 404/410 removes only the attempted device, capability
+and exact lease expiry; renewing the same capability survives that response.
+Explicit unsubscribe remains unconditional. No phone UI or hosted push account
+is introduced.
+
+`vessel-client::{inbox,push}` exposes those calls, and `vessel inbox` lists,
+shows one selected live form, answers and marks selected-node entries. CLI answers reuse
+`conversation::answer`, including the form's own validation. The next native slice uses typed bounded `link` calls and a UI-independent
+`view::inbox` fold, with partial availability and ACK distinct from projection
+confirmation. Its inbox area draws rows; shell navigation/counts, board lane
+and OS delivery consume the same model. ADRs record lifecycle, exact bounds and notification
+privacy. Dependency direction is unchanged; the node adds the account-free
+push builder, while the protocol uses the workspace's existing URL parser.
+
+Inbox live-request reads recover one exact pending form from the session
+actor independently of event retention, capped at 15 MiB per reply. Default
+summary reads retain the bounded durable projection for background refresh.
 ## Native app localization (milestone 12, staged)
 
 The separate `spikes/native` workspace keeps UI and I/O out of

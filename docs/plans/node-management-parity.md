@@ -14,14 +14,17 @@ slice order. The docs commit adds both and no command.
 - Done: 2d (`019995ae`) adds a bounded kernel observation at `NodeLock`.
   Its whole gate passed (1,985 Rust tests, no failures, 12 ignored) and
   review passed. It sends no signal.
-- In progress: 2e compares dev/inode before strict PID decoding, so a
-  foreign malformed row cannot hide the selected writer. Focused store
-  clippy and seven lock tests pass; the whole gate is pending.
+- Done: 2e (`295937af`) compares dev/inode before strict PID decoding,
+  so foreign malformed rows cannot hide the selected writer. Its whole
+  gate passed (1,986 Rust tests, no failures, 12 ignored) and review passed.
+- Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
+  push. The next slice's gate covers this merged tree, including the
+  explicit forge-fixture clippy and test steps.
 - Deferred draft: service path fidelity passed focused clippy only; no
   service-path tests, commit or whole gate have run yet.
-- Next: focused and whole gates for 2e, then service paths, deadline-safe
-  local reads, service observation/finalization, force/restart and slices
-  3/4. Actual service managers and real agents remain unverified.
+- Next: service paths (2f), deadline-safe local reads, service
+  observation/finalization, force/restart and slices 3/4. Actual service
+  managers and real agents remain unverified.
 
 ## Existing asset check
 
@@ -358,5 +361,5 @@ foreign failures both before and after a valid row. No head test is changed.
 
 The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
 format source. No new dependency, wire call, application bound or platform
-path is added. Focused store clippy and seven lock tests pass; the whole
-workspace gate remains pending.
+path is added. Focused store clippy and seven lock tests pass, and the
+whole workspace gate and review passed.
