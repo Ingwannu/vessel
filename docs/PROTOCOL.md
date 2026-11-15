@@ -1912,7 +1912,10 @@ separate compatibility surface.
 Descriptors expose Active, Archiving, Restoring or Archived, exact local/managed
 backing, explicit title and pin, and the retained automation gate. Source release
 requires both the expected revision and exact typed external source; it changes
-only that gate. Person-only policy and Read/Operate scope checks apply. Archive,
+only that gate. Direct Owner/Device person policy and Read/Operate scope checks
+apply; agents and every Delegated origin are refused before registry access.
+Method forwardability does not override this target policy. A self-forwarded
+call retains its original principal and still meets the declared scope. Archive,
 restoration, resource launch and create receipts are separate orchestration
 packages using the same durable registry/start-lease fence. Complete snapshots
 are bounded by the store's descriptor and retained resource budgets below the

@@ -1675,8 +1675,11 @@ commit publishes a coalesced watch; readers hydrate descriptors and memberships
 in one transaction. `registry::write::{require_active,bump_revision}` is the
 in-transaction seam for catalog assignment extensions, not a second registry.
 
-`vessel-node::service::registry` handles person-only registry reads, bounded
-long-poll, rename and pin through the single pending method table. The separate
+`vessel-node::service::registry` handles direct-person registry reads, bounded
+long-poll, rename and pin through the single pending method table. One exhaustive
+principal check precedes Store reads, subscriptions and mutations in all six
+handlers; every delegated origin is refused even when its intersected scopes
+would suffice. The generated guard independently enforces each declared scope. The separate
 create and lifecycle packages own actor launch and archive/recovery orchestration.
 Pre-spawn leases fence archive against late actor registration. Restoring is an
 exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real

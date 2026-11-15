@@ -89,7 +89,11 @@ or permission operation returns a typed refusal rather than claiming success.
 
 Only authenticated person callers with the required Read/Operate scopes may use
 registry mutation/config/icon/history endpoints; agents are refused before any
-filesystem or provider-history access. Delegated callers retain scope intersection.
+filesystem or provider-history access. The six workspace registry metadata calls
+additionally require a direct person connection: every delegated origin is
+refused before Store lookup, watch subscription or mutation, even if its scopes
+would otherwise suffice. Other fleet calls retain their own scope intersection;
+a forwarded call to this same node retains its original direct principal.
 Recheck stored root identity against canonical filesystem identity on every IO.
 No shell command or repository hook is executed by project metadata/settings.
 Existing digest approval and environment stripping continue to gate automation.
