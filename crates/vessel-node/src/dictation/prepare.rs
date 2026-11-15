@@ -124,7 +124,13 @@ impl Factory {
         let name = saved.key_name().ok_or(PrepareError::KeyAbsent)?;
         let key = self
             .reader
-            .resolve(name, Admission::Preparing { lease, stopped })
+            .resolve(
+                name,
+                Admission::Preparing {
+                    lease: Arc::clone(&lease),
+                    stopped,
+                },
+            )
             .await
             .map_err(PrepareError::Secret)?
             .ok_or(PrepareError::KeyAbsent)?;

@@ -943,3 +943,9 @@ immediate typed refusal while all permits remain held; it also checks cancellati
 wins against immediately available capacity. Existing started-I/O retention
 assertions are unchanged. These cases still require execution on the current
 package source; the already-queued strict snapshot predates this correction.
+
+The factory retains its original lease through client/root preparation and passes
+a clone into the reader, as before this correction. Cancellation changes read
+admission only; it must not shorten the factory's reservation lifetime. The
+isolated reader tests on the preceding snapshot still exercise identical reader
+code, while the combined product gate must include this preservation detail.
