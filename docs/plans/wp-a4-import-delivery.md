@@ -109,3 +109,11 @@ Clippy's await_holding_lock on the first call-log assertion block despite its
 explicit drop. All three helpers now use their already imported answer function;
 the first synchronous assertion uses a lexical scope before bounded peer reap,
 as the other call-log cases already do. No assertion, budget or lint is relaxed.
+
+Exactc625 Link tests115/0 now include actual malformed-create receipt validation
+and owned peer cleanup. Strict returned one wildcard-enum fixture branch; the
+fixture now separates explicit Created from existing-session responses and checks
+the actual method before constructing its typed response. No wildcard allowance
+is added. The requested App/Link --lib command selected only Link because the App
+is a binary crate; no App execution is inferred. The next App regression explicitly
+selects its binary target. Product and shared owner files are unchanged.
