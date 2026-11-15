@@ -189,3 +189,14 @@ The second local native all-targets build reached the 600-second short-lane
 limit while compiling GPUI dependencies, with no compiler error emitted. This is
 an incomplete build, not a test pass or source failure. Remaining builds use the
 ordinary lane; narrow pure view/link checks remain separately scoped.
+
+## Legacy preview callback fencing
+
+The existing node restarts a live service in the same TerminalId. The external
+browser callback now retains the terminal publication revision as well as the
+observed socket, and refuses a changed revision, starting, backoff or unknown
+state. A regression keeps the same terminal id, PID and socket while advancing
+its revision, then proves the old callback is refused. This is a UI event fence;
+it does not turn the legacy cached port scan into a service lifetime attestation
+or authorize the isolated in-app Preview profile. The new node runtime's exact
+workspace/lifetime/scheme contract remains a separate dependency.

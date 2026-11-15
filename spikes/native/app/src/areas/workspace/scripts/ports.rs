@@ -76,10 +76,7 @@ pub(super) fn for_run(
         let Some(run) = run else {
             continue;
         };
-        let preview_request = Preview {
-            terminal: run.id,
-            listener: port.clone(),
-        };
+        let preview_request = Preview::observed(run, port.clone());
         let destination = model.preview_url(
             &preview_request,
             &shell.areas.workspace.scripts.host.text(cx),

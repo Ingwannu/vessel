@@ -238,10 +238,7 @@ fn browser_preview_rechecks_socket_identity_and_refuses_remote_loopback() {
     });
     let key = model.begin_read().unwrap();
     assert!(model.accept_read(&target, key, Ok(next)));
-    let preview = Preview {
-        terminal: run.id,
-        listener,
-    };
+    let preview = Preview::observed(&run, listener);
     assert_eq!(
         model.preview_url(&preview, ""),
         Err(PreviewProblem::RemoteLoopback)
@@ -305,4 +302,54 @@ fn declared_port_is_displayed_but_never_becomes_an_observed_listener() {
         };
         assert!(listeners(Some(&terminal), ports).is_empty());
     }
+}
+
+#[test]
+fn a_service_restart_cannot_reuse_an_old_preview_callback_even_with_the_same_id_and_socket() {
+    let (mut model, target) = ready();
+    let mut current = snapshot(&target);
+    let run = run(&target);
+    let listener = ListeningPort {
+        port: 3000,
+        address: "127.0.0.1".parse().unwrap(),
+        pid: 1,
+        process: None,
+        owner: PortOwner::Terminal { terminal: run.id },
+    };
+    let preview = Preview::observed(&run, listener.clone());
+    current.scripts.runs = vec![run];
+    current.ports = Ok(PortList {
+        ports: vec![listener],
+        scan: PortScan::Scanned {
+            at: Utc.timestamp_opt(102, 0).unwrap(),
+        },
+        revision: 1,
+        more: false,
+    });
+    let key = model.begin_read().unwrap();
+    assert!(model.accept_read(&target, key, Ok(current.clone())));
+    assert!(model.preview_url(&preview, "localhost").is_ok());
+    current.scripts.runs[0].revision += 1;
+    let key = model.begin_read().unwrap();
+    assert!(model.accept_read(&target, key, Ok(current.clone())));
+    assert_eq!(
+        model.preview_url(&preview, "localhost"),
+        Err(PreviewProblem::Stale)
+    );
+    let now = Preview::observed(
+        &current.scripts.runs[0],
+        current.ports.as_ref().unwrap().ports[0].clone(),
+    );
+    assert!(model.preview_url(&now, "localhost").is_ok());
+    current.scripts.runs[0].service = Some(ServiceState::BackingOff {
+        attempt: 2,
+        code: Some(1),
+        restart_at: Utc.timestamp_opt(103, 0).unwrap(),
+    });
+    let key = model.begin_read().unwrap();
+    assert!(model.accept_read(&target, key, Ok(current)));
+    assert_eq!(
+        model.preview_url(&now, "localhost"),
+        Err(PreviewProblem::Stale)
+    );
 }

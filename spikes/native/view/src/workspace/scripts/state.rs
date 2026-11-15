@@ -31,10 +31,28 @@ pub struct Snapshot {
 /// A preview is tied to the exact terminal and observed socket drawn.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Preview {
-    /// Supervisor identity; a restarted service is a different intention.
+    /// Supervisor resource identity, which can survive a service restart.
     pub terminal: TerminalId,
     /// Complete observed socket, checked again before the browser opens.
     pub listener: vessel_proto::ports::ListeningPort,
+    // A UI event fence only; this is not a service lifetime or Preview grant.
+    revision: u64,
+}
+
+impl Preview {
+    /// Capture the terminal publication drawn with the listener. Restart keeps a
+    /// live service's TerminalId, so that id alone cannot identify this callback.
+    #[must_use]
+    pub fn observed(
+        run: &vessel_proto::terminals::TerminalInfo,
+        listener: vessel_proto::ports::ListeningPort,
+    ) -> Self {
+        Self {
+            terminal: run.id,
+            listener,
+            revision: run.revision,
+        }
+    }
 }
 
 /// An intention is checked against the current snapshot before it crosses link.
@@ -207,6 +225,11 @@ impl Model {
             .iter()
             .find(|run| run.id == preview.terminal)
             .ok_or(PreviewProblem::Stale)?;
+        if run.revision != preview.revision
+            || super::run_state(Some(run)) != super::RunState::Running
+        {
+            return Err(PreviewProblem::Stale);
+        }
         let latest = run
             .kind
             .script()
