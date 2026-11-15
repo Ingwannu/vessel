@@ -887,3 +887,34 @@ apply a title; the later owner must do those operations in that order.
   makes no ModelCall. Unknown finality uses the existing error/truncation
   representation, never a fabricated normal ending. Records remain best
   effort while live, as already stated; a final status stays the last record.
+
+### Live first-input controller
+
+[Decision Log]
+- Purpose and intent: connect the checked preparation, bounded transport and
+  actor proposal without delaying session creation or replacing a person's title.
+- Existing constraints: the runtime already publishes the first titleable text
+  and its Given rename in order, provides an atomic cached/live follower and
+  owns title eligibility. Models already owns live call permits and credentials.
+- Alternatives considered: use later prompts after losing the first event,
+  inspect harness transcripts, duplicate the actor guard in the node, or make
+  creation await generation. Each weakens either provenance, privacy or latency.
+- Choice: arm only the external fresh structured creation path. Follow from
+  the beginning atomically, capture the first titleable text block once, and
+  wait for its Given title. Gaps, lag and a blank bounded prefix end the task;
+  they never substitute later text. The handle exposes the actor's existing
+  eligibility predicate for early cancellation; the actor remains the final
+  compare-and-publish authority. Untitled sessions are left alone.
+- Why this choice: cached events cover input racing creation. The original
+  handle stays with the task, so a resumed run sharing its id cannot inherit
+  old work. Info changes cancel outstanding work when ownership is lost,
+  parking occurs or the run ends; finishing an agent turn alone does not.
+- Effects: one dedicated HTTP pool reuses initialized trust. Shared permits
+  bound preparation and calls; no generation task retires a session. One
+  actual attempt emits existing best-effort ModelCall accounting, including
+  known usage and stops on semantic refusal. Cancellation can leave unknown
+  usage, recorded as truncation while live; no record follows final status.
+  Project styles resolve through the existing checked Git runner, falling
+  back to the working folder outside Git. Files run on blocking workers.
+  This differs from Paseo's main-repository style root as already stated.
+  No branch, commit or pull generation is enabled by this package.

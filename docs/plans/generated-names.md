@@ -756,3 +756,17 @@ stop and usage mappings move from proxy to accounting; the proxy imports
 them and keeps the original record/concurrency behavior. No test expectation
 changes. The proxy ratchet falls from 1556 to 1521. API naming already
 belongs to config and is reused there, rather than copied again.
+
+
+### First-input wiring resume point
+
+The remaining title package connects the staged preparation and HTTP client
+with the external fresh structured creation path, the shared node settings
+owner and its strict-patch/lenient-file views. Reuse the actor predicate,
+existing Git runner, original handle, initialized TLS and call semaphores.
+No later input substitutes a lost or blank first source. Tests must cover
+racing cached input, manual rename (including identical words), ending,
+parking, cancellation, counted refusals and persisted later-build fields.
+Per-commit narrow checks precede one completed-package whole gate. Credential
+and path changes retain separate security review. The Git accessor is its
+own prerequisite commit; no second runner or configuration policy is added.
