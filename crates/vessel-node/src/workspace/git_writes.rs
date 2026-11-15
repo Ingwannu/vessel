@@ -112,10 +112,7 @@ impl Workspaces {
             return Err(WorkspaceError::NotGit);
         }
         let lease = self.git_writers.acquire(before.project, &self.stop).await?;
-        let current = self.resolve_git(root).await?;
-        if current.project != before.project || current.root.path() != before.path {
-            return Err(WorkspaceError::GitTargetChanged);
-        }
+        let current = self.resolve_unchanged(root, &before).await?;
         Ok(WriteRoot {
             target: current,
             _lease: lease,

@@ -350,3 +350,31 @@ eight-field tuple is extracted to named project/worktree snapshot helpers,
 retaining all base/default/pinned facts from the same lock and the old mapping.
 The post-wait resolve remains the only filesystem authorization and is compared
 with that original candidate path/project. No snapshot is a substitute for it.
+
+
+## Queued read authority correction
+
+Source inspection found that comparison/history workers captured a resolved path
+before waiting for their execution permit. Revalidating only on the initial
+cache probe did not revalidate the target when queued work eventually began.
+The operation now retains a weak reference to the existing Workspaces owner and
+the original named registry snapshot; it opens again after execution admission.
+All recorded facts, including owner repository, pinned base and project default,
+must still match. A changed snapshot is a typed conflict, never a new target.
+The open consumes that same fresh snapshot without another registry lookup.
+The mutation reservation uses the same helper rather than a path-only check.
+
+This remains per-call validation, not filesystem isolation or an atomic snapshot
+against an external process. No new registry, resolver, connection or process
+pool is added. Weak ownership does not extend a dropped workspace runtime; the
+existing node tracker still retains started work through cleanup. A root-only
+history read now captures registry facts before admission and performs no folder
+I/O until it has an execution permit.
+
+New unexecuted real-owner tests hold all four existing execution permits, wait
+on the actual submission boundary, change a registered path or default branch,
+and release the permit. Comparison and history must both settle GitTargetChanged
+(with the comparison's existing shared typed error wrapper), not return an old
+snapshot or follow the replacement. Test-only permit/Notify access adds no
+production wakeup, map or second queue. Prior860 and c840 remote runs exclude
+this correction; changed-source remote checks are still required.

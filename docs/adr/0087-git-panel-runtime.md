@@ -153,3 +153,11 @@ coordination handles. This does not serialize external CLI/agent processes or
 project/worktree lifecycle calls, and does not claim filesystem sandboxing.
 Multi-command merge cleanup must additionally live in the node task tracker
 until restoration completes, even if its requesting connection disappears.
+
+
+Queued comparison/history work revalidates the complete named root snapshot
+again after obtaining its execution permit. Registry changes while waiting
+refuse the original operation rather than substituting its new path/base.
+The same fresh snapshot is consumed by the existing protected root open.
+This validation does not promise an atomic filesystem snapshot against other
+processes. The original node tracker remains the cleanup owner.

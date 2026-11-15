@@ -32,6 +32,8 @@ pub(crate) enum JobError {
 pub(in crate::workspace) struct Jobs {
     admitted: Arc<Semaphore>,
     executing: Arc<Semaphore>,
+    #[cfg(test)]
+    submitted: tokio::sync::Notify,
 }
 
 impl Default for Jobs {
@@ -39,6 +41,8 @@ impl Default for Jobs {
         Self {
             admitted: Arc::new(Semaphore::new(MAX_ADMITTED)),
             executing: Arc::new(Semaphore::new(MAX_EXECUTING)),
+            #[cfg(test)]
+            submitted: tokio::sync::Notify::new(),
         }
     }
 }
@@ -73,6 +77,8 @@ impl Jobs {
         let admitted = Arc::clone(&self.admitted)
             .try_acquire_owned()
             .map_err(|_full| JobError::Busy)?;
+        #[cfg(test)]
+        self.submitted.notify_waiters();
         let executing = Arc::clone(&self.executing);
         let (reply, answer) = oneshot::channel();
         let _task = tasks.spawn(async move {
@@ -88,6 +94,18 @@ impl Jobs {
             let _delivered = reply.send(result);
         });
         Ok(Pending(answer))
+    }
+}
+
+#[cfg(test)]
+impl Jobs {
+    pub(super) fn hold_execution_for_test(&self) -> tokio::sync::OwnedSemaphorePermit {
+        Arc::clone(&self.executing)
+            .try_acquire_many_owned(u32::try_from(MAX_EXECUTING).unwrap())
+            .unwrap()
+    }
+    pub(super) fn submitted_for_test(&self) -> &tokio::sync::Notify {
+        &self.submitted
     }
 }
 

@@ -16,7 +16,7 @@ pub(crate) enum WorkspaceError {
     /// Bounded mutation admission is full or the node is stopping.
     #[error(transparent)]
     GitWriteAdmission(#[from] super::git_writes::WriteAdmission),
-    /// Waiting never permits following a replacement registered directory.
+    /// Waiting never permits following changed repository or base authority facts.
     #[error("the repository changed while waiting; refresh before trying again")]
     GitTargetChanged,
     /// The node found no usable git.

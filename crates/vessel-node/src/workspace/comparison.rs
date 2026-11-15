@@ -18,7 +18,7 @@ pub(crate) use jobs::JobError;
 
 impl Workspaces {
     pub(crate) async fn git_compare(
-        &self,
+        self: &Arc<Self>,
         request: CompareGit,
     ) -> Result<GitCompared<DiffSummary>, WorkspaceError> {
         let snapshot = self.run_comparison(request, Subject::Summary).await?;
@@ -33,7 +33,7 @@ impl Workspaces {
     }
 
     pub(crate) async fn git_compare_file(
-        &self,
+        self: &Arc<Self>,
         request: CompareGitFile,
     ) -> Result<GitCompared<FileDiff>, WorkspaceError> {
         if request.path.is_root() {
@@ -61,7 +61,7 @@ impl Workspaces {
     }
 
     async fn run_comparison(
-        &self,
+        self: &Arc<Self>,
         mut request: CompareGit,
         subject: Subject,
     ) -> Result<Arc<Snapshot>, WorkspaceError> {

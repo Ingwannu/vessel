@@ -4,7 +4,7 @@ use super::cache::{Key, Snapshot, Subject};
 use super::{compared, pinned_base};
 use crate::workspace::{WorkspaceError, Workspaces};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use vessel_proto::workspace::{
     CompareGit, GitCompared, GitComparison, GitWhitespace, WorktreeBase,
 };
@@ -12,6 +12,9 @@ use vessel_workspace::Git;
 use vessel_workspace::git::Comparison;
 
 pub(super) struct Operation {
+    owner: Weak<Workspaces>,
+    root: vessel_proto::workspace::WorkspaceRoot,
+    admission: crate::workspace::roots::Snapshot,
     git: Git,
     directory: PathBuf,
     base: Option<WorktreeBase>,
@@ -36,6 +39,8 @@ impl Operation {
         mut self,
         cancel: tokio_util::sync::CancellationToken,
     ) -> Result<Snapshot, WorkspaceError> {
+        let owner = self.owner.upgrade().ok_or(super::jobs::JobError::Closed)?;
+        let _current = owner.resolve_unchanged(self.root, &self.admission).await?;
         self.git = self.git.cancellable(cancel);
         match &self.subject {
             Subject::Summary => compared(
@@ -69,11 +74,16 @@ pub(super) struct ReadOperation {
 
 impl Workspaces {
     pub(super) async fn prepare_comparison(
-        &self,
+        self: &Arc<Self>,
         request: &CompareGit,
         subject: Subject,
     ) -> Result<Prepared, WorkspaceError> {
-        let resolved = self.resolve_git(request.root).await?;
+        let git = self.git()?.clone();
+        let admission = self.root_snapshot(request.root)?;
+        let resolved = self.resolve_snapshot(admission.clone()).await?;
+        if !resolved.git {
+            return Err(WorkspaceError::NotGit);
+        }
         let comparison =
             match pinned_base::admit(resolved.pinned_base.as_ref(), request.comparison.clone()) {
                 Ok(comparison) => comparison,
@@ -97,7 +107,10 @@ impl Workspaces {
             subject.clone(),
         );
         let operation = Operation {
-            git: self.git()?.clone(),
+            owner: Arc::downgrade(self),
+            root: request.root,
+            admission,
+            git,
             directory: resolved.root.path().to_owned(),
             base: resolved.base(),
             scratch: self.dirs.scratch.clone(),

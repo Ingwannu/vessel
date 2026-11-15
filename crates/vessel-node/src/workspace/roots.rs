@@ -41,7 +41,7 @@ impl Resolved {
 
 /// Registry facts only, captured under one short lock with no disk access.
 /// This is a candidate identity, never authorization to skip resolve/open.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct Snapshot {
     pub(super) path: PathBuf,
     pub(super) git: bool,
@@ -123,8 +123,32 @@ impl Workspaces {
     /// `not_found` for an unknown one; `conflict` for a project not ready;
     /// the root checks of `policy`.
     pub(crate) async fn resolve(&self, root: WorkspaceRoot) -> Result<Resolved, WorkspaceError> {
-        // A worktree's repository is checked with it (`open`). The same
-        // named snapshot is usable for bounded admission before filesystem I/O.
+        self.resolve_snapshot(self.root_snapshot(root)?).await
+    }
+
+    /// A queued operation cannot follow registry changes made while it waited.
+    /// Capture once, compare every authority fact, then open that same snapshot.
+    pub(super) async fn resolve_unchanged(
+        &self,
+        root: WorkspaceRoot,
+        before: &Snapshot,
+    ) -> Result<Resolved, WorkspaceError> {
+        let current = self.root_snapshot(root)?;
+        if &current != before {
+            return Err(WorkspaceError::GitTargetChanged);
+        }
+        let resolved = self.resolve_snapshot(current).await?;
+        if !resolved.git {
+            return Err(WorkspaceError::NotGit);
+        }
+        Ok(resolved)
+    }
+
+    /// The open and its base/default facts consume one authority snapshot.
+    pub(super) async fn resolve_snapshot(
+        &self,
+        snapshot: Snapshot,
+    ) -> Result<Resolved, WorkspaceError> {
         let Snapshot {
             path,
             git,
@@ -134,7 +158,7 @@ impl Workspaces {
             base,
             pinned_base,
             project_default,
-        } = self.root_snapshot(root)?;
+        } = snapshot;
         let opened = tokio::task::spawn_blocking(move || open(&path, repository.as_deref()))
             .await
             .map_err(|_panicked| WorkspaceError::Io("resolving the folder stopped".to_owned()))??;

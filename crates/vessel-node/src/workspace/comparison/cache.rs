@@ -199,3 +199,15 @@ impl Drop for Mutation<'_> {
         self.reader.invalidate(self.root, self.change);
     }
 }
+
+#[cfg(test)]
+impl Reader {
+    pub(in crate::workspace) fn hold_execution_for_test(
+        &self,
+    ) -> tokio::sync::OwnedSemaphorePermit {
+        self.jobs.hold_execution_for_test()
+    }
+    pub(in crate::workspace) fn submitted_for_test(&self) -> &tokio::sync::Notify {
+        self.jobs.submitted_for_test()
+    }
+}
