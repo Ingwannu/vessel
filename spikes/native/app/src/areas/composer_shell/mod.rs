@@ -6,6 +6,10 @@ use std::collections::HashMap;
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::composer_shell::surface::Surface;
 
+mod fullscreen;
+mod target;
+pub(crate) use fullscreen::render as fullscreen;
+
 /// State survives presentation remounts without copying or replacing editor text.
 #[derive(Debug, Default)]
 pub(crate) struct ComposerShellArea {
@@ -21,6 +25,10 @@ impl ComposerShellArea {
         if let Some(surface) = self.surfaces.get_mut(&target) {
             surface.collapse();
         }
+    }
+
+    pub(super) fn surface_mut(&mut self, target: DraftKey) -> &mut Surface {
+        self.surfaces.entry(target).or_default()
     }
 
     /// Preserve the ordinary chat behavior until a host supplies another policy.

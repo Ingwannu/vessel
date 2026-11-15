@@ -95,3 +95,21 @@ duplicating its theme adapter. Existing selection/find/versioning remain in plac
 Two test-only import/accessor errors are corrected; current narrow checks remain pending.
 Node command unit tests passed14/0 and fake Codex/options integration passed29/0;
 these are scoped checks, not whole-package or UI approval.
+
+Client commands now delegate from the common submit ingress before optimistic
+echo or attachment preparation (`099ef4498`). Exact tokens with any files or retained
+context stay provider prompts. The guard reuses W21's acknowledgement-gated archive
+and fresh lifecycle and does not clear the input itself.
+
+The compact fullscreen host mounts the same TextField Entity once; the dock draws
+an empty slot while it is expanded. The input wrappers now receive their existing
+Window so inline growth uses measured viewport height, and captured DraftKey actions
+refuse a different selected owner. Existing composer hooks retain IME admission and
+paste dispatch; Escape collapses before file/slash/recall, and fullscreen suppresses
+those menus. Shared integration is limited to two input call sites and one priority2
+overlay registration, below W6's priority3 image lightbox. Actual GPUI retention,
+button-only Enter, empty-send and readonly-collapse tests are prepared, not passed.
+The temporary selected-resource adapter must be replaced by W12's sole resident
+context after its checked producer arrives; it creates no additional registry.
+Fullscreen send availability reuses current attachment/create admission. W6's newer
+context-only admission must be consumed before claiming context-only send parity.

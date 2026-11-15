@@ -60,7 +60,7 @@ pub(crate) fn session_card(
                 .session_tray_key()
                 .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
         )
-        .child(super::text(shell, tokens, touch, cx))
+        .child(super::text(shell, tokens, touch, window, cx))
 }
 
 /// The new chat's card: its `/` menu, its files, its text.
@@ -89,7 +89,7 @@ pub(crate) fn draft_card(
             touch,
             cx,
         ))
-        .child(super::draft_text(shell, tokens, touch, cx))
+        .child(super::draft_text(shell, tokens, touch, window, cx))
 }
 
 /// Files dropped on `card` join its composer; the card's edge takes the
