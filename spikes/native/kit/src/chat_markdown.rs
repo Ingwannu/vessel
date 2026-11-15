@@ -45,6 +45,20 @@
 //!   kit does not build).
 
 use std::ops::Range;
+use std::sync::Arc;
+
+pub mod actions;
+
+/// Optional markdown interaction policy; the old entry point retains plain copy.
+#[derive(Debug, Default)]
+pub struct Options<'a> {
+    /// Existing find state and its version key.
+    pub marks: Option<&'a FindMarks<'a>>,
+    /// Link and image ownership supplied by the host.
+    pub actions: Option<actions::Actions>,
+    /// Selection formatting independent of link handling.
+    pub copy: actions::CopyStyle,
+}
 
 use gpui::{
     AnyElement, App, AppContext as _, ElementId, Entity, Hsla, IntoElement as _, Overflow,
@@ -183,6 +197,7 @@ impl std::fmt::Debug for FindMarks<'_> {
 /// A reply's renderer state, kept across frames by the reply's id.
 struct Kept {
     state: Entity<TextViewState>,
+    source: Arc<str>,
     /// The version of the text it holds.
     version: u64,
     /// The marks' key it shows; `None`: none shown.
@@ -202,16 +217,44 @@ pub fn chat_markdown(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    chat_markdown_with(
+        id,
+        text,
+        version,
+        Options {
+            marks,
+            ..Options::default()
+        },
+        tokens,
+        window,
+        cx,
+    )
+}
+
+/// The same retained renderer with host-owned links/images and code-aware copy.
+/// Find, source versioning, styling and code controls use the existing path.
+pub fn chat_markdown_with(
+    id: impl Into<ElementId>,
+    text: &str,
+    version: u64,
+    options: Options<'_>,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
+    let marks = options.marks;
     let look = Look::of(tokens);
     let palette = FindPalette::of(tokens);
     let kept = window.use_keyed_state(id.into(), cx, |_, cx| Kept {
         state: cx.new(|cx| TextViewState::markdown(text, cx)),
+        source: Arc::from(text),
         version,
         marked: None,
     });
-    let state = kept.update(cx, |kept, cx| {
+    let (state, source) = kept.update(cx, |kept, cx| {
         if kept.version != version {
             kept.version = version;
+            kept.source = Arc::from(text);
             kept.state.update(cx, |state, cx| state.set_text(text, cx));
             kept.marked = None;
         }
@@ -226,10 +269,10 @@ pub fn chat_markdown(
             }
             Some(_) | None => {}
         }
-        state
+        (state, Arc::clone(&kept.source))
     });
     let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
-    TextView::new(&state)
+    let view = TextView::new(&state)
         .on_reveal(move |bounds, _window, _cx| {
             if let Some((list, clear_top)) = &list {
                 list.reveal_bounds(bounds, *clear_top);
@@ -244,8 +287,8 @@ pub fn chat_markdown(
         )
         .code_block_actions(move |code, window, cx| {
             corner(code.code(), code.lang(), look, window, cx)
-        })
-        .into_any_element()
+        });
+    actions::finish(view, state, source, options.actions, options.copy)
 }
 
 /// Mark `marks` in the reply `state` holds and scroll to the current
