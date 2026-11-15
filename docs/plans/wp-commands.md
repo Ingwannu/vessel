@@ -113,3 +113,26 @@ rows are marked passed only after the corresponding behavior is verified.
 The desktop action contract alone is committed at `8e9c8674` for W19b's early
 consumer validation, explicitly unverified when handed over. This is not a
 package completion or a passed tracker row.
+
+## Preparation evidence and explicit bounds
+
+Package base `8d5513e4` was merged without conflicts. The Messages seam was
+merged from W1's `665d1ff2` candidate; it remains an unreviewed dependency.
+The two merge conflicts retained both ARCHITECTURE appendices and every
+palette module registration. Existing head cursor tests stay unchanged; typed
+source ids use an explicit identity API sharing the same comparison/wrap rules.
+
+The new sequence model accepts up to 16 steps / 256 bytes. Paseo has no such
+capture bound; this explicit local preference/capture bound prevents unbounded
+retained data, preserves all defaults and reports refusal without replacing the
+previous capture. Native editing and quit/app-switch/browser-reserved keys keep
+the app's existing refusal floor; native New/Tab/Close accelerators are bindable.
+These restrictions are a stated difference from Paseo's unrestricted recorder.
+
+First narrow preparation runs exposed a missing per-key translator comment,
+then generic cursor inference in empty-list head cases and two lint issues.
+The comments and cursor API were corrected without changing those head cases.
+The interrupted second submission had no registered run; the build-tools owner
+confirmed its exact SHA and authorized one pinned resubmission. Its result is
+recorded under the package scratch logs, not treated as an app/package pass.
+No keyboard/command-center tracker row is passed from these model checks.

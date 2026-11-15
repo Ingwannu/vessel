@@ -37,7 +37,7 @@ pub enum Admission {
     Available,
     /// An input method owns the press.
     Composing,
-    /// AltGr or another character-preferred input owns the press.
+    /// `AltGr` or another character-preferred input owns the press.
     CharacterInput,
     /// Settings is capturing keys for a new binding.
     Capturing,

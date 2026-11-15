@@ -17,8 +17,8 @@ mod cursor;
 pub mod registration;
 
 pub use contribution_projection::{ContributionResult, ContributionSection, contribution_sections};
-pub mod pages;
 mod messages;
+pub mod pages;
 mod ranking;
 mod subtitle;
 

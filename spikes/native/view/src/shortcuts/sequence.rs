@@ -31,6 +31,13 @@ pub enum SequenceError {
 }
 
 impl KeySequence {
+    /// Reuse a validated legacy binding during the registry migration without
+    /// reparsing text or inventing another displayed shortcut spelling.
+    #[must_use]
+    pub fn from_binding(binding: &Binding) -> Self {
+        Self(binding.chords().cloned().collect())
+    }
+
     /// Parse reference spellings (Cmd/Meta, ArrowLeft/Left, Digit) into the
     /// existing canonical grammar. A digit wildcard is retained as a template.
     ///
@@ -125,7 +132,7 @@ fn parse_step(text: &str) -> Result<Chord, SequenceError> {
         .ok_or(SequenceError::InvalidChord)?
         .first;
     if text.rsplit('+').next() == Some("Digit") {
-        chord.key = "Digit".to_owned();
+        "Digit".clone_into(&mut chord.key);
     }
     Ok(chord)
 }

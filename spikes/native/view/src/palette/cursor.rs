@@ -1,8 +1,6 @@
-//! Selection identity survives passive fleet refreshes. A query is a
-//! command to choose afresh: keeping a previously selected result after
-//! re-ranking would make Enter act on a lower-ranked result.
-
-use std::borrow::Borrow;
+//! Selection identity survives passive refreshes. String-backed entries retain
+//! their original API while contribution ids stay typed; both use the same
+//! comparison and wrapping policy below.
 
 /// A keyboard move through the palette's projected result order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,43 +28,48 @@ impl<I> PaletteCursor<I> {
     pub fn reset(&mut self) {
         self.active = None;
     }
+}
 
-    /// The current id if still listed, otherwise the first result.
+impl<I: Clone + PartialEq> PaletteCursor<I> {
+    /// Resolve an opaque source or file identity without string encoding.
     #[must_use]
-    pub fn resolved<'a, Q: PartialEq + ?Sized>(&self, ids: &[&'a Q]) -> Option<&'a Q>
-    where
-        I: Borrow<Q>,
-    {
-        kept_ref(self.active.as_ref().map(Borrow::borrow), ids)
+    pub fn resolved_identity<'a>(&self, ids: &[&'a I]) -> Option<&'a I> {
+        kept_ref(self.active.as_ref(), ids)
     }
 
-    /// Accept a passive result refresh without requesting a scroll. The
-    /// fallback becomes the new identity, so a removed row reappearing
-    /// later cannot silently take selection back.
-    pub fn settle<'a, Q: PartialEq + ToOwned<Owned = I> + ?Sized>(
-        &mut self,
-        ids: &[&'a Q],
-    ) -> Option<&'a Q>
-    where
-        I: Borrow<Q>,
-    {
-        let active = self.resolved(ids);
-        self.active = active.map(ToOwned::to_owned);
+    /// Retain the actual fallback when a source disappears during a refresh.
+    pub fn settle_identity<'a>(&mut self, ids: &[&'a I]) -> Option<&'a I> {
+        let active = self.resolved_identity(ids);
+        self.active = active.cloned();
         active
     }
 
-    /// Move once in the current projection. The caller reveals this row;
-    /// a passive refresh calls `settle` without moving the viewport.
-    pub fn advance<'a, Q: PartialEq + ToOwned<Owned = I> + ?Sized>(
-        &mut self,
-        ids: &[&'a Q],
-        direction: Direction,
-    ) -> Option<&'a Q>
-    where
-        I: Borrow<Q>,
-    {
+    /// Move through typed source identities with the existing wrapping policy.
+    pub fn advance_identity<'a>(&mut self, ids: &[&'a I], direction: Direction) -> Option<&'a I> {
+        let next = moved_ref(self.resolved_identity(ids), ids, direction);
+        self.active = next.cloned();
+        next
+    }
+}
+
+impl PaletteCursor<String> {
+    /// The current id if still listed, otherwise the first result.
+    #[must_use]
+    pub fn resolved<'a>(&self, ids: &[&'a str]) -> Option<&'a str> {
+        kept_ref(self.active.as_deref(), ids)
+    }
+
+    /// Accept a passive refresh without requesting a scroll.
+    pub fn settle<'a>(&mut self, ids: &[&'a str]) -> Option<&'a str> {
+        let active = self.resolved(ids);
+        self.active = active.map(str::to_owned);
+        active
+    }
+
+    /// Move once; passive refreshes never commandeer the viewport.
+    pub fn advance<'a>(&mut self, ids: &[&'a str], direction: Direction) -> Option<&'a str> {
         let next = moved_ref(self.resolved(ids), ids, direction);
-        self.active = next.map(ToOwned::to_owned);
+        self.active = next.map(str::to_owned);
         next
     }
 }
@@ -161,10 +164,13 @@ mod typed_identity_tests {
             entry: "b:c".parse().unwrap(),
         };
         let mut cursor: PaletteCursor<ResultId> = PaletteCursor::default();
-        assert_eq!(cursor.advance(&[&one, &two], Direction::Next), Some(&two));
-        assert_eq!(cursor.settle(&[&two]), Some(&two));
-        assert_eq!(cursor.settle(&[&one, &two]), Some(&two));
+        assert_eq!(
+            cursor.advance_identity(&[&one, &two], Direction::Next),
+            Some(&two)
+        );
+        assert_eq!(cursor.settle_identity(&[&two]), Some(&two));
+        assert_eq!(cursor.settle_identity(&[&one, &two]), Some(&two));
         cursor.reset();
-        assert_eq!(cursor.resolved(&[&one, &two]), Some(&one));
+        assert_eq!(cursor.resolved_identity(&[&one, &two]), Some(&one));
     }
 }

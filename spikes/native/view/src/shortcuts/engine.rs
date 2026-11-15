@@ -73,15 +73,29 @@ pub struct EffectiveBinding<A> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ShortcutIndex(u8);
 
+const MIN_SHORTCUT_INDEX: u8 = 1;
+const MAX_SHORTCUT_INDEX: u8 = 9;
+
 impl ShortcutIndex {
     /// A workspace/tab number, restricted to the reference's 1–9 range.
     #[must_use]
     pub const fn new(value: u8) -> Option<Self> {
-        if value >= 1 && value <= 9 {
+        if value >= MIN_SHORTCUT_INDEX && value <= MAX_SHORTCUT_INDEX {
             Some(Self(value))
         } else {
             None
         }
+    }
+
+    /// Parse the one digit carried by an actual key press, never a template.
+    #[must_use]
+    pub fn from_key(key: &str) -> Option<Self> {
+        let mut characters = key.chars();
+        let digit = characters.next()?.to_digit(10)?;
+        if characters.next().is_some() {
+            return None;
+        }
+        u8::try_from(digit).ok().and_then(Self::new)
     }
 
     /// One-based index; conversion to a collection offset belongs to its owner.
@@ -228,12 +242,7 @@ fn matches_step(wanted: &Chord, pressed: &Chord, platform: Platform) -> bool {
 }
 
 fn digit(chord: &Chord) -> Option<ShortcutIndex> {
-    let mut characters = chord.key.chars();
-    let digit = characters.next()?.to_digit(10)?;
-    if characters.next().is_some() {
-        return None;
-    }
-    u8::try_from(digit).ok().and_then(ShortcutIndex::new)
+    ShortcutIndex::from_key(&chord.key)
 }
 
 fn run<A: Clone>(binding: &EffectiveBinding<A>, chord: &Chord) -> Resolution<A> {
