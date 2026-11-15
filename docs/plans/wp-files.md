@@ -941,3 +941,15 @@ its current header remains legacy, so it is NOT an actual typed Explorer mount.
 W12's future original PanelContext projection must supply selected target,
 canonical visibility and captured header selection/hide actions together before
 the staged extension is promoted. No common registry or tab allocator changes.
+
+
+Central file Find now checks the actual focused editor/find field across active
+and retained buffers. A retained owner must have its original binding scope,
+current file target and actual Window-dependent layout visibility. The legacy
+Files host remains a separate compatibility case only for an unbound active
+viewer. No current selected filename substitutes for actual focus, and hidden
+panes cannot claim the central action. The synthetic fixture retains A while B
+is active, focuses A's painted editor, verifies only A's Find opens, then
+maximizes B and checks refusal without reassigning either buffer. This is local
+UI routing, not connection admission, an OS focus-retirement proof or a new key
+listener; W22's one central shortcut registration stays authoritative.

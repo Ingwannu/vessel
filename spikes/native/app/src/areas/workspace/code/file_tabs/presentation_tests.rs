@@ -151,3 +151,88 @@ fn explorer_keeps_the_tree_while_bound_file_paints_the_existing_editor(cx: &mut 
         assert!(editing.model.modified());
     });
 }
+
+#[gpui::test]
+fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestAppContext) {
+    use vessel_app_kit::code_editor::FindState;
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let a = shell.areas.workspace.code.file_key().unwrap();
+            let origin = shell.file_open_context().unwrap();
+            let tab = shell
+                .open_workspace_file(
+                    &origin,
+                    "b.txt".parse().unwrap(),
+                    None,
+                    Placement::Side,
+                    window,
+                    cx,
+                )
+                .unwrap();
+            let b = shell.areas.workspace.code.file_key().unwrap();
+            assert_ne!(a, b);
+            let ticket = shell.editing_for(&b).unwrap().reading.unwrap().0;
+            shell.editor_read_answered_for(
+                &b,
+                ticket,
+                &editing::whole_read(b.root, b.path.clone()),
+                Ok(io_tests::text("second")),
+                cx,
+            );
+            shell.editor_frame_for(&b, window, cx);
+            let editor = shell
+                .areas
+                .workspace
+                .code
+                .viewer_at(&a)
+                .unwrap()
+                .edit
+                .as_ref()
+                .unwrap()
+                .editor
+                .as_ref()
+                .unwrap()
+                .clone();
+            editor.focus(window, cx);
+            assert!(shell.file_find_at_focus(window, cx));
+            assert!(matches!(editor.find_state(cx), FindState::Open { .. }));
+            assert_eq!(
+                shell
+                    .editing_for(&b)
+                    .unwrap()
+                    .editor
+                    .as_ref()
+                    .unwrap()
+                    .find_state(cx),
+                FindState::Closed
+            );
+            let pane = shell
+                .update_layout(
+                    &probe.workspace,
+                    |layout| {
+                        assert_eq!(
+                            layout.tab(tab).unwrap().target(),
+                            &Target::File {
+                                root: b.root,
+                                path: b.path.clone(),
+                            }
+                        );
+                        Ok(layout.focused_pane())
+                    },
+                    cx,
+                )
+                .unwrap();
+            shell.areas.layout.maximized = Some((probe.workspace.clone(), pane));
+            assert!(
+                !shell.file_find_at_focus(window, cx),
+                "hidden old focus cannot claim central Find"
+            );
+            assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&b));
+        });
+    });
+}

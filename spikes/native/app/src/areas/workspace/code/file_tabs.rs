@@ -149,6 +149,30 @@ pub(crate) fn render_file_panel(
 }
 
 impl Shell {
+    // Visibility comes from the sole layout projection. This only routes local
+    // editor UI; original connection preflight still owns every file effect.
+    pub(super) fn file_visible_in_layout(&self, file: &FileKey, window: &Window) -> bool {
+        let panel = &self.areas.workspace.code;
+        panel
+            .file_tabs
+            .bindings
+            .iter()
+            .any(|((workspace, tab), binding)| {
+                let target = Target::File {
+                    root: file.root,
+                    path: file.path.clone(),
+                };
+                binding.file == *file
+                    && panel
+                        .viewer_at(file)
+                        .is_some_and(|viewer| viewer.scope == *binding.origin.scope())
+                    && self.layout_tab_matches(workspace, *tab, &target)
+                    && self.layout_panel_visible(workspace, *tab, window)
+            })
+    }
+}
+
+impl Shell {
     /// Publish the existing owner's readiness before any next effect can yield.
     /// The acknowledgement is only a write coalescer; close still checks the live owner.
     pub(super) fn publish_file_tabs(&mut self, file: &FileKey, cx: &mut Context<'_, Self>) {

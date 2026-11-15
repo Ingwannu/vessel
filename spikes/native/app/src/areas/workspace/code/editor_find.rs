@@ -251,36 +251,37 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
+        if self.route != crate::routes::Route::Session {
+            return false;
+        }
         let panel = &self.areas.workspace.code;
-        if self.route != crate::routes::Route::Session
-            || !panel.open
-            || panel.tab != super::Tab::Files
-        {
-            return false;
-        }
-        let Some(key) = panel.file_key() else {
+        let active = panel.file_key();
+        let mut keys = active
+            .clone()
+            .into_iter()
+            .chain(panel.files.retained.keys().cloned());
+        let editor = keys.find_map(|key| {
+            let viewer = panel.viewer_at(&key)?;
+            let legacy = panel.open
+                && panel.tab == super::Tab::Files
+                && active.as_ref() == Some(&key)
+                && !panel.file_tabs.contains(&key)
+                && panel.scope().as_ref() == Some(&viewer.scope);
+            if !legacy && !self.file_visible_in_layout(&key, window) {
+                return None;
+            }
+            let editing = viewer.edit.as_ref()?;
+            let editor = editing.editor.as_ref()?;
+            let focused = editor.has_focus(window, cx)
+                || editing.find.as_ref().is_some_and(|find| {
+                    let find = find.read(cx);
+                    find.key == key && find.has_focus(window, cx)
+                });
+            focused.then(|| editor.clone())
+        });
+        let Some(editor) = editor else {
             return false;
         };
-        let Some(viewer) = &panel.files.viewer else {
-            return false;
-        };
-        if panel.scope().as_ref() != Some(&viewer.scope) {
-            return false;
-        }
-        let Some(editing) = &viewer.edit else {
-            return false;
-        };
-        let Some(editor) = &editing.editor else {
-            return false;
-        };
-        let focused = editor.has_focus(window, cx)
-            || editing.find.as_ref().is_some_and(|find| {
-                let find = find.read(cx);
-                find.key == key && find.has_focus(window, cx)
-            });
-        if !focused {
-            return false;
-        }
         editor.open_find(cx);
         true
     }
