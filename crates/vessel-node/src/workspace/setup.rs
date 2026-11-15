@@ -18,6 +18,9 @@
 
 mod observation;
 mod progress;
+// Staged until the reviewed registry gate/start-lease adapter can authorize it.
+#[cfg(test)]
+mod bootstrap;
 
 pub(super) use progress::Observation;
 

@@ -109,3 +109,28 @@ Release uses the exact workspace/source/revision CAS and starts nothing by
 itself. D2 then checks Allowed and obtains an authoritative start lease before
 automatic bootstrap; unknown or unavailable registry state cannot authorize it.
 The generation-bound backing-worktree calls do not infer that authority.
+
+## Registry adapter staging
+
+Consumed green node head ba45a6e3 under A8 (merge dc5a4fab7): the head's
+rpc.rs extraction and protocol-family tests stay unchanged. The two setup rows
+are appended to rpc/table.rs and remain pending None; the integrator alone
+assigns their version. W11's registry and automation gate are still unavailable
+as a reviewed consumer contract.
+
+A cfg(test)-only bootstrap module now exercises the future adapter boundary
+with an in-memory backend. Its scope includes exact WorkspaceId and setup
+invocation UUID; the backend must validate that the invocation is still current
+and successful for that workspace. Each start obtains its own lifecycle/trust
+lease and revalidates before interactive shell input. Dropping an unopened lease
+releases a proved no-spawn reservation; uncertain spawns remain unsettled.
+The adapter, not this policy module, must own credential scrubbing and shell caps.
+There is no production registry adapter, wire call or automatic terminal spawn
+enabled by these tests.
+
+The policy preserves file order, waits for first output or 1500 ms, and sends
+exact approved ProjectCommand bytes plus CR. A cancellation during readiness
+sends no input and starts no later terminal. Terminal-only sets require approval
+before any start claim. Independent terminal failures leave the worktree and
+allow later specifications to be attempted. These are staged policy obligations,
+not evidence that durable workspace trust or actor registration is implemented.
