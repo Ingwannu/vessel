@@ -842,3 +842,12 @@ and FollowBinding before hydration is not a checked live API yet. No weak UI
 guard, current alias lookup or new open manager substitutes for that carrier.
 Current Messages lifetime tests are source/UI evidence only; full navigation
 acceptance stays blocked on the owner union. Commands remain independent.
+
+Exactf0ebd607b96e65226113aadf7e53759491e36d59 is checked: App all-target
+strict Clippy R17 rc0; R9 actual App/Kit/View lib+bins1360pass/0fail/2ignore
+(App125/0/2, Kit186/0/0, View1049/0/0). The window-search replacement,
+blank/BOM/NEL Backspace, no-route composer/dead-opener and current identified
+multiline/CodeEditor composition cases executed and passed. Scope excludes
+View integration/example suites, whole gate, captures, OS IME and physical
+owner admission. The narrow control packet for base8b has unchanged tested
+owned blobs; it is not a standalone leaf or package approval.
