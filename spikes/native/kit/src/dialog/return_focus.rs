@@ -11,6 +11,7 @@ impl DialogState {
     /// Pending/stale refusals must not call this; a newer focus is preserved.
     pub fn dismissed(&self, window: &mut Window, cx: &mut App) {
         self.opener.restore_if_owned(&self.focus, window, cx);
+        self.sheet.clear();
     }
 }
 #[cfg(test)]

@@ -15,18 +15,22 @@
 mod drag;
 pub mod listener;
 pub(crate) mod motion;
+mod points;
 
+#[cfg(test)]
+mod configuration_tests;
 #[cfg(test)]
 mod tests;
 
 pub use motion::Stop;
+pub use points::{Percentage, SnapPoints};
 
 use std::time::Instant;
 
 use gpui::{Pixels, Point, px};
 
 use drag::Drag;
-use motion::{Spring, SpringValue, destination};
+use motion::{Spring, SpringValue, destination_in};
 
 /// Where a pointer gesture began.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,6 +102,7 @@ pub struct State {
     pose: Pose,
     drag: Option<Drag>,
     height: f32,
+    points: SnapPoints,
 }
 
 impl Default for State {
@@ -106,18 +111,33 @@ impl Default for State {
             pose: Pose::At(Stop::Closed),
             drag: None,
             height: 0.0,
+            points: SnapPoints::default(),
         }
     }
 }
 
 impl State {
+    /// The same gesture/spring engine with two validated authored open heights.
+    #[must_use]
+    pub fn with_points(points: SnapPoints) -> Self {
+        Self {
+            points,
+            ..Self::default()
+        }
+    }
+
+    /// A refused close keeps its existing control at the initial open stop.
+    pub(crate) fn retain_compact(&mut self) {
+        self.drag = None;
+        self.pose = Pose::At(Stop::Compact);
+    }
     /// Present afresh at the initial 60% stop, from below the window.
     pub fn present(&mut self, now: Instant) {
         self.drag = None;
         self.pose = Pose::Settling {
             last: now,
             elapsed: std::time::Duration::ZERO,
-            spring: Spring::new(1.0, 0.0, Stop::Compact),
+            spring: Spring::with_points(1.0, 0.0, Stop::Compact, self.points),
         };
     }
 
@@ -125,7 +145,12 @@ impl State {
     pub fn close(&mut self, now: Instant) {
         let current = self.position(now, false);
         self.drag = None;
-        self.settle(current.position(), current.velocity(), Stop::Closed, now);
+        self.settle(
+            current.position_in(self.points),
+            current.velocity(),
+            Stop::Closed,
+            now,
+        );
     }
 
     /// Sample a frame. A host requests another frame only for Animating.
@@ -150,13 +175,13 @@ impl State {
             }
             SpringValue::Moving { .. } => Movement::Animating,
         };
-        let position = sampled.position();
+        let position = sampled.position_in(self.points);
         Frame::Visible(Geometry {
             top: px(position.mul_add(height, 0.0)),
             height: px(position.mul_add(-1.0, 1.0).mul_add(height, 0.0).max(0.0)),
             backdrop: position
                 .mul_add(-1.0, 1.0)
-                .mul_add(0.6_f32.recip(), 0.0)
+                .mul_add(self.points.compact().fraction().recip(), 0.0)
                 .clamp(0.0, 1.0),
             movement,
         })
@@ -168,13 +193,14 @@ impl State {
         if self.height <= 0.0 {
             return;
         }
-        let position = self.position(now, false).position();
-        self.drag = Some(Drag::new(
+        let position = self.position(now, false).position_in(self.points);
+        self.drag = Some(Drag::with_points(
             origin,
             point,
             position,
             f32::from(scroll).max(0.0),
             now,
+            self.points,
         ));
     }
 
@@ -186,7 +212,7 @@ impl State {
         maximum_scroll: Pixels,
         now: Instant,
     ) -> Option<Pixels> {
-        let current_position = self.position(now, false).position();
+        let current_position = self.position(now, false).position_in(self.points);
         let drag = self.drag.as_mut()?;
         let (position, scroll) = drag.pan(
             point,
@@ -208,16 +234,19 @@ impl State {
         if !drag.moved() {
             return Release::Tap;
         }
-        let position = self.position(now, false).position();
+        let position = self.position(now, false).position_in(self.points);
         // Content that has scrolled at the expanded stop must not snap
         // back down on release (Gorhom's interrupted-scroll guard).
         let velocity = drag.velocity(now).mul_add(self.height.recip(), 0.0);
         let stop = if drag.scrolled()
-            && position <= Stop::Expanded.position().mul_add(1.0, f32::EPSILON)
+            && position
+                <= Stop::Expanded
+                    .position_in(self.points)
+                    .mul_add(1.0, f32::EPSILON)
         {
             Stop::Expanded
         } else {
-            destination(position, velocity)
+            destination_in(position, velocity, self.points)
         };
         self.settle(position, velocity.mul_add(0.5, 0.0), stop, now);
         Release::Pan(stop)
@@ -227,7 +256,7 @@ impl State {
         self.pose = Pose::Settling {
             last: now,
             elapsed: std::time::Duration::ZERO,
-            spring: Spring::new(from, velocity, to),
+            spring: Spring::with_points(from, velocity, to, self.points),
         };
     }
 

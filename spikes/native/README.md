@@ -1250,3 +1250,12 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Dialog consumers that need authored geometry use
+`dialog::DialogSize::Configured(dialog::DialogLayout)`: desktop heights are
+`DesktopHeight::AtMost` or `Exact`, compact presentation is fixed or uses validated
+`sheet::snap::SnapPoints`. Defaults retain the existing520/640 and85%/90% fitting
+limits. Configured compact dialogs reuse the one snap spring/pointer/scroll
+adapter; callers acknowledge accepted close through `DialogState::dismissed`.
+The changelog uses620, exact desktop85%, compact85%/95%, with a captured open
+cycle for close and reveal callbacks.

@@ -193,3 +193,16 @@ part that was not Rust.
 - The community mobile layer: `https://github.com/longbridge/gpui-mobile`
 - The component library: `https://github.com/longbridge/gpui-component`
 - Tauri 2: `https://github.com/tauri-apps/tauri` (MIT or Apache-2.0)
+
+### Typed adaptive dialog configuration
+
+The changelog needs a620-point maximum width and an85% desktop height, plus
+85%/95% draggable compact stops. Its area must not draw another modal or implement
+another gesture recognizer. The existing DialogContent size can carry a validated
+DialogLayout. DesktopHeight distinguishes natural fitting limits from exact
+percentages; CompactLayout chooses fixed fitting or the shared snap engine.
+Normal/Wide retain their previous defaults. The existing spring, scroll handoff
+and pointer capture take typed SnapPoints, so layout and gesture limits cannot
+disagree. Refused close callbacks retain visibility; only actual dismissal clears
+the shared weak focus cycle. This adds opt-in control state, without another
+renderer, crate dependency or persistence format.

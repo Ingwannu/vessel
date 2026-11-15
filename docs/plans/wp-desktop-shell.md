@@ -266,3 +266,25 @@ App narrow 8 typechecked the app but strict lints still refused unused producer
 seams and statement/result formatting. Statement/result handling is corrected;
 W15/C2/W11 must consume their real adapters before full clippy can pass. No
 blanket dead-code allowance is used to stand in for those integrations.
+
+## Configured shared changelog sheet
+
+On top of the reviewed dialog focus producer and green package base 074ade16,
+`DialogSize::Configured(DialogLayout)` extends the existing renderer. Width is a
+positive logical-pixel value; viewport percentages and the ordered pair of snap
+heights have validating constructors. Legacy Normal/Wide remain 520/640, fitting
+below the existing desktop85%/compact90% caps. Configured DesktopHeight::Exact is
+separate from AtMost, so short release notes still occupy the authored height.
+
+Changelog consumes620 + exact85% on desktop and85%/95% draggable compact stops
+from `packages/app/src/changelog/internal/changelog-sheet.tsx:80-90`. The existing
+snap state, spring, velocity projection, pointer listener and content-scroll
+handoff consume the same points; no area gesture implementation or second modal
+renderer exists. Draggable configuration is opt-in for read-only scroll bodies.
+An actual-close acknowledgement clears sheet/focus state; refused close requests
+retain the initial open stop. Changelog close/show-more/first-page callbacks are
+bound to their open cycle so stale callbacks cannot dismiss or mutate a newer
+sheet. Existing default tests and expected values are unchanged. Added bounds
+checks distinguish620 width and fixed percentage heights for short desktop and
+compact content; a drag-model regression checks the95% content-scroll handoff.
+All new control behavior still awaits narrow compilation and tests.

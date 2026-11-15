@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{Pixels, Point};
 
-use super::Origin;
+use super::{Origin, SnapPoints, Stop};
 
 const HISTORY: usize = 8;
 const VELOCITY_WINDOW: Duration = Duration::from_millis(100);
@@ -25,6 +25,7 @@ struct Sample {
 #[derive(Debug)]
 pub(super) struct Drag {
     origin: Origin,
+    top: f32,
     start: Point<Pixels>,
     start_position: f32,
     start_scroll: f32,
@@ -48,12 +49,27 @@ impl Drag {
         });
         Self {
             origin,
+            top: Stop::Expanded.position(),
             start: point,
             start_position: position,
             start_scroll: scroll,
             scroll,
             moved: false,
             samples,
+        }
+    }
+
+    pub(super) fn with_points(
+        origin: Origin,
+        point: Point<Pixels>,
+        position: f32,
+        scroll: f32,
+        now: Instant,
+        points: SnapPoints,
+    ) -> Self {
+        Self {
+            top: Stop::Expanded.position_in(points),
+            ..Self::new(origin, point, position, scroll, now)
         }
     }
 
@@ -97,7 +113,7 @@ impl Drag {
         }
         let translation = f32::from(self.start.y).mul_add(-1.0, f32::from(point.y));
         let initial = self.start_position.mul_add(height, 0.0);
-        let top = height.mul_add(0.1, 0.0);
+        let top = height.mul_add(self.top, 0.0);
         let mut position = initial.mul_add(1.0, translation);
         self.scroll = self.start_scroll;
         if self.origin == Origin::Content {

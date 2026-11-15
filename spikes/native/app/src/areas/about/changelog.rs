@@ -1,7 +1,11 @@
 //! Release history uses bundled Markdown plus the existing signed feed's notes.
 
 use crate::shell::Shell;
-use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
+use std::rc::Rc;
+use vessel_app_kit::dialog::{
+    CompactLayout, DesktopHeight, DialogContent, DialogLayout, DialogSize, dialog,
+};
+use vessel_app_kit::sheet::snap::{Percentage, SnapPoints};
 use vessel_app_kit::theme::spacing::{S2, S4, S8};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _,
@@ -11,8 +15,13 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _, markdown, outline_button};
 use vessel_app_view::desktop::changelog::{self, Release, Revealed};
 
 const BUNDLED: &str = include_str!("../../../../CHANGELOG.md");
+const DESKTOP_WIDTH: u16 = 620;
+const DESKTOP_HEIGHT: u8 = 85;
+const COMPACT_HEIGHT: u8 = 85;
+const EXPANDED_HEIGHT: u8 = 95;
 
 pub(super) struct History {
+    cycle: Rc<()>,
     releases: Vec<Release>,
     revealed: Revealed,
 }
@@ -20,6 +29,7 @@ pub(super) struct History {
 impl Default for History {
     fn default() -> Self {
         Self {
+            cycle: Rc::new(()),
             releases: changelog::parse(BUNDLED),
             revealed: Revealed::default(),
         }
@@ -28,6 +38,10 @@ impl Default for History {
 
 impl Shell {
     pub(crate) fn open_changelog(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.about.notes {
+            self.areas.about.notes_dialog.focus(window, cx);
+            return;
+        }
         let mut releases = changelog::parse(BUNDLED);
         if let Some(notes) = self.running_notes() {
             let mut current = changelog::parse(&format!("## {}\n\n{notes}", crate::LABEL));
@@ -36,6 +50,7 @@ impl Shell {
             releases = current;
         }
         self.areas.about.history = History {
+            cycle: Rc::new(()),
             releases,
             revealed: Revealed::default(),
         };
@@ -44,9 +59,12 @@ impl Shell {
         cx.notify();
         // The first release renders before the rest of the initial page. This
         // yields to GPUI rather than introducing a timer or continuous animation.
-        cx.on_next_frame(window, |shell, _window, cx| {
-            shell.areas.about.history.revealed.settled();
-            cx.notify();
+        let cycle = Rc::clone(&self.areas.about.history.cycle);
+        cx.on_next_frame(window, move |shell, _window, cx| {
+            if shell.areas.about.notes && Rc::ptr_eq(&cycle, &shell.areas.about.history.cycle) {
+                shell.areas.about.history.revealed.settled();
+                cx.notify();
+            }
         });
     }
 }
@@ -63,6 +81,7 @@ pub(super) fn render(
     }
     let words = shell.words.desktop_shell();
     let history = &about.history;
+    let cycle = Rc::clone(&history.cycle);
     let mut body = div().flex().flex_col().gap(px(S8)).child(
         div()
             .type_(Type::Meta)
@@ -92,9 +111,11 @@ pub(super) fn render(
                 true,
                 tokens,
             )
-            .on_click(cx.listener(|shell, _event, _window, cx| {
-                shell.areas.about.history.revealed.show_more();
-                cx.notify();
+            .on_click(cx.listener(move |shell, _event, _window, cx| {
+                if shell.areas.about.notes && Rc::ptr_eq(&cycle, &shell.areas.about.history.cycle) {
+                    shell.areas.about.history.revealed.show_more();
+                    cx.notify();
+                }
             }))
             .into_any_element(),
         ]
@@ -107,14 +128,59 @@ pub(super) fn render(
             title: words.whats_new().to_owned().into(),
             body: body.into_any_element(),
             footer,
-            size: DialogSize::Wide,
+            size: layout(),
         },
         tokens,
         window,
         crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, _cx| shell.areas.about.notes = false,
+        {
+            let cycle = Rc::clone(&history.cycle);
+            move |shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>| {
+                if shell.areas.about.notes && Rc::ptr_eq(&cycle, &shell.areas.about.history.cycle) {
+                    shell.areas.about.notes = false;
+                    shell.areas.about.notes_dialog.dismissed(window, cx);
+                }
+            }
+        },
         cx,
     ))
+}
+
+fn layout() -> DialogSize {
+    // Configuration is parsed once through the shared control types. A bad
+    // authored constant keeps a usable legacy dialog; the regression freezes
+    // the intended exact desktop height and both draggable compact stops.
+    let configured = Percentage::new(DESKTOP_HEIGHT).and_then(|height| {
+        SnapPoints::new(COMPACT_HEIGHT, EXPANDED_HEIGHT).and_then(|points| {
+            DialogLayout::new(
+                DESKTOP_WIDTH,
+                DesktopHeight::Exact(height),
+                CompactLayout::Draggable(points),
+            )
+        })
+    });
+    configured.map_or(DialogSize::Wide, DialogSize::Configured)
+}
+
+#[cfg(test)]
+mod configuration_tests {
+    use super::*;
+    #[test]
+    fn changelog_uses_the_authored_shared_layout_instead_of_legacy_wide() {
+        let DialogSize::Configured(layout) = layout() else {
+            panic!("configured changelog");
+        };
+        assert_eq!(layout.width().get(), 620);
+        let DesktopHeight::Exact(height) = layout.height() else {
+            panic!("fixed desktop percentage");
+        };
+        assert_eq!(height.value(), 85);
+        let CompactLayout::Draggable(points) = layout.compact() else {
+            panic!("draggable compact sheet");
+        };
+        assert_eq!(points.compact().value(), 85);
+        assert_eq!(points.expanded().value(), 95);
+    }
 }
 
 fn release_view(index: usize, release: &Release, shell: &Shell, tokens: &Tokens) -> Div {
