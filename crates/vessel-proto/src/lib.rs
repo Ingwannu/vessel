@@ -109,7 +109,7 @@ pub use id::{
     ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
-pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use labels::{InvalidLabel, LabelKey, LabelPatch, LabelValue, SessionLabels};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

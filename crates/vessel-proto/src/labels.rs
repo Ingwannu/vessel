@@ -18,6 +18,9 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::key::serde_via_text;
 
+mod patch;
+pub use patch::LabelPatch;
+
 /// A label's key. The constructor is the only way to build one.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]

@@ -399,8 +399,8 @@ No row of the crate table changes.
 
 ## Resume point
 
-Current label-mutation preparation: the nonempty `LabelPatch` contract is written;
-implementation and narrow checks follow. This is a value foundation only, with
+Current label-mutation preparation: `LabelPatch` and its five edge tests are
+implemented; remote narrow checks are pending. This is a value foundation only, with
 no mutation method/event, actor/store write or feature assignment. Earlier notes
 below retain their historical checkpoints.
 
@@ -590,3 +590,14 @@ adds no CLI behavior until its separate consumer calls it.
   round trip. Combined-cap failure must still leave the original map unchanged.
 - The mutation's later request registration, pending event projection and actual
   live/terminal/stored persistence remain separate work in the same package.
+
+
+The value implementation uses a private transparent `SessionLabels` wrapper,
+`TryFrom<SessionLabels>` and a deserializer that first invokes the existing
+bounded map decoder. A borrowed accessor exposes no mutation. Five edge tests
+cover empty input, valid canonical duplicates and preserved values, empty values,
+invalid map shapes/entries and the original cap. Existing map-operation tests
+remain the source for combined-cap atomicity; their assertions are unchanged.
+No wire request, actor/store operation, protocol assignment or consumer readiness
+is implied by this implementation. Compilation and execution remain unverified
+until the remote narrow results arrive.
