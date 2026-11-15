@@ -74,6 +74,10 @@ callback type-inference error, a similar-name test binding, missing doc backtick
 and viewport arithmetic lints. The corrected source uses explicit callback type,
 distinct names and fused finite layout arithmetic, with no allowances. Tests have
 not run yet. No runtime, V1 or consumer-ready claim exists until exact results land.
+The second exact1a Clippy typechecked the control/tests and reported only two
+unary float-negation lints on the margin constant. Current source uses a named
+signed viewport inset; no lint allowance is added. The next base8 source check
+must also execute the real control tests before review.
 
 The control producer is isolated with only the typed dialog/snap prerequisite and
 this control. It began on dd13; package base8/91407173 is now merged in0313d40a9
