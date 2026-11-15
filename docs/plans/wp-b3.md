@@ -124,3 +124,11 @@ batch containing checkpoint work, outside its transaction, then restores the
 prior policy. This closes the NORMAL-commit versus durable-file-rename ordering
 gap without changing ordinary event batches. Tests inspect real connection
 policy and rollback/reopen behavior; they are not power-loss hardware proof.
+
+Metadata listing uses a bounded timestamp/capture-id keyset, with cursor lookup
+bound to the requested session before reading any page. Tied timestamps remain
+deterministic; unavailable boundaries retain their typed reason. A running
+candidate reports temporary Busy rather than implying a ready image. The store
+never reads blobs to render marks; the node must still enforce session visibility.
+W11 confirms its start/archive lease is not a file-writer lock; lifecycle
+exclusion is being aligned with the archive owner before actual restore wiring.

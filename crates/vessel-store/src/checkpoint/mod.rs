@@ -8,6 +8,7 @@ mod garbage;
 mod journal;
 #[cfg(test)]
 mod journal_tests;
+mod list;
 mod paths;
 mod plans;
 mod publication;
