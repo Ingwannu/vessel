@@ -365,3 +365,24 @@ actor delivery yet; that explicit ignored proof obligation remains. Three bridge
 fixtures cover unavailable capture with normal delivery, held acknowledgement
 expiry/late reply, and wrong association/lost delivery receipt. Remote execution
 is still owed, and no node filesystem capability is activated by this bridge.
+
+### Actual actor hook producers
+
+New actors can now receive the bridge through SessionRuntime's explicit builder;
+the node does not install it yet. Real new delivery (including queued delivery,
+interrupt's replacement and a side turn) emits an accepted-prompt anchor after
+ordered driver readiness/idle checks, asks for its before-image, and reports
+actual provider delivery. Injected steers do not take this path. Actual provider
+TurnStarted is linked to the anchor even when incidental output changed sequence
+numbers. Published TurnEnded requests its after-image before queue advancement;
+a completion pumped during another delivery is settled before that next prompt.
+TurnFailed has no completed TurnEnded anchor and does not invent an after-image.
+
+Accepted-anchor durable-channel capacity and node acknowledgement share the same
+capture deadline. A congested channel, unavailable capture or expired node reply
+cannot unconditionally join filesystem work or create an unbounded capture wait.
+Kill remains observed. Real fake-agent fixtures cover queued-vs-injected steering,
+completion ordering/association and actual prompt release on a held node deadline.
+These are unrun source fixtures. The node still must wait for SQL durability of
+the anchor/TurnEnded before starting real filesystem work; the remaining ignored
+storage-ordering obligation is explicit. No product checkpoint controller is live.

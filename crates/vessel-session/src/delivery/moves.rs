@@ -22,6 +22,7 @@ impl StructuredActor {
         let Some(end) = self.desk.ended.take() else {
             return;
         };
+        self.after_checkpoint().await;
         match end {
             TurnEnd::Done => {
                 let _started = self.advance().await;

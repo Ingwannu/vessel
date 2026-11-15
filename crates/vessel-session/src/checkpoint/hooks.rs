@@ -111,6 +111,22 @@ impl CheckpointHooks {
         let deadline = Instant::now()
             .checked_add(CHECKPOINT_CAPTURE_DEADLINE)
             .ok_or(CheckpointError::CaptureTimedOut)?;
+        self.capture_by(session, boundary, deadline).await
+    }
+    /// Preserve the deadline when the actor first publishes its durable anchor.
+    ///
+    /// # Errors
+    /// The same queue/acknowledgement failures as `capture`; an expired deadline
+    /// refuses before queueing and cannot acquire a fresh timeout budget.
+    pub async fn capture_by(
+        &self,
+        session: SessionId,
+        boundary: Boundary,
+        deadline: Instant,
+    ) -> Result<CheckpointReceipt, CheckpointError> {
+        if Instant::now() >= deadline {
+            return Err(CheckpointError::CaptureTimedOut);
+        }
         let (reply, received) = oneshot::channel();
         self.requests
             .try_send(CheckpointRequest {
@@ -207,8 +223,8 @@ mod tests {
 #[cfg(test)]
 mod obligations {
     #[test]
-    #[ignore = "skeleton: connect hooks to real prompt delivery and durable TurnEnded"]
+    #[ignore = "skeleton: real node capture must await committed TurnEnded before queue advance"]
     fn queued_prompts_capture_at_delivery_but_steers_do_not_create_boundaries() {
-        // Proof obligation remains until the real actor producer is connected.
+        // Actor delivery is connected; real node storage/capture ordering is still owed.
     }
 }

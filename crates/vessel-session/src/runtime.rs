@@ -60,6 +60,7 @@ pub struct SessionRuntime {
     /// The node's attachment loader (protocol 10), which every structured
     /// session asks for its prompts' attachments.
     attachments: Option<AttachmentLoader>,
+    checkpoints: Option<crate::CheckpointHooks>,
     /// How long an idle structured session runs before its agent is
     /// parked, as the node now says (protocol 12, ADR 0038): every actor
     /// follows it, so a change applies to live sessions at once.
@@ -95,6 +96,7 @@ impl SessionRuntime {
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
+            checkpoints: None,
             park_after,
             claims: claims::Claims::default(),
             drivers: drivers::Drivers::default(),
@@ -128,6 +130,15 @@ impl SessionRuntime {
     #[must_use]
     pub fn with_attachments(mut self, loader: AttachmentLoader) -> Self {
         self.attachments = Some(loader);
+        self
+    }
+
+    /// Attach the node's bounded file-checkpoint bridge to new actors.
+    /// The node owns filesystem scope, durable anchors and exclusion; this does
+    /// not advertise a protocol capability or modify already running actors.
+    #[must_use]
+    pub fn with_checkpoint_hooks(mut self, hooks: crate::CheckpointHooks) -> Self {
+        self.checkpoints = Some(hooks);
         self
     }
 

@@ -50,6 +50,8 @@ pub(crate) struct StructuredActor {
     /// Deliveries and the queue (protocol 10, `delivery`).
     pub(crate) desk: Desk,
     pub(crate) file_pause: crate::checkpoint::State,
+    pub(crate) checkpoints: Option<crate::CheckpointHooks>,
+    pub(crate) checkpoint_prompt: Option<vessel_proto::EventSeq>,
     /// A session started again (protocol 10, `again`) publishes nothing
     /// until its row is reopened: answered then, dropped if it is not.
     pub(crate) gate: Option<oneshot::Receiver<()>>,
@@ -316,10 +318,30 @@ impl StructuredActor {
                 } else {
                     None
                 };
+                let checkpoint_turn = matches!(event, AgentEvent::TurnStarted { .. })
+                    .then(|| {
+                        self.checkpoint_prompt
+                            .take()
+                            .map(|prompt| (prompt, self.life.out.next_seq()))
+                    })
+                    .flatten();
                 self.desk.observe(&event, self.life.out.next_seq());
                 self.life
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
+                if let Some((prompt, turn)) = checkpoint_turn {
+                    self.life
+                        .publish(
+                            &mut self.agent,
+                            SessionEvent::Checkpoint {
+                                event: vessel_proto::checkpoint::CheckpointEvent::TurnAssociated {
+                                    prompt,
+                                    turn,
+                                },
+                            },
+                        )
+                        .await;
+                }
                 if let Some(title) = title {
                     self.life
                         .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)

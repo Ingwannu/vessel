@@ -45,6 +45,14 @@ impl Fixture {
 
     /// A runtime that parks idle agents after `after` (protocol 12).
     pub(crate) fn parking_after(after: Option<Duration>) -> Self {
+        Self::configured(after, None)
+    }
+
+    pub(crate) fn checkpoint_hooks(hooks: vessel_session::CheckpointHooks) -> Self {
+        Self::configured(None, Some(hooks))
+    }
+
+    fn configured(after: Option<Duration>, hooks: Option<vessel_session::CheckpointHooks>) -> Self {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let bin =
@@ -81,6 +89,10 @@ impl Fixture {
             },
             CancellationToken::new(),
         );
+        let runtime = match hooks {
+            Some(hooks) => runtime.with_checkpoint_hooks(hooks),
+            None => runtime,
+        };
         Self { runtime, bin }
     }
 

@@ -696,3 +696,13 @@ provider prompt events. FilesRestored carries only operation/checkpoint identiti
 and a bounded path count after durable verification. This closed SessionEvent
 family uses FILE_CHECKPOINTS (None until assignment), downgrades for all existing
 peers, and does not affect conversation projection, attention or cost accounting.
+
+Actor producer refinement: real new delivery uses the bridge after ordered driver
+readiness/idle observations; steers injected into a running turn do not create a
+boundary. A completed TurnEnded pumped during delivery is settled before another
+prompt, not after its files may have changed. TurnFailed does not invent an
+AfterTurn anchor. Accepted-anchor channel admission and node acknowledgement
+share the original capture deadline; a full durable event channel can leave
+capture unavailable rather than hold delivery for an unbounded capture wait.
+The node must still await actual SQL durability of accepted/ended anchors before
+filesystem capture. The session bridge alone does not establish that ordering.

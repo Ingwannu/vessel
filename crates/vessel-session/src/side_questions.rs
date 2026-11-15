@@ -60,10 +60,14 @@ impl StructuredActor {
         // replay is suppressed, while retaining this command's context.
         // A failed wake consumes this command and cannot leave a prefix.
         self.wake().await?;
+        let receipt = self.before_checkpoint().await?;
         let input = self.input.clone();
-        self.pump(async move { input.prompt_context(question, context).await })
+        let sent = self
+            .pump(async move { input.prompt_context(question, context).await })
             .await
-            .map_err(|_stopped| SessionError::Ended)??;
+            .map_err(|_stopped| SessionError::Ended)
+            .and_then(|sent| sent.map_err(SessionError::from));
+        self.checkpoint_sent(receipt, sent)?;
         self.desk.started_one();
         Ok(())
     }

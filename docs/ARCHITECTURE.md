@@ -1730,3 +1730,10 @@ association and distinguishes prompt sent/refused from after-turn completion.
 The node retains physical/storage ownership; a lost receipt is uncertain, never
 a successful advance. Actual actor producers and node capture assembly remain
 separate work; the prior private acknowledgement prototype was removed.
+
+New structured actors may receive CheckpointHooks explicitly from SessionRuntime.
+Actual new delivery emits and associates the accepted anchor; injected steers do
+not. TurnEnded requests an after-image before queue advancement, including an end
+pumped during a different delivery. Anchor admission/acknowledgement share the
+capture deadline. The node does not install this bridge yet: real SQL durability,
+physical scope and filesystem/storage assembly remain activation obligations.

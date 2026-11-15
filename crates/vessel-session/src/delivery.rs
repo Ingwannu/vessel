@@ -97,6 +97,7 @@ pub(crate) struct Desk {
     ended_turns: u64,
     /// A turn's end the queue has not acted on yet.
     ended: Option<TurnEnd>,
+    pub(crate) checkpoint_ended: Option<EventSeq>,
     /// What the agent said it can do, from its `ready`.
     abilities: AgentAbilities,
     /// An interrupt waits for the turn it cancelled; that turn's end is
@@ -132,6 +133,7 @@ impl Desk {
                 self.tickets.turn_started(seq);
             }
             AgentEvent::TurnEnded { reason, .. } => {
+                self.checkpoint_ended = Some(seq);
                 let end = if *reason == StopReason::Cancelled {
                     TurnEnd::Cancelled
                 } else {
@@ -139,7 +141,11 @@ impl Desk {
                 };
                 self.over(end);
             }
-            AgentEvent::TurnFailed { .. } => self.over(TurnEnd::Failed),
+            AgentEvent::TurnFailed { .. } => {
+                // There is no completed TurnEnded anchor for a failed delivery.
+                self.checkpoint_ended = None;
+                self.over(TurnEnd::Failed);
+            }
             AgentEvent::UserMessageChunk { .. }
             | AgentEvent::MessageChunk { .. }
             | AgentEvent::ThoughtChunk { .. }
@@ -282,10 +288,14 @@ impl StructuredActor {
         // Every prompt reaches the agent here: a parked one is started
         // again first (protocol 12).
         self.wake().await?;
+        let receipt = self.before_checkpoint().await?;
         let input = self.input.clone();
-        self.pump(async move { input.prompt_with(content, attachments).await })
+        let sent = self
+            .pump(async move { input.prompt_with(content, attachments).await })
             .await
-            .map_err(|_stopped| SessionError::Ended)??;
+            .map_err(|_stopped| SessionError::Ended)
+            .and_then(|sent| sent.map_err(SessionError::from));
+        self.checkpoint_sent(receipt, sent)?;
         self.desk.started_one();
         Ok(())
     }

@@ -94,6 +94,8 @@ impl SessionRuntime {
             },
             desk,
             file_pause: crate::checkpoint::State::default(),
+            checkpoints: self.checkpoints.clone(),
+            checkpoint_prompt: None,
             gate,
             loader: self.attachments.clone(),
             parking,
