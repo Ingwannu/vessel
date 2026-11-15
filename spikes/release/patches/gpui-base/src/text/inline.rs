@@ -3061,3 +3061,6 @@ mod retained_layout_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod html_rendered_range_contract;
