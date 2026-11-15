@@ -203,40 +203,8 @@ impl SessionEvent {
             Self::Agent { event } => event
                 .for_protocol(protocol)
                 .map(|event| Self::Agent { event }),
-            Self::ProfileChanged { from, to } => {
-                let name = |profile: &Option<ProfileName>| {
-                    profile
-                        .as_ref()
-                        .map_or_else(|| "default".to_owned(), ToString::to_string)
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog {
-                        line: format!(
-                            "vessel: profile changed from {} to {}",
-                            name(from),
-                            name(to)
-                        ),
-                    },
-                })
-            }
-            Self::ModelCall(call) => {
-                let line = match call.failure {
-                    None => format!(
-                        "vessel: model call to {}: {} in, {} out",
-                        call.model,
-                        call.usage.total_input().get(),
-                        call.usage.output.get()
-                    ),
-                    Some(failure) => format!(
-                        "vessel: model call to {} failed ({})",
-                        call.model,
-                        failure.as_str()
-                    ),
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog { line },
-                })
-            }
+            Self::ProfileChanged { from, to } => log(profile_line(from, to)),
+            Self::ModelCall(call) => log(model_line(call)),
             Self::OptionsChanged { options } => Some(Self::Agent {
                 event: AgentEvent::HarnessLog {
                     line: format!("vessel: options: {}", SessionOption::summary(options)),
@@ -380,6 +348,35 @@ fn first_line(content: &[ContentBlock]) -> Option<&str> {
         | ContentBlock::Opaque { .. }
         | ContentBlock::Attachment { .. } => None,
     })
+}
+
+fn profile_line(from: &Option<ProfileName>, to: &Option<ProfileName>) -> String {
+    let name = |profile: &Option<ProfileName>| {
+        profile
+            .as_ref()
+            .map_or_else(|| "default".to_owned(), ToString::to_string)
+    };
+    format!(
+        "vessel: profile changed from {} to {}",
+        name(from),
+        name(to)
+    )
+}
+
+fn model_line(call: &ModelCall) -> String {
+    match call.failure {
+        None => format!(
+            "vessel: model call to {}: {} in, {} out",
+            call.model,
+            call.usage.total_input().get(),
+            call.usage.output.get()
+        ),
+        Some(failure) => format!(
+            "vessel: model call to {} failed ({})",
+            call.model,
+            failure.as_str()
+        ),
+    }
 }
 
 fn queue_line(queue: &PromptQueue) -> String {

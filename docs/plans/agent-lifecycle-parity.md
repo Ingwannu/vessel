@@ -385,7 +385,11 @@ No row of the crate table changes.
   before replacement, preserving the requested signal and typed OS source.
   Both polite and forced stop delivery use that refusal boundary. The test
   now asserts the specific source/action, Internal code and original process,
-  profile, conversation and responsiveness. Corrective narrow checks are next.
+  profile, conversation and responsiveness. Corrective clippy and all 61
+  session library tests passed, including the previously failing regression.
+  The event projection's profile/model fallback formatting is extracted in
+  a separate behavior-preserving commit to keep its dispatch short; messages,
+  thresholds and every existing test expectation remain unchanged.
 
 ## Resume point
 
