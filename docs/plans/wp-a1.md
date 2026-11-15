@@ -187,3 +187,9 @@ original draft and blocks replacement/replay in that case. Duplex-peer tests
 cover Internal at registration and at first-prompt delivery, with no success
 or automatic repeated create. Typed pre-effect refusals retain their existing
 retry behavior. Durable reconciliation still waits for the new receipt driver.
+
+Known first-input retry also verifies the originally admitted NodeId retained
+with the registered card. Reading a fresh Fleet identity cannot rebind an old
+SessionId after an alias is reused for another node. A regression preserves
+both original identities and the canonical message id after that refusal;
+retry on the original destination reads the same session rather than creating.
