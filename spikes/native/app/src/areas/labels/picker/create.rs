@@ -110,7 +110,8 @@ fn color_choice(opening: Opening) -> super::super::colors::ColorChoice {
         let Some(picker) = &state.picker else {
             return;
         };
-        if picker.opening != opening || !availability(state, picker).connected() {
+        if picker.opening != opening || !picker.visible || !availability(state, picker).connected()
+        {
             return;
         }
         if let Some(picker) = &mut state.picker
@@ -177,10 +178,21 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let state = &mut self.areas.labels;
-        if let Some(picker) = &mut state.picker
-            && picker.opening == opening
-            && !matches!(picker.page, PickerPage::Submitting { .. })
+        let Some(picker) = &state.picker else {
+            return;
+        };
+        if picker.opening != opening
+            || !picker.visible
+            || matches!(picker.page, PickerPage::Submitting { .. })
         {
+            return;
+        }
+        let Some(next) = super::next_opening(state) else {
+            cx.notify();
+            return;
+        };
+        if let Some(picker) = &mut state.picker {
+            picker.opening = next;
             picker.page = PickerPage::Listing;
             picker.error = None;
             picker.dialog.dismissed(window, cx);

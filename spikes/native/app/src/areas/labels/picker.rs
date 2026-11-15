@@ -65,7 +65,7 @@ impl Shell {
         state
             .picker_combo
             .open(Some(self.words.labels().search()), window, cx);
-        let name = TextField::with_source("", field_submitted, field_changed, window, cx);
+        let name = name_field("", window, cx);
         state.picker = Some(WorkspacePicker {
             visible: true,
             return_to_list: std::cell::Cell::new(false),
@@ -228,12 +228,34 @@ fn field_submitted(
 }
 
 fn field_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
-    if let Some(picker) = &mut shell.areas.labels.picker
-        && picker.name.id() == source
+    let state = &mut shell.areas.labels;
+    let Some(picker) = &state.picker else {
+        return;
+    };
+    if picker.name.id() != source || !picker.visible || !availability(state, picker).connected() {
+        return;
+    }
+    if let Some(picker) = &mut state.picker
         && let Some(draft) = picker.page.draft_mut()
     {
         draft.set_text(&text);
         cx.notify();
+    }
+}
+
+fn name_field(placeholder: &str, window: &mut Window, cx: &mut Context<'_, Shell>) -> TextField {
+    TextField::with_source(placeholder, field_submitted, field_changed, window, cx)
+}
+
+fn next_opening(state: &mut super::Labels) -> Option<Opening> {
+    match state.tickets.issue() {
+        Ok(ticket) => Some(Opening::new(ticket)),
+        Err(failure) => {
+            if let Some(picker) = &mut state.picker {
+                picker.error = Some(failure);
+            }
+            None
+        }
     }
 }
 

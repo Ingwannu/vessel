@@ -130,22 +130,26 @@ impl Shell {
             return;
         };
         if picker.opening != opening
+            || !picker.visible
             || !state.picker_combo.is_open()
             || !availability(state, picker).connected()
         {
             return;
         }
+        let Some(next) = super::next_opening(state) else {
+            cx.notify();
+            return;
+        };
         let Some(picker) = &mut state.picker else {
             return;
         };
         match picker.page.create() {
             Ok(()) => {
+                picker.opening = next;
                 picker.error = None;
                 state.picker_combo.close();
-                picker.name.clear(window, cx);
-                picker
-                    .name
-                    .set_placeholder(self.words.labels().name(), window, cx);
+                picker.name = super::name_field(self.words.labels().name(), window, cx);
+                picker.applied_editability = None;
                 picker.dialog.focus(window, cx);
                 picker.name.focus(window, cx);
             }

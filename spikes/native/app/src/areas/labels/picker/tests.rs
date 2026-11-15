@@ -119,6 +119,7 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
         shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
+        let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         let picker = shell.areas.labels.picker.as_mut().unwrap();
         let draft = picker.page.draft_mut().unwrap();
         assert_eq!(draft.color(), Color::Violet);
@@ -197,6 +198,7 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
         shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell.labels_picker_create(opening, window, cx);
+        let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         shell
             .areas
             .labels
@@ -297,5 +299,35 @@ fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
             panic!("the new create draft remains idle");
         };
         assert_eq!(draft.text(), "");
+    });
+}
+
+#[gpui::test]
+fn labels_old_create_visit_cannot_submit_or_close_a_later_create_visit(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (link, mut commands) = Link::detached(COMMAND_CAPACITY).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        let target = install(shell);
+        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        let list = shell.areas.labels.picker.as_ref().unwrap().opening;
+        shell.labels_picker_create(list, window, cx);
+        let first = shell.areas.labels.picker.as_ref().unwrap().opening;
+        let old_field = shell.areas.labels.picker.as_ref().unwrap().name.id();
+        shell.labels_picker_back(first, window, cx);
+        let list = shell.areas.labels.picker.as_ref().unwrap().opening;
+        shell.labels_picker_create(list, window, cx);
+        let picker = shell.areas.labels.picker.as_mut().unwrap();
+        let current = picker.opening;
+        assert_ne!(current, first);
+        assert_ne!(picker.name.id(), old_field);
+        picker.page.draft_mut().unwrap().set_text("Current draft");
+        shell.labels_picker_submit(first, cx);
+        shell.labels_picker_close(first, window, cx);
+        shell.labels_picker_back(first, window, cx);
+        assert!(commands.try_recv().is_err());
+        assert!(shell.areas.labels.picker.as_ref().unwrap().visible);
+        shell.labels_picker_submit(current, cx);
+        assert!(matches!(commands.try_recv().unwrap(), vessel_app_link::Command::Labels(vessel_app_link::labels::Request {ask: Command::Assign {label, ..}, ..}) if label.name.as_str() == "Current draft"));
     });
 }

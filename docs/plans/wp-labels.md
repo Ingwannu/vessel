@@ -403,3 +403,12 @@ those paths and passed the prepared Request directly to global dispatch. The
 red log remains retained; this is not current app clippy or GPUI execution PASS.
 The next run is deferred until the extraction-only shared slice can use the
 announced c3429952 base, so the one owned warm lane is not duplicated.
+
+The staged create page now allocates a fresh opening on each Create/Back visit,
+not only when the whole picker opens. A delayed old Create/Close/Back callback
+cannot target a new blank form in the same workspace; the new form also gets a
+new input engine FieldId. A closed picker refuses deferred return/focus effects,
+and input callbacks recheck current visibility and write policy. A counterfactual
+GPUI test traverses create -> back -> create, then invokes old controls before
+proving the current visit still submits exactly its own draft. This additional
+regression remains unexecuted pending the next owned narrow batch.
