@@ -8,6 +8,7 @@ use kit::{ComboHandlers, ComboHeader, ComboRow, ComboboxContent, ComboboxWidth, 
 use vessel_app_view::schedules::editor::{IntervalUnit, cadence::Choice as CadenceChoice};
 use vessel_proto::{HarnessRef, OptionChoice, ProjectId};
 const NEW_INTERVAL_COUNT: &str = "1";
+mod browser;
 mod rows;
 mod words;
 use rows::offered;
@@ -17,6 +18,10 @@ enum Choice {
     Host(ConnectionContext),
     Project(ProjectId),
     Agent(HarnessRef),
+    Model {
+        request: io::Request,
+        choice: OptionChoice,
+    },
     Option {
         request: io::Request,
         choice: OptionChoice,
@@ -84,9 +89,12 @@ pub(super) fn open(
     };
     let search = searchable(shell, picker);
     let placeholder = search_placeholder(shell, picker).to_owned();
+    let initial = browser::initial(shell, picker, visit);
     let ui = &mut shell.areas.schedules.ui.editor;
     ui.picking = Some(picker);
-    ui.browsing = false;
+    ui.browsing = initial.is_some();
+    ui.picker
+        .set_header_leading(initial.as_ref().map(crate::agent_mark::leading));
     ui.picker.set_anchor(Some(bounds));
     ui.picker
         .open(search.then_some(placeholder.as_str()), window, cx);
@@ -130,23 +138,9 @@ pub(in crate::areas::schedules) fn popup(
     }
     let offered = offered(shell, picker, tokens).filtered(&ui.picker.query(cx));
     let values = offered.values;
-    let back: Option<kit::picker::Back<Shell>> = if picker == Picker::Model && ui.browsing {
-        Some(Rc::new(|shell, window, cx| {
-            shell.areas.schedules.ui.editor.browsing = false;
-            shell
-                .areas
-                .schedules
-                .ui
-                .editor
-                .picker
-                .reset_query("", window, cx);
-            cx.notify();
-        }))
-    } else {
-        None
-    };
+    let back = browser::back(shell, picker);
     let header = ComboHeader {
-        title: Some(label(shell, picker).to_owned().into()),
+        title: Some(browser::title(shell, picker)),
         back: back.is_some(),
         search: searchable(shell, picker),
         empty: empty_label(shell, picker).into(),
@@ -205,24 +199,20 @@ fn choose(
                 let _changed = shell.areas.schedules.data.editor.project(visit, project);
             }
             Choice::Agent(harness) => {
-                if let Some(request) = shell.areas.schedules.data.editor.agent(visit, harness) {
-                    shell.command(Command::Schedules(request.into()));
-                    shell.areas.schedules.ui.editor.browsing = true;
-                    shell
-                        .areas
-                        .schedules
-                        .ui
-                        .editor
-                        .picker
-                        .reset_query("", window, cx);
-                    keep_open = true;
-                }
+                browser::drill(shell, visit, harness, window, cx);
+                keep_open = true;
+            }
+            Choice::Model { request, choice } => {
+                let _changed = shell
+                    .areas
+                    .schedules
+                    .data
+                    .editor
+                    .choose_model(visit, &request, choice);
             }
             Choice::Option { request, choice } => {
                 let model = &mut shell.areas.schedules.data.editor;
-                let valid = model
-                    .operations()
-                    .any(|slot| slot.request() == Some(&request) && slot.value().is_some());
+                let valid = model.selected_options_request() == Some(&request);
                 if valid {
                     let _changed = model.option(visit, choice);
                 }

@@ -1566,3 +1566,11 @@ only at this checkpoint; narrow/source review and consumer proof remain owed.
 Form option glyphs may opt into picker::Leading::FormGlyph (glyph16/frame18),
 using the same row renderer; existing leading variants keep their dimensions.
 Leading remains re-exported from picker. No area sizing wrapper is required.
+
+
+Schedules model browsing uses the existing bounded options mailbox independently
+from the selected target. One retained selected catalog keeps current controls
+stable while another provider is read; only an exact currently offered model
+receipt commits provider and model. This preserves the full opened spec on
+provider drill-down/cancel. The shared combobox owns chrome, icon sizes and
+return focus; F1 still owes its combined gate and actual first-use evidence.

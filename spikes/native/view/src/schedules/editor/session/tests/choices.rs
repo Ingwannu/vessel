@@ -234,3 +234,115 @@ fn save_waits_for_agent_models_and_never_substitutes_a_missing_opened_model() {
     assert!(model.option(opened.visit, choice("model", "new-model")));
     assert!(model.prepare_save().unwrap().is_some());
 }
+
+fn two_providers() -> io::Targets {
+    let mut available = targets();
+    let mut second = available.harnesses.first().unwrap().clone();
+    second.kind = "codex".parse().unwrap();
+    available.harnesses.push(second);
+    available
+}
+#[test]
+fn browsing_another_provider_never_changes_the_selected_target_before_a_model_pick() {
+    let (mut model, opened) = active();
+    assert!(matches!(
+        model.received(
+            &opened.request,
+            Ok(io::Value::Targets(Box::new(two_providers())))
+        ),
+        Received::Changed
+    ));
+    let selected = model
+        .agent(opened.visit, "claude-code".parse().unwrap())
+        .unwrap();
+    assert!(matches!(
+        model.received(&selected, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    let original = model.draft().unwrap().target().unwrap().spec().clone();
+    let browsing = model
+        .browse_agent(opened.visit, "codex".parse().unwrap())
+        .unwrap();
+    assert_eq!(model.draft().unwrap().target().unwrap().spec(), &original);
+    assert_eq!(model.selected_options_request(), Some(&selected));
+    assert!(matches!(
+        model.received(&browsing, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    assert_eq!(model.draft().unwrap().target().unwrap().spec(), &original);
+    assert_eq!(
+        model
+            .controls(crate::Lang::En)
+            .unwrap()
+            .model
+            .unwrap()
+            .current
+            .as_str(),
+        "old-model"
+    );
+    assert_eq!(
+        model
+            .catalog_controls(crate::Lang::En)
+            .unwrap()
+            .model
+            .unwrap()
+            .current
+            .as_str(),
+        "new-model"
+    );
+    assert!(!model.choose_model(opened.visit, &browsing, choice("model", "unoffered")));
+    assert!(!model.choose_model(opened.visit, &selected, choice("model", "new-model")));
+    assert_eq!(model.draft().unwrap().target().unwrap().spec(), &original);
+    assert!(model.choose_model(opened.visit, &browsing, choice("model", "new-model")));
+    let target = model.draft().unwrap().target().unwrap();
+    let mut expected = original;
+    expected.harness = "codex".parse().unwrap();
+    expected.profile = None;
+    expected.mode = SessionMode::Structured {
+        model: None,
+        resume: None,
+        options: vec![choice("model", "new-model")],
+    };
+    assert_eq!(target.spec(), &expected);
+    assert_eq!(target.finish(), Finish::Keep);
+    assert_eq!(model.selected_options_request(), Some(&browsing));
+    assert_eq!(model.initial_browser_harness().unwrap().as_str(), "codex");
+}
+#[test]
+fn model_browser_opens_at_the_sole_provider_or_an_explicit_installed_selection() {
+    let mut model = Model::default();
+    let visit = model
+        .create(cadence(), TimeZoneName::utc())
+        .unwrap()
+        .unwrap();
+    let opened = model.select_host(visit, connection()).unwrap();
+    assert!(model.initial_browser_harness().is_none());
+    assert!(matches!(
+        model.received(
+            &opened.request,
+            Ok(io::Value::Targets(Box::new(two_providers())))
+        ),
+        Received::Changed
+    ));
+    assert!(model.initial_browser_harness().is_none());
+    let request = model
+        .browse_agent(opened.visit, "codex".parse().unwrap())
+        .unwrap();
+    assert!(model.draft().unwrap().target().is_none());
+    assert!(matches!(
+        model.received(&request, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    assert!(model.initial_browser_harness().is_none());
+    assert!(model.choose_model(opened.visit, &request, choice("model", "old-model")));
+    assert_eq!(model.initial_browser_harness().unwrap().as_str(), "codex");
+    let (mut sole, opened) = active();
+    assert!(matches!(
+        sole.received(&opened.request, Ok(io::Value::Targets(Box::new(targets())))),
+        Received::Changed
+    ));
+    assert_eq!(
+        sole.initial_browser_harness().unwrap().as_str(),
+        "claude-code"
+    );
+}

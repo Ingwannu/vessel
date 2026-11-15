@@ -34,18 +34,16 @@ impl Model {
             }
         }
     }
-    /// Dynamic agent options; absence/error is never an invented default catalog.
+    /// Selected target options; browsing another provider cannot replace them.
+    /// Absence/error is never an invented default catalog.
     #[must_use]
     pub fn options(&self) -> Option<&HarnessOptions> {
         let State::Active(active) = &self.state else {
             return None;
         };
-        match active.options.value() {
-            Some(io::Value::Options(value)) => Some(value),
-            Some(io::Value::Targets(_) | io::Value::Preview(_) | io::Value::Saved(_)) | None => {
-                None
-            }
-        }
+        let catalog = active.selected_catalog.as_ref()?;
+        let target = active.draft.target()?;
+        catalog.matches(target.spec()).then_some(&catalog.options)
     }
     /// Current accepted node preview only; no local cron computation.
     #[must_use]
@@ -250,6 +248,22 @@ impl Model {
             };
             self.state = State::Closed;
             return saved;
+        }
+        if matches!(request.operation(), io::Operation::Options(_))
+            && let Some(io::Value::Options(options)) = active.options.value()
+        {
+            let catalog = super::catalog::Catalog {
+                request: request.clone(),
+                options: options.clone(),
+            };
+            if active.options.request() == Some(request)
+                && active
+                    .draft
+                    .target()
+                    .is_some_and(|target| catalog.matches(target.spec()))
+            {
+                active.selected_catalog = Some(catalog);
+            }
         }
         Received::Changed
     }

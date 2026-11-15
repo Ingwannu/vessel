@@ -107,10 +107,11 @@ fn host_rows(shell: &Shell, tokens: &Tokens, out: &mut Offered) {
 fn option_rows(shell: &Shell, picker: Picker, out: &mut Offered) {
     let model = &shell.areas.schedules.data.editor;
 
-    let request = model
-        .operations()
-        .filter_map(io::Mailbox::request)
-        .find(|request| matches!(request.operation(), io::Operation::Options(_)));
+    let request = if picker == Picker::Model {
+        model.catalog_request()
+    } else {
+        model.selected_options_request()
+    };
     let controls = shell
         .areas
         .schedules
@@ -119,7 +120,13 @@ fn option_rows(shell: &Shell, picker: Picker, out: &mut Offered) {
         .as_ref()
         .ok()
         .and_then(Option::as_ref)
-        .and_then(|form| form.controls.as_ref());
+        .and_then(|form| {
+            if picker == Picker::Model {
+                form.catalog_controls.as_ref()
+            } else {
+                form.controls.as_ref()
+            }
+        });
     if let (Some(controls), Some(request)) = (controls, request) {
         let control = match picker {
             Picker::Model => controls.model.as_ref(),
@@ -136,15 +143,16 @@ fn option_rows(shell: &Shell, picker: Picker, out: &mut Offered) {
                             .then_some(Leading::FormGlyph(kit::assets::Glyph::Brain)),
                         ..ComboRow::new(value.name.clone())
                     },
-                    Choice::Option {
-                        request: request.clone(),
-                        choice: OptionChoice {
+                    choice(
+                        picker,
+                        request.clone(),
+                        OptionChoice {
                             id: control.id.clone(),
                             value: ChoiceValue::Select {
                                 value: value.id.clone(),
                             },
                         },
-                    },
+                    ),
                 );
             }
         }
@@ -181,5 +189,13 @@ fn cadence_rows(shell: &Shell, out: &mut Offered) {
             },
             Choice::Cadence(choice),
         );
+    }
+}
+
+fn choice(picker: Picker, request: io::Request, choice: OptionChoice) -> Choice {
+    if picker == Picker::Model {
+        Choice::Model { request, choice }
+    } else {
+        Choice::Option { request, choice }
     }
 }

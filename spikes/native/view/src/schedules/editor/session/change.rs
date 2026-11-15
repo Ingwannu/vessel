@@ -153,49 +153,7 @@ impl Model {
     pub fn controls(&self, lang: crate::Lang) -> Option<crate::Controls> {
         let target = self.draft()?.target()?;
         let options = self.options()?;
-        let mut picks = match &target.spec().mode {
-            SessionMode::Structured { options, .. } => crate::Picks::from_choices(options.clone()),
-            SessionMode::Terminal { .. } => return None,
-        };
-        if let SessionMode::Structured {
-            model: Some(model), ..
-        } = &target.spec().mode
-        {
-            for option in &options.options {
-                if option.category != vessel_proto::OptionCategory::Model {
-                    continue;
-                }
-                if let vessel_proto::OptionKind::Select { values, .. } = &option.kind
-                    && let Some(value) = values
-                        .iter()
-                        .find(|value| value.id.as_str() == model.as_str())
-                {
-                    picks.pick(vessel_proto::OptionChoice {
-                        id: option.id.clone(),
-                        value: vessel_proto::ChoiceValue::Select {
-                            value: value.id.clone(),
-                        },
-                    });
-                }
-            }
-        }
-        let offered = crate::with_picks(&options.options, &picks);
-        let mut controls =
-            crate::controls_of(&offered, &crate::agent_name(&target.spec().harness), lang);
-        if let SessionMode::Structured {
-            model: Some(model), ..
-        } = &target.spec().mode
-            && let Some(control) = &mut controls.model
-            && !control
-                .values
-                .iter()
-                .any(|value| value.id.as_str() == model.as_str())
-        {
-            // Keep an unavailable opened selection visible as unavailable;
-            // the node's current default is not what this stored spec asks for.
-            control.current = vessel_proto::OptionValueId::new(model.as_str());
-        }
-        Some(controls)
+        controls_for(target.spec(), options, lang)
     }
     /// Apply only a currently offered typed option, preserving every unrelated
     /// stored spec field and choice. No raw option/model id is reparsed.
@@ -247,7 +205,7 @@ impl Model {
     }
 }
 
-fn agent_spec(
+pub(super) fn agent_spec(
     draft: &Draft,
     harness: &HarnessRef,
     project: Option<vessel_proto::ProjectId>,
@@ -279,4 +237,53 @@ fn structured() -> SessionMode {
         resume: None,
         options: Vec::new(),
     }
+}
+
+pub(super) fn controls_for(
+    spec: &SessionSpec,
+    options: &vessel_proto::HarnessOptions,
+    lang: crate::Lang,
+) -> Option<crate::Controls> {
+    let mut picks = match &spec.mode {
+        SessionMode::Structured { options, .. } => crate::Picks::from_choices(options.clone()),
+        SessionMode::Terminal { .. } => return None,
+    };
+    if let SessionMode::Structured {
+        model: Some(model), ..
+    } = &spec.mode
+    {
+        for option in &options.options {
+            if option.category != vessel_proto::OptionCategory::Model {
+                continue;
+            }
+            if let vessel_proto::OptionKind::Select { values, .. } = &option.kind
+                && let Some(value) = values
+                    .iter()
+                    .find(|value| value.id.as_str() == model.as_str())
+            {
+                picks.pick(vessel_proto::OptionChoice {
+                    id: option.id.clone(),
+                    value: vessel_proto::ChoiceValue::Select {
+                        value: value.id.clone(),
+                    },
+                });
+            }
+        }
+    }
+    let offered = crate::with_picks(&options.options, &picks);
+    let mut controls = crate::controls_of(&offered, &crate::agent_name(&spec.harness), lang);
+    if let SessionMode::Structured {
+        model: Some(model), ..
+    } = &spec.mode
+        && let Some(control) = &mut controls.model
+        && !control
+            .values
+            .iter()
+            .any(|value| value.id.as_str() == model.as_str())
+    {
+        // Keep an unavailable opened selection visible as unavailable;
+        // the node's current default is not what this stored spec asks for.
+        control.current = vessel_proto::OptionValueId::new(model.as_str());
+    }
+    Some(controls)
 }

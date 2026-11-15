@@ -1307,3 +1307,31 @@ consumers only: Folder project rows and Brain thinking rows. Both retain the
 registered16-point drawing in the source18-point slot. Model provider marks,
 mode rows and all other picker defaults are unchanged. This is source wiring;
 the queued66735 control suite and final combined F1 first-use remain distinct.
+
+
+### Model catalog browsing preserves the selected target
+
+[Decision Log]
+- Purpose: mirror model-browser-view.ts79–112 and model-browser.ts283–318: a
+  sole provider or an explicitly selected installed model opens at its provider.
+  Otherwise the provider root is shown. Schedule-form-sheet.tsx742–757 passes
+  no browser profile rows, so this form does not invent a profiles section.
+- Existing constraint: the prior Agent row called Model::agent immediately,
+  replacing the draft before a model was chosen. That was not a harmless view
+  transition, especially for editing an existing schedule with full metadata.
+- Choice: keep the existing single options-operation mailbox for read-only
+  browse_agent; retain at most one selected catalog receipt alongside it.
+  No extra actor slot, provider registry or read/write call is introduced.
+  The same controls_for helper prepares selected/browsing controls outside paint.
+- Why: an unoffered, failed or obsolete model row cannot change the spec. Only
+  choose_model with the exact current catalog request and offered Model option
+  commits provider+model. Existing selected options, finish policy and unrelated
+  metadata survive browsing; changing provider on that explicit pick clears
+  incompatible profile/model/config through the existing agent_spec rule.
+- UI: the one combobox receives its existing16 header mark + provider name;
+  Back exists only with multiple installed structured providers. Root icons
+  retain their existing14 drawing. No area picker renderer or sizing is added.
+- Proof boundary: authored pure tests exercise browse-before-pick preservation,
+  stale/unoffered refusal, explicit commit and initial provider selection. No
+  current View/App compilation or runtime/UI pass is claimed; L's generated
+  resolve fix still precedes the next meaningful F1 narrow suite.

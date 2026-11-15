@@ -42,6 +42,8 @@ pub struct Form {
     pub target: Option<Arc<str>>,
     /// Agent option words and choices prepared once when form state changes.
     pub controls: Option<crate::Controls>,
+    /// Current read-only model-browser catalog, separate from the selected target.
+    pub catalog_controls: Option<crate::Controls>,
     /// Current rule description uses the accepted legacy cadence table once.
     pub cadence: Option<Arc<str>>,
     /// Cached grammar failure, not a raw parser diagnostic.
@@ -166,6 +168,7 @@ pub fn prepare(
             .and_then(|authority| authority.explanation(lang))
             .map(Into::into),
         controls: model.controls(lang),
+        catalog_controls: model.catalog_controls(lang),
         local: model.failure.as_ref().map(|failure| Notice {
             label: crate::schedules::locale::failure(failure, catalog).into(),
             variant: failure.variant(),

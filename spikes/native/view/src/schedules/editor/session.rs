@@ -14,6 +14,7 @@ use crate::schedules::authority::Authority;
 use crate::schedules::load::{Failure, Ticket, Tickets};
 use vessel_proto::automation::{Cadence, ScheduleInfo, TimeZoneName};
 
+mod catalog;
 mod change;
 mod retry;
 mod submit;
@@ -44,6 +45,7 @@ struct Active {
     authority: Authority,
     targets: io::Mailbox,
     options: io::Mailbox,
+    selected_catalog: Option<catalog::Catalog>,
     preview: io::Mailbox,
     saving: io::Mailbox,
 }
@@ -65,6 +67,7 @@ impl Active {
             authority: Authority::default(),
             targets: io::Mailbox::default(),
             options: io::Mailbox::default(),
+            selected_catalog: None,
             preview: io::Mailbox::default(),
             saving: io::Mailbox::default(),
         }
