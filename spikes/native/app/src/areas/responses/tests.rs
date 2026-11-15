@@ -289,7 +289,7 @@ fn unoffered_options_and_invalid_question_values_do_not_admit_network_work(
 
 fn snapshot_reply(pending: &Pending, live: Live) -> vessel_app_link::ActAnswer {
     let held = vessel_proto::Conversation {
-        queue: Default::default(),
+        queue: vessel_proto::PromptQueue::default(),
         commands: Vec::new(),
         usage: None,
         permissions: live.permissions,

@@ -58,7 +58,10 @@ fn reading_a_description_does_not_select_but_clicking_its_markdown_label_does(
     });
     let label = cx.debug_bounds("question-option-title").unwrap();
     cx.simulate_click(
-        point(label.left() + px(4.0), label.center().y),
+        point(
+            px(label.left().as_f32().mul_add(1.0, 4.0)),
+            label.center().y,
+        ),
         Modifiers::default(),
     );
     probe.update_in(cx, |probe, _, cx| {

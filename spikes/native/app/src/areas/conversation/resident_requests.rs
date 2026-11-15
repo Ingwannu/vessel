@@ -22,8 +22,8 @@ struct Effect {
     ticket: OperationTicket,
     stage: Stage,
 }
-/// Bounded correlation held inside the owning ConversationArea, not an
-/// admission table. Only SessionResidents below can supply canonical tickets.
+/// Bounded correlation held inside the owning `ConversationArea`, not an
+/// admission table. Only `SessionResidents` below can supply canonical tickets.
 #[derive(Debug, Default)]
 pub(super) struct RequestEffects(Vec<Effect>);
 impl RequestEffects {

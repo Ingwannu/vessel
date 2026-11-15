@@ -661,3 +661,10 @@ branch. The fixture now names its retained form directly, the existing pixel
 conversion uses the same one-half ratio through mul_add, and callback/validation
 formatting follows the strict lint rules. No lint waiver or size record changed.
 This failed run does not prove runtime behavior or the later input-visit changes.
+
+Exact345e Clippy ended rc101 with nine App-test lints: five unit-callback
+semicolons already corrected in a2cd, a label-hit coordinate calculation, two
+Rustdoc code names and explicit PromptQueue default construction. The remaining
+fixes preserve the actual Markdown label hit (left+4 pixels inside the glyph,
+not its surrounding whitespace) and all assertions. No runtime pass follows
+from this failed strict run; current source still needs its exact VM checks.
