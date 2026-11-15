@@ -280,3 +280,14 @@ Image normalization evidence: fixed-source run wp-composer-image-kit-20261115T12
 Capability results remain bound to the same original admission even after becoming Ready; the pending owner must match both its creation ticket and ConnectionContext. Successful settlement removes that capability entry so a later send cannot inherit an obsolete creation read. Read-only shortcut admission and arriving @ rows also reject a same-node reconnect before rendering/consuming its old popup. This is local cache/operation correlation, not additional transport authority.
 
 Creation now calls prepare_draft_input_on with its original ConnectionContext directly. The name/node compatibility wrapper is literal cfg(test) for the two recovered-intake refusal fixtures; no product caller can rehydrate an admission through it.
+
+
+## Current candidate and verification boundary
+
+The native candidate now consumes package base8 and the creation owner's real scoped Chat renderer, captured ConnectionContext first-input caller, canonical Chat/Terminal mode and scoped edit/seed persistence callbacks. The B1-owned image/file intake, private managed store, retained upload/final-payload pipeline, context tray, sent-image viewer and file/directory fallback suggestions are wired. It is a candidate, not a parity-pass claim.
+
+Fixed-source VM evidence already executed: isolated context values7/0, image codec/policy2/0, and attachment link tests16/0. The latter includes actual-user private storage/reopen/GC-manifest and in-memory preview-peer tests on0ece77fdd; it predates the ConnectionContext migration and cannot prove that newer boundary. Full candidate strict/whole native checks, inspected captures and V4 review remain owed.
+
+Dependency gaps remain explicit: canonical directory suggestions (parent-local file.list fallback is intentional); forge issue/PR lookup, picker and URL auto-attach; plugin source search/runtime picker; source-owner add-to-chat/browser/review adapters; B2's checked fullscreen/client-command consumer; W23 runtime/echo activation and exact-ID timeline ingress; live resident/follow resources and queued-result Delivery integration. B1 does not invent these calls, a second registry, successful receipts or a Workspace-to-New fallback. Uncertain final payload recovery retains bytes but does not yet durably restore all text/context/upload references after restart.
+
+OS file dialogs, external file paste and native drops under Xvfb are specifically unproven; clipboard-image, attachment send/read, zoom/focus and responsive captures must be inspected before being reported. Root fixture binaries stay read-only and protocol23; captures use only a private fake fleet and authenticated display. No service permissions or production state are changed.
