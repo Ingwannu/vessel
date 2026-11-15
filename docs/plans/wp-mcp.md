@@ -437,3 +437,10 @@ and close. A manually polled long read proves cancellation returns the
 reader permit; paused-time expiry proves old reservations no longer consume
 the opener's admission budget. These tests do not claim a two-node runtime
 check while MCP_PARITY remains pending.
+
+The default-notification MCP regression speaks JSON-RPC over the actual
+server pipe, creates a fake child without a notify option, and observes
+its completion prompt in the authenticated parent's log. It then sends a
+second prompt without delivery/notify options and expects the second exact
+reply's notice. It never calls a wait tool to receive those notices. This
+checks the local default adapter and queue, not pending cross-node wiring.
