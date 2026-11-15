@@ -192,7 +192,7 @@ pub(crate) fn render(
         .children(unreachable(machine, shell, tokens))
         .child(settings::section(
             words.appearance,
-            settings::card(tokens).child(name_row(machine, shell, tokens, compact, cx)),
+            settings::card(tokens).child(name_row(machine, shell, tokens, cx)),
             tokens,
         ))
         .child(settings::section(
@@ -274,13 +274,7 @@ fn reach_words(shell: &Shell, transport: Transport) -> &'static str {
 
 /// "Name": the machine's name, muted, and the pencil that renames it (a
 /// name the book cannot take has no pencil).
-fn name_row(
-    machine: &Machine,
-    shell: &Shell,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+fn name_row(machine: &Machine, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.overview();
     let neutral = tokens.neutral;
     let pencil = Name::parse(&machine.name).ok().map(|name| {
@@ -294,9 +288,10 @@ fn name_row(
         .flex()
         .flex_row()
         .items_center()
+        .justify_end()
         .gap(px(spacing::S2))
         .min_w_0()
-        .flex_shrink(1.0)
+        .flex_1()
         .child(
             div()
                 .min_w_0()
@@ -308,13 +303,18 @@ fn name_row(
                 .child(machine.name.clone()),
         )
         .children(pencil);
-    settings::row_at(
-        words.name,
-        None,
-        None,
+    let title = div()
+        .flex_none()
+        .whitespace_nowrap()
+        .type_(Type::Body)
+        .text_color(neutral.foreground)
+        .child(words.name);
+    // This reference row stays beside its value on both layouts.
+    settings::row_with_content(
+        title.into_any_element(),
         Some(value.into_any_element()),
         true,
-        compact,
+        false,
         tokens,
     )
 }
