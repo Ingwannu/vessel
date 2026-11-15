@@ -59,9 +59,6 @@ impl State {
         }
         self.refused = None;
     }
-    pub(super) fn is_open(&self) -> bool {
-        self.form.is_some()
-    }
 }
 // Submitting requires the actual Save button's captured form identity. A
 // delayed Enter from a discarded input must never submit a newer form.

@@ -1,5 +1,5 @@
 //! All menu and modal furniture comes from the reviewed shared controls.
-use super::*;
+use super::{Context, HarnessRef, Rc, Shell, Window};
 use vessel_app_kit::ui::{
     AnyElement, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, div, px,
@@ -57,7 +57,7 @@ pub(in crate::areas::settings::agents) fn trigger(
         )
         .when(!pending, |button| {
             button.on_click(cx.listener(move |shell, _, window, cx| {
-                shell.agent_open_actions(&machine, node, &target, &anchor, window, cx)
+                shell.agent_open_actions(&machine, node, &target, &anchor, window, cx);
             }))
         })
         .into_any_element(),
@@ -114,29 +114,28 @@ pub(in crate::areas::settings::agents) fn dialog(
     let confirm = Rc::clone(target);
     let close = Rc::clone(target);
     let sizing = ControlSizing::from_compact(compact);
-    let footer =
-        vec![
-            button_control(
-                "agent-remove-cancel",
-                ButtonContent::Label(words.cancel().into()),
-                ButtonConfig::new(ButtonKind::Ghost, ButtonState::Enabled, sizing),
-                tokens,
-            )
-            .on_click(cx.listener(move |shell, _, window, cx| {
-                shell.agent_cancel_removal(&cancel, window, cx)
-            }))
-            .into_any_element(),
-            button_control(
-                "agent-remove-confirm",
-                ButtonContent::Label(words.remove_confirm().into()),
-                ButtonConfig::new(ButtonKind::Destructive, ButtonState::Enabled, sizing),
-                tokens,
-            )
-            .on_click(cx.listener(move |shell, _, window, cx| {
-                shell.agent_confirm_removal(&confirm, window, cx)
-            }))
-            .into_any_element(),
-        ];
+    let footer = vec![
+        button_control(
+            "agent-remove-cancel",
+            ButtonContent::Label(words.cancel().into()),
+            ButtonConfig::new(ButtonKind::Ghost, ButtonState::Enabled, sizing),
+            tokens,
+        )
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            shell.agent_cancel_removal(&cancel, window, cx);
+        }))
+        .into_any_element(),
+        button_control(
+            "agent-remove-confirm",
+            ButtonContent::Label(words.remove_confirm().into()),
+            ButtonConfig::new(ButtonKind::Destructive, ButtonState::Enabled, sizing),
+            tokens,
+        )
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            shell.agent_confirm_removal(&confirm, window, cx);
+        }))
+        .into_any_element(),
+    ];
     Some(vessel_app_kit::dialog(
         &state.dialog,
         DialogContent {

@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    CatalogueEntry, Context, Form, Intent, MachineKey, Phase, Rc, RequestId, Restore, Settlement,
+    Shell, TextField, Window, changed, edit_only,
+};
 use vessel_app_kit::Editability;
 use vessel_app_link::Command;
 impl Shell {

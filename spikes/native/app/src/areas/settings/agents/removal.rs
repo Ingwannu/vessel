@@ -72,9 +72,9 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if !self.agent_context(Some(machine))
-            || !super::page(self)
+            || super::page(self)
                 .and_then(|page| page.inventory())
-                .is_some_and(|inventory| inventory.node == node)
+                .is_none_or(|inventory| inventory.node != node)
         {
             return;
         }
@@ -125,9 +125,9 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if !self.agent_context(Some(&origin.machine))
-            || !super::page(self)
+            || super::page(self)
                 .and_then(|page| page.inventory())
-                .is_some_and(|inventory| inventory.node == origin.node)
+                .is_none_or(|inventory| inventory.node != origin.node)
         {
             return;
         }

@@ -1,9 +1,13 @@
 //! `CatalogTile`'s order and exact shared controls; no area-owned button or link.
-use super::*;
-use vessel_app_kit::ui::{FluentBuilder as _, StatefulInteractiveElement as _, canvas};
+use super::{Context, Div, Rc, Shell, Tokens, Type, catalogue, settings, spacing};
+use vessel_app_kit::ui::{StatefulInteractiveElement as _, canvas};
 use vessel_app_kit::{
     ButtonConfig, ButtonContent, ButtonKind, ButtonSize, ButtonState, ControlSizing, assets::Glyph,
     badge, button_control, glyph,
+};
+use vessel_app_kit::{
+    TypeExt as _,
+    ui::{ParentElement as _, Styled as _, div, px},
 };
 use vessel_app_view::agent_status::{
     addition::{self, Control},
@@ -68,56 +72,7 @@ fn tile(
     let inventory = page.and_then(|page| page.inventory());
     let agents = inventory.map_or(&[][..], |inventory| inventory.agents.as_slice());
     let offer = catalogue::offer(entry, agents);
-    let mut meta = div()
-        .flex()
-        .flex_wrap()
-        .items_center()
-        .gap(px(spacing::S2))
-        .child(badge::badge(
-            words.type_label(),
-            vessel_app_kit::badge::Variant::Muted,
-            badge::Size::ExtraSmall,
-            None,
-            tokens,
-        ));
-    if let Some(resource) = catalogue::resource(entry) {
-        let label = words.resource_label(&resource);
-        let url = resource.url().clone();
-        meta = meta.child(
-            vessel_app_kit::external_link::external_link(
-                format!("provider-resource-{index}"),
-                Some(label.into()),
-                tokens,
-            )
-            .on_click(cx.listener(move |_, _, _, cx| cx.open_url(url.as_str()))),
-        );
-    }
-    let mut details = div()
-        .flex_1()
-        .min_w_0()
-        .flex()
-        .flex_col()
-        .gap(px(spacing::S1))
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground)
-                .whitespace_nowrap()
-                .overflow_hidden()
-                .text_ellipsis()
-                .child(entry.name.clone()),
-        )
-        .child(meta);
-    // Eligibility and the missing runner are node facts. Keep their whole
-    // instruction beside the offer, without claiming that Add installs it.
-    if !matches!(offer, Offer::Add(catalogue::Runner::Found)) {
-        details = details.child(
-            div()
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.offer(&offer).to_owned()),
-        );
-    }
+    let details = details(index, entry, &offer, shell, tokens, cx);
     let mut tile = settings::card(tokens)
         .flex()
         .flex_row()
@@ -175,13 +130,77 @@ fn tile(
         Offer::Recorded(_) => {
             tile = tile.child(badge::badge(
                 words.added_label(),
-                vessel_app_kit::badge::Variant::Muted,
+                badge::Variant::Muted,
                 badge::Size::ExtraSmall,
                 None,
                 tokens,
-            ))
+            ));
         }
         Offer::BuiltIn(_) | Offer::Download(_) | Offer::Unavailable => {}
     }
     tile
+}
+
+// Name/resource furniture has no mutation state; separating it keeps the
+// offered Add control on one short path with the same shared renderer.
+fn details(
+    index: usize,
+    entry: &CatalogueEntry,
+    offer: &Offer<'_>,
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let words = shell.words.agent_catalog();
+    let mut meta = div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .gap(px(spacing::S2))
+        .child(badge::badge(
+            words.type_label(),
+            badge::Variant::Muted,
+            badge::Size::ExtraSmall,
+            None,
+            tokens,
+        ));
+    if let Some(resource) = catalogue::resource(entry) {
+        let label = words.resource_label(&resource);
+        let url = resource.url().clone();
+        meta = meta.child(
+            vessel_app_kit::external_link::external_link(
+                format!("provider-resource-{index}"),
+                Some(label.into()),
+                tokens,
+            )
+            .on_click(cx.listener(move |_, _, _, cx| cx.open_url(url.as_str()))),
+        );
+    }
+    let mut details = div()
+        .flex_1()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(spacing::S1))
+        .child(
+            div()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground)
+                .whitespace_nowrap()
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(entry.name.clone()),
+        )
+        .child(meta);
+    // Eligibility and the missing runner are node facts. Keep their whole
+    // instruction beside the offer, without claiming that Add installs it.
+    if !matches!(offer, Offer::Add(catalogue::Runner::Found)) {
+        details = details.child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(words.offer(offer).to_owned()),
+        );
+    }
+    details
 }

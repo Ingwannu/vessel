@@ -491,3 +491,19 @@ A doc-markdown scan found seven comments naming code without backticks; this
 follow-up changes those comments only. The already reviewed ExternalLink control
 is unchanged. Runtime tests remain queued at the prior behavioral source; no
 priority approval for that old hash is silently transferred to this follow-up.
+
+
+### Current App lint correction
+
+The package-base8 narrow reached App and returned RED with14 lint diagnostics.
+The earlier manual import scan was insufficient: the compiler found three
+wildcard imports, an unused trait, unnecessary badge qualification and an unused
+form query. Remove those, retain explicit imports, add required unit-statement
+semicolons and express missing/mismatched inventory with is_none_or. These
+changes keep the same action guards; they do not relax them. Split only the
+stateless catalog name/resource furniture from the offered action path, retaining
+its original child order, values and one shared control renderer. This closes the
+119-line function without a lint exception or a parallel widget. No new test is
+added for this behavior-neutral cleanup. The old run remains red; the corrected
+App-only narrow is a new immutable-source check, with no extra priority assumed.
+The existing624 View/Link runtime ticket remains queued unchanged.
