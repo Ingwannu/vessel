@@ -87,3 +87,88 @@ fn selection_hover_and_press_use_source_tokens_with_press_precedence() {
         assert_eq!(paint(Selection::Active, Phase::Idle, &tokens).fill, hover);
     }
 }
+
+type Place = Rc<Cell<Option<Bounds<Pixels>>>>;
+struct SlotsProbe {
+    persistent: bool,
+    hint: Place,
+    trailing: Place,
+    row_presses: Rc<Cell<usize>>,
+    child_presses: Rc<Cell<usize>>,
+}
+fn slot(place: &Place) -> gpui::Div {
+    div()
+        .relative()
+        .w(px(40.0))
+        .h(px(20.0))
+        .child(crate::picker::anchor_probe(place))
+}
+impl Render for SlotsProbe {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let row_presses = Rc::clone(&self.row_presses);
+        let mut row = SidebarHeaderRow::new("slot-nav", "Search", Variant::Compact)
+            .leading(Glyph::Search)
+            .shortcut(slot(&self.hint).into_any_element());
+        if self.persistent {
+            let child_presses = Rc::clone(&self.child_presses);
+            row = row.trailing(
+                slot(&self.trailing)
+                    .id("slot-child")
+                    .on_click(move |_, _, cx| {
+                        child_presses.set(child_presses.get() + 1);
+                        cx.stop_propagation();
+                    })
+                    .into_any_element(),
+            );
+        }
+        div().w(px(320.0)).child(row.element(
+            Density::Desktop,
+            &Tokens::of(Scheme::Dark),
+            move |_, _, _| row_presses.set(row_presses.get() + 1),
+        ))
+    }
+}
+#[gpui::test]
+fn sidebar_hint_occupies_no_idle_slot_and_a_persistent_child_takes_precedence(
+    cx: &mut TestAppContext,
+) {
+    for persistent in [false, true] {
+        let hint = Place::default();
+        let trailing = Place::default();
+        let row_presses = Rc::new(Cell::new(0));
+        let child_presses = Rc::new(Cell::new(0));
+        let (_, cx) = cx.add_window_view({
+            let hint = Rc::clone(&hint);
+            let trailing = Rc::clone(&trailing);
+            let row_presses = Rc::clone(&row_presses);
+            let child_presses = Rc::clone(&child_presses);
+            move |_, _| SlotsProbe {
+                persistent,
+                hint,
+                trailing,
+                row_presses,
+                child_presses,
+            }
+        });
+        cx.run_until_parked();
+        assert!(hint.get().is_none());
+        assert_eq!(trailing.get().is_some(), persistent);
+        cx.simulate_mouse_move(point(px(20.0), px(14.0)), None, Modifiers::none());
+        cx.run_until_parked();
+        let expected = Bounds::new(point(px(264.0), px(4.0)), size(px(40.0), px(20.0)));
+        if persistent {
+            assert!(hint.get().is_none());
+            assert_eq!(trailing.get(), Some(expected));
+        } else {
+            assert_eq!(hint.get(), Some(expected));
+        }
+        cx.simulate_click(expected.center(), Modifiers::none());
+        cx.run_until_parked();
+        assert_eq!(row_presses.get(), usize::from(!persistent));
+        assert_eq!(child_presses.get(), usize::from(persistent));
+        hint.set(None);
+        cx.simulate_mouse_move(point(px(350.0), px(50.0)), None, Modifiers::none());
+        cx.run_until_parked();
+        assert!(hint.get().is_none());
+    }
+}
