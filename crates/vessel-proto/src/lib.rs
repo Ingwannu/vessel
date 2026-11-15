@@ -40,6 +40,7 @@ mod key;
 pub mod labels;
 pub mod lifecycle_version;
 pub mod limits;
+mod listing;
 pub mod lsp;
 mod model;
 mod name;
@@ -123,6 +124,7 @@ pub use id::{
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use listing::{ListingScope, SessionListing, SessionSelection};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,
