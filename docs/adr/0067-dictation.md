@@ -978,3 +978,85 @@ What this decision does not do: link `sherpa-onnx`, download a model,
 open a microphone, implement voice mode (including its confidence
 flag), or choose the protocol number. The integrator sets
 `dictation::SINCE`.
+
+### Service admission amendment (proposed)
+
+Purpose and intent: bound replacement work as well as active audio. Existing
+stream and connection quotas already include preparation, retirement and unread
+terminals; a retained start must not create an unbounded task or metadata queue.
+The registry lock must not stay held over provider preparation or teardown.
+
+Alternatives considered: a task for every waiting start would move the resource
+problem outside the stream quota. Keeping the whole registry locked during a
+secret read would block unrelated streams. Removing a retiring entry immediately
+would allow another generation to reuse its capacity while real work still runs.
+
+Choice: each admitted id has one worker and one bounded pending replacement
+mailbox. Another concurrent start when that mailbox is occupied is refused with
+Conflict before changing either generation. This is a stated resource floor over
+Paseo's replacement path (dictation-stream-manager.ts179–220), not a claim that
+Paseo has this mailbox. An ordinary later start still replaces the same-owner id.
+The worker retires the old generation before reading new settings or resolving a
+new credential. A canceled start cannot publish an orphan; a blocked nonabortable
+read keeps its lease until actual completion. Map cleanup compares the entry's
+opaque identity before removing it, so stale teardown cannot remove a successor.
+
+Advantages, costs and effects: unrelated streams keep progressing through a slow
+preparation, every retained start has an explicit bound, and an unusually concurrent
+client can receive Conflict instead of another queued replacement. Tests must hold
+preparation and retirement at events, fill the replacement mailbox, and prove a
+refusal changes neither the active generation nor the already pending start.
+
+### CLI file client amendment (proposed)
+
+Purpose and intent: test the node with a selected audio file, without a microphone,
+local model or another speech implementation. This command is explicitly requested
+as Vessel's backend test client; Paseo's CLI has no corresponding command.
+
+Existing implementation and constraints: Paseo cli.ts registers speech and
+commands/speech/index.ts creates only its empty command; configuration/onboarding
+are its dictation references. The dictation recorder's one-second PCM16 mono
+chunks and shorter tail remain the node contract. Vessel already has target
+resolution through connect and output through io::out. The attachment RIFF check
+is an image/WebP sniffer and the node audio helper encodes WAV; neither decodes an
+audio file. The existing UUID dependency can create an id through DictationId's
+own constructor, without borrowing another domain's id type or a new dependency.
+
+Alternatives considered: raw PCM needs a rate argument and cannot declare its
+format. Microphone support adds device permissions outside this backend package.
+A general audio framework would duplicate the node's rate conversion and add a
+large dependency for a single narrow test format.
+
+Choice: vessel dictate FILE accepts a regular little-endian RIFF/WAVE file with
+integer PCM, one channel and complete signed PCM16 samples. Validate container,
+format, byte rate, block alignment, parsed sample rate, declared data extent and
+duration before connecting. Parse the entire declared container, seeking across
+audio, so duplicate fmt/data chunks are refused before sending. Unknown chunks,
+padding and format extensions count toward one named metadata byte budget; all
+extent arithmetic is checked. Unsupported encodings, duplicate chunks, truncated
+metadata/data, excessive metadata, empty audio and excessive duration are typed
+refusals. No filename extension selects behavior. The duration cap derives from
+MAX_SEQ and the existing one-second chunk rule.
+
+A pre-open regular-file check and an opened-handle check do not form an atomic
+filesystem snapshot. Read only the validated extent: later growth adds no samples,
+and a later truncation/read failure cancels the stream rather than finishing a
+shortened recording. The command writes no audio file. It holds only bounded
+one-second reader chunks; resampling and transcription remain on the node.
+
+Drain dictation.next concurrently with upload to avoid bounded partial queues
+blocking finish admission. Consume partials without printing them. Wait for both
+finish acceptance and Final before writing the final transcript to stdout, because
+these replies can race. I/O failure, a call refusal, an unknown update or Ctrl-C
+cancels the stream and preserves the original cause if cancellation also fails.
+An upstream failure is reported once, with no automatic restart or resend. While
+the feature number is unassigned, the normal client refuses these calls before
+sending; assigned-protocol execution remains an integration check.
+
+Advantages, costs and effects: a declared format avoids guessing and needs no new
+dependency; only the deliberately narrow WAV subset is supported. Tests cover
+extent overflow, truncation, duplicates, odd padding, format and metadata/rate/
+duration bounds, later truncation, partial backpressure, Final preceding finish
+reply, failure without resend, and cancellation preserving the first cause. Tests
+use isolated temporary homes and fakes, never a person's configured node book.
+Local engines, app capture and TTS remain outside this package.

@@ -369,51 +369,32 @@ These tests are owed; this documents the choices before the implementation.
 
 ## Resume point
 
-Done: audio values, provider metadata, TLS and resolved-secret extraction,
-unregistered settings values, and staged audio/owner helpers. The eight audio/
-owner tests and whole Rust gate pass. The helper source is compiled only for
-tests; it is not a live service. No call, NodeSettings field, file codec, actor
-or HTTP provider is registered.
+Done: wire audio and settings values, provider metadata, TLS and secret lookup
+extractions; staged audio/owner, root cache, multipart, JSON response and HTTP
+helpers. Their historical whole-gate and review evidence is scoped below. Input
+ordering, submission-order text, adaptive budgets, DTOs, update delivery and
+provider jobs have narrow checks. They remain staged until product wiring.
 
-Settings wiring owes the four file/race/atomicity tests in ADR0067. Use the
-integrator's common file policy when that head is merged; do not add a parallel
-loader. Preserve unknown fields if the common policy preserves them. Selection
-is not a secret-store transaction and caches no credential. Read/start errors
-must not expose a secret name through an existing store error's diagnostic.
+In progress: the exclusive actor, with control separate from data backpressure
+and twelve tests. Its first narrow check failed on one constructor visibility
+and test calls to nonexistent constructors; those are corrected. The next narrow
+compile and actor runtime tests remain pending. No service registry, callable
+settings field, RPC registration or CLI command exists yet.
 
-Done as staged source: the independent TLS-root cache and fixed multipart
-encoder, with the three new tests and the whole gate (Rust 1992/0/12, web unit
-417, e2e 62). They remain test-only until wiring and its product gate. A failed
-root initialization also stays cached; wiring owes a test of shared failure
-across starts and recovery by re-creating the service. The fixed prompt has no
-environment override, unlike Paseo's.
+Next: merge the announced call-table head at a clean boundary, then bounded
+service admission, fresh secret preparation, settings and common file-policy
+integration, pending method rows and policy/ownership/close tests. Complete old
+settings literals only with the optional-field commit. Keep the one method table
+and existing settings/secret owners. Four settings compatibility/deletion/atomic
+failure cases and failed-root-cache/recreated-service tests remain owed.
 
-Done as staged source: the JSON decoder and six tests, with the whole gate
-(Rust 1998/0/12, web unit 417, e2e 62). It returns only validated Transcript or a
-fixed typed error; the escape-looking speech fixture prevents a second parse.
-
-Done as staged source: the stream-owned HTTP client and its nine loopback
-cases plus the rustls session-store isolation test. The HTTP snapshot's whole
-gate passed (Rust 2008/0/12, web unit 417, e2e 62). It validates before roots,
-disables redirects/proxies/retries, caps the response before decoding, keeps
-foreign diagnostics fixed and gives each client its own TLS resumption store.
-This is test configuration evidence; no live service or registered call exists.
-
-The node's shared protocol accessor and common settings-file recovery policy
-have been merged. Call plumbing still waits for the shared call-table refactor.
-Existing node-head constants, tables, cases and documents are retained.
-
-Next: input ordering, transcript assembly and finish-budget helpers, then the
-stream actor and service, all staged until wiring. Active commit/stream quotas
-and fresh secret resolution belong to the service, not the client's idle pool.
-Cancellation cannot retract accepted provider work. Wiring removes staging and
-gets a whole product gate with actual transport close and scope tests. Name the
-one-second chunk duration beside the segment bound when the new input owner
-consumes it; derive duration from the sequence cap instead of repeating a limit.
-Complete existing settings literals only in the optional-field commit, without
-changing any old value or assertion. Do not split the shared guard. The CLI
-file client follows the service and still needs its file contract amendment.
-Local engines and microphone capture remain deferred.
+The file CLI follows the service using the new WAV amendment. It drains next
+concurrently and prints only a final after finish acceptance. The feature package
+gets one whole product gate and one combined review; credential/path changes keep
+their security review. Removing staging must compile the actual product and test
+real transport close. No current result claims a live service, real HTTPS/ASR,
+platform microphone, credential or service-account verification. Local engines,
+app capture and TTS remain deferred.
 
 ## Input ordering implementation
 
@@ -519,3 +500,13 @@ force a provider failure ready after cancel selection, and replacement/cancel,
 closure and an expired deadline after an already selected failure. Repeated
 finish is checked against the original actual expiry, not only equal budgets.
 These source corrections still await the next narrow check and runtime tests.
+
+## Admission and file-client contract follow-up
+
+The ADR now bounds concurrent replacement metadata with one per-id mailbox and
+an explicit Conflict resource floor, before implementing that registry. Its
+worker keeps existing stream leases until real teardown or blocked reads finish.
+The CLI amendment records the absence of a Paseo equivalent, the existing asset
+check, the narrow validated WAV subset, no new dependency, concurrent next drain,
+final/finish reply ordering and cancellation/no-resend behavior. Both are contracts,
+not implementation or runtime evidence. No new wire number is assigned here.
