@@ -1534,3 +1534,13 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Prompt-index snapshots (pending)
+
+`vessel-proto::prompt_index` owns checked metadata values. The store's
+`prompt_index` reader folds retained user prompts and rewind boundaries in one
+read transaction, and the Store facade retains its reader permit inside the
+blocking closure even if the requesting future is cancelled. No write-side
+projection, schema or crate edge changes. A native outline can page these
+metadata addresses before it has loaded the transcript. Wire admission remains
+pending; the contract and limitations are in `docs/plans/wp-a3-node.md`.

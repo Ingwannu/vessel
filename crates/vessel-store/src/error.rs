@@ -61,6 +61,27 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// A retained-prefix or rewind change invalidated the requested page set.
+    #[error("history changed; refresh the prompt index")]
+    PromptIndexChanged,
+    /// Existing prompt reads still hold every admitted blocking slot.
+    #[error("prompt indexing is busy; try again")]
+    PromptIndexBusy(#[source] tokio::sync::TryAcquireError),
+    /// Snapshot work has reached its explicit CPU budget.
+    #[error(
+        "prompt indexing reads at most {} records per snapshot",
+        vessel_proto::prompt_index::SCAN_RECORDS
+    )]
+    PromptIndexRecords,
+    /// Snapshot metadata has reached its explicit allocation budget.
+    #[error(
+        "prompt indexing keeps at most {} entries per snapshot",
+        vessel_proto::prompt_index::INDEX_ENTRIES
+    )]
+    PromptIndexPrompts,
+    /// A projected or received value failed the protocol's checked invariant.
+    #[error("invalid prompt index")]
+    PromptIndexValue(#[from] vessel_proto::prompt_index::InvalidPromptIndex),
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -271,7 +292,8 @@ impl StoreError {
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::PushFull
+            Self::PromptIndexChanged
+            | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)
             | Self::DeviceExists(_)
@@ -279,8 +301,13 @@ impl StoreError {
             | Self::Attachment(AttachmentFileError::Changed { .. })
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
-            Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::Io { .. }
+            Self::Closed
+            | Self::UsageBusy(_)
+            | Self::PromptIndexBusy(_)
+            | Self::PromptIndexRecords
+            | Self::PromptIndexPrompts => ErrorCode::Unavailable,
+            Self::PromptIndexValue(_)
+            | Self::Io { .. }
             | Self::NotPrivate { .. }
             | Self::Locked { .. }
             | Self::Random(_)

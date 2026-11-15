@@ -40,6 +40,8 @@ pub struct Store {
     reader: Arc<Reader>,
     /// Shared admission for expensive usage scans, not the idle reader cache.
     usage_reads: Arc<tokio::sync::Semaphore>,
+    /// Prompt scans retain admission inside their blocking snapshot closure.
+    prompt_reads: Arc<tokio::sync::Semaphore>,
     /// The data directory's `attachments/` (protocol 10).
     attachments: Arc<Path>,
     /// How many sessions retention has removed since the store opened
@@ -114,6 +116,7 @@ impl Store {
             writes,
             reader: Arc::new(Reader::new(path, config)),
             usage_reads: Arc::new(tokio::sync::Semaphore::new(usage::MAX_READS)),
+            prompt_reads: Arc::new(tokio::sync::Semaphore::new(crate::prompt_index::MAX_READS)),
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
             inbox: inbox_changes,
@@ -397,3 +400,5 @@ impl Store {
             .map_err(StoreError::Task)?
     }
 }
+
+mod prompt_index;
