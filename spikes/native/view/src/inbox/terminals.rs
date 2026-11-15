@@ -27,7 +27,7 @@ pub struct Row {
 impl Row {
     /// The same priority buckets used by sessions and workspace rollups.
     #[must_use]
-    pub fn bucket(&self) -> Bucket {
+    pub fn bucket(&self) -> Option<Bucket> {
         let activity = self.attention.map(|state| state.activity);
         if matches!(
             activity,
@@ -35,20 +35,22 @@ impl Row {
                 reason: TerminalAttentionReason::NeedsInput
             })
         ) {
-            Bucket::NeedsInput
+            Some(Bucket::NeedsInput)
         } else if self.failed {
-            Bucket::Failed
+            Some(Bucket::Failed)
         } else if activity == Some(TerminalActivity::Working) {
-            Bucket::Working
+            Some(Bucket::Working)
         } else if matches!(
             activity,
             Some(TerminalActivity::Attention {
                 reason: TerminalAttentionReason::Finished
             })
         ) {
-            Bucket::Review
+            Some(Bucket::Review)
+        } else if activity == Some(TerminalActivity::Idle) {
+            Some(Bucket::Done)
         } else {
-            Bucket::Done
+            None
         }
     }
 }
@@ -98,9 +100,9 @@ mod tests {
             attention: None,
             failed: false,
         };
-        assert_eq!(row.bucket(), Bucket::Done);
+        assert_eq!(row.bucket(), None);
         row.failed = true;
-        assert_eq!(row.bucket(), Bucket::Failed);
+        assert_eq!(row.bucket(), Some(Bucket::Failed));
         let mut state = TerminalAttention {
             terminal,
             revision: vessel_proto::notifications::TerminalAttentionRevision::new(1),
@@ -108,12 +110,12 @@ mod tests {
             changed_at: chrono::DateTime::UNIX_EPOCH,
         };
         row.attention = Some(state);
-        assert_eq!(row.bucket(), Bucket::Failed);
+        assert_eq!(row.bucket(), Some(Bucket::Failed));
         state.activity = TerminalActivity::Attention {
             reason: TerminalAttentionReason::NeedsInput,
         };
         row.attention = Some(state);
-        assert_eq!(row.bucket(), Bucket::NeedsInput);
+        assert_eq!(row.bucket(), Some(Bucket::NeedsInput));
         assert!(announces(state));
         state.activity = TerminalActivity::Attention {
             reason: TerminalAttentionReason::Unknown,

@@ -401,3 +401,10 @@ A genuinely empty known workspace remains Done. W11 also confirms that an
 Attached child in a known different workspace can be a root relative to this
 workspace; callers must use the canonical workspace-relative role seam rather
 than blanket-excluding Attached or using immutable Creator as current parentage.
+
+Paseo `workspace-agent-activity.ts:22-48` selects one latest eligible root by
+attentionTimestamp/updatedAt; it does not combine every historical root. The
+pure badge API therefore accepts one `LatestRoot` plus terminal facts. W11 owns
+the canonical selection and role/membership join. Plain-shell terminal activity
+also stays unknown in that aggregation (`Row::bucket -> Option<Bucket>`), while
+a known failure remains Failed and an explicit Idle is known Done.

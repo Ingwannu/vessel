@@ -22,12 +22,30 @@ impl WorkspaceCount {
         self.0
     }
 }
-/// A workspace's highest-priority eligible state. An empty known workspace is
-/// Done; any unknown ownership/attention input remains explicitly unknown.
+/// The workspace owner's latest eligible non-archived root selection. Historical
+/// roots are not combined: only this one agent participates beside terminals.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LatestRoot {
+    /// Membership and roles are known and there is no eligible root.
+    Absent,
+    /// Status of the one latest eligible root selected by the workspace owner.
+    Known(Bucket),
+    /// Membership, role or current attention could not be established.
+    Unknown,
+}
+/// Combine the latest eligible root with terminal statuses, never all historical
+/// roots. The workspace owner preserves attentionTimestamp/updatedAt ordering.
 #[must_use]
-pub fn workspace(states: impl IntoIterator<Item = Option<Bucket>>) -> Option<Bucket> {
-    let mut best = Bucket::Done;
-    for state in states {
+pub fn workspace(
+    latest: LatestRoot,
+    terminals: impl IntoIterator<Item = Option<Bucket>>,
+) -> Option<Bucket> {
+    let mut best = match latest {
+        LatestRoot::Absent => Bucket::Done,
+        LatestRoot::Known(state) => state,
+        LatestRoot::Unknown => return None,
+    };
+    for state in terminals {
         best = best.min(state?);
     }
     Some(best)
@@ -74,15 +92,22 @@ mod tests {
             Bucket::Review,
         ]
         .map(Some);
-        assert_eq!(workspace(states), Some(Bucket::NeedsInput));
+        assert_eq!(
+            workspace(LatestRoot::Known(Bucket::NeedsInput), states),
+            Some(Bucket::NeedsInput)
+        );
         assert_eq!(icon(states), Some(Icon::Running));
         assert_eq!(
-            dock_count([workspace(states), Some(Bucket::Done), Some(Bucket::Working)])
-                .unwrap()
-                .get(),
+            dock_count([
+                workspace(LatestRoot::Known(Bucket::NeedsInput), states),
+                Some(Bucket::Done),
+                Some(Bucket::Working)
+            ])
+            .unwrap()
+            .get(),
             1
         );
-        assert_eq!(workspace([]), Some(Bucket::Done));
+        assert_eq!(workspace(LatestRoot::Absent, []), Some(Bucket::Done));
         assert_eq!(dock_count([]).unwrap().get(), 0);
         assert_eq!(icon([]), Some(Icon::Clear));
         assert_eq!(
@@ -92,11 +117,15 @@ mod tests {
     }
     #[test]
     fn unknown_membership_or_attention_is_neither_done_nor_zero() {
+        assert_eq!(
+            workspace(LatestRoot::Unknown, [Some(Bucket::NeedsInput)]),
+            None
+        );
         for states in [
             [Some(Bucket::Working), None],
             [None, Some(Bucket::NeedsInput)],
         ] {
-            assert_eq!(workspace(states), None);
+            assert_eq!(workspace(LatestRoot::Absent, states), None);
             assert_eq!(icon(states), None);
             assert_eq!(dock_count(states), None);
         }

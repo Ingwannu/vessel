@@ -58,7 +58,7 @@ pub fn bucket(bucket: super::buckets::Bucket, words: &Translator) -> &str {
 pub fn terminal<'a>(row: &super::terminals::Row, words: &'a Translator) -> &'a str {
     use vessel_proto::notifications::{TerminalActivity, TerminalAttentionReason};
     let words = words.inbox();
-    if row.bucket() == super::buckets::Bucket::NeedsInput {
+    if row.bucket() == Some(super::buckets::Bucket::NeedsInput) {
         return words.waiting();
     }
     if row.failed {
