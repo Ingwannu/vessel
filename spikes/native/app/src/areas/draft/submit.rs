@@ -57,9 +57,14 @@ impl Shell {
             return;
         };
         let message = self.areas.draft.creation.message(ticket);
-        let Some(input) =
-            self.prepare_creation_input(ticket, message, expected_node, &machine, &text, cx)
-        else {
+        let Some(input) = self.prepare_creation_input(
+            ticket,
+            message.clone(),
+            expected_node,
+            &machine,
+            &text,
+            cx,
+        ) else {
             return;
         };
         let stage = if matches!(target, Target::Registered(_)) {
