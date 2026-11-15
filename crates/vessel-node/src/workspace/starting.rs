@@ -15,6 +15,8 @@ pub(crate) struct StartGuard {
     #[cfg(target_os = "linux")]
     directory: Arc<Directory>,
     #[cfg(target_os = "linux")]
+    root_directory: Arc<Directory>,
+    #[cfg(target_os = "linux")]
     workspaces: Arc<Workspaces>,
     #[cfg(target_os = "linux")]
     lease: RootLease,
@@ -37,9 +39,11 @@ impl StartGuard {
     #[cfg(target_os = "linux")]
     pub(crate) async fn revalidate(&self) -> Result<(), WorkspaceError> {
         let directory = Arc::clone(&self.directory);
+        let root_directory = Arc::clone(&self.root_directory);
         let expected = self.lease.root();
         self.workspaces
             .root_metadata(move || {
+                root_directory.revalidate()?;
                 directory.revalidate()?;
                 if directory
                     .ancestry()?
@@ -104,7 +108,8 @@ impl Workspaces {
                 .await?;
             Ok(StartGuard {
                 folder,
-                directory: Arc::new(opened.directory),
+                directory: opened.directory,
+                root_directory: opened.root_directory,
                 workspaces: Arc::clone(self),
                 lease,
             })
@@ -180,7 +185,8 @@ impl Workspaces {
             .map_err(|_refused| CheckpointError::RecoveryPending)?;
         Ok(StartGuard {
             folder,
-            directory: Arc::new(opened.directory),
+            directory: opened.directory,
+            root_directory: opened.root_directory,
             workspaces: Arc::clone(self),
             lease,
         })

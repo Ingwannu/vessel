@@ -12,8 +12,8 @@ pub(super) enum RequiredRoot {
 }
 #[cfg(target_os = "linux")]
 use {
+    super::admission::OpenedAdmission,
     super::exclusion::{ADMISSION_TIMEOUT, RootLease, RootRefusal},
-    vessel_workspace::physical::Directory,
 };
 
 impl Workspaces {
@@ -51,7 +51,7 @@ impl Workspaces {
                 .exclusion
                 .claim_registered(opened.root, opened.worktrees, deadline)
                 .await?;
-            (opened.directory, lease)
+            (opened, lease)
         };
         let (mut reply, received) = oneshot::channel();
         let cancellation = self.stop.child_token();
@@ -86,7 +86,7 @@ async fn under_root<T, Make, Work>(
     workspaces: Arc<Workspaces>,
     resolved: Resolved,
     make: Make,
-    directory: Directory,
+    directory: OpenedAdmission,
     lease: RootLease,
     cancellation: CancellationToken,
 ) -> Result<T, WorkspaceError>
@@ -108,13 +108,15 @@ where
 #[cfg(target_os = "linux")]
 async fn revalidate_in(
     workspaces: &Workspaces,
-    directory: Directory,
+    directory: OpenedAdmission,
     root: vessel_proto::checkpoint::PhysicalRoot,
-) -> Result<Directory, WorkspaceError> {
+) -> Result<OpenedAdmission, WorkspaceError> {
     let (directory, observed) = workspaces
         .root_metadata(move || {
-            directory.revalidate()?;
+            directory.root_directory.revalidate()?;
+            directory.directory.revalidate()?;
             let observed = directory
+                .directory
                 .ancestry()?
                 .nearest(&std::collections::BTreeSet::from([root]));
             Ok((directory, observed))

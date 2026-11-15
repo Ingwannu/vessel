@@ -3,12 +3,14 @@ use super::{WorkspaceError, Workspaces, exclusion::RecoveryRoots};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
+    sync::Arc,
 };
 use vessel_proto::{WorktreeId, checkpoint::PhysicalRoot};
 use vessel_workspace::physical::Directory;
 
 pub(super) struct OpenedAdmission {
-    pub(super) directory: Directory,
+    pub(super) directory: Arc<Directory>,
+    pub(super) root_directory: Arc<Directory>,
     pub(super) root: PhysicalRoot,
     pub(super) worktrees: BTreeSet<WorktreeId>,
 }
@@ -26,25 +28,37 @@ impl Workspaces {
             .map(|(id, entry)| (*id, entry.info.path.clone()))
             .collect::<Vec<_>>();
         self.root_metadata(move || {
-            let directory = Directory::open(&path)?;
+            let directory = Arc::new(Directory::open(&path)?);
             let ancestry = directory.ancestry()?;
             let mut known: BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>> = BTreeMap::new();
+            let mut root_directory: Option<Arc<Directory>> = None;
             for (id, path) in registered {
                 match Directory::open(&path) {
                     Ok(opened) => {
-                        let _inserted = known.entry(opened.identity()).or_default().insert(id);
+                        let identity = opened.identity();
+                        let _inserted = known.entry(identity).or_default().insert(id);
+                        // Pin only the nearest selected ancestor, never every
+                        // registered directory. This prevents inode reuse while
+                        // bounding retained FDs independently of registry size.
+                        let candidates = root_directory
+                            .iter()
+                            .map(|root| root.identity())
+                            .chain(std::iter::once(identity))
+                            .collect();
+                        if ancestry.nearest(&candidates) == Some(identity) {
+                            root_directory = Some(Arc::new(opened));
+                        }
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
                     Err(error) => return Err(error),
                 }
             }
-            let roots = known.keys().copied().collect();
-            let root = ancestry
-                .nearest(&roots)
-                .unwrap_or_else(|| directory.identity());
+            let root_directory = root_directory.unwrap_or_else(|| Arc::clone(&directory));
+            let root = root_directory.identity();
             let worktrees = known.remove(&root).unwrap_or_default();
             Ok(OpenedAdmission {
                 directory,
+                root_directory,
                 root,
                 worktrees,
             })

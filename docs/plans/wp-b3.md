@@ -1277,3 +1277,18 @@ checkpoint tables and foreign keys, ran the exact legacy rollback helper and
 reapplied registry/checkpoint SQL. It also compared migrate() byte-for-byte with
 the announced head. These scoped checks passed; Python SQLite execution does not
 prove the Rust writer, filesystem recovery, permissions or feature runtime.
+
+### Nested admission pins its selected ancestor (unverified)
+
+A source audit found that nested admission selected the managed ancestor's key
+but retained only the cwd FD. Discovery now retains the actual nearest ancestor
+FD, bounded independently of registry size; StartGuard and retained ordinary
+writers own it through the canonical lease and revalidate it with the cwd.
+This prevents inode reuse while the selected root is unlinked. It does not add a
+lock, registry, workspace identity or terminal quiescence claim.
+
+The private Linux test observes the process's actual opened directory identity,
+unlinks only its temporary fixture root, checks that the original inode remains
+pinned, refuses a replacement name, then verifies final guard release closes the
+root FD. No service, external directory or product permission is changed. This
+new test remains unrun; the checkpoint_root unit filter now selects six units.

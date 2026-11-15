@@ -110,3 +110,51 @@ async fn checkpoint_root_lease_refuses_actual_setup_and_teardown_removal() {
     fixture.tasks.wait().await;
     fixture.store.close().await;
 }
+
+fn opened_root(metadata: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt as _;
+    std::fs::read_dir("/proc/self/fd")
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter_map(|entry| std::fs::metadata(entry.path()).ok())
+        .any(|opened| opened.dev() == metadata.dev() && opened.ino() == metadata.ino())
+}
+
+#[tokio::test]
+async fn checkpoint_root_lease_pins_the_managed_ancestor_fd_for_a_nested_start() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("project", None).await;
+    let CreateWorktreeOutcome::Created { worktree } = fixture
+        .create(project.id, Creator::Owner, SetupChoice::Skip)
+        .await
+    else {
+        panic!("no managed worktree")
+    };
+    let nested = worktree.path.join("nested");
+    std::fs::create_dir(&nested).unwrap();
+    let original = std::fs::metadata(&worktree.path).unwrap();
+    assert!(
+        !opened_root(&original),
+        "fixture must not already pin this inode"
+    );
+    let guard = fixture.workspaces.admit_start(&nested).await.unwrap();
+    assert!(
+        opened_root(&original),
+        "nested cwd alone does not pin its managed ancestor"
+    );
+    // Delete only this private fixture's backing. The opened root must remain
+    // pinned even with no name, preventing inode reuse until the lease releases.
+    std::fs::remove_dir_all(&worktree.path).unwrap();
+    assert!(opened_root(&original));
+    std::fs::create_dir(&worktree.path).unwrap();
+    assert!(
+        guard.revalidate().await.is_err(),
+        "a replacement cannot inherit the old lease"
+    );
+    drop(guard);
+    assert!(!opened_root(&original));
+    fixture.stop.cancel();
+    let _closed = fixture.tasks.close();
+    fixture.tasks.wait().await;
+    fixture.store.close().await;
+}

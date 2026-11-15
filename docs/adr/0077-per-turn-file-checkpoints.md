@@ -772,3 +772,15 @@ physical admission, bounded workers, auth, durable staged evidence, cleanup and
 startup recovery; FILE_CHECKPOINTS remains None. Reconstructed recovery may undo
 verified written objects but cannot resume forward file application. These source
 changes await compilation, runtime proof and the package's V3 review.
+
+### Pin the selected ancestor object during nested admission
+
+For a nested launch, the cwd FD does not pin the selected managed ancestor's
+inode. Admission must retain that actual ancestor FD through the same RootLease
+and revalidate both names before/after guarded I/O. Otherwise removing the old
+root could recycle its device/inode key while an admission still claims it.
+Only the nearest selected candidate FD is retained during discovery, avoiding
+one open descriptor per registered worktree. This adds no second root authority
+or workspace identity. A private Linux fixture must observe the actual root FD
+through nested admission, unlink/replacement and final lease release; a copied
+fingerprint alone cannot satisfy this obligation. The fixture is unrun.
