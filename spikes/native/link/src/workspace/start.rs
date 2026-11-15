@@ -312,10 +312,13 @@ async fn set_up(walk: &mut Walk<'_>, mut info: WorktreeInfo, commands: Vec<Strin
             Followed::Lost(problem) => {
                 walk.show(Step::Refused(Refusal::NotFollowed {
                     branch: branch_of(&info),
-                    problem,
+                    problem: problem.clone(),
                 }))
                 .await;
-                return Made::Stopped;
+                // The worktree already exists and setup may still be running.
+                // Preserve the failed read instead of reporting a user stop,
+                // which would permit another creation attempt.
+                return Made::Failed(problem);
             }
             Followed::Ended(setup) => setup,
         };

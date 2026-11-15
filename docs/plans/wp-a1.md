@@ -349,3 +349,11 @@ executable usually fails before effects. The existing duplex regression now
 covers both create and first-input replies for this code. A future durable
 before-effect receipt may permit a narrower safe retry without weakening
 this legacy boundary.
+
+The legacy placement walk also preserves an exhausted setup-output read as
+Made::Failed instead of Made::Stopped. The latter is handled as an explicit
+user stop and a retryable refusal, although this branch runs only after the
+worktree exists and setup may be executing. Its original Node/Gone problem now
+reaches the conservative placement failure projection and retains the draft.
+The refusal card is still shown; this changes the lifecycle result, not approval
+or setup execution. Changed-source Link verification remains owed.
