@@ -486,3 +486,16 @@ than these authentication codes. Such proven policy rejection and local request
 id exhaustion settle known not sent. A G4 call refusal, disconnect, unexpected
 reply, timeout or unclassified filesystem error remains sticky uncertain.
 Neither a later read nor reconnection releases an original unknown effect.
+
+### Readonly line storage
+
+Complete source no longer allocates a String per line. The same existing
+virtual rows and lexer read `source::SourceText`: one shared Arc source and
+one validated u32 byte start per line, bounded by the same native source limit.
+Visible rows borrow their line; only drawn styled text and explicit selected
+composer context are copied. LF/CRLF trimming and final-newline behavior are
+compared to standard str::lines, including Unicode and standalone CR. This is
+an index for the existing viewer, not another editor or renderer. Markdown
+shares the original Arc and the readonly cache continues to count its logical
+source bytes. Offsets/preview/control allocations remain outside that payload
+cap; no total-heap or frame-time proof is claimed. New tests are source-only.

@@ -312,20 +312,23 @@ impl Shell {
             }
             Ok(read) => match read.content {
                 FileContent::Text { text, next, .. } => {
-                    let lines: Vec<String> = text.lines().map(str::to_owned).collect();
                     let language = language_of(ask.path.as_str());
                     let states = if read.version.size
                         <= vessel_app_view::workspace::source::MAX_HIGHLIGHTED_BYTES
                     {
-                        line_states(lines.iter().map(String::as_str), language)
+                        line_states(text.lines(), language)
                     } else {
                         Vec::new()
                     };
-                    Shown::Text {
-                        source: std::sync::Arc::from(text),
-                        lines,
-                        states,
-                        more: next.is_some(),
+                    match vessel_app_view::workspace::source::SourceText::new(std::sync::Arc::from(
+                        text,
+                    )) {
+                        Ok(source) => Shown::Text {
+                            source,
+                            states,
+                            more: next.is_some(),
+                        },
+                        Err(_oversize) => Shown::TooLarge,
                     }
                 }
                 FileContent::Binary | FileContent::Unknown => Shown::Binary,
@@ -335,14 +338,16 @@ impl Shell {
             Err(problem) => Shown::Failed(words.problem(&problem)),
         };
         let rows = match &viewer.text {
-            Shown::Text { lines, more, .. } => lines.len().saturating_add(usize::from(*more)),
+            Shown::Text { source, more, .. } => {
+                source.line_count().saturating_add(usize::from(*more))
+            }
             Shown::Loading | Shown::Binary | Shown::TooLarge | Shown::Failed(_) => 0,
         };
         viewer.list.reset(rows);
         if let Some(location) = viewer.goto.take() {
             let range = location.range();
-            let line_count = if let Shown::Text { lines, .. } = &viewer.text {
-                lines.len()
+            let line_count = if let Shown::Text { source, .. } = &viewer.text {
+                source.line_count()
             } else {
                 0
             };

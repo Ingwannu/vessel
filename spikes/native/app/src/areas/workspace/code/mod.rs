@@ -156,8 +156,7 @@ struct Viewer {
 enum Shown {
     Loading,
     Text {
-        source: std::sync::Arc<str>,
-        lines: Vec<String>,
+        source: vessel_app_view::workspace::source::SourceText,
         states: Vec<vessel_app_view::workspace::syntax::LineState>,
         more: bool,
     },

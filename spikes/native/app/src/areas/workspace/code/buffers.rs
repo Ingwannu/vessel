@@ -18,7 +18,7 @@ pub(super) const MAX_READONLY_SOURCE: FileSize = FileSize(32 * 1024 * 1024);
 
 fn readonly_size(viewer: &Viewer) -> FileSize {
     match &viewer.text {
-        Shown::Text { source, .. } => FileSize(u64::try_from(source.len()).unwrap_or(u64::MAX)),
+        Shown::Text { source, .. } => source.size(),
         Shown::Loading | Shown::Binary | Shown::TooLarge | Shown::Failed(_) => FileSize(0),
     }
 }

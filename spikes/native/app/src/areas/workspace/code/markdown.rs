@@ -83,7 +83,7 @@ fn complete_source(viewer: &Viewer) -> Option<MarkdownSource> {
         ..
     } = &viewer.text
     {
-        Arc::clone(source)
+        source.shared()
     } else {
         return None;
     };

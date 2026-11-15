@@ -158,7 +158,6 @@ fn code_line(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let Some(Shown::Text {
-        lines,
         states,
         more,
         source,
@@ -172,7 +171,7 @@ fn code_line(
         return div().into_any_element();
     };
     let neutral = tokens.neutral;
-    let Some(text) = lines.get(index) else {
+    let Some(text) = source.line(index) else {
         return if *more {
             note(shell.words().labels().file_continues, tokens).into_any_element()
         } else {
@@ -186,9 +185,7 @@ fn code_line(
         .viewer_at(key)
         .map_or("", |viewer| viewer.path.as_str());
     let language = language_of(
-        if u64::try_from(source.len()).unwrap_or(u64::MAX)
-            <= vessel_app_view::workspace::source::MAX_HIGHLIGHTED_BYTES
-        {
+        if source.size().0 <= vessel_app_view::workspace::source::MAX_HIGHLIGHTED_BYTES {
             path
         } else {
             ""
@@ -214,7 +211,7 @@ fn code_line(
             },
         ))
     });
-    let styled = StyledText::new(SharedString::from(text.clone())).with_highlights(highlights);
+    let styled = StyledText::new(SharedString::from(text.to_owned())).with_highlights(highlights);
     let chosen = shell
         .areas
         .workspace

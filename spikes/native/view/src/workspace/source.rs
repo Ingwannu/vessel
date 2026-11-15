@@ -2,7 +2,9 @@
 //! This checks continuation and version consistency, not immutable snapshots:
 //! the legacy node's separate version/content reads retain their documented race.
 use super::problem::Problem;
+mod text;
 use std::future::Future;
+pub use text::{SourceText, SourceTooLarge};
 use vessel_proto::{
     ErrorCode,
     workspace::{FileContent, FileRead, ReadFile},

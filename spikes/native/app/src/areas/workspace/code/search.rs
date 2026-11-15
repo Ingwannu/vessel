@@ -298,13 +298,19 @@ impl Shell {
         let Some((first, last)) = viewer.chosen else {
             return;
         };
-        let super::Shown::Text { lines, .. } = &viewer.text else {
+        let super::Shown::Text { source, .. } = &viewer.text else {
             return;
         };
-        let chosen: Vec<String> = lines
-            .get(first..=last)
-            .map(<[String]>::to_vec)
-            .unwrap_or_default();
+        let chosen: Vec<String> = source
+            .lines()
+            .skip(first)
+            .take(
+                last.checked_sub(first)
+                    .and_then(|length| length.checked_add(1))
+                    .unwrap_or(0),
+            )
+            .map(str::to_owned)
+            .collect();
         let start = u32::try_from(first.saturating_add(1)).unwrap_or(u32::MAX);
         let path = viewer.path.clone();
         if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {

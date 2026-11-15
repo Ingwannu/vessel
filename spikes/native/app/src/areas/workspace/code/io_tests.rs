@@ -88,7 +88,7 @@ fn readonly_refresh_ignores_late_reply_for_same_path(cx: &mut TestAppContext) {
         shell.file_read_answered("node", &read(root, "a.txt"), current, Ok(text("new")), cx);
         shell.file_read_answered("node", &read(root, "a.txt"), old, Ok(text("old")), cx);
         let viewer = shell.areas.workspace.code.files.viewer.as_ref().unwrap();
-        assert!(matches!(&viewer.text, Shown::Text { lines, .. } if lines == &["new"]));
+        assert!(matches!(&viewer.text, Shown::Text { source, .. } if source.line(0) == Some("new") && source.line_count() == 1));
     });
 }
 
