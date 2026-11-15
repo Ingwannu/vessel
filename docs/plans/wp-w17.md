@@ -29,7 +29,7 @@ request → typed response → presentation → stdout. Stream/attach paths reta
 No live node, real provider, credential store or production configuration is used for checks.
 Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 
-## Current integration state (2026-11-15 10:02 UTC)
+## Current integration state (2026-11-15 11:14 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
 The development tree merged announced node gate42 d432ef0f; SDK check_call is now
@@ -38,7 +38,7 @@ W17 gate, package V3 pass, protocol assignment or merge handoff has been claimed
 
 | Boundary | Current state / owner |
 | --- | --- |
-| Shared output for W4 permit / W16 plugin | Isolated ba45 lineage at 5305e47a. Original a8 strict clippy passed; 872 targeted run failed E0599 before tests. Nested compare path fixed; fresh targeted suite pending. No consumer-ready hash. |
+| Shared output for W4 permit / W16 plugin | V3 scoped PASS for source5305: 6/0/0 root/process regressions and strict CLI alltarget Clippy0. Evidence-only handoff5b3ca1d is staged by the integrator as30e1e1bb; consumers wait for its announced green gate46 head. No full W17 claim. |
 | Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Scoped old-head tests are in the verification matrix; these are not a latest-head/full-parity claim. |
 | Run/send output | Typed command receipts now map idle completion to completed. Standalone wait remains idle. Import/update and some schedule output projections still retain documented native differences. |
 | W17 node host registry / capture | Five pending rows and one None feature constant; source-owned reference metadata and capture actor glue staged. Paired destinations lacking node-side trust lookup and direct/SSH creation remain typed refusals. Capture must consume C2's one reviewed pure engine before handoff; no second parser may merge. |
@@ -632,3 +632,18 @@ and local SDK admission errors. UnassignedProtocol/NotInProtocol remain
 Unsupported rather than being misclassified as Internal after the new SDK
 preflight seam. Added a nested CLI-error classification regression; it does not
 claim a frame was sent or that a pending call is available. Latest execution owed.
+
+
+### Early output handoff closed, package still in progress
+
+V3 scoped PASS at11:12 covers source5305/evidence-only5b3ca1d: targeted6/0/0
+and strictClippy0. Passed head handed to integrator, W4 and W16. The integrator
+took exactly5b (nothing from the W17 feature tree), staged30e1e1bb overc399e072,
+and told consumers to merge its announced green head aftergate46 rather than
+the development branch. Combined-head/consumer checks remain required.
+
+The W17 development sourcecd1a12d7 was separately submitted for all-target strict
+Clippy across CLI/proto/RPC/client/store/session/node/web, run
+wp-cli-narrow-20261115T111143Z-cd1a12d7, /tmp/work/wp-cli/main-clippy-head42.
+No result yet. Latest actor/CLI/schema/process tests, reviewed external contracts,
+shared-core consumption and the final whole root gate remain owed.
