@@ -74,3 +74,21 @@ is now declared before that module; no predicate, test, public API or protection
 is changed. The concurrent7ae resident test run remains live and is not canceled.
 A corrected strict rerun still requires its own coordinator disposition; no
 source/runtime/package pass is inferred from this narrow lint correction.
+
+## Executed bounded handoff
+
+App all-target strict Clippy -D warnings passed exact4b8a59a8f at16:20 UTC,
+run wp-timeline-resident-strict-20261115T161840Z-4b8a59a8. Actual resident GPUI
+filters passed3/0/0 on7ae881e59 at16:17 UTC, run
+wp-timeline-resident-tests-20261115T161043Z-7ae881e5. The only native source
+change7ae..4b8 moves the same four snapshot predicates before test modules;
+bodies and test source match the executed7ae byte-for-byte. The initial strict
+failure is retained; no extra runtime pass on a different head is invented.
+
+Local preflight now includes test-module-last over the repository's existing
+Rust lexer, alongside rustfmt/size/tokens/diff/import/doc checks. All9 changed
+Rust files passed that added ordering scan. No suppression, staged exemption,
+new manager or product activation was introduced. This document-only receipt
+adds no native delta after exact4b8 strict. W12/lead may consume only this bounded
+native producer range on announced2b806402 for their staged core union; the
+complete A7 branch, full package gate, captures and V4 approval remain separate.
