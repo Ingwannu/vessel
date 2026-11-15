@@ -806,3 +806,22 @@ after its revision/namespace can no longer identify new work. A protocol-peer
 fixture forces the final revision, confirms the next command refuses before CDP,
 and verifies only close remains available. The peer is not a browser engine;
 current changed-source execution evidence remains owed.
+
+## Scoped remote evidence, not current whole-package acceptance
+
+Exact61c4936b functional five-crate lib suite completed518/0/0 at14:07 UTC, all
+prescribed steps0 (node-launch-watch-output-tests). It covers the then-current
+launcher/watch values/MCP output/announced ede union, not the later snapshot,
+keyboard, drain, settings, cursor or bundle changes.
+Exact60c17b44 browser lib suite completed39/0/0 at14:20 UTC, all prescribed steps0
+(node-own-snapshot-tests). It executes the initial independently written snapshot
+host/decoder/controller and earlier browser primitives, before later lint/form/
+keyboard/drain/settings/cursor/bundle changes. No assertions were waived and no
+runtime/paint/Preview/package approval follows from either receipt.
+
+The fixed export of exactd37826ca is queued on the terminal five-crate label's
+warm target (run wp-browser-execution-tests-20261115T142049Z-d37826ca, out
+candidate-test-executable). It compiles but does not execute tests on the VM.
+Its explicit approved-host bundle fixture reads only the runtime bundle and
+starts no browser; passing that component will not qualify a supported engine.
+Later source changes cannot inherit its exact-SHA evidence.
