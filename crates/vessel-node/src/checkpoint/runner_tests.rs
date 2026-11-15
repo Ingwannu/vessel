@@ -49,7 +49,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
             FileImage::new(Vec::new())
         },
         move |_key, _image| {
-            writes.fetch_add(1, Ordering::SeqCst);
+            let _previous = writes.fetch_add(1, Ordering::SeqCst);
             async { Ok(()) }
         },
         move |_key, disposition| {

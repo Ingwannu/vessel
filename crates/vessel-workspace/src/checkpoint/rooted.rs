@@ -130,10 +130,8 @@ pub(super) fn metadata(file: &File) -> Result<FileMetadata, Error> {
 pub(super) fn refuse_attributes(file: &File) -> Result<(), Error> {
     let mut names = [0_u8; ATTRIBUTE_NAMES_BYTES];
     match rustix::fs::flistxattr(file, &mut names[..]) {
-        Ok(0) => Ok(()),
-        Ok(_) => Err(CheckpointError::UnsupportedMetadata.into()),
-        Err(rustix::io::Errno::NOTSUP) => Ok(()),
-        Err(rustix::io::Errno::RANGE) => Err(CheckpointError::UnsupportedMetadata.into()),
+        Ok(0) | Err(rustix::io::Errno::NOTSUP) => Ok(()),
+        Ok(_) | Err(rustix::io::Errno::RANGE) => Err(CheckpointError::UnsupportedMetadata.into()),
         Err(error) => Err(io::Error::from(error).into()),
     }
 }

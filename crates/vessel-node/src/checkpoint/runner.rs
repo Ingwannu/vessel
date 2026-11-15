@@ -56,7 +56,9 @@ impl Client {
             .try_send(Request {
                 key,
                 bytes,
-                deadline: Instant::now() + CHECKPOINT_CAPTURE_DEADLINE,
+                deadline: Instant::now()
+                    .checked_add(CHECKPOINT_CAPTURE_DEADLINE)
+                    .ok_or(CheckpointError::CaptureTimedOut)?,
                 reply,
             })
             .map_err(|_full_or_closed| CheckpointError::Busy)?;

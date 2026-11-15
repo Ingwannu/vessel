@@ -127,7 +127,7 @@ impl Archive {
             return Err(CheckpointError::UnsafeEntry.into());
         }
         let mut hash = Sha256::new();
-        let mut buffer = [0_u8; CHECKPOINT_IO_CHUNK];
+        let mut buffer = vec![0_u8; CHECKPOINT_IO_CHUNK].into_boxed_slice();
         let mut total = 0_u64;
         loop {
             let count = source.read(&mut buffer)?;
@@ -157,7 +157,7 @@ fn stream(
     budget: FileBytes,
     cancellation: &CancellationToken,
 ) -> Result<(BlobHash, FileBytes), Error> {
-    let mut buffer = [0_u8; CHECKPOINT_IO_CHUNK];
+    let mut buffer = vec![0_u8; CHECKPOINT_IO_CHUNK].into_boxed_slice();
     let mut total = 0_u64;
     let mut hash = Sha256::new();
     loop {

@@ -1,7 +1,7 @@
-//! Real SQLite tests for staged persistence, not a fake key/value store.
+//! Real `SQLite` tests for staged persistence, not a fake key/value store.
 use super::{
     journal,
-    records::{Error, Plan},
+    records::{CheckpointStoreError as Error, Plan},
 };
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
@@ -28,7 +28,7 @@ fn fixture() -> (Connection, CaptureKey) {
         },
         generation: CaptureGeneration::FIRST,
     };
-    connection
+    let _changed = connection
         .execute(
             "INSERT INTO sessions(id) VALUES (?1)",
             [key.session.to_string()],
@@ -47,7 +47,7 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
     let empty = FileImage::new(Vec::new()).unwrap();
     journal::keep_candidate(connection, key, &empty).unwrap();
     // A fixture for the later node publication seam, not evidence of that seam.
-    connection
+    let _changed = connection
         .execute(
             "UPDATE checkpoint_captures SET state='ready' WHERE id=?1",
             [key.capture.to_string()],
@@ -147,7 +147,8 @@ fn transaction_failure_does_not_consume_preview_or_create_a_restore() {
     let restore = RestoreId::random();
     {
         let transaction = connection.transaction().unwrap();
-        journal::admit(&transaction, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
+        let _operation =
+            journal::admit(&transaction, &plan, restore, DateTime::UNIX_EPOCH).unwrap();
         transaction.rollback().unwrap();
     }
     assert!(matches!(
@@ -172,7 +173,7 @@ fn altered_owner_or_effective_target_never_reuses_a_preview_authorization() {
         ),
         Err(Error::Refused(CheckpointError::Forbidden))
     ));
-    connection
+    let _changed = connection
         .execute(
             "UPDATE checkpoint_plans SET expires_at=?1 WHERE id=?2",
             params![
@@ -229,7 +230,7 @@ fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
     assert_eq!(recovered.before, operation.before);
     assert_eq!(super::recovery::pending(&connection).unwrap(), 0);
     assert!(
-        connection
+        let _changed = connection
             .execute(
                 "DELETE FROM sessions WHERE id=?1",
                 [key.session.to_string()]

@@ -28,7 +28,7 @@ pub(super) struct Operation {
     pub(super) before: FileImage,
 }
 #[derive(Debug, thiserror::Error)]
-pub(super) enum Error {
+pub(super) enum CheckpointStoreError {
     #[error("checkpoint record contains an invalid operation identity")]
     Id(#[source] <RestoreId as std::str::FromStr>::Err),
     #[error("checkpoint storage operation failed")]

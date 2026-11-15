@@ -1,5 +1,5 @@
 //! Restart never treats an interrupted filesystem operation as committed success.
-use super::records::Error;
+use super::records::CheckpointStoreError as Error;
 use rusqlite::{Connection, params};
 use vessel_proto::checkpoint::{CHECKPOINT_PAGE_ENTRIES, RestoreId, RestoreOutcome};
 
@@ -18,7 +18,7 @@ pub(super) fn pending(connection: &Connection) -> Result<usize, Error> {
     for raw in &ids {
         let restore = raw.parse::<RestoreId>().map_err(Error::Id)?;
         let result = serde_json::to_string(&RestoreOutcome::RecoveryRequired { restore })?;
-        connection.execute("UPDATE checkpoint_restores SET phase='recovery',outcome=?1 WHERE id=?2 AND phase='prepared'",params![result,raw])?;
+        let _changed = connection.execute("UPDATE checkpoint_restores SET phase='recovery',outcome=?1 WHERE id=?2 AND phase='prepared'",params![result,raw])?;
     }
     Ok(ids.len())
 }

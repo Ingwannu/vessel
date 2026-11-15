@@ -1,6 +1,6 @@
 //! Durable idempotency/admission. An expired plan never authorizes a different image.
 
-use super::records::{Error, Operation, Plan};
+use super::records::{CheckpointStoreError as Error, Operation, Plan};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
@@ -34,7 +34,7 @@ pub(super) fn candidate(
     if total > vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES {
         return Err(CheckpointError::StorageFull.into());
     }
-    connection.execute("INSERT INTO checkpoint_captures(id,session,worktree,generation,boundary,state,reserved_bytes,created_at)
+    let _changed = connection.execute("INSERT INTO checkpoint_captures(id,session,worktree,generation,boundary,state,reserved_bytes,created_at)
         VALUES (?1,?2,?3,?4,?5,'candidate',?6,?7)", params![key.capture.to_string(), key.session.to_string(), key.worktree.to_string(),
         encode(&key.generation)?, encode(&key.boundary)?, bytes, at.timestamp_millis()])?;
     Ok(())
@@ -76,7 +76,7 @@ pub(super) fn keep_candidate(
 
 /// Startup never promotes candidates; reservations remain until filesystem cleanup.
 pub(super) fn invalidate_candidates(connection: &Connection) -> Result<(), Error> {
-    connection.execute(
+    let _changed = connection.execute(
         "UPDATE checkpoint_captures SET state='unavailable',image=NULL WHERE state='candidate'",
         [],
     )?;
@@ -92,7 +92,7 @@ pub(super) fn put_plan(connection: &Connection, plan: &Plan) -> Result<(), Error
     if !ready {
         return Err(CheckpointError::NotFound.into());
     }
-    connection.execute(
+    let _changed = connection.execute(
         "INSERT INTO checkpoint_plans(id,capture,device,current_image,desired_image,expires_at)
         VALUES (?1,?2,?3,?4,?5,?6)",
         params![
@@ -179,7 +179,7 @@ pub(super) fn admit(
         return Err(CheckpointError::StalePreview.into());
     }
     let outcome = RestoreOutcome::InProgress { restore };
-    connection.execute(
+    let _changed = connection.execute(
         "INSERT INTO checkpoint_restores(id,session,plan,device,outcome,phase,before_image,created_at)
         VALUES (?1,?2,?3,?4,?5,'prepared',?6,?7)",
         params![
@@ -192,7 +192,7 @@ pub(super) fn admit(
             at.timestamp_millis()
         ],
     )?;
-    connection.execute(
+    let _changed = connection.execute(
         "UPDATE checkpoint_plans SET consumed_by=?1 WHERE id=?2",
         params![restore.to_string(), plan.id.to_string()],
     )?;
