@@ -431,3 +431,42 @@ budget with valid canonical graphs, refuses another host without eviction,
 then admits it only after explicit withdrawal. A valid other-node snapshot and
 a structurally valid newer-client floor also refuse atomically. These new receiver
 cases are authored; current changed-source execution remains owed.
+
+
+## Single staged Hub and read lifetime
+
+The one per-shell Hub now owns the registry's only strong reference. Mounted
+surfaces receive the existing weak owner reference; neither a surface nor a
+feature projection starts another loader or retains another registry. Its
+read-only registry guard and settled Change values let the eventual shell
+adapter update themes/commands/sidebar/panels outside paint, after mutable
+borrows end. Connection, offline, forget and unsupported withdrawal all produce
+eligibility notifications; unsupported is an observed state change, not an
+early error path which can skip withdrawing a selected theme.
+
+MAX_CONCURRENT_CATALOG_READS is4 per Hub. Only returned take_reads commands may
+be dispatched. Queued invalidations coalesce into the not-yet-started read;
+invalidations during an active read set one dirty bit and request at most one
+following read. Queue and dirty membership are bounded by the registry's known
+128-host/one-pending-read rule. The connection owner supplies verified NodeId
+and actual support; old invalidations cannot recreate forgotten/offline hosts.
+Reconnect invalidates publication identity but does not release an old active
+source's slot. Offline/forget also retain that slot until actual completion or
+the link's existing30s deadline. Duplicate or another Hub's completion cannot
+retire current admission. A rejected link enqueue must be returned through the
+same ticketed failure event, rather than dropping the admitted command.
+
+A busy registry returns Acceptance::Deferred with the owned canonical completion
+and retains its active slot. The caller must defer that SAME event after its
+read guard drops. It does not lose a response, mint another ticket or release
+admission early. Settled changes carry no declaration/diagnostic payload. The
+actual callback/transport dispatcher still has to maintain that ownership.
+
+The Hub remains under the existing parent cfg(test) staging boundary, with
+canonical fake data and the honest UnavailableNode link adapter. No node call is
+invented or sent, and no product Areas field/route/Node SDK method is claimed.
+Tests cover bounded read starts, dirty coalescing, reconnect/forget retention,
+duplicate completion, busy owned retry and an actual weak-owner GPUI field after
+Hub disposal. These are authored controller tests, not current executed proof,
+node authentication, installed runtime or final F6 UI acceptance. Per-opening
+popover entity/subscription/context retirement and real shell/Node wiring remain.

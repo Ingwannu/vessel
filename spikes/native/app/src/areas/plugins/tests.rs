@@ -363,3 +363,83 @@ fn a_replaced_editor_cannot_submit_a_queued_event_to_the_same_control_identity(
             Submission::Field { value: FieldValue::Text(text), .. } if text.as_str() == "current literal")
     )));
 }
+
+#[gpui::test]
+fn the_single_hub_owns_the_registry_and_a_retained_surface_cannot_keep_it_alive(
+    cx: &mut TestAppContext,
+) {
+    use super::hub::{Acceptance, Change, Hub};
+    cx.update(|cx| {
+        vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
+    });
+    let (fixture, address) = fixture();
+    let node = address.installation.node;
+    let entry = fixture.borrow().installed(node).expect("fixture")[0].clone();
+    let canonical = ClientCatalog::new(
+        node,
+        vec![
+            ClientInstallation::new(
+                entry.address().clone(),
+                vessel_proto::PROTOCOL_VERSION,
+                entry.document().clone(),
+            )
+            .expect("canonical installation"),
+        ],
+    )
+    .expect("canonical catalog");
+    drop(fixture);
+    let owner = Rc::new(RefCell::new(Hub::new()));
+    assert_eq!(
+        owner.borrow_mut().connected(node, HostSupport::Supported),
+        Ok(Change::Eligibility(node))
+    );
+    let vessel_app_link::plugins::Command::ReadCatalog(ticket) =
+        owner.borrow_mut().take_reads().pop().expect("one read");
+    assert!(
+        matches!(owner.borrow_mut().accept(vessel_app_link::plugins::Event::CatalogRead { ticket, result: Ok(canonical) }), Acceptance::Settled(Some(Change::Catalog(id))) if id == node)
+    );
+    let mounting = Rc::clone(&owner);
+    let events = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&events);
+    let (view, cx) = cx.add_window_view(move |window, cx| {
+        let view = mounting
+            .borrow()
+            .surface(
+                address,
+                Arc::new(|_, _, _| panic!("no browser in fixture")),
+                window,
+                cx,
+            )
+            .expect("hub surface");
+        cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
+            observed.borrow_mut().push(event.clone())
+        })
+        .detach();
+        view
+    });
+    cx.run_until_parked();
+    view.update_in(cx, |view, window, cx| {
+        let id: ContributionId = "field".parse().expect("field");
+        view.fields
+            .get(&id)
+            .expect("real field")
+            .clone()
+            .update(cx, |field, cx| {
+                field.editor.set_text("retained local edit", window, cx);
+                field.editor.focus(window, cx);
+            });
+    });
+    drop(owner);
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(events.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Stale))
+    )));
+    assert!(
+        !events
+            .borrow()
+            .iter()
+            .any(|event| matches!(event, SurfaceEvent::Requested(_)))
+    );
+}

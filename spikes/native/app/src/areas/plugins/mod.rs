@@ -3,6 +3,7 @@
 //! ONE registry, and consumes typed request events through the real link.
 mod draw;
 mod fields;
+mod hub;
 mod menus;
 #[cfg(test)]
 mod tests;

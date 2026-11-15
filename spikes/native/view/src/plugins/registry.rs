@@ -354,6 +354,18 @@ impl Registry {
         self.hosts.get(&node).and_then(|host| host.failure)
     }
 
+    /// Refresh only a host already admitted through its verified connection.
+    /// This is read scheduling state, not a grant to invoke plugin methods.
+    /// # Errors
+    /// An old invalidation cannot recreate a forgotten or offline host.
+    pub fn can_refresh(&self, node: NodeId) -> Result<(), Problem> {
+        match self.hosts.get(&node) {
+            None => Err(Problem::Stale),
+            Some(host) if host.connection == Connection::Offline => Err(Problem::Offline),
+            Some(_) => Ok(()),
+        }
+    }
+
     /// Revalidate the exact captured installation immediately before dispatch.
     ///
     /// # Errors
