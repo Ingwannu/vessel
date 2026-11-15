@@ -78,6 +78,9 @@ pub(super) enum Observation {
 /// Unknown providers and exhausted resources are not silently defaulted.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum CacheError {
+    /// A list of individually bounded catalogues cannot fit in one reply.
+    #[error("provider snapshot exceeds its encoded byte budget")]
+    ReplyTooLarge,
     /// The effective registry has no such provider identity.
     #[error("provider is not configured")]
     UnknownProvider,
@@ -129,11 +132,17 @@ impl Cache {
         &self,
         scope: &CatalogueScope,
     ) -> Result<Vec<ProviderSnapshotEntry>, CacheError> {
-        self.registry
+        let entries = self
+            .registry
             .definitions()
             .iter()
             .map(|definition| self.cached(&definition.id, scope).map(|value| value.entry))
-            .collect()
+            .collect::<Result<Vec<_>, _>>()?;
+        if super::budget::fits(&entries) {
+            Ok(entries)
+        } else {
+            Err(CacheError::ReplyTooLarge)
+        }
     }
 
     /// Admission snapshots the actual definition before any runtime is touched.
@@ -213,13 +222,20 @@ impl Cache {
             return None;
         }
         let (state, version) = observed_state(definition, observed, at);
-        slot.state = state.clone();
-        slot.version.clone_from(&version);
-        slot.pending = None;
-        Some(ProviderDiagnostic {
+        let mut diagnostic = ProviderDiagnostic {
             entry: definition.snapshot_entry(state),
             version,
-        })
+        };
+        if !super::budget::fits(&diagnostic) {
+            // Reject the whole catalogue, never publish a partial Ready value.
+            diagnostic.entry.state = ProviderState::Error {
+                failure: DiscoveryFailure::InvalidCatalogue,
+            };
+        }
+        slot.state = diagnostic.entry.state.clone();
+        slot.version.clone_from(&diagnostic.version);
+        slot.pending = None;
+        Some(diagnostic)
     }
 
     /// Preserve byte-equivalent definitions, invalidating only affected clients.

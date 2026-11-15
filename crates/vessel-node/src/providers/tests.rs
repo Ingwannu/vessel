@@ -285,3 +285,98 @@ fn scope_growth_is_bounded_without_evicting_an_inflight_observation() {
         Err(CacheError::Capacity)
     ));
 }
+
+/// A compact Arc-shared observation can expand drastically on the wire.
+fn shared_thinking_catalogue(model_count: usize) -> Catalogue {
+    use vessel_proto::{
+        ModelId, OptionValueId,
+        providers::{MAX_CHOICE_ID, Model, ModelSpec, ThinkingChoice, ThinkingChoices},
+    };
+    let choices = ThinkingChoices::new(
+        (0..128)
+            .map(|index| ThinkingChoice {
+                id: OptionValueId::new(format!("{index:04}{}", "x".repeat(MAX_CHOICE_ID - 4))),
+                label: "Choice".parse().unwrap(),
+                default: None,
+            })
+            .collect(),
+    )
+    .unwrap();
+    Catalogue {
+        models: Models::new(
+            (0..model_count)
+                .map(|index| {
+                    Model::new(ModelSpec {
+                        id: ModelId::new(format!("model-{index}")),
+                        label: "Model".parse().unwrap(),
+                        default: None,
+                        visibility: None,
+                        thinking: Some(choices.clone()),
+                        default_thinking: None,
+                    })
+                    .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap(),
+        modes: ModeCatalogue::new(vec![], None).unwrap(),
+    }
+}
+
+#[test]
+fn shared_thinking_wire_expansion_cannot_publish_an_oversized_ready_catalogue() {
+    let mut cache = Cache::new(registry());
+    let scope = CatalogueScope::Global;
+    let work = start(&mut cache, "codex", &scope, Refresh::Cached);
+    let completed = cache
+        .complete(
+            &work,
+            Observation::Ready {
+                catalogue: shared_thinking_catalogue(128),
+                version: Some("1.2.3".parse().unwrap()),
+            },
+            time(),
+        )
+        .unwrap();
+    assert!(matches!(
+        completed.entry.state,
+        ProviderState::Error {
+            failure: DiscoveryFailure::InvalidCatalogue
+        }
+    ));
+    assert_eq!(cache.cached(&id("codex"), &scope).unwrap(), completed);
+    assert!(super::budget::fits(&completed));
+}
+
+#[test]
+fn an_oversized_aggregate_refuses_without_losing_individually_readable_diagnostics() {
+    let mut cache = Cache::new(registry());
+    let scope = CatalogueScope::Global;
+    for provider in ["codex", "claude"] {
+        let work = start(&mut cache, provider, &scope, Refresh::Cached);
+        let observed = cache
+            .complete(
+                &work,
+                Observation::Ready {
+                    catalogue: shared_thinking_catalogue(43),
+                    version: None,
+                },
+                time(),
+            )
+            .unwrap();
+        assert!(matches!(observed.entry.state, ProviderState::Ready { .. }));
+        assert!(super::budget::fits(&observed));
+    }
+    assert!(matches!(
+        cache.snapshot(&scope),
+        Err(CacheError::ReplyTooLarge)
+    ));
+    for provider in ["codex", "claude"] {
+        let diagnostic = cache.cached(&id(provider), &scope).unwrap();
+        assert!(matches!(
+            diagnostic.entry.state,
+            ProviderState::Ready { .. }
+        ));
+        assert!(super::budget::fits(&diagnostic));
+    }
+}

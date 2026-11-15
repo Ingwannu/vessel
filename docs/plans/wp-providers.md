@@ -542,3 +542,27 @@ combined provider source has passed. Existing c2c3 strict/RPC34 runs keep their
 immutable source and finish unchanged. The merged head needs narrow union
 qualification before the one approved replacement whole. No number, schema,
 assertion or size allowance is changed by this merge.
+
+## Encoded reader projection budget
+
+[Decision Log]
+- Purpose: a bounded retained catalogue must also be readable through the actual
+  protocol frame. Arc-shared thinking choices repeat for every model in JSON.
+- Constraint: a valid shared observation can therefore expand beyond the16MiB
+  transport frame, even when decoded metadata and model/choice counts are bounded.
+- Alternatives: allocate the full frame then reject, silently truncate choices,
+  or add paging during this metadata increment. The first risks large allocations;
+  the second misreports Ready; paging is a separate future contract.
+- Choice: use serde's existing serializer with a std::io::Write counting sink,
+  bounded at half the canonical vessel_rpc::MAX_FRAME for envelope headroom.
+- Reason: count actual escaping/structural overhead and repeated shared lists
+  without retaining encoded text or another JSON tree/dependency.
+- Effects: oversized individual observations become whole InvalidCatalogue
+  errors before Ready publication. A too-large aggregate returns typed Unavailable
+  with individual diagnostics still usable; no entry/catalogue is silently dropped.
+
+New regressions cover exact escaped-byte boundary, shared-thinking expansion
+refused before Ready, and individually readable catalogues whose aggregate is
+too large. They are drafted, not executed. No wire shape, protocol number or
+existing assertion changes. The main whole is not active; this source will enter
+the planned merged-head narrow check before the approved final whole.

@@ -1,6 +1,7 @@
 //! Provider catalogue/configuration owners (ADR 0081). Method-table rows remain
 //! pending until integrator assignment; trusted host consumers share this cache.
 
+mod budget;
 mod cache;
 mod configuration;
 mod manager;

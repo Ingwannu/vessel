@@ -77,6 +77,10 @@ fn discovery_authority(
 
 fn discovery(error: &ProviderDiscoveryError) -> WireError {
     match error {
+        ProviderDiscoveryError::Cache(ProviderCacheError::ReplyTooLarge) => WireError::new(
+            ErrorCode::Unavailable,
+            "provider snapshot is too large; request individual provider diagnostics",
+        ),
         ProviderDiscoveryError::Cache(ProviderCacheError::UnknownProvider) => {
             WireError::new(ErrorCode::NotFound, "provider is not configured")
         }
