@@ -10,6 +10,30 @@
 use super::{ConnectionContext, Page, Problem, Ticket};
 use vessel_proto::{DeviceId, DeviceSelf, Scope};
 
+/// A bounded, duplicate-free node report; it cannot be constructed unchecked.
+/// Context and ticket admission remain the Page reducer's separate responsibility.
+#[derive(Debug)]
+pub struct ReportedAuthority(DeviceSelf);
+impl ReportedAuthority {
+    fn parse(caller: DeviceSelf) -> Result<Self, Problem> {
+        if valid(&caller) {
+            Ok(Self(caller))
+        } else {
+            Err(Problem::InvalidReply)
+        }
+    }
+    /// Every effective grant, including an explicitly empty set.
+    #[must_use]
+    pub fn scopes(&self) -> &[Scope] {
+        &self.0.scopes
+    }
+    /// Only the node-reported direct caller id, absent for other principals.
+    #[must_use]
+    pub const fn device(&self) -> Option<DeviceId> {
+        self.0.device
+    }
+}
+
 /// Only a successful query establishes this caller's effective grant.
 #[derive(Debug, Default)]
 pub enum Authority {
@@ -19,7 +43,7 @@ pub enum Authority {
     /// Refreshing also hides the previous grant and caller identity.
     Loading(Ticket),
     /// Node-reported effective scopes, including a known empty grant.
-    Known(DeviceSelf),
+    Known(ReportedAuthority),
     /// A failed read establishes neither denial nor permission.
     Failed(Problem),
 }
@@ -28,14 +52,14 @@ impl Authority {
     /// Device listing, invitation and revocation all require Admin.
     #[must_use]
     pub fn may_manage(&self) -> bool {
-        matches!(self, Self::Known(caller) if caller.scopes.contains(&Scope::Admin))
+        matches!(self, Self::Known(caller) if caller.scopes().contains(&Scope::Admin))
     }
 
     /// Owner/agent/delegated callers may report no device id, even as Admin.
     #[must_use]
     pub const fn device(&self) -> Option<DeviceId> {
         match self {
-            Self::Known(caller) => caller.device,
+            Self::Known(caller) => caller.device(),
             Self::Unchecked | Self::Loading(_) | Self::Failed(_) => None,
         }
     }
@@ -45,8 +69,10 @@ impl Authority {
             return false;
         }
         *self = match result {
-            Ok(caller) if valid(&caller) => Self::Known(caller),
-            Ok(_invalid) => Self::Failed(Problem::InvalidReply),
+            Ok(caller) => match ReportedAuthority::parse(caller) {
+                Ok(caller) => Self::Known(caller),
+                Err(why) => Self::Failed(why),
+            },
             Err(why) => Self::Failed(why),
         };
         true
@@ -65,6 +91,12 @@ fn valid(caller: &DeviceSelf) -> bool {
 }
 
 impl Page {
+    /// Read only the current admission's authority; updates require correlation.
+    #[must_use]
+    pub const fn authority(&self) -> &Authority {
+        &self.authority
+    }
+
     /// Refreshing authority invalidates previous management intent immediately.
     /// A stale callback cannot clear a newer admission's surfaces.
     #[must_use]
@@ -74,6 +106,18 @@ impl Page {
         }
         self.clear_owned();
         self.authority = Authority::Loading(ticket);
+        true
+    }
+
+    /// Local inability to start a fresh query also drops previously owned facts.
+    /// Refuse a stale control without clearing a newer admission.
+    #[must_use]
+    pub fn cannot_check_authority(&mut self, context: &ConnectionContext, why: Problem) -> bool {
+        if self.check_context(context).is_err() {
+            return false;
+        }
+        self.clear_owned();
+        self.authority = Authority::Failed(why);
         true
     }
 

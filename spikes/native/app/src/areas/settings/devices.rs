@@ -2,6 +2,7 @@
 //! Pure state and credential policy live in `view::devices`; this area
 //! holds field/focus handles and wires their actions to `link::devices`.
 
+mod authority;
 mod inspection;
 mod invitation;
 mod revoke;
@@ -13,7 +14,7 @@ use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_kit::{DialogState, TextField, Tooltips};
 use vessel_app_link::devices::{Answer, Ask, Outcome};
 use vessel_app_view::devices::{
-    ConnectionContext, IdentityChange, Listing, MachineKey, Page, Target,
+    Authority, ConnectionContext, IdentityChange, Listing, MachineKey, Page, Target,
 };
 use vessel_app_view::settings::Section;
 use vessel_proto::DeviceId;
@@ -75,6 +76,11 @@ impl Shell {
         {
             return Err(vessel_app_view::devices::Problem::TargetChanged);
         }
+        if !matches!(ask, Ask::Authority)
+            && !self.areas.settings.devices.page.authority().may_manage()
+        {
+            return Err(vessel_app_view::devices::Problem::AccessNotConfirmed);
+        }
         self.devices_dispatch(context, ticket, ask)
     }
 
@@ -95,6 +101,7 @@ impl Shell {
             .page
             .check_context(context)
             .is_ok()
+            && self.areas.settings.devices.page.authority().may_manage()
     }
 
     pub(crate) fn devices_retired(
@@ -156,14 +163,17 @@ impl Shell {
         state.page.target(target);
         state.bind(context);
         if matches!(state.page.target, Target::Online(_))
-            && matches!(state.page.listing, Listing::Empty)
+            && matches!(state.page.authority(), Authority::Unchecked)
         {
-            self.devices_list();
+            self.devices_authority();
         }
     }
 
     pub(super) fn devices_list(&mut self) {
         let state = &mut self.areas.settings.devices;
+        if !state.page.authority().may_manage() {
+            return;
+        }
         let Some(context) = state.page.context().cloned() else {
             return;
         };
@@ -191,6 +201,13 @@ impl Shell {
             return;
         }
         match answer.outcome {
+            Outcome::Authority(ticket, result) => {
+                if state.page.authority_answer(&answer.context, ticket, result)
+                    && state.page.authority().may_manage()
+                {
+                    self.devices_list();
+                }
+            }
             Outcome::Listed(ticket, result) => {
                 if !state.page.listed(&answer.context, ticket, result) {
                     return;

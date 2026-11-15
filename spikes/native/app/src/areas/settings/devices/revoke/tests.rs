@@ -34,6 +34,22 @@ fn install(shell: &mut Shell, context: &vessel_app_view::connection::ConnectionC
     shell.devices_fleet();
 }
 
+fn grant(
+    page: &mut vessel_app_view::devices::Page,
+    context: &vessel_app_view::connection::ConnectionContext,
+) {
+    let ticket = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(context, ticket));
+    assert!(page.authority_answer(
+        context,
+        ticket,
+        Ok(vessel_proto::DeviceSelf {
+            device: None,
+            scopes: vec![vessel_proto::Scope::Admin],
+        })
+    ));
+}
+
 #[gpui::test]
 fn connection_events_refuse_old_controls_and_answers_before_another_frame(cx: &mut TestAppContext) {
     cx.update(|cx| {
@@ -67,6 +83,7 @@ fn connection_events_refuse_old_controls_and_answers_before_another_frame(cx: &m
             .page
             .target(Target::Online(first.machine().clone()));
         install(shell, &first);
+        grant(&mut shell.areas.settings.devices.page, &first);
         shell.areas.settings.devices.page.listing = Listing::Ready(vec![device()]);
         shell.devices_choose_revoke(&first, device().id, window, cx);
         let old_intent = shell.areas.settings.devices.page.revoke_intent().unwrap();
@@ -94,7 +111,7 @@ fn connection_events_refuse_old_controls_and_answers_before_another_frame(cx: &m
         let Command::Devices {
             context,
             ticket: request,
-            ask: Ask::List,
+            ask: Ask::Authority,
         } = commands.try_recv().unwrap()
         else {
             panic!("the replacement starts one read, never a stale write");
@@ -102,6 +119,7 @@ fn connection_events_refuse_old_controls_and_answers_before_another_frame(cx: &m
         assert_eq!(context, next);
         assert!(commands.try_recv().is_err());
         refuse_old_answers(shell, cx, &first, request);
+        grant(&mut shell.areas.settings.devices.page, &next);
         shell.areas.settings.devices.page.listing = Listing::Ready(vec![device()]);
         shell.devices_choose_revoke(&next, device().id, window, cx);
         let intent = shell.areas.settings.devices.page.revoke_intent().unwrap();
@@ -137,6 +155,22 @@ fn refuse_old_answers(
     first: &vessel_app_view::connection::ConnectionContext,
     request: vessel_app_view::devices::Ticket,
 ) {
+    shell.areas.settings.devices.page.listing = Listing::Loading(request);
+    shell.devices_answer(
+        Answer {
+            context: first.clone(),
+            outcome: Outcome::Authority(
+                request,
+                Ok(vessel_proto::DeviceSelf {
+                    device: Some(device().id),
+                    scopes: vec![vessel_proto::Scope::Admin],
+                }),
+            ),
+        },
+        cx,
+    );
+    assert!(matches!(shell.areas.settings.devices.page.authority(),
+        vessel_app_view::devices::Authority::Loading(t) if *t == request));
     let invite = shell
         .areas
         .settings

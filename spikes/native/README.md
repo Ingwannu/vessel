@@ -220,7 +220,9 @@ Confirmations additionally carry a distinct, non-reused intent. Requests and
 replies keep the same context; neither an alias lookup nor a late reply can
 retarget an operation. The contract and explicit observation limits are in
 `docs/plans/backend-m12-device-targets.md`. Effective scopes remain
-unknown until Devices queries the existing device.self call; a failed session
+queried through the existing device.self call, correlated by Page Context and
+request ticket. Only a validated reported Admin grant exposes management;
+Admin without session Read remains independent. A failed session
 read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside

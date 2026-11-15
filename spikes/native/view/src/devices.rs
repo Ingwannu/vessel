@@ -13,7 +13,7 @@
 
 mod answers;
 mod authority;
-pub use authority::Authority;
+pub use authority::{Authority, ReportedAuthority};
 mod details;
 mod inspection;
 pub use inspection::{DeviceMetadata, SelectionError};

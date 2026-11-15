@@ -201,3 +201,59 @@ async fn forbidden_session_data_keeps_authenticated_context_and_usable_device_rp
     })
     .await;
 }
+
+#[tokio::test]
+async fn self_query_returns_only_the_original_callers_reported_grant_and_id() {
+    within(async {
+        let home = home();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::controlled("fixture").await;
+        let context = install(&mut state, &mut peer).await;
+        let ticket = Tickets::default().next_ticket().unwrap();
+        phase("admit this caller’s authority read", state.devices(&context, ticket, Ask::Authority)).await;
+        let received = request(peer.requests.as_mut().unwrap()).await;
+        assert!(matches!(received.call, Call::GetDeviceSelf(_)));
+        let reported = vessel_proto::DeviceSelf {
+            device: Some(vessel_proto::DeviceId::random()),
+            scopes: vec![vessel_proto::Scope::Admin],
+        };
+        received.answer.send(vessel_proto::Outcome::Ok(Reply::GetDeviceSelf(reported.clone()))).unwrap();
+        let response = answer(&mut events).await;
+        assert_eq!(response.context, context);
+        assert!(matches!(response.outcome, Outcome::Authority(t, Ok(facts)) if t == ticket && facts == reported));
+        assert_eq!(peer.calls.lock().unwrap().len(), 1);
+    }).await;
+}
+
+#[tokio::test]
+async fn an_unsupported_self_query_returns_a_code_without_a_fallback_grant() {
+    within(async {
+        let home = home();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::connect("older-behavior").await;
+        let context = install(&mut state, &mut peer).await;
+        let ticket = Tickets::default().next_ticket().unwrap();
+        phase("read unsupported authority", state.devices(&context, ticket, Ask::Authority)).await;
+        let response = answer(&mut events).await;
+        assert_eq!(response.context, context);
+        assert!(matches!(response.outcome, Outcome::Authority(t, Err(Problem::Refused(ErrorCode::Unsupported))) if t == ticket));
+        assert_eq!(peer.calls.lock().unwrap().len(), 1);
+    }).await;
+}
+
+#[tokio::test]
+async fn retired_authority_reads_cannot_send_to_or_grant_a_replacement_connection() {
+    within(async {
+        let home = home();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::controlled("fixture").await;
+        let context = install(&mut state, &mut peer).await;
+        let ticket = Tickets::default().next_ticket().unwrap();
+        phase("queue authority before retirement", state.devices(&context, ticket, Ask::Authority)).await;
+        state.clients["fixture"].retire();
+        let response = answer(&mut events).await;
+        assert_eq!(response.context, context);
+        assert!(matches!(response.outcome, Outcome::Authority(t, Err(Problem::TargetChanged)) if t == ticket));
+        assert!(peer.calls.lock().unwrap().is_empty());
+    }).await;
+}

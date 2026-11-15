@@ -17,6 +17,8 @@ use vessel_proto::{DeviceId, DeviceInfo};
 /// What the Devices page asks a node.
 #[derive(Debug)]
 pub enum Ask {
+    /// Inspect only this admitted caller’s effective grant and optional id.
+    Authority,
     /// List all devices, including revoked ones.
     List,
     /// Make a single-use invitation using the page's ten-minute lifetime.
@@ -34,6 +36,8 @@ pub enum Ask {
 /// A response tagged with the outstanding page request's identity.
 #[derive(Debug)]
 pub enum Outcome {
+    /// Facts of this exact authenticated caller, never a guessed default grant.
+    Authority(Ticket, Result<vessel_proto::DeviceSelf, Problem>),
     /// The current devices.
     Listed(Ticket, Result<Vec<DeviceInfo>, Problem>),
     /// A credential, initially masked by its view model.
@@ -54,6 +58,7 @@ pub struct Answer {
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy)]
 enum Kind {
+    Authority,
     List,
     Invite,
     Revoke,
@@ -62,6 +67,7 @@ enum Kind {
 impl Kind {
     fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
         match self {
+            Self::Authority => Outcome::Authority(ticket, Err(why)),
             Self::List => Outcome::Listed(ticket, Err(why)),
             Self::Invite => Outcome::Invited(ticket, Err(why)),
             Self::Revoke => Outcome::Revoked(ticket, Err(why)),
@@ -73,6 +79,7 @@ impl Ask {
     #[cfg(not(target_arch = "wasm32"))]
     fn kind(&self) -> Kind {
         match self {
+            Self::Authority => Kind::Authority,
             Self::List => Kind::List,
             Self::Invite { .. } => Kind::Invite,
             Self::Revoke { .. } => Kind::Revoke,
@@ -82,6 +89,7 @@ impl Ask {
     #[must_use]
     pub fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
         match self {
+            Self::Authority => Outcome::Authority(ticket, Err(why)),
             Self::List => Outcome::Listed(ticket, Err(why)),
             Self::Invite { .. } => Outcome::Invited(ticket, Err(why)),
             Self::Revoke { .. } => Outcome::Revoked(ticket, Err(why)),
@@ -224,6 +232,13 @@ async fn call(
     ask: Ask,
 ) -> Outcome {
     match ask {
+        Ask::Authority => Outcome::Authority(
+            ticket,
+            client
+                .call(vessel_proto::GetDeviceSelf {})
+                .await
+                .map_err(selected_problem),
+        ),
         Ask::List => Outcome::Listed(
             ticket,
             client

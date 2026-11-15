@@ -38,7 +38,7 @@ impl std::fmt::Display for RevokeIntent {
 pub struct Page {
     identity: DeviceIdentity,
     /// This admitted caller's explicitly reported effective grant.
-    pub authority: super::Authority,
+    pub(super) authority: super::Authority,
     // A selected public record, never an invitation or a credential. Kept
     // while a read is pending; a successful list reconciles it by id.
     pub(super) inspection: Option<vessel_proto::DeviceInfo>,
@@ -100,7 +100,10 @@ impl Page {
         intent: RevokeIntent,
         request: Ticket,
     ) -> Option<vessel_proto::DeviceId> {
-        if self.check_context(context).is_err() || self.revoking.intent() != Some(intent) {
+        if self.check_context(context).is_err()
+            || !self.authority.may_manage()
+            || self.revoking.intent() != Some(intent)
+        {
             return None;
         }
         self.revoking.confirm(context, intent, request)

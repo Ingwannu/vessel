@@ -179,3 +179,36 @@ Devices will consume it rather than make a parallel validity mechanism;
 matching pending work must settle honestly even if no newer snapshot arrived,
 and an older binding cannot retire its successor. Before-effect/post-await
 checks remain required, with no network/filesystem atomicity or replay claim.
+
+
+## Authority adapter and screen source checkpoint
+
+Exact47cd76fd pure View device tests passed52/0/0 after View Clippy0;
+these remain prior-source evidence, not a result for the following wiring.
+The gated dd13ce37 line is merged, preserving the shared producer/lock.
+
+The device adapter adds a correlated self query through the same bounded
+Hub and SelectedConnection.call. Page-owned authority now has a private,
+validated report wrapper and a read-only accessor; a malformed scope set
+cannot be constructed as a known report by an app caller. Refresh clears
+all old management facts/intent, including an actual revealed synthetic
+invitation. The screen asks for authority first, hides management for
+unknown/non-admin grants, and uses only the reported caller DeviceId.
+An Admin grant without session Read remains usable; a failed session read
+never proves a scope. Existing controls recheck context and reported Admin
+at dispatch, choice and confirmation. Failure/retry text is whole Fluent
+copy in EN/KO, tested for every closed code and local reason.
+
+New framed tests cover exact caller facts, Unsupported without a fallback
+grant, and retired-before-poll self requests. The area callback regression
+covers Admin without Read, refresh and removal of prior management intent.
+These new source cases are not yet compiled or passed. The requested next
+narrow suite compiles/tests View, Link and App; final package gate/captures,
+actual authority flow and permission changes remain unverified.
+
+The already documented queued-delivery gap remains open: these replies
+still carry Context/ticket only. W12 owns the staged canonical weak guard;
+this checkpoint neither fabricates that guard nor claims queue/credential
+installation safety. No new kit control, resolver, SDK or dependency is added.
+Dialog actual-close focus adoption and pairing/book partial-outcome wiring
+remain final-package work, separately from this authority checkpoint.

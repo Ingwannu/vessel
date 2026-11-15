@@ -134,3 +134,58 @@ fn duplicate_or_overlong_facts_are_refused_instead_of_truncated_to_admin() {
     answer(&mut page, &context, report(Scope::ALL.to_vec(), None));
     assert!(page.authority.may_manage());
 }
+
+#[test]
+fn local_failure_clears_reported_authority_but_a_stale_control_cannot_clear_newer_facts() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let old = admitted(&mut epochs, node);
+    let current = admitted(&mut epochs, node);
+    let mut page = selected(&current);
+    answer(
+        &mut page,
+        &current,
+        report(vec![Scope::Admin], Some(DeviceId::random())),
+    );
+    assert!(!page.cannot_check_authority(&old, Problem::Exhausted));
+    assert!(page.authority.may_manage());
+    assert!(page.cannot_check_authority(&current, Problem::Exhausted));
+    assert!(matches!(
+        page.authority,
+        Authority::Failed(Problem::Exhausted)
+    ));
+    assert_eq!(page.authority.device(), None);
+    assert!(!page.authority.may_manage());
+}
+
+#[test]
+fn even_a_retained_confirmation_cannot_use_a_now_unconfirmed_management_grant() {
+    let mut epochs = ConnectionEpochs::default();
+    let context = admitted(&mut epochs, NodeId::random());
+    let mut page = selected(&context);
+    answer(&mut page, &context, report(vec![Scope::Admin], None));
+    let id = DeviceId::random();
+    page.listing = crate::devices::Listing::Ready(vec![vessel_proto::DeviceInfo {
+        id,
+        label: "fixture".into(),
+        created_at: chrono::DateTime::UNIX_EPOCH,
+        last_seen: None,
+        scopes: vec![Scope::Admin],
+        revoked_at: None,
+    }]);
+    page.choose_bound(&context, id).unwrap();
+    let intent = page.revoke_intent().unwrap();
+    // Deliberately retain the old confirmation: the effect guard must stand
+    // independently of the ordinary refresh reducer's eager cleanup.
+    page.authority =
+        Authority::Known(ReportedAuthority::parse(report(vec![Scope::Read], None)).unwrap());
+    let ticket = page.tickets.next_ticket().unwrap();
+    assert_eq!(page.confirm_revoke(&context, intent, ticket), None);
+    assert_eq!(
+        page.choose_bound(&context, id),
+        Err(crate::devices::SelectionError::AccessNotConfirmed)
+    );
+    assert_eq!(page.revoke_intent(), Some(intent));
+    page.authority = Authority::Unchecked;
+    assert_eq!(page.confirm_revoke(&context, intent, ticket), None);
+}

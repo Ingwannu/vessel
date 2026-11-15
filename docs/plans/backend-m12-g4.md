@@ -745,3 +745,20 @@ The final E2 package still owes device.self permission presentation, pairing
 parity, integrated captures and its whole gate; no historic normal Devices
 result is reused as authority/alias proof. Shared dialog ReturnFocus is
 separately source/narrow reviewed at11fba709, not this actor's approval.
+
+
+### Current E2 authority checkpoint
+
+The shared preflight range074ade16..95c256bc received bounded V1 source and
+Link narrow acceptance and was integrated by the lead; its historical
+limits remain recorded separately. The gated dd13ce37 line is now merged.
+Exact47cd76fd pure View devices tests passed52/0/0 and View Clippy0, with
+actual View compilation; this is prior-source evidence only.
+
+The next authority RPC/screen source is described in `wp-e2.md`: explicit
+self query, validated private report, whole localized failures, independent
+Admin without Read, current-device id and management guards. Its changed
+source still needs the requested narrow checks; queued DeliveryGuard adoption,
+actual-close focus lifecycle, pairing/book partial outcomes, final captures
+and the whole E2 package remain unverified. No old normal-flow screenshot
+or shared producer pass is relabelled authority/UI evidence.
