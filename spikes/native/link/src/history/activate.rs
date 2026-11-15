@@ -73,22 +73,6 @@ fn same_account(
     implicit(expected) && implicit(actual)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn canonical_default_and_explicit_aliases_match_but_other_accounts_do_not() {
-        let harness = HarnessKind::ClaudeCode.into();
-        let canonical = "claude".parse().unwrap();
-        let alias = "claude-code".parse().unwrap();
-        let other = "work-account".parse().unwrap();
-        assert!(same_account(&harness, None, Some(&canonical)));
-        assert!(same_account(&harness, Some(&alias), Some(&canonical)));
-        assert!(!same_account(&harness, None, Some(&other)));
-        assert!(!same_account(&harness, Some(&other), Some(&canonical)));
-    }
-}
-
 /// A mismatched write receipt is uncertain: creation may already have committed.
 pub(super) fn created(info: &SessionInfo, scope: &Scope, entry: &Entry) -> Result<(), Problem> {
     if info.spec.harness != scope.harness
@@ -107,4 +91,20 @@ pub(super) fn created(info: &SessionInfo, scope: &Scope, entry: &Entry) -> Resul
         return Err(Problem::Uncertain);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn canonical_default_and_explicit_aliases_match_but_other_accounts_do_not() {
+        let harness = HarnessKind::ClaudeCode.into();
+        let canonical = "claude".parse().unwrap();
+        let alias = "claude-code".parse().unwrap();
+        let other = "work-account".parse().unwrap();
+        assert!(same_account(&harness, None, Some(&canonical)));
+        assert!(same_account(&harness, Some(&alias), Some(&canonical)));
+        assert!(!same_account(&harness, None, Some(&other)));
+        assert!(!same_account(&harness, Some(&other), Some(&canonical)));
+    }
 }
