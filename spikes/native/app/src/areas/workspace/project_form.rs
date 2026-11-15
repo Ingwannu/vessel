@@ -4,10 +4,12 @@
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, FluentBuilder as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    Context, Div, ElementId, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
+use vessel_app_kit::{
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind,
+};
 use vessel_app_link::workspace::{Ask, Form, ProjectChange};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::problem::Problem;
@@ -204,7 +206,13 @@ pub(super) fn add_form(
     let target = name
         .filter(|_| !folder.is_empty())
         .map(|name| (folder, name));
-    let ready = state.actions.pending().is_none()
+    let bound = state
+        .form_host
+        .as_ref()
+        .zip(state.form_node)
+        .is_some_and(|(host, node)| shell.project_node(host.as_str()) == Some(node));
+    let ready = bound
+        && state.actions.pending().is_none()
         && !folder.is_empty()
         && (form != AddForm::Clone || name.is_some());
     let mut card = div()
@@ -242,6 +250,27 @@ pub(super) fn add_form(
                 .child(error.clone()),
         );
     }
+    if !bound {
+        card = card.child(
+            div()
+                .type_(Type::Meta)
+                .child(shell.words.projects().host_unavailable().to_owned()),
+        );
+    }
+    let mut submit = button_with_kind(
+        "add-submit",
+        verb,
+        ButtonKind::Primary,
+        if ready {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
+        },
+        tokens,
+    );
+    if ready {
+        submit = submit.on_click(cx.listener(|this, _event, _window, cx| this.submit_add(cx)));
+    }
     card.child(
         div()
             .flex()
@@ -260,11 +289,7 @@ pub(super) fn add_form(
                     },
                 )),
             )
-            .child(
-                button("add-submit", verb, true, tokens)
-                    .when(!ready, |button| button.opacity(0.5))
-                    .on_click(cx.listener(|this, _event, _window, cx| this.submit_add(cx))),
-            ),
+            .child(submit),
     )
 }
 
