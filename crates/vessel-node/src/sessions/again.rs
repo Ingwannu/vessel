@@ -266,6 +266,7 @@ fn continued(ended: EndedSession) -> Ended {
         queue,
         usage,
         attention,
+        moved_through,
     } = ended;
     let choices = choices.unwrap_or_else(|| info.spec.mode.options().to_vec());
     Ended {
@@ -274,5 +275,6 @@ fn continued(ended: EndedSession) -> Ended {
         queue,
         usage,
         attention,
+        moved_through,
     }
 }

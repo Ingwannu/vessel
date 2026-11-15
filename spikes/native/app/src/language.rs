@@ -82,6 +82,9 @@ impl Shell {
             refresh(self, window, cx);
         }
         crate::areas::pair::translate_outcomes(self);
+        self.updates.translate(self.words, &mut self.notice);
+        self.translate_rewind_notice();
+        self.translate_fork_words();
         self.areas
             .conversation
             .list

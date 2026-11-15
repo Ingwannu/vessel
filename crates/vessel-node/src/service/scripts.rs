@@ -191,7 +191,10 @@ impl NodeService {
             info,
             spec,
             leftover: Leftover(leftover),
-            service: matches!(plan.entry.kind, vessel_proto::scripts::ScriptKind::Service),
+            service: matches!(
+                plan.entry.kind(),
+                vessel_proto::scripts::ScriptKind::Service
+            ),
             approved: move || workspaces.is_approved(project, &digest),
             scrollback: runner.config.scrollback,
             shutdown: runner.shutdown.clone(),

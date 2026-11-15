@@ -426,7 +426,12 @@ mod tests {
             .into_call(),
         ];
         for call in calls {
-            assert_eq!(call.method().scope(), Scope::Read);
+            assert_eq!(
+                call.method()
+                    .scope()
+                    .expect("legacy method requires a scope"),
+                Scope::Read
+            );
             assert_eq!(call.since().get(), 7);
             assert!(call.method().forwardable());
             let json = serde_json::to_string(&call).unwrap();

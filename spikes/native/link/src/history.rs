@@ -4,7 +4,7 @@
 pub use vessel_app_view::history::{Ask, Reply};
 
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::history::{Batch, Outcome, Problem};
+use vessel_app_view::history::{Batch, Cursor, Entry, Listed, Outcome, Problem};
 
 #[cfg(not(target_arch = "wasm32"))]
 const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
@@ -34,9 +34,27 @@ impl crate::State {
 #[cfg(not(target_arch = "wasm32"))]
 async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
     match ask {
-        // Central integration supplies the existing agent.history contract.
-        // Until then the typed boundary refuses rather than inventing a method.
-        Ask::List { .. } => ask.refused(Problem::Unsupported),
+        Ask::List {
+            scope,
+            ticket,
+            cursor,
+        } => {
+            let request = vessel_proto::history::GetAgentHistory {
+                harness: scope.harness.clone(),
+                profile: scope.profile.clone(),
+                cwd: scope.cwd.clone(),
+                cursor: cursor.map(|cursor| cursor.as_str().to_owned()),
+            };
+            let result = tokio::time::timeout(READ_DEADLINE, client.call(request))
+                .await
+                .map_or(Err(Problem::Timeout), |result| result.map_err(read_problem))
+                .and_then(|page| project(client.node().id, page));
+            Reply::Listed {
+                scope,
+                ticket,
+                result,
+            }
+        }
         Ask::Profiles { scope, ticket } => {
             let result = tokio::time::timeout(
                 READ_DEADLINE,
@@ -54,6 +72,33 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
         }
         Ask::Import(batch) => import(client, batch).await,
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn project(
+    node: vessel_proto::NodeId,
+    page: vessel_proto::history::AgentHistoryPage,
+) -> Result<Listed, Problem> {
+    if page.conversations.len() > vessel_proto::history::AgentHistoryPage::MAX_ENTRIES {
+        return Err(Problem::InvalidReply);
+    }
+    let next = page.next.map(Cursor::parse).transpose()?;
+    let entries = page
+        .conversations
+        .into_iter()
+        .map(|entry| Entry {
+            id: entry.harness_session,
+            cwd: entry.cwd,
+            title: entry.title,
+            updated_at: entry.updated_at,
+            in_vessel: entry.in_vessel,
+        })
+        .collect();
+    Ok(Listed {
+        entries,
+        next,
+        node,
+    })
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -88,7 +133,8 @@ fn read_problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        vessel_client::CallError::NotInProtocol { .. } => Problem::Unsupported,
+        vessel_client::CallError::NotInProtocol { .. }
+        | vessel_client::CallError::UnassignedProtocol { .. } => Problem::Unsupported,
         vessel_client::CallError::UnexpectedReply(_)
         | vessel_client::CallError::RequestIdsExhausted => Problem::InvalidReply,
     }
@@ -101,7 +147,8 @@ fn create_problem(error: vessel_client::CallError) -> Problem {
             Problem::Uncertain
         }
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        vessel_client::CallError::NotInProtocol { .. } => Problem::Unsupported,
+        vessel_client::CallError::NotInProtocol { .. }
+        | vessel_client::CallError::UnassignedProtocol { .. } => Problem::Unsupported,
         vessel_client::CallError::RequestIdsExhausted => Problem::Exhausted,
     }
 }

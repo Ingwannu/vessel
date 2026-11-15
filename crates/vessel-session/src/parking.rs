@@ -28,6 +28,15 @@
 //!   what needs the live agent itself is answered from what was kept.
 //! - Cost: a parked session keeps its actor, its record ring and its last
 //!   options; its first prompt waits for the agent's handshake and replay.
+//! - Who follows it does not matter (2026-11-14, ADR 0038's amendment):
+//!   Paseo, the owner's reference, collects an idle runtime whether or not
+//!   a client watches it (its eligibility is turns, permissions, queued
+//!   deliveries and running children). A follower loses nothing: the
+//!   session stays live, its subscription goes on through `parked` and
+//!   `woken`, and its next prompt wakes the agent. The earlier rule (no
+//!   live follower, agent-orchestrator's view lease) let any client that
+//!   kept a subscription open, or a connection the node never saw close,
+//!   hold every agent it had shown.
 
 use std::pin::Pin;
 use std::time::Duration;
@@ -181,15 +190,14 @@ impl StructuredActor {
         None
     }
 
-    /// The idle timer fired: park if nothing happened for the whole period,
-    /// nothing prevents it and nobody follows the session live (agent-
-    /// orchestrator's view lease: a person watching it, `vessel attach`,
-    /// an agent's `wait_turn`).
+    /// The idle timer fired: park if nothing happened for the whole period
+    /// and nothing prevents it (a turn, an open question or permission, a
+    /// moving queue). Followers do not: they follow on through the park.
     pub(crate) async fn idle(&mut self) {
         if !self.parking.idle_long_enough() {
             return;
         }
-        if self.refusal().is_some() || self.life.out.followers() > 0 {
+        if self.refusal().is_some() {
             self.parking.rearm();
             return;
         }

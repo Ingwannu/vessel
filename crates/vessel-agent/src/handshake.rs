@@ -84,6 +84,17 @@ pub struct AgentSetup {
     /// False unless someone watches the session (the node's choice: a
     /// session the owner or a device created); a probe never asks.
     pub questions: bool,
+    /// The node's own owner-only directory for a launch's private files
+    /// (`DataDir::prepare_mcp_dir`: created owner-only and emptied of a
+    /// previous run's files at every node start, ADR 0012). A direct
+    /// driver whose agent takes something only from a file at launch
+    /// (Claude Code's `--mcp-config`) writes it there, through the
+    /// harness's own writer (`vessel_harness::McpFile`), and nowhere else;
+    /// `None` means nothing may be written, and such a launch that needs a
+    /// file is refused before its agent starts, never started without it.
+    /// A session's launches carry it; a probe and a listing do not. The
+    /// ACP driver never reads it (its servers go over ACP).
+    pub private_dir: Option<PathBuf>,
 }
 
 /// A conversation to fork, and where (protocol 14, ADR 0052).

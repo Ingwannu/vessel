@@ -20,9 +20,10 @@ impl Driver {
             Command::Prompt {
                 content,
                 attachments,
+                context: prefix,
                 reply,
             } => {
-                let result = self.prompt(cx, content, attachments).await;
+                let result = self.prompt(cx, content, attachments, prefix).await;
                 answer(reply, result);
             }
             Command::CancelTurn { reply } => {
@@ -99,6 +100,7 @@ impl Driver {
         cx: &ConnectionTo<Agent>,
         content: Vec<ContentBlock>,
         mut attachments: Attachments,
+        prefix: Option<crate::PromptContext>,
     ) -> Result<(), InputError> {
         if self.turn {
             return Err(InputError::TurnInProgress);
@@ -106,15 +108,30 @@ impl Driver {
         let Some(session) = &self.session else {
             return Err(InputError::Closed);
         };
-        let blocks = content
-            .iter()
-            .cloned()
+        let has_prefix = prefix.is_some();
+        let supplemental = prefix.map(|context| ContentBlock::Text {
+            text: context.as_str().to_owned(),
+        });
+        let blocks = supplemental
+            .into_iter()
+            .chain(content.iter().cloned())
             .map(|block| mapper::prompt_block(block, &mut attachments, self.abilities))
             .collect::<Result<Vec<_>, _>>()?;
-        let sent = cx.send_request(acp::PromptRequest::new(session.clone(), blocks));
+        let request = acp::PromptRequest::new(session.clone(), blocks);
+        // Preparing reserves the actual request id without publishing. The
+        // bounded side request is cloned only here so its complete JSON-RPC
+        // envelope can be measured before any bytes reach the provider.
+        let prepared = if has_prefix {
+            let prepared = cx.prepare_request(request.clone());
+            crate::context::check_request(&request, prepared.id())?;
+            prepared
+        } else {
+            cx.prepare_request(request)
+        };
+        let sent = prepared.block_task();
         let inbound = self.inbound.clone();
         let spawned = cx.spawn(async move {
-            let result = sent.block_task().await;
+            let result = sent.await;
             forward(&inbound, Inbound::TurnDone(result)).await;
             Ok(())
         });

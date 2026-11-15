@@ -22,6 +22,11 @@
 //!   and a sender waits for room, so a burst of records slows the stream,
 //!   never grows memory.
 
+mod command;
+#[cfg(not(target_arch = "wasm32"))]
+mod dispatch;
+mod error;
+mod event;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
@@ -29,6 +34,8 @@ mod nodes;
 // none yet (no files).
 #[cfg(not(target_arch = "wasm32"))]
 mod offers;
+#[cfg(not(target_arch = "wasm32"))]
+mod options;
 // The composers' drafts kept between runs (track P's row e).
 #[cfg(not(target_arch = "wasm32"))]
 pub mod drafts;
@@ -39,6 +46,8 @@ pub mod attachments;
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
+#[cfg(not(target_arch = "wasm32"))]
+mod refresh;
 #[cfg(not(target_arch = "wasm32"))]
 mod sending;
 mod session;
@@ -64,21 +73,16 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 #[cfg(not(target_arch = "wasm32"))]
-use chrono::Utc;
-#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::{Agent, Machine, NodeVersion, Reach};
-use vessel_app_view::{Card, Fleet};
+use vessel_app_view::Agent;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
-use vessel_proto::{
-    AgentCommand, EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId,
-    SessionId, SessionOption,
-};
-#[cfg(not(target_arch = "wasm32"))]
-use vessel_proto::{Delivery, PermissionOutcome, ProtocolVersion, SessionInput};
+use vessel_proto::SessionId;
 
+pub use command::Command;
+pub use error::LinkError;
+pub use event::{Event, KeptLists};
 #[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
 pub use prefs::{Kept, Prefs, UpdateNotes};
@@ -153,340 +157,6 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
     })
 }
 
-/// Something the link could not do.
-#[derive(Debug, Clone, thiserror::Error)]
-pub enum LinkError {
-    /// No home or configuration directory.
-    #[error("no configuration directory")]
-    NoHome,
-    /// The book could not be read or written.
-    #[error("the node book: {0}")]
-    Book(String),
-    /// The book does not read: where and what, never its text (it may
-    /// hold a token). The app says it in its own words
-    /// ([`Event::BookUnreadable`]).
-    #[error("the node book {} does not read", .0.path)]
-    BookFault(vessel_app_view::files::FileFault),
-    /// A websocket node without a token file.
-    #[error("no token file in the book for this node")]
-    NoToken,
-    /// The token file does not hold a token.
-    #[error("the token: {0}")]
-    Token(String),
-    /// A paired node without a credential file.
-    #[error("no device credential in the book for this node")]
-    NoCredential,
-    /// The credential could not be read or written.
-    #[error("the device credential: {0}")]
-    Credential(String),
-    /// Reading a file failed.
-    #[error("reading a file: {0}")]
-    Io(String),
-    /// The node could not be reached.
-    #[error("{0}")]
-    Connect(String),
-    /// An SSH node (not in this build).
-    #[error("SSH routes are not in this build yet; pair the node instead")]
-    SshNotYet,
-    /// The name is not a valid machine name.
-    #[error("the name: {0}")]
-    Name(String),
-    /// A call to the node failed.
-    #[error("{0}")]
-    Call(String),
-    /// The machine is not connected.
-    #[error("{0} is not connected")]
-    NotConnected(String),
-}
-
-/// What a screen asks of the link.
-#[derive(Debug)]
-pub enum Command {
-    /// Scoped history listing and import.
-    History(history::Ask),
-    /// A request for one machine’s Agents settings.
-    Agents {
-        /// Validated book key.
-        machine: agents::MachineKey,
-        /// Correlation ticket.
-        request: vessel_proto::RequestId,
-        /// The operation.
-        ask: agents::Ask,
-    },
-    /// Read or edit the saved machine book.
-    Machines(machines::Ask),
-    /// Read the book again and connect to every node in it.
-    Reload,
-    /// Ask about a machine's paired devices.
-    Devices {
-        /// Its name in the book.
-        machine: vessel_app_view::devices::MachineKey,
-        /// The page request identity.
-        ticket: vessel_app_view::devices::Ticket,
-        /// The device operation.
-        ask: devices::Ask,
-    },
-    /// Read or change a machine's own settings.
-    NodeSettings(node_settings::Ask),
-    /// Read-only sharing status for one selected machine.
-    Sync {
-        /// Its parsed node-book identity.
-        machine: vessel_app_view::devices::MachineKey,
-        /// Correlation identity reserved by the page.
-        ticket: vessel_app_view::devices::Ticket,
-    },
-    /// Show a session's conversation: its records from the start, then as
-    /// they arrive. Replaces the session followed before.
-    Open {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-    },
-    /// Send a prompt to a session (queued when a turn runs).
-    Prompt {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-        /// What was typed.
-        text: String,
-        /// What it does while a turn runs (Settings' default send).
-        delivery: Delivery,
-    },
-    /// Start a conversation: create the session, send its first prompt,
-    /// and report it [`Event::Started`].
-    Start {
-        /// The machine.
-        machine: String,
-        /// The agent.
-        harness: HarnessRef,
-        /// The folder on the machine; `None` for its home.
-        folder: Option<String>,
-        /// The first prompt.
-        prompt: String,
-        /// The agent's options to start with (only those that change
-        /// something, in the agent's order).
-        options: Vec<OptionChoice>,
-    },
-    /// Ask what `harness` offers on `machine` before any session of it
-    /// (`harness.options`); answered [`Event::Options`]. Takes seconds the
-    /// first time (the node starts the agent to ask it), so it runs beside
-    /// the other commands.
-    Options {
-        /// The machine.
-        machine: String,
-        /// The agent.
-        harness: HarnessRef,
-    },
-    /// Keep the composers' drafts on this device (written on the blocking
-    /// pool; nothing is answered). A browser keeps none.
-    SaveDrafts(vessel_app_view::composer::drafts::Drafts),
-    /// What a composer's files ask (track P's row c): a file sent, a
-    /// conversation started for them, the prompt that names them.
-    Files(attachments::Files),
-    /// Keep `harness`'s `/` commands, as a session of it on `machine`
-    /// reported them, on this device for the next run (its options' file;
-    /// nothing is answered). A browser keeps none.
-    KeepCommands {
-        /// The machine.
-        machine: String,
-        /// The agent.
-        harness: HarnessRef,
-        /// Its commands, in its order.
-        commands: Vec<AgentCommand>,
-    },
-    /// Start an ended or interrupted session again with its conversation
-    /// (`session.resume`, protocol 10), then send it `text`; answered
-    /// [`Event::Resumed`] or [`Event::ResumeFailed`].
-    Resume {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-        /// What was typed.
-        text: String,
-    },
-    /// Stop the running turn.
-    Stop {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-    },
-    /// Answer a permission the agent asked for.
-    Answer {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-        /// The request.
-        id: PermissionId,
-        /// The answer chosen.
-        option: PermissionOptionId,
-    },
-    /// Remember the person's choices (machine, agent, folders).
-    SavePrefs(Prefs),
-    /// Act on a session: rename, mark, start again, delete, kill, move,
-    /// terminal input (answered by `Event::Acted`).
-    Act {
-        /// The machine.
-        machine: String,
-        /// The session.
-        session: SessionId,
-        /// What to do.
-        act: Act,
-    },
-    /// Pair with a node from a pairing link, as `name` in the book.
-    Pair {
-        /// The decoded link.
-        offer: Offer,
-        /// The machine's name in the book.
-        name: String,
-        /// The person left the name empty (`name` is then a free name the
-        /// app chose): use the node's own name instead when it makes a free
-        /// book name.
-        prefer_node_name: bool,
-    },
-    /// Ask a machine about its projects, worktrees, git or files; answered
-    /// by [`Event::Workspace`] (`workspace`'s module says how).
-    Workspace {
-        /// The machine.
-        machine: String,
-        /// What is asked.
-        ask: workspace::Ask,
-    },
-    /// Search one machine's messages (`session.search`); answered by
-    /// [`Event::Searched`].
-    Search(search::Ask),
-}
-/// What the link reports.
-#[derive(Debug)]
-pub enum Event {
-    /// A keyed history result.
-    History(history::Reply),
-    /// An Agents response, including background install progress.
-    Agents {
-        /// Originating machine.
-        machine: agents::MachineKey,
-        /// Original request ticket.
-        request: vessel_proto::RequestId,
-        /// Facts or typed failure.
-        answer: Result<agents::Answer, agents::AgentsError>,
-    },
-    /// A saved-machine operation completed.
-    Machines(machines::Answer),
-    /// The machines and their sessions, read again.
-    Fleet(Fleet),
-    /// A Devices request answered, with its identity.
-    Devices(devices::Answer),
-    /// Safe, correlated sharing status.
-    Sync(sync::Answer),
-    /// A machine's settings in force, after a read or a change.
-    NodeSettings(node_settings::Answer),
-    /// Records of the session being followed.
-    Records {
-        /// The session.
-        session: SessionId,
-        /// The records, in order.
-        records: Vec<EventRecord>,
-    },
-    /// A session started from the app, to open.
-    Started(Card),
-    /// A step of a composer's file on its way to its session.
-    Upload {
-        /// The session.
-        session: SessionId,
-        /// The file's place in the composer's tray.
-        key: vessel_app_view::composer::tray::ItemKey,
-        /// What happened.
-        step: attachments::Step,
-    },
-    /// A prompt was delivered.
-    Sent {
-        /// The session.
-        session: SessionId,
-    },
-    /// Pairing worked.
-    Paired {
-        /// The machine's name in the book (as the sidebar shows it).
-        node: String,
-        /// How the machine answered, said in words.
-        via: vessel_app_view::Via,
-        /// The address it answered at (a tooltip's detail only).
-        address: String,
-    },
-    /// Pairing failed; the words to show beside the form.
-    PairFailed(vessel_app_view::pairing::PairProblem),
-    /// A session act's answer.
-    Acted(ActAnswer),
-    /// An ended session runs again, and the prompt was sent to it.
-    Resumed {
-        /// The session.
-        session: SessionId,
-    },
-    /// An ended session could not be started again; the node's words.
-    ResumeFailed {
-        /// The session.
-        session: SessionId,
-        /// Why.
-        why: String,
-    },
-    /// What an agent offers, or why the node could not say.
-    Options {
-        /// The machine.
-        machine: String,
-        /// The agent.
-        harness: HarnessRef,
-        /// Its options in its order, or the words of the failure.
-        outcome: Result<Vec<SessionOption>, String>,
-    },
-    /// A machine connected: the lists its agents gave last time, kept on
-    /// this device (newest first), to show until they answer again. Sent
-    /// before the fleet that has the machine online, only when there are
-    /// any.
-    OptionsKept {
-        /// The machine.
-        machine: String,
-        /// Each agent's lists.
-        lists: Vec<KeptLists>,
-    },
-    /// Something failed; the words to show.
-    Failed(String),
-    /// The session's machine is not connected any more (its records
-    /// stopped, or a prompt or input found no connection): said once in the
-    /// session's bar in the app's words; `why`, the transport's own words,
-    /// only in that line's tooltip.
-    SessionLost {
-        /// The session.
-        session: SessionId,
-        /// The transport's words.
-        why: String,
-    },
-    /// The machine list does not read (the app words it, in its language;
-    /// a pairing under way stops with the same words).
-    BookUnreadable(vessel_app_view::files::FileFault),
-    /// A machine answered a workspace ask.
-    Workspace {
-        /// The machine.
-        machine: String,
-        /// The answer, with what was asked.
-        answer: workspace::Answer,
-    },
-    /// A machine answered a search ([`Command::Search`]).
-    Searched(search::Answer),
-}
-/// What an agent on a machine said last time, kept on this device
-/// ([`Event::OptionsKept`]): either half may be unknown.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KeptLists {
-    /// The agent.
-    pub harness: HarnessRef,
-    /// Its options (`harness.options`), when it answered.
-    pub options: Option<Vec<SessionOption>>,
-    /// Its `/` commands, when a session of it reported them.
-    pub commands: Option<Vec<AgentCommand>>,
-}
 #[cfg(not(target_arch = "wasm32"))]
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
@@ -494,6 +164,7 @@ pub struct Link {
     commands: mpsc::Sender<Command>,
     _runtime: tokio::runtime::Runtime,
 }
+
 #[cfg(not(target_arch = "wasm32"))]
 impl Link {
     /// Start the link; `label` is the build's label, sent as this client's
@@ -627,108 +298,6 @@ impl State {
         }
     }
 
-    async fn handle(&mut self, command: Command) {
-        match command {
-            Command::History(ask) => self.history(ask),
-            Command::Reload => self.reload().await,
-            Command::Agents {
-                machine,
-                request,
-                ask,
-            } => {
-                let client = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| connected.client.clone());
-                self.agents
-                    .ask(client, machine, request, ask, self.events.clone())
-                    .await;
-            }
-
-            Command::Machines(ask) => self.machine_book(ask).await,
-            Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
-            Command::NodeSettings(ask) => self.node_settings(ask).await,
-            Command::Devices {
-                machine,
-                ticket,
-                ask,
-            } => self.devices(&machine, ticket, ask).await,
-            Command::Open { machine, session } => self.open(&machine, session),
-            Command::Prompt {
-                machine,
-                session,
-                text,
-                delivery,
-            } => self.prompt(&machine, session, text, delivery).await,
-            Command::Start {
-                machine,
-                harness,
-                folder,
-                prompt,
-                options,
-            } => {
-                self.start(&machine, harness, folder, Some(prompt), options)
-                    .await;
-            }
-            Command::Options { machine, harness } => self.options(machine, harness),
-            Command::KeepCommands {
-                machine,
-                harness,
-                commands,
-            } => self.keep_commands(&machine, harness, commands),
-            Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
-            Command::Files(files) => self.files(files).await,
-            Command::Resume {
-                machine,
-                session,
-                text,
-            } => self.resume(&machine, session, text).await,
-            Command::Stop { machine, session } => {
-                let input = SessionInput::CancelTurn { turn: None };
-                self.input(&machine, session, input).await;
-            }
-            Command::Answer {
-                machine,
-                session,
-                id,
-                option,
-            } => {
-                let input = SessionInput::AnswerPermission {
-                    id,
-                    outcome: PermissionOutcome::Selected { option },
-                };
-                self.input(&machine, session, input).await;
-            }
-            Command::Pair {
-                offer,
-                name,
-                prefer_node_name,
-            } => match nodes::pair(&offer, &name, prefer_node_name).await {
-                Ok((node, via, address)) => {
-                    self.emit(Event::Paired { node, via, address }).await;
-                    self.reload().await;
-                }
-                Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
-                Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
-            },
-            Command::Act {
-                machine,
-                session,
-                act,
-            } => self.act(&machine, session, act),
-            Command::Workspace { machine, ask } => self.workspace(machine, ask),
-            Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => {
-                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-                match saved {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-                }
-            }
-        }
-    }
-
     async fn emit(&self, event: Event) {
         // The receiver is gone only when the app is closing.
         let _closed = self.events.send(event).await;
@@ -740,180 +309,11 @@ impl State {
         self.refresh().await;
     }
 
-    /// List every machine's sessions, connecting to those not connected.
-    async fn refresh(&mut self) {
-        let book = match self.saved_entries().await {
-            Ok(book) => book,
-            Err(vessel_app_view::machine_book::Failure::File(fault)) => {
-                self.emit(Event::BookUnreadable(fault)).await;
-                return;
-            }
-            Err(failure) => {
-                self.emit(Event::Machines(machines::Answer::Read(Err(failure))))
-                    .await;
-                return;
-            }
-        };
-        let mut machines = Vec::with_capacity(book.len());
-        for (name, entry) in book {
-            let name = name.as_str().to_owned();
-            let reach = if let Some(connected) = self.clients.get(&name) {
-                Ok(connected.clone())
-            } else {
-                let reach = self.connect(&entry).await;
-                if let Ok(connected) = &reach {
-                    self.hand_kept(&name, &connected.client).await;
-                }
-                reach
-            };
-            let machine = match reach {
-                Ok(connected) => match connected.client.sessions().await {
-                    Ok(sessions) => {
-                        let machine = Machine {
-                            sessions: sessions
-                                .iter()
-                                .map(|session| Card::from_session(&name, session))
-                                .collect(),
-                            agents: connected.agents.clone(),
-                            protocol: Some(connected.client.protocol()),
-                            version: Some(NodeVersion::new(&connected.client.node().version)),
-                            name: name.clone(),
-                            reach: Reach::Online,
-                        };
-                        let _earlier = self.clients.insert(name, connected);
-                        machine
-                    }
-                    Err(error) => {
-                        // A dropped connection: dial again next time.
-                        let _gone = self.clients.remove(&name);
-                        Machine::unreachable(name, &error.to_string())
-                    }
-                },
-                Err(error) => Machine::unreachable(name, &error.to_string()),
-            };
-            machines.push(machine);
-        }
-        self.emit(Event::Fleet(Fleet {
-            machines,
-            read_at: Some(Utc::now()),
-        }))
-        .await;
-    }
-
-    async fn connect(
-        &self,
-        entry: &vessel_client::book::BookEntry,
-    ) -> Result<Connected, LinkError> {
-        let client = nodes::connect(entry, nodes::client_info(&self.label)).await?;
-        let harnesses = match client.harnesses().await {
-            Ok(harnesses) => harnesses,
-            Err(error) => {
-                tracing::warn!(%error, "could not list the machine's agents");
-                Vec::new()
-            }
-        };
-        // `agent.list` (protocol 11) names every agent the node knows, the
-        // ones not installed too; `harness.list` only the installed.
-        let agents = if client.protocol() >= ProtocolVersion::new(11) {
-            match client.call(vessel_proto::agents::ListAgents {}).await {
-                Ok(known) => Agent::known(&harnesses, &known),
-                Err(error) => {
-                    tracing::warn!(%error, "could not read the node's agent list");
-                    Agent::all(&harnesses)
-                }
-            }
-        } else {
-            Agent::all(&harnesses)
-        };
-        Ok(Connected { client, agents })
-    }
-
-    /// A machine just connected: the lists its agents gave last time, if
-    /// any are kept ([`Event::OptionsKept`]).
-    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
-        let node = &client.node().id;
-        let lists: Vec<KeptLists> = match self.offers.lock() {
-            Ok(store) => store
-                .for_node(node)
-                .into_iter()
-                .filter(|kept| kept.profile.is_none())
-                .map(|kept| KeptLists {
-                    harness: kept.agent.clone(),
-                    options: kept.options.clone(),
-                    commands: kept.commands.clone(),
-                })
-                .collect(),
-            Err(_poisoned) => Vec::new(),
-        };
-        if !lists.is_empty() {
-            self.emit(Event::OptionsKept {
-                machine: machine.to_owned(),
-                lists,
-            })
-            .await;
-        }
-    }
-
-    /// Keep a session's reported commands for `harness` on `machine`'s
-    /// node (by its id, as its options are); a machine not connected has no
-    /// id to keep them under, and they are dropped (its next session
-    /// reports them again).
-    fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
-        let Ok(client) = self.client(machine) else {
-            return;
-        };
-        drop(tokio::spawn(offers::keep_answer(
-            std::sync::Arc::clone(&self.offers),
-            client.node().id,
-            harness,
-            offers::Said::Commands(commands),
-            Utc::now(),
-        )));
-    }
-
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
         self.clients
             .get(machine)
             .map(|connected| &connected.client)
             .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))
-    }
-
-    /// Ask `machine` what `harness` offers, beside the other commands (the
-    /// node may start the agent to answer). A machine not connected is
-    /// answered at once with why.
-    fn options(&self, machine: String, harness: HarnessRef) {
-        let client = self.client(&machine).cloned();
-        let events = self.events.clone();
-        let store = std::sync::Arc::clone(&self.offers);
-        drop(tokio::spawn(async move {
-            let outcome = match client {
-                Ok(client) => {
-                    let answer = client.harness_options(harness.clone(), None).await;
-                    // Kept beside the answer, not before it: the disk
-                    // never delays what the app shows.
-                    if let Ok(offered) = &answer {
-                        drop(tokio::spawn(offers::keep_answer(
-                            store,
-                            client.node().id,
-                            harness.clone(),
-                            offers::Said::Options(offered.options.clone()),
-                            offered.probed_at,
-                        )));
-                    }
-                    answer
-                        .map(|offered| offered.options)
-                        .map_err(|error| error.to_string())
-                }
-                Err(error) => Err(error.to_string()),
-            };
-            let _closed = events
-                .send(Event::Options {
-                    machine,
-                    harness,
-                    outcome,
-                })
-                .await;
-        }));
     }
 
     /// Follow `session` from its first record, replacing the one followed.

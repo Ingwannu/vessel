@@ -124,14 +124,6 @@ impl Ring {
         page
     }
 
-    /// How many follow the session live now (protocol 12: a session
-    /// someone follows is not parked).
-    pub(crate) fn followers(&self) -> usize {
-        self.live
-            .as_ref()
-            .map_or(0, broadcast::Sender::receiver_count)
-    }
-
     /// End the live stream: current and future receivers see `Closed` after
     /// the records already sent.
     pub(crate) fn close(&mut self) {

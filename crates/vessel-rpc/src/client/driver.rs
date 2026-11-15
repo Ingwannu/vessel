@@ -43,7 +43,8 @@ pub(super) enum Command {
     /// Send a call; answer `waiter`.
     Call {
         id: RequestId,
-        call: Call,
+        // Keep every queue slot small even as session creation metadata grows.
+        call: Box<Call>,
         waiter: Waiter,
     },
     /// The caller stopped waiting for this call.
@@ -51,6 +52,17 @@ pub(super) enum Command {
     /// Fire-and-forget `session.unsubscribe` (a subscription was dropped or
     /// fell behind). Its answer is ignored.
     Unsubscribe(SubscriptionId),
+}
+
+impl Command {
+    /// Large request payloads are boxed; cancellation and unsubscribe stay small.
+    pub(super) fn call(id: RequestId, call: Call, waiter: Waiter) -> Self {
+        Self::Call {
+            id,
+            call: Box::new(call),
+            waiter,
+        }
+    }
 }
 
 /// Who is waiting for a call's answer.
@@ -186,7 +198,7 @@ where
                 if register.send(Registration::Wait(id, waiter)).await.is_err() {
                     break;
                 }
-                ClientFrame::Request { id, call }
+                ClientFrame::Request { id, call: *call }
             }
             Command::Cancel(id) => {
                 if register.send(Registration::Forget(id)).await.is_err() {

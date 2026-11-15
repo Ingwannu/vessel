@@ -19,6 +19,7 @@ import { ProjectsSection } from "../features/projects/projects-section";
 import { ModelsSection } from "../features/settings/models";
 import { NotificationsSection } from "../features/settings/notifications-section";
 import { ShortcutsSection } from "../features/settings/shortcuts-section";
+import { UsageSection } from "../features/usage/usage-section";
 import { SyncSection } from "../features/settings/sync-section";
 
 export function SettingsPage(): ReactElement | null {
@@ -56,6 +57,8 @@ export function SettingsPage(): ReactElement | null {
       return <AgentsSection machine={place.machine} agent={place.agent} />;
     case "models":
       return <ModelsSection machine={place.machine} />;
+    case "usage":
+      return <UsageSection machine={place.machine} />;
     case "machines":
       return <MachinesSection machine={place.machine} />;
     case "projects":

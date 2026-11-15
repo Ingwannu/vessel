@@ -27,7 +27,7 @@ pub struct Cursor(String);
 
 impl Cursor {
     /// The node's history cursor byte bound (ADR 0053).
-    pub const MAX_BYTES: usize = 4096;
+    pub const MAX_BYTES: usize = vessel_proto::history::GetAgentHistory::MAX_CURSOR_BYTES;
     /// Decode the node's opaque cursor without letting an unbounded reply persist.
     /// # Errors
     /// Refuses an overlong cursor.

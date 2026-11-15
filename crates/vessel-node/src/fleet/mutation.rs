@@ -1,14 +1,34 @@
 //! Non-queueing membership admission shared with the offline CLI. Its
 //! lock is separate from materialization, so network pairing never holds
 //! the apply lock. Dropping the reservation releases both admissions.
+//!
+//! [Decision Log]
+//! - Purpose: end OS membership exclusion and RPC admission together.
+//! - Constraint: on Unix, a concurrent fork retains the same open file
+//!   description until exec; closing only the parent's descriptor can leave
+//!   its lock held after the semaphore permit has been returned.
+//! - Alternatives: timing retries would weaken non-queueing admission and
+//!   couple a completed mutation to an unrelated child's scheduling.
+//! - Choice: explicitly unlock in Drop before the file or permit is destroyed.
+//! - Why: guard ownership, rather than the last duplicated descriptor, defines
+//!   when membership work has ended.
+//! - Cost: one unlock syscall per reservation; warn if it cannot finish.
 use super::files::{self, FileError, FleetFiles};
 use std::fs::{File, OpenOptions, TryLockError};
 use tokio::sync::OwnedSemaphorePermit;
 
 #[derive(Debug)]
 pub(super) struct Reservation {
-    _lock: File,
+    lock: File,
     _permit: Option<OwnedSemaphorePermit>,
+}
+
+impl Drop for Reservation {
+    fn drop(&mut self) {
+        if let Err(error) = self.lock.unlock() {
+            tracing::warn!(reason = "membership_unlock", %error, "fleet membership admission could not be released");
+        }
+    }
 }
 
 impl Reservation {
@@ -41,7 +61,7 @@ impl Reservation {
             )
         })?;
         Ok(Self {
-            _lock: lock,
+            lock,
             _permit: permit,
         })
     }
@@ -51,6 +71,23 @@ impl Reservation {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn dropping_admission_unlocks_even_with_a_duplicated_file_description() {
+        let temp = tempfile::tempdir().unwrap();
+        let files = FleetFiles::new(&vessel_store::DataDir::new(temp.path().join("data")));
+        let slots = Arc::new(tokio::sync::Semaphore::new(1));
+        let permit = Arc::clone(&slots).try_acquire_owned().unwrap();
+        let reservation = Reservation::take(&files, Some(permit)).unwrap();
+        // A deterministic duplicate models the open file description a fork
+        // retains before exec, without introducing a second timing race.
+        let inherited = reservation.lock.try_clone().unwrap();
+        drop(reservation);
+        let permit = Arc::clone(&slots).try_acquire_owned().unwrap();
+        assert!(!super::super::leave(&files).unwrap());
+        drop(permit);
+        drop(inherited);
+    }
 
     #[tokio::test]
     async fn cancellation_keeps_membership_admission_until_blocking_work_ends() {

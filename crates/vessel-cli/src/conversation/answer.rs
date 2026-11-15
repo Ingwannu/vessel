@@ -19,7 +19,7 @@ const REQUEST: &str = "waiting question or permission request";
 
 /// Something the agent waits on.
 #[derive(Debug, Clone, Copy)]
-enum Waiting<'a> {
+pub(crate) enum Waiting<'a> {
     Question(&'a Question),
     Permission(&'a PermissionRequest),
 }
@@ -36,7 +36,7 @@ impl Waiting<'_> {
 /// Answer the request `request` names in `session`: a question with
 /// `field=value` pairs, a permission with one option's id, either declined
 /// with `decline`.
-pub(super) async fn answer(
+pub(crate) async fn answer(
     client: &NodeClient,
     session: SessionId,
     request: &IdPrefix,
@@ -50,7 +50,25 @@ pub(super) async fn answer(
         .map(Waiting::Question)
         .chain(conversation.permissions.iter().map(Waiting::Permission))
         .collect();
-    match request.pick(&requests, Waiting::id, REQUEST)? {
+    reply(
+        client,
+        session,
+        *request.pick(&requests, Waiting::id, REQUEST)?,
+        values,
+        decline,
+    )
+    .await
+}
+
+/// The existing validation/answer path, shared with the inbox's single form.
+pub(crate) async fn reply(
+    client: &NodeClient,
+    session: SessionId,
+    request: Waiting<'_>,
+    values: &[String],
+    decline: bool,
+) -> Result<(), CliError> {
+    match request {
         Waiting::Question(question) => {
             let answer = if decline {
                 QuestionAnswer::Decline
