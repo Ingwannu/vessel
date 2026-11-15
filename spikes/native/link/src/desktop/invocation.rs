@@ -53,10 +53,14 @@ pub fn parse(
     if mode == Mode::Cli {
         return Ok(Invocation::Cli(arguments));
     }
-    if let Some(argument) = arguments
-        .iter()
-        .find(|arg| arg.to_str().is_some_and(|s| s.starts_with("vessel:")))
-    {
+    if let Some(argument) = arguments.iter().find(|arg| {
+        arg.to_str().is_some_and(|text| {
+            text.split_once(':')
+                .is_some_and(|(scheme, _)| scheme.eq_ignore_ascii_case("vessel"))
+        })
+    }) {
+        // OS scheme matching is case-insensitive. Even a noncanonical URI
+        // must reach the strict navigation parser, never generic CLI commands.
         let text = argument.to_str().ok_or(DesktopError::InvalidLaunch)?;
         return NavigationTarget::parse(text)
             .map(|target| Invocation::Gui(Launch::Session(target)))
@@ -105,5 +109,31 @@ mod tests {
             Invocation::Cli(vec!["status".into()])
         );
         assert_eq!(parse([], Mode::Cli).unwrap(), Invocation::Cli(Vec::new()));
+    }
+
+    #[test]
+    fn os_scheme_case_variants_and_extra_arguments_never_fall_into_cli_execution() {
+        use vessel_proto::{NodeId, SessionId};
+        let target = NavigationTarget::Session {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        };
+        assert_eq!(
+            parse(
+                [target.to_url().into(), "status".into(), "--json".into()],
+                Mode::Automatic
+            )
+            .unwrap(),
+            Invocation::Gui(Launch::Session(target))
+        );
+        for scheme in ["VESSEL", "Vessel", "vEsSeL"] {
+            assert!(matches!(
+                parse(
+                    [format!("{scheme}://h/refused").into(), "status".into()],
+                    Mode::Automatic
+                ),
+                Err(DesktopError::InvalidLaunch)
+            ));
+        }
     }
 }
