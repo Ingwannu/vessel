@@ -62,7 +62,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
         .id()
         .and_then(NonZeroU32::new)
         .ok_or_else(|| SpawnError::NoPid { program: program() })?;
-    let lifetime = ProcessLifetimeGuard::begin(ProcessId::from(pid));
+    let observation = ProcessLifetimeGuard::begin(ProcessId::from(pid));
     let pid = pid.get();
     #[cfg(unix)]
     let group = ProcessGroup::of_leader(pid).map_err(|source| SpawnError::NotLeader {
@@ -75,7 +75,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
         child: Child {
             inner,
             pid,
-            lifetime,
+            observation,
             #[cfg(unix)]
             group,
             state: State::Running,
@@ -96,7 +96,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
 pub struct Child {
     inner: os::Inner,
     pid: u32,
-    lifetime: ProcessLifetimeGuard,
+    observation: ProcessLifetimeGuard,
     #[cfg(unix)]
     group: ProcessGroup,
     state: State,
@@ -120,7 +120,7 @@ impl Child {
     /// Observe this actual run without gaining signalling or revocation authority.
     #[must_use]
     pub fn lifetime(&self) -> ProcessLifetime {
-        self.lifetime.observer()
+        self.observation.observer()
     }
 
     /// Ask the child's process group to stop.
@@ -135,7 +135,7 @@ impl Child {
     /// # Errors
     /// Fails if the OS refuses to deliver the signal.
     pub fn signal(&mut self, signal: Signal) -> Result<(), SignalError> {
-        self.lifetime.revoke();
+        self.observation.revoke();
         if let State::Reaped(_) = self.state {
             return Ok(());
         }
@@ -192,11 +192,11 @@ impl Child {
         let status = match os::wait_for_leader(&mut self.inner).await {
             Ok(status) => status,
             Err(error) => {
-                self.lifetime.revoke();
+                self.observation.revoke();
                 return Err(error.into());
             }
         };
-        self.lifetime.revoke();
+        self.observation.revoke();
         let code = status.code();
         self.state = State::Reaped(code);
         self.sweep();
@@ -221,7 +221,7 @@ impl Child {
 /// job handle does the same: the job is kill-on-close.)
 impl Drop for Child {
     fn drop(&mut self) {
-        self.lifetime.revoke();
+        self.observation.revoke();
         #[cfg(unix)]
         if self.state == State::Running {
             let group = self.group;

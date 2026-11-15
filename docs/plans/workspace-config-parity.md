@@ -278,3 +278,8 @@ unquoted Rust item in their module documentation. The revision fixes only
 that documentation and explains why watch revocation is retained even when
 no observer has subscribed yet. The source error and documentation-lint
 failures remain distinct recorded checks; neither ran tests.
+
+The Proc child stores its private guard as observation, keeping that name
+separate from a release-capability lifetime policy in the lifecycle work.
+The public lifetime() accessor and all revocation points are unchanged;
+this private rename changes no test expectation or runtime behavior.
