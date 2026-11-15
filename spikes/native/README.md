@@ -1364,8 +1364,8 @@ uses view::agent_status::removal's one-shot confirmation, the shared ProviderRow
 menu/Regular16 leading and adaptive dialog. Machine/context changes close local
 forms; stale callbacks cannot submit or dismiss a newer form. Modern provider
 snapshots must remain separate from legacy account/default/install/remove facts
-until the node supplies an explicit actor-owned binding. The registry's temporary
-shared SearchField now supplies the catalogue/Models filter furniture; this
+until the node supplies an explicit actor-owned binding. The checked shared
+SearchField now supplies the catalogue/Models filter furniture; this
 source registration is not visual-parity approval.
 
 button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
