@@ -170,3 +170,11 @@ Rust E0599: GPUI's Stateful wrapper does not expose the Div child-bounds
 hook used by the new test. No test ran. The correction keeps the production
 layout body in one private Div builder and measures it before the opaque
 hover/click wrapper. It changes no authored geometry or expectations.
+
+The prepared font-stack API keeps resolved names and shared fallback lists
+in one small snapshot, read by type styling and the same shaping-based
+measurement. Empty/unknown stacks use the existing embedded defaults;
+custom stacks retain Pretendard. No host font enumeration happens in paint.
+The current control commit exposes only kit type-step configuration; its
+Appearance adapter and component-layer projection remain pending the shared
+field handoff, and are not claimed as a working family preference yet.
