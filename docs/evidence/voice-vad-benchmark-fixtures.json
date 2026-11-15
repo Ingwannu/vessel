@@ -1,0 +1,54 @@
+{
+  "fixture_version": 1,
+  "provenance": "independent deterministic synthesis; no copied audio or real microphone",
+  "model_sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+  "model_executed": false,
+  "measured_backend_accuracy": null,
+  "measured_backend_latency": null,
+  "files": [
+    {
+      "file": "silence-24s.pcm",
+      "frames": 384000,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "bytes": 768000,
+      "sha256": "351a8054b23144894668c6a51d5dbba82f56523ef43cc45b6f4d7060a969c31a",
+      "label": "synthetic_non_speech_silence",
+      "speech_recall_evidence": false
+    },
+    {
+      "file": "original-tones-2980ms.pcm",
+      "frames": 47680,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "bytes": 95360,
+      "sha256": "c330cc56887cd9a9a41412b5f9a17ccacf7e002481f86f829ae25a974a0dafcf",
+      "label": "synthetic_non_speech_tones",
+      "speech_recall_evidence": false
+    },
+    {
+      "file": "clicks-8s.pcm",
+      "frames": 128000,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "bytes": 256000,
+      "sha256": "fb828c7ac319c42c61de74532a9de1291936ec4fdb920a2c3ad37a2a56319117",
+      "label": "synthetic_non_speech_impulses",
+      "speech_recall_evidence": false
+    },
+    {
+      "file": "alternating-2s.pcm",
+      "frames": 32000,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "format": "pcm_s16le",
+      "bytes": 64000,
+      "sha256": "3a0527d4b2615eee20ca21a9a0c5507838721998edcb3a7b201abbb63a98d3c3",
+      "label": "synthetic_stress_not_acoustic_accuracy",
+      "speech_recall_evidence": false
+    }
+  ]
+}

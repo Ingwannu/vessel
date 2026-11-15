@@ -784,3 +784,124 @@ records were independently rechecked. This closes that preparation debt, not
 system ABI, model/native execution, telemetry/privacy, compile or activation.
 The build owner has installed the fixed RO/noexec importer; actual transfer
 is still0 and awaits the offline lock/feature receipt and its V3 acceptance.
+
+## Dependency decision after the offline-index refusal
+
+Status: **decision proposal before any further dependency fetch/lock change**.
+T's exact old-base run wp-voice-resolve-20261115T155318Z-1a3570d4 stopped at
+`cargo update --workspace --offline`: ort was absent from the offline index.
+The feature-tree command did not run. Before/result Cargo.lock are both110992B,
+SHA2564184d1bddc304bede01b965d166d70154ae6f9365c24631572fd7c3ad9e6a411;
+empty patch/tree are failure artifacts, not successful generation. No network,
+compiler/build script, native/model API or fixture transfer occurred.
+
+[Decision Log]
+- Purpose: run the same pinned16k-only Silero v4 model with an auditable offline
+  Linux/Windows build, instead of accidentally enabling ORT's downloader.
+- Existing assets: exact1.28.2 CPU regular-file/notices inventory, opaque model,
+  reviewed wrapper/sys source and fixed private fixture manifest already exist.
+  They establish file/feature provenance, not VAD accuracy or latency.
+- Alternatives: default ort; explicitly dynamic ort; explicitly supplied native
+  link assets; self-contained tract-onnx; Sherpa or a different detector.
+- Proposed choice: retain defaults-OFF dynamic ort as the first parity-reference
+  candidate, not an adopted runtime. It has the smallest already-inventoried
+  new closure and keeps the reference ONNX backend. Evaluate tract against the
+  SAME model/fixtures before any final backend selection based on performance.
+- Why: the default downloader is rejected. No measured comparison currently
+  justifies either a tract speed claim or rejecting it for accuracy. A different
+  VAD would change the required probability/boundary behavior.
+- Impact: dependency provisioning remains held for coordinator approval. Actual
+  lock/feature closure and loader source/measurement checkpoints remain gates;
+  no model/native load, automatic download or distribution permission follows.
+
+### Options and offline Windows consequences
+
+| Option | Build/runtime assets and features | Licence/size evidence | Windows consequence / status |
+| --- | --- | --- | --- |
+| A0 default ort | Defaults include download-binaries, copy-dylibs, TLS/tracing/ndarray and api-31. Not selected. | This expands beyond the reviewed CPU1.28.2 closure. | Network-backed native provisioning is incompatible with our offline build; rejected. |
+| A1 explicit dynamic ort | Exact ort/ort-sys2.0.0-rc.15; defaults false; only std/load-dynamic/api-28. load-dynamic selects preload-dylibs and sys/disable-linking, API17..28 transitively. No downloader/copy/pkg-config/GPU/fetch-models/tracing/ndarray/TLS. | ORT MIT plus full source/archive notices; wrapper MIT OR Apache2; libloading ISC. Selected native payload24291672B Linux /15839856B Windows plus common643854B model. Linked/RSS delta unmeasured. | Rust/sys compilation needs no ORT import library or DLL: disable-linking returns before native lookup. Build x86_64-pc-windows-msvc with the approved VM SDK/toolchain offline; later reviewed loader verifies an absolute DLL path/hash, disables telemetry and drops foreign logs. Actual Windows build/load remains unproved. Proposed first reference candidate. |
+| A2 supplied native link assets | Defaults false with download/copy off, explicit pinned platform library/import-library inputs; no implicit system search or fetch. | Same ORT terms, but Windows import .lib and linker layout require a NEW positive-file amendment; they are excluded from current fixtures. Source-build ORT would add a much larger CMake/third-party source cache and notices. | Native link/loader search and MSVC CRT proof grow; current dynamic-only approval does not cover it. Not selected for this small detector. |
+| B tract-onnx0.23.10 | Evaluation proposal defaults false, transformer/getrandom-js off; no GPU/CLI/backend extras. Same opaque Silero bytes, no ORT DLL. Full normal/build closure still must be resolved, pinned and inventoried. | Original crate work MIT OR Apache2; upstream ONNX/TensorFlow protocol files have separate notices. The full closure and compiled size/RSS are unmeasured/unapproved. Model licence/size unchanged. | Rust MSRV1.91 fits our1.93 floor, but tract-linalg has cc/build templates and generated SIMD assembly. Its Windows-specific assembler path must pass the approved Linux-host MSVC cross-build; self-contained runtime does not eliminate build scripts/native kernels. No support or speed claim before proof. |
+| C existing alternatives | Sherpa wraps more native machinery; energy/RMS or another learned VAD changes the model. NNEF preconversion introduces another model artifact to pin. | Sherpa source candidate Apache2 was inspected earlier, native closure unselected. No new model/archive is acquired here. | Larger dependency/conversion review or different turn semantics; not a substitute for the required Silero parity. |
+
+The already-retained exact ort source is the authority for A0/A1 features;
+V3 independently checked its sys early-return branch. For tract, source-only
+facts above are from the exact version tag's [ONNX manifest](https://github.com/sonos/tract/blob/v0.23.10/onnx/Cargo.toml),
+[linalg manifest](https://github.com/sonos/tract/blob/v0.23.10/linalg/Cargo.toml),
+[build source](https://github.com/sonos/tract/blob/v0.23.10/linalg/build.rs) and
+[MSRV](https://github.com/sonos/tract/blob/v0.23.10/Cargo.toml). The
+[upstream overview](https://github.com/sonos/tract/blob/v0.23.10/README.md)
+describes its self-contained runtime/format approach and notice exceptions.
+These are documentation/source inspections, not dependency archive acquisition,
+Windows compilation or proof that this particular Silero graph is supported.
+No tract archive/closure/hash is selected for fetching by this proposal.
+
+### What may enter an offline index after explicit approval
+
+For A1, the ONLY candidate new package/version records and matching cached
+crate archives are ort2.0.0-rc.15, ort-sys2.0.0-rc.15 and libloading0.9.0;
+existing smallvec1.16.4, cfg-if1.0.5 and windows-link0.2.1 records/artifacts must
+match the already pinned checksum table above. Do not refetch existing caches.
+T must bind sparse-index records, exact registry checksums and archive bytes in
+a receipt, retain provenance, and refuse any extra version/dependency/feature.
+No ambient credentials/config are copied, no build script populates the cache,
+and no runtime archive is fetched by Cargo. Cache provisioning itself is NOT
+authorized yet. Once approved/provisioned, rerun fixed offline scratch resolve,
+review lock diff/feature tree, then allow a separately reviewed offline compile.
+The old82 result cannot qualify a new node-base graph.
+
+For B, offline provisioning would additionally need its complete exact
+normal+build graph: tract-onnx/hir/core/data/linalg/nnef/onnx-opl/extra and their
+resolved third parties, including code-generation/compiler helpers. Versions,
+archive hashes, licences/notices and actual enabled defaults must be inventoried
+BEFORE any fetch approval; no made-up complete closure is asserted here. CPU
+only, no transformers/GPU/Web/CLI features and no runtime network fetching are
+constraints, not proof of the unresolved graph. Its default features and
+transitive build scripts cannot be accepted merely from the phrase pure Rust.
+
+Both candidates' Windows builds must run on the build VM with the approved
+x86_64-pc-windows-msvc SDK/cross-toolchain and frozen offline source cache.
+Record the exact target/toolchain, full features and linker/compiler evidence;
+never install a runtime or download an SDK from a package build script. A1
+compiles bindings without linking native ORT; B must also compile its selected
+kernel/assembly path. Neither has an actual Windows result yet.
+
+### Measured comparison is still missing; frozen measurement contract
+
+| Measurement on the pinned Silero fixture set | A1 Linux | B Linux | A1 Windows | B Windows |
+| --- | --- | --- | --- | --- |
+| Model load/schema/state-reset compatibility | not executed | not executed | not executed | not executed |
+| Window probabilities / recurrent-state parity | unmeasured | unmeasured | unmeasured | unmeasured |
+| Speech precision/recall/F1 | unavailable: no labelled speech set | same | same | same |
+| Warm p50/p95/p99 latency, cold setup, RSS, binary size | unmeasured | unmeasured | unmeasured | unmeasured |
+
+No benchmark from another machine/model, crate-source size or fake probability
+unit test is substituted for those numbers. Current approval explicitly bars
+native/model entrypoints; tract model loading is also a model API. The missing
+offline index prevents even candidate compilation. Measurements therefore
+cannot be honestly supplied before provisioning and subsequent source/runtime
+permission. This is a remaining decision condition, not a pass or waiver.
+
+The [frozen original PCM fixtures](../evidence/voice-vad-benchmark-fixtures.json)
+contain silence, independently synthesized tones, impulses and a saturation
+stress pattern at16k mono PCM16. No microphone/provider/reference audio is used.
+They can measure numerical equivalence and synthetic-negative events, not
+speech recall or real-device accuracy. Hashes are fixed before either backend
+runs; files remain private and OUTSIDE the existing25-file importer allowlist.
+No fixture was transferred to the VM by this work.
+
+After explicit acquisition/source/execution approval: run the SAME model SHA,
+window/lookahead/order, conversion and zeroed/reset h/c states on both backends;
+record every finite probability and state-shape check. Use a predeclared maximum
+probability delta1e-4, exact threshold/boundary event agreement and identical
+chunk-invariance outcomes; failures block substitution. This tolerance is a
+proposed numerical criterion, not an observed error. Keep existing0.5/0.35,
+0.1s/0.2s internal and800ms/1000ms outer policy fixed. Benchmark each fixture
+with100 warm windows and10 repeated passes, separate cold setup, report p50/
+p95/p99 per512-sample window, peak RSS and one/eight independent lease cases.
+A warm p99 below the32ms window budget is the proposed latency gate; no value
+is measured yet. CPU model/thread count, toolchain, OS and exact build/source
+hash must accompany results. Capture stdout/stderr with finite time/byte bounds;
+network remains disabled and all privacy/reset/cancellation checks still apply.
+A licensed labelled speech fixture set needs its own source/licence/hashes
+before any precision/recall claim or acceptance of acoustic parity.
