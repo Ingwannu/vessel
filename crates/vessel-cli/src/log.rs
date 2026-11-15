@@ -221,7 +221,7 @@ mod tests {
     }
     #[test]
     fn a_tail_counts_raw_chunks_and_can_begin_inside_a_rendered_message() {
-        let mut window = super::tail::Window::new("1".parse().unwrap());
+        let mut window = tail::Window::new("1".parse().unwrap());
         for (seq, text) in [(0, "hel"), (1, "lo")] {
             window.push(agent(
                 seq,

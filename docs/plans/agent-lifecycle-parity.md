@@ -299,7 +299,10 @@ No row of the crate table changes.
   Parser/window units and a fake-node CLI test remain unrun. A raw-chunk
   boundary test makes the projected-item difference explicit: the last record
   of a split reply renders only its final fragment. Count-overflow tests
-  derive their rejected input from the platform's integer bound.
+  derive their rejected input from the platform's integer bound. The first
+  narrow clippy run found a redundant module qualification in that new test;
+  it is shortened without changing the assertion. Clippy and the tests still
+  need their successful runs before the whole gate.
 - Time/kind selection and follow are protected drafts for slices 5b and 5c,
   outside this tail slice. They reuse its tail type and window. Existing render
   test expectations stay unchanged, including the raw-chunk boundary.
