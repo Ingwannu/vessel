@@ -33,29 +33,27 @@ impl Render for Row {
     }
 }
 
-/// Whether a drag started after a press at (20, 20) moved `moved` to
-/// the right with the button held.
-fn dragging_after(cx: &mut TestAppContext, distance: Option<Pixels>, moved: f32) -> bool {
+/// Whether a drag started after a press at (20, 20) moved right to `x`
+/// with the button held.
+fn dragging_after(cx: &mut TestAppContext, distance: Option<Pixels>, x: f32) -> bool {
     let (_row, cx) = cx.add_window_view(|_, _| Row { distance });
     cx.run_until_parked();
     let start = point(px(20.0), px(20.0));
     cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
-    cx.simulate_mouse_move(
-        point(px(20.0 + moved), px(20.0)),
-        MouseButton::Left,
-        Modifiers::none(),
-    );
+    cx.simulate_mouse_move(point(px(x), px(20.0)), MouseButton::Left, Modifiers::none());
     cx.update(|_window, cx| cx.has_active_drag())
 }
 
 #[gpui::test]
 fn a_list_row_waits_for_paseos_six_points(cx: &mut TestAppContext) {
-    assert!(!dragging_after(cx, Some(LIST_DRAG_DISTANCE), 5.0));
-    assert!(dragging_after(cx, Some(LIST_DRAG_DISTANCE), 7.0));
+    // 5 points from the press, then 7.
+    assert!(!dragging_after(cx, Some(LIST_DRAG_DISTANCE), 25.0));
+    assert!(dragging_after(cx, Some(LIST_DRAG_DISTANCE), 27.0));
 }
 
 #[gpui::test]
 fn an_element_naming_no_distance_keeps_gpuis_two(cx: &mut TestAppContext) {
-    assert!(!dragging_after(cx, None, 1.5));
-    assert!(dragging_after(cx, None, 3.0));
+    // 1.5 points from the press, then 3.
+    assert!(!dragging_after(cx, None, 21.5));
+    assert!(dragging_after(cx, None, 23.0));
 }
