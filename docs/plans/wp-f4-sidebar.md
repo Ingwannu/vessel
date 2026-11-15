@@ -1,0 +1,105 @@
+# F4 sidebar: one presentation over the shared workspace registry
+
+## Ownership and decision
+
+[Decision Log]
+- Purpose: reproduce Paseo 0.15.4's sidebar navigation, workspace projection,
+  display controls and fixed footer through one native renderer.
+- Existing assets: `view::prefs` and `Shell::prefer` persist changes; the kit's
+  bounded ScrollViewport, settings furniture, menus, glyphs and shortcut chips
+  already draw these controls. Registry identity, membership, status, rename
+  and pin are C1's ADR 0082; attention/read state is A5; archive is A2.
+- Alternatives: a second local workspace directory, path-derived identity,
+  local menu/scroll copies or a second preference writer would disagree with
+  those owners and lose data on reconnect.
+- Choice: pure `view::sidebar` models presentation, filtering, ordering and
+  navigation preferences. The existing preference document stores native
+  changes; app modules adapt the registry and draw the shared controls. No
+  new crate, dependency, wire method or feature-local node RPC is needed.
+- Impact: plugin and registry consumers wait for their owners' typed contract;
+  an unavailable source stays explicit rather than being synthesized from cwd.
+
+## Primary source and behavior map
+
+All source paths below are relative to Paseo's `packages/app/src`.
+
+- `sidebar-nav/model.ts` (whole): default header New workspace, History,
+  Search, Schedules; footer Usage hidden. Resolve saved order once, skip
+  duplicates/unavailable entries while drawing, append unplaced defaults and
+  plugins. Editing retains unavailable keys in their prior interleaving.
+- `sidebar-nav/use-sidebar-nav-items.ts` (whole): header/footer independent
+  preference fields, one setting updater, current resolved groups at edit time.
+- `components/sidebar/sidebar-nav-rows.tsx` (whole): selected History/Schedules,
+  Search opens command center, New workspace retains supported active context.
+  All hidden means no bordered group; compact close button remains possible.
+- `screens/settings/sidebar/sidebar-nav-section.tsx` (whole): two settings
+  cards, icon/title/current shortcut, move up/down with boundary disabling,
+  visibility switch. Fixed footer icons are not reorderable entries.
+- `components/left-sidebar.tsx:370–500,561–609,733–794`: fixed header and
+  footer, one natural-height scrolling body; footer summary rows then icons
+  Add project / Usage / Hosts / spacer / Help / Settings. Usage summary is
+  omitted with no report, even if its setting is shown.
+- `components/sidebar/display-preferences/model.ts` (whole): transient view
+  filtering is separate from saved row appearance, but the renderer reads one
+  projection. Selecting an active trailing choice clears it.
+- `stores/sidebar-view-store.ts`: Project default, Created default, background
+  hidden, host/project/label allowlists; legacy label grouping becomes Project.
+- Survey `.area6-parts/C.md` sidebar sections and
+  `parts/p1-projects-workspaces.md:20–24` define the remaining projection,
+  row metadata/actions, ordering, callouts, width and compact behavior.
+
+## Skeleton, then fill
+
+1. Navigation section/key/visibility/order types with bounded serde, resolution
+   and preservation tests; persistent settings use the existing writer.
+2. Sidebar settings body and header/footer consumer of that same projection,
+   through the existing E2 page slot, with FTL English/Korean labels.
+3. Project/status/pinned presentation, filters, metadata and menus consume C1
+   registry projection; visible order is also W22b's numeric-jump source.
+4. Footer callouts and external actions register their owners' typed hooks.
+   Keep the existing fixed scroll boundary from height package `0690faed`.
+5. One complete feature gate/review and one final actual-fleet capture matrix.
+
+No placeholder route or clickable action without an implementation is exposed.
+Skeleton states are fixtures and typed model states, not claims of live parity.
+
+## Shared seams and deliberate differences
+
+- W11 supplies WorkspaceId, explicit membership, projectKey, title/status/pin
+  projections. Its current draft is not consumer-ready. Never infer ownership
+  or a cross-host equivalence key from a filesystem path.
+- W16 supplies plugin addresses/contributions and rendering/runtime dispatch.
+  UI preference keys are retained independently of installed/connected groups;
+  an opaque bounded navigation key is not a second PluginId.
+- W5 supplies Usage summary and open callback. One footer preference controls
+  the optional summary; the fixed Usage icon is distinct and stays available
+  when W5's modal is callable. No duplicate usage state or meter.
+- W21 owns Sessions/history and workspace archive; W2 owns children; W7 owns
+  read/unread and terminal attention; W10b owns label identity/manager; W8 owns
+  services/setup state; W19b owns desktop windows, folder opening and changelog.
+- E2 supplies the settings frame. Register Sidebar in `settings/sections.rs`,
+  not the frame; no extra title or scroll container in the settings body.
+- W22b owns command center/keyboard engine after the theme input package.
+  Sidebar hints read its existing action registry and overrides.
+- Native stores local/sidebar choices in its existing preference document,
+  rather than introducing Paseo's separate AsyncStorage stores. Changes still
+  replace only their named field. Cross-client sync of these new fields is not
+  claimed until the preference transport owner exposes that capability.
+- Full row keyboard accessibility is not implied by height repair's minimal
+  focus/reveal seam. Additional activation/focus contracts must use the kit.
+- The earlier height package preserved native outer/section padding. This F4
+  package must compare row metrics to the reference before claiming parity.
+
+## Validation and current disposition
+
+Per commit: changed-crate remote narrow Clippy and focused tests (A14). Final:
+one A13 native package gate; actual fake fleet, 1280×900 / 390×844 / 800×600,
+dark/light, EN/KO, filters/empty/loading/error/offline and long rows, all original
+captures opened. Test order/visibility defaults, unavailable-key preservation,
+reordering boundaries, serde restart and switch behavior; filter pipeline and
+selected-row visibility; scroll end/footer invariance and owner action dispatch.
+
+Current: navigation preference model and regression tests are installed as
+the first skeleton step; narrow compilation remains pending. No complete
+sidebar parity pass is claimed. The earlier height package has only bounded
+source/gate/inspected-height approval; theme and OS input evidence are separate.

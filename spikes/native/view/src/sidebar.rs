@@ -27,6 +27,7 @@ use crate::board::{Card, Fleet, Machine, Reach};
 use crate::prefs::{Grouping, SessionSort, SidebarView};
 
 pub mod display;
+pub mod navigation;
 
 /// How many of a machine's sessions the sidebar lists before "N more":
 /// the sidebar is a way to switch, not a second board.

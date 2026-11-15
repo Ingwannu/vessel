@@ -66,6 +66,7 @@ impl Shell {
                     | PreferenceChange::SidebarGroup(_)
                     | PreferenceChange::SidebarSort(_)
                     | PreferenceChange::SidebarEnded(_)
+                    | PreferenceChange::SidebarNavigation { .. }
                     | PreferenceChange::Shortcuts { .. }
                     | PreferenceChange::ResetShortcuts
                     | PreferenceChange::DefaultAgent { .. }

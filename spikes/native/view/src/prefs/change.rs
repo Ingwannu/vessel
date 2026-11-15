@@ -49,6 +49,13 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// Whether the sidebar lists ended sessions.
     SidebarEnded(bool),
+    /// Replace one sidebar navigation band, retaining the other.
+    SidebarNavigation {
+        /// Header or optional footer rows.
+        section: crate::sidebar::navigation::Section,
+        /// Bounded choices produced by the shared navigation resolver.
+        entries: crate::sidebar::navigation::Entries,
+    },
     /// Some actions' keys.
     Shortcuts {
         /// The edits, applied in order.
@@ -187,6 +194,9 @@ impl Preferences {
             PreferenceChange::SidebarGroup(group) => self.sidebar.group = *group,
             PreferenceChange::SidebarSort(sort) => self.sidebar.sort = *sort,
             PreferenceChange::SidebarEnded(ended) => self.sidebar.ended = *ended,
+            PreferenceChange::SidebarNavigation { section, entries } => {
+                self.sidebar_navigation.set(*section, entries.clone());
+            }
             PreferenceChange::Shortcuts { edits } => {
                 for edit in edits.items() {
                     match &edit.to {

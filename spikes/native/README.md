@@ -1081,3 +1081,14 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+
+### Sidebar navigation inventory (F4, staged)
+
+The pure `view::sidebar::navigation` model owns independent header/footer
+order and visibility. The existing preference document and writer retain its
+bounded choices, including unavailable plugin keys. `resolve` appends newly
+available defaults, while `moved` and `visibility` preserve disconnected entries
+through the same rewrite rule as Paseo's `sidebar-nav/model.ts`. This first
+model checkpoint does not yet replace the legacy sidebar renderer; see
+`docs/plans/wp-f4-sidebar.md` for the registry/plugin/usage seams and validation.
