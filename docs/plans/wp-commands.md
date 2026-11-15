@@ -630,3 +630,14 @@ a helper. BOM is blank; NEL remains nonblank and the stricter existing FindQuery
 grammar refuses that control character instead of inventing All. Pure Files and
 actual GPUI nested-page fixtures cover both. Parsing stays UI-owned when W13's
 canonical FileQuery values leaf replaces the temporary local enum.
+
+W13 pure-values receipt received: exact59763344f99fd0a404a367714bd72171fa78f778,
+run wp-files-query-values-20261115T120324Z-59763344, native-fonts0 and actual
+View/Proto test1/0/0 (949filtered). Adopted ONLY048b62108+doclint36260cc66 as
+9bbc4e0c4+b35e22ea8. Resolved the one module-export conflict by retaining every
+existing explorer/file-ticket export plus the new file_query line. The canonical
+file blob remains byte-identical to the producer. Removed F4's duplicate enum;
+palette::files re-exports the owner value and keeps parse_query UI-local. No
+FileScope, transport, root query or opener blobs came with this pure handoff.
+Combined current-head checks remain owed; no standalone Clippy/whole/runtime C5
+approval is inferred from that single producer test.

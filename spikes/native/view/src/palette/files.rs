@@ -2,32 +2,23 @@
 //! and its request tickets; this model only invalidates UI work before debounce
 //! and retains rows while another query loads in the same owner-supplied scope.
 
+pub use crate::workspace::file_query::FileQuery;
 use std::time::Duration;
-use vessel_proto::workspace::{FindQuery, InvalidText};
+use vessel_proto::workspace::InvalidText;
 
 /// Nonempty queries wait briefly; empty files scope lists immediately.
 pub const FILE_SEARCH_DEBOUNCE: Duration = Duration::from_millis(100);
 
-/// Empty Files scope is a distinct owner listing operation. `FindQuery` is
-/// nonblank on the wire, so it can never represent this state implicitly.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FileQuery {
-    /// Request the scoped owner's initial listing, with no fabricated query.
-    All,
-    /// Search with a query validated by the existing protocol type.
-    Matching(FindQuery),
-}
-impl FileQuery {
-    /// Parse UI text without weakening the existing nonblank wire contract.
-    ///
-    /// # Errors
-    /// Nonempty text must satisfy the file owner's bounded query grammar.
-    pub fn from_text(text: &str) -> Result<Self, InvalidText> {
-        if crate::matcher::Query::new(text).is_empty() {
-            Ok(Self::All)
-        } else {
-            text.parse().map(Self::Matching)
-        }
+/// Parse UI text into the file owner's canonical acquisition intent.
+/// ECMAScript blank text requests a listing, never an invalid empty wire query.
+///
+/// # Errors
+/// Nonblank text must satisfy the file owner's bounded query grammar.
+pub fn parse_query(text: &str) -> Result<FileQuery, InvalidText> {
+    if crate::matcher::Query::new(text).is_empty() {
+        Ok(FileQuery::All)
+    } else {
+        text.parse().map(FileQuery::Matching)
     }
 }
 
@@ -185,7 +176,7 @@ mod tests {
     use super::*;
     type Search = FileSearch<&'static str, u8, &'static str>;
     fn query(text: &str) -> FileQuery {
-        FileQuery::from_text(text).unwrap()
+        parse_query(text).unwrap()
     }
     #[test]
     fn blank_listing_uses_reference_whitespace_without_weakening_wire_queries() {
@@ -195,7 +186,7 @@ mod tests {
         // ECMAScript does not trim NEL; the existing one-line protocol grammar
         // refuses it rather than silently turning that query into a listing.
         assert!(!crate::matcher::Query::new("\u{85}").is_empty());
-        assert!(FileQuery::from_text("\u{85}").is_err());
+        assert!(parse_query("\u{85}").is_err());
     }
     #[test]
     fn input_invalidates_before_debounce_and_keeps_same_scope_rows() {
