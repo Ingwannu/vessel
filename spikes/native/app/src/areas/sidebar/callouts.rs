@@ -13,22 +13,8 @@ use vessel_app_view::sidebar::callouts::{
 
 use crate::shell::Shell;
 
-/// Compile-time UI registration identity; never a node, project or workspace id.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct SourceId(&'static str);
-impl SourceId {
-    /// Providers choose a stable source name and retain their cleanup token.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "provider owners consume the checked callout boundary"
-        )
-    )]
-    pub(crate) const fn new(name: &'static str) -> Self {
-        Self(name)
-    }
-}
+pub(crate) use vessel_app_view::sidebar::callouts::SourceId;
+
 /// Rebuilt from current translations/theme; captured domain targets belong to
 /// the provider, not a lookup of the latest machine alias at click time.
 pub(crate) type Draw = Rc<dyn Fn(&Shell, &Tokens) -> Presentation>;
@@ -67,18 +53,19 @@ impl Callouts {
 
 pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<Div> {
     let active = shell.areas.sidebar.callouts.admission.active()?;
-    let source = *active.id();
+    let source = active.id().clone();
     let body = active.content();
     let mut presentation = (body.draw)(shell, tokens);
     // All dismissals go through the single admission/persistence boundary;
     // providers receive their callback after removal, just as in the source.
+    let dismissed_source = source.clone();
     presentation.content.dismiss = body.dismissible.then(|| Dismiss {
         press: Rc::new(move |shell: &mut Shell, window, cx| {
-            shell.sidebar_callout_dismiss(source, window, cx);
+            shell.sidebar_callout_dismiss(&dismissed_source, window, cx);
         }),
     });
     Some(strip::sidebar_callout(
-        format!("sidebar-callout-{}", source.0),
+        format!("sidebar-callout-{}", source.as_str()),
         presentation.content,
         presentation.variant,
         tokens,
@@ -129,7 +116,7 @@ impl Shell {
     )]
     pub(crate) fn sidebar_callout_unregister(
         &mut self,
-        source: SourceId,
+        source: &SourceId,
         token: Token,
         cx: &mut Context<'_, Self>,
     ) {
@@ -137,18 +124,18 @@ impl Shell {
             .sidebar
             .callouts
             .admission
-            .unregister(&source, token);
+            .unregister(source, token);
         cx.notify();
     }
 
     fn sidebar_callout_dismiss(
         &mut self,
-        source: SourceId,
+        source: &SourceId,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let state = &mut self.areas.sidebar.callouts.admission;
-        let body = match state.dismiss(&source) {
+        let body = match state.dismiss(source) {
             Ok(Some(body)) => body,
             Ok(None) => return,
             Err(error) => {

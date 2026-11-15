@@ -408,7 +408,7 @@ when its checked producer lands; no alternative save path is introduced.
 ### Native callout registration seam
 
 `areas/sidebar/callouts.rs` joins the pure admission store, the shared kit strip
-and the existing preference setter. Providers register a compile-time UI
+and the existing preference setter. Providers register an exact provider-prepared UI
 `SourceId`, priority, optional durable key, current-theme/current-language drawing
 callback, dismissal permission and optional callback. Domain targets are captured
 by the provider; the registry never resolves a current machine alias to authorize
@@ -427,3 +427,14 @@ W19's future canonical preference-delta consumer must synchronize this band;
 no second save or event mechanism is added here. Setup, Rosetta and update
 admission remain with W11/W8/W19. This default-empty viewport is not evidence
 that those providers or unsupported platform facts are implemented.
+
+Scoped callout source ids must remain dynamic: Paseo's missing-setup source uses
+node/project scope in both id and dismissal key. The typed `SourceId` therefore
+accepts an exact bounded provider string, with no decoding, case folding or
+trimming. It is distinct from `DismissalKey`, which trims at its source boundary.
+Both share the one existing 512-byte key bound and control-character validation;
+there is no second id normalization rule. A regression distinguishes two project
+scopes and verifies that source spaces stay exact while dismissal spaces trim.
+The app's fixed static-id prototype was corrected before any checked adoption.
+A real nondismissible GPUI fixture also verifies that a provider's accidental
+raw dismiss callback cannot bypass the shared admission/persistence boundary.

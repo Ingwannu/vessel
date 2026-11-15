@@ -181,3 +181,25 @@ fn sidebar_callout_malformed_preference_band_does_not_erase_theme() {
         Err(Problem::DismissalsFull)
     );
 }
+
+#[test]
+fn sidebar_callout_source_identity_keeps_exact_scoped_names_separate_from_dismissal_keys() {
+    let a = SourceId::try_from("setup:node-a:project-a".to_owned()).unwrap();
+    let b = SourceId::try_from("setup:node-a:project-b".to_owned()).unwrap();
+    assert_ne!(a, b);
+    assert_eq!(a.as_str(), "setup:node-a:project-a");
+    assert_ne!(
+        SourceId::try_from(" source ".to_owned()).unwrap(),
+        SourceId::try_from("source".to_owned()).unwrap()
+    );
+    assert_eq!(key(" source "), key("source"));
+    assert_eq!(SourceId::try_from(String::new()), Err(InvalidKey));
+    assert_eq!(
+        SourceId::try_from("x".repeat(MAX_DISMISSAL_KEY_BYTES + 1)),
+        Err(InvalidKey)
+    );
+    assert_eq!(
+        SourceId::try_from("bad\nsource".to_owned()),
+        Err(InvalidKey)
+    );
+}

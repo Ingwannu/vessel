@@ -57,7 +57,7 @@ fn sidebar_callout_pointer_dismissal_uses_the_existing_preference_writer_and_cal
     language_tests::init(cx);
     let (shell, cx) = setup(cx);
     let dismissed = Rc::new(Cell::new(0));
-    let source = SourceId::new("fixture");
+    let source = SourceId::try_from("fixture".to_owned()).unwrap();
     let key = DismissalKey::try_from("fixture:release".to_owned()).unwrap();
     shell.update_in(cx, |shell, _, cx| {
         let mut entry = registration(source, 0, Rc::clone(&dismissed));
@@ -88,8 +88,8 @@ fn sidebar_callout_loaded_dismissals_and_cleanup_share_one_admission_state(
     let (shell, cx) = setup(cx);
     let dismissed = Rc::new(Cell::new(0));
     shell.update_in(cx, |shell, _, cx| {
-        let hidden = SourceId::new("hidden");
-        let update = SourceId::new("update");
+        let hidden = SourceId::try_from("hidden".to_owned()).unwrap();
+        let update = SourceId::try_from("update".to_owned()).unwrap();
         let key = DismissalKey::try_from("saved:release".to_owned()).unwrap();
         shell.prefs.settings.sidebar_callout_dismissals =
             Dismissals::try_from(vec![key.clone()]).unwrap();
@@ -97,12 +97,12 @@ fn sidebar_callout_loaded_dismissals_and_cleanup_share_one_admission_state(
         entry.dismissal = Some(key);
         let _hidden_token = shell.sidebar_callout_show(entry, cx).unwrap();
         let old = shell
-            .sidebar_callout_show(registration(update, 0, Rc::clone(&dismissed)), cx)
+            .sidebar_callout_show(registration(update.clone(), 0, Rc::clone(&dismissed)), cx)
             .unwrap();
         let new = shell
-            .sidebar_callout_show(registration(update, 1, Rc::clone(&dismissed)), cx)
+            .sidebar_callout_show(registration(update.clone(), 1, Rc::clone(&dismissed)), cx)
             .unwrap();
-        shell.sidebar_callout_unregister(update, old, cx);
+        shell.sidebar_callout_unregister(&update, old, cx);
         assert_eq!(
             shell
                 .areas
@@ -114,8 +114,49 @@ fn sidebar_callout_loaded_dismissals_and_cleanup_share_one_admission_state(
                 .id(),
             &update
         );
-        shell.sidebar_callout_unregister(update, new, cx);
+        shell.sidebar_callout_unregister(&update, new, cx);
         assert!(shell.areas.sidebar.callouts.admission.active().is_none());
         assert_eq!(dismissed.get(), 0);
+    });
+}
+
+#[gpui::test]
+fn sidebar_callout_nondismissible_provider_cannot_bypass_shared_admission(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = setup(cx);
+    let dismissed = Rc::new(Cell::new(0));
+    shell.update_in(cx, |shell, _, cx| {
+        let mut entry = registration(
+            SourceId::try_from("fixed".to_owned()).unwrap(),
+            0,
+            Rc::clone(&dismissed),
+        );
+        entry.dismissible = false;
+        entry.draw = Rc::new({
+            let dismissed = Rc::clone(&dismissed);
+            move |_, _| Presentation {
+                content: Content {
+                    title: Some("Fixed notice".into()),
+                    description: None,
+                    icon: None,
+                    actions: Actions::None,
+                    dismiss: Some(Dismiss {
+                        press: Rc::new({
+                            let dismissed = Rc::clone(&dismissed);
+                            move |_, _, _| dismissed.set(dismissed.get().saturating_add(1))
+                        }),
+                    }),
+                },
+                variant: Variant::Error,
+            }
+        });
+        let _token = shell.sidebar_callout_show(entry, cx).unwrap();
+    });
+    cx.run_until_parked();
+    cx.simulate_click(point(px(297.0), px(20.0)), Modifiers::none());
+    cx.run_until_parked();
+    assert_eq!(dismissed.get(), 0);
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.areas.sidebar.callouts.admission.active().is_some())
     });
 }

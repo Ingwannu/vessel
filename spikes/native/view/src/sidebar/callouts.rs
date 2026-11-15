@@ -8,27 +8,43 @@ use std::sync::Arc;
 pub const MAX_DISMISSALS: usize = 128;
 /// Provider registration is bounded even when callers fail to unregister.
 pub const MAX_CALLOUTS: usize = 32;
-/// A dismissal key contains identity, never content or credentials.
+/// Bound for opaque provider/dismissal UI keys, never content or credentials.
 pub const MAX_DISMISSAL_KEY_BYTES: usize = 512;
+/// Provider-prepared UI identity, compared exactly. A scoped name may include
+/// canonical node/project ids, but is never decoded into an RPC target.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceId(Arc<str>);
+impl TryFrom<String> for SourceId {
+    type Error = InvalidKey;
+    fn try_from(raw: String) -> Result<Self, Self::Error> {
+        bounded_key(&raw).map(Self)
+    }
+}
+impl SourceId {
+    /// Exact logical registration name, also used as the stable element id.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 /// Stable provider-owned dismissal identity, trimmed once at its input edge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct DismissalKey(Arc<str>);
 /// A malformed persisted key is refused rather than interpreted as an id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("a callout dismissal key must be nonempty, bounded and contain no controls")]
+#[error("a callout key must be nonempty, bounded and contain no controls")]
 pub struct InvalidKey;
+fn bounded_key(key: &str) -> Result<Arc<str>, InvalidKey> {
+    if key.is_empty() || key.len() > MAX_DISMISSAL_KEY_BYTES || key.chars().any(char::is_control) {
+        return Err(InvalidKey);
+    }
+    Ok(Arc::from(key))
+}
 impl TryFrom<String> for DismissalKey {
     type Error = InvalidKey;
     fn try_from(raw: String) -> Result<Self, Self::Error> {
-        let key = raw.trim();
-        if key.is_empty()
-            || key.len() > MAX_DISMISSAL_KEY_BYTES
-            || key.chars().any(char::is_control)
-        {
-            return Err(InvalidKey);
-        }
-        Ok(Self(Arc::from(key)))
+        bounded_key(raw.trim()).map(Self)
     }
 }
 impl From<DismissalKey> for String {
