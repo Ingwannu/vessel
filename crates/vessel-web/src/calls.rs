@@ -226,6 +226,9 @@ const fn forwardable(method: Method) -> bool {
         | Method::DeletePrompt
         | Method::ListInbox
         | Method::GetInboxEntry
+        | Method::ClaimNotification
+        | Method::ClearTerminalAttention
+        | Method::ReportTerminalActivity
         | Method::MarkInbox
         | Method::GetPushKey
         | Method::SubscribePush

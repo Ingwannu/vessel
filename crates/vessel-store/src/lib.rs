@@ -65,6 +65,7 @@ mod log;
 mod marks;
 mod node_key;
 mod notification_claims;
+mod notification_policy;
 mod push;
 pub use notification_claims::{LocalAdmission, NotificationAuthority};
 mod push_key;

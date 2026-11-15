@@ -1,5 +1,5 @@
 //! Semantic activity changes share the existing info watch's mutation lock.
-//! The once-only terminal claim lives as long as its non-reused TerminalId.
+//! The once-only terminal claim lives as long as its non-reused `TerminalId`.
 use super::{AttentionError, TerminalHandle, attention};
 use std::sync::PoisonError;
 use vessel_proto::notifications::{
@@ -39,7 +39,7 @@ impl TerminalHandle {
     ) -> Result<TerminalAttention, AttentionError> {
         let mut result = Err(AttentionError::Stale);
         let mut change = Some(change);
-        self.0.info.send_if_modified(|info| {
+        let _changed = self.0.info.send_if_modified(|info| {
             if require_live && !info.is_live() {
                 result = Err(AttentionError::Ended);
                 return false;

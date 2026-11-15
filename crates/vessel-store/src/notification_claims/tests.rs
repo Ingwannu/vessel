@@ -154,3 +154,40 @@ fn removing_attention_cascades_its_admission_and_old_sources_never_reappear() {
         LocalAdmission::NoAttention
     );
 }
+
+#[test]
+fn internal_and_agent_created_attention_remains_readable_without_notification_admission() {
+    for internal in [false, true] {
+        let db = database();
+        let source = source(&db);
+        if internal {
+            let parent = vessel_proto::SessionId::random();
+            let _changed = db
+                .execute(
+                    "UPDATE sessions SET spec=json_set(spec,'$.side_question_of',?1) WHERE id=?2",
+                    params![parent.to_string(), source.key.session.to_string()],
+                )
+                .unwrap();
+        } else {
+            let creator = vessel_proto::Creator::Agent {
+                node: vessel_proto::NodeId::random(),
+                session: vessel_proto::SessionId::random(),
+            };
+            let _changed = db
+                .execute(
+                    "UPDATE sessions SET created_by=?1 WHERE id=?2",
+                    params![
+                        crate::codec::encode(&creator).unwrap(),
+                        source.key.session.to_string()
+                    ],
+                )
+                .unwrap();
+        }
+        assert_eq!(
+            claim(&db, NotificationAuthority::Owner, source).unwrap(),
+            LocalAdmission::NoAttention
+        );
+        assert!(!admissible(&db, NotificationAuthority::Owner, source).unwrap());
+        assert!(crate::inbox::get(&db, source.key).unwrap().is_some());
+    }
+}
