@@ -260,11 +260,20 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
             | Self::SearchMessages(_) => None,
         }

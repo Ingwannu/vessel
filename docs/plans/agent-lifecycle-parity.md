@@ -283,7 +283,12 @@ No row of the crate table changes.
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
 - The named node head is merged without rewriting earlier commits. Its
-  usage ledger, shared compatibility cases and document paragraphs remain.
+  usage ledger, shared compatibility cases and document paragraphs remain. The
+  latest announced head is merged at the next clean slice boundary as well;
+  its protocol constant, migration order and assigned labels schema win.
+  Protocol assertions use the named constant. The only manual conflict keeps
+  the head's inbox argument module/export and adds the log module/export.
+  The shared admission accessor is still pending.
 - Slice 2b keeps creation/current labels separately in durable storage.
   `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
   hidden in direct replies, lists, subscriptions, saved/scheduled specs,
@@ -299,6 +304,9 @@ No row of the crate table changes.
   binds its provisional array length and the legacy-row/null/idempotence
   test. Integration assigns the number. Head rollback SQL is unchanged,
   preceded by the label-column rollback.
+- At the merge onto the node line the labels took schema 17 (the inbox
+  had 16), in the head's `schema/migrations.rs`, where the migrations'
+  SQL lives since the store split.
 - That correction's whole Rust gate reported 1978 passed, one failed and
   12 ignored. Its sole failure was the shared proxy deadline test's outer
   budget; the authorized single exact confirmation passed. Both results

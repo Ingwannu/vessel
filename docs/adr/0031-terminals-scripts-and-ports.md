@@ -264,5 +264,7 @@ node's join (plan, "Integration 2 (node)"):
 Decision 5 left assigning a port to a later track. ADR 0066 specifies
 the project-file keys for terminals opened after setup, a service's
 port, and a TCP health probe, and the digest version that covers the
-commands those keys name. It does not add a proxy. The scanner in
+commands those keys name. Its parser and approval contract may land before
+execution, while the protocol assignment refuses the new sets to clients.
+It does not add a proxy. The scanner in
 decision 5 stays.

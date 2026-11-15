@@ -46,6 +46,8 @@ pub enum Column {
     Abilities,
     /// `sessions.usage` (`ContextUsage`, schema 7).
     Usage,
+    /// Durable inbox item or tool projection.
+    Inbox,
     /// `sessions.queue` (`PromptQueue`, schema 7).
     Queue,
     /// The bounded latest plan (schema 14, ADR 0045).
@@ -224,6 +226,24 @@ pub enum StoreError {
         /// The one it was given.
         got: EventSeq,
     },
+    /// An inbox entry was answered or removed before it could be marked.
+    #[error("this inbox entry has moved on; refresh the inbox before trying again")]
+    InboxGone,
+    /// A push lease cannot be registered after revocation or without read.
+    #[error("this device cannot register push; pair it again with read access")]
+    PushDenied,
+    /// Bounded device subscriptions, independent of the number of sessions.
+    #[error("64 devices already receive push; unsubscribe an unused device first")]
+    PushFull,
+    /// A typed stored subscription failed to decode, without printing its secret.
+    #[error("stored push subscription is corrupt; subscribe this device again")]
+    CorruptPush {
+        /// Device whose row needs renewal.
+        device: DeviceId,
+        /// Decoder failure; never contains the subscription text.
+        #[source]
+        source: serde_json::Error,
+    },
     /// The store was closed, or its writer thread is gone.
     #[error("the store is closed")]
     Closed,
@@ -244,10 +264,13 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             // A row without its file: removed under the node.
-            Self::UnknownSession(_)
+            Self::PushDenied => ErrorCode::Forbidden,
+            Self::InboxGone
+            | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::SessionExists(_)
+            Self::PushFull
+            | Self::SessionExists(_)
             | Self::SessionLive(_)
             | Self::DeviceExists(_)
             | Self::SessionEnded(_)
@@ -266,6 +289,7 @@ impl StoreError {
             | Self::Sqlite(_)
             | Self::Commit(_)
             | Self::Corrupt { .. }
+            | Self::CorruptPush { .. }
             | Self::CorruptId { .. }
             | Self::CorruptDevice { .. }
             | Self::CorruptAttachment { .. }

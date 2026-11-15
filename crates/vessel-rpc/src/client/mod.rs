@@ -222,10 +222,19 @@ impl Unary for vessel_proto::automation::RunSchedule {}
 impl Unary for vessel_proto::automation::DeleteSchedule {}
 impl Unary for vessel_proto::automation::ListRuns {}
 impl Unary for vessel_proto::usage::QueryUsage {}
+impl Unary for vessel_proto::limits::GetUsageLimits {}
+impl Unary for vessel_proto::limits::SetUsageLookup {}
 impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
 impl Unary for vessel_proto::automation::DeletePrompt {}
+impl Unary for vessel_proto::inbox::ListInbox {}
+impl Unary for vessel_proto::inbox::MarkInbox {}
+impl Unary for vessel_proto::inbox::GetInboxEntry {}
+impl Unary for vessel_proto::push::GetPushKey {}
+impl Unary for vessel_proto::push::SubscribePush {}
+impl Unary for vessel_proto::push::UnsubscribePush {}
+impl Unary for vessel_proto::push::ReportPushPresence {}
 impl Unary for vessel_proto::search::SearchMessages {}
 impl Unary for vessel_proto::parking::ParkSession {}
 impl Unary for vessel_proto::parking::WakeSession {}
@@ -427,11 +436,20 @@ const fn is_unary(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::GetUsageLimits
+        | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence
         | Method::SearchMessages
         | Method::ParkSession
         | Method::WakeSession

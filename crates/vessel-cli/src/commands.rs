@@ -28,6 +28,7 @@ use crate::{
 pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
     let target = &cli.target;
     match cli.command {
+        Command::Inbox { command } => crate::inbox::command(target, command).await,
         Command::Node { command } => node(target, command).await,
         Command::Nodes { command } => nodes::command(target, command).await,
         Command::Fleet { command } => Box::pin(fleet::command(target, command)).await,
@@ -112,6 +113,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
         } => node_start(target, bind, name, lsp_config, lsp_roots, lsp_full_roots).await,
         NodeCommand::Install(install) => remote::install(target, install).await,
         NodeCommand::Update(update) => remote::update(target, update).await,
+        NodeCommand::Stop(args) => crate::node_ctl::stop(target, args).await,
         NodeCommand::Status => {
             let client = connect(target).await?.client;
             let node = client.node_info().await?;
@@ -246,6 +248,9 @@ async fn node_start(
         std::env::var_os(name)
     });
     let mut config = Config::new(data_dir(target)?, env);
+    config.limits = vessel_harness::LimitProbe::Local;
+    config.limit_environment =
+        vessel_harness::LimitEnvironment::from_vars(|name| std::env::var_os(name));
     // Terminals (protocol 11): the shell and the credentials, from this
     // binary's own environment.
     config.terminals = vessel_node::TerminalsConfig::detect(

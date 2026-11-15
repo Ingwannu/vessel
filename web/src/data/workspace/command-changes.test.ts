@@ -7,6 +7,7 @@ import type {
   ScriptEntry,
 } from "../../wire/proto";
 import {
+  approvalCoverage,
   compareApproved,
   compareCommands,
   compareLists,
@@ -159,6 +160,52 @@ describe("a set compared with the one approved", () => {
     expect(compareApproved(asked, null).kind).toBe("none");
     expect(comparedWords({ kind: "none" })).toContain(
       "every command is shown as it is",
+    );
+  });
+});
+
+describe("approval coverage", () => {
+  it("refuses a change to terminal commands alone instead of calling it unchanged", () => {
+    const last = approvedSet(["npm ci"], [DEV]);
+    last.commands.terminals = [{ command: "echo before" }];
+    const asked = listed(["npm ci"], false, "b", {
+      scripts: [DEV],
+      terminals: [{ command: "echo after" }],
+      last_approved: last,
+    });
+    expect(approvalCoverage(asked)).toBe("unsupported_terminals");
+    const compared = compareApproved(asked, null);
+    expect(compared).toEqual({ kind: "unsupported_terminals" });
+    expect(comparedWords(compared)).toContain("Approval is unavailable");
+    expect(comparedWords(compared)).not.toContain(
+      "nothing that runs reads differently",
+    );
+  });
+
+  it("refuses an undisplayable earlier approval even after terminals were removed", () => {
+    const last = approvedSet([], []);
+    last.commands.terminals = [{ command: "echo before" }];
+    const asked = listed([], false, "b", { last_approved: last });
+    expect(approvalCoverage(asked)).toBe("unsupported_terminals");
+    expect(compareApproved(asked, null)).toEqual({
+      kind: "unsupported_terminals",
+    });
+  });
+
+  it("refuses a partial comparison with the folder's terminal-bearing approval", () => {
+    const asked = listed([], false, "b");
+    const folder = listed([], true, "a", {
+      terminals: [{ command: "echo before" }],
+    });
+    expect(compareApproved(asked, folder)).toEqual({
+      kind: "unsupported_terminals",
+    });
+  });
+
+  it("keeps legacy and explicitly empty terminal lists approvable", () => {
+    expect(approvalCoverage(listed([], false, "a"))).toBe("complete");
+    expect(approvalCoverage(listed([], false, "a", { terminals: [] }))).toBe(
+      "complete",
     );
   });
 });

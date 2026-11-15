@@ -133,6 +133,13 @@ impl Reply {
             Self::CreateWorktree(outcome) => {
                 outcome.for_protocol(protocol).map(Self::CreateWorktree)
             }
+            Self::ListScripts(list) => list.commands.for_protocol(protocol).map(|commands| {
+                let mut list = list.clone();
+                list.commands = commands;
+                Self::ListScripts(list)
+            }),
+            Self::RunScript(outcome) => outcome.for_protocol(protocol).map(Self::RunScript),
+            Self::RestartScript(outcome) => outcome.for_protocol(protocol).map(Self::RestartScript),
             Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
             Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
             Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
@@ -254,9 +261,6 @@ impl Reply {
             | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
-            | Self::ListScripts(_)
-            | Self::RunScript(_)
-            | Self::RestartScript(_)
             | Self::ListPorts(_)
             // Protocol 11's: asked only by peers that read them.
             | Self::ListAgents(_)
@@ -274,8 +278,17 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::GetNodeSettings(_)

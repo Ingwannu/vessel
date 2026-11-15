@@ -8,7 +8,7 @@
 crates/vessel-agent/src/codex/asks.rs 612
 crates/vessel-agent/src/codex/session.rs 1036
 crates/vessel-agent/src/handshake.rs 522
-crates/vessel-cli/src/workspace.rs 530
+crates/vessel-cli/src/workspace.rs 529
 crates/vessel-client/src/client.rs 727
 crates/vessel-fleet/src/plan.rs 524
 crates/vessel-llm/src/client.rs 786
@@ -21,16 +21,24 @@ crates/vessel-llm/src/upstream/responses.rs 522
 crates/vessel-llm/src/wire/anthropic.rs 646
 crates/vessel-llm/src/wire/responses.rs 882
 crates/vessel-lsp/src/manager.rs 576
-crates/vessel-node/src/envelope.rs 722
+# temporary, removed by Quality B: 722 -> 739 for N1's inbox and push calls (protocol 22),
+# -> 745 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/envelope.rs 745
 crates/vessel-node/src/fleet/links.rs 1210
-crates/vessel-node/src/guard.rs 505
+# temporary, removed by Quality B: 505 -> 519 for N1's inbox and push calls (protocol 22),
+# -> 523 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/guard.rs 523
 crates/vessel-node/src/main.rs 564
 crates/vessel-node/src/models/proxy.rs 1592
-crates/vessel-node/src/node.rs 764
+# temporary, removed by Quality B: 764 -> 772 for N1's inbox and push calls (protocol 22),
+# -> 782 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/node.rs 782
 crates/vessel-node/src/transfers/mod.rs 515
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907
-crates/vessel-rpc/src/client/mod.rs 758
+# temporary, removed by Quality B: 758 -> 772 for N1's inbox and push calls (protocol 22),
+# -> 776 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-rpc/src/client/mod.rs 776
 crates/vessel-store/src/data_dir.rs 524
 crates/vessel-web/src/registry.rs 501
 crates/vessel-web/src/wire.rs 678

@@ -11,7 +11,8 @@
 
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    Context, Div, FluentBuilder as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::command_changes::{
@@ -123,7 +124,11 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
-    let buttons = buttons(id, busy, actions, labels, tokens, cx);
+    // A set holding commands this card cannot draw yet (terminal commands,
+    // ADR 0066) is refused in a sentence, with no Approve: its digest
+    // covers them, so approving it here would approve unseen commands.
+    let unseen = asked.approves_unseen();
+    let buttons = buttons(id, busy, !unseen, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))
         .child(
             div()
@@ -131,13 +136,18 @@ pub(super) fn render(
                 .text_color(tokens.neutral.foreground_muted)
                 .child(words.digest(asked.digest.as_str())),
         )
+        .when(unseen, |card| {
+            card.child(banner(labels.approval_unseen, true, None, tokens))
+        })
         .child(buttons)
 }
 
-/// Cancel, start without setup (when offered), approve and run.
+/// Cancel, start without setup (when offered), approve and run (when
+/// `approvable`).
 fn buttons(
     id: &str,
     busy: bool,
+    approvable: bool,
     actions: Actions,
     labels: &'static Labels,
     tokens: &Tokens,
@@ -168,6 +178,9 @@ fn buttons(
             )
             .on_click(cx.listener(move |this, _event, window, cx| skip(this, window, cx))),
         );
+    }
+    if !approvable {
+        return buttons;
     }
     buttons = buttons.child(
         button(
@@ -363,5 +376,3 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
     }
     list
 }
-
-use vessel_app_kit::ui::FluentBuilder as _;

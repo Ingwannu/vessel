@@ -211,6 +211,7 @@ pub(crate) fn append<'a>(
         ])?;
         crate::usage::note_profile(connection, session, record)?;
         crate::usage::observe(connection, session, record)?;
+        crate::inbox::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
         // before its counter would wrap.

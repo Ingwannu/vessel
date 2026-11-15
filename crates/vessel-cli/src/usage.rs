@@ -1,5 +1,7 @@
 //! `vessel usage`: the node owns accounting; this only selects and prints.
-use crate::args::Period;
+use crate::args::{LookupChoice, Period};
+mod limits;
+mod limits_render;
 use crate::args::{Target, UsageCommand};
 use crate::{connect::connect, error::CliError, io};
 use std::fmt::Write as _;
@@ -8,6 +10,31 @@ use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageSampleKind, UsageScope, 
 pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let (scope, period, after) = match command {
+        UsageCommand::Limits {
+            harness,
+            profile,
+            refresh,
+        } => {
+            return limits::account(
+                &client,
+                vessel_proto::limits::LimitAccount { harness, profile },
+                refresh,
+            )
+            .await;
+        }
+        UsageCommand::SessionLimits { session, refresh } => {
+            return limits::session(&client, session.resolve(&client).await?.id, refresh).await;
+        }
+        UsageCommand::Lookup { policy } => {
+            return limits::lookup(
+                &client,
+                match policy {
+                    LookupChoice::Off => vessel_proto::limits::ExternalLookup::Off,
+                    LookupChoice::On => vessel_proto::limits::ExternalLookup::On,
+                },
+            )
+            .await;
+        }
         UsageCommand::Machine { period } => (UsageScope::Machine, from(period), None),
         UsageCommand::Agent {
             harness,

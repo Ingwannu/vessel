@@ -120,6 +120,7 @@ pub(crate) struct Launcher {
     mcp: Arc<dyn McpSource>,
     /// The `vessel` server, when the node knows how to run it.
     tools: Option<AgentTools>,
+    limit_environment: vessel_harness::LimitEnvironment,
 }
 
 impl Launcher {
@@ -134,7 +135,46 @@ impl Launcher {
             mcp_dir,
             mcp,
             tools,
+            limit_environment: vessel_harness::LimitEnvironment::new(),
         }
+    }
+
+    /// Capture only the binary's nonsecret route facts, never credentials.
+    pub(crate) fn with_limit_environment(
+        mut self,
+        environment: vessel_harness::LimitEnvironment,
+    ) -> Self {
+        self.limit_environment = environment;
+        self
+    }
+
+    /// Resolve the exact profile used for a launch without any file I/O.
+    pub(crate) fn limits(
+        &self,
+        profiles: &NodeProfiles,
+        harness: &HarnessRef,
+        profile: Option<&Profile>,
+    ) -> vessel_session::LimitAssociation {
+        let capture = |profile: &Profile| {
+            vessel_harness::limits_binding(&self.limit_environment, profiles.env(), profile).into()
+        };
+        match profile {
+            Some(profile) => capture(profile),
+            None => profiles.default_of(harness).map_or(
+                vessel_session::LimitAssociation::Refused(
+                    vessel_proto::limits::LimitFailure::Unsupported,
+                ),
+                |profile| capture(&profile),
+            ),
+        }
+    }
+
+    pub(crate) fn account_binding(
+        &self,
+        profiles: &NodeProfiles,
+        profile: &Profile,
+    ) -> Result<vessel_harness::LimitBinding, vessel_proto::limits::LimitFailure> {
+        vessel_harness::limits_binding(&self.limit_environment, profiles.env(), profile)
     }
 
     /// Whether sessions get the `vessel` server (and so a credential).
@@ -214,7 +254,9 @@ impl Launcher {
         let profile = self.added(profiles, &spec.harness, profile)?;
         let (mcp_servers, notices) = self.mcp_servers(spec, profile.as_ref());
         let created_by = creator(principal);
+        let limits = self.limits(profiles, &spec.harness, profile.as_ref());
         Ok(LaunchOptions {
+            limits,
             profile,
             mcp_servers,
             mcp_dir: Some(self.mcp_dir.clone()),
@@ -271,7 +313,9 @@ impl Launcher {
         };
         let profile = self.added(profiles, &info.spec.harness, profile)?;
         let (mcp_servers, notices) = self.mcp_servers(&info.spec, profile.as_ref());
+        let limits = self.limits(profiles, &info.spec.harness, profile.as_ref());
         Ok(Relaunch {
+            limits,
             profile,
             mcp_servers,
             notices,
