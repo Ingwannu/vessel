@@ -27,6 +27,16 @@ pub struct AccountUsageObservation {
     /// Vendor Retry-After, independent of the successful observation time.
     pub retry_at: Option<DateTime<Utc>>,
 }
+/// Recorded bodies normally exercise the real vendor parser; explicit fakes may seed generic values.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum RecordedUsageFormat {
+    /// A real vendor-shaped fixture, decoded by its one owner parser.
+    #[default]
+    Vendor,
+    /// Test-only source values for forecasts/balances not supplied by every built-in vendor.
+    #[cfg(feature = "fakes")]
+    Report,
+}
 /// Tests default to Disabled; only a binary supplies live read capabilities.
 #[derive(Clone, Debug, Default)]
 pub enum AccountUsageProbe {
@@ -49,6 +59,8 @@ pub enum AccountUsageProbe {
         status: u16,
         /// Recorded Retry-After, if any.
         retry_after: Option<String>,
+        /// Never selected by installed node arguments; generic report fixtures require fakes.
+        format: RecordedUsageFormat,
     },
 }
 impl AccountUsageProbe {
@@ -106,20 +118,40 @@ impl AccountUsageProbe {
             Ok(body) => body,
             Err((reason, retry)) => return failed(reason, identity, retry),
         };
-        let result = decode_account_usage(source, &body)
-            .map_err(|_private| LimitFailure::ChangedResponse)
-            .and_then(|outcome| {
-                if safe(&outcome, &credential.token) {
-                    Ok(outcome)
-                } else {
-                    Err(LimitFailure::ChangedResponse)
-                }
-            });
+        let result = self.decode(source, &body).and_then(|outcome| {
+            if safe(&outcome, &credential.token) {
+                Ok(outcome)
+            } else {
+                Err(LimitFailure::ChangedResponse)
+            }
+        });
         AccountUsageObservation {
             result,
             identity,
             retry_at: None,
         }
+    }
+    fn decode(
+        &self,
+        source: BuiltinUsageSource,
+        body: &[u8],
+    ) -> Result<AccountUsageOutcome, LimitFailure> {
+        #[cfg(feature = "fakes")]
+        if matches!(
+            self,
+            Self::Recorded {
+                format: RecordedUsageFormat::Report,
+                ..
+            }
+        ) {
+            if body.len() > crate::MAX_USAGE_VENDOR_BYTES {
+                return Err(LimitFailure::ChangedResponse);
+            }
+            return serde_json::from_slice(body)
+                .map(AccountUsageOutcome::Available)
+                .map_err(|_private| LimitFailure::ChangedResponse);
+        }
+        decode_account_usage(source, body).map_err(|_private| LimitFailure::ChangedResponse)
     }
     async fn credential(
         &self,

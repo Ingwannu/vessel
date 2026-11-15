@@ -105,7 +105,7 @@ mod tests {
         connection
             .execute_batch("CREATE TABLE ItemTable(key TEXT PRIMARY KEY,value BLOB)")
             .unwrap();
-        connection
+        let _inserted = connection
             .execute(
                 "INSERT INTO ItemTable VALUES (?1,?2)",
                 rusqlite::params!["cursorAuthStatus", r#"{"accessToken":"fixture-legacy"}"#],

@@ -66,6 +66,7 @@ mod login_status;
 mod lookup;
 pub use limits::{
     AccountSourceAccess, AccountUsageIdentity, AccountUsageObservation, AccountUsageProbe,
+    RecordedUsageFormat,
     LimitBinding, LimitContext, LimitEnvironment, LimitLoginIdentity, LimitProbe, LimitProbeResult,
     limits_binding,
 };

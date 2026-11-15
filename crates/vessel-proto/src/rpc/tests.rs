@@ -56,7 +56,8 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install",
             "agent.install_output",
             "usage.lookup",
-            "node.set_settings"
+            "node.set_settings",
+            "usage.source_lookup"
         ]
     );
     assert_eq!(
@@ -634,6 +635,9 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "usage.reports",
+    "usage.inspect",
+    "usage.source_lookup",
 ];
 
 #[test]

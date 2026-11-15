@@ -33,6 +33,7 @@ impl Fixture {
             body,
             status: 200,
             retry_after: None,
+            format: vessel_harness::RecordedUsageFormat::Vendor,
         };
         let sources = Sources::start(&config, stop.clone(), &tasks).await;
         Self {

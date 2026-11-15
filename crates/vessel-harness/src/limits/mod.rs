@@ -5,6 +5,7 @@ mod account_sources;
 mod claude;
 pub use account_sources::{
     AccountSourceAccess, AccountUsageIdentity, AccountUsageObservation, AccountUsageProbe,
+    RecordedUsageFormat,
 };
 mod codex;
 mod context;

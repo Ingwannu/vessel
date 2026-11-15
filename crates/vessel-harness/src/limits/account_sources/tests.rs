@@ -29,6 +29,7 @@ fn recorded(
         body: root.join("recorded-body.json"),
         status: 200,
         retry_after: None,
+        format: RecordedUsageFormat::Vendor,
     }
 }
 #[tokio::test]
@@ -324,4 +325,44 @@ async fn cancelling_awaiters_does_not_release_admission_while_blocking_reads_run
     tokio::time::timeout(CREDENTIAL_DRAIN_BUDGET, context.drain())
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn report_fixture_preserves_forecasts_and_still_refuses_credential_echo() {
+    let root = tempfile::tempdir().unwrap();
+    write(
+        root.path(),
+        ".config/cursor/auth.json",
+        br#"{"accessToken":"fixture-cursor-secret"}"#,
+    );
+    let mut probe = recorded(
+        root.path(),
+        BuiltinUsageSource::Cursor,
+        access(root.path()),
+        br#"{"plan":"Synthetic", "windows":[],"balances":[],"details":[]}"#,
+    );
+    let AccountUsageProbe::Recorded { format, .. } = &mut probe else {
+        panic!("recorded only")
+    };
+    *format = RecordedUsageFormat::Report;
+    let context = LimitContext::new();
+    let stop = CancellationToken::new();
+    let first = probe
+        .read(&context, BuiltinUsageSource::Cursor, Utc::now(), &stop)
+        .await;
+    assert!(matches!(
+        first.result,
+        Ok(AccountUsageOutcome::Available(_))
+    ));
+    write(
+        root.path(),
+        "recorded-body.json",
+        br#"{"plan":"fixture-cursor-secret", "windows":[],"balances":[],"details":[]}"#,
+    );
+    let echoed = probe
+        .read(&context, BuiltinUsageSource::Cursor, Utc::now(), &stop)
+        .await;
+    assert_eq!(echoed.result, Err(LimitFailure::ChangedResponse));
+    assert_eq!(first.identity, echoed.identity);
+    context.drain().await;
 }

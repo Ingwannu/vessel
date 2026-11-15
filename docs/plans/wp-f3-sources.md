@@ -210,3 +210,26 @@ until its real registered/disclosed runtime adapter. Unary complete snapshots an
 strictly cache-only passive reads remain the documented transport/auth difference;
 there is no background credential discovery at a cache TTL. Package gates, UI/CLI/
 web integration and real-source acceptance are still owed.
+
+### Recorded real-node UI fixture and managed artifact boundary
+[Decision Log]
+- Purpose: browser/native consumers need available, risk, independent remaining/used, retained-error, consent/off, changed-login and multiple-account cases through the actual node, without reading an operator sign-in or substituting quota JSON in the browser.
+- Existing constraint: the production daemon has no source seed switch. Existing vendor fixtures do not contain every generic source forecast/balance combination. The current managed export whitelist does not include the CLI or this extra executable.
+- Alternatives: browser request mocks would skip the real policy/cache/redaction path; an ambient environment override in vesseld could affect production. Both were rejected.
+- Choice: feature `vessel-node/usage-fixture` builds the separate `vessel-usage-fixture` binary. Its required marked scratch root contains all home, data, executable search and recorded body paths. Listener is loopback and refuses live ports 7077/18220/18221. `RecordedUsageFormat::Report` exists only under harness `fakes`; ordinary adapters still use their actual vendor parser. No real HTTP/certificate/login access occurs in this backend.
+- Tradeoff: this proves the real policy/cache/service projection with a synthetic source, not successful vendor integration. Additional-source session scope and plugin source execution remain Unsupported pending their actual immutable binding/runtime seam.
+
+Preparation (Python standard library only; creates a NEW root with mode 0700 and files 0600):
+```
+python3 scripts/usage-fixture.py /tmp/work/usage-ui-UNIQUE prepare --legacy
+vessel-usage-fixture --root /tmp/work/usage-ui-UNIQUE --bind 127.0.0.1:0
+```
+The binary emits `USAGE_FIXTURE_READY <address>`. Install only managed, hash-verified fake harness executables into `ROOT/bin` when session tests need them; no PATH fallback. `--legacy` prepares default Codex and `fixture-other` with separate synthetic sign-ins, plus the existing testkit Codex vendor body. It does not create a session or grant any policy.
+
+Once the integrator assigns and lands the pending methods, consumers enable global lookup as Admin, explicitly grant Cursor source revision 1 as Admin, then explicitly refresh as Operate. Cache-only Read never seeds data. Typed source `cursor` declares `Cursor` credential store/recipient (not the legacy three-store disclosure); other seven-source adapters remain Unsupported in this recorded fixture. `malformed` changes only the recorded body: a subsequent explicit refresh produces a same-binding retained failure with the original successful timestamp. `restore` restores the generic report. `switch-login` changes the scratch synthetic login; a new refresh must produce a distinct report identity and never reuse prior retained success. Global Off forgets snapshots; source Off revokes only that source. Risk comes from explicit report `runs_out_at`/`shortfall`, never browser inference.
+
+Remote required-feature compilation recipe (no local Cargo):
+```
+vessel-remote-gate run --tree <tree> --commit <immutable SHA> --label wp-usage-fixture --out <new> --cargo build -p vessel-node --features usage-fixture --bin vessel-usage-fixture -p vessel-cli --bin vessel
+```
+Export remains blocked on the tool/coordinator's explicit bounded recipe for **both** `vessel-usage-fixture` and `vessel` with the source/feature manifest. `attach` for a plain cargo build does not export either custom binary. No manual VM copying, local compilation or another binary's export manifest can stand in for this evidence. No fixture end-to-end result is claimed yet.
