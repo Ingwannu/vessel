@@ -122,7 +122,7 @@ fn failure_bucket_is_separate_from_unread_and_clears_when_work_restarts() {
 fn deliberate_unread_survives_empty_inbox_and_exact_seen_until_whole_read() {
     let db = database();
     let target = session(&db);
-    let now = chrono::DateTime::UNIX_EPOCH;
+    let now = DateTime::UNIX_EPOCH;
     let read = || {
         crate::inbox::attention::read(&db, &[target])
             .unwrap()

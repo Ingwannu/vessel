@@ -136,3 +136,8 @@ The pending method's DTO carries this distinct flag; no new method, number,
 scope, migration or read engine is introduced. UI Review can use flag OR unseen
 entries, with pending/failure/work priorities unchanged. Drafted fixtures cover
 empty inbox, appended unread result, exact-entry Seen and actual session Read.
+
+A real-store integration fixture also races two read snapshots against repeated
+writer-committed whole-session unread/read toggles on one retained outcome. Each
+snapshot must return a matching deliberate flag and inbox count; this is a
+transaction/read-pool regression, not proof of paired-device UI synchronization.
