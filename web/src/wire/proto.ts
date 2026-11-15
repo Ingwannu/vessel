@@ -8951,9 +8951,9 @@ export type StopReason = "end_turn" | "max_tokens" | "max_turn_requests" | "refu
  */
 export type StopVoice = { 
 /**
- * Only the owner connection may address this generation.
+ * Pending cancellation needs no speculative epoch; active cancellation is exact.
  */
-lease: VoiceLease, };
+target: VoiceStopTarget, };
 
 /**
  * Remote uncertainty remains visible while the local microphone is already stopped.
@@ -9949,6 +9949,20 @@ epoch: VoiceEpoch, };
  * Contiguous microphone input order, never a session event sequence.
  */
 export type VoiceSeq = number;
+
+/**
+ * Stop can cancel a caller-owned start before its server epoch was received.
+ * The service always checks the opaque connection owner before either branch.
+ */
+export type VoiceStopTarget = { "kind": "starting", 
+/**
+ * Must equal the original caller-selected start id on this connection.
+ */
+id: VoiceId, } | { "kind": "active", 
+/**
+ * A stale epoch cannot stop a later generation.
+ */
+lease: VoiceLease, };
 
 /**
  * Low confidence cannot coexist with retained text or become an agent prompt.
