@@ -2,6 +2,8 @@
 //! adapts the view's one parser/grid to the kit's one renderer (ADR 0073).
 //! Reads and replays carry one opening token; no parsing runs in a UI update.
 
+#[cfg(test)]
+mod binding_tests;
 mod body;
 #[cfg(test)]
 #[cfg(target_os = "linux")]
