@@ -209,3 +209,11 @@ external dependency or filesystem/network/process effect. ADR0079 records the
 native format/protocol-floor compatibility difference, exact-target policy
 and named resource budgets. Pure validation is not source preparation,
 installation, runtime selection or product lifecycle acceptance.
+
+Private stderr now drains to EOF after checked leader cleanup while protocol
+reader/writer tasks are explicitly cancelled. A named two-second drain budget
+refuses a pipe retained by surviving/escaped code instead of hanging shutdown;
+expiration is a typed failure, not a successful complete-log claim. The real
+fake helper emits its long/truncated line and final diagnostic only on shutdown,
+so the retained-tail fixture covers this ordering instead of relying on startup
+output. The actor still permanently withdraws all live capabilities first.

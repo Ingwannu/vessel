@@ -174,7 +174,7 @@ async fn private_stderr_retains_bounded_prefix_and_last_line() {
     let directory = tempfile::tempdir().expect("isolated directory");
     let logs = SharedLogs::default();
     let supervisor = Supervisor::spawn(
-        PreparedCommand::new(command("stderr-long", directory.path())).expect("prepared"),
+        PreparedCommand::new(command("stderr-tail", directory.path())).expect("prepared"),
         address(),
         logs.clone(),
         &CancellationToken::new(),

@@ -62,6 +62,9 @@ pub enum RuntimeError {
     /// Error reading the private diagnostic stream.
     #[error("plugin helper stderr failed")]
     Stderr(#[source] std::io::Error),
+    /// A pipe retained by a descendant cannot hold lifecycle shutdown forever.
+    #[error("plugin helper diagnostic drain timed out")]
+    StderrDrainTimeout,
     /// No safe private log update is possible.
     #[error("plugin helper diagnostic store is unavailable")]
     Logs,
@@ -98,6 +101,7 @@ impl RuntimeError {
             | Self::EndOfStream
             | Self::Protocol(_)
             | Self::Stderr(_)
+            | Self::StderrDrainTimeout
             | Self::Logs
             | Self::LogIdentity(_)
             | Self::Signal(_)

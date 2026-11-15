@@ -213,9 +213,9 @@ async fn finish(
         drop(request.reply.send(Err(CallError::Closed)));
     }
     let cleanup = shutdown::reap(child, writer).await;
-    workers.abort_all();
-    while workers.join_next().await.is_some() {}
+    let drained = workers.drain().await;
     let receipt = cleanup?;
+    drained?;
     result.map(|()| receipt)
 }
 
