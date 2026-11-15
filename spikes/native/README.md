@@ -1291,3 +1291,12 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.
