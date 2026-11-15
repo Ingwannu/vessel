@@ -37,9 +37,12 @@ fn old_request_cannot_transfer_to_a_new_state_with_changed_graph_at_the_same_add
         let empty = registry
             .begin(address.installation.node, HostSupport::Supported)
             .expect("refresh");
-        registry
-            .apply(empty, Ok(vec![]))
-            .expect("authoritative withdrawal");
+        assert_eq!(
+            registry
+                .apply(empty, Ok(vec![]))
+                .expect("authoritative withdrawal"),
+            SnapshotApplied::Applied
+        );
         let changed = ClientDocument::new(
             vec![
                 "submit".parse().expect("method"),
