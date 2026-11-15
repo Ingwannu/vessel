@@ -1271,6 +1271,28 @@ Review refreshes that set; retired or uncorrelated legacy command routes cannot
 approve or hydrate another peer. The protocol-10 read stays independent of
 script.list for older hosts. Unknown writes require an explicit fresh read.
 
+Retiring a Scripts tab synchronously withdraws its UI tickets through the
+single layout registry. The detached link operation keeps running and returns
+only to its original retained record. Project navigation uses the same
+RetiredWrite value. One bounded owner charges panel controls, retired project
+records and an active project mutation before dispatch. Received results show
+the original host/resource/action and safe receipt status; explicit dismissal
+clears only the exact received records shown. Pending or later unseen results
+are kept. A failed reply remains an uncertain remote outcome.
+
+### Structured setup display (passive boundary)
+
+`view::workspace::setup_observation` owns invocation-scoped expansion, read/cancel
+correlation and typed receipt state. `link::workspace::setup_observation` has one
+typed unavailable backend and in-memory tests; it makes no wire call. The
+workspace area's Setup renderer uses shared kit badges, output boxes and
+localized labels, registered through the existing PanelContext. A product
+canonical pane has no workspace-to-backing admission adapter yet and therefore
+shows unavailable with no actions or polling. The pure scalar carrier and an
+old successful backing setup cannot provide that authority. Fixture paint tests
+are separate from network, process, workspace ownership and final UI approval.
+See `docs/plans/setup-observation-app.md` for the reference and remaining join.
+
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
