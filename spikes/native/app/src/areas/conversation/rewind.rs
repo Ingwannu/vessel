@@ -261,10 +261,9 @@ impl Shell {
         };
         let previous = notice.words();
         let visible = self.notice.as_deref() == Some(previous.as_ref());
-        match notice.translate(self.words) {
-            Ok(()) if visible => self.notice = Some(notice.words().to_string()),
-            Ok(()) => {}
-            Err(error) => tracing::warn!(%error, "rewind notice could not be reworded"),
+        notice.translate(self.words);
+        if visible {
+            self.notice = Some(notice.words().to_string());
         }
     }
 
@@ -323,15 +322,15 @@ impl Shell {
         match &answer.result {
             Ok(_) => rewinding.restore = target.map(|target| target.text),
             Err(ActFailed {
-                code: Some(_),
+                code: Some(code),
                 message,
-            }) => match vessel_app_view::rewind::FailureNotice::new(message, self.words) {
-                Ok(notice) => {
-                    self.notice = Some(notice.words().to_string());
-                    rewinding.notice = Some(notice);
-                }
-                Err(error) => tracing::warn!(%error, "rewind notice could not be prepared"),
-            },
+            }) => {
+                tracing::warn!(?code, %message, "rewind was refused");
+                let notice =
+                    vessel_app_view::rewind::FailureNotice::new((*code).into(), self.words);
+                self.notice = Some(notice.words().to_string());
+                rewinding.notice = Some(notice);
+            }
             // No answer at all: the session's lost connection says it.
             Err(ActFailed { code: None, .. }) => {}
         }
@@ -349,3 +348,7 @@ impl Shell {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "rewind/language_tests.rs"]
+mod language_tests;

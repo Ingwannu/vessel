@@ -1,5 +1,37 @@
 # Track L: the app's words as translation data
 
+## Rewind typed-refusal correction
+
+The staged diagnostic interpolation is replaced independently of its move.
+All eleven wire error codes map exhaustively to ten safe rewind recoveries;
+the node's diagnostic is logged at the host boundary and never interpolated
+into the notice. Access, version, missing conversation, current state,
+unsupported agent, missing/failed agent launch, unavailability and uncertain
+internal failure have complete English/Korean messages. No new wire detail or
+protocol is invented. No-code transport failures keep the existing lost-link
+path, without a second rewind error signal.
+
+The retained notice now carries its typed recovery and cached text, so its
+language refresh cannot expose a diagnostic. The source-language corpus has
+14 keys per language. Tests compare every whole recovery and all error-code
+classifications. A native GPUI regression feeds a real typed `ActAnswer` to
+the actual rewind handler, then uses the existing composer-input preservation
+helper to check the Korean notice, cleared pending act, typed value, caret,
+selection and focus. This test executes no node or agent; its app execution
+remains owed. All-target view Clippy, 828 library tests, ten catalog-contract
+tests and native source checks pass. Full native gate and captures remain owed.
+
+The preceding `4380e565` vocabulary move passed remote all-target native
+Clippy. The updater correction's two doc-markdown diagnostics were fixed by
+`02bbff30`, whose remote native Clippy also passed. Neither narrow check is
+reported as executing the app's regression tests.
+
+Later PR wording is coordinated with its active owner: the one Korean
+`pulls-form-title` change to “PR 생성” belongs to that area's current slice;
+the duplicate Approved fact is its drawing/view correction. This branch does
+not edit those same keys while that slice is open. Take the resulting commit
+before the later PR vocabulary work.
+
 ## Rewind vocabulary migration
 
 The instructed conversation-file split is merged before this migration.
