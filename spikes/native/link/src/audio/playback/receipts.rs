@@ -67,7 +67,7 @@ pub(super) struct Receipt {
 }
 impl Receipt {
     pub(super) fn stopped(&self) -> bool {
-        self.stop.is_closed() || self.conversation.is_closed()
+        self.stop.is_closed() || self.conversation.is_closed() || self.state.borrow().terminal()
     }
     fn settle(&self, requested: State) {
         let _changed = self.state.send_if_modified(|state| {
@@ -173,6 +173,12 @@ impl Book {
             },
             receipt,
         })
+    }
+    pub(super) fn queued(&self, lease: Lease) -> bool {
+        lease.capture == self.capture
+            && self.entries.get(&lease.ticket).is_some_and(|entry| {
+                !entry.receipt.stopped() && *entry.receipt.state.borrow() == State::Queued
+            })
     }
     pub(in crate::audio) fn begin(&mut self, lease: Lease) -> Result<Option<Reader>, Refusal> {
         let Some(entry) = self.entry(lease) else {

@@ -344,3 +344,25 @@ budget before issuing Stop to prove mute itself released all old frames.
 Callback tests cover a partial block spanning each control transition. These
 checks are newly authored and await remote execution; no physical microphone,
 provider cancellation or platform permission claim follows from them.
+
+### Device-worker playback preparation
+
+The staged playback pump now connects the existing bounded receipt book,
+packet reader, prepared-output queue and the single shared processor. It
+reserves queue capacity before decoding the next10ms block and yields after
+at most100blocks even if a callback concurrently frees space. A full speaker
+queue therefore cannot hold capture/control execution. Pending identities are
+pruned against the same book, so dropped handles cannot accumulate stale work.
+Actual callback references are fed separately, and only validated callback
+drain events can become Played. Terminal failure now also fences already
+prepared samples and readers; timeout or owner destruction cannot leave a
+failed segment audible.
+
+Fakes cover preparation versus actual output/reference/drain, a saturated
+queue during interruption and new speech, abandoned prefetch and output loss.
+This remains test-only while native duplex construction and its owner loop
+are unfinished. No speaker stream, acoustic echo quality or real callback
+clock has been tested by this source work. The existing queued10second
+preparation deadline stays explicit: the server sends the next TTS segment
+only after playback confirmation, while synthesis prefetch remains node-side
+(Paseo tts-manager.ts189–251). It is not an arbitrary long app playlist.

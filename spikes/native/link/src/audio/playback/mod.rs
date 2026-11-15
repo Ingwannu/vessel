@@ -11,6 +11,7 @@
 
 mod output;
 mod packet;
+mod pump;
 mod receipts;
 
 use receipts::Refusal;

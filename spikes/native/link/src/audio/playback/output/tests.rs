@@ -4,7 +4,7 @@ use crate::audio::{
     format::{Channels, RateHz},
     playback::{
         packet::Packet,
-        receipts::{Book, State},
+        receipts::{Book, Refusal, State},
     },
 };
 use bytes::Bytes;
@@ -161,4 +161,35 @@ fn a_backwards_device_clock_is_not_invented_as_success() {
     assert_eq!(event.after, None);
     assert!(book.scheduled(event.lease, event.now, event.after).is_err());
     assert_eq!(*handle.status().borrow(), State::Failed);
+}
+
+#[test]
+fn a_failed_receipt_also_fences_already_prepared_output_and_its_reader() {
+    let (mut book, mut callback, mut ports, format, mut processor, _fence) = setup();
+    let packet = Packet::new(Bytes::from(vec![0x20; 960]), RateHz::new(24_000).unwrap()).unwrap();
+    let handle = book.submit(packet).unwrap();
+    let mut reader = book.begin(handle.lease()).unwrap().unwrap();
+    let block = reader.next().unwrap().unwrap();
+    ports
+        .blocks
+        .try_send(
+            Prepared::new(
+                processor
+                    .prepare_render(block.mono(), reader.rate())
+                    .unwrap(),
+                &reader,
+                block.last(),
+                format,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    book.advance(book.next_deadline().unwrap());
+    assert_eq!(*handle.status().borrow(), State::Failed);
+    assert!(reader.stopped());
+    assert!(matches!(reader.next(), Err(Refusal::Stopped)));
+    let mut output = [1_i16; 960];
+    callback.write(&mut output, Instant::now(), Some(Duration::ZERO));
+    assert!(output.iter().all(|sample| *sample == 0));
+    assert!(ports.completions.try_recv().is_err());
 }
