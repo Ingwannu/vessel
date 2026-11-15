@@ -181,12 +181,8 @@ pub fn ranked<'a, 'entry, Plugin>(
         .filter_map(|entry| score_fields(query, &entry.fields()).map(|score| (score, entry)))
         .collect();
     scored.sort_by(|(one, a), (other, b)| {
-        one.cmp(other).then_with(|| {
-            a.name()
-                .to_lowercase()
-                .cmp(&b.name().to_lowercase())
-                .then_with(|| a.name().cmp(b.name()))
-        })
+        one.cmp(other)
+            .then_with(|| crate::alphabetical::compare(a.name(), b.name()))
     });
     scored.into_iter().map(|(_, entry)| entry).collect()
 }
