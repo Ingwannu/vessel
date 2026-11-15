@@ -6,6 +6,11 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Merged the designated upstream auth-receipt test repair before the
+  proof package's first executed whole gate. No product source or test
+  expectation was edited locally for that base race.
+
+
 - Merged for the proof package: the designated Quality B node head, without
   conflicts or manual merge edits. Protocol and schema remain the head's;
   existing head tests and tables were retained. The full proof gate covers
