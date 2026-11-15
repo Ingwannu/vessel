@@ -46,7 +46,19 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
             idle(30),
             "the flag's value"
         );
-        assert!(!settings.exists(), "moved, not left to be replaced");
+        // The unusable bytes move before ADR 0065 writes the fresh node's
+        // explicit injection default. That migration is itself a change.
+        assert_eq!(
+            fixture
+                .data_dir()
+                .read_settings()
+                .unwrap()
+                .unwrap()
+                .mcp
+                .unwrap()
+                .inject,
+            Some(vessel_proto::mcp::Injection::Off)
+        );
         let first = set_aside(&fixture, "unreadable");
         assert_eq!(first.len(), 1);
         assert_eq!(first[0].1, b"{ damaged");
@@ -82,7 +94,9 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
     within(async {
         let fixture = Fixture::new();
         let settings = fixture.data_dir().settings_path();
-        let later = br#"{"park_after":{"kind":"never"},"drivers":{"codex":"acp","gemini":"direct"},"dictation":{"on":true}}"#;
+        // Pin injection so this isolates later-build preservation from the
+        // independently tested startup migration, which also writes settings.
+        let later = br#"{"mcp":{"inject":false},"park_after":{"kind":"never"},"drivers":{"codex":"acp","gemini":"direct"},"dictation":{"on":true}}"#;
         std::fs::write(&settings, later).unwrap();
         let node = fixture.start().await;
         let owner = fixture.connect(&node).await;
@@ -102,7 +116,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
             serde_json::from_slice(&std::fs::read(&settings).unwrap()).unwrap();
         assert_eq!(
             written,
-            serde_json::json!({"park_after":{"kind":"idle","minutes":5},"drivers":{"codex":"acp"}})
+            serde_json::json!({"mcp":{"inject":false},"park_after":{"kind":"idle","minutes":5},"drivers":{"codex":"acp"}})
         );
         // Copied once: a second change writes without another copy.
         let _in_force = owner

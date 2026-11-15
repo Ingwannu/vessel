@@ -13,12 +13,14 @@ use support::{Fixture, as_agent, owner, within};
 #[path = "support/mcp.rs"]
 mod support;
 
+#[cfg(test)]
 async fn step<T>(name: &str, work: impl Future<Output = T>) -> T {
     tokio::time::timeout(Duration::from_secs(15), work)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }
 
+#[cfg(test)]
 async fn completion(stream: &mut SessionStream, child: SessionId, reply: &str) {
     let child = child.to_string();
     let contains = |content: &[ContentBlock]| {
@@ -39,7 +41,19 @@ async fn completion(stream: &mut SessionStream, child: SessionId, reply: &str) {
             SessionEvent::QueueChanged { queue } => {
                 queue.entries.iter().any(|entry| contains(&entry.content))
             }
-            _ => false,
+            SessionEvent::Status { .. }
+            | SessionEvent::Terminal(_)
+            | SessionEvent::Agent { .. }
+            | SessionEvent::ProfileChanged { .. }
+            | SessionEvent::ModelCall(_)
+            | SessionEvent::OptionsChanged { .. }
+            | SessionEvent::Renamed { .. }
+            | SessionEvent::CommandsChanged { .. }
+            | SessionEvent::UsageChanged { .. }
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => false,
         };
         if received {
             return;

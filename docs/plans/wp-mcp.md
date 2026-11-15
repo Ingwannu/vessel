@@ -404,3 +404,17 @@ empty-after-answer assertions; the separate default-notification test keeps
 coverage of notify defaults. Neither actual failure is dismissed as a signal
 error. New admission/cancellation/restart node unit fixtures completed in the
 263/0 node target, but incomplete e2e/proto/store targets are not claimed.
+
+The exact 01cc8162e functional batch completed (1,104 passed, two failed,
+three ignored). Default MCP notifications and the isolated permission lifecycle
+now pass; the remaining two failures are ADR 0038 settings fixtures predating
+startup injection migration. The damaged-file test now checks the fresh Off
+marker after preserving the unusable bytes. The later-build fixture explicitly
+pins injection so its original copy-on-first-user-change assertions remain
+isolated, and checks injection survives subsequent partial edits. No backup
+assertion was weakened. The exact strict batch returned seven test-helper
+lints; helpers are explicitly test-only and the event filter enumerates ignored
+variants. Failed logs remain under /tmp/work/wp-mcp/{strict,functional}-01cc.
+The node tree also merged the green ede20014 base with no whole gate running;
+that union is not covered by the older batch. Native UI compilation is queued
+separately, and the pure view/link transition and fake-owner tests passed 9/0.

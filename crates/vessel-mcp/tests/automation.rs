@@ -111,6 +111,7 @@ async fn an_agent_keeps_schedules_of_its_own_and_reads_saved_prompts() {
     .await;
 }
 
+#[cfg(test)]
 async fn replace_schedule_and_refuse_stale(mcp: &mut support::McpClient, nightly: &Value) {
     let (failed, inspected) = mcp
         .call("get_schedule", json!({ "schedule": nightly["id"] }))
