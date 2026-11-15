@@ -1,10 +1,22 @@
 # A6: workspace label node contract and persistence
 
-The native view/link/app implementation is on `backend/m12-wp-labels`, with
-its own `docs/plans/wp-labels.md`. This plan is the node side on
-`backend/m12-wp-labels-node`; separating the documents avoids merging two
-independent progress records into the same file. ADR 0086 owns the decisions.
-Session key/value label calls remain the lifecycle owner's ADR 0063 work.
+## Current status and dependency
+
+The separate native branch is `backend/m12-wp-labels`, with its own
+`docs/plans/wp-labels.md`. This node branch is `backend/m12-wp-labels-node`;
+ADR 0086 records its decisions. Session key/value label calls, mutation clocks
+and LabelsChanged remain the lifecycle owner's ADR 0063 work.
+
+The real Store adapter, writer, actor, registry projection and five pending
+handlers are implemented. Current strict, real integration tests, TS generation,
+whole gate and V3 acceptance remain incomplete. `WORKSPACE_LABELS` stays None;
+no public RPC capability or consumer-ready source is claimed.
+
+Adopted reviewed W11 registry `0140ac0a` through announced node `9c150c6e`
+(gate 50c), then announced `1c762ccf` (gate 52, protocol 25, schema 20).
+The latter assigns six registry metadata methods; it assigns none of this
+package's label methods. W11's later membership-read leaf remains source-only
+and was not adopted. Native adoption uses only the lead's announced app bases.
 
 ## Reference and existing assets
 
@@ -38,179 +50,142 @@ Read Paseo 0.15.4 sources, relative to the reference source root:
   collections and Tokio channels. No dependency or crate edge is added.
 - Why: one database can atomically rename catalog and assignments; an actor
   can finish publication after the requesting future is cancelled.
-- Effects: integration depends on the reviewed registry helpers. Test-only
-  staging exposes no fake product backend and claims no live RPC support.
+- Effects: the real adapter now consumes the reviewed registry helpers. Explicit
+  fakes remain test-only. Pending protocol rows still expose no public RPC support;
+  this package's current execution and review are incomplete.
 
 ## Modules and data flow
 
-- `vessel-proto::workspace_labels`: one validated name/key/color grammar,
-  checked counts, ordered assignment replies, snapshot/delta/cursor values,
-  typed semantic refusals and request shapes. `WORKSPACE_LABELS` is None;
-  five unary requests have pending method rows.
-- `vessel-store::workspace_labels`: mutation planners and real SQL behind a
-  typed `Registry` trait. Admission precedes writes in the same savepoint.
-  Catalog keys cascade rename/delete into ordered assignments; names resolve
-  the catalog's current spelling instead of persisting another descriptor.
-  The result carries catalog delta and typed assignment invalidation.
-- `vessel-node::workspace_labels`: bounded commit journal plus actor. The
-  actor serializes durable reply -> publish -> caller reply; a cancelled
-  caller cannot omit an accepted commit's publication. Failed/no-op writes
-  do not publish. A close marker drains earlier work before store shutdown.
-- The future handler owns scopes/agent policy and existing wait shares.
-  Observe uses a bounded unary long poll, subscribes/marks seen before its
-  snapshot, and directly releases its receiver on cancellation. No detached
-  per-observer task or lease is introduced.
-- Native replicas validate whole batches, keep cached offline colors, and
-  use actual answered NodeId ownership. Unary mutation replies settle forms;
-  the ordered observer is the catalog's only update path.
+- `vessel-proto::workspace_labels` owns the validated name/key/color grammar,
+  checked counts, ordered assignment replies, cursor/delta/snapshot values,
+  semantic refusals and five pending request shapes. No parallel method table.
+- `vessel-store::workspace_labels` plans and applies SQL. Canonical
+  `registry::write::{require_active,bump_revision}` run in the same savepoint;
+  Missing versus Inactive maps to distinct typed reasons. The typed result
+  retains catalog delta and assignment invalidation until the outer commit.
+- `writer::apply::workspace_labels` uses the existing isolated savepoint and
+  marks `effects.registry = Changed` only on success. The existing writer gates
+  both result and effect on outer commit. Revision increments alone do not wake
+  readers. Assignment/name changes wake; no-op/recolor writes do not.
+- Catalog-key foreign keys cascade rename/delete through ordered assignments.
+  Registry snapshots join current names in the same held read transaction as
+  descriptors/memberships. Descriptor JSON and catalog colors are not duplicated.
+- `vessel-node::workspace_labels` owns one bounded actor and commit journal.
+  Accepted mutation -> durable Store reply -> journal publish -> caller reply.
+  Cancelling a requester cannot skip or reorder its accepted publication. Failed
+  and no-op writes publish nothing. Restart starts a new catalog generation.
+- `service::workspace_labels` reuses generated scopes, the exhaustive person-only
+  policy, and existing Waiter shares/wait_slot. No general agent policy widening.
+  All five browser-forwardable classifications and fake Handler implementations
+  are extended explicitly; existing fake methods still return Unsupported.
+- Node setup opens the actor on the existing Store. Unchanged Push/limits setup
+  moved to the existing setup child, preserving order and shrinking node.rs by
+  one line. Teardown captures the label handle through the gateway that already
+  owns the moved service; no second service or actor. After RPC/settings callers
+  finish, its close marker drains earlier accepted commits before Store::close.
 
-The store and actor now have real registry/writer/RPC callers, so their exact
-cfg(test) staging attributes are removed. Explicit fakes remain test-only timing
-and admission fixtures, never installed into a product build.
+Exact test-only staging attributes were removed only from modules with real
+callers. Registry/timing fakes remain test-only and never select a product backend.
+No dependency or crate edge is added; runtime remains SQLite/Tokio/std.
 
-## Agreed registry integration
+## Observation, compatibility and storage
 
-Reviewed identity-only `e45a5d89` is adopted. Announced node gate-40 head
-`ba45a6e3` merged cleanly; protocol 23, schema 18. The reviewed registry producer is now adopted through announced node head
-`9c150c6e` (gate 50c). Native adoption still waits for the lead's base 9.
+Observation is a bounded unary long poll, preserving the reference workflow
+without extending the session-only event frame. Subscribe/mark the watch seen
+before snapshot; wait only when the supplied cursor is current, at most thirty
+seconds. A cancelled poll drops its receiver. Delegated and exhausted-share
+Observe downgrades to Now. Clients must pause after immediate unchanged responses
+instead of busy looping. No detached per-observer task or durable lease exists.
 
-The agreed producer seams are `registry::write::{require_active,bump_revision}`
-inside the writer savepoint, typed Missing versus Inactive refusal, and
-`effects.registry = RegistryChange::Changed` after successful assignment-name
-changes. Recolor-only/idempotent changes do not wake workspace observers.
-Incrementing the durable revision alone is insufficient to wake watchers.
+Catalog generation plus contiguous sequence scopes the retained journal of 256
+changes. Wrong, expired or future cursor returns a full snapshot. Native replicas
+validate complete batches before replacing cache; offline colors remain readable
+but cannot authorize writes or contribute to online merged catalogs.
 
-Ordered assignment projection joins inside the registry snapshot's existing
-read transaction. Labels stay out of persisted WorkspaceDescriptor JSON;
-there is one assignment store. This owner adds its projection values and
-WORKSPACE_LABELS omission gate after the reviewed producer is available.
+All five rows append at the end of the shared method table with None. Shared
+SDK/RPC admission refuses unavailable methods before frames/dispatch, including
+nested calls. RegistrySnapshot::for_protocol omits unavailable assignments at
+both direct handler and nested Forward/Relay/Deliver reply hops. The existing
+pinned forwarding set and exhaustive version/sample/agent classifiers are
+extended; no unrelated assertion or policy is weakened.
 
-## Verification
+One migration appends after REGISTRY_SCHEMA through a derived constant; the
+integrator assigns merge order. Released SQL is unchanged. The existing rollback
+fixture drops only the two new tables before its unchanged registry predecessors.
+There is no second database, compound JSON writer or descriptor copy.
 
-- `29c075fa8`: 26 label tests passed (node 10, proto 4, store 12), including
-  real SQL with a fake registry and four scripted actor timing regressions.
-  Run `wp-labels-node-narrow-20261115T084513Z-29c075fa`.
-- `e764f8a66`: proto/store/node strict all-target clippy passed, including the
-  new assignment invalidation fields/assertions and gate-40 base. Run
-  `wp-labels-node-narrow-20261115T090757Z-e764f8a6`.
-- `d6a38120f`: all 26 scoped tests passed again on that code/base, with no
-  failed or ignored tests. Run
-  `wp-labels-node-narrow-20261115T093008Z-d6a38120`.
-- Earlier TypeScript regeneration/check passed three tests on the strict
-  patch/structured-error source. The generated file merged with gate 40;
-  the current full declaration gate remains owed.
-- The new ordered-shutdown regression has not run. No full gate, RPC runtime,
-  inspected native capture, review or production flow is claimed.
+The one ECMAScript whitespace predicate also serves native query edge trimming:
+FEFF trims, 0085 remains, internal query spaces retain their meaning. Name caps
+are not invented; the existing transport budget applies. Color decoder failures
+keep their source internally and expose safe wire text, never stored bytes.
+TS uses serde default/skip inference for the optional non-null Vec projection;
+explicit ts(optional), which requires Option, is not attached to that Vec.
 
-The validated name module also exposes the existing ECMAScript whitespace
-predicate through one edge-trim helper for native query matching. Both sides
-share that grammar: FEFF trims, 0085 remains, internal query spaces retain
-their meaning. Boundary assertions were added to the existing proto test;
-their new execution remains pending with the ordered-shutdown regression.
+## Authored verification, not current execution proof
 
-## Remaining work
+- Protocol: value normalization/patch decoding/structured refusals; five method
+  scopes/capability requirements; envelope preservation; direct/nested registry
+  omission; old snapshots with the optional field absent.
+- SDK: in-memory MIN/CURRENT handshakes; unavailable methods send no frame.
+- Four real Store cases: missing/all inactive states refuse atomically; no-op and
+  recolor watch silence/collision rollback; forced revision exhaustion rolls back
+  both tables and watch, then later writes recover; ordered rename/delete and
+  snapshot persistence across reopen with descriptor bytes unchanged.
+- Actor: real Store mutation/reopen/generation plus scripted held commit,
+  cancellation, publication and close drain. Real SQL fake-registry tests remain
+  distinct from canonical production admission.
+- Guarded handlers: isolated node, empty harness lookup, explicit temporary
+  user/data directories. Actual direct dispatch checks read-only write refusal,
+  person-only agent refusal and owner Store results. Paused-clock service tests
+  check delegated/exhausted-share Observe returns without the long-poll wait.
+  Direct tests do not advertise the pending methods or prove wire availability.
 
-Consume only the reviewed W11 producer; append one named schema migration at
-that head's next number; add real writer/read APIs, commit watch effects and
-snapshot assignment projection. Start/drain the actor in node lifecycle,
-before closing the store. Register five pending rows at the end of
-`rpc/table.rs`, retaining None until the integrator assigns the number.
+These new real-wiring tests have not run. No real agent, browser or live user
+configuration is used by them. Current scoped tests and final whole gate must
+also cover rollback fixtures, pinned forwarding and request samples.
 
-Complete direct/nested/forwarded/older-peer and agent policy coverage, existing
-wait-share downgrade for Observe, generated TypeScript and SDK boundaries.
-Then run the node whole gate once and submit the complete node package to V3.
-The native package waits for that reviewed consumer boundary for picker/create
-entry, observation and final V4 gate/captures; it does not invent RPCs.
+## Actual evidence and retained failures
 
-## Real adapter integration checkpoint
+- Staged core: `wp-labels-node-narrow-20261115T084513Z-29c075fa` passed 26
+  tests (node 10, proto 4, store 12). The later
+  `wp-labels-node-narrow-20261115T093008Z-d6a38120` repeated 26/0/0.
+- Staged drain core: `wp-labels-node-narrow-20261115T100539Z-81a07c0f`
+  passed 27 tests (node 11, proto 4, store 12), including ordered shutdown.
+  `wp-labels-node-narrow-20261115T105532Z-3bd691bc` passed proto/store/node
+  all-target strict on that earlier staged source. Neither proves real wiring.
+- Earlier TS generation passed three tests before the present full projection;
+  current generator feature compilation and declaration evidence remain owed.
+- `wp-labels-node-narrow-20261115T164335Z-9224cca2`: actual strict RED at two
+  Store lints (catch-all error mapping and doc ticks). Fixed with exhaustive
+  source-preserving variants and doc ticks, no allowance or test change.
+- `wp-labels-node-narrow-20261115T171412Z-8c1c31bc`: actual six-package strict
+  RED at one proto-test identical-match-arm lint. Store checking was reached;
+  full Node/test acceptance was not. The label-list pattern now shares the
+  existing empty-sample arm with identical sample bytes.
+- `wp-labels-node-narrow-20261115T173853Z-b832f8f7`: queued-only cancellation
+  after source audit found service use after move. Verified process group and
+  terminal 143 before replacement; no compiler ran, so no compiler diagnostic
+  or PASS is claimed. Capture now goes through the existing gateway owner.
+- `wp-labels-node-narrow-20261115T174453Z-5e29641e`: registered once on the
+  corrected immutable source; currently queued. Six-package all-target strict
+  is still owed. This document-only cleanup changes no Rust source in that run.
 
-Merged announced node `9c150c6e` as `2a30c0385`. Additive conflict resolutions
-retain both workspace-label and diagnostic ErrorDetail variants, both Store
-error groups and generated declaration groups. Generated TS remains owed from
-the remote generator; its standard trailing whitespace is not hand-reformatted.
+## Remaining work and acceptance
 
-The real adapter uses canonical require_active/bump_revision in the same writer
-savepoint, with Missing/Inactive mapped to typed label reasons. Results and
-deltas wait for the outer commit before the actor publishes. Registry labels
-join the same held snapshot read transaction; descriptors stay byte-identical.
-Assignment/name changes record the existing post-commit registry invalidation,
-while recolor/no-op writes leave that watch untouched. The additive migration
-follows REGISTRY_SCHEMA through one derived constant; no numeric version is
-invented or released entry edited. The existing rollback helper drops only the
-new label tables before its unchanged registry predecessor rollback.
+1. Complete current strict and execute the real scoped tests; preserve immutable
+   heads, actual failures and successful result counts separately.
+2. Generate TS remotely and adopt its artifact/patch; never hand-generate or
+   strip standard generated whitespace. Complete the TS declaration checks.
+3. Adopt any newly announced node base at a natural point before final freeze,
+   preserving held-transaction label hydration and integrator schema ordering.
+4. Run one final whole root gate on the frozen package, then submit one V3
+   review packet and await actual review/number assignment.
+5. The lead brings accepted runtime to the native app through an announced base.
+   Real catalog transport/observation, canonical sidebar/header picker entry,
+   native whole gate/captures and V4 acceptance remain separate work.
 
-Five pending method rows append after the announced table. Shared scope/agent
-checks, typed targets, SDK refusal and nested version projection remain the sole
-boundaries. Snapshot labels are omitted for unassigned/older peers, including
-Forward/Relay/Deliver nesting. All label calls remain person-only and unavailable
-until their version is assigned. Observe reuses the existing wait shares and
-downgrades delegated/exhausted shares to immediate reads. Startup opens the actor
-on the existing Store, and shutdown drains it after callers finish and before
-Store::close. Push/limits initialization moved unchanged into the existing setup
-child beside that new actor initialization; the shrinking node size record drops
-by one line instead of raising its allowance.
-
-Authored verification now includes three real Store tests, one real actor/Store
-reopen test, typed direct/nested capability/projection tests and an in-memory SDK
-no-request-frame test. These new tests and current strict compilation have NOT
-executed yet. No A6 whole gate or reviewer acceptance is claimed.
-
-A fourth real Store regression exhausts only the isolated fixture's registry
-revision, forcing failure after catalog/assignment SQL has already run. It checks
-savepoint rollback, unchanged snapshot and silent watch, then restores the fixture
-revision and proves a later write still succeeds. This complements the planner
-collision test and scripted actor failure; it remains unexecuted with the new
-adapter checks.
-
-Two additional isolated-node tests directly invoke the generated guarded handler
-without advertising the pending methods on a transport. They test read-only
-write refusal, person-only agent refusal, actual owner Store results and final
-assignment/catalog removal. The second uses a paused clock to prove delegated
-and exhausted-share Observe calls return without advancing through the long-poll
-wait. These are source-authored handler-policy tests, not public RPC availability
-or execution PASS. Lookup is empty and the user/data directories are isolated.
-
-The exhaustive-consumer audit found two required fake Handler implementations
-and the web bridge method classifier not yet extended in the first strict head.
-Added explicit Unsupported stubs to both existing fake tables and classified all
-five calls as browser-forwardable through ordinary node scope checks. No prior
-fake behavior or head test assertion was changed. The known-red queued head may
-be superseded once under the standing queued-run rule, after terminal cancellation
-is confirmed. The root architecture now records the real catalog data flow.
-
-Pinned ts-rs macro source confirms explicit ts(optional) requires Option, while
-serde default plus skip-serialization already infers an optional non-null array.
-Removed the invalid explicit annotation on the Vec projection before generating
-TS; the Rust value/serde contract stays unchanged. The remote TS step still owes
-actual feature compilation and generated declaration evidence.
-
-Run `wp-labels-node-narrow-20261115T164335Z-9224cca2` stopped in Store strict
-checking at two owned lints: a catch-all StoreError mapping and missing doc
-backticks. No tests ran and Node strict acceptance was not reached. The mapper
-now lists every current error variant, preserving unrelated sources while making
-future additions require a compiler decision; no allowance was added.
-
-Merged announced node `1c762ccf` (gate 52, all 18 steps green) at the next
-natural point after the prior strict run completed. Its six registry metadata
-methods are now assigned protocol 25; this package's five label calls remain
-None. W11's later membership read leaf is source-only and was not adopted;
-the held-read-transaction label hydration is retained. Current merged source
-still owes its own narrow/tests/TS/whole evidence.
-
-
-Run `wp-labels-node-narrow-20261115T171412Z-8c1c31bc` executed the six-package
-all-target strict check and stopped on one owned proto-test lint: the new empty
-label-list sample repeated the existing empty-request match body. Merged its
-explicit method pattern into that existing arm, preserving the same sample bytes
-and exhaustive coverage. Store strict checking completed before this failure;
-Node/test execution is not accepted by this partial result. Current strict and
-all new runtime tests remain owed. No test expectation or lint allowance changed.
-
-
-While the corrected-sample run was still queued, source audit found teardown
-referenced `service` after SecureGateway had taken ownership. Capture the same
-label handle through that existing gateway owner instead; no new service or
-actor is constructed. The queued-only cancellation verified its process group
-and terminal 143 before a single corrected replacement. No compiler ran on
-that cancelled source, so the ownership defect is source-found, not a claimed
-compiler diagnostic. The existing shutdown drain order remains unchanged.
+No physical workspace provision/archive/restore/generation authority is added.
+The lifecycle owner's checked c88066f2 has no LabelsChanged/SetLabels or metadata
+ordering guarantee. Its new session mutation clock is not assumed to be a label
+revision. Native current-label apply/Ready stays held for an exact tested atomic
+snapshot, typed watermark or causal-read contract; no speculative event/editor.
