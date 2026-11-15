@@ -32,15 +32,15 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 26 | A1 | W3 | Refresh/reload agent (refresh_agent_request, stale session reload) | A-lifecycle.md | unknown |
 | 27 | A1 | W3 | Idle runtime cleanup ("park"), no explicit wake | A-lifecycle.md | unknown |
 | 28 | A1 | W3 (app) / N5 (node) | Restart recovery (resumeOnStartup, resumePrompt) and shutdown capture | A-lifecycle.md | node: built; app: unknown |
-| 29 | A4 | W2 | Import from provider history: list (fetch_recent_provider_sessions) | A-lifecycle.md | built (native Codex peer4/process2 tests passed; current merged strict/TS pending) |
-| 30 | A4 | W2 | Import from provider history: import_agent_request and archived re-activation | A-lifecycle.md | built (same-id restore/import; automatic open parked; corrected strict/tests pending) |
+| 29 | A4 | W2 | Import from provider history: list (fetch_recent_provider_sessions) | A-lifecycle.md | built (Codex peer4/process2 and merged node strict477 passed; TS/final gate pending) |
+| 30 | A4 | W2 | Import from provider history: import_agent_request and archived re-activation | A-lifecycle.md | built (same-id restore/import; automatic open parked; current App regression pending) |
 | 31 | A4 | W2 | Plugin session history | A-lifecycle.md | missing (canonical intake reserved; plugin provider registration pending) |
-| 32 | A4 | W2 | Import session sheet (app) | A-lifecycle.md | built (R223 source corrected; scope popups parked pending G2; exact deb strict/tests and final captures pending) |
+| 32 | A4 | W2 | Import session sheet (app) | A-lifecycle.md | built (R223 source clear82d; popup/automatic open parked; current strict/App binary queued; final captures owed) |
 | 33 | A4 | W2 | Fork (fork_context request, curated chat history attachment) | A-lifecycle.md | skeleton (bounded canonical ChatHistory producer; draft action pending) |
 | 34 | A4 | W2 | Fork app flow (useForkAgent, draft seeding, cwd remap) | A-lifecycle.md | skeleton (W3 seed/W12 existing-workspace target pending) |
 | 35 | A4 | W2 | Rewind (agent.rewind.request, capabilities, app menu) | A-lifecycle.md | built (parity audit: native conversation rewind exists; files/both remain W9 checkpoint gap) |
 | 36 | A4 | W2 | Export (not found) and handoff (skill/background handoff only) | A-lifecycle.md | built (audit: no standalone Paseo export; move B9 remains beyond; skill handoff external) |
-| 37 | A4 | W2 | Detach subagent | A-lifecycle.md | built (store/auth scoped V3 passed; native/final gate pending) |
+| 37 | A4 | W2 | Detach subagent | A-lifecycle.md | built (detach core adopted9c gate50c; native wiring/final full A4 gate pending) |
 | 38 | A1 | W3 | Titles (provisional, lazy first-message, manual rename) | A-lifecycle.md | unknown |
 | 39 | A6 | W10b | Labels (reserved labels, update, filter) | A-lifecycle.md | skeleton |
 | 40 | A5 | W7 | Attention state, clear, mark unread | A-lifecycle.md | skeleton |
@@ -155,7 +155,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 149 | A3 | W1 | Chat outline rail | C-timeline.md | skeleton |
 | 150 | A7 | C2 | User message renderer (images, attachments, rewind, preview, sender) | C-timeline.md | skeleton |
 | 151 | A7 | C2 | Assistant message renderer (markdown, 32 000-char cap, byte notice) | C-timeline.md | skeleton |
-| 152 | A7 | C2 | Text reveal pacing | C-timeline.md | skeleton |
+| 152 | A7 | C2 | Text reveal pacing | C-timeline.md | built (e879 actual App114+Kit208=322/0/2; source-scoping amendment4b591 queued; no whole/UI pass) |
 | 153 | A7 | C2 | Reasoning (thought) row | C-timeline.md | built |
 | 154 | A7 | C2 | Tool call row and details sheet/inline, tool group view | C-timeline.md | built |
 | 155 | A7 | C2 | Detail bodies per kind (shell, edit diff, write, read, search, fetch, plain_text, unknown/Paseo, none for sub_agent/worktree_setup) | C-timeline.md | skeleton |
@@ -216,17 +216,17 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 210 | B2 | W12 | Client slash commands (/exit, /clear + aliases) | area-2-composer-input.md | skeleton |
 | 211 | B2 | W12 | Plugin client slash commands | area-2-composer-input.md | skeleton |
 | 212 | B2 | W12 | Provider (agent) slash commands and skills, inline skill commands, draft command listing | area-2-composer-input.md | skeleton |
-| 213 | B1 | W6 | `@` file/dir mentions (directory suggestions) | area-2-composer-input.md | skeleton |
-| 214 | B1 | W6 | Autocomplete popover mechanics and states | area-2-composer-input.md | skeleton |
+| 213 | B1 | W6 | `@` file/dir mentions (directory suggestions) | area-2-composer-input.md | built |
+| 214 | B1 | W6 | Autocomplete popover mechanics and states | area-2-composer-input.md | built |
 | 215 | B3 | dictation+W12 | Dictation: mic button, overlay, shortcuts, capture (web/native), streaming sender with replay, server stream manager, auto-commit/silence, timeouts, r | area-2-composer-input.md | unknown |
 | 216 | B3 | dictation+W12 | Speech providers/settings/models: local (sherpa) and OpenAI, readiness reasons, env vars, model library download/delete, settings page and provider sh | area-2-composer-input.md | unknown |
 | 217 | B4 | W19 | Realtime voice mode: button, overlay, mute/stop, runtime phases, capture upload, grouped TTS playback and acks, barge-in, thinking cue, server VoiceSe | area-2-composer-input.md | skeleton (staged node/audio/overlay; activation and final evidence pending) |
 | 218 | B4 | W19 | Audio engines (web/native), playback queue, `expo-two-way-audio` module (iOS/Android), plugin audio playback helper | area-2-composer-input.md | skeleton (shared capture source; duplex/platform/plugin audio unfinished) |
 | 219 | B1 | W6 | Attachment types, wire conversion, attach menu | area-2-composer-input.md | skeleton |
-| 220 | B1 | W6 | Image attach: picker (desktop/web/native), paste (web/native), clipboard "Paste image", drop | area-2-composer-input.md | skeleton |
-| 221 | B1 | W6 | Generic file upload: picker, drop, 50 MB limit, pending pills, chunked binary upload, server FileUploadStore (sanitization, stale timeout) | area-2-composer-input.md | skeleton |
-| 222 | B1 | W6 | Local attachment byte stores (IndexedDB / desktop files / native files), encoding for send, GC and retention | area-2-composer-input.md | skeleton |
-| 223 | B1 | W6 | Attachment pills, tray, lightbox, previews, user-message attachment rendering | area-2-composer-input.md | skeleton |
+| 220 | B1 | W6 | Image attach: picker (desktop/web/native), paste (web/native), clipboard "Paste image", drop | area-2-composer-input.md | built |
+| 221 | B1 | W6 | Generic file upload: picker, drop, 50 MB limit, pending pills, chunked binary upload, server FileUploadStore (sanitization, stale timeout) | area-2-composer-input.md | built |
+| 222 | B1 | W6 | Local attachment byte stores (IndexedDB / desktop files / native files), encoding for send, GC and retention | area-2-composer-input.md | built |
+| 223 | B1 | W6 | Attachment pills, tray, lightbox, previews, user-message attachment rendering | area-2-composer-input.md | built |
 | 224 | B1 | W6 | Workspace attachments (browser element, review, chat history, PR context) and suppression rules | area-2-composer-input.md | skeleton |
 | 225 | B1 | W6 | Workspace-file attachments: add to chat action, drag source/drop, line_range type (no creator found) | area-2-composer-input.md | skeleton |
 | 226 | B1 | W6 | Forge issue/PR picker and URL auto-attach | area-2-composer-input.md | unknown |
@@ -334,11 +334,11 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 328 | F4 | S2+W22 | 24 Workspace copy/rename/read/pin/label/folder/archive actions. | p1-projects-workspaces.md | unknown |
 | 329 | F4 | S2+W22 | 24 Branch/host/PR/check/service/label metadata row. | p1-projects-workspaces.md | unknown |
 | 330 | F4 | S2+W22 | 24 Manual/created/last-prompt order, filters and loading states. | p1-projects-workspaces.md | unknown |
-| 331 | D2 | W8 | 25 Workspace script/service list and health tones. | p1-projects-workspaces.md | skeleton (legacy card and pure health tones; runtime snapshot contract pending) |
-| 332 | D2 | W8 | 25 Start and script terminal reveal. | p1-projects-workspaces.md | skeleton (legacy settings execution; pane refuses pending exact-target query) |
-| 333 | D2 | W8 | 25 Stop and state-observed restart. | p1-projects-workspaces.md | skeleton (typed existing-call adapter; final VM tests and UI checks owed) |
+| 331 | D2 | W8 | 25 Workspace script/service list and health tones. | p1-projects-workspaces.md | skeleton (legacy list and pure health tones; service contract6b820045 source-only, no runtime DTO yet) |
+| 332 | D2 | W8 | 25 Start and script terminal reveal. | p1-projects-workspaces.md | skeleton (legacy settings run debug-proved; shared retirement consumer1c64411b VM queued; C2 renderer pending) |
+| 333 | D2 | W8 | 25 Stop and state-observed restart. | p1-projects-workspaces.md | skeleton (legacy run/restart/stop debug smoke on727; latest union VM/final gates owed) |
 | 334 | D2 | W8 | 25 SDK/CLI named script list/start/stop status contract. | p1-projects-workspaces.md | unknown |
-| 335 | D2 | W8 | 25 Service URL route preference/copy and sidebar health. | p1-projects-workspaces.md | skeleton (validated observed URL/copy; proxy routes and sidebar producer pending) |
+| 335 | D2 | W8 | 25 Service URL route preference/copy and sidebar health. | p1-projects-workspaces.md | skeleton (observed URL/copy and fake opener smoke; proxy routes/sidebar producer pending) |
 | 336 | C2 | W15 | 26 New-tab launcher built-ins, plugin panels and terminal profiles. | p1-projects-workspaces.md | unknown |
 | 337 | C2 | W15 | 26 Tab target identity and workspace-local persistence key. | p1-projects-workspaces.md | skeleton |
 | 338 | C2 | W15 | 26 Agent/terminal hydration-safe reconciliation and subagent ownership. | p1-projects-workspaces.md | skeleton |
@@ -497,26 +497,26 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 491 | D1 | C2 | Agent terminal tools and `paseo terminal` CLI | area-4-terminals-scripts-browser.md | unknown |
 | 492 | D1 | C2 | Worktree auto terminals (`worktree.terminals`) | area-4-terminals-scripts-browser.md | unknown |
 | 493 | D1 | C2 | New-workspace terminal launch target | area-4-terminals-scripts-browser.md | unknown |
-| 494 | C2 | W15 | Layout model (split tree, tabs, persistence, placements) | area-4-terminals-scripts-browser.md | skeleton |
-| 495 | C2 | W15 | Split container rendering, resize handles, pane focus, maximize, focus mode | area-4-terminals-scripts-browser.md | skeleton |
-| 496 | C2 | W15 | Panel registry/manifest/descriptor contract and panel kinds | area-4-terminals-scripts-browser.md | skeleton |
-| 497 | C2 | W15 | Tab drag and drop, drop zones, tab reorder, move to pane, keyboard pane commands | area-4-terminals-scripts-browser.md | skeleton |
+| 494 | C2 | W15 | Layout model (split tree, tabs, persistence, placements) | area-4-terminals-scripts-browser.md | skeleton (typed model/persistence and metadata-only resident fences reviewed; product workspace/resources/follow cutover pending) |
+| 495 | C2 | W15 | Split container rendering, resize handles, pane focus, maximize, focus mode | area-4-terminals-scripts-browser.md | skeleton (native frame/resize/maximized visibility narrow passed; one legacy agent body, multi-resource rendering/captures pending) |
+| 496 | C2 | W15 | Panel registry/manifest/descriptor contract and panel kinds | area-4-terminals-scripts-browser.md | skeleton (PanelContext and staged owner hooks bounded source/narrow passed; actual owner integrations and typed Explorer mount pending) |
+| 497 | C2 | W15 | Tab drag and drop, drop zones, tab reorder, move to pane, keyboard pane commands | area-4-terminals-scripts-browser.md | skeleton (typed tab drop/reorder and shared action context implemented; actual drag/keyboard parity and final captures pending) |
 | 498 | C2 | W15 | Mobile three-panel shell (motion model, gestures, thresholds, gesture blocking) | area-4-terminals-scripts-browser.md | unknown |
-| 499 | C2 | W15 | Compact workspace sheets and layout modes | area-4-terminals-scripts-browser.md | skeleton |
+| 499 | C2 | W15 | Compact workspace sheets and layout modes | area-4-terminals-scripts-browser.md | skeleton (pure sheet policy and retained identity implemented; compact picker, owner-close dispatch and product resource integration pending) |
 | 500 | D2 | W8 | `paseo.json` scripts/services/servicePorts configuration and project settings editor | area-4-terminals-scripts-browser.md | missing |
-| 501 | D2 | W8 | Script/service launch, stop, restart, exit handling, runtime store | area-4-terminals-scripts-browser.md | skeleton (legacy calls wired; canonical Workspace runtime contract pending) |
+| 501 | D2 | W8 | Script/service launch, stop, restart, exit handling, runtime store | area-4-terminals-scripts-browser.md | skeleton (legacy lifecycle debug smoke; canonical Workspace runtime contract pending) |
 | 502 | D2 | W8 | Service env and port plan/allocation (range, portScript, free port) | area-4-terminals-scripts-browser.md | missing |
-| 503 | D2 | W8 | Port discovery (not found) | area-4-terminals-scripts-browser.md | skeleton (observed port.list adapter; final VM/UI verification owed) |
+| 503 | D2 | W8 | Port discovery (not found) | area-4-terminals-scripts-browser.md | skeleton (port.list socket observed in isolated legacy smoke; current-source final VM/UI owed) |
 | 504 | D2 | W8 | Service proxy: hostnames, routes, HTTP/WebSocket proxying, 404/502 behaviour, standalone listener, public base URL, branch rename re-route | area-4-terminals-scripts-browser.md | missing |
 | 505 | D2 | W8 | Script health monitor | area-4-terminals-scripts-browser.md | missing |
 | 506 | D2 | W8 | Script status projection and `script_status_update` delivery | area-4-terminals-scripts-browser.md | missing |
-| 507 | D2 | W8 | Scripts menu UI (rows, link selector, route preference store, open service URL behaviour) | area-4-terminals-scripts-browser.md | skeleton (passive panel registered; exact-target query and route contract pending) |
+| 507 | D2 | W8 | Scripts menu UI (rows, link selector, route preference store, open service URL behaviour) | area-4-terminals-scripts-browser.md | skeleton (passive panel plus synchronous retirement consumer built; VM union and route contract pending) |
 | 508 | A9 | W22 | Managed-process ledger | area-4-terminals-scripts-browser.md | missing |
-| 509 | D3 | W18 | In-app browser pane (toolbar, device presets, store, resident webviews, profile, shortcuts, new-tab requests, browser data clear) | area-4-terminals-scripts-browser.md | skeleton |
-| 510 | D3 | W18 | Browser element annotate/screenshot attachments | area-4-terminals-scripts-browser.md | unknown |
-| 511 | D3 | W18 | Agent browser tools (22 tools, daemon broker, host registration, error codes, config switch) | area-4-terminals-scripts-browser.md | skeleton |
-| 512 | D3 | W18 | Desktop browser automation host and Electron/CDP executor | area-4-terminals-scripts-browser.md | skeleton |
-| 513 | D3 | W18 | Preview of services in the app (via "View service" -> browser tab; no separate preview feature found) | area-4-terminals-scripts-browser.md | skeleton |
+| 509 | D3 | W14 | In-app browser pane (toolbar, device presets, store, resident webviews, profile, shortcuts, new-tab requests, browser data clear) | area-4-terminals-scripts-browser.md | skeleton (W12 registry NoEngine renderer and pure toolbar/device/geometry; live resource, frames, input/focus and clear pending) |
+| 510 | D3 | W14 | Browser element annotate/screenshot attachments | area-4-terminals-scripts-browser.md | missing (owned snapshot/frame and shared image integration prerequisites; no annotation UI or attachment producer) |
+| 511 | D3 | W14 | Agent browser tools (22 tools, daemon broker, host registration, error codes, config switch) | area-4-terminals-scripts-browser.md | skeleton (one 22-tool catalogue and typed pending facades; default Off, no offering; real engine, settings writer/start lease and MCP wiring owed) |
+| 512 | D3 | W14 | Desktop browser automation host and Electron/CDP executor | area-4-terminals-scripts-browser.md | skeleton (A10 staged CDP/proxy/page models; exact artifact service-account bundle-read fixture 1/0 only; no qualified launcher/engine) |
+| 513 | D3 | W14 | Preview of services in the app (via "View service" -> browser tab; no separate preview feature found) | area-4-terminals-scripts-browser.md | skeleton (reviewed exact-origin lease contract; real D2 connect_verified ownership/scheme/revocation producer unavailable, NoEngine) |
 | 514 | E1 | E2 | Daemon supervisor + worker process model (fork, heartbeat, crash restart, lifecycle intents) | area-5-hosts-devices-desktop.md | unknown |
 | 515 | E1 | E2 | Daemon CLI lifecycle commands (start/run/status/stop/restart/reload/pair/config/set-password) | area-5-hosts-devices-desktop.md | unknown |
 | 516 | E1 | E2 | PID/instance lock `paseo.pid` (boot id, heartbeat, stale detection) | area-5-hosts-devices-desktop.md | unknown |
@@ -541,9 +541,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 535 | E1 | E2 | Host runtime controller (status machine, probing, best-connection selection, adaptive switch, auth failure state) | area-5-hosts-devices-desktop.md | unknown |
 | 536 | E1 | E2 | Host boot/bootstrap (localhost probe, env override, initial hint, desktop daemon registration) | area-5-hosts-devices-desktop.md | unknown |
 | 537 | E1 | E2 | Host switching/pickers (sidebar HostPicker, Settings host switcher, HostChooserModal, new-workspace host picker) | area-5-hosts-devices-desktop.md | unknown |
-| 538 | E1 | E2 | Host settings page (status badges, connection error, appearance: rename/color/badge, remove host, restart daemon, update daemon) | area-5-hosts-devices-desktop.md | unknown |
-| 539 | E1 | E2 | Host connections page (latency rows, remove connection) | area-5-hosts-devices-desktop.md | unknown |
-| 540 | E1 | E2 | Host appearance (name, color, badge display) and sidebar host badges | area-5-hosts-devices-desktop.md | unknown |
+| 538 | E1 | E2 | Host settings page (status badges, connection error, appearance: rename/color/badge, remove host, restart daemon, update daemon) | area-5-hosts-devices-desktop.md | skeleton (alias rename/remove exist; selection consumer V4 row239 returned; color/badge/restart/update incomplete) |
+| 539 | E1 | E2 | Host connections page (latency rows, remove connection) | area-5-hosts-devices-desktop.md | skeleton (safe read-only routes exist; latency and route removal unbuilt) |
+| 540 | E1 | E2 | Host appearance (name, color, badge display) and sidebar host badges | area-5-hosts-devices-desktop.md | skeleton (pure label/color/badge values; no appearance persistence; alias rename is a documented adaptation) |
 | 541 | E1 | E2 | Add host: Direct connection modal (host/port/SSL/password/advanced URI) | area-5-hosts-devices-desktop.md | unknown |
 | 542 | E1 | E2 | Host target grammar (`parseHostTarget`: tcp, ws, unix, pipe, ssh, relay, offer URL) | area-5-hosts-devices-desktop.md | unknown |
 | 543 | E1 | E2 | Add host: Remote SSH (desktop; ssh `-W` tunnel to existing daemon, installs nothing) | area-5-hosts-devices-desktop.md | unknown |
@@ -597,9 +597,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 591 | F2 | W21 | Paseo tools visibility: settings card (`mcp.injectIntoAgents`), `--no-mcp`/`--no-inject-mcp`, per-provider `paseoTools {enabled, disabledTools}` | A.md | skeleton (typed node policy/inject built; native card/CLI integration and gates pending) |
 | 592 | F2 | W21 | Tool catalog scoping (agent vs top-level), `serverId` host fan-out, plugin tools, result serialisation | A.md | skeleton (policy/scoping/machine/structured-result edge built; plugin producer integration pending) |
 | 593 | F2 | W21 | MCP tools: agents (12), workspaces/scripts (7), terminals (5), schedules/heartbeats (11), providers/hosts/voice (6), browser (22) | A.md | skeleton (existing-call facade built; creation/provider/launch-profile/host/browser/voice dependencies pending) |
-| 594 | F2 | W18 | Skills settings section (install switch, Update, uninstall confirm, picker sheet, destructive-removal confirm) | A.md | built (native typed owner/cards/picker/confirmation/recovery source; retired-input retention added; older view/link9 passed; actual UI/guard union, latest checks, whole gate, captures/review owed; MCP_PARITY=None) |
+| 594 | F2 | W18 | Skills settings section (install switch, Update, uninstall confirm, picker sheet, destructive-removal confirm) | A.md | built (typed owner/cards/picker/confirmation/recovery; actual App5+Link4+View7 tests16/0/0 and strict0 on prior base; merged base8c; Skills-only carrier/guard union, current-base checks, whole gate, captures/review owed; MCP_PARITY=None) |
 | 595 | F2 | W15 | Onboarding "orchestration" step (tools, skills, CLI) | A.md | skeleton |
-| 596 | F2 | W21 | Skills protocol (`agent.skills.*` requests/responses) + client methods | A.md | built (typed node pending rows/SDK; separate staged portable carrier V3 source passed and exact strict0; carrier unit/TS plus full runtime gate/review owed; MCP_PARITY=None) |
+| 596 | F2 | W21 | Skills protocol (`agent.skills.*` requests/responses) + client methods | A.md | built (staged portable carrier V3 source passed; 4crate strict0, proto/client/node units679/0/0; TS failed inherited alias check, central9dfdf0a1 applied and replacement queued; runtime gate/review owed; MCP_PARITY=None) |
 | 597 | F2 | W21 | Skills controller/queue, status diff, sync with managed-file manifest, crash-safe transactions, startup auto-update | A.md | built (node writer/filesystem transaction machinery; scoped tests only; whole gate/review owed) |
 | 598 | F2 | W21 | Selection store (`agents.skills.selection`, default all) and legacy desktop selection migration | A.md | built (private all/custom store and explicit import-only-if-unset/AlreadySet; no automatic legacy file: Vessel never wrote one, per coordinator; gates/review owed) |
 | 599 | F2 | W21 | Bundled skills: paseo, paseo-advisor, paseo-committee, paseo-handoff, paseo-help, paseo-plugin; install targets `~/.agents/skills`, `~/.claude/skills` | A.md | built (six independent Vessel guides and shared/Claude targets; whole gate/review owed) |
@@ -609,7 +609,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 603 | A5 | W7 | What the user sees / does | B.md | built |
 | 604 | A5 | W7 | In-app OS notification display (desktop Electron, web Notification API) | B.md | built |
 | 605 | A5 | W7 | Desktop notification settings (Settings > Notifications) | B.md | built |
-| 606 | A5 | W7 | Notification open routing (tap/click -> navigate) | B.md | skeleton |
+| 606 | A5 | W7 | Notification open routing (tap/click -> navigate) | B.md | skeleton (process Global original-window/weak-Shell/context routing built; new callback tests queued; W19 reviewed generic host fallback and W21 safe navigation pending) |
 | 607 | A5 | W7 | States, errors | B.md | built |
 | 608 | A5 | W7 | Mobile push notifications (Expo push) | B.md | missing |
 | 609 | A5 | W7 | Agent attention / unread state ("requires attention") | B.md | built |
@@ -621,14 +621,14 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 615 | A5 | W7 | What the user sees | B.md | built |
 | 616 | A5 | W7 | Notification sounds | B.md | built |
 | 617 | A5 | W7 | What the user sees | B.md | built |
-| 618 | A5 | W7 | Timeline "notification" items and agent finish subscriptions (adjacent, not OS notifications) | B.md | missing |
+| 618 | A5→orchestration | W18 (finish subscriptions + persistence; timeline item rendering W10) | Timeline "notification" items and agent finish subscriptions (adjacent, not OS notifications) | B.md | skeleton (ADR0033 final69a682be1 aligned with W23 ADR0084 e9087c637; joint V3 contract row251 SOURCE PASSED/GATE OWED; no persistence/RPC/second watcher; W23 isolated values4544 source-only, actual receipt binding/lifetime fence/recovery producers pending) |
 | 619 | F3 | W5 | Account usage reports: protocol and daemon pipeline | B.md | skeleton |
 | 620 | F3 | W5 | Usage source plugins (per provider fetchers) | B.md | skeleton |
 | 621 | F3 | W5 | Usage query layer and caching (app) | B.md | skeleton |
-| 622 | A5 | W7 | States | B.md | unknown |
-| 623 | A5 | W7 | Platforms / Connections | B.md | unknown |
+| 622 | F3 | W5 | States | B.md | skeleton |
+| 623 | F3 | W5 | Platforms / Connections | B.md | skeleton |
 | 624 | F3 | W5 | Usage cards, bars, formatting and tone | B.md | skeleton |
-| 625 | A5 | W7 | What the user sees | B.md | unknown |
+| 625 | F3 | W5 | What the user sees | B.md | skeleton |
 | 626 | F3 | W5 | Sidebar Usage summary item (pinned windows) | B.md | skeleton |
 | 627 | F3 | W5 | Usage modal (and host filter, options menu) | B.md | skeleton |
 | 628 | F3 | W5 | Settings keys (see storage table): `AppSettings.usage = {displayAs: "used"/"remaining" (default "used"), pins: UsagePin[]/null (default null), serverI | B.md | skeleton |
@@ -639,11 +639,11 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 633 | A5 | W7 | Client heartbeat activity/focus/visibility coalescing | B.md | built |
 | 634 | A5 | W7 | Expo push token registration, revocation and lease renewal | B.md | missing |
 | 635 | A5 | W7 | F-Droid push stubs and permission-denied behavior | B.md | missing |
-| 636 | A5 | W7 | Notification target navigation and queued host route bootstrap | B.md | skeleton |
+| 636 | A5 | W7 | Notification target navigation and queued host route bootstrap | B.md | skeleton (exact Inbox fallback; manual session Open unavailable until W21 reviewed ingress; W19 host bootstrap pending) |
 | 637 | A5 | W7 | Deferred focus-entry unread clearing vs input/send/blur | B.md | built |
-| 638 | A5 | W7 | Workspace Mark as read and Mark as unread | B.md | missing |
-| 639 | A5 | W7 | Permission/error/finished sidebar bucket aggregation | B.md | built |
-| 640 | A5 | W7 | Terminal activity attention and focus clearing | B.md | skeleton |
+| 638 | A5 | W7 | Workspace Mark as read and Mark as unread | B.md | missing (same-writer workspace-memberships helper and canonical workspace-relative roles still not consumer-ready) |
+| 639 | A5 | W7 | Permission/error/finished sidebar bucket aggregation | B.md | built (pure all-root/running-descendant aggregation and independent icon facts V4 row234 source PASS246; shared line6eb green; canonical W11 runtime join/whole A5 still owed) |
+| 640 | A5 | W7 | Terminal activity attention and focus clearing | B.md | skeleton (metadata/exact revision claim and manual clear built; C2 real TerminalId resident/focus producer pending) |
 | 641 | A5 | W7 | Desktop sound preference and notification test | B.md | built |
 | 642 | A5 | W7 | Toast lifetime, dismissal and error/info presentation | B.md | built |
 | 643 | F3 | W5 | Account report discovery and per-agent account association | B.md | skeleton |
@@ -700,12 +700,12 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 694 | F4 | S2+W22 | Plugin command-center contribution integration | C.md | skeleton |
 | 695 | F5 | E2+K+L | Settings shell and navigation; app settings store; General; Sending; Chat; Terminal; Editor; Files; Open location; Browser data; Integrations; Notific | D.md | unknown |
 | 696 | F6 | W16 | Plugin model, trust and `pluginsEnabled`; manifest; directory/git/npm/registry install; reviewed updates; reload/enable/disable/remove; logs; subproce | E.md | skeleton |
-| 697 | A8 | W4 | Permission cards and plan/mode approval | gaps.md | skeleton (simultaneous cards/shared Plan/uncertainty hold source; rich actions/plan runtime and VM proof pending) |
-| 698 | A8 | W4 | Agent question forms and answer encoding | gaps.md | skeleton (retained fields/navigation/refusal-versus-uncertainty source; metadata/preview/empty rules and VM proof pending) |
+| 697 | A8 | W4 | Permission cards and plan/mode approval | gaps.md | skeleton (simultaneous cards/shared Plan/uncertainty hold; native7301492/0/2; rich actions/plan runtime and current strict pending) |
+| 698 | A8 | W4 | Agent question forms and answer encoding | gaps.md | skeleton (retained fields/navigation/source guards runtime730 pass; metadata/preview/empty rules and current strict pending) |
 | 699 | A8 | W4 | Nonblocking Codex questions and durable pending requests | gaps.md | skeleton |
 | 700 | A8 | W4 | Permission event fan-out, cancellation and mode policy | gaps.md | skeleton |
 | 701 | A8 | W11 | Agent attention policy — corrections and missing boundary details | gaps.md | unknown |
-| 702 | A8 | W4 | CLI permission listing, allow and deny | gaps.md | skeleton (canonical archived read/preflight/parser/confirmation source; output adopted, rich handlers/VM proof pending) |
+| 702 | A8 | W4 | CLI permission listing, allow and deny | gaps.md | skeleton (canonical archived read/preflight/parser/output source; CLI d4e strict5 lints corrected47e, execution/rich handlers pending) |
 | 703 | A10 | N3+G3 | Host agent profiles: create, edit, remove and reorder | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
 | 704 | A10 | N3+G3 | Applying profiles to drafts and existing agents | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
 | 705 | A10 | N3+G3 | Legacy favorites migration and account boundary | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
@@ -734,9 +734,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 728 | A8 | W4 | Question response failure/retry and header-keyed encoding | gaps.md | skeleton |
 | 729 | A8 | W4 | Codex asynchronous questions: active-turn steer and idle follow-up | gaps.md | skeleton |
 | 730 | A8 | W4 | Runtime permission maps, persistence metadata and offline stripping | gaps.md | skeleton |
-| 731 | A8 | W4 | Cross-client request/resolution events, direct acknowledgement and cancellation | gaps.md | skeleton (selected-connection and retained uncertainty/source-node fences; exact-record staged recovery; durable/live cutover pending) |
+| 731 | A8 | W4 | Cross-client request/resolution events, direct acknowledgement and cancellation | gaps.md | skeleton (original-node/FieldId/uncertainty staged runtime730 pass; portable W12 kernel c3d strict running, durable/live cutover pending) |
 | 732 | A8 | W11 | Presence selection, delegated callback suppression and unread corrections | gaps.md | unknown |
-| 733 | A8 | W4 | CLI permit listing, batch allow default, deny flags and confirmation errors | gaps.md | skeleton (asymmetric selection and canonical archived listing source; rich response activation/gates pending) |
+| 733 | A8 | W4 | CLI permit listing, batch allow default, deny flags and confirmation errors | gaps.md | skeleton (asymmetric selection and canonical archived listing source; rich response activation/current CLI strict/tests pending) |
 | 734 | A10 | N3+G3 | Profile CRUD, order, notes, glyph/color and catalog-backed form | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
 | 735 | A10 | N3+G3 | Profile draft apply, live bundle apply, invalid-mode omission and partial failure | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
 | 736 | A10 | N3+G3 | Legacy favorite migration markers, deduplication and catalog retry | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
@@ -772,3 +772,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 761 | checkpoints | W9 | Restore files to a turn while preserving conversation (files mode) | parts/A-lifecycle.md#Rewind | skeleton |
 | 762 | checkpoints | W9 | Typed checkpoint refusals and durable restore outcomes (files mode) | parts/A-lifecycle.md#Rewind | skeleton |
 | 763 | checkpoints | W9 | Checkpoint capture, storage and response limits (files mode) | parts/A-lifecycle.md#Rewind | skeleton |
+
+## Web parity investigations
+
+| # | Pkg | Owner | Feature | Source | State |
+|---|---|---|---|---|---|
+| 764 | web-parity investigation | N2 | Web UI identity refusal under build-VM load | Plan: backend-m12-web-parity.md; error context SHA d5667e687c89c749f2099486637274d897e513c613cc08343de913e0494fb783; whole webparity-20261115T143312Z-811c18d5; authorized replay webparity-20261115T153059Z-811c18d5 | skeleton (source classification fault identified: elapsed hello and invalid proof both 4401; retryable close fix and real-server/client regressions written; TS/client10 pass, Rust VM checks and V3 review pending; unique historical cause unproven) |
