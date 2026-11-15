@@ -1,6 +1,6 @@
 //! Prompt creation/delivery keeps unsupported launch settings ahead of all effects.
 
-use super::{labels, structured};
+use super::{labels, receipt, structured};
 use crate::parity::{observe, output};
 use crate::{
     args::{
@@ -74,7 +74,7 @@ pub(super) async fn run(
     spec.title = args.title;
     let client = connect(target).await?.client;
     let info = client.create_session(spec).await?;
-    let _delivery = client
+    let delivery = client
         .prompt(
             info.id,
             vec![ContentBlock::Text { text: args.prompt }],
@@ -82,10 +82,10 @@ pub(super) async fn run(
         )
         .await?;
     if args.no_wait {
-        return output::single(presentation, &info.id.to_string(), &info).await;
+        return receipt::run_started(presentation, &info, delivery).await;
     }
     let result = observe::wait(&client, info.id, args.wait_timeout).await?;
-    output::single(presentation, &info.id.to_string(), &result).await
+    receipt::run_finished(presentation, &info, result.status).await
 }
 
 pub(super) async fn send(
@@ -129,10 +129,10 @@ pub(super) async fn send(
     }
     let receipt = client.prompt(info.id, content, delivery).await?;
     if args.no_wait {
-        return output::single(presentation, &info.id.to_string(), &receipt).await;
+        return receipt::send_started(presentation, info.id, receipt).await;
     }
     let result = observe::wait(&client, info.id, WaitBudget::DEFAULT).await?;
-    output::single(presentation, &info.id.to_string(), &result).await
+    receipt::send_finished(presentation, result).await
 }
 
 pub(super) async fn import(

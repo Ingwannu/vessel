@@ -207,20 +207,6 @@ impl Inspection {
             ("Cwd", self.cwd.0.clone()),
             ("CreatedAt", self.created_at.to_rfc3339()),
             ("UpdatedAt", self.updated_at.to_rfc3339()),
-            (
-                "PendingPermissions",
-                self.pending_permissions
-                    .iter()
-                    .map(|permission| format!("{} (unknown)", permission.id))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            ),
-            (
-                "Worktree",
-                self.worktree
-                    .map_or_else(|| "null".to_owned(), |id| id.to_string()),
-            ),
-            ("ParentAgentId", "null".to_owned()),
         ];
         let mut rows = fields
             .into_iter()
@@ -241,6 +227,29 @@ impl Inspection {
                         .collect::<Vec<_>>()
                         .join(", "),
                 ),
+            });
+        }
+        let pending = if self.pending_permissions.is_empty() {
+            "[]".to_owned()
+        } else {
+            self.pending_permissions
+                .iter()
+                .map(|permission| format!("{} (unknown)", permission.id))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        for (key, value) in [
+            ("PendingPermissions", pending),
+            (
+                "Worktree",
+                self.worktree
+                    .map_or_else(|| "null".to_owned(), |id| id.to_string()),
+            ),
+            ("ParentAgentId", "null".to_owned()),
+        ] {
+            rows.push(Field {
+                key,
+                value: Text(value),
             });
         }
         rows

@@ -43,7 +43,7 @@ async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() 
             .await;
         assert!(ran.ok, "{}", ran.stderr);
         let waited: Waited = serde_json::from_str(&ran.stdout).unwrap();
-        assert_eq!(waited.status, "idle");
+        assert_eq!(waited.status, "completed");
         let id = waited.agent_id.to_string();
         let owner = fixture.owner().await;
         let before = owner.session(waited.agent_id).await.unwrap();
@@ -285,7 +285,7 @@ async fn image_send_reuses_chunk_upload_and_delivers_the_acknowledged_attachment
             .await;
         assert!(sent.ok, "{}", sent.stderr);
         let waited: Waited = serde_json::from_str(&sent.stdout).unwrap();
-        assert_eq!(waited.status, "idle");
+        assert_eq!(waited.status, "completed");
         let mut stream = owner.follow(info.id, before).await.unwrap();
         let mut said = String::new();
         while let Some(record) = stream.next().await {

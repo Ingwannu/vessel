@@ -516,3 +516,18 @@ Approved once-only local offline cargo metadata resolved 24 added packages;
 a parsed lock comparison preserves all 448 existing package identities/checksums,
 and every addition is in jsonschema's dependency closure. No compilation or lane
 was used. This does not constitute adapter test evidence.
+
+
+### Run/send result projections
+
+Paseo commands/agent/run.ts95-116 and719-745 use a run receipt, with idle wait
+mapped to completed; send.ts15-31,155-175,211-234 uses a send receipt. W17 now
+projects typed create/prompt acknowledgements into those CLI field names, status
+sets, table columns and ID-only quiet output, rather than exposing SessionInfo
+or Delivered. Standalone wait still returns idle; timeout/permission/error remain
+result data. A queued ack says queued without claiming Paseo's two-second timer.
+Provider remains the actual HarnessRef until W22 exposes canonical ProviderId;
+run title/cwd come from the creation acknowledgement, not a fabricated final
+snapshot. Inspect now orders modes before permissions and shows [] for no
+pending permissions, matching inspect.ts. Process expectations cover the changed
+completed status; latest narrow execution remains owed.

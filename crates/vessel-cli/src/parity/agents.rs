@@ -4,6 +4,7 @@
 mod inspect;
 mod mutate;
 mod prompt;
+mod receipt;
 mod row;
 use row::AgentRow;
 
