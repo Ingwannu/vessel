@@ -152,3 +152,17 @@ and MIME directories to select a real isolated Chromium profile. No operator
 MIME/profile setting is changed. Restart/stop are also not yet proved by this
 smoke; state-only debug messages distinguish a stale/view-refused click from
 a dispatched intention without logging a command, host or credential.
+
+## QA opener restriction
+
+The coordinator prohibits real desktop URL launchers in tests/probes after the
+initial system MIME handler launched another desktop application. GUI checks
+now place a fixture-only fake xdg-open first on that app process's PATH. It
+records the exact allowed localhost URL and always exits successfully so the
+desktop cannot fall back to another real launcher; a separate assertion checks
+its receipt and refusal files. No operator PATH or MIME settings are modified.
+
+The earlier unsandboxed browser preflight is excluded from final acceptance
+evidence. Real browser checks, if needed, may use only the operator-provided
+/opt/vessel-cft Chromium with its sandbox enabled; no production browser or
+host sandbox policy is changed.
