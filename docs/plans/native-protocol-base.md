@@ -182,3 +182,19 @@ when that field reaches the selected contract, rather than pre-emptively
 naming a nonexistent field. No additional native behavior or dependency
 is introduced. Narrow consumer checks precede the final root and native
 gates on the same combined head.
+
+### Plugin value contracts
+
+The reviewed values-only plugins head `e46cd57b` is merged separately so
+shared panel and appearance consumers can reuse validated plugin
+identities, lifetime addresses, retained attachment ownership and theme
+values from `vessel-proto::plugins`. ADR 0079 owns this contract.
+`PLUGINS` stays unassigned; this merge registers no RPC, settings key or
+runtime and adds no native plugin execution. Reusing the shared value
+types avoids independent identifiers or opaque payloads at those seams.
+
+Because these additional values change root protocol sources, the earlier
+root validation is historical evidence for its original candidate. Both
+whole root and native gates validate the final combined candidate after
+the allocation refusal adapter and its lint-only correction are included.
+No newer package-line changes are consumed by this integration.
