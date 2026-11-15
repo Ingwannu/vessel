@@ -41,6 +41,10 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
+    /// Configured relay consent and its separate callback lifetime (ADR 0096).
+    /// Missing on an older peer means unknown support, never disabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relay: Option<crate::relay_settings::RelaySettings>,
 }
 
 impl NodeSettings {
@@ -48,7 +52,17 @@ impl NodeSettings {
     /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+        let recovery =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        let relay = self.relay.and_then(|relay| {
+            relay.for_protocol(protocol, crate::relay_settings::RELAY_SETTINGS_PROTOCOL)
+        });
+        if relay == self.relay {
+            return recovery;
+        }
+        let mut settings = recovery.unwrap_or_else(|| self.clone());
+        settings.relay = relay;
+        Some(settings)
     }
 
     fn for_recovery_protocol(
@@ -176,6 +190,10 @@ pub struct GetNodeSettings {}
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
+    /// Explicit configured-relay consent; never an endpoint, token or TLS input.
+    /// A nonempty field requires its assigned version even in a mixed change.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relay: Option<crate::relay_settings::RelayChange>,
     /// How long a structured session may stay idle before its agent is
     /// parked; `unknown` is refused.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -194,6 +212,7 @@ mod tests {
     #[test]
     fn recovery_projection_respects_a_synthetic_assigned_boundary() {
         let original = NodeSettings {
+            relay: None,
             park_after: ParkAfter::Never,
             drivers: AgentDrivers::default(),
             restart_recovery: RestartRecovery {

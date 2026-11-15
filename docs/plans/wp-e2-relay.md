@@ -46,3 +46,23 @@ Devices/service/gateway and preserving explicit tracked callback overrides.
 These are preparation decisions within ADR0096, not implemented behavior or
 barrier/permission proof. Protocol assignment, real isolated relay fixtures,
 old-peer/mixed-request coverage and the root gate remain pending.
+
+
+## Pending wire skeleton (not a runtime handoff)
+
+The private test-only DTO boundary is now removed in favor of the requested
+existing settings API fields. `NodeSettings.relay` is optional and absent
+means unknown support; `SetNodeSettings.relay` accepts only a closed consent
+choice. The existing method rows/scopes/shapes/forwarding stay unchanged.
+A nonempty relay choice, including mixed changes, requires the single pending
+RELAY_SETTINGS_PROTOCOL constant; it remains None, so callers/dispatch refuse
+it before effects. Read and legacy write replies hide the unassigned field.
+Unrelated value literals add None without changing previous expectations.
+
+New pure protocol cases cover explicit old absence, method authority/shape,
+mixed pending-field admission, both reply projections, and structural privacy
+against extra route/token/link/home fields. Numbers use existing constants;
+this branch assigns no protocol or schema number. The node still reports no
+relay field internally until its existing owner is wired. Runtime/CLI/app
+consumers, generated TypeScript and security/gate proof are not ready; this
+skeleton must not be integrated or used as an implemented relay operation.

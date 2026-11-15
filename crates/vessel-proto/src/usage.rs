@@ -284,6 +284,7 @@ mod tests {
             ]
         );
         let fields = crate::settings::SetNodeSettings {
+            relay: None,
             drivers: Some(crate::settings::SetAgentDrivers::default()),
             ..Default::default()
         };

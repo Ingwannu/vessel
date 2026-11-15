@@ -166,6 +166,7 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
+            relay: None,
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),

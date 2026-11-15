@@ -57,6 +57,11 @@ pub struct WireError {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ErrorDetail {
+    /// Configured relay consent could not be applied (ADR 0096).
+    RelaySettings {
+        /// A stable category, never a route, credential or diagnostic string.
+        reason: crate::relay_settings::RelaySettingsError,
+    },
     /// A schedule preview could not be computed.
     SchedulePreview {
         /// The stable preview reason.

@@ -1,5 +1,5 @@
-//! Staged, credential-free relay consent values (ADR 0096). Wiring moves
-//! these into the public settings API and removes the test-only boundary.
+//! Credential-free configured relay consent in the existing settings API.
+//! The pending field version refuses mutations until the integrator assigns it.
 //!
 //! [Decision Log]
 //! - Purpose: a client must distinguish disabled, stopping and unavailable.
@@ -13,58 +13,82 @@ use crate::ProtocolVersion;
 use serde::{Deserialize, Serialize};
 
 /// Assigned once by the integrator when the field is wired.
-pub(crate) const RELAY_SETTINGS_PROTOCOL: Option<ProtocolVersion> = None;
+pub const RELAY_SETTINGS_PROTOCOL: Option<ProtocolVersion> = None;
 
 /// An explicit remote choice, never routes or credentials.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum RelayChange {
+pub enum RelayChange {
+    /// Explicitly consent to the operator-configured registrations.
     Enabled,
+    /// Stop configured registrations, preserving other connection lifetimes.
     Disabled,
+    /// A future choice never grants consent implicitly.
     #[serde(other)]
     Unknown,
 }
 /// Aggregate health of the configured registrations, never remote diagnostics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum RelayHealth {
+pub enum RelayHealth {
+    /// Connecting or registering with the configured relays.
     Connecting,
+    /// At least one configured relay reports a registered link.
     Online,
+    /// No relay is registered and a refused registration is being retried.
     Retrying,
+    /// Every configured registration task has stopped.
     Stopped,
+    /// A newer node's aggregate status.
     #[serde(other)]
     Unknown,
 }
 /// A configured generation cannot be both disabled and still stopping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]
-pub(crate) enum ConfiguredRelays {
+pub enum ConfiguredRelays {
+    /// The operator supplied no configured relay routes.
     Unconfigured,
+    /// Configured registrations are disabled and no task is still stopping.
     Disabled,
+    /// Disable was requested but registration tasks have not all completed.
     Disabling,
+    /// Configured registrations are enabled; health is not remote reachability.
     Enabled {
+        /// Only aggregate registration health, with no remote diagnostics.
         health: RelayHealth,
     },
+    /// A newer state, never interpreted as disabled or as consent.
     #[serde(other)]
     Unknown,
 }
 /// The separate fleet relationship may keep its callback registration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum CallbackRelays {
+pub enum CallbackRelays {
+    /// No callback relationship is retained; this is not data-connection closure.
     Absent,
+    /// An independent fleet callback relationship retains its registrations.
     Present,
+    /// A newer node's callback relationship status.
     #[serde(other)]
     Unknown,
 }
 /// This read value has no field capable of carrying a route or secret.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct RelaySettings {
-    pub(crate) configured: ConfiguredRelays,
-    pub(crate) fleet_callback: CallbackRelays,
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct RelaySettings {
+    /// Only the operator-configured registration lifetime.
+    pub configured: ConfiguredRelays,
+    /// Fleet callbacks have independent authority and lifetime.
+    pub fleet_callback: CallbackRelays,
 }
 impl RelaySettings {
-    fn for_protocol(
+    pub(crate) fn for_protocol(
         self,
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
@@ -76,12 +100,18 @@ impl RelaySettings {
 }
 /// Stable recovery codes; Busy uses Conflict, never a new top-level error code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum RelaySettingsError {
+pub enum RelaySettingsError {
+    /// The operator supplied no route this choice could enable.
     NotConfigured,
+    /// The node is shutting down and accepts no new change.
     Stopping,
+    /// A prior mutation or stopping generation still owns the bounded work.
     Busy,
+    /// The outcome is not confirmed; inspect status instead of replaying.
     Uncertain,
+    /// A newer node's recovery category.
     #[serde(other)]
     Unknown,
 }
@@ -182,15 +212,16 @@ mod tests {
             configured: ConfiguredRelays::Disabled,
             fleet_callback: CallbackRelays::Present,
         };
-        let boundary = ProtocolVersion::new(25); // Synthetic boundary, no protocol reservation.
-        assert_eq!(
-            state.for_protocol(ProtocolVersion::new(24), Some(boundary)),
-            None
-        );
+        let boundary = crate::PROTOCOL_VERSION;
+        let older = ProtocolVersion::new(boundary.get().checked_sub(1).unwrap());
+        assert_eq!(state.for_protocol(older, Some(boundary)), None);
         assert_eq!(state.for_protocol(boundary, Some(boundary)), Some(state));
         assert_eq!(
             state.for_protocol(ProtocolVersion::new(u32::MAX), RELAY_SETTINGS_PROTOCOL),
-            None
+            RELAY_SETTINGS_PROTOCOL.map(|_assigned| state)
         );
     }
 }
+
+#[cfg(test)]
+mod settings_tests;
