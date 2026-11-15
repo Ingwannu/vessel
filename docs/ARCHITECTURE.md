@@ -1702,3 +1702,11 @@ capability from log display. Provider transport retains native mode/follow-up
 construction; node permission acknowledgement retains the ordinary commit barrier.
 No new crate edge, store or RPC is introduced. See ADR0084 for bounded keys,
 uncertainty and ownership retirement.
+
+The root web bridge's operation value contracts now live in wire/ops.rs and
+remain re-exported through wire. This is a mechanical split of the existing
+Op/OpResult/OpOutcome/OpFailure declarations; serde tags, TS names, fields and
+execution owners are unchanged. Separating local operation values from socket
+frames keeps wire.rs under the ordinary budget before adding submit preflight.
+Existing schema/serialization checks remain the behavior check; no new protocol,
+node method, capability or dependency is introduced by this extraction.
