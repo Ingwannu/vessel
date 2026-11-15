@@ -235,3 +235,15 @@ The callbacks still await the same existing writers; no detached save or second
 store is introduced. Source imports and the real-input fixture trait are fixed.
 Fast format, size, dependency-boundary and token ratchets pass after integration;
 app compilation and behavioral tests remain pending.
+
+## Reviewed shared dialog producer
+
+Adopted only G4's captured-close prerequisite a80e7fd3 and reviewed focus
+producer fe53a206, 42bde0bf, 11fba709. Their exact source has V1 source/narrow
+approval (118 kit tests); this is not a combined E3 gate or UI approval. New
+layout/snap configuration will extend this same renderer with existing defaults
+unchanged. G2 owns menu/select focus-helper adoption.
+
+App narrow 7 at 9ad0eea73 reached one remaining type-inference error in the menu
+click listener; its event now explicitly names GPUI ClickEvent. No complete app
+clippy or behavioral pass is claimed yet.
