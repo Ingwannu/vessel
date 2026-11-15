@@ -201,9 +201,24 @@ impl Shell {
             .machine
             .clone()
             .or_else(|| self.prefs.machine.clone());
-        let machine = wanted
-            .and_then(|name| online.iter().find(|machine| machine.name == name).copied())
-            .or_else(|| online.first().copied());
+        let workspace = self
+            .areas
+            .draft
+            .creation
+            .workspace
+            .as_ref()
+            .filter(|_| self.route == crate::routes::Route::NewWorkspace)
+            .map(|form| form.destination.clone());
+        let machine = if let Some(destination) = &workspace {
+            online.iter().copied().find(|machine| {
+                machine.name == destination.machine.as_str()
+                    && machine.node == Some(destination.node)
+            })
+        } else {
+            wanted
+                .and_then(|name| online.iter().find(|machine| machine.name == name).copied())
+                .or_else(|| online.first().copied())
+        };
         let agents = machine.map_or(&[][..], |machine| machine.agents.as_slice());
         let wanted = self
             .areas
@@ -224,7 +239,10 @@ impl Shell {
                     .map(|agent| agent.harness.clone())
             });
         let draft = &mut self.areas.draft;
-        draft.machine = machine.map(|machine| machine.name.clone());
+        draft.machine = workspace.as_ref().map_or_else(
+            || machine.map(|machine| machine.name.clone()),
+            |destination| Some(destination.machine.as_str().to_owned()),
+        );
         draft.agent = agent;
         let now = draft.machine.clone().zip(draft.agent.clone());
         if draft.settled != now {
@@ -289,6 +307,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !self.workspace_machine_choice(&name) {
+            return;
+        }
         self.areas.draft.folder = self.prefs.folders.get(&name).cloned().unwrap_or_default();
         self.areas.draft.machine = Some(name);
         self.areas.draft.agent = None;

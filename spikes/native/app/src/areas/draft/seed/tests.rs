@@ -130,3 +130,62 @@ fn accepted_seed_preserves_exact_nested_root_and_canonical_history(cx: &mut Test
         assert_eq!(shell.areas.draft.composer.text(cx), "initial text");
     });
 }
+
+#[gpui::test]
+fn workspace_selection_never_falls_back_and_explicit_host_change_clears_placement(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let original = NodeId::random();
+        let other = NodeId::random();
+        connect(shell, original);
+        let mut second = shell.fleet.machines[0].clone();
+        second.name = "second".to_owned();
+        second.node = Some(other);
+        shell.fleet.machines.push(second);
+        shell
+            .open_workspace_seed(
+                DraftSeed {
+                    destination: destination(original),
+                    place: SeedPlace::NewWorkspace(Some(ProjectSeed {
+                        project: ProjectId::random(),
+                        root: "/repo/selected".into(),
+                    })),
+                    launch: Launch::Chat,
+                    text: ContextText::parse("keep input").unwrap(),
+                    history: None,
+                },
+                window,
+                cx,
+            )
+            .unwrap();
+        shell.fleet.machines[0].node = Some(NodeId::random());
+        shell.settle_draft();
+        assert_eq!(shell.areas.draft.machine.as_deref(), Some("fixture"));
+        assert!(shell.areas.draft.agent.is_none());
+        assert_eq!(
+            shell
+                .areas
+                .draft
+                .creation
+                .workspace
+                .as_ref()
+                .unwrap()
+                .destination
+                .node,
+            original
+        );
+        shell.choose_machine("second".to_owned(), window, cx);
+        let form = shell.areas.draft.creation.workspace.as_ref().unwrap();
+        assert_eq!(form.destination.node, other);
+        assert_eq!(form.destination.machine.as_str(), "second");
+        assert!(form.project.is_none());
+        assert_eq!(shell.areas.draft.composer.text(cx), "keep input");
+        assert_eq!(
+            shell.areas.composer.drafts.text(DraftKey::New),
+            "keep input"
+        );
+    });
+}

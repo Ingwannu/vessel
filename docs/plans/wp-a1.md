@@ -312,3 +312,10 @@ The top-level seeded workspace form likewise explicitly keeps its accepted
 text after set_text and before navigation, using new_chat_kept. Both programmatic
 seed paths now follow the same existing text owner as typing; rejected Busy
 seeds still mutate neither the editor nor its kept value.
+
+The workspace form also separates deliberate destination changes from legacy
+chat defaults. Its captured host/node survives an unavailable or replacement
+host without falling back to the first online machine; provider choices become
+unavailable. An explicit host choice updates that destination and clears the
+prior node's project placement while retaining input. This local display and
+selection policy does not replace before-effect ConnectionContext admission.

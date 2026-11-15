@@ -78,6 +78,44 @@ pub(super) fn submit(
     .into_any_element()
 }
 impl Shell {
+    /// A deliberate host choice replaces placement, never the retained input.
+    pub(super) fn workspace_machine_choice(&mut self, name: &str) -> bool {
+        if self.route != Route::NewWorkspace {
+            return true;
+        }
+        if !self.areas.draft.creation.flow.may_submit()
+            || self.composer_attachments_blocked(DraftKey::New)
+        {
+            return false;
+        }
+        let Some(machine) = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == name)
+        else {
+            return false;
+        };
+        let (Some(node), Ok(machine)) = (
+            machine.node,
+            vessel_app_view::machine_book::Name::parse(name),
+        ) else {
+            return false;
+        };
+        let Some(form) = &mut self.areas.draft.creation.workspace else {
+            return false;
+        };
+        let destination = vessel_app_view::creation::DraftDestination { machine, node };
+        if form.destination != destination {
+            form.destination = destination;
+            // A project id/root belongs to the prior node. Only the project
+            // owner may populate placement for the newly selected destination.
+            form.project = None;
+            self.areas.draft.creation.plan = None;
+            self.forget_place();
+        }
+        true
+    }
     fn workspace_launch(&mut self, launch: Launch, cx: &mut Context<'_, Self>) {
         if !self.areas.draft.creation.flow.may_submit()
             || self.composer_attachments_blocked(DraftKey::New)
