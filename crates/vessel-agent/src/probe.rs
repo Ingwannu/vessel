@@ -147,7 +147,10 @@ pub async fn probe_with(
                     });
                 }
                 AgentOutput::Event(AgentEvent::HarnessLog { line }) => keep(&mut log, line),
-                AgentOutput::Event(_) | AgentOutput::Commands(_) | AgentOutput::Usage(_) => {}
+                AgentOutput::Event(_)
+                | AgentOutput::Commands(_)
+                | AgentOutput::PlanProposal(_)
+                | AgentOutput::Usage(_) => {}
                 AgentOutput::Disconnected(disconnect) => {
                     return Err(Unready::Disconnected(disconnect));
                 }
