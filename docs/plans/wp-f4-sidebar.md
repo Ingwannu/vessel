@@ -254,3 +254,20 @@ Clippy. The coordinator's approved Unicode-lowercase then original-scalar order
 is deterministic; it deliberately differs from locale/numeric tailored
 collation. Sidebar status/time/relevance precedence is preserved before this
 name tie. No second comparator or normalization layer is introduced.
+
+### Manual ordering policy
+
+The pane owner confirmed there is no competing shared list drag controller.
+Sidebar row handlers will reuse GPUI typed drag/move/drop and its gesture
+lifetime, with canonical project/workspace keys; pane tab identities and pane
+edge policies are not workspace identity. Pointer/touch threshold parity and
+actual drop captures still require verification at consumer integration.
+
+The pure `sidebar::order` follows
+`hooks/sidebar-workspaces-view-model.ts:471–601` and `utils/sidebar-reorder.ts`.
+Applying stored order only rearranges its known slots, preserving new structural
+rows until reconciliation. New projects append to saved order; new workspaces
+prepend. A visible drag reorder puts those rows first and retains hidden/stale
+keys afterward, unlike navigation inventory's interleaving rewrite. Unchanged
+orders produce no write. Before/after intent moves only a captured visible group;
+a same-row or stale-key drop does nothing. Tests cover these exact differences.

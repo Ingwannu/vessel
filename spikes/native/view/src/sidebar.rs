@@ -30,6 +30,7 @@ pub mod callouts;
 pub mod display;
 pub mod filters;
 pub mod navigation;
+pub mod order;
 pub mod targets;
 
 /// How many of a machine's sessions the sidebar lists before "N more":
