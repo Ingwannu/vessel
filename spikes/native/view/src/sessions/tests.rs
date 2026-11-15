@@ -84,11 +84,17 @@ fn failed_selected_hosts_are_not_an_empty_directory_and_partial_success_remains_
         HistoryAvailability::Available
     );
     assert_eq!(
-        history_availability(&fleet, &HostScope::Host("offline".parse().unwrap())),
+        history_availability(
+            &fleet,
+            &HostScope::Host(crate::machine_book::Name::parse("offline").unwrap())
+        ),
         HistoryAvailability::Unavailable
     );
     assert_eq!(
-        history_availability(&fleet, &HostScope::Host("online".parse().unwrap())),
+        history_availability(
+            &fleet,
+            &HostScope::Host(crate::machine_book::Name::parse("online").unwrap())
+        ),
         HistoryAvailability::Available
     );
     fleet.machines.clear();

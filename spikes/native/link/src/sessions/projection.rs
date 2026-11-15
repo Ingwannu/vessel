@@ -23,7 +23,7 @@ impl Projection {
         *self.0.borrow()
     }
     #[cfg(test)]
-    fn accepts(&self, read: Option<Revision>) -> bool {
+    pub(super) fn accepts(&self, read: Option<Revision>) -> bool {
         read.is_some() && read == *self.0.borrow()
     }
     pub(crate) fn changed(&self) {

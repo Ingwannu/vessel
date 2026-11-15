@@ -64,7 +64,7 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
             let mut session = SessionView::new(window, cx);
             let mut open = Open::of(&Card::from_session("fixture", &info));
             open.binding = Some(vessel_app_link::sessions::Binding {
-                host: "fixture".parse().unwrap(),
+                host: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
                 address,
             });
             session.open = Some(open);
