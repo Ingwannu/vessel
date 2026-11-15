@@ -22,7 +22,7 @@ pub const WORKSPACE_KEY_BYTES: usize = 1024;
 /// Worst-case growth is held for every admitted workspace for its full lifetime.
 pub const RESERVED_BYTES_PER_WORKSPACE: usize =
     MAX_DESCRIPTOR_BYTES + MAX_RECOVERY_BYTES + MAX_INTENT_BYTES + WORKSPACE_KEY_BYTES;
-/// Logical retained payload bound; SQLite pages, indexes and WAL are separately managed.
+/// Logical retained payload bound; `SQLite` pages, indexes and WAL are separately managed.
 pub const MAX_RETAINED_BYTES: usize =
     MAX_WORKSPACES * RESERVED_BYTES_PER_WORKSPACE + MAX_RESOURCES * RESERVED_BYTES_PER_RESOURCE;
 

@@ -105,7 +105,7 @@ pub use registry::{
     RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry, WorkspaceProvision,
 };
 
-/// Lifetime logical registry reservation bounds; SQLite physical growth is separately managed.
+/// Lifetime logical registry reservation bounds; `SQLite` physical growth is separately managed.
 pub use registry::{
     MAX_DESCRIPTOR_BYTES, MAX_INTENT_BYTES, MAX_RECOVERY_BYTES, MAX_RESOURCES, MAX_RETAINED_BYTES,
     MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
