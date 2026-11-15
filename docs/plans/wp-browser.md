@@ -212,3 +212,27 @@ completed in run wp-browser-native-narrow-20261115T153236Z-50540514: native-font
 locked view/app all-target strict Clippy0 (229seconds), all prescribed steps0.
 No functional test, whole gate, capture, visible browser or backend/runtime
 qualification is inferred. Later changes in other branches are not covered.
+
+
+## Staged decoded-frame geometry composition
+
+[Decision Log]
+- Purpose: a valid PNG header cannot prove the pixels that will be painted,
+  and CSS input must correspond to the decoded image rather than claimed size.
+- Existing assets: W6 owns the single bounded PNG decoder and CPU RenderImage
+  projection; view::browser owns SurfaceMap and distinct raster/CSS units.
+- Choice: modify/reuse those checked APIs in a test-only owner preparation
+  module. Decode on a future background executor, compare actual raster size
+  with expected metadata, then retain the CPU image and associated CSS size.
+- Alternatives: another codec, renderer or inferred CSS/device scale would
+  duplicate ownership or confuse units; no external dependency is needed.
+- Impact: only accepted pixels can form this model's map. It mints no browser
+  identity, frame revision, permission, focus or input authority. No stream,
+  UI image, GPU upload, visibility or supported engine is implied. The outer
+  cfg(test) is removed only by the qualified node-browser actor/panel wiring
+  review, with actual frame fencing and bounded retained-image lifetime.
+
+The bounded W6 pixel leaf40ddff88c is adopted over checked prerequisitee1a171623.
+Its four Rust blobs match checked703268a01 (Kit strict0 and image tests5/0/0);
+this receiving app union still owes its own compilation/tests. Announced base9
+(db42d9c5) was merged cleanly before starting the next changed-source checks.

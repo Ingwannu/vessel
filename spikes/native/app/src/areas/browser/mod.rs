@@ -5,6 +5,10 @@
 //! open action or separate pane manager. Live owner state will be keyed by
 //! (`LayoutKey`, `TabId`) and bound to the node resource when its typed stream exists.
 
+// A10: only the qualified actor/panel wiring may enable frame preparation.
+#[cfg(test)]
+mod prepared_frame;
+
 use crate::areas::layout::registry::PanelContext;
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing::S4;
