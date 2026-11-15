@@ -1124,10 +1124,14 @@ floats. No provider access is involved in reported accounting.
 
 
 The web client's `data/usage` owns the typed accounting call, a single
-in-flight/latest-selection reader, and pure locale-aware facts. Its
-Settings Usage feature draws those facts with existing row controls;
-changing machine/period hides the previous identity before the effect
-starts, and unmounting discards queued or late observations. No browser
+in-flight/latest-selection reader, and pure locale-aware facts. A single
+names-only catalogue comes from the last all-agent report on the selected
+machine; it replaces rather than accumulates groups and holds no token or
+cost values. Agent/profile scopes read node totals directly. Historical
+unnamed reports stay in All profiles; they are not a current-default account.
+The Settings Usage feature uses existing row/select controls. Changing
+machine/period/agent/profile hides the previous identity before the effect
+starts, and unmounting clears names and discards queued or late observations. No browser
 provider access or price arithmetic is introduced. Missing optional
 counts retain field coverage; unsafe browser integers are labelled rather
 than presented as exact. Account limits remain a separate merged-contract

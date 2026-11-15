@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: bounded A1 accepted; paired sidebar/viewport corrections gated, review pending, 2026-11-15. ADR 0075.
+Status: A1 and paired page corrections accepted; A2a agent/profile source in progress, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -914,3 +914,73 @@ summary/cursor slice if required by size. Both use existing usage.query only.
 Account limits, inbox and project-wide PR enumeration remain gated by the exact
 assigned contracts on a subsequently merged green node head. No new wire number
 is introduced by this page track.
+
+
+## A2a checkpoint: agent/profile scope
+
+The paired correction stack passed independent source/whole/submitted-normal-
+frame review and was accepted for those captures. Its live-count-zero ended
+example is the light frame; the dark frame includes an earlier waiting
+session. This does not extend the earlier native/platform/layout exclusions.
+
+A2 is split at an actual seam: A2a is agent/profile selection; session totals
+and cursor pages remain A2b. Reuse the typed call, one active plus latest
+reader, existing agent identity/naming helpers and Settings Row/Select.
+The node remains authoritative for every selected number. No new wire,
+method, number, schema, dependency, native module or vendor access is added.
+
+The catalogue holds only names/partial metadata from the last accepted
+all-agent report on one machine. It is replaced, not accumulated, and is
+cleared on a move, stop, disconnect or unmount. Choosing an agent does not
+replace it with that filtered report. The UI explains that names come from
+the last All agents report, so no claim that every name has current-period
+usage is made. The selected historical name remains visible through an
+empty later interval. The node's grouping limit can omit names; the partial
+hint and accounting-coverage facts are retained.
+
+Agent query profile=None is All profiles, including unnamed historical
+reports. A reported group profile=None is not a name and does not become a
+fake current-default or individually queryable option. Named profiles keep
+their recorded names. Scope keys reuse agentKey; private queued requests
+copy the scope and added-agent object. Render-time identity includes scope,
+so another agent/profile's totals do not flash before the next effect.
+No totals are added, priced or reconstructed in the browser.
+
+The first narrow run passed all 442 frontend units (86 files), page/script
+typecheck, then stopped at one new optional-chain lint finding in the test
+observer. That expression is corrected without a lint exception; the failed
+log is retained. The observer binds each sanitized usage result to its
+request id/scope without retaining authentication frames or full messages.
+The stronger typed-input fixtures and whole-state assertions remain part
+of this checkpoint; no browser or whole-gate pass is claimed yet.
+
+Added actual-fleet acceptance seeds default and named-profile ACP reports,
+selects All profiles and the named profile, compares displayed input with
+the actual query result, changes day/week and moves machine without stale
+names/numbers. Captures use a valid 50-character profile in the fake node's
+own profiles.toml, reload through the existing CLI and real retained reports.
+Eight planned locale/theme/desktop/phone cases produce 24 views: full long
+choice, selected scope and coverage. English labels remain intentional;
+locale changes number/date formatting as in A1. Trigger and open-list labels
+wrap inside this feature; no shared kit source is changed.
+
+Before the next whole run, merge the announced green node head at a clean
+checkpoint, preserving its protocol/schema and cases under the merge rules.
+The next whole gate is remote; captures stay local. Actual browser/capture,
+whole gate, source manifests, served assets, cleanup and review are pending.
+
+Next after A2a, as one separate page-fix slice: narrow-screen toast placement
+from Paseo; new-session autofocus behind an open dialog; Escape before the
+dialog takes focus. The last two begin with failing page tests. The incoming
+head's readiness waits remain unchanged unless their owner agrees to relax
+them after the product fixes. The older collapsed rail clipping and A2b
+session accounting remain later work; none is folded into A2a.
+
+
+After the optional-chain correction, the second narrow run passes all 442
+frontend units, both typechecks, full lint/fonts/controls/size and the
+production bundle. Only documentation and a scope comment were updated
+after that run; no production expression or test assertion changed.
+This remains a source checkpoint: real-node browser flows, 24 capture
+views and the remote whole gate are unverified. The green node merge
+point announced during A2a is ec5b1162; no new RPC method is added here.
