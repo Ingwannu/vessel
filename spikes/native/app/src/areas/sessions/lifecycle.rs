@@ -140,13 +140,16 @@ impl Shell {
             cx.notify();
             return None;
         };
+        let node = self
+            .opened_session_address(&host, open.session)
+            .map(|address| address.node);
         let seed = self.areas.conversation.info.clone();
         if let Some(problem) = self.fresh_lifecycle_problem(action, seed.as_deref(), cx) {
             self.areas.sessions.lifecycle.error = Some((
                 LifecycleTarget {
                     host,
                     session: open.session,
-                    node: open.binding.as_ref().map(|binding| binding.address.node),
+                    node,
                 },
                 problem,
             ));
@@ -158,7 +161,7 @@ impl Shell {
             target: LifecycleTarget {
                 host,
                 session: open.session,
-                node: open.binding.as_ref().map(|binding| binding.address.node),
+                node,
             },
             action,
             seed,

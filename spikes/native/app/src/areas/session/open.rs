@@ -3,6 +3,7 @@ use crate::routes::Route;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_view::{Card, Conversation};
+use vessel_app_view::{machine_book::Name, sessions::SessionAddress};
 use vessel_proto::SessionId;
 
 /// The session on screen.
@@ -38,6 +39,19 @@ impl Open {
 }
 
 impl crate::shell::Shell {
+    /// Read only the originally admitted owner of this exact legacy open target.
+    /// Hidden/unbound targets return None; the current Fleet is never authority.
+    pub(crate) fn opened_session_address(
+        &self,
+        host: &Name,
+        session: SessionId,
+    ) -> Option<SessionAddress> {
+        let open = self.areas.session.open.as_ref()?;
+        if open.machine != host.as_str() || open.session != session {
+            return None;
+        }
+        open.binding.as_ref().map(|binding| binding.address)
+    }
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
         self.conversation_opened(&open.machine, open.session, open.binding.as_ref(), cx);

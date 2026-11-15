@@ -124,7 +124,7 @@ mod tests {
         );
         tokio::pin!(publish);
         std::future::poll_fn(|cx| {
-            assert!(std::future::Future::poll(publish.as_mut(), cx).is_pending());
+            assert!(publish.as_mut().poll(cx).is_pending());
             std::task::Poll::Ready(())
         })
         .await;
