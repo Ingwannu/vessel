@@ -29,7 +29,7 @@ impl ConfigText {
     /// Validate before retaining text received from a client or disk.
     ///
     /// # Errors
-    /// Refuses NUL and sources larger than MAX_CONFIG_BYTES.
+    /// Refuses NUL and sources larger than `MAX_CONFIG_BYTES`.
     pub fn parse(text: &str) -> Result<Self, ConfigTextError> {
         if text.len() > MAX_CONFIG_BYTES {
             return Err(ConfigTextError::TooLarge);

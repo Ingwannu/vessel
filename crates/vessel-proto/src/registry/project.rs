@@ -67,7 +67,7 @@ pub struct CreateProjectDirectory {
     pub name: DirectoryName,
 }
 
-/// Host-specific presentation remains separate from backward-compatible ProjectInfo.
+/// Host-specific presentation remains separate from backward-compatible `ProjectInfo`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ProjectMetadata {
@@ -75,7 +75,7 @@ pub struct ProjectMetadata {
     pub project: ProjectId,
     /// Folder-derived label for resetting an override.
     pub derived_name: ProjectName,
-    /// None means use derived_name; a client never invents a local-only override.
+    /// None means use `derived_name`; a client never invents a local-only override.
     pub custom_name: Option<ProjectName>,
 }
 
