@@ -183,8 +183,10 @@ until integration. Call admission additionally requires W2 SUBAGENT_RELATIONS;
 assigning the A2 method alone cannot enable an unlanded parentage dependency.
 Real fake-backed tests cover committed timestamps, repeated
 archive skip, full remote parent mismatch, a committed detach ahead of its live
-publication and active turns without forced stop. Execution and final V3 evidence
-are still owed for this new union. The ordinary explicit ArchiveSession remains
+publication and active turns without forced stop. Exact 6042fac0f executed 30
+archive-filter tests with no failures (node 23, proto 7), including these child
+and service guards. Strict changed-source clippy, fresh TypeScript declarations,
+the whole gate and final V3 evidence remain owed. The ordinary ArchiveSession remains
 the path for ended stored sessions.
 
 Node archive unit tests prepare their fake harness fixture before entering the
