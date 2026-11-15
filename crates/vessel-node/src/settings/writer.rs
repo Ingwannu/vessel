@@ -28,19 +28,10 @@ impl Settings {
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
-        let settings = Arc::clone(self);
-        // Tokio detaches this task when the RPC drops its JoinHandle. The owned
-        // guard and tracker token remain with it until both write and apply end.
-        tokio::spawn(async move {
-            let _writer = writer;
-            let result = settings.write_and_apply(saved, next).await;
-            if let Err(error) = &result {
-                tracing::warn!(%error, "node settings writer failed");
-            }
-            result
-        })
-        .await
-        .map_err(SettingsError::Lost)?
+        // Negative control: restore the old caller-owned write/guard lifetime.
+        // The real blocking writer and regression fixture remain unchanged.
+        let _writer = writer;
+        self.write_and_apply(saved, next).await
     }
 
     async fn write_and_apply(
