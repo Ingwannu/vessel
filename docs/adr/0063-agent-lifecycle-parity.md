@@ -217,6 +217,11 @@ person reloads. There is no MCP tool for it.
 - `--tail N`, `N` a non-negative integer. `0` prints nothing. One-shot
   with no `--tail` prints every selected record. Follow with no `--tail`
   prints the last 10.
+  Here a count is log records, including terminal output and status, not
+  rendered lines or complete messages. Paseo counts projected timeline
+  items after merging text chunks and tool lifecycles. Vessel keeps its
+  existing `--from` sequence/retention unit for both terminal and structured
+  logs; applying tail before rendering can therefore start within a message.
 - `--filter tools|text|errors|permissions`. Anything else is a usage
   error, before connecting. `tools` is a tool call and its update;
   `text` is a user turn, a replayed user chunk, a reply chunk, a
@@ -224,7 +229,13 @@ person reloads. There is no MCP tool for it.
   `failed` status; `permissions` is a request and its resolution.
   `HarnessLog` is not an error.
 - `--since` an RFC 3339 timestamp. Unparseable is a usage error. A
-  record's `at` must be greater than or equal to it.
+  record's `at` must be greater than or equal to it. Paseo's history keeps
+  whole projected items by their final merged fragment's time
+  (`utils/timeline.ts:23-26`, `timeline-projection.ts:156,234,286`). Vessel
+  selects raw records, the same unit as `--from`, `--tail` and retention,
+  without CLI projection; output can start inside a message or tool lifecycle.
+  This keeps one predicate for history and live records, whereas Paseo's live
+  path already compares individual events (`logs.ts:385-386`).
 - `-f` / `--follow`. After the selection, wait on the session stream
   for later matching records until the session's log ends (its final status
   record) or the person interrupts. No sleep.
@@ -246,6 +257,11 @@ The existing session stream ends at a run's final status, so follow ends
 there or at Ctrl-C; a later resume needs a new invocation. Paseo's timeline
 subscription waits for an explicit stop. Preserving the existing stream EOF
 avoids a new wire mode solely for this presentation command.
+
+An empty selection emits no records or activity banner. Paseo's one-shot
+curator emits "No activity to display." Vessel preserves its existing log
+capture contract: stdout is selected session output, stderr is selected
+status and genuine retention notices, without a fabricated activity entry.
 
 ### MCP
 
@@ -314,6 +330,12 @@ Vessel does not copy it.
   (`logs.ts:226`, the `default` arm). Vessel accepts only `tools`,
   `text`, `errors` and `permissions`. Reason: a typo must not print an
   empty log.
+- Paseo's permission filter tests timeline item type names, whose declared
+  union has no permission item (`agent-types.ts:375-389`); permissions are
+  separate stream events (`:424-435`), and the log command selects timeline
+  items (`logs.ts:288-295,384-393`). Vessel selects its typed, durable
+  permission requests and resolutions. Reason: the existing log contains
+  these approval records, and the named filter should expose them.
 - Background is `workspace.background`, creation-only
   (`docs/agent-lifecycle.md:186`, "controls discovery only"). Vessel
   puts `SessionListing` on the session. Reason: a project is a shared

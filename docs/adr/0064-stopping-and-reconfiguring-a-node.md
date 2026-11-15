@@ -746,3 +746,93 @@ These are additional limitations beside PID namespaces and NFS/SMB lock
 emulation. The query then falls back to the actual OS lock. Those filesystem
 layouts have not been exercised here; the source reason does not establish
 runtime coverage of btrfs, overlayfs, network filesystems or PID namespaces.
+
+
+## Service path fidelity (slice 2f)
+
+[Decision Log]
+- Purpose and intent: ensure a newly installed unit starts this executable
+  in the selected data directory, independent of its manager's cwd.
+- Existing implementation and constraints: the installer owns both templates
+  and leaves differing files alone. Paseo `restart.ts` 20–21, 118 retains
+  a supervisor; Vessel instead launches the node as a direct user service.
+- Alternatives considered: canonicalize paths, keep relative arguments, or
+  silently replace unrepresentable OS bytes. Canonicalization requires
+  filesystem access and changes symlink semantics; the others can select
+  another directory or executable.
+- Selected approach: reuse the installer and existing `RemoteCommand`
+  quoting. Resolve new data and service paths with `std::path::absolute`;
+  refuse non-Unicode or control characters before a service-file write.
+  Centralize per-platform locations and computed undo guidance beside the
+  installer; manual launchd load guidance uses the same POSIX value quoting.
+  No new dependency or crate edge is needed.
+- Why this approach: it preserves path semantics without resolving symlinks
+  ([Rust documentation](https://doc.rust-lang.org/std/path/fn.absolute.html)).
+  Systemd's command arguments expand dollars even inside quotes, while its
+  Environment assignment treats them literally; only data arguments gain
+  dollar escaping ([service rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
+  [environment rules](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)).
+- Advantages, costs and effects: new units retain the selected path and
+  saved PATH. Existing relative or expanding units differ and are preserved;
+  adoption requires explicit removal and recreation. Unit creation and
+  existing helper invocations still use the invoking OS user's credentials
+  and search path. No new helper or other account's environment is reached.
+  Windows retains the existing service-unavailable report. Real manager
+  lifecycle behavior and macOS/Windows execution remain unverified.
+
+
+The existing `write_once` policy also uses exclusive creation: an initializer
+cannot truncate a service file created after an earlier existence check.
+File I/O runs off the async worker; the platform reports retain their
+existing text and order. The first concurrent creator wins; a differing existing file
+stays unchanged. A failed initial write can leave an incomplete file for
+explicit repair rather than replacing someone else's later edits. This
+uses only the existing standard-library I/O and test fixtures.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
+
+
+## Proposed process-mechanism ownership amendment
+
+ADR 0001's proposed node-control amendment replaces the earlier no-new-edge
+assumption for the following process-control phases only. The existing
+store-facing `NodeLock` contract stays unchanged while the generic kernel
+query moves to proc. Store-to-proc is added with that behavior-preserving
+move; CLI-to-proc is added only with the real caller. No external dependency
+or wire change is proposed. The separate descriptor/generation/namespace
+verification phase must not grant signal authority from a kernel PID alone.
+The documents-only contract adds neither an edge nor process-control code.
+
+
+## XML comment delimiter safety
+
+[Decision Log]
+- Purpose and intent: a home path must never close a generated plist comment
+  or introduce another plist key.
+- Existing implementation and constraints: the undo hint is present in the
+  plist and CLI output. Non-overlapping pair replacement leaves adjacent
+  hyphens when input contains longer runs; XML comments cannot contain such
+  a pair or end with a hyphen ([XML rules](https://www.w3.org/TR/xml/#sec-comments)).
+- Alternatives considered: omit the hint from every plist, refuse otherwise
+  valid paths, or replace pairs repeatedly. Omitting changes every existing
+  plist's comparison; refusing paths narrows valid OS paths; repeated passes
+  obscure the invariant.
+- Selected approach: emit comment characters once, inserting a space before
+  a hyphen that would follow another, and after a final hyphen. Already valid
+  hints remain byte-identical. XML text values still use their separate encoder.
+- Why this approach: neither adjacency nor a terminal hyphen can survive
+  emission, independently of the length or surrounding input. Existing head
+  assertions and normal service files need no expectation or format change.
+- Advantages, costs and effects: no new Rust dependency, wire call or edge.
+  The Unix regression test uses Python's standard-library `plistlib` in
+  isolated, no-site mode to parse generated XML and compare the complete
+  expected keys and values. This is a test-only interpreter prerequisite;
+  no interpreter or Python code ships in the product. The test fixture uses
+  the Python distribution's standard library, not an added package.
+  Systemd comments cannot be ended by a hyphen sequence; their line boundary
+  is protected by the existing control-character refusal before rendering.

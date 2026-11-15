@@ -109,3 +109,15 @@ revoked Device never falls back to Owner. In hard-kill tests, Started is an
 ACK, not a durable prefix: establish the committed start/checkpoint before
 killing. Test re-execution uses the staged unit binary and real fake-provider
 processes; it does not claim regular daemon product-config approval.
+
+## Shared accessor head at the next clean boundary
+
+After the verified ec5 merge, announced `f453ec2e` was merged. It adds the
+canonical required_protocol accessor; the complete Quality B table remains a
+wiring precondition. No R2 call or input is registered. ARCHITECTURE was the
+only conflict: its complete new-head text is retained with R1's value section
+appended. README merged automatically and is exactly the new head plus R1's
+paragraph; code and generated declarations had no conflict. Head protocol and
+schema constants remain unchanged. The next changed-tree whole gate includes
+the staged R2 implementation; the earlier ec5 result is not a result for this
+newer tree.

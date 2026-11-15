@@ -355,7 +355,7 @@ pub enum Alerts {
 }
 
 /// How the sidebar lists sessions.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SidebarView {
     /// What sessions are grouped by.
@@ -364,6 +364,18 @@ pub struct SidebarView {
     pub sort: SessionSort,
     /// Whether ended sessions are listed.
     pub ended: bool,
+}
+
+impl Default for SidebarView {
+    fn default() -> Self {
+        // Ending a process does not archive its conversation. Hiding every
+        // ended session makes a machine's retained work appear to vanish.
+        Self {
+            group: Grouping::default(),
+            sort: SessionSort::default(),
+            ended: true,
+        }
+    }
 }
 
 /// What the sidebar groups sessions by.
@@ -427,7 +439,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

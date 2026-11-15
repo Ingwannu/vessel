@@ -6,6 +6,11 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Reviewed: process ownership contract (2p0) passed review. The move still
+  awaits its integration decision; no proc code has changed. Binding name
+  restrictions are recorded in ADR 0001 before implementation. Active map
+  rows and manifests are still unchanged.
+
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
   and OS-lock completion. Its whole gate had one shared side-question
@@ -14,14 +19,21 @@ slice order. The docs commit adds both and no command.
 - Done: 2d (`019995ae`) adds a bounded kernel observation at `NodeLock`.
   Its whole gate passed (1,985 Rust tests, no failures, 12 ignored) and
   review passed. It sends no signal.
-- In progress: 2e compares dev/inode before strict PID decoding, so a
-  foreign malformed row cannot hide the selected writer. Focused store
-  clippy and seven lock tests pass; the whole gate is pending.
-- Deferred draft: service path fidelity passed focused clippy only; no
-  service-path tests, commit or whole gate have run yet.
-- Next: focused and whole gates for 2e, then service paths, deadline-safe
-  local reads, service observation/finalization, force/restart and slices
-  3/4. Actual service managers and real agents remain unverified.
+- Done: 2e (`295937af`) compares dev/inode before strict PID decoding,
+  so foreign malformed rows cannot hide the selected writer. Its whole
+  gate passed (1,986 Rust tests, no failures, 12 ignored) and review passed.
+- Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
+  push. The next slice's gate covers this merged tree, including the
+  explicit forge-fixture clippy and test steps.
+- Returned: 2f passed its whole gate (2,066 Rust tests, no failures,
+  12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
+  hyphens in the launchd comment encoder. The revision uses single-pass
+  character emission and an independent XML/plist parsing regression; its
+  parser helper is inside the existing test module. Final focused checks
+  and the whole gate are pending.
+- Next: gate the 2f revision, then deadline-safe local reads, service
+  observation/finalization, force/restart and slices 3/4. Actual service
+  managers and real agents remain unverified.
 
 ## Existing asset check
 
@@ -358,5 +370,56 @@ foreign failures both before and after a valid row. No head test is changed.
 
 The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
 format source. No new dependency, wire call, application bound or platform
-path is added. Focused store clippy and seven lock tests pass; the whole
-workspace gate remains pending.
+path is added. Focused store clippy and seven lock tests pass, and the
+whole workspace gate and review passed.
+
+
+### Slice 2f: service path fidelity
+
+Modify the existing installer; reuse its renderers and the existing
+`RemoteCommand` POSIX quoting. Standard-library absolute paths avoid
+manager-cwd ambiguity without canonicalizing symlinks. The ADR records
+Unicode/control refusal and systemd data-argument dollar escaping, distinct
+from Environment quoting. There is no new dependency, crate edge, wire call
+or numeric bound. Existing service test cases remain unchanged; add unit
+cases for location/encoding/quoting and a process-level relative installation
+through the existing fake service tools. Windows still skips installation.
+
+The larger stop-time observer draft is deliberately separate: it must not
+expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
+bounded reads and loaded-manager authority validation follow in separate
+reviewable changes. The original whole gate passed; its returned XML-comment
+encoding finding is being corrected and will have a new whole gate.
+
+
+Move file I/O off the async worker while preserving both platform reports.
+Exclusive file creation makes the existing no-overwrite promise hold when two initializers run concurrently; a barrier-based test
+checks that one wins and its content survives. Those checks passed in the
+original whole gate; the comment-encoding revision adds independent XML
+parsing over longer hyphen runs and delimiter-bearing home paths.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
+
+
+## Process-mechanism ownership contract (slice 2p0)
+
+`[modify]`: reuse proc's existing OS inspection and Nix signal ownership.
+ADR 0001 and ARCHITECTURE record a proposed Store-to-Proc edge for the pure
+move and a CLI-to-Proc edge only for the eventual real caller. Active map
+rows and manifests change together at those later steps; this contract is
+papers only. ADR 0064 names the change to its earlier no-new-edge assumption.
+No proc source, PID accessor, signal, wire field or external dependency is
+added here.
+
+Review of the contract precedes any proc code. Then the move, descriptor/
+generation/namespace proof, and actual caller are separate reviewed commits
+with separate whole gates. Existing NodeLock behavior and typed causes stay;
+private assertions move with their rule rather than becoming public getters.
+The ADR lists each phase's test obligations, remaining numeric-signal race
+and platform limits. Deadline-safe local reads and service observations can
+continue independently while the contract is reviewed.
