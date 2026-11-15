@@ -25,7 +25,10 @@ fn safe_chain(error: &(dyn std::error::Error + 'static)) -> String {
 struct Captured(Arc<Mutex<Vec<u8>>>);
 impl Write for Captured {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.0.lock().unwrap().write(bytes)
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .write(bytes)
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
