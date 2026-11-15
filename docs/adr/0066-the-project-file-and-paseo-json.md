@@ -1089,13 +1089,13 @@ No helper is launched and no registry API is adopted by this contract change.
   early; a late result cannot become a lease/stream. Socket drop precedes
   permit/drain-token release. Closing admission and registering attempts
   share one lease gate, so a drain cannot race a newly admitted worker.
-- Bounds, defined here until their code owner exists: MAX_PREVIEW_LEASES
-  is 32 node-wide leases; MAX_PREVIEW_STREAMS is 64 node-wide streams;
-  MAX_LEASE_STREAMS is 8 per lease; MAX_PREVIEW_PREPARATIONS is 4 physical
-  preparations; PREVIEW_OPERATION_TIMEOUT is five seconds per admit/check/
-  connect operation. Admission is non-queueing and returns typed Busy;
-  errors format the named limit. The implementation moves each definition
-  beside its owner and removes these repeated values from this paragraph.
+- Bounds: `terminals/preview/budget.rs` is the sole numeric owner of
+  MAX_PREVIEW_LEASES and PREVIEW_OPERATION_TIMEOUT. The connection commit
+  will own MAX_PREVIEW_STREAMS (64 node-wide), MAX_LEASE_STREAMS (8 per
+  lease) and MAX_PREVIEW_PREPARATIONS (4 physical workers), then remove
+  those documentary values. Admission is
+  non-queueing with typed Busy; diagnostics format that owner's limit.
+  Evidence freshness derives from the existing terminal scan PERIOD.
   Budgets are shared by the node service, never recreated for each lease.
 - Errors: typed Unavailable with missing-proof/platform reason, scope/origin
   mismatch, changed/revoked/expired evidence, Busy with its resource, and

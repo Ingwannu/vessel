@@ -1,7 +1,7 @@
 # Node-internal service Preview API
 
-Status: contract source reviewed; staged matcher/context values only.
-Canonical admission, verified connections and runtime grants are not implemented.
+Status: staged source implementation; execution pending.
+The only real backend is Unavailable; no product runtime grant exists.
 ADR 0066 defines the bounds and security obligations.
 
 ## Consumer shape
@@ -57,11 +57,12 @@ this API, and connection_life.rs provides the canonical close observer.
 
 ## Resume point
 
-The staged matcher and context values preserve exact origin equality and
-canonical connection/transport close observers without the lifetime guard.
-Their three tests are authored; narrow execution is pending. Lease, owned
-connection flow and unavailable backend follow in the next source commit.
-The prior staged helper/health preparation is
-narrow checked and separately reviewed; it does not satisfy this API's
-kernel, scheme, ownership or engine qualification. The parser command-bound
-successor belongs to its other owner and remains untouched here.
+The A10 control producer now includes the closed unavailable backend,
+renewable model bindings, lease revocation and exact-lease drain receipts.
+It issues no real permission. Positive authority observations are private
+cfg(test) fixtures; no kernel, scheme or canonical registry source exists.
+
+Owned connection/physical-worker registration is the next commit, with
+controlled loopback tests. The matcher/context commit has its own immutable
+narrow suite queued. The control commit will run strict node all-target
+Clippy and Preview tests after it. Final runtime/package gates remain owed.

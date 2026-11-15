@@ -532,3 +532,12 @@ The A10 preview module now carries exact literal-loopback origin matchers
 and canonical connection observers without the guard. This does not grant
 network access; no lease, dial or positive proof source is wired. The next
 commit adds the closed unavailable producer and owned connection lifecycle.
+
+### Preview lease control preparation
+
+The A10 control producer now has an unavailable backend and per-command
+context/source revalidation, same-binding refresh and revocation watchers.
+Drain receipts retain the exact lease association. No actual connection or
+worker can register yet; that ownership and its tests are the next commit.
+Positive authority remains test-only; no runtime grant or source readiness
+is claimed by the control model.
