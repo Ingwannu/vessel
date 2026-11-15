@@ -90,3 +90,8 @@ header and within the selection dialog, including when a previous confirmed
 value is still shown. Refresh preserves the user's draft. This avoids a
 misleading retry based on stale installed/injection state; no automatic retry
 or rollback claim is made. A pure transition regression covers this boundary.
+
+Availability uses the shared authenticated connection snapshot, not the result
+of a session-list read. A semantic session-list refusal does not revoke an
+otherwise valid Admin settings connection; the actual request still checks
+its own scopes and capability. A closed transport has no admitted context.

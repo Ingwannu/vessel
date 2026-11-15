@@ -10,7 +10,6 @@ use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{App, ClickEvent, Context, Window};
 use vessel_app_link::Command;
-use vessel_app_view::Reach;
 use vessel_app_view::devices::{Ticket, Tickets};
 use vessel_app_view::orchestration::{Answer, Consumer, Page, Problem, Scope, Task, Visit};
 use vessel_app_view::settings::Section;
@@ -94,7 +93,7 @@ impl Shell {
             && self.areas.settings.section == Section::Overview
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
         let target = super::choices::chosen_machine(self)
-            .filter(|machine| shown && machine.reach == Reach::Online)
+            .filter(|_machine| shown)
             .and_then(vessel_app_view::Machine::connection_context)
             .filter(|context| {
                 self.areas.settings.orchestration.retired.as_ref() != Some(&context.tag())

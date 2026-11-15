@@ -11,7 +11,6 @@ use vessel_app_kit::{
     ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
     button_with_content, button_with_kind_at, settings,
 };
-use vessel_app_view::Reach;
 use vessel_app_view::orchestration::{Page, Problem, has_selection};
 use vessel_proto::mcp::Injection;
 use vessel_proto::skills::{SkillOperation, SkillsState};
@@ -26,8 +25,7 @@ pub(crate) fn render(
 ) -> AnyElement {
     let words = shell.words.orchestration();
     let machine = super::super::choices::chosen_machine(shell);
-    let online =
-        machine.is_some_and(|machine| machine.reach == Reach::Online && machine.node.is_some());
+    let online = machine.is_some_and(|machine| machine.connection_context().is_some());
     let supported = machine.is_some_and(|machine| {
         vessel_proto::mcp::MCP_PARITY
             .is_some_and(|required| machine.protocol.is_some_and(|peer| peer >= required))
