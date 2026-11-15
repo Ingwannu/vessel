@@ -34,7 +34,7 @@ fn key(node: NodeId) -> LayoutKey {
 #[gpui::test]
 fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppContext) {
     language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
@@ -113,7 +113,7 @@ fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppCon
 #[gpui::test]
 fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestAppContext) {
     language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
@@ -190,7 +190,7 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
 #[gpui::test]
 fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut TestAppContext) {
     language_tests::init(cx);
-    let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
         let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
