@@ -47,6 +47,7 @@ impl LaunchProfileRevision {
 pub struct LaunchSelection {
     harness: HarnessRef,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     account_profile: Option<ProfileName>,
     options: LaunchChoices,
 }
@@ -104,10 +105,13 @@ pub struct LaunchProfile {
     name: LaunchProfileName,
     launch: LaunchSelection,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     icon: Option<LaunchIconKey>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     color: Option<LaunchColorKey>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     notes: Option<LaunchProfileNotes>,
 }
 impl LaunchProfile {

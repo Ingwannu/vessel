@@ -96,8 +96,10 @@ pub struct LaunchConfigurationFailure {
 pub struct ApplySessionOptionsResult {
     applied: LaunchChoices,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     notice: Option<ConfigurationNotice>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
     failure: Option<LaunchConfigurationFailure>,
 }
 impl ApplySessionOptionsResult {

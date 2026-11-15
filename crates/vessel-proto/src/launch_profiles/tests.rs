@@ -386,3 +386,48 @@ fn pending_feature_is_registered_without_a_fabricated_protocol() {
     assert_eq!(call.method().scope(), Some(crate::Scope::Read));
     assert!(call.method().forwardable());
 }
+
+#[cfg(feature = "ts")]
+#[test]
+fn typescript_optional_launch_fields_match_omission_without_admitting_null() {
+    use ts_rs::TS as _;
+    let config = ts_rs::Config::new();
+    let selection = LaunchSelection::decl(&config);
+    assert!(
+        selection.contains("account_profile?: ProfileName"),
+        "{selection}"
+    );
+    let declaration = LaunchProfile::decl(&config);
+    for field in [
+        "icon?: LaunchIconKey",
+        "color?: LaunchColorKey",
+        "notes?: LaunchProfileNotes",
+    ] {
+        assert!(declaration.contains(field), "{declaration}");
+    }
+    let outcome = ApplySessionOptionsResult::decl(&config);
+    assert!(
+        outcome.contains("notice?: ConfigurationNotice"),
+        "{outcome}"
+    );
+    assert!(
+        outcome.contains("failure?: LaunchConfigurationFailure"),
+        "{outcome}"
+    );
+    for declaration in [&selection, &declaration, &outcome] {
+        assert!(!declaration.contains("null"), "{declaration}");
+    }
+    let profile = profile(0);
+    let encoded = serde_json::to_string(&profile).unwrap();
+    for field in ["account_profile", "icon", "color", "notes"] {
+        assert!(!encoded.contains(&format!("\"{field}\"")), "{encoded}");
+    }
+    let result = ApplySessionOptionsResult::new(LaunchChoices::default(), None, None).unwrap();
+    assert_eq!(serde_json::to_string(&result).unwrap(), r#"{"applied":[]}"#);
+    for json in [
+        r#"{"applied":[],"notice":null}"#,
+        r#"{"applied":[],"failure":null}"#,
+    ] {
+        assert!(serde_json::from_str::<ApplySessionOptionsResult>(json).is_err());
+    }
+}

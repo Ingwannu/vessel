@@ -25,9 +25,13 @@ both the exact planned list and checked CAS revision increment before a
 legacy-migration completion receipt. Contradictory revision fixtures are
 written, with execution still outstanding.
 
-A serial strict-Clippy/TS-enabled-Clippy/TypeScript-generation preparation
-is pending on immutable `ea02a919b`. Generated TypeScript is not yet applied.
-No complete package gate or implementation-review acceptance is claimed.
+The preparation on `ea02a919b` passed workspace and TS-enabled Clippy and
+four generation tests. It ended nonzero because generated tracked output
+changed. Inspection then found omitted launch fields projected as required
+nullable fields. That snapshot is not applied; explicit optional metadata
+and a declaration/serialization fixture correct the source before another
+generation. No complete package gate, new runtime-case execution or
+implementation-review acceptance is claimed.
 
 ## Resume order
 

@@ -336,3 +336,10 @@ content with an unchanged or ahead revision cannot produce a completion
 receipt or trigger an automatic retry. Driven fake-host fixtures retain
 the wrong-content case and add both contradictory revision cases. Runtime
 execution of these new assertions remains outstanding.
+
+Generated-wire inspection found that the initial TS projection described
+omitted account/appearance/notice/failure fields as required nullable fields.
+The source now uses the existing explicit TS optional-field metadata; a
+TS-enabled fixture checks both declarations and real omission/null refusal.
+The incorrect first generated snapshot is retained as diagnostic evidence,
+not applied. Regeneration and the complete changed-tree gate remain owed.
