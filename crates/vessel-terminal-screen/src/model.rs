@@ -19,6 +19,7 @@ impl BytesTaken {
 }
 /// A bounded feed's progress; no actor, transport or UI scheduling occurs here.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use = "advance by the consumed prefix and settle node-authority replies"]
 pub struct Feed {
     /// Prefix consumed by this call.
     pub consumed: BytesTaken,

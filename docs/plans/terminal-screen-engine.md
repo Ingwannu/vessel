@@ -56,3 +56,14 @@ Retain original baseline and corrected parity runs as separate evidence.
 Next: read their actual results, repair mismatches without changing goldens,
 then run strict changed-package checks on the final query-enabled source.
 One whole root gate and one V3 review remain before any consumer handoff.
+
+The unchanged baseline golden run compiled and failed on clipped alternate
+right columns (2 passed/1 failed). The first corrected candidate passed the
+original eight real-output and seven actual-cat resize checkpoints, but the
+saved-cursor protocol case failed: after shrinking above existing output the
+cursor stayed on row zero instead of the oracle's row three. That failure is
+preserved. The correction follows the server engine's ordering: resize height
+first, process narrowing groups from the bottom while updating the current
+viewport/cursor, retain pending inserted rows even when the old tail is
+popped, and adjust saved positions with the viewport. Widening adjusts by the
+total removed rows. No expected cell, line, position or hash is changed.

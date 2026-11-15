@@ -6,18 +6,18 @@ use core::ops::RangeInclusive;
 
 pub(crate) fn reflow_rows(
     rows: Vec<Row>,
-    cursor: usize,
+    cursor: Option<usize>,
     old_cols: u16,
     cols: u16,
 ) -> (Vec<Row>, Vec<usize>) {
-    let held = cursor_run(&rows, cursor);
+    let held = cursor.map(|cursor| cursor_run(&rows, cursor));
     let mut mapping = vec![0; rows.len()];
     let mut out = Vec::with_capacity(rows.len());
     let mut joined = Vec::new();
     let mut marks = Vec::new();
     let mut source = rows.into_iter().enumerate().peekable();
     while let Some((index, mut row)) = source.next() {
-        if held.contains(&index) {
+        if held.as_ref().is_some_and(|held| held.contains(&index)) {
             if !marks.is_empty() {
                 cut(
                     core::mem::take(&mut joined),

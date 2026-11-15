@@ -16,9 +16,13 @@ member is recorded in UPSTREAM-SHA256SUMS. LICENSE is retained verbatim.
 
 Numbered patch list (implementation in progress):
 1. Read-only full-buffer cell/row access and latent right columns for capture.
-2. Primary scrollback capacity mutation, retaining newest rows and notifying trims.
+2. Primary scrollback capacity mutation, retaining newest rows.
 3. Primary soft-wrap reflow on resize without replaying synthetic ANSI or resetting
    saved state; alternate resize keeps xterm's clipped-but-retained right cells.
+   Height changes precede width processing; narrowing groups are handled from
+   the bottom with current viewport and saved-cursor accounting, including
+   output below the cursor. The independent saved-cursor golden exposed the
+   first implementation's static-cursor defect; its failing result is retained.
 
 Wide-continuation attributes are corrected by the facade, not another parser.
 No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate.
