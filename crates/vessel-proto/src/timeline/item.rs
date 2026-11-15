@@ -82,7 +82,7 @@ pub enum PluginTimelineDataError {
 /// Validated opaque extension data; only the plugin runtime interprets it.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "RawJson", into = "RawJson")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "unknown"))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "RawJson"))]
 pub struct PluginTimelineData(RawJson);
 
 impl TryFrom<RawJson> for PluginTimelineData {
