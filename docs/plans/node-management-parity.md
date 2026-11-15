@@ -40,8 +40,11 @@ slice order. The docs commit adds both and no command.
 - Source: 2g2 moves only identity/preflight reads off the runtime's blocking
   pool. Two Linux FIFO cases test child exit and a still-Serving node;
   the first focused clippy found an unused test exit status. The test now
-  asserts that status; final focused checks and the whole gate are pending.
-- Next: gate 2g2, then service observations and finalization, force/restart
+  asserts that status. Final focused clippy and 25 related tests passed;
+  its merged-tree whole gate is pending.
+- Contract: 2h service-file observations are documented; implementation
+  follows separately. No disk match gives loaded-manager authority.
+- Next: finish the 2g2 gate, then service observations and finalization, force/restart
   and slices 3/4. Proc implementation still awaits its integration decision.
   Actual managers and agents are unverified.
 
@@ -457,3 +460,13 @@ budget and find the node Serving after the CLI exits. No service manager,
 signal, new wire call or dependency is introduced. Book/credential/pinning
 paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
 This source is not yet compiled or gated.
+
+
+### Slice 2h: service-file observations
+
+Modify the existing installer boundary; do not add a second unit generator
+or execute text from a service file. Reuse its platform paths, validation
+and renderers in a bounded file decoder, then inspect only a directory bound
+to the authenticated greeting. The current whole-gate commit stays frozen;
+this contract is prepared separately before code. No proc code, manager
+invocation, dependency edge, wire registration or loaded-state claim.
