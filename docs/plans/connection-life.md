@@ -18,8 +18,9 @@
 
 ## Validation and resume
 
-The add-only source preserves the two existing lifetime/identity cases. Narrow
-checks remain pending. It is staged until the connection setup wires its field
+The add-only source preserves the two existing lifetime/identity cases. The first
+merged-base narrow check found a documentation-markup lint; the comment is fixed
+without changing behavior. Narrow checks remain pending. It is staged until the connection setup wires its field
 and accessor; this source does not prove actual transport close, scope checks,
 resource admission or product behavior. Next: initialize in one context setup,
 clone on acting-as, then both speech consumers use that same identity/observer.

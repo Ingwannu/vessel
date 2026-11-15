@@ -1,7 +1,7 @@
 //! Canonical node connection identity and context-lifetime cancellation.
 //!
 //! A resource retains Owner and a close observer, never the lifetime guard.
-//! Acting-as contexts share the guard. Wiring also observes Outbound::closed,
+//! Acting-as contexts share the guard. Wiring also observes `Outbound::closed`,
 //! since pending RPC calls can retain a context during transport close grace.
 //! This pure primitive owns no quota, presence id, transport or worker.
 
