@@ -42,9 +42,11 @@ slice order. The docs commit adds both and no command.
   the first focused clippy found an unused test exit status. The test now
   asserts that status. Final focused clippy and 25 related tests passed;
   its merged-tree whole gate is pending.
+- Reviewed: 2h0's documents-only observation contract passed review.
 - Source: 2h service-file observations reuse installer paths and rendering,
   with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
-  match gives loaded-manager authority. Focused and whole gates are pending.
+  match gives loaded-manager authority. The first focused clippy found a
+  test-doc Markdown issue; final focused and whole gates are pending.
 - Next: finish the 2g2 gate, then service observations and finalization, force/restart
   and slices 3/4. Proc implementation still awaits its integration decision.
   Actual managers and agents are unverified.

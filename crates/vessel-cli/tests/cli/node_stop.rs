@@ -349,7 +349,7 @@ async fn stop_with_blocked_reader(fixture: &Fixture, seconds: &str) -> crate::su
     child.wait_with_output().await.unwrap().into()
 }
 
-/// This location mirrors the isolated HOME/XDG_CONFIG_HOME in the fixture,
+/// This location mirrors the isolated `HOME`/`XDG_CONFIG_HOME` in the fixture,
 /// never the actual user's service namespace.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn service_file(home: &std::path::Path) -> std::path::PathBuf {
