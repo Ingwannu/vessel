@@ -20,7 +20,7 @@ use crate::{
 };
 use std::path::{Path, PathBuf};
 use vessel_client::NodeClient;
-use vessel_proto::{SessionId, SessionInfo, SessionMode, SessionOption};
+use vessel_proto::{SessionInfo, SessionMode, SessionOption};
 
 pub(super) async fn run(
     target: &Target,
