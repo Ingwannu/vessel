@@ -264,3 +264,112 @@ fn echo_mask_and_attachment_downgrade_compose_for_the_oldest_peer() {
         [crate::ContentBlock::ResourceLink { .. }]
     ));
 }
+
+#[test]
+fn old_raw_id_folds_keep_reused_scoped_calls_and_permission_references_distinct() {
+    use crate::timeline::ToolCallScope;
+    use std::collections::HashMap;
+    let mut first = rich_tool();
+    first.id = crate::ToolCallId::new("reused");
+    first.title = "A".into();
+    let mut second = first.clone();
+    second.title = "B".into();
+    second.scope = Some(Box::new(ToolCallScope::ProviderTurn {
+        thread: "thread-1".parse().unwrap(),
+        turn: "turn-2".parse().unwrap(),
+    }));
+    let update: ToolCallUpdate =
+        serde_json::from_value(json!({"id":"reused","scope":first.scope,"title":"late A"}))
+            .unwrap();
+    let events = [
+        AgentEvent::ToolCall(first.clone()),
+        AgentEvent::ToolCall(second.clone()),
+        AgentEvent::ToolCallUpdate(update),
+    ];
+    let assigned = ProtocolVersion::new(30);
+    for (peer, gate) in [
+        (crate::PROTOCOL_VERSION, None),
+        (ProtocolVersion::new(29), Some(assigned)),
+    ] {
+        let masked: Vec<_> = events
+            .iter()
+            .map(|event| adapt_event(event, peer, gate).unwrap())
+            .collect();
+        let mut old = HashMap::new();
+        for event in &masked {
+            match event {
+                AgentEvent::ToolCall(call) => {
+                    let _prior = old.insert(call.id.clone(), call.title.clone());
+                }
+                AgentEvent::ToolCallUpdate(update) => {
+                    old.get_mut(&update.id)
+                        .unwrap()
+                        .clone_from(update.title.as_ref().unwrap());
+                }
+                _ => panic!("tool lifecycle"),
+            }
+        }
+        let [AgentEvent::ToolCall(a), AgentEvent::ToolCall(b), _] = masked.as_slice() else {
+            panic!("announcements")
+        };
+        assert_ne!(a.id, b.id);
+        assert_eq!(old[&a.id], "late A");
+        assert_eq!(old[&b.id], "B");
+        let mut request = permission();
+        request.tool_call = second.id.clone();
+        request.tool_scope.clone_from(&second.scope);
+        let AgentEvent::PermissionRequested(request) =
+            adapt_event(&AgentEvent::PermissionRequested(request), peer, gate).unwrap()
+        else {
+            panic!("permission")
+        };
+        assert_eq!(request.tool_call, b.id);
+        let mut collision = first.clone();
+        collision.id = a.id.clone();
+        collision.scope = None;
+        let AgentEvent::ToolCall(escaped) =
+            adapt_event(&AgentEvent::ToolCall(collision), peer, gate).unwrap()
+        else {
+            panic!("legacy collision")
+        };
+        assert_ne!(escaped.id, a.id);
+        assert_ne!(escaped.id, b.id);
+    }
+}
+
+#[test]
+fn scoped_legacy_identity_is_identical_on_direct_page_and_nested_outgoing_paths() {
+    let event = AgentEvent::ToolCall(rich_tool());
+    let protocol = crate::PROTOCOL_VERSION;
+    let direct = event.for_protocol(protocol).unwrap();
+    let record = EventRecord {
+        seq: EventSeq::new(7),
+        at: chrono::DateTime::UNIX_EPOCH,
+        event: SessionEvent::Agent { event },
+    };
+    let masked_record = record.for_protocol(protocol).unwrap();
+    assert_eq!(masked_record.seq, record.seq);
+    let SessionEvent::Agent { event: from_record } = &masked_record.event else {
+        panic!("agent")
+    };
+    assert_eq!(*from_record, direct);
+    let page = EventPage {
+        records: vec![record],
+        next: EventSeq::new(8),
+        at_end: true,
+    };
+    let masked_page = page.for_protocol(protocol).unwrap();
+    assert_eq!(masked_page.next, page.next);
+    assert_eq!(masked_page.records, [masked_record]);
+    for wrap in [Reply::Forward, Reply::Relay, Reply::Deliver] {
+        let nested = wrap(Forwarded {
+            reply: Box::new(Reply::ReadEvents(page.clone())),
+        })
+        .for_protocol(protocol)
+        .unwrap();
+        let (Reply::Forward(inner) | Reply::Relay(inner) | Reply::Deliver(inner)) = nested else {
+            panic!("nested")
+        };
+        assert_eq!(*inner.reply, Reply::ReadEvents(masked_page.clone()));
+    }
+}

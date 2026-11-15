@@ -325,8 +325,15 @@ for this actor. Absent, ambiguous or over-budget associations yield an isolated
 scope remains usable at capacity. This finite display-state bound is a deliberate
 difference: preserving an update without attaching it is preferable to presenting
 it as evidence about different work. Old peers receive a readable log stand-in
-for such updates; other scope fields are removed with all optional canonical
-fields. These observations never select a permission option or authorize work.
+for such unassociated updates. Other scoped announcements, updates and permission
+references are encoded into one collision-free legacy tool identity before scope
+fields are removed. The codec tags the scope kind and uses delimiter-safe base64
+components for provider conversation, turn and raw id (or the numbered local
+scope). Unscoped raw ids beginning with the reserved namespace are themselves
+escaped in a separate tagged branch, so an arbitrary provider spelling cannot
+collide with a scoped identity. All direct/page/nested/live/inbox adapters use
+this same outgoing-copy codec; the complete durable identity is never rewritten.
+No raw-id legacy fold can apply a late A update to the B announcement. These observations never select a permission option or authorize work.
 
 ### Provider-owned plan decisions (W22 / W23 boundary)
 

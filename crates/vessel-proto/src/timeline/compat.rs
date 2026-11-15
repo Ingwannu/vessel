@@ -1,6 +1,9 @@
 //! Peer-specific optional-field masking, including fields on legacy event kinds.
 //! Durable records stay complete; only the outgoing copy is adapted.
 
+mod identity;
+use identity::{legacy_id, needs_escape};
+
 use crate::inbox::{InboxEntry, InboxItem};
 use crate::{
     AgentEvent, Conversation, PermissionRequest, PromptQueue, ProtocolVersion, Question, ToolCall,
@@ -15,6 +18,7 @@ fn supported(protocol: ProtocolVersion, assigned: Option<ProtocolVersion>) -> bo
 
 pub(crate) fn tool(call: &ToolCall) -> ToolCall {
     let mut adapted = call.clone();
+    adapted.id = legacy_id(&call.id, call.scope.as_deref());
     adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
@@ -27,6 +31,7 @@ pub(crate) fn tool(call: &ToolCall) -> ToolCall {
 
 fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
     let mut adapted = call.clone();
+    adapted.id = legacy_id(&call.id, call.scope.as_deref());
     adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
@@ -39,6 +44,7 @@ fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
 
 fn permission(request: &PermissionRequest) -> PermissionRequest {
     let mut adapted = request.clone();
+    adapted.tool_call = legacy_id(&request.tool_call, request.tool_scope.as_deref());
     adapted.tool_scope = None;
     adapted.presentation = None;
     for option in &mut adapted.options {
@@ -66,13 +72,15 @@ fn question_changed(request: &Question) -> bool {
 }
 
 fn permission_changed(request: &PermissionRequest) -> bool {
-    request.tool_scope.is_some()
+    needs_escape(&request.tool_call)
+        || request.tool_scope.is_some()
         || request.presentation.is_some()
         || request.options.iter().any(|option| option.action.is_some())
 }
 
 fn tool_changed(call: &ToolCall) -> bool {
-    call.scope.is_some()
+    needs_escape(&call.id)
+        || call.scope.is_some()
         || call.detail.is_some()
         || call.failure.is_some()
         || call.agent_message.is_some()
@@ -150,7 +158,8 @@ pub(crate) fn event(
                     line: "vessel: unassociated tool update requires a newer client".to_owned(),
                 });
             }
-            if call.scope.is_none()
+            if !needs_escape(&call.id)
+                && call.scope.is_none()
                 && call.detail.is_none()
                 && call.failure.is_none()
                 && call.agent_message.is_none()
