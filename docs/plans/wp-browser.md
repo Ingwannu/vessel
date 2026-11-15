@@ -186,3 +186,22 @@ the last two are under spikes/native. No new independent panes/focus listener
 or W19 staged preferences consumer is enabled. Base6's lock is announced stale;
 await the lead's lock correction before any locked build. Changed-union native
 verification is owed; previous376674c93 view/app strict0 proves its prior source.
+
+
+## Current announced app union
+
+After prior native f05b1051 view/app strict0 ended, merged announced base7,
+base8 (91407173), then base8b c3429952 via the official app line. The latest merge
+is2e4cb7046, clean, with no whole-gate freeze active. These bases carry the fixed
+native lock; the historical base6 stale-lock hold above no longer applies.
+Root node files still arrive only through that official line, not a node-head
+merge or an unreviewed values carrier. The Browser arm in W12's one registry and
+the localized NoEngine renderer remain intact; no staged resident minter,
+resource close acknowledgement, focus context or raw key forwarder was enabled.
+
+Current-union native checks/captures remain owed. The prior f05 strict result
+cannot qualify later base7/base8/base8b. The shared image owner now has a staged
+PNG-only bounded RGBA/RenderImage extension; W14 waits for its exact checked
+leaf and uses that same decoder owner, never a parallel image decoder. Canonical
+browser wire values, a real owned backend and frame/input authority remain
+prerequisites before any supported visible page.
