@@ -1,19 +1,33 @@
 # Workspace files, editor and document panels
 
 Status: C5/C6 implementation remains incomplete; no native package acceptance.
-The app includes announced base8e82ca07a7, canonical pane/query/close values,
+The app includes announced base10 3e7820e3, canonical pane/query/close values,
 G4 selected-connection preflight and the shared field/IME controls. Retained
 buffers use NodeId/root/path, original serialized write tickets, and sticky
 uncertain effects. Existing-engine input is mirrored before admission and
 projection, including input whose owner notification is queued.
 
-Current native source is exact4fbbe4d8. Strict27 on prior6419ad03 compiled the
-normal App binary, then failed on three new presentation-fixture lints, now
-corrected without product changes or assertion weakening. Strict28 run
-wp-files-narrow-20261115T171836Z-4fbbe4d8 and actual four-package tests10 run
-wp-files-query-values-20261115T171843Z-4fbbe4d8 are queued; no result is claimed.
-The older0df7abd9 strict/eight GPUI passes are prior-source evidence only.
-This status-only update changes no native source from the queued head.
+Current native source is merge3c40b386c. Strict28 on earlier4fbbe4d8 passed
+all-target locked Clippy for Kit/View/Link/App with warnings denied. Actual
+four-package tests10 stopped after App149 passed,2 failed,2 ignored; later
+package suites were not executed. Both failures were fixture assumptions:
+the tree lacked an observable test selector, and Explorer is a valid file
+placement. The correction adds observable tree/legacy-Back controls and tests
+a genuinely removed pane, preserving the owner-restoration assertions.
+
+Strict29 run wp-files-narrow-20261115T181725Z-9305a08d is checking the earlier
+base9b union and actual-engine readiness change. Tests12 run
+wp-files-query-values-20261115T183328Z-3c40b386 checks the base10 union and
+corrected fixtures. The superseded queued tests11 was cancelled before
+execution (143). These newer checks have no result yet. Strict28 and older
+0df7abd9 evidence do not qualify the current union or live owner admission.
+
+Actual-engine readiness now receives the same readonly App reference: a
+cached Clean model cannot hide accepted editor text whose mirror is queued.
+Context-free cache eviction conservatively retains every instantiated editor;
+explicit close may release a mirrored settled snapshot. This costs cache
+capacity and avoids dropping silent input. Quit registration remains staged
+until its shared real caller is checked; no forced-exit recovery is promised.
 The app tree still carries earlier ADR0083 provisional root sources from its
 own package commits. A native-only check does not qualify that root union or
 make it a values-only carrier. Before final native handoff those copies must
