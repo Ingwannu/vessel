@@ -63,17 +63,21 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
             {
                 let source = node.source.clone();
                 let pending = shell.areas.inbox.terminals.pending.iter().any(|(known, action, _)| *known == source && matches!(action, Action::Clear { terminal, .. } if *terminal == row.terminal));
+                let enabled = node.listing == Listing::Ready && !pending;
                 line = line.child(
                     outline_button(
                         ElementId::Name(
                             format!("terminal-clear-{}-{}", key.node, key.terminal).into(),
                         ),
                         words.read(),
-                        node.listing == Listing::Ready && !pending,
+                        enabled,
                         tokens,
                     )
                     .on_click(cx.listener(
                         move |shell, _event, _window, cx| {
+                            if !enabled {
+                                return;
+                            }
                             shell.inbox_terminal_action(
                                 source.clone(),
                                 Action::Clear {

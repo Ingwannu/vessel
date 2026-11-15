@@ -29,6 +29,18 @@ pub(super) struct Terminals {
 impl Shell {
     pub(super) fn inbox_terminal_action(&mut self, source: Source, action: Action) {
         let area = &mut self.areas.inbox;
+        let (terminal, revision) = match action {
+            Action::Claim { terminal, revision } | Action::Clear { terminal, revision } => {
+                (terminal, revision)
+            }
+        };
+        let current = area.targets.iter().any(|target| matches!(target, vessel_app_link::inbox::Target::Online(known) if *known == source))
+            && area.store.nodes().iter().any(|node| node.source == source && node.listing == vessel_app_view::inbox::Listing::Ready
+                && node.snapshot.iter().flat_map(|snapshot| snapshot.terminals.iter().flatten()).any(|row| row.terminal == terminal && row.attention.is_some_and(|state| state.revision == revision && vessel_app_view::inbox::terminals::announces(state))));
+        if !current {
+            area.problem = Some(Problem::Refused(vessel_proto::ErrorCode::Conflict));
+            return;
+        }
         if area.terminals.pending.len() >= MAX_PENDING_NOTICES {
             area.problem = Some(Problem::Refused(vessel_proto::ErrorCode::Unavailable));
             return;
