@@ -352,3 +352,11 @@ impl Shell {
 #[cfg(test)]
 #[path = "rewind/language_tests.rs"]
 mod language_tests;
+
+// Owner snapshot preparation; no staged exemption in the product path.
+#[cfg(test)]
+impl Rewinding {
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.pending.is_some() || self.restore.is_some()
+    }
+}
