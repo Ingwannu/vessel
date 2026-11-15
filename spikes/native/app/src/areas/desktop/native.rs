@@ -169,6 +169,6 @@ pub(super) fn listen(cx: &mut App) {
 
 fn invoke(item: Item, cx: &mut App) {
     crate::desktop::with_focused_shell(cx, move |shell, window, cx| {
-        menus::invoke(shell, item, None, window, cx);
+        menus::invoke(shell, item, window, cx);
     });
 }

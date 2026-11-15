@@ -320,3 +320,14 @@ to ordinary drive/UNC spelling before comparison. 8.3 short-name equivalence is
 not resolved. A disabled transaction service has a specific translated refusal;
 there is no nontransactional overwrite fallback. Real Windows execution remains
 unverified.
+
+## Shared menu focus producer adoption
+
+Merged only G2's reviewed isolated producer8158be6d (V1 source and narrow,
+160 kit tests; app strict narrow separately), retaining the newer configured
+dialog/snap renderer and module/glyph union. Desktop removes its strong saved
+opener and delegates actual-close focus restoration to MenuState's existing weak
+ReturnFocus primitive before edit dispatch. Opening another desktop menu starts
+a fresh cycle; captured old row callbacks refuse actions after replacement.
+The existing real-field Copy/Paste/SelectAll keyboard test now exercises the
+shared producer's return path. Its final combined runtime result is still owed.

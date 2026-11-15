@@ -1,7 +1,7 @@
 //! Application menus reuse the kit popup; native window controls retain OS behavior.
 
 use crate::shell::Shell;
-use gpui::{Action, FocusHandle};
+use gpui::Action;
 use std::rc::Rc;
 use vessel_app_kit::menu::{MenuHandlers, MenuItem, menu};
 use vessel_app_kit::theme::spacing::S1;
@@ -63,7 +63,8 @@ pub(super) fn open_context(
     cx: &mut Context<'_, Shell>,
 ) {
     let area = &mut shell.areas.desktop;
-    area.focus = window.focused(cx);
+    area.menu.close_and_restore(window, cx);
+    area.menu_cycle = Rc::new(());
     area.group = Group::Context;
     area.edit = edit;
     area.menu.open(position, window, cx);
@@ -111,7 +112,8 @@ pub(crate) fn trigger(
                         .on_click(cx.listener(
                             move |shell, event: &gpui::ClickEvent, window, cx| {
                                 let area = &mut shell.areas.desktop;
-                                area.focus = window.focused(cx);
+                                area.menu.close_and_restore(window, cx);
+                                area.menu_cycle = Rc::new(());
                                 area.group = if crate::areas::draft::compact(window) {
                                     Group::All
                                 } else {
@@ -137,6 +139,7 @@ pub(crate) fn render(
     if !shell.areas.desktop.menu.is_open() {
         return None;
     }
+    let cycle = Rc::clone(&shell.areas.desktop.menu_cycle);
     let rows = rows(shell, shell.areas.desktop.group);
     let items: Vec<_> = rows.iter().map(|row| row.view.clone()).collect();
     menu(
@@ -146,9 +149,11 @@ pub(crate) fn render(
         &MenuHandlers {
             state: |shell: &mut Shell| &mut shell.areas.desktop.menu,
             chose: Rc::new(move |shell, index, window, cx| {
+                if !Rc::ptr_eq(&cycle, &shell.areas.desktop.menu_cycle) {
+                    return;
+                }
                 if let Some(row) = rows.get(index) {
-                    let focus = shell.areas.desktop.focus.take();
-                    invoke(shell, row.item, focus, window, cx);
+                    invoke(shell, row.item, window, cx);
                 }
             }),
         },
@@ -161,13 +166,9 @@ pub(crate) fn render(
 pub(super) fn invoke(
     shell: &mut Shell,
     item: Item,
-    focus: Option<FocusHandle>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
-    if let Some(focus) = focus {
-        focus.focus(window, cx);
-    }
     match item {
         Item::Desktop(action) => {
             let _handled = shell.run_desktop_shortcut(action, window, cx);

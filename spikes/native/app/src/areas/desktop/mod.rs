@@ -29,7 +29,7 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     edit: vessel_app_view::desktop::EditContext,
     #[cfg(not(target_arch = "wasm32"))]
-    focus: Option<gpui::FocusHandle>,
+    menu_cycle: std::rc::Rc<()>,
     #[cfg(not(target_arch = "wasm32"))]
     zoom: actions::Zoom,
     #[cfg(not(target_arch = "wasm32"))]
@@ -54,7 +54,7 @@ impl DesktopArea {
             #[cfg(not(target_arch = "wasm32"))]
             edit: vessel_app_view::desktop::EditContext::default(),
             #[cfg(not(target_arch = "wasm32"))]
-            focus: None,
+            menu_cycle: std::rc::Rc::new(()),
             #[cfg(not(target_arch = "wasm32"))]
             zoom: actions::Zoom::default(),
             #[cfg(not(target_arch = "wasm32"))]
