@@ -78,7 +78,7 @@ fn an_archive_claim_blocks_source_release_and_rolls_back() {
                 source: source(1)
             })
         ),
-        Err(StoreError::RegistryConflict)
+        Err(StoreError::RegistryInactive(_))
     ));
     assert_eq!(load(&db).unwrap(), before);
 }
