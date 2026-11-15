@@ -86,8 +86,17 @@ pub(super) fn for_run(
             .filter(|target| shell.script_card_is_current(target))
             .ok_or(vessel_app_view::workspace::scripts::PreviewProblem::Stale)
             .and_then(|_| model.preview_url(&preview_request, &card.host.text(cx)));
+        let element_key = model
+            .action_ticket()
+            .map_or_else(|| "inert".to_owned(), |ticket| ticket.element_key());
         let mut preview = button_with_kind(
-            ElementId::Name(format!("script-preview-{}-{index}", port.port).into()),
+            ElementId::Name(
+                format!(
+                    "script-preview-{}-{}-{index}-{element_key}",
+                    run.id, port.port
+                )
+                .into(),
+            ),
             words.preview(),
             ButtonKind::Secondary,
             if destination.is_ok() {
@@ -99,7 +108,9 @@ pub(super) fn for_run(
         )
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         let mut copy = button_with_kind(
-            ElementId::Name(format!("script-copy-{}-{index}", port.port).into()),
+            ElementId::Name(
+                format!("script-copy-{}-{}-{index}-{element_key}", run.id, port.port).into(),
+            ),
             words.copy(),
             ButtonKind::Secondary,
             if destination.is_ok() {

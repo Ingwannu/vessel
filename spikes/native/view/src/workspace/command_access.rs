@@ -24,6 +24,15 @@ pub struct Ticket {
     pub digest: CommandsDigest,
     snapshot: RequestKey,
 }
+impl Ticket {
+    /// Presentation identity derived from the existing receipt, not another
+    /// admission or grant. A mouse press cannot transfer to a refreshed button.
+    #[must_use]
+    pub fn element_key(&self) -> String {
+        format!("{:?}", self.snapshot)
+    }
+}
+
 /// Persists beyond detail recreation so old replies cannot reuse a read number.
 #[derive(Debug, Default)]
 pub struct Model {

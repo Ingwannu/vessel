@@ -124,6 +124,15 @@ pub struct ActionTicket {
     read: RequestKey,
 }
 
+impl ActionTicket {
+    /// Scope widget identity to the captured receipt and panel incarnation.
+    /// This is presentation only and creates no new node permission.
+    #[must_use]
+    pub fn element_key(&self) -> String {
+        format!("{:?}-{:?}", self.target.surface, self.read)
+    }
+}
+
 /// Persistent, typed explanation shown until the next explicit intention.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Issue {

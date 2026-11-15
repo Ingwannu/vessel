@@ -38,6 +38,7 @@ fn refreshed_or_reopened_confirmations_cannot_retarget_a_new_snapshot() {
     assert!(model.accept_read(&target, key, Ok(commands(false))));
     assert!(model.begin_write(&old, true).is_none());
     let current = model.ticket().unwrap();
+    assert_ne!(current.element_key(), old.element_key());
     assert!(model.begin_write(&current, true).is_some());
     assert!(model.begin_write(&current, true).is_none());
 }

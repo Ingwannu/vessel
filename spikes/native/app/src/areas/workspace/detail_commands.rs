@@ -96,10 +96,13 @@ pub(super) fn render(
         .ticket()
         .filter(|ticket| shell.command_ticket_is_current(ticket));
     let enabled = ticket.is_some();
+    let element_key = ticket
+        .as_ref()
+        .map_or_else(|| "inert".to_owned(), |ticket| ticket.element_key());
     let control = if listed.approved {
         let ticket = ticket.clone();
         let button = button_with_kind(
-            "commands-withdraw",
+            format!("commands-withdraw-{element_key}"),
             labels.withdraw,
             ButtonKind::Secondary,
             if enabled {
@@ -120,7 +123,7 @@ pub(super) fn render(
     } else {
         let ticket = ticket.clone();
         let button = button_with_kind(
-            "commands-review",
+            format!("commands-review-{element_key}"),
             labels.review,
             ButtonKind::Secondary,
             if enabled {
@@ -155,12 +158,13 @@ pub(super) fn render(
     if detail.reviewing && !listed.approved {
         let place = words.approval_place(project.name.as_str(), machine, true);
         let compared = compare_approved(&listed, None);
+        let panel_id = format!("settings-approval-{element_key}");
         let approve = ticket.clone();
         let cancel = owner.cloned();
         column = column.child(approval::render(
             shell,
             &Panel {
-                id: "settings-approval",
+                id: &panel_id,
                 asked: &listed,
                 compared: &compared,
                 place: &place,

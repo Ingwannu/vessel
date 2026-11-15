@@ -109,6 +109,7 @@ fn refreshing_an_approved_command_does_not_retarget_an_already_drawn_run_button(
     let action = Action::Run("dev".parse().unwrap());
     assert!(model.begin_write_at(&old, action.clone()).is_none());
     let fresh = model.action_ticket().unwrap();
+    assert_ne!(fresh.element_key(), old.element_key());
     assert!(model.begin_write_at(&fresh, action).is_some());
 }
 

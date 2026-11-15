@@ -382,6 +382,10 @@ fn action(
         .as_ref()
         .is_some_and(|ticket| shell.script_card_is_current(&ticket.target))
         && card.model.permits(&action);
+    let id = ticket.as_ref().map_or_else(
+        || id.clone(),
+        |ticket| format!("{id}-{}", ticket.element_key()),
+    );
     let control = button_with_kind(
         ElementId::Name(id.into()),
         label.to_owned(),

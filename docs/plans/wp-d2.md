@@ -364,3 +364,9 @@ command and script reads. Worktree/snapshot/remove methods remain unchanged.
 Tests use the canonical test actor admission factory and in-memory framed peer,
 covering exact digest/owner receipts, retired-before-poll zero frames, stale read/
 confirmation refusal, unknown-write reconciliation and raw peer message redaction.
+
+Mutation/preview/approval widget ids derive from their existing receipt ticket
+(and panel incarnation), so a pressed old widget cannot become a refreshed
+command or confirmation under the same button id. Listener controls additionally
+include exact TerminalId to avoid equal-port collisions across runs. These are
+presentation keys, not another epoch allocator or approval authority.
