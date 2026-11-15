@@ -831,7 +831,7 @@ adapters and source regressions, not a live resource cutover verdict.
   coupling the caller to a timeline model despite already having a canonical DTO.
 - Alternatives: duplicate A8 rendering, construct a synthetic log row, or extend
   the existing drawing boundary with only explicit owner presentation state.
-- Choice: tool_detail::borrowed_body(Paint, ElementId, BorrowedDetail, Window, Context)
+- Choice: tool_detail::borrowed_body(&Paint, &ElementId, BorrowedDetail, Window, Context)
   renders the same sections/code/diff/prose/failure controls. BorrowedDetail holds
   &ToolCallDetail, DetailContentState::{Loading,Ready}, and Option<&ToolFailure>.
 - Reason: A7's existing ToolDetailSource body delegates to this same function;
