@@ -102,6 +102,8 @@ pub enum OperationKind {
     Attachment,
     /// Permission or question answer.
     Request,
+    /// Parent-owned provider-child query/read operation.
+    Subagents,
     /// Archive, close or other session lifecycle effect.
     Lifecycle,
 }
@@ -112,6 +114,7 @@ impl OperationKind {
             Self::Composer => ResourceOwner::Composer,
             Self::Attachment => ResourceOwner::Attachments,
             Self::Request => ResourceOwner::Requests,
+            Self::Subagents => ResourceOwner::Subagents,
             Self::Lifecycle => ResourceOwner::Lifecycle,
         }
     }
@@ -127,16 +130,19 @@ pub enum ResourceOwner {
     Attachments,
     /// Permission/question forms and drafts.
     Requests,
+    /// Parent-owned child query, readonly area and navigation holds.
+    Subagents,
     /// Confirmation and lifecycle operations.
     Lifecycle,
 }
 impl ResourceOwner {
     /// Every concrete owner must transfer a clean snapshot before retirement.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Timeline,
         Self::Composer,
         Self::Attachments,
         Self::Requests,
+        Self::Subagents,
         Self::Lifecycle,
     ];
 }
