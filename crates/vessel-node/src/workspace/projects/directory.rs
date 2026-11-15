@@ -22,9 +22,17 @@ impl Workspaces {
         self: &Arc<Self>,
         request: CreateProjectDirectory,
     ) -> Result<ProjectDirectoryOutcome, WireError> {
+        // New-directory work also owns a finite slot before it can outlive its
+        // RPC waiter; the same budget bounds the later registration task.
+        let capacity = self
+            .project_operation_capacity()
+            .map_err(|error| error.wire())?;
         let owner = Arc::clone(self);
         self.tasks
-            .spawn(async move { owner.create_project_directory_now(request).await })
+            .spawn(async move {
+                let _capacity = capacity;
+                owner.create_project_directory_now(request).await
+            })
             .await
             .map_err(|error| WorkspaceError::project_task(error).wire())?
     }

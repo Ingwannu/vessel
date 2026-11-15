@@ -260,3 +260,44 @@ async fn cancelled_config_admission_never_detaches_or_writes_after_release() {
     assert_eq!(fixture.tasks.len(), baseline);
     fixture.stop.cancel();
 }
+
+#[tokio::test]
+async fn directory_capacity_refuses_before_detaching_or_mkdir() {
+    use crate::workspace::projects::admission::MAX_PROJECT_ADMISSIONS;
+    use std::{future::Future as _, task::Context};
+
+    let fixture = Fixture::new().await;
+    let project = fixture.project("directory-capacity", None).await;
+    let held = fixture.workspaces.admit_project(project.id).await.unwrap();
+    let baseline = fixture.tasks.len();
+    let mut pending = Vec::new();
+    for _ in 0..MAX_PROJECT_ADMISSIONS.checked_sub(1).unwrap() {
+        let mut call = Box::pin(fixture.workspaces.admit_project(project.id));
+        let mut context = Context::from_waker(std::task::Waker::noop());
+        assert!(call.as_mut().poll(&mut context).is_pending());
+        pending.push(call);
+    }
+    let name = "not-created-at-capacity";
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: fixture.path(),
+            name: name.to_owned().try_into().unwrap(),
+        })
+        .await;
+    assert_eq!(result.unwrap_err().code, ErrorCode::Conflict);
+    assert_eq!(fixture.tasks.len(), baseline);
+    assert!(!fixture.path().join(name).exists());
+    drop(pending);
+    drop(held);
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: fixture.path(),
+            name: name.to_owned().try_into().unwrap(),
+        })
+        .await
+        .unwrap();
+    assert!(matches!(result, ProjectDirectoryOutcome::Created { .. }));
+    fixture.stop.cancel();
+}

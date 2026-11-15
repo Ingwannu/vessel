@@ -219,3 +219,13 @@ behind a retained project hold, checks that no tracked task was added, drops the
 waiter, releases the hold and verifies the file remains missing; a subsequent
 admitted write succeeds. This test is authored but not yet executed on the merged
 source. It grants no physical-root, approval, generation or RPC activation proof.
+
+
+New-directory tasks take the same finite, nonwaiting project-operation capacity
+before detaching or mkdir. The retained outer task and its registration child
+each count toward the existing budget; under saturation the child can refuse
+and trigger nonrecursive cleanup, rather than wait on a second unbounded queue.
+The authored saturation regression holds all admission slots, expects refusal
+before any tracked task or directory exists, then releases and creates normally.
+Its execution is still owed. Legacy init/clone pre-registration effects and
+external filesystem races remain outside this cancellation guarantee.
