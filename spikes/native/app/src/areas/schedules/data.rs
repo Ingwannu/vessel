@@ -13,6 +13,8 @@ use vessel_app_view::schedules::{
 pub(super) struct Data {
     pub(super) page: Page,
     pub(super) editor: vessel_app_view::schedules::editor::session::Model,
+    pub(super) editor_cache:
+        Result<Option<vessel_app_view::schedules::editor::presentation::Form>, Notice>,
     pub(super) history: vessel_app_view::schedules::history::reader::Reader,
     pub(super) history_cache:
         Result<Option<vessel_app_view::schedules::history::presentation::Page>, Notice>,
@@ -28,6 +30,7 @@ impl Default for Data {
         Self {
             page: Page::default(),
             editor: vessel_app_view::schedules::editor::session::Model::default(),
+            editor_cache: Ok(None),
             history: vessel_app_view::schedules::history::reader::Reader::default(),
             history_cache: Ok(None),
             rows: Vec::new(),

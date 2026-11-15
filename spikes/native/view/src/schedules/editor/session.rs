@@ -78,8 +78,8 @@ impl Active {
                     Failure::ConnectionChanged | Failure::Unconfirmed => true,
                     // A read refusal is not evidence about Operate. Only a
                     // real write refusal is recorded in authority above.
-                    Failure::Node(_) => false,
-                    Failure::Older
+                    Failure::Node(_)
+                    | Failure::Older
                     | Failure::NotEnabled
                     | Failure::Offline
                     | Failure::TimedOut

@@ -1004,3 +1004,13 @@ A failed preview cannot authorize save, but permits editing/retrying that read.
 Regression source distinguishes the two actual methods rather than fabricating
 a write refusal on a preview request. The queued older snapshots remain their
 own evidence; this later correction has not been compiled or reviewed yet.
+
+
+### App prepares the form cache on owner updates
+
+Area rebuild now caches the form presentation alongside list/history after
+actual model/data/language/clock changes, preserving typed display failures as
+the shared notice fallback. A render will read this comparable cache instead
+of preparing a definition, formatting preview dates or translating diagnostics
+inside paint. No new UI opener is exposed by this plumbing; the future mounted
+editor still owns actual source/visit guards and actual-close acknowledgment.

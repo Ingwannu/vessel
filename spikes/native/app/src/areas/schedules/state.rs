@@ -55,12 +55,23 @@ impl Area {
             label: error.label(catalog).into(),
             variant: vessel_app_view::alert::Variant::Info,
         });
-        let changed = self.data.history_cache != history
+        let editor = vessel_app_view::schedules::editor::presentation::prepare(
+            &self.data.editor,
+            clock,
+            catalog,
+        )
+        .map_err(|error| Notice {
+            label: error.label(catalog).into(),
+            variant: vessel_app_view::alert::Variant::Info,
+        });
+        let changed = self.data.editor_cache != editor
+            || self.data.history_cache != history
             || self.data.rows != rows
             || self.data.body != body
             || self.data.host_errors != host_errors
             || self.data.blocking != blocking
             || self.data.local != local;
+        self.data.editor_cache = editor;
         self.data.history_cache = history;
         self.data.rows = rows;
         self.data.body = body;
