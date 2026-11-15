@@ -156,7 +156,7 @@ fn bound_is_checked_before_any_response_decoding() {
 }
 
 #[test]
-fn error_objects_and_unimplemented_apis_are_typed_refusals() {
+fn error_objects_preserve_accounting_when_a_complete_shape_is_available() {
     assert!(matches!(
         read(&json!({"error":{"type":"overloaded","message":"private"}})).text,
         Err(CompletionError::Failed)
@@ -167,11 +167,6 @@ fn error_objects_and_unimplemented_apis_are_typed_refusals() {
     assert!(matches!(answer.text, Err(CompletionError::Failed)));
     assert_eq!(answer.usage.output, 7);
     assert_eq!(answer.stop, Some(ir::StopReason::EndTurn));
-    for api in [Api::OpenAiChat, Api::OpenAiResponses] {
-        assert!(
-            matches!(decode(api, ANTHROPIC.as_bytes(), &Redactor::default()).text, Err(CompletionError::UnsupportedApi(found)) if found == api)
-        );
-    }
 }
 
 #[test]

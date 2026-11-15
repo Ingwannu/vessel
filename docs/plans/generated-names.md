@@ -414,3 +414,14 @@ contract. Stream accounting conversions move unchanged to their shared
 owner; proxy ending behavior does not change. Synthetic fixtures and edge
 cases extend the adjacent tests. This contract comes before the extension;
 no HTTP client, settings field or node arming is part of this library slice.
+
+Remaining API implementation checkpoint: the complete decoder now accepts
+Chat and Responses whole replies as well as Anthropic. It requires one
+plain assistant result and explicit normal finality; tools, refusals,
+unknown/incomplete states and unsupported content are unusable. Usage
+conversions are shared with streams and the proxy's existing ending policy
+is unchanged. Twelve additional synthetic cases and the existing library
+suite pass; narrow all-targets Clippy also passes. The Chat file is now
+under the product budget and its ratchet is removed; the Responses ratchet
+is lowered. HTTP, node selection, settings and automatic application are
+still unconnected. The exact-commit whole gate remains owed.
