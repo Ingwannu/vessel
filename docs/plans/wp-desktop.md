@@ -323,3 +323,13 @@ The canonical registry's lease-retirement watch and exact source-removal join
 remain part of the third-slot ManagedLocal port; this preparation does not claim
 that the legacy adapter implements them. Tests cover receiver clones surviving
 owner withdrawal, successor independence and actual original transport closure.
+
+### Setup footer uses the shared source control geometry
+
+Paseo onboarding-modal.tsx:86-105 uses Outline Skip, Secondary Back and Primary
+Continue, with Skip separated from the trailing actions. The setup footer now
+uses those kit variants and explicit ControlSizing from its existing compact
+layout decision (32px pointer /44px touch). First/last omitted actions are not
+invisible keyboard targets. No private control-height override or second button
+renderer is introduced. The existing kit dialog still owns card/scroll geometry;
+actual minimum-size and compact captures remain required before parity approval.

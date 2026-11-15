@@ -7,9 +7,10 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    ButtonKind, ButtonState, Tokens, button, button_with_kind, outline_button, settings,
+    ButtonKind, ButtonState, ControlSizing, Tokens, button, button_with_kind_at, outline_button,
+    settings,
 };
-use vessel_app_view::onboarding::{Open, State, Step, Visit};
+use vessel_app_view::onboarding::{Open, State, Step};
 
 use crate::shell::Shell;
 
@@ -112,8 +113,14 @@ pub(crate) fn dialog(
         .gap(px(S4))
         .when(!compact, |body| body.child(rail(shell, open, tokens, cx)))
         .child(pane);
-    let last = open.steps().last() == Some(&step);
-    let footer = footer(shell, step, visit, last, advancing, tokens, cx);
+    let footer = footer(
+        shell,
+        open,
+        advancing,
+        ControlSizing::from_compact(compact),
+        tokens,
+        cx,
+    );
     Some(kit_dialog(
         &shell.areas.onboarding.dialog,
         DialogContent {
@@ -158,30 +165,54 @@ fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>
 
 fn footer(
     shell: &Shell,
-    step: Step,
-    visit: Visit,
-    last: bool,
+    open: &Open,
     advancing: bool,
+    sizing: ControlSizing,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
     let words = shell.words.desktop();
-    vec![
-        button("setup-skip", words.skip(), false, tokens)
-            .when(last, |button| button.invisible())
+    let step = open.step();
+    let visit = open.visit();
+    let last = open.steps().last() == Some(&step);
+    let mut actions = Vec::new();
+    if !last {
+        actions.push(
+            button_with_kind_at(
+                "setup-skip",
+                words.skip(),
+                ButtonKind::Outline,
+                ButtonState::Enabled,
+                sizing,
+                tokens,
+            )
+            .mr_auto()
             .on_click(
                 cx.listener(move |shell, _event, window, cx| {
                     shell.setup_complete(visit, window, cx)
                 }),
             )
             .into_any_element(),
-        button("setup-back", words.back(), false, tokens)
-            .when(step == Step::Appearance, |button| button.invisible())
+        );
+    }
+    if step != Step::Appearance {
+        actions.push(
+            button_with_kind_at(
+                "setup-back",
+                words.back(),
+                ButtonKind::Secondary,
+                ButtonState::Enabled,
+                sizing,
+                tokens,
+            )
             .on_click(cx.listener(move |shell, _event, window, cx| {
                 shell.setup_move(visit, None, window, cx)
             }))
             .into_any_element(),
-        button_with_kind(
+        );
+    }
+    actions.push(
+        button_with_kind_at(
             "setup-next",
             if last { words.finish() } else { words.next() },
             ButtonKind::Primary,
@@ -190,6 +221,7 @@ fn footer(
             } else {
                 ButtonState::Disabled
             },
+            sizing,
             tokens,
         )
         .when(advancing, |button| {
@@ -200,5 +232,6 @@ fn footer(
             )
         })
         .into_any_element(),
-    ]
+    );
+    actions
 }
