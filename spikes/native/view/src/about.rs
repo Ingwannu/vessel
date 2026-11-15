@@ -22,6 +22,8 @@ pub enum Role {
     Windows,
     /// Text editing.
     Editing,
+    /// Comparing text without changing its source.
+    Differences,
     /// Controls.
     Controls,
     /// Bytes on the wire.
@@ -95,7 +97,8 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 
 /// Every dependency of the workspace, in its manifest's order, then the
 /// faces.
-pub const BUNDLED: [Bundled; 28] = [
+pub const BUNDLED: [Bundled; 29] = [
+    krate("similar", "Apache-2.0", Role::Differences),
     krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Translations),
     krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Translations),

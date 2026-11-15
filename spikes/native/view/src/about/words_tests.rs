@@ -23,6 +23,7 @@ fn english_and_korean_labels_keep_the_table_sentences() {
         (Role::Drawing, "Drawing the windows", "창 그리기"),
         (Role::Windows, "The platform's windows", "플랫폼의 창"),
         (Role::Editing, "Text editing", "글 편집"),
+        (Role::Differences, "Text differences", "텍스트 차이"),
         (Role::Controls, "Controls", "컨트롤"),
         (Role::Bytes, "Bytes on the wire", "주고받는 바이트"),
         (Role::Dates, "Dates and times", "날짜와 시간"),

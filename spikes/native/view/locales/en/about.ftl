@@ -38,6 +38,9 @@ about-role-computer-name = This computer's name
 # Under a bundled software name: its data role. Keep short.
 about-role-data = Reading and writing data
 
+# Under the text diff library: it compares source lines without editing files.
+about-role-differences = Text differences
+
 # Under the Fluent libraries: they resolve the app's translations. Keep short.
 about-role-translations = Translations
 

@@ -38,6 +38,9 @@ about-role-computer-name = 이 컴퓨터의 이름
 # Under a bundled software name: its data role. Keep short.
 about-role-data = 데이터 읽고 쓰기
 
+# Under the text diff library: it compares source lines without editing files.
+about-role-differences = 텍스트 차이
+
 # Under the Fluent libraries: they resolve the app's translations. Keep short.
 about-role-translations = 번역
 

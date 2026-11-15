@@ -12,6 +12,7 @@ impl<'a> About<'a> {
             Role::Drawing => self.role_drawing(),
             Role::Windows => self.role_windows(),
             Role::Editing => self.role_editing(),
+            Role::Differences => self.role_differences(),
             Role::Controls => self.role_controls(),
             Role::Bytes => self.role_bytes(),
             Role::Dates => self.role_dates(),
