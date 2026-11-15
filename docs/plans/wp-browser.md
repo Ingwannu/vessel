@@ -1088,3 +1088,14 @@ null/malformed input cannot become omission. Later strings remain Unknown/Off an
 follow the existing preserved-original backup rule. These new implementation
 checks are still unexecuted at this source checkpoint; prior scoped passes do
 not qualify the changed writer consumer, decoder, field or actor admission.
+
+
+The first exact3f joined strict check returned compile errors before the complete
+changed-source analysis: the announced web method inventory needed four explicit
+browser refusals, and five new settings-test calls discarded NodeSettings values.
+The web bridge now explicitly refuses all four native/MCP browser channels with
+inventory/raw-call fixtures, never a wildcard or an alternate frame/control path.
+The settings tests now assert those returned preference/parking facts rather than
+ignore them. Directory-backup tests also fail on enumeration errors instead of
+filtering them out. No test assertion or policy was weakened. Current corrected
+source still owes the changed-source checks; the failed exact3f receipt remains.

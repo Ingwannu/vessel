@@ -258,7 +258,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::Deliver
         | Method::GrantHome
         | Method::GetCallback
-        | Method::ListPeers => false,
+        | Method::ListPeers
+        // ADR 0078: native/MCP browser channels have their own owner admission
+        // and ephemeral frames; the legacy web bridge is not an alternate path.
+        | Method::BrowserCall
+        | Method::BrowserControl
+        | Method::WatchBrowser
+        | Method::ClearBrowserProfile => false,
     }
 }
 
@@ -321,6 +327,10 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                "browser.call",
+                "browser.control",
+                "browser.watch",
+                "browser.clear_profile",
             ]
         );
     }
@@ -332,6 +342,8 @@ mod tests {
         for refused in [
             r#"{"method":"session.subscribe","params":{"session":"00000000-0000-0000-0000-000000000000","from":0}}"#,
             r#"{"method":"no.such","params":null}"#,
+            r#"{"method":"browser.call","params":{"command":{"command":"list_tabs","args":{}}}}"#,
+            r#"{"method":"browser.clear_profile","params":{}}"#,
             r#"{"method":"session.get","params":{"nope":1}}"#,
             "[1,2]",
         ] {

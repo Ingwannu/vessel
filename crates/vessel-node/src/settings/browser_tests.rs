@@ -54,8 +54,8 @@ async fn concurrent_unrelated_change_preserves_the_browser_choice() {
             settings.change(patch(BrowserTools::On)),
             settings.change(parking)
         );
-        browser.unwrap();
-        park.unwrap();
+        assert_eq!(browser.unwrap().browser_tools, BrowserTools::On);
+        assert_eq!(park.unwrap().park_after, ParkAfter::Never);
         let current = settings.current().await;
         assert_eq!(current.browser_tools, BrowserTools::On);
         assert_eq!(current.park_after, ParkAfter::Never);
@@ -72,7 +72,14 @@ async fn unknown_named_choice_cannot_partially_apply_an_unrelated_field_or_write
     tokio::time::timeout(FIXTURE_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = writer_tests::settings(root.path());
-        settings.change(patch(BrowserTools::On)).await.unwrap();
+        assert_eq!(
+            settings
+                .change(patch(BrowserTools::On))
+                .await
+                .unwrap()
+                .browser_tools,
+            BrowserTools::On
+        );
         let before = std::fs::read(settings.data_dir.settings_path()).unwrap();
         let invalid = SetNodeSettings {
             browser_tools: Some(BrowserTools::Unknown),
@@ -123,10 +130,10 @@ async fn unknown_saved_choice_is_off_and_original_later_file_is_preserved() {
         std::fs::write(data.settings_path(),original).unwrap();
         let settings=writer_tests::settings(root.path());
         assert_eq!(settings.current().await.browser_tools,BrowserTools::Off);
-        settings.change(SetNodeSettings {park_after:Some(ParkAfter::Never),..SetNodeSettings::default()}).await.unwrap();
+        assert_eq!(settings.change(SetNodeSettings {park_after:Some(ParkAfter::Never),..SetNodeSettings::default()}).await.unwrap().browser_tools,BrowserTools::Off);
         assert_eq!(settings.current().await.browser_tools,BrowserTools::Off);
-        let preserved=std::fs::read_dir(root.path()).unwrap().filter_map(Result::ok)
-            .map(|entry|entry.path()).find(|path|path.file_name().unwrap().to_string_lossy().starts_with("settings.json.later-")).unwrap();
+        let preserved=std::fs::read_dir(root.path()).unwrap()
+            .map(|entry|entry.unwrap().path()).find(|path|path.file_name().unwrap().to_string_lossy().starts_with("settings.json.later-")).unwrap();
         assert_eq!(std::fs::read(preserved).unwrap(),original);
         assert_eq!(settings.data_dir.read_settings().unwrap().unwrap().browser_tools,Some(BrowserTools::Unknown));
         settings.shutdown().await;
@@ -199,13 +206,14 @@ async fn malformed_saved_object_cannot_enable_tools_and_original_bytes_are_prese
             })
             .unwrap();
         assert_eq!(std::fs::read(preserved).unwrap(), original);
-        settings
+        let applied = settings
             .change(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 ..SetNodeSettings::default()
             })
             .await
             .unwrap();
+        assert_eq!(applied.browser_tools, BrowserTools::Off);
         assert_eq!(settings.current().await.browser_tools, BrowserTools::Off);
         settings.shutdown().await;
     })
