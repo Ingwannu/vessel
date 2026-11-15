@@ -117,6 +117,11 @@ impl Reply {
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
             | Self::NodeInfo(_)
+            | Self::GetSkillsStatus(_)
+            | Self::ReconcileSkills(_)
+            | Self::UninstallSkills(_)
+            | Self::SaveSkillsSelection(_)
+            | Self::ImportSkillsSelection(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
             | Self::GetAgentHistory(_)
@@ -284,13 +289,18 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
+            | Self::Diagnostics(_)
             | Self::SearchMessages(_)
+            | Self::InspectDirectory(_)
+            | Self::ReadFileBytes(_)
+            | Self::DuplicateFileEntry(_)
+            | Self::ObserveFile(_)
+            | Self::SuggestEntries(_)
             | Self::ListTerminalProfiles(_)
             | Self::GetTerminalProfiles(_)
             | Self::SetTerminalProfiles(_)
             | Self::ObserveCreation(_)
-            | Self::SubscribeCreation(_)
-            | Self::Diagnostics(_) => None,
+            | Self::SubscribeCreation(_) => None,
         }
     }
 }
