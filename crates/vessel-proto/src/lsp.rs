@@ -432,7 +432,7 @@ mod tests {
                     .expect("legacy method requires a scope"),
                 Scope::Read
             );
-            assert_eq!(call.since().get(), 7);
+            assert_eq!(call.since().map(crate::ProtocolVersion::get), Some(7));
             assert!(call.method().forwardable());
             let json = serde_json::to_string(&call).unwrap();
             assert_eq!(serde_json::from_str::<RpcCall>(&json).unwrap(), call);
