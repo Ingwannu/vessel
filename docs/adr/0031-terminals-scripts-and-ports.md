@@ -258,3 +258,13 @@ node's join (plan, "Integration 2 (node)"):
   longer reaches it). A terminal already open keeps running when a person
   turns `agent_terminals` off, as a running service does when its
   approval is withdrawn: the switch is asked at each start.
+
+## Amended by ADR 0066 (2026-11-14)
+
+Decision 5 left assigning a port to a later track. ADR 0066 specifies
+the project-file keys for terminals opened after setup, a service's
+port, and a TCP health probe, and the digest version that covers the
+commands those keys name. Its parser and approval contract may land before
+execution, while the protocol assignment refuses the new sets to clients.
+It does not add a proxy. The scanner in
+decision 5 stays.

@@ -124,6 +124,8 @@ mod forge;
 mod forking;
 mod handle;
 mod lifecycle;
+mod limits;
+pub use limits::LimitAssociation;
 mod marks;
 mod moving;
 mod parking;
@@ -131,6 +133,7 @@ mod publish;
 mod queue;
 mod ring;
 mod runtime;
+mod side_questions;
 mod stop;
 mod structured;
 mod terminal;
@@ -143,7 +146,7 @@ pub use error::{
     DeliveryError, InputKind, ModeKind, ParkRefusal, RemoveError, RewindRefusal, SessionError,
 };
 pub use forge::ForgeView;
-pub use handle::SessionHandle;
+pub use handle::{SessionHandle, TitleUpdate};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use ring::{Follow, FollowError};

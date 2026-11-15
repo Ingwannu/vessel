@@ -97,4 +97,12 @@ impl Sandbox {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, text).unwrap();
     }
+
+    /// Write an executable script at `path`, one this crate's code then
+    /// runs (never with `std::fs::write`: a busy text file reads as no git;
+    /// see `vessel_testkit::write_executable`).
+    #[cfg(unix)]
+    pub(crate) fn executable(path: &Path, text: &str) {
+        vessel_testkit::write_executable(path, text).unwrap();
+    }
 }

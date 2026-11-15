@@ -4,13 +4,19 @@
 //! answers the trait's calls from them, can be told to fail, and counts
 //! what it was asked.
 
-use std::collections::{HashMap, HashSet};
+mod behaviour;
+pub mod seed;
+
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use chrono::Utc;
 use vessel_proto::forge::{
     Checks, ChecksState, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, MergeMethod, Mergeable,
-    PullNumber, PullRequest, PullState, PullSummary, PullTitle, RepoRef, ReviewDecision, Reviews,
+    PullNumber, PullRequest, PullState, PullSummary, PullTitle, RefusedReason, RepoRef,
+    ReviewDecision, Reviews,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -19,7 +25,8 @@ use crate::provider::{
 };
 
 /// How the fake fails, when told to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Failure {
     /// As a forge that does not answer.
     Down,
@@ -27,6 +34,8 @@ pub enum Failure {
     RateLimited,
     /// As a forge with no token.
     SignedOut,
+    /// As a repository the login cannot access.
+    NoAccess,
 }
 
 #[derive(Debug, Clone)]
@@ -44,11 +53,35 @@ struct State {
     version: u64,
     next: u64,
     failure: Option<Failure>,
+    repo_failures: HashMap<RepoRef, Failure>,
+    allowed: Option<HashSet<RepoRef>>,
+    limit: Option<NonZeroUsize>,
+    refused_merges: HashSet<(RepoRef, PullNumber)>,
     writers: HashSet<ForgeLogin>,
     calls: HashMap<&'static str, usize>,
-    merged: Vec<(PullNumber, MergeMethod, CommitId)>,
+    merged: VecDeque<(PullNumber, MergeMethod, CommitId)>,
     /// What the forge has each branch at (`pushed`).
     heads: HashMap<BranchName, CommitId>,
+}
+
+impl State {
+    // Admission and insertion share a lock to enforce capacity under concurrent opens.
+    fn put(&mut self, branch: BranchName, read: Read) {
+        self.version = self.version.saturating_add(1);
+        let version = self.version;
+        // Seeded numbers reserve the allocator too: opening another branch
+        // must never overwrite a file's existing pull request.
+        self.next = self.next.max(read.pull.summary.number.get());
+        let key = (read.pull.summary.repo.clone(), read.pull.summary.number);
+        let _previous = self.pulls.insert(
+            key,
+            Pull {
+                branch,
+                read,
+                version,
+            },
+        );
+    }
 }
 
 /// A forge in memory.
@@ -66,18 +99,7 @@ impl FakeForge {
 
     /// Put `read` (a new pull request, or a change to one) for `branch`.
     pub fn put(&self, branch: BranchName, read: Read) {
-        let mut state = self.state();
-        state.version = state.version.saturating_add(1);
-        let version = state.version;
-        let key = (read.pull.summary.repo.clone(), read.pull.summary.number);
-        let _previous = state.pulls.insert(
-            key,
-            Pull {
-                branch,
-                read,
-                version,
-            },
-        );
+        self.state().put(branch, read);
     }
 
     /// The forge has `branch` at `head`, as a push leaves it: a pull
@@ -89,6 +111,36 @@ impl FakeForge {
     /// Fail every call from now on, or stop failing.
     pub fn fail(&self, failure: Option<Failure>) {
         self.state().failure = failure;
+    }
+
+    /// Fail calls for this repository, or clear its explicit failure.
+    /// A global failure still takes precedence.
+    pub fn fail_repository(&self, repo: RepoRef, failure: Option<Failure>) {
+        let mut state = self.state();
+        match failure {
+            Some(failure) => {
+                let _old = state.repo_failures.insert(repo, failure);
+            }
+            None => {
+                let _old = state.repo_failures.remove(&repo);
+            }
+        }
+    }
+
+    /// Refuse a correctly pinned merge of this pull request, without
+    /// changing its facts; used by a file fixture's explicit failure.
+    pub fn refuse_merge(&self, repo: RepoRef, number: PullNumber) {
+        let _new = self.state().refused_merges.insert((repo, number));
+    }
+
+    fn fixture(repositories: HashSet<RepoRef>) -> Arc<Self> {
+        Arc::new(Self {
+            state: Mutex::new(State {
+                allowed: Some(repositories),
+                limit: NonZeroUsize::new(seed::MAX_PULLS),
+                ..State::default()
+            }),
+        })
     }
 
     /// `login` may write to every repository.
@@ -103,10 +155,11 @@ impl FakeForge {
         self.state().calls.get(method).copied().unwrap_or(0)
     }
 
-    /// The merges asked of it, in order.
+    /// The merges asked of it, in order. File fixtures retain only their
+    /// latest `MAX_PULLS` attempts, dropping the oldest when full.
     #[must_use]
     pub fn merges(&self) -> Vec<(PullNumber, MergeMethod, CommitId)> {
-        self.state().merged.clone()
+        self.state().merged.iter().cloned().collect()
     }
 
     /// The pull request `number` of `repo` as it holds it now.
@@ -122,6 +175,25 @@ impl FakeForge {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
+    fn enter_repo(
+        &self,
+        method: &'static str,
+        repo: &RepoRef,
+    ) -> Result<MutexGuard<'_, State>, ForgeError> {
+        let state = self.enter(method)?;
+        if state
+            .allowed
+            .as_ref()
+            .is_some_and(|known| !known.contains(repo))
+        {
+            return Err(ForgeError::NotFound);
+        }
+        match state.repo_failures.get(repo) {
+            Some(failure) => Err(failure.error()),
+            None => Ok(state),
+        }
+    }
+
     fn enter(&self, method: &'static str) -> Result<MutexGuard<'_, State>, ForgeError> {
         let mut state = self.state();
         *state.calls.entry(method).or_insert(0) = state
@@ -132,15 +204,26 @@ impl FakeForge {
             .saturating_add(1);
         match state.failure {
             None => Ok(state),
-            Some(Failure::Down) => Err(ForgeError::Down),
-            Some(Failure::RateLimited) => Err(ForgeError::RateLimited {
+            Some(failure) => Err(failure.error()),
+        }
+    }
+}
+
+impl Failure {
+    fn error(self) -> ForgeError {
+        match self {
+            Self::Down => ForgeError::Down,
+            Self::RateLimited => ForgeError::RateLimited {
                 until: Utc::now()
                     .checked_add_signed(chrono::TimeDelta::seconds(60))
                     .unwrap_or_else(Utc::now),
-            }),
-            Some(Failure::SignedOut) => Err(ForgeError::SignedOut {
+            },
+            Self::SignedOut => ForgeError::SignedOut {
                 gh: vessel_proto::forge::GhState::SignedOut,
-            }),
+            },
+            Self::NoAccess => ForgeError::Refused {
+                reason: RefusedReason::NoAccess,
+            },
         }
     }
 }
@@ -189,161 +272,4 @@ pub fn pull(
         },
         discussion: Discussion::default(),
     })
-}
-
-impl Forge for FakeForge {
-    fn kind(&self) -> ForgeKind {
-        ForgeKind::Github
-    }
-
-    fn pins_head(&self, _method: MergeMethod) -> bool {
-        true
-    }
-
-    fn whoami<'a>(&'a self, _host: &'a ForgeHost) -> Answer<'a, Option<ForgeLogin>> {
-        Box::pin(async move {
-            let _state = self.enter("whoami")?;
-            Ok(ForgeLogin::lossy("vessel-test"))
-        })
-    }
-
-    fn find<'a>(
-        &'a self,
-        repo: &'a RepoRef,
-        branch: &'a BranchName,
-        priority: Priority,
-    ) -> Answer<'a, Fresh<Vec<Found>>> {
-        Box::pin(async move {
-            let mut state = self.enter("find")?;
-            let mut found: Vec<(u64, Found)> = state
-                .pulls
-                .iter()
-                .filter(|((pull_repo, _), pull)| pull_repo == repo && &pull.branch == branch)
-                .map(|(_, pull)| {
-                    let summary = &pull.read.pull.summary;
-                    (
-                        pull.version,
-                        Found {
-                            number: summary.number,
-                            state: summary.state,
-                            head: summary.head_commit.clone(),
-                            updated_at: summary.updated_at,
-                        },
-                    )
-                })
-                .collect();
-            let newest = found.iter().map(|(version, _)| *version).max().unwrap_or(0);
-            let key = (repo.clone(), branch.clone());
-            if priority == Priority::Background
-                && state.found.get(&key) == Some(&newest)
-                && newest > 0
-            {
-                return Ok(Fresh::Same);
-            }
-            let _seen = state.found.insert(key, newest);
-            found.sort_by(|a, b| b.1.updated_at.cmp(&a.1.updated_at));
-            Ok(Fresh::Changed(
-                found.into_iter().map(|(_, found)| found).collect(),
-            ))
-        })
-    }
-
-    fn changed<'a>(
-        &'a self,
-        repo: &'a RepoRef,
-        number: PullNumber,
-        _head: &'a CommitId,
-        priority: Priority,
-    ) -> Answer<'a, bool> {
-        Box::pin(async move {
-            let mut state = self.enter("changed")?;
-            let key = (repo.clone(), number);
-            let version = state.pulls.get(&key).map_or(0, |pull| pull.version);
-            let seen = state.seen.insert(key, version);
-            Ok(priority == Priority::Person || seen != Some(version))
-        })
-    }
-
-    fn read<'a>(
-        &'a self,
-        repo: &'a RepoRef,
-        number: PullNumber,
-        _priority: Priority,
-    ) -> Answer<'a, Read> {
-        Box::pin(async move {
-            let state = self.enter("read")?;
-            let mut read = state
-                .pulls
-                .get(&(repo.clone(), number))
-                .map(|pull| pull.read.clone())
-                .ok_or(ForgeError::NotFound)?;
-            read.pull.read_at = Utc::now();
-            Ok(read)
-        })
-    }
-
-    fn open<'a>(&'a self, repo: &'a RepoRef, opening: &'a Opening) -> Answer<'a, Opened> {
-        Box::pin(async move {
-            let mut state = self.enter("open")?;
-            let open = state.pulls.values().any(|pull| {
-                pull.branch == opening.head
-                    && pull.read.pull.summary.repo == *repo
-                    && pull.read.pull.summary.state == PullState::Open
-            });
-            if open {
-                return Ok(Opened::Exists);
-            }
-            state.next = state.next.saturating_add(1);
-            let number = PullNumber::new(state.next.saturating_add(100))
-                .map_err(|_bad| ForgeError::Unexpected { what: "a number" })?;
-            let pushed = state.heads.get(&opening.head).cloned();
-            drop(state);
-            let head: CommitId = match pushed {
-                Some(head) => head,
-                None => "0000000000000000000000000000000000000001"
-                    .parse()
-                    .map_err(|_bad| ForgeError::Unexpected { what: "a commit" })?,
-            };
-            let mut read = pull(repo, number, &opening.head, &head)
-                .ok_or(ForgeError::Unexpected { what: "an address" })?;
-            read.pull.summary.title = opening.title.clone();
-            read.pull.summary.draft = opening.draft;
-            read.pull.base = opening.base.clone();
-            let number = read.pull.summary.number;
-            self.put(opening.head.clone(), read);
-            Ok(Opened::Created(number))
-        })
-    }
-
-    fn merge<'a>(
-        &'a self,
-        repo: &'a RepoRef,
-        number: PullNumber,
-        method: MergeMethod,
-        head: &'a CommitId,
-    ) -> Answer<'a, Merged> {
-        Box::pin(async move {
-            let mut state = self.enter("merge")?;
-            state.merged.push((number, method, head.clone()));
-            state.version = state.version.saturating_add(1);
-            let version = state.version;
-            let Some(pull) = state.pulls.get_mut(&(repo.clone(), number)) else {
-                return Err(ForgeError::NotFound);
-            };
-            if pull.read.pull.summary.head_commit != *head {
-                return Ok(Merged::HeadMoved);
-            }
-            pull.read.pull.summary.state = PullState::Merged;
-            pull.read.pull.merged_at = Some(Utc::now());
-            pull.version = version;
-            Ok(Merged::Done(head.clone()))
-        })
-    }
-
-    fn can_write<'a>(&'a self, _repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool> {
-        Box::pin(async move {
-            let state = self.enter("can_write")?;
-            Ok(state.writers.contains(login))
-        })
-    }
 }

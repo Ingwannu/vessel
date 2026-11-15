@@ -58,7 +58,7 @@ use vessel_proto::RouteUrl;
 
 pub use address::{BadProxy, TrustedProxy};
 pub use carrier::{
-    AxumCarrier, Keepalive, NodeCarrier, NodeClosed, RelayClosed, WsCarrier, node_close,
+    AxumCarrier, Keepalive, Liveness, NodeCarrier, NodeClosed, RelayClosed, WsCarrier, node_close,
     relay_close, respond,
 };
 pub use dial::{DialError, connect, connect_with, dial, dial_with};
