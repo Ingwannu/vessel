@@ -6,14 +6,16 @@
 //!   file replaced by a same-named directory.
 //! - Constraint: input path depth is external; recursive tree building/visiting
 //!   can spend stack on it, and absent wire counts are not measured zeroes.
-//! - Choice: an arena with iterative build, bottom-up totals and iterative walk.
+//! - Choice: build an already-compressed arena by grouping file prefixes,
+//!   then aggregate bottom-up and walk iteratively. Allocating every prefix of
+//!   every deep path can amplify a small valid reply into gigabytes of state.
 //! - Effect: compressed rows keep the deepest full path; flattening cannot
 //!   change file identity or reorder equal paths. No new dependency is needed.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use vessel_proto::workspace::{FileChange, RelPath};
+use vessel_proto::workspace::{FileChange, InvalidRelPath, RelPath};
 
 /// Count of source lines, distinct from files and visible rows.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -129,17 +131,17 @@ pub enum ChangeTreeRow<'a> {
 #[derive(Debug)]
 struct Directory {
     path: RelPath,
-    name: String,
+    name: Arc<str>,
     directories: BTreeMap<String, usize>,
     files: Vec<usize>,
     totals: ChangeTotals,
 }
 
 impl Directory {
-    fn new(path: RelPath, name: String) -> Self {
+    fn new(path: RelPath, name: &str) -> Self {
         Self {
             path,
-            name,
+            name: Arc::from(name),
             directories: BTreeMap::new(),
             files: Vec::new(),
             totals: ChangeTotals::default(),
@@ -155,50 +157,77 @@ pub struct ChangeTree<'a> {
 }
 
 impl<'a> ChangeTree<'a> {
-    /// Validated `RelPath` components cannot escape the virtual root.
-    #[must_use]
-    pub fn new(files: &'a [FileChange]) -> Self {
+    /// Build only branching/file-bearing directories, with no intermediate
+    /// chain nodes. At most one folder per file is created at each branching
+    /// boundary, rather than one allocation for every path component.
+    ///
+    /// # Errors
+    /// A derived directory cannot be represented. Keep this typed rather than
+    /// dropping a file if relative-path validation changes in the future.
+    pub fn new(files: &'a [FileChange]) -> Result<Self, TreeError> {
         let mut tree = Self {
             files,
-            directories: vec![Directory::new(RelPath::root(), String::new())],
+            directories: vec![Directory::new(RelPath::root(), "")],
         };
-        for (index, file) in files.iter().enumerate() {
-            tree.insert(index, file);
-        }
+        tree.build()?;
         tree.aggregate();
-        tree
+        Ok(tree)
     }
 
-    fn insert(&mut self, index: usize, file: &FileChange) {
-        let mut parent = 0;
-        let mut ancestors = Vec::new();
-        let mut path = file.path.parent();
-        while let Some(directory) = path.filter(|path| !path.is_root()) {
-            path = directory.parent();
-            ancestors.push(directory);
-        }
-        for path in ancestors.into_iter().rev() {
-            let component = path.file_name().unwrap_or_default();
-            let existing = self
-                .directories
-                .get(parent)
-                .and_then(|dir| dir.directories.get(component))
-                .copied();
-            parent = if let Some(existing) = existing {
-                existing
+    fn build(&mut self) -> Result<(), TreeError> {
+        let files = self.files;
+        // Internal byte order makes each directory group a contiguous range.
+        // Its first/last parent determine the common directory in one pass;
+        // visible order still comes exclusively from children()'s UTF-16 rule.
+        let mut indices: Vec<_> = (0..files.len()).collect();
+        indices.sort_by_key(|index| files.get(*index).map(|file| file.path.as_str()));
+        let mut pending = vec![(0, indices)];
+        while let Some((parent, indices)) = pending.pop() {
+            let directory = self.directories.get(parent).ok_or(TreeError::Identity)?;
+            let prefix = if directory.path.is_root() {
+                0
             } else {
-                let name = component.to_owned();
-                let child = self.directories.len();
-                self.directories.push(Directory::new(path, name.clone()));
-                if let Some(directory) = self.directories.get_mut(parent) {
-                    let _ = directory.directories.insert(name, child);
-                }
-                child
+                directory
+                    .path
+                    .as_str()
+                    .len()
+                    .checked_add(1)
+                    .ok_or(TreeError::Identity)?
             };
+            let mut groups = BTreeMap::<&str, Vec<usize>>::new();
+            for index in indices {
+                let file = files.get(index).ok_or(TreeError::Identity)?;
+                let remainder = file
+                    .path
+                    .as_str()
+                    .get(prefix..)
+                    .ok_or(TreeError::Identity)?;
+                if let Some((first, _)) = remainder.split_once('/') {
+                    groups.entry(first).or_default().push(index);
+                } else {
+                    self.directories
+                        .get_mut(parent)
+                        .ok_or(TreeError::Identity)?
+                        .files
+                        .push(index);
+                }
+            }
+            for (first, group) in groups {
+                let path = common_directory(files, &group)?;
+                let name = path.get(prefix..).ok_or(TreeError::Identity)?;
+                let directory = Directory::new(path.parse()?, name);
+                let child = self.directories.len();
+                self.directories.push(directory);
+                let _ = self
+                    .directories
+                    .get_mut(parent)
+                    .ok_or(TreeError::Identity)?
+                    .directories
+                    .insert(first.to_owned(), child);
+                pending.push((child, group));
+            }
         }
-        if let Some(directory) = self.directories.get_mut(parent) {
-            directory.files.push(index);
-        }
+        Ok(())
     }
 
     fn aggregate(&mut self) {
@@ -244,20 +273,17 @@ impl<'a> ChangeTree<'a> {
                     }
                 }
                 Item::Directory(index) => {
-                    let Some((deepest, label)) = self.compressed(index) else {
-                        continue;
-                    };
-                    let Some(directory) = self.directories.get(deepest) else {
+                    let Some(directory) = self.directories.get(index) else {
                         continue;
                     };
                     rows.push(ChangeTreeRow::Folder {
                         path: &directory.path,
-                        label: Arc::from(label),
+                        label: Arc::clone(&directory.name),
                         depth,
                         totals: directory.totals,
                     });
                     if !collapsed.contains(&directory.path) {
-                        let mut children = self.children(deepest, depth.child());
+                        let mut children = self.children(index, depth.child());
                         children.reverse();
                         pending.extend(children);
                     }
@@ -277,22 +303,6 @@ impl<'a> ChangeTree<'a> {
                 ChangeTreeRow::Folder { .. } => None,
             })
             .collect()
-    }
-
-    fn compressed(&self, mut index: usize) -> Option<(usize, String)> {
-        let mut label = self.directories.get(index)?.name.clone();
-        loop {
-            let directory = self.directories.get(index)?;
-            if !directory.files.is_empty() || directory.directories.len() != 1 {
-                break;
-            }
-            let child = *directory.directories.values().next()?;
-            let child_dir = self.directories.get(child)?;
-            label.push('/');
-            label.push_str(&child_dir.name);
-            index = child;
-        }
-        Some((index, label))
     }
 
     fn children(&self, index: usize, depth: TreeDepth) -> Vec<(Item, TreeDepth)> {
@@ -329,4 +339,54 @@ impl<'a> ChangeTree<'a> {
 enum Item {
     Directory(usize),
     File(usize),
+}
+
+/// Tree construction never drops a node-sent file on an internal mismatch.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum TreeError {
+    /// Preserve the original validated-path conversion failure.
+    #[error("a changed-file directory cannot be represented")]
+    Path(#[from] InvalidRelPath),
+    /// A source position or prefix did not belong to its directory.
+    #[error("changed-file directory identities are inconsistent")]
+    Identity,
+}
+
+fn common_directory<'a>(files: &'a [FileChange], indices: &[usize]) -> Result<&'a str, TreeError> {
+    let parent = |index: &usize| {
+        files
+            .get(*index)
+            .and_then(|file| {
+                file.path
+                    .as_str()
+                    .rsplit_once('/')
+                    .map(|(parent, _)| parent)
+            })
+            .ok_or(TreeError::Identity)
+    };
+    let first = parent(indices.first().ok_or(TreeError::Identity)?)?;
+    let last = parent(indices.last().ok_or(TreeError::Identity)?)?;
+    let shared = common_prefix(first, last)?;
+    if shared.is_empty() {
+        return Err(TreeError::Identity);
+    }
+    Ok(shared)
+}
+
+fn common_prefix<'a>(a: &'a str, b: &str) -> Result<&'a str, TreeError> {
+    let shared = a.bytes().zip(b.bytes()).take_while(|(a, b)| a == b).count();
+    let end = if (shared == a.len() && b.as_bytes().get(shared).is_none_or(|byte| *byte == b'/'))
+        || (shared == b.len() && a.as_bytes().get(shared) == Some(&b'/'))
+    {
+        shared
+    } else {
+        // A mismatch can split a UTF-8 scalar, but an ASCII slash is always a
+        // scalar boundary. Never slice text at the raw mismatching byte.
+        a.as_bytes()
+            .iter()
+            .take(shared)
+            .rposition(|byte| *byte == b'/')
+            .unwrap_or(0)
+    };
+    a.get(..end).ok_or(TreeError::Identity)
 }

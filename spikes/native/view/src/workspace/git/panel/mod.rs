@@ -28,7 +28,9 @@ pub use options::{
 };
 pub use projection::{Body, Demand, DiffRead, EmptyAction, RepositoryRead, body, empty_action};
 pub use requests::{ComparisonTicket, FileTicket, PanelReads, StatusTicket};
-pub use tree::{ChangeIndex, ChangeTotals, ChangeTree, ChangeTreeRow, LineCount, TreeDepth};
+pub use tree::{
+    ChangeIndex, ChangeTotals, ChangeTree, ChangeTreeRow, LineCount, TreeDepth, TreeError,
+};
 pub use words::ReadIssue;
 
 #[cfg(test)]

@@ -110,3 +110,12 @@ built or passed. Existing bounded Git/PR approval is not package parity.
 The new Fluent build rejected missing per-key translator context comments;
 every new key now names its actual place and intended meaning. This correction
 has not been claimed green before the changed-tree narrow check.
+
+The initial tree arena would allocate all prefixes of every deep path before
+compressing. The next tree builds compressed groups directly, so it stores only
+branching/file-bearing directories. Stable internal byte order makes a group's
+first/last parent sufficient for its common prefix; visible UTF-16 order still
+comes from the one tree authority. Directory conversion failures are typed,
+never dropped files. A real allocation-counter case bounds eight near-maximum
+paths to 512 KiB of model allocation; its execution is still pending. Existing
+reference rows and source indices remain the behavioural regression cases.

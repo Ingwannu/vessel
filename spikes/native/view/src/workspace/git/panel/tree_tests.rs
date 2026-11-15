@@ -64,7 +64,7 @@ fn empty_root_files_and_compressed_chains_match_reference_rows() {
     ] {
         let files = make_files(&input);
         assert_eq!(
-            labels(&ChangeTree::new(&files).rows(&BTreeSet::new())),
+            labels(&ChangeTree::new(&files).unwrap().rows(&BTreeSet::new())),
             expected
         );
     }
@@ -73,12 +73,12 @@ fn empty_root_files_and_compressed_chains_match_reference_rows() {
 #[test]
 fn compressed_identity_is_the_deepest_full_path_and_survives_a_new_sibling() {
     let files = make_files(&["packages/app/src/git/a.ts"]);
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     let collapsed = BTreeSet::from(["packages/app/src/git".parse().unwrap()]);
     assert_eq!(labels(&tree.rows(&collapsed)), ["[packages/app/src/git]"]);
     let files = make_files(&["packages/app/src/git/a.ts", "packages/server/b.ts"]);
     assert_eq!(
-        labels(&ChangeTree::new(&files).rows(&collapsed)),
+        labels(&ChangeTree::new(&files).unwrap().rows(&collapsed)),
         ["[packages]", "  [app/src/git]", "  [server]", "    b.ts"]
     );
 }
@@ -91,7 +91,7 @@ fn directory_first_order_is_shared_by_the_document_and_keeps_source_indices() {
         "src/m/mid.ts",
         ".gitlab-ci.yml",
     ]);
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     assert_eq!(
         tree.ordered_files()
             .iter()
@@ -116,6 +116,7 @@ fn directory_first_order_is_shared_by_the_document_and_keeps_source_indices() {
     let files = make_files(&["bin/stack", "bin/stack/run", "src/a.ts", "src/a/z.ts"]);
     assert_eq!(
         ChangeTree::new(&files)
+            .unwrap()
             .ordered_files()
             .iter()
             .map(|file| file.path.as_str())
@@ -127,7 +128,7 @@ fn directory_first_order_is_shared_by_the_document_and_keeps_source_indices() {
 #[test]
 fn collapsed_folder_keeps_all_descendant_totals_and_hides_nested_rows() {
     let files = [file("src/a.ts", 3, 1), file("src/nested/b.ts", 5, 2)];
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     let collapsed = BTreeSet::from(["src".parse().unwrap()]);
     let rows = tree.rows(&collapsed);
     assert_eq!(labels(&rows), ["[src]"]);
@@ -145,7 +146,7 @@ fn unknown_wire_counts_are_never_drawn_as_zero_or_partial_folder_totals() {
     unknown.additions = None;
     unknown.deletions = None;
     let files = [file("src/a.ts", 3, 1), unknown];
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     let rows = tree.rows(&BTreeSet::new());
     let ChangeTreeRow::Folder { totals, .. } = rows.first().unwrap() else {
         panic!();
@@ -167,7 +168,7 @@ fn equal_paths_are_stable_and_unicode_sort_uses_reference_utf16_code_units() {
         file("\u{e000}.ts", 0, 0),
         file("\u{10000}.ts", 0, 0),
     ];
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     let ordered = tree.ordered_files();
     assert_eq!(
         ordered
@@ -189,11 +190,53 @@ fn equal_paths_are_stable_and_unicode_sort_uses_reference_utf16_code_units() {
 fn maximum_bounded_depth_is_processed_without_recursive_visits() {
     let path = format!("{}x", "a/".repeat(2047));
     let files = [file(&path, 1, 0)];
-    let tree = ChangeTree::new(&files);
+    let tree = ChangeTree::new(&files).unwrap();
     let rows = tree.rows(&BTreeSet::new());
     assert_eq!(rows.len(), 2);
     let ChangeTreeRow::Folder { path: identity, .. } = rows.first().unwrap() else {
         panic!();
     };
     assert_eq!(*identity, &files.first().unwrap().path.parent().unwrap());
+}
+
+#[test]
+fn compression_does_not_change_sibling_directory_order() {
+    let files = make_files(&["a.b/file", "a/x/file", "src/각/file", "src/가/file"]);
+    let tree = ChangeTree::new(&files).unwrap();
+    assert_eq!(
+        tree.ordered_files()
+            .iter()
+            .map(|file| file.path.as_str())
+            .collect::<Vec<_>>(),
+        ["a/x/file", "a.b/file", "src/가/file", "src/각/file"]
+    );
+    assert_eq!(
+        labels(&tree.rows(&BTreeSet::new())),
+        [
+            "[a/x]", "  file", "[a.b]", "  file", "[src]", "  [가]", "    file", "  [각]",
+            "    file"
+        ]
+    );
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn a_small_deep_reply_does_not_expand_into_every_intermediate_directory() {
+    const MAX_BUILD_BYTES: u64 = 512 * 1024;
+    let paths: Vec<_> = (0..8)
+        .map(|index| format!("d{index}/{}x", "a/".repeat(2045)))
+        .collect();
+    let files: Vec<_> = paths.iter().map(|path| file(path, 1, 0)).collect();
+    let allocations = allocation_counter::measure(|| {
+        let tree = ChangeTree::new(&files).unwrap();
+        assert_eq!(tree.rows(&BTreeSet::new()).len(), 16);
+        assert_eq!(tree.ordered_files().len(), files.len());
+        std::hint::black_box(tree);
+    });
+    assert!(allocations.bytes_max <= MAX_BUILD_BYTES, "{allocations:?}");
+    assert!(
+        allocations.bytes_total <= MAX_BUILD_BYTES,
+        "{allocations:?}"
+    );
+    assert_eq!(allocations.bytes_current, 0);
 }
