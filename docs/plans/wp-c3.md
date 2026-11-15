@@ -295,3 +295,21 @@ values are now explicitly must-use, particularly the dispatch boolean that tells
 a command center whether to close. This annotation and the newer base-ref words
 need the next combined narrow check; four pure adapter cases still need execution.
 No runtime command-center or C3 screen claim follows from the earlier clippy.
+
+## Shared menu producer integration
+
+Merged the announced074ade16 line (G4 captured dismissal/ReturnFocus; published
+native1282/0/2), then isolated8158be6d's control-only ancestry. G2/V1 disposition
+is exact KIT SOURCE/narrow only (Kit160/0, no skips); its App check and actual
+consumer/F5/hit/clip/OS evidence were still pending at handoff. This is not a
+full F1 merge or a C3 UI approval. The producer packet is described in the
+shared G2 control plan files retained here.
+
+Conflicts retain G1's owner-projected menu and captured dispatch, adding only
+MenuItem constructor defaults for the three original row shapes. Assets union
+all variants (92), keeping the existing ActivityIndicator/track/arc artwork and
+every older glyph. The split button, current isolated loader and slider are
+unchanged. menu_right/TopRight/QUICK/fill_in and the new named placement stay in
+one renderer. G2's module/export additions and the single kit focus helper are
+retained. Current union source requires its own combined narrow check; old506
+and producer tests remain assigned to their immutable sources.
