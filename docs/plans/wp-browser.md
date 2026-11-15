@@ -133,3 +133,21 @@ is required instead. ADR 0078 records the exact source mapping, failed and
 inconclusive experiments, successful scoped IPv4 canaries, runtime hash and
 remaining qualification obligations. Product browser readiness remains
 absent; no API or agent tool has been registered by this branch.
+
+## Typed command skeleton after the shared method-table base
+
+The pending browser protocol constant remains None. BrowserCommand and its
+MCP name now come from one catalogue for all twenty-two variants. Command
+arguments validate viewport/wait/log counts and nonempty upload intent;
+text/function/URL/path Debug output is redacted. Tool URL preparation uses
+HTTP; address-bar host preparation uses HTTPS except local hosts. Numeric
+IPv4 aliases are rejected before URL canonicalization can hide their form.
+Page destination and workspace/file authorization still belong to the engine.
+A wait's URL argument is a nonempty substring, not a navigable URL, matching
+Paseo service.ts:1005. No setting, successful engine, visible entry or RPC is
+claimed by the command/value skeleton.
+
+The shared Quality B node base was merged without conflicts; its method
+and version policy remain authoritative. The app package base was likewise
+merged without conflicts; only the browser module registration was retained
+in the view root. No shared size limit was raised.
