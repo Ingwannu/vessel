@@ -26,6 +26,8 @@ mod inbox;
 mod init;
 #[cfg(test)]
 mod mcp;
+#[cfg(test)]
+mod node_stop;
 mod nodes;
 #[cfg(test)]
 mod reconnect;

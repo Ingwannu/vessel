@@ -11,6 +11,9 @@
 //!   if it is not); one that differs is left alone and reported, since it
 //!   may hold the person's edits. How to undo is printed, and written into
 //!   the file.
+//! - A successful node shutdown must stay stopped. launchd therefore uses
+//!   `SuccessfulExit=false`, matching systemd `Restart=on-failure`; the
+//!   existing-file check preserves older agents and personal edits (ADR 0064).
 //! - The service managers are found on the search path, as harnesses are;
 //!   tests put stand-ins there and never reach the real ones.
 
@@ -250,7 +253,8 @@ fn launchd_plist(node: &Node, undo: &str) -> String {
          \x20 <key>EnvironmentVariables</key>\n\
          \x20 <dict><key>PATH</key>{}</dict>\n\
          \x20 <key>RunAtLoad</key><true/>\n\
-         \x20 <key>KeepAlive</key><true/>\n\
+         \x20 <key>KeepAlive</key>\n\
+         \x20 <dict><key>SuccessfulExit</key><false/></dict>\n\
          \x20 <key>StandardOutPath</key>{}\n\
          \x20 <key>StandardErrorPath</key>{}\n\
          </dict>\n\
@@ -328,6 +332,46 @@ mod tests {
                 .contains("--"),
             "{comment}"
         );
+    }
+
+    #[test]
+    fn launchd_restarts_only_failed_exits() {
+        let node = Node {
+            exe: PathBuf::from("/opt/vessel"),
+            data_dir: PathBuf::from("/home/test/.vessel"),
+            path: "/usr/bin".to_owned(),
+        };
+        let plist = launchd_plist(&node, "remove the agent");
+        assert!(
+            plist
+                .contains("<key>KeepAlive</key>\n  <dict><key>SuccessfulExit</key><false/></dict>")
+        );
+        assert!(!plist.contains("<key>KeepAlive</key><true/>"));
+        assert!(plist.contains("<key>RunAtLoad</key><true/>"));
+        assert!(systemd_unit(&node, "remove the unit").contains("Restart=on-failure"));
+    }
+
+    #[test]
+    fn an_older_launchd_agent_is_preserved_instead_of_migrated() {
+        let node = Node {
+            exe: PathBuf::from("/opt/vessel"),
+            data_dir: PathBuf::from("/home/test/.vessel"),
+            path: "/usr/bin".to_owned(),
+        };
+        let current = launchd_plist(&node, "remove the agent");
+        let older = current.replace(
+            "<key>KeepAlive</key>\n  <dict><key>SuccessfulExit</key><false/></dict>",
+            "<key>KeepAlive</key><true/>",
+        );
+        assert_ne!(older, current);
+        let temp = tempfile::tempdir().unwrap();
+        let file = temp.path().join("vessel.node.plist");
+        std::fs::write(&file, &older).unwrap();
+        assert!(matches!(
+            write_once(&file, &current).unwrap(),
+            Written::Differs
+        ));
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), older);
     }
 
     #[test]

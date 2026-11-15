@@ -89,7 +89,7 @@ pub use data_dir::{DataDir, ProfilesFile};
 pub use devices::{CredentialHash, DeviceWindow, StoredDevice};
 pub use error::{Column, Quantity, StoreError};
 pub use forge::{MAX_SENT as MAX_FEEDBACK_SENT, StoredFeedback};
-pub use lock::{NodeLock, NodeOwner, StartLock};
+pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use push::{PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};
