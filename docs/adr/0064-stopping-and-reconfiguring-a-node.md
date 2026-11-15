@@ -944,6 +944,16 @@ wire change or new external dependency is included in this move.
   downgrade-tolerant settings reader is unchanged; this does not establish a
   universal file-read limit. Unset/reload registration remains a later step.
 
+The selected input budget is **1 MiB**, measured in encoded JSON bytes before
+parsing, owned by SetNodeSettings::MAX_JSON_BYTES in the implementation. The
+current complete values contain a parking choice or the fixed set of driver
+choices and fit far below this budget. The headroom permits readable whitespace
+and additive typed keys without making the decoder accept an unbounded document.
+A later key must demonstrate that its complete supported value fits this budget
+or revise this decision and its one constant; the decoder never truncates it.
+Checks, errors and boundary tests derive from that constant, with no repeated
+numeric limit in code or tests.
+
 Paseo config.ts also treats a value that fails JSON.parse as a literal string,
 even without --string. This typed command refuses that fallback as well: the
 submitted complete JSON must represent the selected setting's canonical type.
