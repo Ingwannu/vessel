@@ -1,5 +1,79 @@
 # Native Settings: Agents and Models
 
+## Resume point: provider removal rules
+
+The resumed branch includes the published baseline `56a7cbd3`; all earlier
+track commits were already ancestors of that baseline, so the requested
+merge fast-forwarded without conflicts. The existing navigation remains:
+Agents is the host settings page with idle release, Providers is the
+installed/sign-in/defaults page, and Models currently has rules but no
+registered renderer. The old queue-loss note is resolved by the baseline's
+`Shell::command` / `Link::submit` / `unsent::settle` path, including Agents.
+The earlier returned detail layout and refresh-failure findings have source
+corrections on the baseline; this is not a fresh visual approval of them.
+
+The current slice adds UI-free removal intent and acknowledgement rules.
+No removal control, node call or new navigation is exposed by this slice.
+Its source is Paseo 0.15.4 `screens/settings/providers-section.tsx`:
+`ProviderActionsMenu` (111–171), custom-provider eligibility (485–488), and
+`handleRemoveProvider` (410–440). The reference confirms before changing
+configuration, serializes removal and releases its pending marker on both
+cancel and failure. Its existing section tests cover row order, opening
+and enabled toggles; removal races have no equivalent case there, so the
+new tests describe Vessel's additional identity boundaries explicitly.
+
+[Decision Log]
+- Purpose and intent: make a later Remove control safe across machine
+  switches, cached refreshes and late replies before any UI is wired.
+- Existing assets and constraints: ADR 0032 already defines `agent.remove`
+  with an added `AgentName`, admin authority and profile-conflict refusal.
+  `agent_status::Pages` already owns bounded snapshots and never-reused
+  machine tickets; its failure transition retains the previous snapshot.
+- Alternatives considered: retain a row index; retain only its name; add a
+  parallel request store; depend on a revision field that the node lacks.
+- Choice: extend the existing page operation and acknowledgement path.
+  A non-cloneable confirmation retains the reported added definition,
+  node identity and book route, starts nothing until consumed, rechecks current local facts,
+  and then mints the existing page ticket.
+- Why: only a still-listed added definition on a supported node can be
+  removed; a changed local definition needs fresh confirmation. A success
+  changes only its ticket's named definition, discovery and readiness;
+  failure keeps facts, selection and a retryable issue.
+- Advantages, costs and effects: builtins and discovery-only entries have
+  no Remove action. The reference's readiness status remains unchanged
+  during removal (only its action becomes pending). Snapshot retention
+  clones one definition already held by the page at explicit user intent.
+  There is no node revision precondition: unreported environment-value
+  changes, an identical remove/re-add, and concurrent edits after dispatch
+  cannot be detected by this local comparison. These are stated wire
+  limits, not claims of transactional confirmation.
+
+Verification for this resumed slice is recorded with its submitted commit.
+The local whole native gate is intentionally not run on the saturated
+development machine. Compiling checks use the short lane; the whole native
+gate is owed on the designated builder once its command is announced.
+The shared ProviderRow trigger remains its control owner's preparation,
+with no reviewed integrated hash; no duplicate trigger or glyph is added.
+The existing snapshot now also carries the connection's `NodeId` beside
+its node-book `MachineKey`. A consumed confirmation retains both, and an
+acknowledgement must match the node as well as the request and added name.
+A same-name/different-node regression refuses a retained confirmation.
+Before the destructive call is wired, the link must compare that expected
+identity with its current connection. The node already reports identity;
+this is client plumbing, not a new wire call. Nothing dispatches removal
+in this rules-only slice.
+
+Problems met: Clippy rejected two identical idle match arms; their patterns
+were combined without changing the result. An editing command initially
+addressed the fixture from the wrong workspace root. While that was being
+corrected, a queued narrow compile saw the new node-identity API with old
+fixture arguments and failed (missing field/argument and old enum syntax).
+The failed log is retained, not counted as a pass. Earlier eight-case and
+Clippy results predate the node-bound extension; exact-commit verification
+of the corrected tree is owed on the designated builder.
+Next: review these rules, wire the existing call, then consume the reviewed
+shared menu/confirmation controls for Providers and capture their states.
+
 Track G3, branch `backend/m12-app-agents`. The contract is milestone
 11's track G and ADR 0032. This track changes no node or wire type.
 

@@ -2,6 +2,19 @@
 
 ## Start here
 
+Resumed on the published `56a7cbd3` baseline. The requested merge was a
+fast-forward because every earlier track commit was already on that line.
+The current source slice prepares provider-removal rules only; see the
+new Resume point in `backend-m12-agents.md`. No new control or navigation
+is registered. Historical findings and evidence below describe the earlier
+tree, not current verification: the baseline has its own detail-layout,
+refresh-failure, queue-refusal, official-mark and navigation changes.
+Agents now holds idle release; the provider list is Providers. Keep the
+seven newer vendor marks unshipped and consume only the app's current set.
+The whole native gate now belongs to the designated builder; do not run
+it locally. Await the coordinator's command, using short-lane narrow checks
+for source work. No whole-gate pass is claimed for the resumed tree yet.
+
 Read the current strict-worker, app-track and overnight briefs before work.
 Work remains on the Agents/Models track; the completed redraw slice does not
 mean the feature table is complete. Do not treat source review, a passed
@@ -23,8 +36,11 @@ gate or a representative capture set as overall visual approval.
 - `b81b7cf88a419ebd07e64639ca8b0b9dd276c7ca`: reviewed source-only integration
   compatibility correction. It depends on G3's existing AgentsHub and is
   not a standalone kit control cherry-pick for a branch lacking that hub.
-- `0f46b7d8cbc929757b013b81d0ba854a63d579b3`: the Agents list/detail redraw submitted to V1; disposition
-  pending unless a later review explicitly records otherwise.
+- `0f46b7d8cbc929757b013b81d0ba854a63d579b3`: the Agents list/detail redraw
+  was returned for hidden refresh failure, floating fact-value edges,
+  silently clipped Program paths and a missing command-row divider.
+  The resumed baseline includes source corrections; fresh visual review
+  of those corrections is separate from the earlier gate evidence.
 
 ## What the redraw contains
 
@@ -86,7 +102,7 @@ All own fake fleet nodes, test app and virtual display were stopped by
 verified PID/executable identity after captures. Private evidence is kept
 for review; do not reuse stale PID files as authority to stop a process.
 
-## Pending review and integration
+## Historical review and integration pending at the earlier closeout
 
 V1 is the first reviewer for this redraw. Source refs, the corrected capture
 family, final gate log and immutable source manifest are in the handoff.
@@ -117,7 +133,7 @@ fake failed handshake is a sign-in failure and correctly stays Available in
 the list. The coordinator assigned this gap, with unreachable too-old/new
 states, to N3. Typed wire-state fixtures remain; never fabricate captures.
 
-## Next authorized work, after resuming
+## Work queued at the earlier closeout
 
 First resolve returned findings on this slice and consume reviewed shared
 dependencies at a clean point, then rerun only checks justified by changes.

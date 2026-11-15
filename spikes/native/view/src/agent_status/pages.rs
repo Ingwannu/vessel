@@ -56,6 +56,8 @@ pub enum Administration {
 /// One complete Agents snapshot from the same machine connection.
 #[derive(Debug)]
 pub struct Inventory {
+    /// The node that reported these facts; a reused book name is not identity.
+    pub node: vessel_proto::NodeId,
     /// Remote OS-derived command syntax; never use the client platform.
     pub command_shell: super::command::CommandShell,
     /// Discovered installed programs.
@@ -77,6 +79,13 @@ pub enum Operation {
     Check(HarnessRef),
     /// Running this exact node-offered installer part.
     Install(InstallAgent),
+    /// Forgetting this added definition, never stopping its running sessions.
+    Remove {
+        /// The node whose definition was confirmed.
+        node: vessel_proto::NodeId,
+        /// The added definition on that node.
+        name: vessel_proto::agents::AgentName,
+    },
 }
 
 /// A request and its meaning stay together.
