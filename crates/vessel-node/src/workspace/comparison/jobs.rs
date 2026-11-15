@@ -13,7 +13,7 @@ const MAX_ADMITTED: usize = 64;
 /// Paseo's snapshot concurrency, not its separate observation setup limit.
 const MAX_EXECUTING: usize = 4;
 
-/// Refusals before a result can be delivered; none means an empty comparison.
+/// Refusals before a result can be delivered; none represents an empty comparison.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum JobError {
     /// All comparison reservations are occupied.

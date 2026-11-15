@@ -60,6 +60,11 @@ impl Workspaces {
         &self,
         request: CompareGitFile,
     ) -> Result<GitCompared<FileDiff>, WorkspaceError> {
+        if request.path.is_root() {
+            return Err(WorkspaceError::Invalid(
+                "a comparison body needs a file path".to_owned(),
+            ));
+        }
         let read = self
             .run_comparison(request.query.root, move |operation| async move {
                 operation

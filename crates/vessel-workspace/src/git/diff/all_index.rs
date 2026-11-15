@@ -28,6 +28,10 @@ use crate::git::{Git, GitError};
 /// and path count; ordinary short paths still share one subprocess.
 const MAX_BATCH_ARG_BYTES: usize = 16 * 1024;
 const MAX_BATCH_PATHS: usize = 128;
+/// Git rewrites the index through a lock file, independently of the copied
+/// file's mode. A per-command override keeps that private replacement0600,
+/// even in repositories configured for group sharing; nothing is persisted.
+const PRIVATE_INDEX_SHARING: &str = "core.sharedRepository=0600";
 /// Leave space for executable, flags, mode and object ids in each batch.
 const ARG_FIXED_BYTES: usize = 1024;
 /// --cacheinfo, mode, object id and separators, independent of path length.
@@ -240,10 +244,12 @@ impl Git {
         let paths: Vec<_> = entries.iter().map(|entry| entry.path.clone()).collect();
         let mut offset = 0;
         for batch in batches(&paths) {
-            let mut command = self
-                .command(dir)
-                .env("GIT_INDEX_FILE", index)
-                .args(["update-index", "--add"]);
+            let mut command = self.command(dir).env("GIT_INDEX_FILE", index).args([
+                "-c",
+                PRIVATE_INDEX_SHARING,
+                "update-index",
+                "--add",
+            ]);
             for entry in entries.iter().skip(offset).take(batch.len()) {
                 command = command.arg("--cacheinfo").arg(format!(
                     "{},{},{}",

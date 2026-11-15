@@ -23,6 +23,11 @@ async fn recreated_base_file_is_compared_once_and_the_real_index_is_unchanged() 
     sandbox.run(&repo, &["rm", "-q", "README.md"]);
     sandbox.run(&repo, &["commit", "-q", "-m", "remove"]);
     Sandbox::write(&repo, "README.md", "hello\nchanged\n");
+    // Git's lock-file replacement otherwise widens the private copy's mode.
+    sandbox.run(&repo, &["config", "core.sharedRepository", "group"]);
+    let before_mode = std::fs::metadata(repo.join(".git/index"))
+        .unwrap()
+        .permissions();
     let before = std::fs::read(repo.join(".git/index")).unwrap();
     let prepared = git
         .prepare_comparison(
@@ -56,6 +61,31 @@ async fn recreated_base_file_is_compared_once_and_the_real_index_is_unchanged() 
     assert_eq!(file.status, ChangeStatus::Modified);
     assert!(matches!(file.content, DiffContent::Hunks { .. }));
     let private = prepared.directory.as_ref().unwrap().path().to_owned();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        assert_eq!(
+            std::fs::metadata(private.join("index"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+        assert_eq!(
+            std::fs::metadata(&private).unwrap().permissions().mode() & 0o777,
+            0o700
+        );
+        assert_eq!(
+            std::fs::metadata(repo.join(".git/index"))
+                .unwrap()
+                .permissions()
+                .mode(),
+            before_mode.mode()
+        );
+    }
+    #[cfg(not(unix))]
+    let _before_mode = before_mode;
     prepared.close().await.unwrap();
     assert!(!private.exists());
     assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), before);

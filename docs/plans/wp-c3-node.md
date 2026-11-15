@@ -100,3 +100,18 @@ DiffScope name in documentation. The current source quotes it and needs its own
 changed-source check. Revision/cache/observation/history and write policy are
 still incomplete, and the package is neither built nor passed. The web wire
 must be regenerated from the protocol generator before package closure.
+
+The first pending-registration check at6e9db435 stopped in protocol compilation:
+three exhaustive forwarding/field-admission/older-reply matches needed explicit
+comparison arms. The remaining method sample and bridge classification were
+found in the same audit and updated; no wildcard or broadened fallback is used.
+A file-body request also rejects the relative root before any job is admitted.
+
+An isolated real-git permission probe found another private-index issue before
+claiming runtime readiness: git replaces an index via a lock file and can widen
+its mode to0664 despite a0600 copy (even with sharedRepository=false). The
+private-only update-index command now uses the documented numeric
+`-c core.sharedRepository=0600`; a separate probe kept0600. This does not alter
+repository config or the real index. The actual protected-reader regression
+now uses a group-sharing repository and asserts0700/0600 after summary/body
+reads and unchanged real-index mode/bytes. It remains unexecuted in this tree.

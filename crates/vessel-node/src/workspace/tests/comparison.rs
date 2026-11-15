@@ -139,3 +139,27 @@ async fn an_unknown_root_fails_before_a_job_and_a_stopped_node_refuses_the_resol
     fixture.tasks.close();
     fixture.tasks.wait().await;
 }
+
+#[tokio::test]
+async fn a_folder_cannot_be_requested_as_a_file_diff() {
+    let fixture = Fixture::new().await;
+    let result = fixture
+        .workspaces
+        .git_compare_file(CompareGitFile {
+            query: CompareGit {
+                root: WorkspaceRoot::Project {
+                    project: ProjectId::random(),
+                },
+                comparison: GitComparison::Uncommitted,
+                whitespace: GitWhitespace::Show,
+            },
+            path: "".parse().unwrap(),
+            from_hunk: GitHunkOffset::default(),
+        })
+        .await;
+    assert!(matches!(result, Err(WorkspaceError::Invalid(_))));
+    assert!(fixture.tasks.is_empty());
+    fixture.stop.cancel();
+    fixture.tasks.close();
+    fixture.tasks.wait().await;
+}
