@@ -1,3 +1,43 @@
+## Current checkpoint: full native batch gate passed
+
+Product source is fixed at `0ca69edeb5846944b7aa9394e21553883ed4a005`.
+The corrected A13 run `i18n-20261115T040137Z-0ca69ede` passed all six
+native steps without skips: fonts, format, quality, all-target Clippy, app
+build and tests. The raw summaries total 1,176 ordinary tests plus two
+compile-fail doctests: 1,178 passed, zero failed, one existing ignored
+explicit pairing display harness. App 47, kit 110, link 56, view 833,
+contract 10, matcher 3 and page 117 all passed. View/kit/link/app actually
+recompiled; the run took 59 seconds after its queue, load 10.85 to 10.36.
+The prior failed run remains a failure; its one Copy-argument lint is fixed
+by this final commit. No unchanged gate rerun is required by these notes.
+
+Independent source/gate review was requested first, before coordinator/lead
+acceptance. The previously accepted About move/role pair is separate from
+this follow-up inventory/update/rewind/fork batch. The native tests now
+execute the added updater, rewind and fork/origin language-retention paths;
+they are synthetic inner-handler inputs, not real-node or parent-routing proof.
+
+The final product source also built locally for captures. Normal About
+runs against a new empty config produced after-captures for en/ko/en-XA,
+dark/light, 1280×800, 390×844, 800×600 and 1024×700 on software Vulkan.
+Image inspection is in progress; generated files alone are not a UI pass.
+The inherited 390-wide log row becomes a very tall narrow path column with
+pseudo-expanded buttons and a long scratch path; the layout owner was told.
+Settings headings/sidebar and Agent artwork still use their owners' tables
+and remain plain English in pseudo mode. Before comparisons, remaining
+inspection/scales and live rewind/fork/update failure captures remain owed.
+The incompatible shared test-fleet attempt was rejected and all eight
+verified owned node/fake processes stopped. No production node was used.
+Windows, real GPU, full browser, current standalone wasm and actual updater
+network/install/restart behavior were not verified in this batch.
+
+The next source area needs its active owner's release. The requested
+sidebar Display or small Settings ownership has not yet arrived; those
+files have not been edited. The PR title change remains on its own area's
+line: `175491aa`, reported final `3c48fd4b`/gate `d230934a`. Its supplied
+Korean 390/800 captures were independently opened and both heading and
+button say “PR 생성”; its independent review is pending, not merged here.
+
 ## Batch gate correction
 
 The first full native run on `c3ad12fd` passed fonts, format and quality, then
