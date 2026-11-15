@@ -118,9 +118,10 @@ configurations and owned display/app processes were used and stopped. Captures
 show settled startup before interaction, not a frame-one timing/flicker proof
 or a whole geometry comparison across the accepted base merge.
 
-Standalone view's wasm library check passed on the same source; full library
-code generation is recorded separately when finished. Neither proves browser
-app execution. V1 review is still owed. Current Windows/OS change subscriptions,
+Standalone view's wasm library check and full library build/code generation
+passed on the same source. The unstripped dev rlib is 26,980,654 bytes; this is a
+library artifact, not an installed-app or browser-bundle size. Neither proves
+browser app execution. V1 review is still owed. Current Windows/OS change subscriptions,
 real provider/node/updater flows, persisted-preference I/O, accessibility, real
 GPU and plugin runtime integration are not inferred from these tests or frames;
 the per-installation plugin integration belongs to F6.
