@@ -291,3 +291,12 @@ head bytes. Diagnostics stays 24; the current protocol is now 25, minimum 2,
 schema 20. The supported-version matrix therefore exercises both 24 and 25.
 The typed responder advertises its exact simulated server maximum so each
 welcome agrees with that fixture range. No feature constant is overridden.
+
+The wire fixture now observes the first actual guarded diagnostic future via a
+test-only delegating Handler generated from the canonical method table. It
+signals after a real first poll has queued the blocked source jobs, then
+observes that future drop after the RPC driver processes Cancel. Only then
+does another real wire partial response exhaust the remaining permit and a
+separate connection receive Busy. This covers in-flight wire cancellation,
+not just client-future abort. The one-use bounded signal retains no request
+data; no product hook, method table, scope or collector is added.

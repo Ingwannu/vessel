@@ -1,8 +1,9 @@
-//! Real RPC timeout/disconnect leaves queued source jobs owning their leases.
-//! The separate direct-future fixture covers abort before the response deadline.
+//! Real RPC cancellation, timeout and disconnect retain queued source leases.
+//! The test observer identifies actual guard entry and server-side future drop.
 use super::{
     authority,
     deadline::{self, phase},
+    wire_observer::{self, Stage},
 };
 use std::{future::Future as _, task::Poll};
 use vessel_proto::diagnostics::{
@@ -20,17 +21,29 @@ fn diagnostics_wire_partial_deadlines_and_disconnect_do_not_release_queued_sourc
     runtime.block_on(deadline::run(async {
         let (_temp, node) = authority::node().await;
         // Authenticate/handshake while the actual blocking pool is available.
-        let transport = authority::transport(&node).await;
+        let mut transport = wire_observer::transport(&node).await;
         let other = authority::transport(&node).await;
         // The timed future owns release: unwinding unblocks runtime teardown.
         let (release, blocker) = occupy().await;
-        for _ in 0..MAX_DIAGNOSTIC_COLLECTIONS {
-            let report = phase(
-                "real RPC partial deadline",
-                transport.client().diagnostics(),
-            )
-            .await
-            .unwrap();
+        let caller = tokio::spawn({
+            let client = transport.client.clone();
+            async move { client.diagnostics().await }
+        });
+        transport.stage(Stage::Entered).await;
+        caller.abort();
+        assert!(
+            phase("aborted wire caller joins", caller)
+                .await
+                .unwrap_err()
+                .is_cancelled()
+        );
+        // This is the real server-side future's Drop, after the RPC driver
+        // processes the client's Cancel, not merely an aborted client task.
+        transport.stage(Stage::Cancelled).await;
+        for _ in 1..MAX_DIAGNOSTIC_COLLECTIONS {
+            let report = phase("real RPC partial deadline", transport.client.diagnostics())
+                .await
+                .unwrap();
             assert_eq!(report.fields().node.id, node.info().id);
             partial(&report);
         }

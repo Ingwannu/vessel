@@ -15,6 +15,8 @@ mod process;
 mod sources;
 #[cfg(test)]
 mod wire;
+#[cfg(test)]
+mod wire_observer;
 
 use crate::{profiles::NodeProfiles, readiness::Readiness, relays::Relays};
 use admission::Admission;
