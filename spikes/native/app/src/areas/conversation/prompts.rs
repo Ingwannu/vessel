@@ -44,6 +44,11 @@ impl Prompts {
 impl ConversationArea {
     /// Cancelling navigation must not leave a delayed scroll owned by its jump.
     pub(super) fn clear_prompts(&mut self) {
+        self.cancel_prompt_jump();
+        self.prompts.clear();
+    }
+
+    fn cancel_prompt_jump(&mut self) {
         if self
             .prompts
             .jump
@@ -52,7 +57,7 @@ impl ConversationArea {
         {
             self.reveal = None;
         }
-        self.prompts.clear();
+        self.prompts.jump = None;
     }
 
     /// Resident panes hold active UI/work. An inactive snapshot must still move
@@ -73,7 +78,8 @@ impl ConversationArea {
     #[cfg(test)]
     pub(crate) fn navigation_retired(&mut self) {
         self.fail_find(vessel_app_view::timeline::FindFailure::Connection);
-        self.clear_prompts();
+        self.cancel_prompt_jump();
+        self.prompts.index.unavailable();
         self.outline_pointer.leave();
     }
 

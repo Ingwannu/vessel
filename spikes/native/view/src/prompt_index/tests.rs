@@ -263,6 +263,21 @@ fn readmission_does_not_forget_a_rewind_already_seen_on_follow() {
             )
             .is_none()
     );
+    index.unavailable();
+    assert_eq!(index.phase(), IndexPhase::Failed(IndexProblem::Connection));
+    assert!(index.entries().is_none());
+    let mut missing = selected.clone();
+    missing.connection = None;
+    let while_missing = index.refresh(missing, None).unwrap();
+    assert!(
+        index
+            .answered(
+                &after_rewind,
+                Ok(page(&after_rewind, &[1], None, current_epoch))
+            )
+            .is_none()
+    );
+    assert_eq!(index.phase(), IndexPhase::Reading(while_missing.ticket));
     selected.connection = Some(admissions.admit(selected.machine.clone(), node).unwrap());
     let upgraded = index.refresh(selected, None).unwrap();
     assert!(
@@ -273,6 +288,23 @@ fn readmission_does_not_forget_a_rewind_already_seen_on_follow() {
     assert_eq!(
         index.phase(),
         IndexPhase::Failed(IndexProblem::HistoryChanged)
+    );
+    let mut replaced = upgraded.target.clone();
+    replaced.connection = Some(
+        admissions
+            .admit(replaced.machine.clone(), NodeId::random())
+            .unwrap(),
+    );
+    let new_history = index.refresh(replaced, None).unwrap();
+    assert!(
+        index
+            .answered(&new_history, Ok(page(&new_history, &[1], None, epoch())))
+            .is_none()
+    );
+    assert_eq!(
+        index.phase(),
+        IndexPhase::Ready,
+        "a known different node starts its own history"
     );
 }
 

@@ -6,7 +6,7 @@ use vessel_proto::prompt_index::{
     INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexLimit, PromptIndexPage,
     PromptLocation,
 };
-use vessel_proto::{ErrorCode, EventSeq, SessionId};
+use vessel_proto::{ErrorCode, EventSeq, NodeId, SessionId};
 
 mod rows;
 pub use rows::{PromptRow, PromptRows};
@@ -97,6 +97,8 @@ pub struct PromptIndex {
     entries: Vec<PromptLocation>,
     dirty: bool,
     rewound: Option<EventSeq>,
+    /// History guard only; never authorizes a call without the shared admission.
+    history_node: Option<NodeId>,
 }
 
 impl PromptIndex {
@@ -109,6 +111,20 @@ impl PromptIndex {
         self.entries.clear();
         self.dirty = false;
         self.rewound = None;
+        self.history_node = None;
+    }
+
+    /// Retire addresses/work while preserving the known history and identity source.
+    pub fn unavailable(&mut self) {
+        self.phase = if self.source.is_some() {
+            IndexPhase::Failed(IndexProblem::Connection)
+        } else {
+            IndexPhase::Hidden
+        };
+        self.epoch = None;
+        self.after = None;
+        self.entries.clear();
+        self.dirty = false;
     }
 
     /// The newest loaded prompt changed. Coalesce streaming updates into one refresh.
@@ -122,21 +138,26 @@ impl PromptIndex {
             .source
             .as_ref()
             .is_some_and(|old| old.target == source.target);
-        let same_history = self.source.as_ref().is_some_and(|old| {
+        let same_address = self.source.as_ref().is_some_and(|old| {
             old.target.machine == source.target.machine
-                && old.target.connection.as_ref().map(ConnectionContext::node)
-                    == source
-                        .target
-                        .connection
-                        .as_ref()
-                        .map(ConnectionContext::node)
                 && old.target.session == source.target.session
         });
-        self.source = Some(source);
-        // A fresh shared admission changes requests, never the known history floor.
+        let node = source
+            .target
+            .connection
+            .as_ref()
+            .map(ConnectionContext::node);
+        // A missing fleet admission is not proof that the durable history changed.
+        // Keep the last observed node only for this guard, never for call selection.
+        let same_history = same_address
+            && (node.is_none() || self.history_node.is_none() || node == self.history_node);
         if !same_history {
             self.rewound = None;
         }
+        if !same_address || node.is_some() {
+            self.history_node = node;
+        }
+        self.source = Some(source);
         if same {
             match self.phase {
                 IndexPhase::Reading(_) => {

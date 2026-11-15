@@ -283,3 +283,11 @@ text or a translated string captured on arrival. Rendering resolves its current
 prepared message-search getter, so a language change preserves query/tickets and
 rewords the same failure fact. Existing generic view refusal coverage is adapted
 to the typed fact; its ordering/no-match behavior is unchanged.
+
+Transport retirement discards metadata addresses but preserves the known rewind
+floor. A temporary missing fleet admission also preserves the last observed node
+for history comparison only; it never permits an RPC without ConnectionContext.
+A known different node or session clears that guard. This prevents disconnect /
+readmission from accepting metadata older than a rewind already observed on
+Follow. The pure regression includes the unavailable and unknown-admission gap,
+not only an immediate old-context → new-context swap.
