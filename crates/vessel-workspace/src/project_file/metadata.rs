@@ -273,7 +273,11 @@ fn class_of(error: &ProjectFileError) -> Problem {
         ProjectFileError::Syntax(_)
         | ProjectFileError::TooMany { .. }
         | ProjectFileError::Command { .. }
-        | ProjectFileError::Scripts(_) => Problem::Syntax,
+        | ProjectFileError::Scripts(_)
+        | ProjectFileError::TerminalMissingCommand
+        | ProjectFileError::TerminalCommand(_)
+        | ProjectFileError::TerminalName(_)
+        | ProjectFileError::TooManyTerminals => Problem::Syntax,
         ProjectFileError::NotAFile | ProjectFileError::Unreadable(_) => Problem::Unreadable,
     }
 }

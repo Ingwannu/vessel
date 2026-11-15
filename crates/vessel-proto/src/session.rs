@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::SessionLabels;
 use crate::agent::{ContentBlock, PermissionOutcome};
 use crate::agents::HarnessRef;
 use crate::board::SessionBoard;
@@ -100,6 +101,12 @@ pub struct SessionSpec {
     /// on its own; this stays what was asked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// Labels asked for at creation (ADR 0063). The map now is
+    /// [`SessionInfo::labels`], which starts as this and changes on its
+    /// own; this stays what was asked. Left out when there are none.
+    #[serde(default, skip_serializing_if = "SessionLabels::is_empty")]
+    #[cfg_attr(feature = "ts", ts(as = "Option<SessionLabels>", optional))]
+    pub labels: SessionLabels,
     /// Where it runs (protocol 10, ADR 0027): a project's folder or a
     /// worktree. With a place, `cwd` is left out by the client and filled
     /// by the node with the folder the place resolves to, so a client that
@@ -127,6 +134,7 @@ impl SessionSpec {
             cwd: None,
             profile: None,
             title: None,
+            labels: SessionLabels::new(),
             place: None,
             side_question_of: None,
             mode,
@@ -158,6 +166,13 @@ impl SessionSpec {
     #[must_use]
     pub fn with_title(mut self, title: SessionTitle) -> Self {
         self.title = Some(title);
+        self
+    }
+
+    /// With these labels (ADR 0063).
+    #[must_use]
+    pub fn with_labels(mut self, labels: SessionLabels) -> Self {
+        self.labels = labels;
         self
     }
 }
@@ -272,6 +287,12 @@ pub struct SessionInfo {
     /// from older nodes; a client then names it by its folder.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// The labels it carries now (ADR 0063): `spec.labels` at creation,
+    /// then whatever `session.labels` set. Left out when there are none,
+    /// and stripped for a peer that predates them.
+    #[serde(default, skip_serializing_if = "SessionLabels::is_empty")]
+    #[cfg_attr(feature = "ts", ts(as = "Option<SessionLabels>", optional))]
+    pub labels: SessionLabels,
     /// Who produced [`title`](Self::title) (ADR 0062). Absent means
     /// [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
     /// build does not speak the field yet, or the row was stored before
@@ -354,6 +375,7 @@ impl SessionInfo {
             id,
             profile: spec.profile.clone(),
             title: spec.title.clone(),
+            labels: spec.labels.clone(),
             title_origin: if spec.title.is_some() {
                 crate::title::TitleOrigin::Typed
             } else {

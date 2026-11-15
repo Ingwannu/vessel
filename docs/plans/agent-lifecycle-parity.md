@@ -2,7 +2,8 @@
 
 Labels, a background listing, a live reload, and selectors on `vessel log`.
 The decision is ADR 0063. The protocol number is the one given at merge.
-Calls and fields are gated on `lifecycle::SINCE`; this branch does not
+Calls and fields use `lifecycle_version::SINCE: Option<ProtocolVersion>`,
+which remains `None` until integration; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
@@ -26,11 +27,27 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`packages/server/src/server/agent/agent-manager.ts:631-644`,
   `writeLabels` at `:2296`). The CLI and the MCP tool only send
   strings, so a person cannot delete. An omitted key stays.
-- CLI create and import: `key=value`, key trimmed and non-empty, value
-  the remainder including empty and not trimmed
-  (`packages/cli/src/commands/agent/update.ts:103-140`,
-  `packages/cli/src/commands/agent/import.ts:54-82`). The same split is
-  used by `run`. The last copy of a key wins.
+- CLI update (`packages/cli/src/commands/agent/update.ts:103-140`)
+  splits each flag on commas, trims each whole segment, ignores empty
+  segments, then splits at the first `=` and trims the non-empty key.
+  The value is the remainder of that trimmed segment, including empty.
+- CLI run (`run.ts:460-466,478-501`) uses one complete `key=value` per
+  flag; neither side is trimmed, and it does not reject an empty key.
+  Import (`import.ts:54-82`) also takes one pair, but trims and refuses
+  an empty key. All three keep the last copy of a key.
+- Vessel uses that one-pair run form and the comma-separated update
+  form. Its validated key trims and refuses empty at every ingress,
+  including wire/MCP and filters. The reason is one canonical key type;
+  a label must not change identity between creation and discovery.
+- Paseo displays `Object.entries(labels)` (`update.ts:144-149`). Vessel
+  uses canonical key order so stored metadata and summaries have a
+  deterministic order regardless of how a sender built the map. Human
+  summaries use comma-space, following existing device-scope lists in
+  `vessel-cli/src/devices.rs`; Paseo's formatter joins with a bare comma.
+- Paseo's provider-history import (`import.ts:110-123`) maps to
+  `vessel run --structured --resume ID --label key=value`. Vessel's
+  separate `session.import` transfer path copies the source's current
+  label map when it starts the imported session, as it copies the title.
 - CLI update refuses an empty name, an empty `--thinking`, and combining
   `--thinking` with `--name` or `--label`
   (`update.ts:152-197`). Labels alone are a metadata update.
@@ -108,12 +125,28 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   `permissions` is a type containing `permission`; any other string is
   a substring of the type. Vessel accepts only the four names and
   refuses the rest, so a typo is not an empty log.
+- Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
+  numeric prefix such as `2x` is accepted. Vessel parses the whole
+  non-negative count and refuses a suffix; this prevents a mistyped count
+  silently selecting another window. A non-number or negative count makes
+  the parser return `undefined`, but the command explicitly refuses that
+  result in follow (`:273-278`) and one-shot (`:299-304`); it is not ignored
+  or replaced by a default. Vessel makes this refusal before connecting.
+  Paseo connects and resolves the agent first, and one-shot fetches history
+  before checking the count. Early validation avoids that unnecessary work.
+  Paseo uses `Date.parse`; Vessel uses
+  RFC 3339 with an explicit offset so machine locale cannot alter selection.
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
   the whole selection. Follow joins assistant and reasoning fragments
   (`createFollowTranscriptWriter`). Vessel already joins reply chunks
   in the CLI view; follow uses that, and does not reprint Paseo's
   banners for a replaced timeline. The log has no epoch.
+- Paseo waits for an explicit stop even after timeline activity ends
+  (`logs.ts:401-407`). Vessel follows through the current session run,
+  ending at the stream's final status or Ctrl-C. This preserves the existing
+  session stream's explicit EOF; a later `session.resume` is a new follow
+  invocation from the saved sequence. No new wire mode changes that contract.
 
 ## Existing assets
 
@@ -122,7 +155,7 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 | Title, separate from the spec | `session.rename`, schema 6 `title` | Modify: labels follow the same split. Do not fold them into the title. Keys and values reuse the title's control check (`char::is_control`, including C1). |
 | Marks as columns | schema 7 | Modify: the next schema append adds `labels` (JSON text, null is empty) and `listing` (`shown` default). The number is whatever the migration list's length is at merge. |
 | Unit `session.list` | `rpc/requests.rs` | Modify: a struct that still decodes `params: null`. |
-| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
+| `Call::since`, `Reply::for_protocol`, `SessionInfo::for_protocol` | `rpc/since.rs`, `rpc/older.rs` | Modify: new fields need `lifecycle_version::SINCE`; older replies drop them; new events have a `HarnessLog` stand-in. |
 | `Method::forwardable` and its pinned list | `forward.rs`, `rpc/tests.rs` | Modify: `session.labels` and `session.reload` are forwardable, as rename and wake are. |
 | Agent refusal | `vessel-node/src/workspace/policy.rs` | Modify: `session.labels` allowed; `session.reload` refused with its own reason, not the file-and-git sentence. |
 | Stop and `session/load` | `vessel-session/src/moving.rs`, parking's wake | Reuse from a new reload order. Do not change move, park, wake, rewind or fork. |
@@ -134,7 +167,19 @@ Read first, and reproduced except for the differences ADR 0063 lists.
 No external crate. The standard library and the types above hold the
 bounds, the map and the timestamps.
 
+The legacy text-column decoder cleanup is a separate refactor, with its
+own review and quality-inventory update. It is not part of label behavior.
+
+The larger creation payload is boxed only inside the existing RPC driver's
+command queue, matching its already boxed session subject. A small command
+factory keeps cancellation/unsubscribe slots compact without changing wire
+frames, request handling or the public client API.
+
 ## Slices
+
+The labels work is divided for review: 2a validating types; 2b creation,
+current storage and older-peer projection; 2c list filtering; 2d actor
+patches and their RPC/event; 2e CLI/MCP ingress. Each is gated separately.
 
 1. **This commit.** ADR 0063 and this plan. No code, so `PROTOCOL_VERSION`
    and the schema stay at the base.
@@ -165,7 +210,7 @@ bounds, the map and the timestamps.
    the testkit's fakes and an event, never a sleep and never a real
    agent.
 
-The commit that first changes a wire type adds `lifecycle::SINCE` and
+The commit that first changes a wire type adds `lifecycle_version::SINCE` and
 gates the new calls and fields on it. It does not change
 `PROTOCOL_VERSION`. The integrator sets that one constant, and in the
 merge updates `docs/PROTOCOL.md`. The same code commit regenerates
@@ -174,11 +219,11 @@ No row of the crate table changes.
 
 ## Tests the contract requires
 
-- A key of 64 scalars is kept; 65, empty, U+0000, the C1 character
+- A key at `LabelKey::MAX_CHARS` is kept; one scalar over it, empty, U+0000, the C1 character
   U+0085, `=`, and `vessel.` are `invalid_request` and write nothing.
-- A value of 256 is kept; 257, a newline, or U+0085 is refused. An empty
+- A value at `LabelValue::MAX_CHARS` is kept; one scalar over it, a newline, or U+0085 is refused. An empty
   value is kept.
-- The 33rd label is refused and the previous 32 stay.
+- Adding beyond `SessionLabels::MAX` is refused and the previous map stays.
 - A patch changes the keys it names and no other. `{}` is refused.
 - `session.list` with two pairs returns only a session that has both.
   `params: null` still decodes.
@@ -186,7 +231,7 @@ No row of the crate table changes.
   with `scope: all`, and present in `session.get`. An older connection's
   list includes it and the encoded info has no listing field.
 - `session.create` with `listing: background` sent toward a negotiated
-  protocol older than `lifecycle::SINCE` is refused by the client before
+  protocol older than `lifecycle_version::SINCE` is refused by the client before
   the socket write.
 - Reload of a terminal, a parked session, an ended session, and a
   session with no harness session id does not spawn. A running turn
@@ -200,12 +245,55 @@ No row of the crate table changes.
 
 ## Resume point
 
-- Done: slice 1, the ADR and this plan. No code. `PROTOCOL_VERSION` is
-  not changed. The number is `lifecycle::SINCE`, set at merge. Keys and
-  values refuse `char::is_control`, as `SessionTitle` does, including
-  C1; the contract's test names U+0085.
-- Half-done: nothing.
-- Next: slice 2, labels, starting at `vessel-proto` (`LabelKey`,
-  `lifecycle::SINCE`, and the `session.labels` row). Do not change
-  `PROTOCOL_VERSION`. Do not start reload or the log flags before labels
-  and the listing are in.
+- Reviewed: slice 1 contract and slice 2a validating types. Bounds,
+  diagnostics and boundary tests use each type's named constants.
+- The named node head is merged without rewriting earlier commits. Its
+  usage ledger, shared compatibility cases and document paragraphs remain.
+- Slice 2b keeps creation/current labels separately in durable storage.
+  `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
+  hidden in direct replies, lists, subscriptions, saved/scheduled specs,
+  transfers and forwarding. Event pages have no label record yet.
+- Existing session/prompt/schedule inputs and starting imports refuse
+  labelled metadata before work. Tests assert the unassigned-protocol
+  reason and reopen the separate durable maps.
+- The earlier corrective wire gate passed: Rust 1978 passed, none failed,
+  12 ignored; TypeScript generation and diff, web checks, 417 unit tests
+  and 62 browser tests passed.
+- The store review correction appends labels to the migration table and
+  leaves the migration runner byte for byte unchanged. `LABELS_SCHEMA`
+  binds its provisional array length and the legacy-row/null/idempotence
+  test. Integration assigns the number. Head rollback SQL is unchanged,
+  preceded by the label-column rollback.
+- At the merge onto the node line the labels took schema 17 (the inbox
+  had 16), in the head's `schema/migrations.rs`, where the migrations'
+  SQL lives since the store split.
+- That correction's whole Rust gate reported 1978 passed, one failed and
+  12 ignored. Its sole failure was the shared proxy deadline test's outer
+  budget; the authorized single exact confirmation passed. Both results
+  were submitted separately, preserving the initial failure. Other steps
+  passed; the correction changes no wire or page surface.
+- The shared `required_protocol()` accessor is owned by the protocol layer.
+  Until its integration, the node ingress guard supplies the typed refusal;
+  no new registered call or second client mechanism is introduced here.
+- Separate refactor: the three legacy Profile/Via/Title text-column adapters
+  use a consuming serde string deserializer. The validating types and typed
+  column/source errors remain; the quote/backslash, title trimming and
+  corruption tests are unchanged. `QUALITY.md` records the removal without
+  guessing a new global debt count. No dependency is added.
+- Half-done: this decoder refactor needs narrow store checks and its own
+  whole Rust gate. Later filtering, actor patches, CLI and MCP remain
+  protected drafts. Unwired services may be staged under `cfg(test)` until
+  the shared accessor and call plumbing are ready; they are not a product
+  build claim.
+- In progress, independent of wire assignment: log selectors are a source
+  draft using the existing read/follow cursor. Typed count, kind and timestamp
+  inputs precede connection. Tail follows time/kind selection; filtered gaps
+  separate streamed messages and cannot fabricate a retention warning. The
+  fake-node selection and history-to-live tests have not run yet.
+- The contract's follow bullet and EOF explanation now name the same end.
+  Parser and command-level checks are documented together: an invalid tail
+  is refused by both products, with earlier validation in Vessel.
+- Next: report the independent decoder gate, then gate the log draft while
+  label call wiring awaits the shared accessor. No new wire call or dependency
+  is added by log options. Windows, macOS, native UI and real harnesses remain
+  unverified.

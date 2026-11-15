@@ -22,7 +22,7 @@ use vessel_proto::{
 };
 use vessel_testkit::Fake;
 
-const SAFETY_NET: Duration = Duration::from_secs(60);
+pub(crate) const SAFETY_NET: Duration = Duration::from_secs(60);
 
 /// How long one awaited step may take ([`step`], [`collect_until`]): well
 /// under [`SAFETY_NET`], so a hang fails naming the step it is in rather

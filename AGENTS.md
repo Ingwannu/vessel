@@ -18,9 +18,19 @@ Run these, in this order, and paste the result summary in your report:
 cargo fmt --all
 node scripts/check-rust-size.mjs     # file budget (docs/QUALITY.md M3)
 node scripts/check-boundaries.mjs    # crate map (docs/QUALITY.md M2)
+cargo build -p vessel-testkit --bins
+cargo build -p vessel-node --bin vesseld
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo clippy -p vessel-node --features forge-fixture --all-targets -- -D warnings
+cargo test --workspace --no-fail-fast
+cargo test -p vessel-node --features forge-fixture --test forge_fixture
 ```
+
+`node scripts/gate.mjs` runs this sequence with a format check. It keeps
+prebuilds and tests in one environment; on a shared machine, wrap the whole
+runner in the local build scheduler. The explicit feature steps compile the
+separate forge fixture binary and run its feature-only tests; normal product
+and release builds keep the feature disabled.
 
 The two scripts build nothing and take about a second, so a violation
 fails before the compile starts. CI runs exactly these on Linux, Windows

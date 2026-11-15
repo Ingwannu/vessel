@@ -543,3 +543,16 @@ next. They are consolidated here without changing those Rust sources.
 Next merge the announced node head, preserving its existing protocol,
 schema and shared tests. No production HTTP generation, metadata settings
 wiring or first-prompt observer exists yet; branch generation is untouched.
+
+
+### Node-head merge checkpoint
+
+The designated node head's protocol and minimum-version text stay intact.
+Its inbox and labels migrations keep their assigned numbers and SQL; the
+provenance migration follows the newest head migration through one named
+assignment. Current-label/archive projection stays in the head's helper,
+and provenance adapts its result afterwards. Existing rollback fixtures
+only gain the provenance DROP before their own SQL. A separate authorized
+test repair will remove assumptions that a particular migration is the
+latest one. Generated TypeScript must be regenerated before the combined
+gate. That gate and corrected-accessor integration are still owed.

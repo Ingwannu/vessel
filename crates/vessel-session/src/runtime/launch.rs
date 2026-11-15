@@ -40,6 +40,8 @@ pub struct LaunchOptions {
     /// the spec's harness's default profile (the launch from before
     /// profiles), which is right only when the spec names no profile.
     pub profile: Option<Profile>,
+    /// Nonsecret quota binding captured with this actual profile choice.
+    pub limits: crate::LimitAssociation,
     /// MCP servers, values resolved. Structured sessions get them over ACP;
     /// terminal ones in the harness's launch-time form, when it has one.
     pub mcp_servers: ResolvedMcpServers,
@@ -112,6 +114,7 @@ struct Record {
     via: Option<NodeId>,
     model: Option<SessionModel>,
     notices: Vec<String>,
+    limits: crate::LimitAssociation,
     title_origin: Option<vessel_proto::TitleOrigin>,
 }
 
@@ -125,6 +128,7 @@ impl Record {
             via,
             model,
             notices,
+            limits,
             title_origin,
         } = self;
         let mut info = SessionInfo::new(id, spec, Utc::now()).with_creator(created_by);
@@ -135,7 +139,9 @@ impl Record {
         info.via = via;
         info.model = model;
         let since = info.created_at;
-        (Begin::new(info, since), notices)
+        let mut begin = Begin::new(info, since);
+        begin.limits = limits;
+        (begin, notices)
     }
 }
 
@@ -208,6 +214,7 @@ impl SessionRuntime {
         }
         let LaunchOptions {
             profile,
+            limits,
             mcp_servers,
             mcp_dir,
             created_by,
@@ -232,6 +239,7 @@ impl SessionRuntime {
             via,
             model,
             notices,
+            limits,
             title_origin,
         };
         let profile = profile.map_or_else(|| Profile::default_of(&spec.harness), Ok)?;
@@ -389,6 +397,7 @@ impl SessionRuntime {
                 command,
                 setup,
                 driver,
+                limits: begin.limits.clone(),
             },
             begin,
             notices,

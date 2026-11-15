@@ -10,6 +10,27 @@ pub(crate) enum Period {
 }
 #[derive(Debug, Subcommand)]
 pub(crate) enum UsageCommand {
+    /// Latest saved sign-in limits of one configured agent profile.
+    Limits {
+        harness: HarnessRef,
+        /// Omitted selects the configured default, not all historical profiles.
+        #[arg(long)]
+        profile: Option<ProfileName>,
+        /// Request a vendor check; requires operate permission.
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Saved sign-in limits tied to a session's actual launch.
+    SessionLimits {
+        session: SessionSelector,
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Persist this machine's credential-use choice; requires admin permission.
+    Lookup {
+        #[arg(value_enum)]
+        policy: LookupChoice,
+    },
     /// Totals on the selected machine over the past day or week.
     Machine {
         #[arg(long, value_enum, default_value = "day")]
@@ -30,4 +51,10 @@ pub(crate) enum UsageCommand {
         #[arg(long, value_parser = crate::args::parse_seq)]
         after: Option<EventSeq>,
     },
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub(crate) enum LookupChoice {
+    Off,
+    On,
 }
