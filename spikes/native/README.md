@@ -1205,3 +1205,11 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Shared typed button content/loading/sizing is documented in
+`docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
+renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
+adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
+Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
+no-Window signatures remain Pointer. The published outline glyph API retains
+its explicit tone and immediate-child geometry in the same shared renderer.
