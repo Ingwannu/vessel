@@ -17,7 +17,7 @@ pub(super) fn init(cx: &mut gpui::TestAppContext) {
             cx,
             vessel_app_kit::SchemeChoice::Fixed(vessel_app_kit::Scheme::Dark),
         )
-        .unwrap()
+        .unwrap();
     });
 }
 pub(super) fn node() -> NodeId {

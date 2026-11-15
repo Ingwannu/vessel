@@ -572,3 +572,14 @@ no transport/scopes/lease: these tests do not claim real authorization, current
 lease fencing, native mouse geometry or screenshots. Expected behavior would fail
 without the existing actual callback/read-only guards. Exact App narrow results
 for these new tests are still owed; older624/062 results exclude them.
+
+
+The exact7fbbb App all-target Clippy returned101 for three missing
+unit-statement semicolons in the new test callbacks/initialization. No product
+diagnostic was reported; the sequential runtime stage did not start. Correct
+those three statements without changing assertions or handler behavior, then
+run the corrected changed-head App narrow. The red run is retained and is not
+a runtime result. The announced green c3429952 base was meanwhile merged with
+only a README append conflict; its shared boxed SavePrefs command and field
+predecessor are preserved. No complete A9 or current-screen pass follows from
+that base's gate.

@@ -93,7 +93,7 @@ fn a_stale_form_cannot_close_or_send_its_successor_and_sending_holds_real_input(
             active.program.focus(window, cx);
             shell.agent_submit_add(&current, cx);
             assert!(commands.try_recv().is_err());
-        })
+        });
     });
     cx.run_until_parked();
     view.update_in(cx, |probe, window, cx| {
@@ -135,7 +135,7 @@ fn a_stale_form_cannot_close_or_send_its_successor_and_sending_holds_real_input(
                 ticket
             );
             assert!(commands.try_recv().is_err());
-        })
+        });
     });
 }
 
