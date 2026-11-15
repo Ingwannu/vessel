@@ -27,3 +27,6 @@ mod references;
 
 #[cfg(test)]
 mod snapshot;
+
+#[cfg(test)]
+mod input_lane;

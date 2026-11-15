@@ -845,3 +845,34 @@ Exactbba strict failed only one proto documentation backtick at14:38 before late
 crate analysis; corrected00bb27a7f without weakening code/tests. Current combined
 strict remains owed after the required announced-head merge. Do not treat that
 blocked broad check as evidence for the later cursor/bundle additions.
+
+
+## Staged profile input ownership
+
+[Decision Log]
+- Purpose: a target's activation and its entire input transaction must share one
+  profile-wide order, including cancellation while another target is waiting.
+- Existing assets: the page controller already retains typed pressed keys and
+  serial target commands; Tokio mutexes, bounded semaphores and TaskTracker are
+  the existing task/cleanup owners. A target-local mutex cannot keep another tab
+  from becoming active between two input events. No external dependency is needed.
+- Choice: stage one generic profile input lane under outer cfg(test), below the
+  actual node's target/context admission. Its64 active+queued permits live in
+  registered workers, with activation+apply under the same async mutex. Caller
+  timeout does not cancel the retained worker or release its permit early.
+- Why: pending withdrawal and start compete on one atomic state, so a reported
+  NotDelivered cannot race a later activation. Once started, cancellation/error
+  closes the profile permanently and starts one independently tracked stop/drain;
+  no next target enters before cleanup. Shutdown registration shares the admission
+  gate and a cancelled shutdown waiter cannot cancel the actual cleanup task.
+- Impact: controlled fixtures cover cross-target ordering, busy admission, caller
+  abort/delivered timeout, queued withdrawal, backend failure and retained stop
+  refusal. A stop error is retained and never retried; the trusted driver must
+  itself quarantine physical resources if actual cleanup is unconfirmed. This
+  model is not that driver, a process-death receipt or an engine qualification.
+  Product removal of cfg(test) remains the named qualified node-actor wiring
+  commit. No raw native key forwarder, focus ticket or visible engine is enabled.
+
+Current source-fast rustfmt/size/diff checks passed. No changed-source compile or
+execution result is claimed: the development-only b37 dependency must first be
+joined by the announced gate49 head before the next gate/review/adoption request.
