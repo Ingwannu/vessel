@@ -37,12 +37,63 @@ fn fixture() -> (Residents, ResidentToken, PanelClaim) {
         .unwrap();
     (residents, token, claim)
 }
+#[test]
+fn claim_key_cannot_substitute_another_node_or_legacy_session_before_allocation() {
+    let address = SessionAddress {
+        node: NodeId::random(),
+        session: SessionId::random(),
+    };
+    let mut residents = Residents::new();
+    let mut wrong_node = claim(address.session);
+    wrong_node.workspace = LayoutKey::Workspace {
+        node: NodeId::random(),
+        workspace: vessel_proto::WorkspaceId::random(),
+    };
+    assert_eq!(
+        residents.claim(address, wrong_node, PaneId::MAIN),
+        Err(ResidentProblem::OwnerConflict)
+    );
+    assert_eq!(
+        residents.claim(address, claim(SessionId::random()), PaneId::MAIN),
+        Err(ResidentProblem::OwnerConflict)
+    );
+    let token = residents
+        .claim(address, claim(address.session), PaneId::MAIN)
+        .unwrap();
+    assert_eq!(token.epoch, ResidentEpoch(1));
+}
 fn ready(residents: &mut Residents, token: ResidentToken) {
     for owner in ResourceOwner::ALL {
         residents
             .readiness(token, owner, OwnerReadiness::Ready)
             .unwrap();
     }
+}
+#[test]
+fn main_timeline_ready_cannot_overwrite_a_provider_child_hold_or_settle_its_ticket() {
+    let (mut residents, token, _) = fixture();
+    ready(&mut residents, token);
+    let binding = residents.begin_follow(token).unwrap();
+    let child = residents
+        .admit_operation(binding, OperationKind::Subagents)
+        .unwrap();
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Timeline, child),
+        Err(ResidentProblem::UnadmittedOperation)
+    );
+    let retired = residents.retire_current(token).unwrap().unwrap();
+    assert_eq!(
+        retired.operations().first().unwrap().kind(),
+        OperationKind::Subagents
+    );
+    residents
+        .readiness(token, ResourceOwner::Timeline, OwnerReadiness::Ready)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    residents
+        .readiness(token, ResourceOwner::Subagents, OwnerReadiness::Ready)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Ok(()));
 }
 #[test]
 fn same_node_reconnect_fences_queued_old_metadata_error_and_mutation_reply() {
@@ -266,6 +317,40 @@ fn exhausted_follow_retires_old_attempt_without_wrapping_or_losing_input_lifetim
 }
 
 #[test]
+fn transport_retirement_reports_exact_tickets_despite_protected_resources_and_exhaustion() {
+    let (mut residents, token, claim) = fixture();
+    let _initial = residents.begin_follow(token).unwrap();
+    residents.entry_mut(token).unwrap().follow = FollowGeneration(u64::MAX);
+    let binding = FollowBinding {
+        resident: token,
+        follow: FollowGeneration(u64::MAX),
+    };
+    let ticket = residents
+        .admit_operation(binding, OperationKind::Request)
+        .unwrap();
+    let retired = residents.retire_current(token).unwrap().unwrap();
+    assert_eq!(retired.binding(), binding);
+    assert_eq!(retired.operations().len(), 1);
+    let operation = retired.operations().first().unwrap();
+    assert_eq!(operation.kind(), OperationKind::Request);
+    assert_eq!(operation.ticket(), ticket);
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    assert_eq!(
+        residents.begin_follow(token),
+        Err(ResidentProblem::Exhausted)
+    );
+    assert_eq!(
+        residents.validate_binding(binding),
+        Err(ResidentProblem::StaleBinding)
+    );
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Request, ticket),
+        Err(ResidentProblem::StaleBinding)
+    );
+    assert_eq!(residents.context(token, &claim).unwrap().resident, token);
+}
+
+#[test]
 fn tickets_cannot_settle_another_resident_with_the_same_local_operation_ordinal() {
     let (mut residents, first, first_claim) = fixture();
     let address = SessionAddress {
@@ -297,4 +382,39 @@ fn tickets_cannot_settle_another_resident_with_the_same_local_operation_ordinal(
     residents
         .settle_operation(first_binding, OperationKind::Lifecycle, first_ticket)
         .unwrap();
+}
+
+#[test]
+fn provider_child_tickets_and_holds_are_not_owned_by_the_main_timeline() {
+    let (mut residents, token, claim) = fixture();
+    ready(&mut residents, token);
+    let binding = residents.begin_follow(token).unwrap();
+    let ticket = residents
+        .admit_operation(binding, OperationKind::Subagents)
+        .unwrap();
+    residents
+        .readiness(
+            token,
+            ResourceOwner::Subagents,
+            OwnerReadiness::Hold(HoldReason::PendingEffect),
+        )
+        .unwrap();
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Timeline, ticket),
+        Err(ResidentProblem::UnadmittedOperation)
+    );
+    residents
+        .settle_operation(binding, OperationKind::Subagents, ticket)
+        .unwrap();
+    residents
+        .readiness(token, ResourceOwner::Timeline, OwnerReadiness::Ready)
+        .unwrap();
+    residents
+        .release_claim(token, &claim, Duration::ZERO)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    residents
+        .readiness(token, ResourceOwner::Subagents, OwnerReadiness::Ready)
+        .unwrap();
+    residents.retire_clean(token).unwrap();
 }
