@@ -26,5 +26,6 @@ mod control;
 mod stream;
 mod stream_error;
 
+mod prepare;
 mod quota;
 mod secret_read;

@@ -30,6 +30,11 @@ impl Drop for Server {
     }
 }
 impl Server {
+    /// Preparation fixtures select the same parsed isolated destination.
+    pub(in crate::dictation) fn base(&self) -> EndpointBase {
+        self.base.clone()
+    }
+
     /// Bind an isolated loopback route for the real endpoint and job clients.
     pub(in crate::dictation) async fn start(router: Router) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

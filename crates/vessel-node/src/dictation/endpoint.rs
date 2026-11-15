@@ -62,7 +62,7 @@ impl ProviderError {
 }
 
 /// Construct before starting any root-loading or network work.
-struct Specification {
+pub(super) struct Specification {
     url: Url,
     model: EndpointModel,
     language: Language,
@@ -72,7 +72,7 @@ struct Specification {
 
 impl Specification {
     /// Reject header or path failures before any asynchronous provider preparation.
-    fn new(
+    pub(super) fn new(
         base: &EndpointBase,
         model: EndpointModel,
         language: Language,
@@ -97,7 +97,7 @@ impl Specification {
     }
 
     /// Build a stream-owned client from already loaded roots, never global policy.
-    async fn connect(self, roots: &Factory) -> Result<Endpoint, ProviderError> {
+    pub(super) async fn connect(self, roots: &Factory) -> Result<Endpoint, ProviderError> {
         let roots = roots.get().await.map_err(ProviderError::Roots)?;
         let http = Client::builder()
             .use_preconfigured_tls(roots.for_client())

@@ -611,3 +611,17 @@ was moved to the remote TS artifact workflow. The generated declarations and
 remaining narrow checks are owed; this inactive field is not product evidence.
 The future-file test compares every known override for both endpoint and local
 settings before and after rewriting, and preserves the original backup bytes.
+
+## Current-snapshot provider preparation
+
+The staged preparation factory reuses Reader and the existing endpoint
+Specification; no third secret reader or settings cache is introduced. Its
+caller must obtain current overrides after retiring the prior generation. The
+factory validates the merged selection, refuses disabled/local/unknown choices
+before secret I/O, freshly resolves a selected reference and validates the header
+before the shared TLS cache/client preparation. A lease is retained through
+preparation and cloned into actual blocking reads. Each result owns its client
+and key independently. Fixed outer diagnostics retain internal typed causes.
+Three new cases exercise actual loopback headers after two secret edits, deletion,
+local/disabled/unknown choice against a corrupt store, and absent/blank/invalid
+header keys. They are uncompiled staged source, not registry/product evidence.
