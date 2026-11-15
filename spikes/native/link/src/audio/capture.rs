@@ -66,17 +66,38 @@ pub enum AcquireError {
     Device(#[from] DeviceFailure),
 }
 
-/// One 10 ms PCM16 mono frame at16kHz, bound to its acquisition identity.
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[derive(Debug)]
+pub(super) struct Held {
+    audio: super::dsp::Captured,
+    permit: super::budget::Permit,
+}
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+impl Held {
+    pub(super) fn new(audio: super::dsp::Captured, permit: super::budget::Permit) -> Self {
+        Self { audio, permit }
+    }
+}
+
+/// One10ms PCM16 mono frame at16kHz, bound to its acquisition identity.
+/// Keep the frame (or its owning batch) alive until the upload acknowledges it:
+/// its private permit accounts for retained audio across all capture stages.
 pub struct Frame {
     lease: CaptureLease,
     pcm: Bytes,
     level: vessel_app_view::voice::Level,
+    _permit: super::budget::Permit,
 }
 impl Frame {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
-    pub(super) fn new(lease: CaptureLease, audio: super::dsp::Captured) -> Self {
-        let (pcm, level) = audio.into_parts();
-        Self { lease, pcm, level }
+    pub(super) fn new(lease: CaptureLease, held: Held) -> Self {
+        let (pcm, level) = held.audio.into_parts();
+        Self {
+            lease,
+            pcm,
+            level,
+            _permit: held.permit,
+        }
     }
     /// Routing is determined by this acquisition, never by the current UI route.
     #[must_use]

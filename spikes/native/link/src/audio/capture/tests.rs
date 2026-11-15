@@ -38,7 +38,13 @@ async fn a_queued_frame_has_typed_fixed_metadata_and_stop_discards_it() {
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let format = Format::new(RateHz::new(16_000).unwrap(), Channels::Mono).unwrap();
     let mut processor = Processor::capture_only(format).unwrap();
-    let frame = Frame::new(owner.lease(), processor.capture(&[0.0; 160]).unwrap());
+    let frame = Frame::new(
+        owner.lease(),
+        Held::new(
+            processor.capture(&[0.0; 160]).unwrap(),
+            owner.budget().reserve().unwrap(),
+        ),
+    );
     assert_eq!(frame.format().rate().get(), 16_000);
     assert_eq!(frame.format().channels(), Channels::Mono);
     assert_eq!(frame.format().frames().get(), 160);

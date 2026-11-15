@@ -1,4 +1,5 @@
-use super::super::dsp::{Captured, Processor};
+use super::super::capture::Held;
+use super::super::dsp::Processor;
 use super::super::format::{Channels, Format, RateHz};
 use super::super::owner::{Engine, State};
 use super::*;
@@ -16,7 +17,7 @@ impl CaptureDevice for Device {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
+    async fn receive(&mut self) -> Result<Held, DeviceFailure> {
         self.fence.close();
         std::future::pending().await
     }
@@ -58,7 +59,7 @@ fn a_slow_device_destructor_keeps_the_slot_after_callbacks_are_fenced() {
     let (release, released) = blocking::sync_channel(1);
     let (sender, _receiver) = mpsc::channel(1);
     let task = std::thread::spawn(move || {
-        run(owner, &sender, |fence| {
+        run(owner, &sender, |fence, _budget| {
             Ok(Device {
                 fence,
                 dropped,
@@ -76,16 +77,22 @@ fn a_slow_device_destructor_keeps_the_slot_after_callbacks_are_fenced() {
     assert!(engine.reserve(CapturePurpose::Dictation).is_ok());
 }
 
-struct Frames(Processor);
+struct Frames(Processor, Budget);
 impl CaptureDevice for Frames {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    fn receive(&mut self) -> impl Future<Output = Result<Captured, DeviceFailure>> {
+    fn receive(&mut self) -> impl Future<Output = Result<Held, DeviceFailure>> {
         std::future::ready(
-            self.0
-                .capture(&[0.0; 160])
-                .map_err(|_private| DeviceFailure::Processing),
+            self.1
+                .reserve()
+                .map_err(|_private| DeviceFailure::Overrun)
+                .and_then(|permit| {
+                    self.0
+                        .capture(&[0.0; 160])
+                        .map(|audio| Held::new(audio, permit))
+                        .map_err(|_private| DeviceFailure::Processing)
+                }),
         )
     }
     fn failure(&self) -> Option<DeviceFailure> {
@@ -99,7 +106,9 @@ fn normalized_queue_overrun_disposes_the_device_and_cannot_reuse_a_generation() 
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, mut receiver) = mpsc::channel(1);
-    run(owner, &sender, |_fence| Ok(Frames(processor())));
+    run(owner, &sender, |_fence, budget| {
+        Ok(Frames(processor(), budget))
+    });
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Overrun));
     let frame = receiver.try_recv().unwrap();
     assert_eq!(frame.lease(), handle.lease());
@@ -116,7 +125,9 @@ fn opening_failure_releases_reservation_without_any_running_state() {
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, _receiver) = mpsc::channel(1);
-    run::<Frames>(owner, &sender, |_fence| Err(DeviceFailure::Unavailable));
+    run::<Frames>(owner, &sender, |_fence, _budget| {
+        Err(DeviceFailure::Unavailable)
+    });
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Unavailable));
     assert!(engine.reserve(CapturePurpose::Conversation).is_ok());
 }
@@ -130,7 +141,7 @@ impl CaptureDevice for Silent {
             .send(())
             .map_err(|_private| DeviceFailure::Thread)
     }
-    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
+    async fn receive(&mut self) -> Result<Held, DeviceFailure> {
         std::future::pending().await
     }
     fn failure(&self) -> Option<DeviceFailure> {
@@ -147,7 +158,7 @@ fn stop_wakes_a_silent_device_without_waiting_for_another_callback() {
     let (done, finished) = blocking::sync_channel(1);
     let (sender, _receiver) = mpsc::channel(1);
     let task = std::thread::spawn(move || {
-        run(owner, &sender, |_fence| Ok(Silent { started }));
+        run(owner, &sender, |_fence, _budget| Ok(Silent { started }));
         done.send(()).unwrap();
     });
     running.recv_timeout(Duration::from_secs(2)).unwrap();

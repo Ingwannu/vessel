@@ -4,6 +4,8 @@
 //! The public API exposes dictation capture; conversation acquisition is
 //! refused until duplex playback is wired. Tests open no device.
 
+mod budget;
+pub use budget::CAPTURE_QUEUE_BYTES;
 mod capture;
 pub use capture::{AcquireError, Capture, CaptureControl, CaptureState, DeviceFailure, Frame};
 pub use format::{Channels, Format, FormatError, FrameCount, RateHz};
@@ -42,3 +44,6 @@ pub(super) enum AudioError {
     #[error("audio processing failed")]
     Processor(#[source] sonora::Error),
 }
+
+#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
+pub(crate) mod testing;

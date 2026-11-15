@@ -13,6 +13,7 @@ use tokio::sync::watch;
 use vessel_app_view::audio::{CaptureCompletion, CaptureLease, CapturePurpose, CaptureSlot};
 
 use super::AudioError;
+use super::budget::Budget;
 use crate::cancel::Fence;
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
@@ -33,6 +34,7 @@ pub(super) struct Owner {
     fence: Arc<Fence>,
     status: watch::Sender<State>,
     failure: Option<DeviceFailure>,
+    budget: Budget,
 }
 
 /// This handle gates callbacks; it cannot release physical ownership.
@@ -63,6 +65,7 @@ impl Engine {
                 fence: Arc::clone(&fence),
                 status,
                 failure: None,
+                budget: Budget::default(),
             },
             Handle {
                 lease,
@@ -74,6 +77,9 @@ impl Engine {
 }
 
 impl Owner {
+    pub(super) fn budget(&self) -> Budget {
+        self.budget.clone()
+    }
     pub(super) const fn lease(&self) -> CaptureLease {
         self.lease
     }

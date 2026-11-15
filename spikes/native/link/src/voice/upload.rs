@@ -4,29 +4,38 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
+#[cfg(test)]
 use bytes::Bytes;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc, watch};
 
 use crate::cancel::Fence;
 
 const CAPTURE_QUEUE_FRAMES: usize = 100;
-// 2 seconds at16kHz mono PCM16, including any in-flight upload.
-const CAPTURE_QUEUE_BYTES: usize = 64_000;
+use crate::audio::CAPTURE_QUEUE_BYTES;
 const MAX_FRAME_BYTES: usize = 3_200;
 const STOP_DEADLINE: Duration = Duration::from_secs(10);
 
 /// This is a local capture frame, not a proposed RPC request.
-pub(super) struct Frame(Bytes);
+pub(super) struct Frame(Source);
+
+#[derive(Debug)]
+enum Source {
+    #[cfg(test)]
+    Bytes(Bytes),
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    Capture(crate::audio::Frame),
+}
 
 impl std::fmt::Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Frame")
-            .field("bytes", &self.0.len())
+            .field("bytes", &self.pcm().len())
             .finish()
     }
 }
 
 impl Frame {
+    #[cfg(test)]
     pub(super) fn new(bytes: Bytes) -> Result<Self, CaptureError> {
         if bytes.is_empty()
             || !bytes.len().is_multiple_of(size_of::<i16>())
@@ -34,11 +43,29 @@ impl Frame {
         {
             return Err(CaptureError::Invalid);
         }
-        Ok(Self(bytes))
+        Ok(Self(Source::Bytes(bytes)))
     }
 
     pub(super) fn pcm(&self) -> &[u8] {
-        &self.0
+        match &self.0 {
+            #[cfg(test)]
+            Source::Bytes(bytes) => bytes,
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Source::Capture(frame) => frame.pcm(),
+        }
+    }
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    pub(super) fn from_capture(
+        expected: vessel_app_view::audio::CaptureLease,
+        frame: crate::audio::Frame,
+    ) -> Result<Self, CaptureError> {
+        if frame.lease() != expected {
+            return Err(CaptureError::Stopped);
+        }
+        if expected.purpose() != vessel_app_view::audio::CapturePurpose::Conversation {
+            return Err(CaptureError::Invalid);
+        }
+        Ok(Self(Source::Capture(frame)))
     }
 }
 

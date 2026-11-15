@@ -210,3 +210,46 @@ async fn an_in_flight_upload_keeps_its_byte_permit_until_cancelled() {
     task.await.unwrap();
     assert_eq!(handle.status().borrow().remote, Remote::Stopped);
 }
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[tokio::test]
+async fn the_same_capture_budget_survives_device_normalization_queue_and_upload() {
+    use crate::audio::testing::CaptureFixture;
+    use vessel_app_view::audio::CapturePurpose;
+    let mut device = CaptureFixture::new(CapturePurpose::Conversation);
+    let lease = device.lease();
+    let (capture, handle, actor) = with_fence(device.fence());
+    for _ in 0..CAPTURE_QUEUE_FRAMES {
+        capture
+            .submit(Frame::from_capture(lease, device.frame()).unwrap())
+            .unwrap();
+    }
+    let probe = Arc::new(Probe::default());
+    let (upload_tx, upload_rx) = oneshot::channel();
+    let (stop_tx, stop_rx) = oneshot::channel();
+    let (reply_tx, reply_rx) = oneshot::channel();
+    let task = tokio::spawn(actor.run(
+        Node {
+            probe: Arc::clone(&probe),
+            entered_upload: Some(upload_tx),
+            entered_stop: Some(stop_tx),
+            stop_reply: reply_rx,
+        },
+        Device {
+            probe,
+            release: Ok(()),
+        },
+    ));
+    upload_rx.await.unwrap();
+    // One in flight plus99queued; moving out of either queue retained all permits.
+    assert_eq!(device.available(), 32_000);
+    capture
+        .submit(Frame::from_capture(lease, device.frame()).unwrap())
+        .unwrap();
+    assert_eq!(device.available(), 31_680);
+    handle.stop();
+    stop_rx.await.unwrap();
+    assert_eq!(device.available(), CAPTURE_QUEUE_BYTES);
+    reply_tx.send(Ok(())).unwrap();
+    task.await.unwrap();
+}

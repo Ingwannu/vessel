@@ -7,8 +7,10 @@ use std::time::Duration;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use tokio::sync::mpsc;
 
+use super::budget::Budget;
 use super::callback::{Callback, Samples};
-use super::dsp::{Captured, Processor};
+use super::capture::Held;
+use super::dsp::Processor;
 use super::format::{Channels, Format, RateHz};
 use super::owner::DeviceFailure;
 use crate::cancel::Fence;
@@ -17,7 +19,7 @@ const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(super) trait CaptureDevice {
     fn start(&self) -> Result<(), DeviceFailure>;
-    async fn receive(&mut self) -> Result<Captured, DeviceFailure>;
+    async fn receive(&mut self) -> Result<Held, DeviceFailure>;
     fn failure(&self) -> Option<DeviceFailure>;
 }
 
@@ -36,7 +38,7 @@ impl std::fmt::Debug for Native {
 }
 
 impl Native {
-    pub(super) fn open(fence: Arc<Fence>) -> Result<Self, DeviceFailure> {
+    pub(super) fn open(fence: Arc<Fence>, budget: Budget) -> Result<Self, DeviceFailure> {
         let device = cpal::default_host()
             .default_input_device()
             .ok_or(DeviceFailure::Unavailable)?;
@@ -49,7 +51,7 @@ impl Native {
         let format = Format::new(rate, channels).map_err(|_private| DeviceFailure::Format)?;
         let processor =
             Processor::capture_only(format).map_err(|_private| DeviceFailure::Processing)?;
-        let (callback, frames) = Callback::channel(format, Arc::clone(&fence));
+        let (callback, frames) = Callback::channel(format, Arc::clone(&fence), budget);
         let overrun = callback.overrun();
         let interrupted = Arc::new(AtomicBool::new(false));
         let stream = build(&device, &config, callback, fence, Arc::clone(&interrupted))?;
@@ -70,10 +72,12 @@ impl CaptureDevice for Native {
             .map_err(|_private| DeviceFailure::Unavailable)
     }
 
-    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
+    async fn receive(&mut self) -> Result<Held, DeviceFailure> {
         let frame = self.frames.recv().await.ok_or(DeviceFailure::Interrupted)?;
+        let (samples, permit) = frame.into_parts();
         self.processor
-            .capture(frame.as_slice())
+            .capture(&samples)
+            .map(|audio| Held::new(audio, permit))
             .map_err(|_private| DeviceFailure::Processing)
     }
 

@@ -13,6 +13,7 @@ use crate::cancel::Fence;
 
 const NORMALIZED_QUEUE_BLOCKS: usize = 100;
 
+use super::budget::Budget;
 use super::capture::Frame;
 
 pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure> {
@@ -27,12 +28,12 @@ pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure
 fn run<D: CaptureDevice>(
     mut owner: Owner,
     sender: &mpsc::Sender<Frame>,
-    open: impl FnOnce(Arc<Fence>) -> Result<D, DeviceFailure>,
+    open: impl FnOnce(Arc<Fence>, Budget) -> Result<D, DeviceFailure>,
 ) {
     if owner.stopped() {
         return;
     }
-    match open(owner.fence()) {
+    match open(owner.fence(), owner.budget()) {
         Ok(mut device) => {
             let result = match tokio::runtime::Builder::new_current_thread().build() {
                 Ok(runtime) => runtime.block_on(capture(&owner, sender, &mut device)),

@@ -8,7 +8,8 @@ fn format() -> Format {
 #[test]
 fn arbitrary_callback_boundaries_preserve_pcm_order_and_stop_fences_the_partial_tail() {
     let fence = Arc::new(Fence::default());
-    let (mut callback, mut frames) = Callback::channel(format(), Arc::clone(&fence));
+    let (mut callback, mut frames) =
+        Callback::channel(format(), Arc::clone(&fence), Budget::default());
     callback.accept(&[8_192_i16; 159]);
     assert!(frames.try_recv().is_err());
     callback.accept(&[8_192_i16; 2]);
@@ -30,7 +31,8 @@ fn arbitrary_callback_boundaries_preserve_pcm_order_and_stop_fences_the_partial_
 #[test]
 fn full_data_queue_closes_capture_out_of_band() {
     let fence = Arc::new(Fence::default());
-    let (mut callback, mut frames) = Callback::channel(format(), Arc::clone(&fence));
+    let (mut callback, mut frames) =
+        Callback::channel(format(), Arc::clone(&fence), Budget::default());
     let overrun = callback.overrun();
     for _ in 0..CALLBACK_QUEUE_BLOCKS {
         callback.accept(&[0_i16; 160]);
@@ -51,7 +53,7 @@ fn owner_stop_immediately_fences_a_partial_device_callback_while_slot_is_held() 
     let engine = Engine::default();
     let (owner, handle) = engine.reserve(CapturePurpose::Conversation).unwrap();
     owner.started().unwrap();
-    let (mut callback, mut frames) = Callback::channel(format(), owner.fence());
+    let (mut callback, mut frames) = Callback::channel(format(), owner.fence(), owner.budget());
     callback.accept(&[1_i16; 159]);
     handle.stop();
     callback.accept(&[1_i16; 320]);

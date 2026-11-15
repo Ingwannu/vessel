@@ -309,3 +309,20 @@ Public capture API, RMS, overlay values, glyphs and staged output compile under
 strict narrow25e5c8d9 except one unnecessarily qualified Future in the fake
 reader signature. Fixed to the2024-prelude name. This is compiler evidence only;
 no runtime/device/consumer-ready claim follows until the new head's checks pass.
+
+### Acquisition-wide capture accounting
+
+The per-stage caps alone could retain up to4s(raw1s+normalized1s+uploader2s).
+Each hardware10ms block now reserves320 normalized PCM bytes from the owner's
+single64000-byte budget before buffering begins. Its opaque permit moves with
+the raw block, normalized Frame, and capture-backed uploader Frame, including
+an in-flight request. The2s bound is therefore shared rather than added across
+queues. Existing per-channel caps remain stricter local pressure limits.
+
+Consumers retain Frame or its owning batch through upload acknowledgement;
+public Frame is not cloneable and its fields/permit are private. Captured-source
+upload validates the exact capture lease/purpose. Bare-byte frames are test-only.
+Stop drains/retires the owned frames before remote teardown; a synthetic-device
+regression checks permits survive channel transfer and are all released while
+the remote Stop reply is held. No microphone opens in that fixture. Compile and
+runtime checks of this accounting change are still owed.
