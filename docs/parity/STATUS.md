@@ -1,6 +1,6 @@
 # Paseo parity: where the work stands
 
-Updated 2026-11-15, 17:25 UTC. The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
+Updated 2026-11-15, 17:15 UTC. The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
 
 ## Measured score (source coverage, 1,419 catalogue rows)
 
