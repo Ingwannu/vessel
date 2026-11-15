@@ -156,7 +156,7 @@ impl TreeDigest {
         records.sort_by(|a, b| a.path.as_str().cmp(b.path.as_str()));
         if records
             .windows(2)
-            .any(|pair| pair[0].path.as_str() == pair[1].path.as_str())
+            .any(|pair| matches!(pair, [left, right] if left.path.as_str() == right.path.as_str()))
         {
             return Err(Problem::Duplicate);
         }

@@ -118,12 +118,13 @@ fn names_and_links_are_bounded_and_invalid_name_diagnostics_keep_input_sealed() 
     ));
     assert!(matches!(LinkTarget::new(""), Err(Problem::Link)));
     assert!(matches!(LinkTarget::new("bad\0target"), Err(Problem::Link)));
-    let error = Record::new(
+    let error = match Record::new(
         "../PRIVATE-ARTIFACT-CANARY",
         Kind::Directory { executable: true },
-    )
-    .err()
-    .expect("invalid path");
+    ) {
+        Err(error) => error,
+        Ok(_) => panic!("invalid path accepted"),
+    };
     let mut source: Option<&(dyn Error + 'static)> = Some(&error);
     while let Some(error) = source {
         assert!(!format!("{error:?} {error}").contains("PRIVATE-ARTIFACT-CANARY"));
