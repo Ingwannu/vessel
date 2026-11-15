@@ -138,3 +138,33 @@ control in the shared picker's14-point leading column. The permitted dot6
 fallback is retained; no unlanded Dot8 producer is assumed. The same pure Fleet
 reach rule supplies the selected trigger and every option. This source delta
 is not covered by the earlier queued cb96 check.
+
+## Viewer calendar lookup
+
+[Decision Log]
+- Purpose: show absolute next-run times in the viewer's platform zone, with the
+  cron rule's zone separately named; a remote machine's zone is not the viewer's.
+- Existing seams: Jiff's platform lookup and the already pinned/bundled pure
+  Clock. No extra time library or local schedule projection is introduced.
+- Choice: native Link enables tz-system at the same pin and performs lookup in
+  a blocking worker retained within the bounded request. A validated IANA name
+  resolves through the bundled Clock. The full lookup/task/calendar error stays
+  typed beside the list answer, and accepted-ticket correlation controls updates.
+- Alternative rejected: platform filesystem reads in View/Render, guessing the
+  remote zone, or replacing a failed lookup with a claim of known UTC.
+- Cost: lookup per list read (Jiff's system cache remains its responsibility).
+  An unavailable identity uses the existing explicitly labelled unknown-viewer
+  UTC phrases. This delta's narrow compilation/runtime checks remain owed.
+
+Corrected shared HostErrors radius8 was consumed from G4 7f9c6d19/ad1d147a as
+6eb1071a/4c71f8a0 after V1 producer SOURCE/NARROW closure. Only that exact control
+and its docs were taken. Final F1 gate and actual host-banner captures remain
+unverified; the old radius12 gate is not evidence for this corrected source.
+
+The immutable cb96 narrow compiled all four native crates and stopped with seven
+App compile findings: nonexistent spacing S5 twice, missing InteractiveElement
+import, Tokens::status used as a field three times, and invalid Leading::None.
+No tests ran. The option-leading fix is904948fc; the remaining repairs use the
+existing status() accessor, the interactive trait and shared ICON_SIZE.lg20
+constant (the spacing scale intentionally has no key5). These diagnostics are
+retained in the cb96 run, never presented as later-source test evidence.

@@ -229,12 +229,14 @@ impl Page {
     }
 
     /// Apply only the expected read and preserve row-local permission evidence.
-    pub fn listed(&mut self, request: &Request, answer: Result<Snapshot, Failure>) {
+    /// True means this exact successful snapshot was accepted, so its auxiliary
+    /// viewer calendar may update the comparable presentation cache.
+    pub fn listed(&mut self, request: &Request, answer: Result<Snapshot, Failure>) -> bool {
         if request.ask != Ask::List || !self.retire(request) {
-            return;
+            return false;
         }
         let Some(cache) = self.caches.get_mut(&request.machine) else {
-            return;
+            return false;
         };
         let answer = answer.and_then(|snapshot| {
             let mut identities = std::collections::BTreeSet::new();
@@ -250,7 +252,7 @@ impl Page {
         });
         let succeeded = answer.is_ok();
         if !cache.read.settle(request.ticket, answer) {
-            return;
+            return false;
         }
         if let Some(snapshot) = cache.read.snapshot() {
             if succeeded && let Ok(scopes) = &snapshot.scopes {
@@ -267,6 +269,7 @@ impl Page {
                 }
             }
         }
+        succeeded
     }
 
     fn selected(&self, key: &MachineKey) -> bool {

@@ -6,8 +6,8 @@ use vessel_app_kit::{
     self as kit, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
     theme::spacing,
     ui::{
-        AnyElement, Context, Div, IntoElement as _, ParentElement as _, SharedString,
-        StatefulInteractiveElement as _, Styled as _, Window, div, px,
+        AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+        SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
     },
 };
 use vessel_app_view::schedules::{locale, page::Body, presentation::Notice};
@@ -228,7 +228,7 @@ fn empty(shell: &Shell, tokens: &Tokens) -> Div {
         }))
         .child(kit::picker::glyph(
             kit::assets::Glyph::CalendarClock,
-            spacing::S5,
+            kit::theme::icon::LG,
             tokens.neutral.foreground_muted,
         ))
         .child(words)

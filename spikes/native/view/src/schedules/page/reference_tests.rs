@@ -50,11 +50,15 @@ fn reference_aggregate_inputs_keep_the_same_body_decisions() {
         for (request, host) in requests.iter().zip(case.hosts) {
             match host {
                 Host::Connecting => {}
-                Host::Empty => page.listed(request, Ok(snapshot(Vec::new()))),
+                Host::Empty => {
+                    page.listed(request, Ok(snapshot(Vec::new())));
+                }
                 Host::Content => {
                     page.listed(request, Ok(snapshot(vec![super::super::tests::info()])));
                 }
-                Host::Failed => page.listed(request, Err(Failure::Offline)),
+                Host::Failed => {
+                    page.listed(request, Err(Failure::Offline));
+                }
             }
         }
         assert_eq!(page.body(), case.body.into(), "{}", case.id);

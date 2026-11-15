@@ -97,7 +97,7 @@ fn words(row: &PreparedRow, tokens: &Tokens) -> Div {
 fn mark(row: &PreparedRow, tokens: &Tokens) -> Div {
     div()
         .w(px(kit::agent_mark::Size::Sixteen.points()))
-        .h(px(spacing::S5))
+        .h(px(kit::theme::icon::LG))
         .flex_none()
         .flex()
         .items_center()

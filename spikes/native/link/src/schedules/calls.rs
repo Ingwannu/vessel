@@ -52,6 +52,7 @@ impl Hub {
     }
 }
 async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
+    let clock = super::clock::viewer_clock().await;
     let schedules = client.schedules().await?;
     // This authenticated self-query needs no device-list permission. Its failure
     // must not turn an otherwise valid list into a read-only screen.
@@ -94,6 +95,7 @@ async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
     };
     Ok(Value::List(Box::new(ListValue {
         schedules,
+        clock,
         scopes,
         projects,
         worktrees,

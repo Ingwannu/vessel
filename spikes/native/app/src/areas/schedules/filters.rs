@@ -30,9 +30,9 @@ fn leading(value: MachineLeading, tokens: &Tokens) -> AnyElement {
 }
 fn status_color(variant: vessel_app_view::badge::Variant, tokens: &Tokens) -> kit::ui::Hsla {
     match variant {
-        vessel_app_view::badge::Variant::Success => tokens.status.success.foreground,
-        vessel_app_view::badge::Variant::Warning => tokens.status.warning.foreground,
-        vessel_app_view::badge::Variant::Error => tokens.status.error.foreground,
+        vessel_app_view::badge::Variant::Success => tokens.status().success.foreground,
+        vessel_app_view::badge::Variant::Warning => tokens.status().warning.foreground,
+        vessel_app_view::badge::Variant::Error => tokens.status().error.foreground,
         vessel_app_view::badge::Variant::Muted => tokens.neutral.foreground_muted,
     }
 }

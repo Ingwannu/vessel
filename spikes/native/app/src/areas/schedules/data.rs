@@ -1,7 +1,7 @@
 //! Node-answer and comparable presentation cache. This module never draws or
 //! dispatches; View remains the authority for rows, permissions and correlation.
 use vessel_app_kit::ui::SharedString;
-use vessel_app_link::schedules::{Answer, ListValue, Message, Value};
+use vessel_app_link::schedules::{Answer, ListValue, Message, Value, ViewerClockError};
 use vessel_app_view::schedules::{
     clock::Clock,
     load::Failure,
@@ -17,7 +17,7 @@ pub(super) struct Data {
     pub(super) blocking: Vec<Notice>,
     pub(super) local: Option<Notice>,
     pub(super) body: Body,
-    pub(super) clock: Clock,
+    pub(super) clock: Result<Clock, ViewerClockError>,
 }
 impl Default for Data {
     fn default() -> Self {
@@ -28,7 +28,7 @@ impl Default for Data {
             blocking: Vec::new(),
             local: None,
             body: Body::Loading,
-            clock: Clock::unknown(),
+            clock: Err(ViewerClockError::Unavailable),
         }
     }
 }
@@ -44,13 +44,20 @@ impl Data {
         let ask = answer.request.ask;
         let result = answer.result.map_err(|error| error.failure(ask));
         match ask {
-            Ask::List => self.page.listed(
-                &answer.request,
-                result.and_then(|value| match value {
-                    Value::List(list) => Ok(snapshot(*list)),
-                    Value::Written(_) => Err(Failure::Unexpected),
-                }),
-            ),
+            Ask::List => match result {
+                Ok(Value::List(list)) => {
+                    let (snapshot, clock) = snapshot(*list);
+                    if self.page.listed(&answer.request, Ok(snapshot)) {
+                        self.clock = clock;
+                    }
+                }
+                Ok(Value::Written(_)) => {
+                    self.page.listed(&answer.request, Err(Failure::Unexpected));
+                }
+                Err(error) => {
+                    self.page.listed(&answer.request, Err(error));
+                }
+            },
             Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => {
                 self.page.written(
                     &answer.request,
@@ -63,12 +70,13 @@ impl Data {
         }
     }
 }
-fn snapshot(list: ListValue) -> Snapshot {
-    Snapshot {
+fn snapshot(list: ListValue) -> (Snapshot, Result<Clock, ViewerClockError>) {
+    let snapshot = Snapshot {
         schedules: list.schedules,
         scopes: list.scopes.map_err(|error| error.failure(Ask::List)),
         read_at: list.read_at,
         projects: list.projects.map_err(|error| error.failure(Ask::List)),
         worktrees: list.worktrees.map_err(|error| error.failure(Ask::List)),
-    }
+    };
+    (snapshot, list.clock)
 }

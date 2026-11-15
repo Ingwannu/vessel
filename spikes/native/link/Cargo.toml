@@ -32,6 +32,7 @@ tracing.workspace = true
 vessel-client.workspace = true
 dirs.workspace = true
 hostname.workspace = true
+jiff = { workspace = true, features = ["tz-system"] }
 tokio.workspace = true
 
 # In a browser (docs/plans/backend-m12-browser.md): the same channels, a

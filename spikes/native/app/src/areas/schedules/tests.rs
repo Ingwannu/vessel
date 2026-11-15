@@ -97,3 +97,43 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
     }));
     assert!(!area.page.row(&row).unwrap().actions().is_empty());
 }
+
+#[test]
+fn only_an_accepted_list_can_replace_the_viewer_calendar() {
+    use vessel_app_link::schedules::{ListValue, ViewerClockError};
+    use vessel_app_view::schedules::clock::Clock;
+    fn value(zone: &str) -> Value {
+        Value::List(Box::new(ListValue {
+            schedules: vec![],
+            scopes: Err(ScheduleError::Offline),
+            clock: Ok(Clock::known(zone.parse().unwrap()).unwrap()),
+            projects: Ok(vec![]),
+            worktrees: Ok(vec![]),
+            read_at: chrono::DateTime::UNIX_EPOCH,
+        }))
+    }
+    let (mut area, old) = initial().unwrap();
+    area.page.refresh();
+    let current = area.page.due(chrono::DateTime::UNIX_EPOCH).remove(0);
+    area.answered(Answer {
+        request: old,
+        result: Ok(value("Asia/Seoul")),
+    });
+    assert!(matches!(area.clock, Err(ViewerClockError::Unavailable)));
+    area.answered(Answer {
+        request: current.clone(),
+        result: Ok(value("America/New_York")),
+    });
+    assert_eq!(
+        area.clock.as_ref().unwrap().name().unwrap().as_str(),
+        "America/New_York"
+    );
+    area.answered(Answer {
+        request: current,
+        result: Ok(value("Asia/Seoul")),
+    });
+    assert_eq!(
+        area.clock.as_ref().unwrap().name().unwrap().as_str(),
+        "America/New_York"
+    );
+}

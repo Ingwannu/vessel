@@ -11,13 +11,9 @@ use vessel_app_view::{
 };
 impl Area {
     pub(super) fn rebuild(&mut self, fleet: &Fleet, catalog: &Translator) -> bool {
-        let rows = presentation::rows(
-            &self.data.page,
-            fleet,
-            chrono::Utc::now(),
-            &self.data.clock,
-            catalog,
-        );
+        let fallback = vessel_app_view::schedules::clock::Clock::unknown();
+        let clock = self.data.clock.as_ref().unwrap_or(&fallback);
+        let rows = presentation::rows(&self.data.page, fleet, chrono::Utc::now(), clock, catalog);
         let body = self.data.page.body();
         let host_errors: Vec<SharedString> = self
             .data

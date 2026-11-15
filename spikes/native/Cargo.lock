@@ -3560,6 +3560,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde_core",
+ "windows-link 0.2.1",
 ]
 
 [[package]]
@@ -7602,6 +7603,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "hostname",
+ "jiff",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

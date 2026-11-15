@@ -10,6 +10,8 @@
 //!   delivery, no write retry, and full errors until the presentation edge.
 //! - Why and cost: slow calls cannot stall fleet traffic or grow without a
 //!   limit. Saturation returns an explicit Busy answer instead of a dead click.
+mod clock;
+pub use clock::ViewerClockError;
 pub use vessel_app_view::schedules::page::Request;
 use vessel_app_view::schedules::{
     load::Failure,
@@ -25,6 +27,8 @@ use vessel_proto::{
 pub struct ListValue {
     /// Exactly the node's schedule list; no locally synthesized states.
     pub schedules: Vec<ScheduleInfo>,
+    /// Viewer platform calendar, never the remote machine's zone.
+    pub clock: Result<vessel_app_view::schedules::clock::Clock, ViewerClockError>,
     /// Effective grant from device.self; an unavailable report is never a denial.
     pub scopes: Result<Vec<vessel_proto::Scope>, ScheduleError>,
     /// Read completion time, used only for refreshing the cache.

@@ -300,4 +300,6 @@ pub mod radius {
 pub mod icon {
     /// `ICON_SIZE.sm`: an icon-only action's glyph.
     pub const SM: f32 = 14.0;
+    /// `ICON_SIZE.lg`: schedule empty icon and the row mark line box.
+    pub const LG: f32 = 20.0;
 }
