@@ -131,6 +131,10 @@ gpui = { package = "gpui-pre", version = "=0.3.10" }
 # single-threaded (docs/plans/backend-m12-browser.md, question 1).
 gpui-platform = { package = "gpui-pre-platform", version = "=0.3.10", default-features = false, features = ["x11", "wayland"] }
 gpui-component = { version = "=0.8.1", default-features = false }
+# GPUI's Windows platform, named directly only by Windows-only code for
+# what the vendored copy adds beside the platform (its environment
+# broadcast; spikes/release/patches/README.md, change 6).
+gpui-windows = { package = "gpui-pre-windows", version = "=0.3.10" }
 # The component layer's editing engine, used directly by the kit's field
 # for its unstyled inputs (the component layer's own input repaints its
 # theme over a field's colours every frame).
