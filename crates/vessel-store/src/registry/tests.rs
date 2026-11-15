@@ -133,7 +133,7 @@ fn membership_is_unique_and_archiving_claim_blocks_new_admission() {
                 expected: archiving.descriptor.revision
             }
         ),
-        Err(StoreError::RegistryConflict)
+        Err(StoreError::RegistryInactive(_))
     ));
     assert_eq!(load(&db).unwrap(), before);
 }
@@ -508,3 +508,25 @@ mod capacity;
 mod automation;
 
 mod restart;
+
+#[test]
+fn admission_distinguishes_missing_inactive_and_active_without_changing_state() {
+    let mut db = db();
+    let id = WorkspaceId::random();
+    assert!(
+        matches!(write::require_active(&db,id),Err(StoreError::RegistryMissing(missing)) if missing==id)
+    );
+    let mut record = record(id);
+    put(&mut db, record.clone(), None).unwrap();
+    assert!(write::require_active(&db, id).is_ok());
+    record.descriptor.revision = RegistryRevision::ZERO.next().unwrap();
+    record.descriptor.lifecycle = WorkspaceLifecycle::Restoring {
+        at: DateTime::UNIX_EPOCH,
+    };
+    put(&mut db, record, Some(RegistryRevision::ZERO)).unwrap();
+    let before = load(&db).unwrap();
+    assert!(
+        matches!(write::require_active(&db,id),Err(StoreError::RegistryInactive(inactive)) if inactive==id)
+    );
+    assert_eq!(load(&db).unwrap(), before);
+}
