@@ -74,11 +74,20 @@ impl NodeService {
             ));
         };
         principal.permit(vessel_proto::Method::PromptSession)?;
+        // Subscribe before the parent snapshot so its end cannot fall between
+        // that read and setup supervision's first poll.
+        let mut ends = self.sessions.ends();
         let own = self
             .sessions
             .get(*told)
             .await
             .map_err(|error| wire(&error))?;
+        if !own.status.is_live() {
+            return Err(WireError::new(
+                ErrorCode::Unavailable,
+                "a finished parent cannot receive remote notifications",
+            ));
+        }
         if matches!(own.spec.mode, SessionMode::Terminal { .. }) {
             return Err(WireError::new(
                 ErrorCode::Unsupported,
@@ -102,24 +111,26 @@ impl NodeService {
             told: *told,
             prompted: request.session,
         };
-        let ends = self.sessions.ends();
         let stop = self.lifecycle.stopping();
         let tasks = self.forwarders.clone();
         // The setup and accepted follower outlive cancellation of the MCP/RPC.
         self.forwarders
             .spawn(async move {
-                let info = remote
-                    .call(GetSession {
+                let (info, tracked) = supervision::setup(
+                    remote.call(GetSession {
                         session: request.session,
-                    })
-                    .await?;
-                let tracked = remote
-                    .call(TrackPrompt {
-                        session: request.session,
-                        content: request.content,
-                        delivery: request.delivery,
-                    })
-                    .await?;
+                    }),
+                    || {
+                        remote.call(TrackPrompt {
+                            session: request.session,
+                            content: request.content,
+                            delivery: request.delivery,
+                        })
+                    },
+                    teller.told_ended(&mut ends),
+                    &stop,
+                )
+                .await?;
                 let delivered = tracked.delivered;
                 let runner = RemoteTeller {
                     teller,
@@ -173,7 +184,10 @@ impl RemoteTeller {
             )
             .await;
             if cleanup != supervision::Cleanup::Confirmed {
-                tracing::warn!(?cleanup, "remote turn receipt cleanup was not confirmed");
+                tracing::warn!(
+                    ?cleanup,
+                    "remote notification finalization was not confirmed"
+                );
             }
         }));
     }
@@ -276,3 +290,8 @@ fn unavailable(error: &WireError) -> Notice {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod held_notice_tests;
+#[cfg(test)]
+mod setup_tests;

@@ -5,6 +5,8 @@ use vessel_proto::{Ack, ErrorCode, WireError};
 
 /// Cleanup may not retain a local Following permit behind an unresponsive peer.
 pub(super) const CLEANUP_BUDGET: Duration = Duration::from_secs(5);
+/// Setup can wait for an actor handover, but cannot retain shutdown forever.
+pub(super) const SETUP_BUDGET: Duration = Duration::from_secs(120);
 
 pub(super) enum End {
     Stopped,
@@ -38,12 +40,52 @@ where
         () = parent_ended => End::ParentEnded,
         result = follow => End::Followed(result),
     };
-    after(end).await;
-    // Timeout is explicitly uncertain. The remote receipt's existing finite
-    // expiry owns eventual reclamation; there is no automatic cleanup retry.
-    match tokio::time::timeout(CLEANUP_BUDGET, close).await {
-        Ok(Ok(_ack)) => Cleanup::Confirmed,
-        Ok(Err(error)) => Cleanup::Refused(error.code),
-        Err(_late) => Cleanup::Uncertain,
+    // Failure-notice delivery and close share one finite owner budget. A
+    // blocked parent queue must not prevent this timer from ever starting.
+    let finishing = async {
+        after(end).await;
+        match close.await {
+            Ok(_ack) => Cleanup::Confirmed,
+            Err(error) => Cleanup::Refused(error.code),
+        }
+    };
+    tokio::time::timeout(CLEANUP_BUDGET, finishing)
+        .await
+        .unwrap_or(Cleanup::Uncertain)
+}
+
+pub(super) async fn setup<T, U, L, P, M, E>(
+    lookup: L,
+    prompt: M,
+    parent_ended: E,
+    stop: &CancellationToken,
+) -> Result<(T, U), WireError>
+where
+    L: Future<Output = Result<T, WireError>>,
+    P: Future<Output = Result<U, WireError>>,
+    M: FnOnce() -> P,
+    E: Future<Output = ()>,
+{
+    let work = async {
+        let info = lookup.await?;
+        let tracked = prompt().await?;
+        Ok((info, tracked))
+    };
+    tokio::select! {
+        biased;
+        () = stop.cancelled() => Err(unknown_setup()),
+        () = parent_ended => Err(unknown_setup()),
+        result = tokio::time::timeout(SETUP_BUDGET, work) => {
+            result.unwrap_or_else(|_late| Err(unknown_setup()))
+        }
     }
+}
+
+fn unknown_setup() -> WireError {
+    // TrackPrompt may already have been dispatched. No absent-effect claim,
+    // fabricated receipt or automatic retry follows loss of its response.
+    WireError::new(
+        ErrorCode::Unavailable,
+        "remote notification setup could not be confirmed; inspect the worker before retrying",
+    )
 }

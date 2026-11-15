@@ -519,3 +519,36 @@ lost close succeeded. A captured production warning/parent-notice producer tests
 peer-error canaries. These are mechanism tests with synthetic homes/peer futures,
 not a claim of a live two-node run, global panic-hook sanitization or process-kill
 crash recovery. Exact changed-source strict/tests and V3 closure remain owed.
+
+
+Follow-up source review extended the lifetime correction to every reachable
+owner wait. Failure-notice delivery and receipt close now share the same finite
+five-second post-follow budget; a stalled notice never prevents the timer from
+starting and yields Uncertain rather than a confirmed close. Initial lookup and
+TrackPrompt also run under a single tracked setup owner with a named two-minute
+budget plus parent-end/node-stop cancellation. Caller RPC cancellation still
+leaves that admitted owner tracked. A withheld TrackPrompt response may already
+have effects: timeout/stop report only unconfirmed setup, never absence of an
+effect or a fabricated receipt, and no automatic new-key retry occurs.
+
+The common setup mechanism enforces lookup completion before creating the
+prompt future. Owned-slot/tracker tests hold each stage separately, abort the
+caller, then exercise deadline/stop/parent-end. A held failure-notice regression
+also proves release without even polling or claiming the later close. These
+new cases correct the initial immediately-ready-after fixture gap; their exact
+execution and reviewed-source closure remain owed.
+
+The atomic default delivery integration remains with W23's SubmitPrompt contract
+(row226 source passed, still TIMELINE_PARITY=None). Client-side ability discovery
+is not evidence of its SteerOrInterrupt actor decision or retained receipt result.
+This package awaits the checked assigned producer before replacing that facade.
+
+After this correction, tracker row618 additionally requires finish-subscription
+restart parity. Its work starts with an ADR0033 amendment and V3 contract review,
+then reuses the existing notices/notify watcher rather than adding a watcher.
+No subscription persistence implementation is included in this correction.
+
+The parent-end receiver is subscribed before reading the parent's live snapshot,
+so an end between that read and setup's first poll is retained. Already finished
+parents refuse before reserving Following capacity or dispatching remote setup.
+This uses the existing session-end stream and introduces no watcher or route.
