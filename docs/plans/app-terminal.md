@@ -460,6 +460,23 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   conversation and showed the refusal; only Geist Mono Regular was
   embedded, so bold and italic were drawn regular (three faces added,
   461 KB, `scripts/fonts.sh`).
-- Next: T1's release measurements (idle CPU with the screen shown, a
-  200×50 repaint's draw time and the process's CPU under `flood`) and
-  captures, then T2 (input, paste, resize, the query duty).
+- T1 measured (2026-11-15, release, Mesa lavapipe on Xvfb, a 1740×900
+  window, the grid about 200×51; `VESSEL_APP_FRAME_LOG`'s draw lines
+  and the process's CPU ticks): on the software renderer the app holds
+  motion still, so the cursor does not blink: idle 30 s, 14 ticks
+  (0.5% of a core) and no frame (an unchanged generation draws
+  nothing); `flood 4000 200` (800 KB), 20 s, 207 ticks and 5 frames,
+  draw 6.8 ms median. With `VESSEL_APP_REDUCE_MOTION=0`: the blink
+  draws 2 frames a second, draw 3.5 ms median (p90 4.9, max 7.9) for
+  the whole window with the grid rebuilt; the process's 71% of a core
+  is mostly lavapipe rasterising the window (it grows with the
+  pixels, frame_log's note); the flood drew 146 frames, 2.9 ms median
+  (p90 4.0, max 9.2). Output no longer draws the shell (c55cd2ea).
+- Captures (release): 1280×800 en dark and ko light, 1024×700 en light
+  and ko dark, 800×600 en dark and ko light, 390×844 en dark and ko
+  light, the sample session's colours, attributes, Hangul and cursor;
+  narrower windows reflow the history, nothing cut.
+- Next: a blink rebuilds every row (3.5 ms a frame above); keep the
+  painted rows (`Rc`) while the generation and scheme hold and change
+  only the cursor, then measure again. Then T2 (input, paste, resize,
+  the query duty), T3, T4.
