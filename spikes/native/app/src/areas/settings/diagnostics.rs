@@ -4,7 +4,7 @@ mod draw;
 use crate::shell::Shell;
 pub(crate) use draw::{dialogs, render};
 use vessel_app_kit::dialog::DialogState;
-use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::ui::{ClipboardItem, Context, Window};
 use vessel_app_link::{
     Command,
     diagnostics::{Ask, MAX_PARALLEL_HOSTS, Message},
@@ -12,7 +12,7 @@ use vessel_app_link::{
 use vessel_app_view::Reach;
 use vessel_app_view::devices::{MachineKey, Tickets};
 use vessel_app_view::diagnostics::collection::{
-    Collection, HostCount, MAX_REPORT_HOSTS, Phase, Problem, Progress,
+    Collection, HostCount, MAX_REPORT_HOSTS, Phase, Problem, Progress, ReportText,
 };
 use vessel_app_view::diagnostics::{self, AppFacts, Renderer};
 use vessel_app_view::prefs::Kept;
@@ -20,6 +20,7 @@ use vessel_app_view::prefs::Kept;
 pub(crate) struct State {
     pub(super) collection: Collection,
     pub(super) dialog: DialogState,
+    copied_notice: Option<&'static str>,
     tickets: Tickets,
     pub(super) target: Option<MachineKey>,
 }
@@ -28,12 +29,33 @@ impl State {
         Self {
             collection: Collection::default(),
             dialog: DialogState::new(cx),
+            copied_notice: None,
             tickets: Tickets::default(),
             target: None,
         }
     }
 }
 impl Shell {
+    /// Only a settled bounded report can cross the clipboard boundary.
+    fn copy_diagnostic(&mut self, report: &ReportText, cx: &mut Context<'_, Self>) {
+        cx.write_to_clipboard(ClipboardItem::new_string(report.as_str().to_owned()));
+        let copied = self.words.diagnostics().copied();
+        self.areas.settings.diagnostics.copied_notice = Some(copied);
+        self.notice = Some(copied.to_owned());
+        cx.notify();
+    }
+    /// Retain L's ownership check so another area's later notice is never replaced.
+    pub(crate) fn translate_diagnostic_notice(&mut self) {
+        let state = &mut self.areas.settings.diagnostics;
+        if let Some(previous) = state.copied_notice {
+            let copied = self.words.diagnostics().copied();
+            if self.notice.as_deref() == Some(previous) {
+                self.notice = Some(copied.to_owned());
+            }
+            state.copied_notice = Some(copied);
+        }
+    }
+
     fn run_diagnostic(
         &mut self,
         target: Option<MachineKey>,
@@ -206,3 +228,6 @@ fn host_requests(
     }
     hosts
 }
+
+#[cfg(test)]
+mod language_tests;

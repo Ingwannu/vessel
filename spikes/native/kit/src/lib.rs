@@ -52,6 +52,7 @@ pub mod qr;
 pub mod resize;
 
 pub mod screen_header;
+pub mod scroll_viewport;
 pub mod segmented;
 pub mod select;
 pub mod settings;
@@ -89,6 +90,7 @@ pub use picker::{
     anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
 };
 pub use screen_header::{compact_header, screen_header};
+pub use scroll_viewport::{ScrollState, ScrollViewport, SectionIndex};
 pub use sheet::{Edge, sheet};
 pub use theme::{Scheme, Tokens};
 pub use toast::{
@@ -99,7 +101,7 @@ pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
-    mark_mono, markdown, outline_button,
+    mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so

@@ -3,8 +3,8 @@ use crate::shell::Shell;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, ClipboardItem, Context, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::devices::MachineKey;
@@ -17,11 +17,11 @@ pub(crate) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let labels = shell.words.diagnostic_flow();
-    let legacy = shell.t.lang.settings();
-    let run = outline_button("settings-diagnostic-run", legacy.run, true, tokens)
+    let framing = shell.words.diagnostics();
+    let run = outline_button("settings-diagnostic-run", framing.run(), true, tokens)
         .on_click(cx.listener(|shell, _event, window, cx| shell.run_diagnostic(None, window, cx)));
     let app = settings::card(tokens).child(settings::row_at(
-        legacy.app_diagnostic,
+        framing.report_title(),
         Some(labels.privacy().into()),
         None,
         Some(run.into_any_element()),
@@ -88,11 +88,7 @@ pub(crate) fn render(
     div()
         .flex()
         .flex_col()
-        .child(settings::section(
-            legacy.section(vessel_app_view::settings::Section::Diagnostics),
-            app,
-            tokens,
-        ))
+        .child(settings::section(framing.title(), app, tokens))
         .child(settings::section(labels.hosts(), hosts, tokens))
         .child(settings::section(labels.partial(), sources, tokens))
         .into_any_element()
@@ -108,26 +104,29 @@ pub(crate) fn dialogs(
     if state.collection.phase() == &Phase::Hidden {
         return None;
     }
-    let legacy = shell.t.lang.settings();
+    let framing = shell.words.diagnostics();
     let labels = shell.words.diagnostic_flow();
     let report = state.collection.report().cloned();
     let copy = outline_button(
         "settings-diagnostic-copy",
-        legacy.copy,
+        framing.copy(),
         report.is_some(),
         tokens,
     )
     .on_click(cx.listener(move |shell, _event, _window, cx| {
         if let Some(report) = &report {
-            cx.write_to_clipboard(ClipboardItem::new_string(report.as_str().to_owned()));
-            shell.notice = Some(shell.t.lang.settings().diagnostic_copied.to_owned());
-            cx.notify();
+            shell.copy_diagnostic(report, cx);
         }
     }));
-    let refresh = outline_button("settings-diagnostic-refresh", legacy.refresh, true, tokens)
-        .on_click(cx.listener(|shell, _event, window, cx| {
-            shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx);
-        }));
+    let refresh = outline_button(
+        "settings-diagnostic-refresh",
+        framing.refresh(),
+        true,
+        tokens,
+    )
+    .on_click(cx.listener(|shell, _event, window, cx| {
+        shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx);
+    }));
     let mut body = div().flex().flex_col().gap(px(spacing::S3)).min_w_0();
     body = body.child(status_row(labels.client(), labels.done(), tokens));
     body = body.child(status_row(labels.desktop(), labels.unavailable(), tokens));
@@ -159,7 +158,7 @@ pub(crate) fn dialogs(
     Some(dialog(
         &state.dialog,
         DialogContent {
-            title: legacy.app_diagnostic.into(),
+            title: framing.report_title().into(),
             body: body.into_any_element(),
             footer: vec![refresh.into_any_element(), copy.into_any_element()],
             size: DialogSize::Wide,

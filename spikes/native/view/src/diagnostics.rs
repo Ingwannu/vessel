@@ -165,3 +165,7 @@ fn machine_section(machine: &Machine) -> String {
 
 mod redaction;
 pub use redaction::redact;
+
+#[cfg(test)]
+#[path = "diagnostics/words_tests.rs"]
+mod words_tests;

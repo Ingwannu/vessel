@@ -388,7 +388,7 @@ fn section_page(
     } else {
         Section::DEFAULT
     };
-    let title = shell.t.lang.settings().section(section);
+    let title = shell.t.lang.settings().section(section, shell.words);
     let body = sections::draw(section, shell, tokens, phone, window, cx)
         .unwrap_or_else(|| div().into_any_element());
     let body = div()

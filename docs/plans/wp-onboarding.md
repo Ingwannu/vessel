@@ -146,3 +146,19 @@ Resume: typed consumer compile check is queued. Connection message contract is
 written/tested in source; shared lifecycle producer is pending its owner's seam.
 The lead line now includes accepted Diagnostics localization at f2cb8cb6; merge
 that accepted integration and preserve its copy-notice/language contract.
+
+### Accepted localization integration
+
+Merged the lead's accepted localization integration `f2cb8cb6` (including
+Diagnostics 205f1e01). README append blocks both remain. In the owned view
+module, the expanded scanner/collection remain and L's words_tests registration
+is retained. The owned app State keeps the new collection plus L's copied_notice,
+copy handler and owner-checked language refresh. The copy boundary now accepts
+ReportText, so arbitrary raw text cannot bypass its limit/redaction.
+
+L's language tests keep every exact report/clipboard/notice/input assertion.
+Only fixture initialization and the moved report-field access use the typed
+collection API; the copy call wraps the same fixture in ReportText. Existing
+settings framing now reads the accepted cached diagnostics catalog, while new
+collection framing remains diagnostic-flow. All unrelated merged head logic
+and tests remain unchanged.
