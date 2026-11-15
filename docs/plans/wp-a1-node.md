@@ -181,3 +181,10 @@ the completed-resource deletion test set SessionInfo.status before Store create,
 but Store intentionally starts a live log. The fixture now appends the actual
 Exited status record and verifies the stored projection before deleting. The
 permanent-key/claim assertions remain unchanged; no lifecycle guard is weakened.
+
+Exact5bc TypeScript generation now executes successfully (three proto tests
+and one bridge declaration test). The remote step then refused freshness
+because its generated proto.ts differed from the checkout. The authenticated
+post-step artifact manifest was verified and that exact generated patch is
+now applied; no hand-written wire types or invented feature version is used.
+The earlier Snapshot name-clash failure remains preserved separately.
