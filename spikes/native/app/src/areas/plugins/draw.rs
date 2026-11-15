@@ -274,7 +274,12 @@ fn draw_button(
         view.press(&field, &behavior, event.position(), window, cx)
     }))
     .into_any_element();
-    Some(element)
+    Some(
+        div()
+            .debug_selector(|| "plugin-surface-button".to_owned())
+            .child(element)
+            .into_any_element(),
+    )
 }
 
 fn markdown(

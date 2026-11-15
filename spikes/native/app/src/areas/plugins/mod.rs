@@ -55,10 +55,9 @@ impl SurfaceView {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Result<Self, SurfaceProblem> {
-        let state = SurfaceState::new(
-            &registry.try_borrow().map_err(|_busy| Problem::Busy)?,
-            address,
-        )?;
+        let borrowed = registry.try_borrow().map_err(|_busy| Problem::Busy)?;
+        let state = SurfaceState::new(&borrowed, address)?;
+        drop(borrowed);
         let mut field_specs = Vec::new();
         fields::collect(state.surface(), &mut field_specs);
         let mut fields = BTreeMap::new();

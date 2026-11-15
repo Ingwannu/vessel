@@ -169,6 +169,11 @@ events, with no raw input in their diagnostics. New actual-input GPUI tests
 exercise Enter before/after offline and valid/refused Markdown link clicks;
 these cases are written but have not yet run.
 
+A separate button fixture first activates the real kit button, then changes the
+sole owner to offline and invokes that captured dispatch before a toolkit
+hover/pressed repaint can disable it. This distinguishes actual owner recheck
+from visual disabled-state protection; neither route may publish a request.
+
 Popover rendering is dependency-blocked on W19b's shared content popover and
 its V1/lead handoff. Until that exact producer is available, popover controls
 are unavailable. The coordinator expressly refused a Dialog substitution;

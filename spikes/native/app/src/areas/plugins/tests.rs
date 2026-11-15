@@ -73,6 +73,76 @@ use vessel_proto::{NodeId, RawJson};
 fn fixture() -> (Rc<RefCell<Registry>>, ContributionAddress) {
     fixture_with_markdown(None)
 }
+
+#[gpui::test]
+fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
+    cx: &mut TestAppContext,
+) {
+    use gpui::{Modifiers, point, px};
+    cx.update(|cx| {
+        vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
+    });
+    let (registry, address) = fixture();
+    let node = address.installation.node;
+    let owner = Rc::clone(&registry);
+    let captured = Rc::new(RefCell::new(Vec::new()));
+    let events = Rc::clone(&captured);
+    let (view, cx) = cx.add_window_view(move |window, cx| {
+        let view = SurfaceView::new(
+            &owner,
+            address,
+            Arc::new(|_, _, _| panic!("no browser in fixture")),
+            window,
+            cx,
+        )
+        .expect("surface");
+        cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
+            events.borrow_mut().push(event.clone())
+        })
+        .detach();
+        view
+    });
+    cx.run_until_parked();
+    let bounds = cx
+        .debug_bounds("plugin-surface-button")
+        .expect("real kit button");
+    let inset = px(vessel_app_kit::theme::spacing::S2);
+    let press = point(bounds.left() + inset, bounds.top() + inset);
+    cx.simulate_click(press, Modifiers::none());
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(event, SurfaceEvent::Requested(request) if matches!(request.submission(), Submission::Action(_)))));
+    captured.borrow_mut().clear();
+    // Invoke the same captured dispatch without letting toolkit hover/pressed
+    // invalidation repaint it disabled first. The earlier real click proves
+    // this is the handler wired to the actual kit button.
+    registry.borrow_mut().offline(node);
+    view.update_in(cx, |view, window, cx| {
+        let control: ContributionId = "button".parse().expect("button");
+        let selected = view
+            .state
+            .surface()
+            .controls
+            .iter()
+            .find(|item| item.id == control)
+            .expect("declared button");
+        let ControlContent::Button { button } = &selected.content else {
+            panic!("button");
+        };
+        let behavior = button.behavior.clone();
+        view.press(&control, &behavior, press, window, cx);
+    });
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Offline))
+    )));
+    assert!(
+        !captured
+            .borrow()
+            .iter()
+            .any(|event| matches!(event, SurfaceEvent::Requested(_)))
+    );
+}
 fn fixture_with_markdown(markdown: Option<&str>) -> (Rc<RefCell<Registry>>, ContributionAddress) {
     let installation = PluginAddress {
         node: NodeId::random(),
