@@ -773,8 +773,32 @@ file-fault sentence still belongs to its table, including when pairing shows it.
 About's licence and bundled-software labels use `about.ftl`; inventory roles
 map exhaustively to cached plain getters in `view/src/about/words.rs`.
 The Fluent libraries have the Translations role; UUID has the Identifiers role.
-The update card, connected-machine section and trademark section still belong
+About's inventory test covers normal external declarations in both the shared
+manifest and each native member, including target-only and inline declarations.
+Member-local names not in the shared manifest follow its entries alphabetically;
+fonts follow crates. Build/development-only dependencies are not inventory rows.
+The connected-machine section and trademark section still belong
 to their existing areas and have not moved with the licence vocabulary.
+Title-bar/update-card labels use `update.ftl`. `view::updates::PreparedUpdate`
+formats their value messages once per updater state or language event; the
+host retains the runtime and typed state together in `app/src/update_words.rs`.
+Renderers share the prepared text without formatting a version or progress
+sentence. Developer build names remain data; numbered release prefixes and
+whole status sentences live in the files. Typed updater errors select complete
+recovery messages; their diagnostics stay in the state/logs. A failed restart's
+owned frame notice also rewords on a language change without replacing a later
+notice from another area. No update error's Display becomes UI text.
+Rewind's menu and copy vocabulary use `rewind.ftl`; typed node error codes
+choose safe whole recovery sentences. Its retained notice is prepared at
+answer/language events. Conversation paints receive the shell's already-prepared
+catalog beside their remaining legacy words; rewind diagnostics remain in logs.
+Fork menus, empty-fork labels and source captions use `fork.ftl`. Source titles
+are prepared at fleet/act or language events and evicted when no longer listed;
+rendering borrows these cached captions. Failure/origin notices are retained at
+the answer boundary for live retranslation. Typed fork/origin-read failures and
+unknown empty-fork reasons choose whole recovery sentences; original diagnostics
+remain in logs/session state. An uncertain fork asks to check the session list
+before retrying.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

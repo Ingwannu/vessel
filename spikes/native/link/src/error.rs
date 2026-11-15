@@ -58,4 +58,3 @@ pub enum LinkError {
     #[error("{0} is not connected")]
     NotConnected(String),
 }
-
