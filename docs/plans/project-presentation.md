@@ -1,6 +1,7 @@
 # Project presentation continuation
 
-Status: source design only, not implemented, compiled, reviewed or consumer-ready.
+Status: SQL helpers and value normalization are staged under tests; no writer,
+migration or RPC is wired. Not compiled, reviewed or consumer-ready.
 
 ## Existing assets and source evidence
 
@@ -64,3 +65,22 @@ name edits do not touch a filesystem root or acquire filesystem authority.
 Outstanding: implementation, icon source validation and cache/persistence,
 project equivalence projection, native editor/settings integration, narrow/full
 gates and reviewer acceptance. This design is not a shipped feature claim.
+
+## Staged SQL/value checkpoint
+
+`vessel-store::project_presentation` is cfg(test) until its real writer/RPC wiring.
+It reads legacy names, renames from the latest SQL project snapshot inside a
+caller-owned savepoint, and projects current presentation onto a later clone
+snapshot. Tests drive these SQL helpers with the existing workspace apply path;
+they do not claim that the real actor already calls overlay. No migration is
+appended and no table is created in a running node. Four tests cover legacy
+reset, clone progress, savepoint rollback, corrupt identity and exhaustion.
+
+RenameProject value decoding now uses the existing JavaScript whitespace rule
+before ProjectName validation: explicit null/blank resets, missing field refuses,
+and BOM padding does not consume the existing 80-character portable label bound.
+The stronger existing ProjectName validation remains a documented Vessel
+difference from an unbounded arbitrary source string. DirectoryName rejects BOM
+edges by that same shared rule; its existing portable-component constraints remain.
+The SQL boundary re-normalizes programmatic Rust requests too. These new tests
+have not run. Filesystem creation/config/registry behavior is not changed here.

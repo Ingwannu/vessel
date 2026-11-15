@@ -66,6 +66,9 @@ mod marks;
 mod node_key;
 mod push;
 mod push_key;
+// Staged SQL helpers; remove cfg(test) when the project writer/RPC wiring adopts them.
+#[cfg(test)]
+mod project_presentation;
 mod reader;
 mod recovery;
 mod registry;

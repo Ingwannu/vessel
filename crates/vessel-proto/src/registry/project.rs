@@ -29,7 +29,7 @@ impl DirectoryName {
     /// # Errors
     /// Rejects whitespace, traversal, absolute paths and invalid folder components.
     pub fn parse(text: &str) -> Result<Self, DirectoryNameError> {
-        if text != text.trim() {
+        if text != crate::workspace::trim_project_text(text) {
             return Err(DirectoryNameError::Whitespace);
         }
         text.parse().map(Self).map_err(DirectoryNameError::Invalid)
@@ -93,8 +93,43 @@ pub struct ReadProjectMetadata {
 pub struct RenameProject {
     /// Existing identity; files and directory names stay put.
     pub project: ProjectId,
-    /// None resets the label to the recorded directory's name.
+    /// Explicit null or blank resets the label; omission is not a reset instruction.
+    #[serde(deserialize_with = "decode_custom_name")]
     pub custom_name: Option<ProjectName>,
+}
+
+impl RenameProject {
+    /// Normalize user text by the same JavaScript-edge rule as Paseo before validation.
+    ///
+    /// # Errors
+    /// Refuses labels outside the existing portable ProjectName contract.
+    pub fn from_text(project: ProjectId, text: Option<&str>) -> Result<Self, InvalidText> {
+        Ok(Self {
+            project,
+            custom_name: custom_name(text)?,
+        })
+    }
+    /// Validate programmatic Rust requests too, without relying only on serde normalization.
+    ///
+    /// # Errors
+    /// The normalized label must satisfy ProjectName's existing bound.
+    pub fn normalized_custom_name(&self) -> Result<Option<ProjectName>, InvalidText> {
+        custom_name(self.custom_name.as_ref().map(ProjectName::as_str))
+    }
+}
+
+fn custom_name(text: Option<&str>) -> Result<Option<ProjectName>, InvalidText> {
+    match text.map(crate::workspace::trim_project_text) {
+        None | Some("") => Ok(None),
+        Some(name) => name.parse().map(Some),
+    }
+}
+
+fn decode_custom_name<'de, D: serde::Deserializer<'de>>(
+    decoder: D,
+) -> Result<Option<ProjectName>, D::Error> {
+    let text = Option::<String>::deserialize(decoder)?;
+    custom_name(text.as_deref()).map_err(serde::de::Error::custom)
 }
 
 #[cfg(test)]
@@ -109,6 +144,8 @@ mod tests {
             "../escape",
             "/absolute",
             "C:\\escape",
+            "\u{feff}hidden",
+            "hidden\u{feff}",
             "a/b",
             " padded",
             "padded ",
@@ -127,5 +164,31 @@ mod tests {
             DirectoryName::parse("새 프로젝트").unwrap().as_str(),
             "새 프로젝트"
         );
+    }
+
+    #[test]
+    fn rename_requires_explicit_reset_and_normalizes_javascript_whitespace_before_the_name_bound() {
+        let project = ProjectId::random();
+        assert!(
+            serde_json::from_value::<RenameProject>(serde_json::json!({"project":project}))
+                .is_err()
+        );
+        for name in [None, Some(""), Some(" \t\u{feff}\u{2028}")] {
+            let request = RenameProject::from_text(project, name).unwrap();
+            assert_eq!(request.custom_name, None);
+            let wire = serde_json::json!({"project":project,"custom_name":name});
+            assert_eq!(
+                serde_json::from_value::<RenameProject>(wire).unwrap(),
+                request
+            );
+        }
+        let name = "x".repeat(80);
+        let padded = format!("\u{feff}{name}\u{2029}");
+        let request = serde_json::from_value::<RenameProject>(
+            serde_json::json!({"project":project,"custom_name":padded}),
+        )
+        .unwrap();
+        assert_eq!(request.custom_name.unwrap().as_str(), name);
+        assert!(RenameProject::from_text(project, Some(&"x".repeat(81))).is_err());
     }
 }
