@@ -704,3 +704,12 @@ spec assembly will first be extracted without a behavior change to make room
 for explicitly retaining its source listing. Side-question overrides are refused before parent lookup instead
 of being discarded. The source inheritance boundary is security-relevant and
 needs its commit reviewed; no trust or scope is added. CLI/MCP wiring is next.
+
+### Import specification assembly extraction
+
+Before adding the immutable listing copy, import's existing spec assembly moves
+to `transfers::import::session_spec`. This keeps the import transaction orchestration
+within its size budget without raising a record. The extraction takes the same
+validated harness, resume id, ordered choices, target cwd and profile; it copies
+the same model/current title/current labels. No value or test expectation changes.
+The existing import assertions remain the refactor's behavior contract.
