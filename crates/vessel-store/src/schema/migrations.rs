@@ -454,9 +454,16 @@ pub(super) const LABELS_SCHEMA: usize = 17;
 /// Current labels are separate from the original creation specification.
 const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
+/// The provisional title-origin schema follows the newest head migration.
+/// Integration changes this one assignment if another migration lands first.
+const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
+
+/// NULL preserves unknown provenance on rows written before this addition.
+const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -474,4 +481,5 @@ pub(super) const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
     USAGE_LEDGER,
     INBOX,
     LABELS,
+    TITLE_ORIGIN,
 ];

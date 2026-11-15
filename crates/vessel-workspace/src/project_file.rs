@@ -27,13 +27,17 @@
 use std::io::Read as _;
 use std::path::Path;
 
+/// Bounded prompt styles kept separate from executable project commands.
+pub mod metadata;
 mod scripts;
 mod terminals;
 
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use vessel_proto::scripts::{ScriptEntry, ScriptName};
-use vessel_proto::workspace::{CommandsDigest, FileTerminal, InvalidText, ProjectCommand, RelPath};
+use vessel_proto::workspace::{
+    CommandsDigest, FileTerminal, InvalidText, ProjectCommand, RelPath, ServicePorts,
+};
 
 pub use scripts::{MAX_SCRIPTS, ScriptsError};
 
@@ -59,6 +63,8 @@ pub struct ProjectFile {
     pub scripts: Vec<ScriptEntry>,
     /// Approved shell input for terminals opened after setup (ADR 0066).
     pub terminals: Vec<FileTerminal>,
+    /// Preserve the approved allocation block even without configured services.
+    pub service_ports: Option<ServicePorts>,
 }
 
 /// Why the file cannot be used. Nothing in it runs then.
@@ -128,6 +134,8 @@ struct RawWorktree {
     teardown: Commands,
     #[serde(default)]
     terminals: Vec<terminals::RawTerminal>,
+    #[serde(default)]
+    service_ports: Option<ServicePorts>,
 }
 
 #[derive(Deserialize)]
@@ -160,6 +168,7 @@ impl ProjectFile {
             teardown: commands("teardown", raw.worktree.teardown)?,
             scripts: scripts::entries(raw.scripts, raw.services)?,
             terminals: terminals::parse(raw.worktree.terminals)?,
+            service_ports: raw.worktree.service_ports,
         })
     }
 
@@ -178,48 +187,19 @@ impl ProjectFile {
     /// # Errors
     /// As [`ProjectFileError`] says.
     pub fn read_in(folder: &Path) -> Result<Option<Self>, ProjectFileError> {
-        let Ok(root) = Root::open(folder) else {
-            return Ok(None);
-        };
-        let Ok(name) = FILE_NAME.parse::<RelPath>() else {
-            return Ok(None);
-        };
-        let path = match root.existing(&name) {
-            Ok(path) => path,
-            Err(PathError::NotFound(_)) => return Ok(None),
-            // As if there were none, as for a link that leads nowhere: an
-            // answer of its own would tell whoever planted the link what
-            // exists outside the folder.
-            Err(PathError::Outside(_) | PathError::GitDir(_)) => {
-                tracing::warn!("a project's vessel.toml leads out of its folder; not read");
-                return Ok(None);
-            }
-            Err(PathError::Root | PathError::Platform(_) | PathError::Io(_)) => {
-                return Err(ProjectFileError::NotAFile);
-            }
-        };
-        let Some(file) = crate::regular::open(&path).map_err(ProjectFileError::Unreadable)? else {
-            return Err(ProjectFileError::NotAFile);
-        };
-        let mut bytes = Vec::new();
-        let _read = file
-            .take(
-                u64::try_from(MAX_BYTES)
-                    .unwrap_or(u64::MAX)
-                    .saturating_add(1),
-            )
-            .read_to_end(&mut bytes)
-            .map_err(ProjectFileError::Unreadable)?;
-        Self::parse(&bytes).map(Some)
+        read_bytes(folder)?
+            .map(|bytes| Self::parse(&bytes))
+            .transpose()
     }
 
-    /// Whether it names no command.
+    /// Whether nothing in the file requires approval.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.setup.is_empty()
             && self.teardown.is_empty()
             && self.scripts.is_empty()
             && self.terminals.is_empty()
+            && self.service_ports.is_none()
     }
 
     /// Its script or service called `name`.
@@ -229,13 +209,17 @@ impl ProjectFile {
     }
 
     /// What a person approves: SHA-256 over both lists, and over the
-    /// scripts when there are any (version 2), or terminals (version 3,
+    /// scripts when there are any (version 2), or terminals, declared ports or
+    /// allocation choices (version 3,
     /// ADR 0066). The module's Decision Log
     /// says why earlier digests stay for a file without new keys.
     #[must_use]
     pub fn digest(&self) -> CommandsDigest {
         let mut hash = Sha256::new();
-        if !self.terminals.is_empty() {
+        let version_three = self.service_ports.is_some()
+            || !self.terminals.is_empty()
+            || self.scripts.iter().any(|script| script.port().is_some());
+        if version_three {
             hash.update(b"vessel.toml commands 3\n");
         } else if self.scripts.is_empty() {
             hash.update(b"vessel.toml worktree commands 1\n");
@@ -249,13 +233,24 @@ impl ProjectFile {
                 scripts::field(&mut hash, command.as_str().as_bytes());
             }
         }
-        if !self.terminals.is_empty() {
+        if version_three {
             scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::WithPorts);
             terminals::digest(&mut hash, &self.terminals);
-            // ADR 0066 fixes these slots now so later port keys cannot change
-            // a terminal-only file's approved version 3 encoding.
-            scripts::field(&mut hash, b"");
-            scripts::field(&mut hash, b"");
+            // Use the reserved slots without changing terminal-only approvals.
+            let range = self
+                .service_ports
+                .as_ref()
+                .and_then(ServicePorts::range)
+                .map(|range| range.to_string());
+            let program = self
+                .service_ports
+                .as_ref()
+                .and_then(ServicePorts::port_script);
+            scripts::field(&mut hash, range.as_deref().unwrap_or("").as_bytes());
+            scripts::field(
+                &mut hash,
+                program.map_or("", |program| program.as_str()).as_bytes(),
+            );
         } else if !self.scripts.is_empty() {
             scripts::digest(&mut hash, &self.scripts, scripts::DigestFields::Original);
         }
@@ -278,6 +273,47 @@ fn commands(list: &'static str, raw: Commands) -> Result<Vec<ProjectCommand>, Pr
                 .map_err(|source| ProjectFileError::Command { list, source })
         })
         .collect()
+}
+
+// Both decoders share the same file authority and byte budget; styles must
+// not gain a less constrained path just because commands use another parser.
+fn read_bytes(folder: &Path) -> Result<Option<Vec<u8>>, ProjectFileError> {
+    let Ok(root) = Root::open(folder) else {
+        return Ok(None);
+    };
+    let Ok(name) = FILE_NAME.parse::<RelPath>() else {
+        return Ok(None);
+    };
+    let path = match root.existing(&name) {
+        Ok(path) => path,
+        Err(PathError::NotFound(_)) => return Ok(None),
+        // As if there were none, as for a link that leads nowhere: an
+        // answer of its own would tell whoever planted the link what
+        // exists outside the folder.
+        Err(PathError::Outside(_) | PathError::GitDir(_)) => {
+            tracing::warn!("a project's vessel.toml leads out of its folder; not read");
+            return Ok(None);
+        }
+        Err(PathError::Root | PathError::Platform(_) | PathError::Io(_)) => {
+            return Err(ProjectFileError::NotAFile);
+        }
+    };
+    let Some(file) = crate::regular::open(&path).map_err(ProjectFileError::Unreadable)? else {
+        return Err(ProjectFileError::NotAFile);
+    };
+    let mut bytes = Vec::new();
+    let _read = file
+        .take(
+            u64::try_from(MAX_BYTES)
+                .unwrap_or(u64::MAX)
+                .saturating_add(1),
+        )
+        .read_to_end(&mut bytes)
+        .map_err(ProjectFileError::Unreadable)?;
+    if bytes.len() > MAX_BYTES {
+        return Err(ProjectFileError::TooLarge);
+    }
+    Ok(Some(bytes))
 }
 
 #[cfg(test)]
@@ -419,7 +455,7 @@ mod tests {
         let names: Vec<&str> = file.scripts.iter().map(|s| s.name.as_str()).collect();
         assert_eq!(names, ["build", "test", "web"]);
         let web = file.script(&"web".parse().unwrap()).unwrap();
-        assert_eq!(web.kind, vessel_proto::scripts::ScriptKind::Service);
+        assert_eq!(web.kind(), vessel_proto::scripts::ScriptKind::Service);
         assert_eq!(web.dir.as_ref().map(RelPath::as_str), Some("web"));
 
         for bad in [
@@ -501,3 +537,9 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod declared_ports_tests;
+
+#[cfg(test)]
+mod allocation_tests;

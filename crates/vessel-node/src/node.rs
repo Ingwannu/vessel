@@ -32,7 +32,7 @@ use crate::automation::schedules::{Schedules, SystemClock};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::error::NodeError;
-use crate::fleet::{self, FleetFiles, FleetMcp};
+use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
@@ -42,7 +42,6 @@ use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
-use crate::profiles::launch::{AgentTools, Launcher, McpSource};
 use crate::relays::{self, Relays};
 use crate::secure::{MAX_UNADMITTED, SecureGateway};
 use crate::server::{self, Gateway};
@@ -53,6 +52,10 @@ use crate::terminals::{Ports, Runner, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
+
+mod setup;
+
+use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -291,68 +294,6 @@ struct Core {
     relays: Arc<Relays>,
 }
 
-/// What sessions are created with: the node's profiles and the launch seam.
-struct SessionSetup {
-    profiles: Arc<NodeProfiles>,
-    /// The model routes and the proxy's tokens (ADR 0015).
-    models: Arc<Models>,
-    launcher: Launcher,
-    /// The fleet's MCP servers, which the fleet loop keeps current and the
-    /// launcher asks for.
-    fleet_mcp: Arc<FleetMcp>,
-    /// Where agents are probed (`DataDir::probe_dir`, protocol 9).
-    probe_dir: PathBuf,
-    /// The owner-only MCP directory (`DataDir::prepare_mcp_dir`), which the
-    /// session runtime also gives a direct driver's launches for their
-    /// private files (`AgentSetup::private_dir`, ADR 0057).
-    private_dir: PathBuf,
-    /// Worktrees and their setup logs (`DataDir::workspace_dir`,
-    /// protocol 10).
-    workspace_dir: PathBuf,
-}
-
-/// The directories sessions and probes use, prepared under the lock.
-struct SetupDirs {
-    /// Owner-only, emptied of a previous run's files (ADR 0012).
-    mcp: PathBuf,
-    /// Where agents are probed (protocol 9).
-    probe: PathBuf,
-    /// Worktrees, their setup logs and git's empty hooks folder
-    /// (protocol 10).
-    workspace: PathBuf,
-}
-
-impl SessionSetup {
-    fn new(
-        config: &Config,
-        id: NodeId,
-        profiles: NodeProfiles,
-        models: Arc<Models>,
-        SetupDirs {
-            mcp,
-            probe,
-            workspace,
-        }: SetupDirs,
-    ) -> Self {
-        let tools = config.vessel_mcp.clone().map(|mcp| AgentTools {
-            program: mcp.program,
-            args: mcp.args,
-            socket: Endpoint::of(&config.data_dir, id).path().to_owned(),
-        });
-        let fleet_mcp = Arc::new(FleetMcp::default());
-        let source: Arc<dyn McpSource> = Arc::<FleetMcp>::clone(&fleet_mcp);
-        Self {
-            profiles: Arc::new(profiles),
-            models,
-            private_dir: mcp.clone(),
-            launcher: Launcher::new(mcp, source, tools),
-            fleet_mcp,
-            probe_dir: probe,
-            workspace_dir: workspace,
-        }
-    }
-}
-
 /// The LSP manager's configuration with the operator's roots filled in:
 /// executables and toolchains inside any configured root are not trusted
 /// for conservative analysis, so the registry needs the full list.
@@ -527,26 +468,10 @@ async fn core(
     // it makes runs through the service (`NodeRunner` holds it weakly).
     let (schedules, commands) = Schedules::channel();
     let ended = sessions.ends();
-    let push = crate::push::Push::new(store.clone(), config.data_dir.clone());
-    #[cfg(test)]
-    let push = if let Some(origin) = &config.push_test_origin {
-        push.test_at(origin.clone())
-    } else {
-        push
-    };
-    #[cfg(test)]
-    let push = push.pausing_at(config.push_preparation.clone());
-    let push = Arc::new(push);
-    crate::push::start(Arc::clone(&push), &tasks, stop.clone())
+    let push = crate::push::Push::started(config, store.clone(), &tasks, stop.clone())
         .await
         .map_err(NodeError::Store)?;
-    let limits = crate::limits::Limits::start(
-        config.data_dir.clone(),
-        config.limits.clone(),
-        stop.clone(),
-        &tasks,
-    )
-    .await;
+    let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
@@ -750,28 +675,6 @@ async fn prepare_off_thread(config: &Config) -> Result<Prepared, NodeError> {
     tokio::task::spawn_blocking(move || prepare(&dir, env))
         .await
         .map_err(NodeError::Task)?
-}
-
-/// The model proxy's listener, on a port of loopback's the system picks
-/// (harnesses learn it from their environment). It is served from `core`'s
-/// stop: model calls end with the node, a harness still calling gets its
-/// connection closed, as its session is interrupted anyway.
-async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeError> {
-    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
-        .await
-        .map_err(NodeError::ModelProxy)?;
-    models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
-    Ok((Arc::new(models), listener))
-}
-
-fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
-    let limits = vessel_llm::client::Limits::default();
-    vessel_llm::client::Client::new(limits)
-        .or_else(|error| {
-            tracing::warn!(%error, "model calls to https providers will fail");
-            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
-        })
-        .map_err(NodeError::ModelClient)
 }
 
 /// Bind the TCP listen address.

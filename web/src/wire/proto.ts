@@ -1139,7 +1139,11 @@ scripts?: Array<ScriptEntry>,
 /**
  * Terminal commands covered by this approval (ADR 0066).
  */
-terminals?: Array<FileTerminal>, };
+terminals?: Array<FileTerminal>, 
+/**
+ * Retain every allocation choice covered by the approval's digest.
+ */
+service_ports?: ServicePorts | null, };
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
@@ -5040,7 +5044,12 @@ park_after: ParkAfter,
  * Which protocol drives each agent's new sessions (protocol 18);
  * absent when every agent runs over ACP.
  */
-drivers?: AgentDrivers, };
+drivers?: AgentDrivers, 
+/**
+ * Startup policy, hidden until its protocol is assigned (ADR 0059).
+ * This value-only field does not enable an engine or register input.
+ */
+restart_recovery?: RestartRecovery, };
 
 /**
  * Whether a node is taking new work.
@@ -5513,6 +5522,11 @@ session: SessionId, } | { "kind": "terminal",
 terminal: TerminalId, };
 
 /**
+ * An inclusive service port range whose order cannot be bypassed by serde.
+ */
+export type PortRange = string;
+
+/**
  * How the last scan went.
  */
 export type PortScan = { "state": "pending" } | { "state": "scanned", 
@@ -5524,6 +5538,11 @@ at: string, } | { "state": "unavailable",
  * Why.
  */
 reason: string, } | { "state": "unknown" };
+
+/**
+ * A literal program selection whose path shape is validated before approval.
+ */
+export type PortScript = string;
 
 /**
  * A 1-based Unicode scalar position; the line's exclusive end is valid.
@@ -5638,6 +5657,10 @@ scripts?: Array<ScriptEntry>,
  * Terminal commands the client must show before approval (ADR 0066).
  */
 terminals?: Array<FileTerminal>, 
+/**
+ * Allocation choices that must be displayed or refused before approval.
+ */
+service_ports?: ServicePorts | null, 
 /**
  * The set last approved for this project, to show what changed
  * (protocol 11): only while this set is not approved, and only
@@ -6875,6 +6898,19 @@ session: SessionId,
 side: SessionId, };
 
 /**
+ * Node-level startup continuation policy (ADR 0059).
+ */
+export type RestartRecovery = { 
+/**
+ * Whether interrupted, eligible turns are continued at startup.
+ */
+enabled: boolean, 
+/**
+ * Exact text sent after restoring the provider's conversation.
+ */
+prompt: PromptText, };
+
+/**
  * `script.restart`: run a script's run again (in place while it runs, in
  * a new terminal once it ended).
  */
@@ -7341,25 +7377,29 @@ session: SessionId, } | { "kind": "unknown" };
 export type Scope = "read" | "operate" | "admin" | "sync" | "relay";
 
 /**
- * One script or service of `vessel.toml`.
+ * One script or service, with construction enforcing its declaration's meaning.
  */
 export type ScriptEntry = { 
 /**
- * Its name.
+ * The file's parsed name, also used to find the command by name.
  */
 name: ScriptName, 
 /**
- * Script or service.
+ * Keep the role inseparable from its declared port.
  */
 kind: ScriptKind, 
 /**
- * What runs, through the platform's shell.
+ * The validated text the approved digest covers.
  */
 command: ProjectCommand, 
 /**
- * Where it runs, inside the root; the root when absent.
+ * A folder inside the checkout; absence selects its root.
  */
-dir?: RelPath | null, };
+dir?: RelPath | null, 
+/**
+ * An approved override; absence leaves allocation to the runtime.
+ */
+port?: ServicePort | null, };
 
 /**
  * Run once, or kept running.
@@ -7617,6 +7657,16 @@ export type ServiceFailure = { "kind": "gave_up",
 restarts: number, } | { "kind": "not_approved" } | { "kind": "spawn" } | { "kind": "unknown" };
 
 /**
+ * A service's configured or allocated TCP port, never the ephemeral sentinel zero.
+ */
+export type ServicePort = number;
+
+/**
+ * A project overrides allocation only by providing at least one valid choice.
+ */
+export type ServicePorts = { range?: PortRange, port_script?: PortScript, };
+
+/**
  * What a service is doing (protocol 11). Also a record of its log
  * (`SessionEvent::Service`), at every change.
  */
@@ -7731,7 +7781,14 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: SessionTitle, } | { "type": "queue_changed", 
+title: SessionTitle, 
+/**
+ * Who produced it (ADR 0062). Absent decodes as unknown. The
+ * event stays protocol 9: a peer that ignores an unknown field
+ * still reads `title`. A typed older hop may omit the origin;
+ * the next reader then keeps the title with unknown origin.
+ */
+origin?: TitleOrigin, } | { "type": "queue_changed", 
 /**
  * The queue now.
  */
@@ -7885,6 +7942,13 @@ title?: SessionTitle | null,
  * and stripped for a peer that predates them.
  */
 labels?: SessionLabels, 
+/**
+ * Who produced [`title`](Self::title) (ADR 0062). Absent means
+ * [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
+ * build does not speak the field yet, or the row was stored before
+ * it. A `renamed` event carries the same origin.
+ */
+title_origin?: TitleOrigin, 
 /**
  * What a person marked on it: pinned, archived, unread (protocol 10,
  * ADR 0026). Kept by the node, so every client sees the same; left
@@ -9083,6 +9147,14 @@ reasons: Array<KeptReason>, });
  * An IANA time zone's name, as a person chose it (`Asia/Seoul`).
  */
 export type TimeZoneName = string;
+
+/**
+ * Who produced the session's current title (ADR 0062). Absent on the wire
+ * decodes as [`Unknown`](Self::Unknown): a record from before generated
+ * names, or an origin this build does not know. Generation replaces only
+ * [`Given`](Self::Given).
+ */
+export type TitleOrigin = "typed" | "given" | "generated" | "unknown";
 
 /**
  * Saturation is explicit; a capped counter is never presented as exact.

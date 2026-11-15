@@ -24,7 +24,10 @@ use serde::{Deserialize, Serialize};
 use crate::id::{ProjectId, SessionId, TerminalId};
 use crate::node::ProtocolVersion;
 use crate::terminals::TerminalInfo;
-use crate::workspace::{CreateWorktreeOutcome, ProjectCommand, ProjectCommands, RelPath};
+use crate::workspace::{CreateWorktreeOutcome, ProjectCommands};
+
+mod entry;
+pub use entry::{InvalidScriptEntry, ScriptEntry, ScriptEntryView};
 
 /// A script's or a service's name in `vessel.toml`: 1 to 64 bytes of ASCII
 /// letters, digits, `-`, `_` and `.`, starting with a letter or a digit.
@@ -107,21 +110,6 @@ impl ScriptKind {
             Self::Service => "services",
         }
     }
-}
-
-/// One script or service of `vessel.toml`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ScriptEntry {
-    /// Its name.
-    pub name: ScriptName,
-    /// Script or service.
-    pub kind: ScriptKind,
-    /// What runs, through the platform's shell.
-    pub command: ProjectCommand,
-    /// Where it runs, inside the root; the root when absent.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub dir: Option<RelPath>,
 }
 
 /// Whose checkout a script runs in.
@@ -248,24 +236,43 @@ impl ProjectCommands {
         self.for_project_fields(protocol, crate::workspace::PROJECT_FILE_KEYS)
     }
 
+    // Keep both projections complete: an optional approved field needs a decision.
+    fn needs_project_fields(&self) -> bool {
+        match self {
+            Self::Listed {
+                setup: _,
+                teardown: _,
+                scripts,
+                terminals,
+                service_ports,
+                digest: _,
+                approved: _,
+                last_approved,
+            } => {
+                requires_project_fields(scripts, terminals, service_ports.as_ref())
+                    || last_approved.as_ref().is_some_and(|last| {
+                        let crate::workspace::CommandSet {
+                            setup: _,
+                            teardown: _,
+                            scripts,
+                            terminals,
+                            service_ports,
+                        } = &last.commands;
+                        requires_project_fields(scripts, terminals, service_ports.as_ref())
+                    })
+            }
+            Self::None | Self::Invalid { .. } => false,
+        }
+    }
+
     fn for_project_fields(
         &self,
         protocol: ProtocolVersion,
         since: Option<ProtocolVersion>,
     ) -> Option<Self> {
-        if let Self::Listed {
-            terminals,
-            last_approved,
-            ..
-        } = self
-            && since.is_none_or(|since| protocol < since)
-            && (!terminals.is_empty()
-                || last_approved
-                    .as_ref()
-                    .is_some_and(|last| !last.commands.terminals.is_empty()))
-        {
+        if since.is_none_or(|since| protocol < since) && self.needs_project_fields() {
             return Some(Self::Invalid {
-                message: "this client cannot show the project file's terminal commands; approve from a newer client".to_owned(),
+                message: "this client cannot show the project file's terminal commands or service port configuration; approve from a newer client".to_owned(),
             });
         }
         if protocol >= SCRIPTS_SHOWN {
@@ -282,6 +289,7 @@ impl ProjectCommands {
                 approved,
                 scripts,
                 terminals,
+                service_ports,
                 last_approved: Some(_),
             } => Some(Self::Listed {
                 setup: setup.clone(),
@@ -290,11 +298,23 @@ impl ProjectCommands {
                 approved: *approved,
                 scripts: scripts.clone(),
                 terminals: terminals.clone(),
+                service_ports: service_ports.clone(),
                 last_approved: None,
             }),
             Self::None | Self::Listed { .. } | Self::Invalid { .. } => None,
         }
     }
+}
+
+// Shared by current and previous approvals so neither can leak undisplayed data.
+fn requires_project_fields(
+    scripts: &[ScriptEntry],
+    terminals: &[crate::workspace::FileTerminal],
+    service_ports: Option<&crate::workspace::ServicePorts>,
+) -> bool {
+    service_ports.is_some()
+        || !terminals.is_empty()
+        || scripts.iter().any(|script| script.port().is_some())
 }
 
 impl ScriptRunOutcome {
@@ -374,14 +394,17 @@ mod tests {
             approved: false,
             scripts,
             terminals: Vec::new(),
+            service_ports: None,
             last_approved: None,
         };
-        let dev = ScriptEntry {
-            name: "dev".parse().unwrap(),
-            kind: ScriptKind::Service,
-            command: "npm run dev".parse().unwrap(),
-            dir: None,
-        };
+        let dev = ScriptEntry::new(
+            "dev".parse().unwrap(),
+            ScriptKind::Service,
+            "npm run dev".parse().unwrap(),
+            None,
+            None,
+        )
+        .unwrap();
         let with = listed(vec![dev]);
         assert!(matches!(
             with.for_protocol(ProtocolVersion::new(10)),
@@ -417,7 +440,6 @@ mod tests {
 
     #[test]
     fn terminal_approvals_are_gated_on_every_reply_and_keep_legacy_defaults() {
-        use crate::rpc::Reply;
         use crate::workspace::{CommandSet, FileTerminal};
         let old = r#"{"setup":[],"teardown":[],"scripts":[]}"#;
         assert!(
@@ -443,6 +465,7 @@ mod tests {
             teardown: Vec::new(),
             scripts: Vec::new(),
             terminals: vec![terminal],
+            service_ports: None,
             digest: "b".repeat(64).parse().unwrap(),
             approved: false,
             last_approved: None,
@@ -463,24 +486,7 @@ mod tests {
             Some(ProjectCommands::Invalid { .. })
         ));
         for protocol in [ProtocolVersion::new(10), crate::PROTOCOL_VERSION] {
-            let outcome = ScriptRunOutcome::NeedsApproval {
-                commands: commands.clone(),
-            };
-            let replies = [
-                Reply::ProjectCommands(commands.clone()),
-                Reply::ApproveCommands(commands.clone()),
-                Reply::CreateWorktree(CreateWorktreeOutcome::NeedsApproval {
-                    commands: commands.clone(),
-                }),
-                Reply::ListScripts(ScriptList {
-                    root: PathBuf::from("/project"),
-                    commands: commands.clone(),
-                    runs: Vec::new(),
-                }),
-                Reply::RunScript(outcome.clone()),
-                Reply::RestartScript(outcome),
-            ];
-            for reply in replies {
+            for reply in port_approval_tests::approval_replies(&commands) {
                 let adapted =
                     serde_json::to_string(&reply.for_protocol(protocol).unwrap()).unwrap();
                 assert!(!adapted.contains("tail -f dev.log"));
@@ -496,3 +502,9 @@ mod tests {
         assert_eq!(refusal, ScriptRefusal::Unknown);
     }
 }
+
+#[cfg(test)]
+mod port_approval_tests;
+
+#[cfg(test)]
+mod allocation_approval_tests;

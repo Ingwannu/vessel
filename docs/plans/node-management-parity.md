@@ -6,10 +6,12 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Reviewed: process ownership contract (2p0) passed review. The move still
-  awaits its integration decision; no proc code has changed. Binding name
-  restrictions are recorded in ADR 0001 before implementation. Active map
-  rows and manifests are still unchanged.
+- Approved: process ownership contract (2p0) and its binding restrictions
+  passed review, and the integration decision permits Store to Proc.
+- Source: 2p1 moves only the generic kernel query and opaque snapshots to
+  proc; the store facade, parser behavior and existing assertions remain.
+  Manifest, active map and name restriction land together. Focused checks
+  and the merged-tree whole gate are pending.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -25,15 +27,29 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
   push. The next slice's gate covers this merged tree, including the
   explicit forge-fixture clippy and test steps.
-- Returned: 2f passed its whole gate (2,066 Rust tests, no failures,
-  12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
-  hyphens in the launchd comment encoder. The revision uses single-pass
-  character emission and an independent XML/plist parsing regression; its
-  parser helper is inside the existing test module. Final focused checks
-  and the whole gate are pending.
-- Next: gate the 2f revision, then deadline-safe local reads, service
-  observation/finalization, force/restart and slices 3/4. Actual service
-  managers and real agents remain unverified.
+- Done: 2f, including the XML-comment revision `91fcf929`, passed review.
+  Its whole gate passed (2,067 Rust tests, no failures, 12 ignored; forge 4,
+  web unit 417 and e2e 62). The original return and failed narrow-check logs
+  remain available; no failed run was called green.
+- Done: 2g1 extracts the existing lock waiter's thread/oneshot handoff
+  without changing behavior or test expectations. Its completion diagnostic
+  stays at its original tracing target. Review and the exact final whole
+  gate passed (2,067 Rust tests, no failures, 12 ignored; forge 4,
+  web unit 417 and e2e 62).
+- Merged: node head `f453ec2e`, including the shared protocol accessor,
+  settings preservation and lifecycle labels. The merge was conflict-free;
+  the next slice's whole gate covers the merged tree.
+- Gated: 2g2's two identity/preflight FIFO cases and existing behavior
+  pass the exact final whole gate (2,207 Rust tests, no failures,
+  12 ignored; forge 4, web unit 442 and e2e 65). Review passed;
+  the first narrow clippy failure is retained, not called green.
+- Merged: node head `242076b5`, conflict-free, before the proc move. Its
+  existing tables, documents and tests remain intact.
+- Next: gate the pure query move, then descriptor/generation verification
+  and the real force caller as separate slices. Service observations and
+  config/reload/session-restart work remain; actual managers and agents
+  are unverified. The separate service-observation source has only focused
+  checks and is not included in this move.
 
 ## Existing asset check
 
@@ -388,8 +404,8 @@ through the existing fake service tools. Windows still skips installation.
 The larger stop-time observer draft is deliberately separate: it must not
 expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
 bounded reads and loaded-manager authority validation follow in separate
-reviewable changes. The original whole gate passed; its returned XML-comment
-encoding finding is being corrected and will have a new whole gate.
+reviewable changes. The XML-comment revision passed its whole gate and
+review; actual service-manager lifecycle remains unverified.
 
 
 Move file I/O off the async worker while preserving both platform reports.
@@ -423,3 +439,39 @@ private assertions move with their rule rather than becoming public getters.
 The ADR lists each phase's test obligations, remaining numeric-signal race
 and platform limits. Deadline-safe local reads and service observations can
 continue independently while the contract is reviewed.
+
+
+### Slice 2g1: behavior-preserving handoff extraction
+
+`[modify]`: move only the existing worker/channel policy from `lock_wait`
+into the private `local_read::Pending` helper. Its existing lock operation
+is the real caller. Keep its name and diagnostic, callback I/O sequence,
+borrowed receiver, error sources, tests and budgets byte-identical. There
+is no new dependency, field, wire call or numeric bound. The actual file
+read deadline fix follows in a separate change; no future operation or
+unused public API is added by this extraction. Paseo's previously stated
+PID-polling difference remains; the CLI still waits on its OS-lock event.
+
+
+### Slice 2g2: deadline-safe identity and preflight reads
+
+Modify only the two real reads and reuse the already-extracted handoff.
+Add their actual operation kinds and typed receiver errors; keep lock-release
+behavior and all existing assertions unchanged. Two isolated Linux FIFO
+cases derive their timeout and diagnostic expectation from one named test
+budget and find the node Serving after the CLI exits. No service manager,
+signal, new wire call or dependency is introduced. Book/credential/pinning
+paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
+This source is not yet compiled or gated.
+
+
+### Slice 2p1: behavior-preserving process-query move
+
+Move the decoder file to proc, without parser cleanup. The new store shim
+uses a different file name so the old file is genuinely moved and ordinary
+`git diff -M` shows that move. Store keeps its public API, record ownership
+and fallback. Its only new dependency is proc and its name rule restricts
+that use to `src/lock/`, in the same commit as the active map. Existing
+private PID assertions relocate to a real held-file fixture in proc;
+all data-directory and owner-byte assertions remain in store. No PID
+getter, external dependency, signal, new call or descriptor proof is added.

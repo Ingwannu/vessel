@@ -12,7 +12,7 @@ fn every_labelled_spec_and_envelope_is_unassigned_at_the_current_protocol() {
     ))
     .unwrap();
     for call in calls {
-        assert!(call.since() <= crate::PROTOCOL_VERSION);
+        assert_eq!(call.since(), None);
         let forwarded = Forward {
             node: NodeId::random(),
             call: Box::new(call.clone()),
@@ -41,6 +41,7 @@ fn every_labelled_spec_and_envelope_is_unassigned_at_the_current_protocol() {
         }
         .into_call();
         for request in [call, forwarded, relayed, delivered, nested] {
+            assert_eq!(request.since(), None, "{request:?}");
             assert_eq!(request.required_protocol(), None, "{request:?}");
         }
     }
