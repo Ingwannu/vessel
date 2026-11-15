@@ -206,7 +206,7 @@ The model id sent upstream is the route's `small_model` when the entry
 did not name a model and the route has a small model, otherwise the
 route's model. Preferring `small_model` here is a Vessel cost choice.
 Paseo's manual candidate without a model uses the default or first model
-(`selectDefaultModel`, 259–261); its automatic path uses the model that
+(`selectDefaultModel`, 262–264); its automatic path uses the model that
 matched the substring, not a separate small-model field.
 
 ### Settings
@@ -264,9 +264,13 @@ to bypass the title rules would make stored and user-supplied titles
 disagree. A bad model title is refused, never truncated.
 
 `MetadataSettings` owns its private ordered candidate list and one
-constructor. The settings and candidate objects refuse unknown keys, as
-Paseo's persisted schemas do (`persisted-config.ts` 172–186), so a misspelled
-preference cannot silently choose automatic defaults. Its decoder stops
+constructor. In this value-only slice, `MetadataSettings` (through
+`RawMetadataSettings`) and `MetadataProvider` are the strict wire/patch
+forms: unknown keys are refused at the decoding edge, so a misspelled
+preference cannot silently choose automatic defaults. This reproduces
+Paseo's strict persisted schemas (`persisted-config.ts` 172–186) at the
+patch boundary only. These strict deserializers must not be used to read
+`settings.json`. Its decoder stops
 constructing candidates at
 `MAX_METADATA_PROVIDERS` and refuses an extra element, rather than
 allocating an unbounded list before checking its length. Duplicate entries
@@ -276,6 +280,26 @@ Future effort values decode as typed `Unknown` for reading and are refused
 by settings validation when the setting is wired. This value-only slice
 adds neither settings fields nor registered calls: availability checks and
 persistent writes belong to the following settings slice.
+
+The settings wiring slice adds a separate lenient file view, including its
+nested metadata and candidate objects. Unknown keys are ignored at every
+level while known values are retained; known invalid values still fail
+validation, and a later effort reads as `MetadataEffort::Unknown`. The
+file view converts through the same bounded constructor and parsed ids,
+not through the strict wire deserializers. This is a deliberate difference
+from Paseo's strict file schema, required by Vessel's existing settings
+compatibility rule: a newer candidate key must not reset unrelated node
+settings. No metadata-specific keeping mechanism is added. The shared
+settings store owns the `settings.json.later-<UTC>` copy before the first
+replacing write when unread fields exist, and the
+`settings.json.unreadable-<UTC>` move for an unparseable file.
+
+That slice owes file tests with an unknown metadata key and an unknown
+nested candidate key, checking that the route and other node settings
+survive read, an unrelated patch and reopen. It also checks a future effort
+reading as Unknown, known invalid values still being refused, and strict
+wire patches refusing those same unknown keys before write or model work.
+The value-only slice has no file reader and does not claim these tests.
 
 ### A session title's origin
 

@@ -253,7 +253,8 @@ is reported as complete.
   Order, duplicates, exact bounds, future effort, unknown object keys,
   invalid extra candidates, padded answers and supplementary Unicode
   characters have adjacent tests. Strict object keys follow the persisted
-  Paseo schemas (`persisted-config.ts` 172–186).
+  Paseo schemas (`persisted-config.ts` 172–186) at the wire patch boundary
+  only. These strict types are not the settings-file decoding view.
 - Existing assets: parsed route/model ids, the title constructor, serde and
   this crate's error conventions. Modify those APIs through small modules;
   no external solution or dependency is needed for these value contracts.
@@ -274,3 +275,25 @@ The value contract's generated-title paragraph now names raw UTF-16 units
 and the two owning constants directly. The older ambiguous word
 "characters" must not be read as the user-title scalar count. Code and
 validation scope are unchanged; the exact-commit whole gate is still next.
+
+### Settings compatibility correction and resume point
+
+The bounded values' strict `MetadataSettings`/`RawMetadataSettings` and
+`MetadataProvider` decoders belong to wire patches. Settings wiring must
+add a lenient file view at both nested levels: ignore unknown fields,
+retain known values, reject known bad values and read future effort as
+`MetadataEffort::Unknown`, then use the same bounded constructor. It uses
+the shared store's later-file copy/unreadable-file move, with no separate
+keeping mechanism. Unlike Paseo's strict persisted schema, the file must
+preserve other node settings when a newer candidate adds a field.
+
+Required wiring tests: unknown metadata and candidate keys leave the
+route and unrelated settings intact through read, an unrelated patch and
+reopen; future effort reads Unknown; known bad values remain refused;
+strict wire patches refuse unknown keys before mutation. No file view or
+settings field is implemented by the value-only slice. Its whole gate on
+the documented value commit passed; this correction changes documents
+only and uses the fast gate. The model resolver must also state that a
+lone JSON surrogate is refused by serde before UTF-16 counting and treat
+blank-title refusal independently of a later branch result, or document
+a deliberate difference in that later slice.
