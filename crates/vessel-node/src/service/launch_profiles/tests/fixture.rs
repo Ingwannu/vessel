@@ -33,8 +33,12 @@ impl Fixture {
         for sub in ["bin", "home", "work", "data"] {
             std::fs::create_dir(root.path().join(sub)).unwrap();
         }
+        let data = vessel_store::DataDir::new(root.path().join("data"));
         if let Some(profiles) = profiles {
-            std::fs::write(root.path().join("data/profiles.toml"), profiles).unwrap();
+            // Use the same private atomic writer as operator-owned profiles;
+            // fixture setup must not depend on the runner's creation mask.
+            data.write_profiles(profiles).unwrap();
+            assert!(!data.read_profiles().unwrap().unwrap().readable_by_others);
         }
         let bin = root.path().join("bin");
         let _installed = install(
@@ -51,10 +55,7 @@ impl Fixture {
             &vessel_testkit::Fake::Tui.path().unwrap(),
         )
         .unwrap();
-        let mut config = Config::new(
-            vessel_store::DataDir::new(root.path().join("data")),
-            HarnessEnv::new(root.path().join("home")),
-        );
+        let mut config = Config::new(data, HarnessEnv::new(root.path().join("home")));
         config.bind = None;
         config.harness_lookup = Lookup::new([bin]);
         let node = phase("node starts", Node::start(config)).await.unwrap();
