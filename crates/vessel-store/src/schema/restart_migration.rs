@@ -1,6 +1,9 @@
 //! Append-only recovery projection; existing sessions start ineligible.
 //! The migration number is provisional and assigned finally by integration.
 
+/// Recovery follows the head's newest schema; integration assigns this one fact.
+pub(super) const RESTART_SCHEMA: usize = super::migrations::BACKGROUND_SCHEMA.saturating_add(1);
+
 /// Bounded per-session state and indexed pending/active timestamps.
 pub(super) const RESTART: &str = "
 CREATE TABLE restart_control (

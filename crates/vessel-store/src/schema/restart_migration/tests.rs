@@ -1,5 +1,5 @@
 //! Legacy running history stays manual; migration never fabricates active intent.
-use crate::schema::migrations::RESTART_SCHEMA;
+use super::RESTART_SCHEMA;
 use crate::schema::{migrate, migrations::MIGRATIONS};
 use rusqlite::{Connection, params};
 use vessel_proto::{
