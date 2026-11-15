@@ -275,6 +275,12 @@ receipt tests in that source passed. Because --lib selects library targets,
 the binary-only app tests were not run: no menu-field or window-guard GPUI result
 is claimed. The next app check must select --bin vessel-app or --bins. The newer
 base6 broadcast and project-delivery acknowledgment also need their union checks.
+Static manifest parsing found a duplicated gpui-windows workspace key in the
+queued f919 source: the host-bridge addition duplicated the base's existing key.
+The current source keeps one entry, and Python tomllib parsed all five native
+workspace/package manifests without invoking Cargo. The older queued job stays
+unchanged under the coordinator rule and cannot establish compilation/tests of
+this repaired union. The new control producer uses the clean dd13 base separately.
 Current source-size checks passed705 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checked all108 Rust files changed from dd13ce37; this
 is formatting evidence only, without a local Cargo/Rustc invocation.
