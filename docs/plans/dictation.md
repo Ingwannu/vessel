@@ -672,3 +672,16 @@ and one loader invocation; recreating the service admits a later start and
 performs the second load. No product loader policy changes. This closes the
 missing test's source draft, but execution and product-wiring evidence are still
 owed. The test does not establish a real TLS handshake or OS trust-store repair.
+
+
+## Typed call refusal detail
+
+The existing ErrorDetail envelope now has a dictation variant containing the
+previously validated DictationReason. A local-engine failure therefore cannot
+lose its required model or combine that model with an unrelated reason. The
+envelope becomes Clone rather than Copy because the model id is owned. A new
+test pins typed roundtrip, old-reader Unknown fallback and future-reason decoding.
+No method is registered by this value-only commit; unassigned calls remain
+refused, and no new detail can reach a peer through this inactive service.
+Regeneration and narrow compile/tests remain owed; the queued earlier TS snapshot
+does not include this addition.

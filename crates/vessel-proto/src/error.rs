@@ -53,7 +53,7 @@ pub struct WireError {
 }
 
 /// Further typed context for a refusal. Unknown future reasons stay readable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ErrorDetail {
@@ -71,6 +71,11 @@ pub enum ErrorDetail {
     DeviceInvite {
         /// The stable pairing setup reason.
         reason: crate::DeviceInviteError,
+    },
+    /// A dictation call failed without exposing audio or a provider's response.
+    Dictation {
+        /// A tagged reason keeps a local model only with its local-engine refusal.
+        reason: crate::dictation::DictationReason,
     },
     /// A reason introduced by a newer node.
     #[serde(other)]
@@ -157,6 +162,50 @@ mod invite_tests {
             Some(ErrorDetail::DeviceInvite {
                 reason: crate::DeviceInviteError::Unknown
             })
+        );
+    }
+}
+
+#[cfg(test)]
+mod dictation_tests {
+    use super::*;
+    use crate::dictation::{DictationReason, LocalModelId};
+
+    #[derive(Debug, Deserialize, PartialEq, Eq)]
+    #[serde(tag = "kind", rename_all = "snake_case")]
+    enum OlderDetail {
+        #[serde(other)]
+        Unknown,
+    }
+
+    #[test]
+    fn dictation_call_refusals_are_typed_and_older_detail_readers_keep_working() {
+        let detail = ErrorDetail::Dictation {
+            reason: DictationReason::LocalNotBuilt {
+                model: LocalModelId::default_model(),
+            },
+        };
+        let encoded = serde_json::to_string(&detail).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ErrorDetail>(&encoded).unwrap(),
+            detail
+        );
+        assert_eq!(
+            serde_json::from_str::<OlderDetail>(&encoded).unwrap(),
+            OlderDetail::Unknown
+        );
+        let later = r#"{"kind":"dictation","reason":{"kind":"future","extra":true}}"#;
+        assert_eq!(
+            serde_json::from_str::<ErrorDetail>(later).unwrap(),
+            ErrorDetail::Dictation {
+                reason: DictationReason::Unknown
+            }
+        );
+        assert!(
+            serde_json::from_str::<ErrorDetail>(
+                r#"{"kind":"dictation","reason":{"kind":"local_not_built"}}"#
+            )
+            .is_err()
         );
     }
 }
