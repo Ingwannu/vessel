@@ -110,19 +110,29 @@ fn cancelling_a_queued_blocking_root_open_keeps_its_permit_until_actual_exit() {
 
 #[test]
 fn a_timed_out_barrier_releases_its_blocking_worker_before_runtime_shutdown() {
+    const VIRTUAL: Duration = LIMIT;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .max_blocking_threads(1)
         .build()
         .unwrap();
-    // This probe deliberately advances the virtual clock by one phase.
-    runtime.block_on(case(LIMIT.saturating_add(deadline::PHASE), async {
+    // Advance past the phase deadline: Tokio rounds timers to milliseconds,
+    // and this blocking worker prevents automatic paused-clock advancement.
+    runtime.block_on(case(LIMIT.saturating_add(VIRTUAL), async {
         let (release, wait) = std::sync::mpsc::channel::<()>();
         let (started, running) = oneshot::channel();
         let (exited, finished) = oneshot::channel();
         let blocker = tokio::task::spawn_blocking(move || {
             started.send(()).unwrap();
-            assert!(wait.recv().is_err(), "timeout must drop the release sender");
+            // Independent wall-time protection keeps this timer probe finite
+            // even if its driven clock or release ownership regresses.
+            assert!(
+                matches!(
+                    wait.recv_timeout(LIMIT),
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected)
+                ),
+                "timeout must drop the release sender before the blocking safety net"
+            );
             exited.send(()).unwrap();
         });
         let expired = vessel_testkit::within(
@@ -133,7 +143,7 @@ fn a_timed_out_barrier_releases_its_blocking_worker_before_runtime_shutdown() {
                     .await
                     .unwrap();
                 tokio::time::pause();
-                tokio::time::advance(deadline::PHASE).await;
+                tokio::time::advance(VIRTUAL).await;
                 std::future::pending::<()>().await;
                 drop(release);
             }),

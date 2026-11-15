@@ -96,6 +96,17 @@ The fixture also cancels
 its async owners when an assertion or safety boundary drops it. These are
 test-only changes; the original source and passing gate remain retained.
 
+The correction's first selected run ended at the short-lane limit. Forge
+completed 52 tests; the node library never produced a final summary because
+the newly added timeout-cleanup probe remained running. This is not a pass
+or an unrelated shared failure. That probe advanced only to the nominal
+deadline; millisecond timer rounding can leave it short of expiry, while
+the active blocking worker disables automatic paused-clock advancement.
+The corrected probe advances past the deadline and also has an independent
+blocking-channel wall-time safety net. Its outer budget explicitly includes
+the virtual advance. The original lifecycle/pool/barrier checks and finite
+HTTP/failed-job/root deadlines remain unchanged.
+
 Submit the candidate and both executions to source review as a staged
 provider/service slice. It remains on the track branch: product wiring,
 authority/forwarding/older-peer fixtures, client/CLI/fleet consumers and
