@@ -32,8 +32,19 @@ fn eligible(shell: &Shell, window: &Window, cx: &App) -> bool {
         && !shell.areas.shortcuts.page.recording()
         && !TextField::focused_composing(window, cx)
 }
+fn has_target_owner(shell: &Shell, window: &Window, cx: &App) -> bool {
+    const FIRST_WORKSPACE: u8 = 1;
+    let request = super::dispatch::ShortcutRequest {
+        action: Action::JumpSession,
+        scope: Action::JumpSession.scope(),
+        index: vessel_app_view::shortcuts::engine::ShortcutIndex::new(FIRST_WORKSPACE),
+        repeat: vessel_app_view::shortcuts::engine::KeyRepeat::Initial,
+        context: context(shell, window),
+    };
+    shell.shortcut_handler_available(&request, window, cx)
+}
 fn required(shell: &mut Shell, window: &Window, cx: &App) -> Option<(Modifier, When)> {
-    if !eligible(shell, window, cx) {
+    if !eligible(shell, window, cx) || !has_target_owner(shell, window, cx) {
         return None;
     }
     let context = context(shell, window);
@@ -69,6 +80,7 @@ impl Shell {
     pub(crate) fn shortcut_badges_visible(&self, window: &Window, cx: &App) -> bool {
         self.areas.shortcuts.badge_reveal.visible()
             && eligible(self, window, cx)
+            && has_target_owner(self, window, cx)
             && self
                 .areas
                 .shortcuts

@@ -43,7 +43,7 @@ fn help_search_and_escape_restore_the_existing_focus(cx: &mut TestAppContext) {
 fn settings_records_multiple_steps_and_navigation_cancels_capture(cx: &mut TestAppContext) {
     let (shell, cx) = setup(cx);
     shell.update_in(cx, |shell, window, cx| {
-        shell.open_settings(Some(Section::Shortcuts), window, cx)
+        shell.open_settings(Some(Section::Shortcuts), window, cx);
     });
     cx.run_until_parked();
     let selector = match Platform::native() {
@@ -58,7 +58,7 @@ fn settings_records_multiple_steps_and_navigation_cancels_capture(cx: &mut TestA
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
-        assert!(shell.areas.shortcuts.page.recording())
+        assert!(shell.areas.shortcuts.page.recording());
     });
     cx.simulate_keystrokes("ctrl-j s");
     cx.run_until_parked();
@@ -80,13 +80,13 @@ fn settings_records_multiple_steps_and_navigation_cancels_capture(cx: &mut TestA
                 .chords()
                 .count(),
             1
-        )
+        );
     });
     shell.update_in(cx, |shell, window, cx| {
-        shell.open_settings(Some(Section::General), window, cx)
+        shell.open_settings(Some(Section::General), window, cx);
     });
     shell.read_with(cx, |shell, _| {
-        assert!(!shell.areas.shortcuts.page.recording())
+        assert!(!shell.areas.shortcuts.page.recording());
     });
 }
 
@@ -98,7 +98,22 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
     };
     use vessel_app_view::shortcuts::{Action, binding_id, default_context};
     let (shell, cx) = setup(cx);
-    shell.update_in(cx, |_, window, _| window.activate_window());
+    shell.update_in(cx, |shell, window, _| {
+        use super::dispatch::{Callbacks, KeyboardHandler};
+        use vessel_app_view::shortcuts::dispatcher::{Handled, Priority};
+        let _owner = shell
+            .register_shortcut_handler(KeyboardHandler {
+                id: "badge-test".parse().unwrap(),
+                actions: vec![Action::JumpSession],
+                priority: Priority::default(),
+                callbacks: Callbacks {
+                    enabled: |_, _, _, _| true,
+                    perform: |_, _, _, _| Handled::Yes,
+                },
+            })
+            .unwrap();
+        window.activate_window();
+    });
     cx.run_until_parked();
     cx.update(|window, cx| {
         let _event = window.dispatch_event(

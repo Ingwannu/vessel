@@ -97,10 +97,10 @@ impl NativeDispatcher {
             .is_some_and(|entry| entry.owner == registration.owner)
     }
 
-    fn candidates(&self, action: &Action) -> Vec<Candidate> {
+    fn candidates(&self, action: Action) -> Vec<Candidate> {
         let mut candidates = Vec::new();
         let _unhandled = self.core.dispatch(
-            action,
+            &action,
             |_| true,
             |id, _| {
                 if let Some(entry) = self.callbacks.get(id) {
@@ -128,6 +128,26 @@ impl Shell {
         self.areas.shortcuts.dispatch.register(handler)
     }
 
+    pub(super) fn shortcut_handler_available(
+        &self,
+        request: &ShortcutRequest,
+        window: &Window,
+        cx: &App,
+    ) -> bool {
+        self.areas
+            .shortcuts
+            .dispatch
+            .candidates(request.action)
+            .into_iter()
+            .any(|candidate| {
+                self.areas
+                    .shortcuts
+                    .dispatch
+                    .current(&candidate.registration)
+                    && (candidate.callbacks.enabled)(self, request, window, cx)
+            })
+    }
+
     /// Replacement registrations survive an older feature's cleanup.
     pub(crate) fn remove_shortcut_handler(&mut self, registration: &Registration) {
         self.areas.shortcuts.dispatch.remove(registration);
@@ -139,7 +159,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        let candidates = self.areas.shortcuts.dispatch.candidates(&request.action);
+        let candidates = self.areas.shortcuts.dispatch.candidates(request.action);
         for candidate in candidates {
             if self
                 .areas

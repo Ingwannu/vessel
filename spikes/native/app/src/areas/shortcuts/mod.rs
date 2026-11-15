@@ -200,11 +200,10 @@ impl Shell {
                         &press,
                         Platform::native(),
                     )
+                    && let Some(chord) = input.recording_chord()
                 {
-                    if let Some(chord) = input.recording_chord() {
-                        self.shortcut_recorded(chord, cx);
-                        cx.stop_propagation();
-                    }
+                    self.shortcut_recorded(chord, cx);
+                    cx.stop_propagation();
                 }
                 return;
             }

@@ -104,7 +104,7 @@ fn signature(shell: &Shell) -> Option<Signature> {
 fn contributions(signature: &Signature) -> Result<Vec<Contribution<Command>>, RegistrationError> {
     signature.entries.iter().enumerate().map(|(at, entry)| {
         let promoted = matches!(&entry.action, MenuEntry::Git(row) if signature.primary == Some(row.action) && row.unavailable.is_none()) && !entry.disabled;
-        let at = i16::try_from(at).map_err(|_| RegistrationError::InvalidId)?;
+        let at = i16::try_from(at).map_err(|_overflow| RegistrationError::InvalidId)?;
         let rank = if promoted { 1 } else { SECONDARY_START.checked_add(at).ok_or(RegistrationError::InvalidId)? };
         let target = signature.target.clone();
         let action = entry.action.clone();

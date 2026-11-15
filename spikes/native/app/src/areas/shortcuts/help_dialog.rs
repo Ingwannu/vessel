@@ -103,11 +103,11 @@ impl Shell {
         if let Some(prior) = help.prior.take() {
             prior.focus(window, cx);
             if !prior.is_focused(window) {
-                self.focus_composer(window, cx);
+                let _restored = self.focus_composer(window, cx);
             }
         } else {
             window.blur(cx);
-            self.focus_composer(window, cx);
+            let _restored = self.focus_composer(window, cx);
         }
         cx.notify();
     }
@@ -127,15 +127,13 @@ impl Shell {
             CommandKey::Escape => self.close_shortcuts_help(window, cx),
             CommandKey::Up | CommandKey::Down => {
                 let help = &self.areas.shortcuts.help;
-                let old = help.scroll.offset();
-                let amount = px(spacing::S8);
-                let y = if key == CommandKey::Up {
-                    old.y + amount
+                let top = help.scroll.top_item();
+                let next = if key == CommandKey::Up {
+                    top.saturating_sub(1)
                 } else {
-                    old.y - amount
+                    top.saturating_add(1)
                 };
-                help.scroll
-                    .set_offset(vessel_app_kit::ui::point(old.x, y.min(px(spacing::S0))));
+                help.scroll.scroll_to_top_of_item(next);
                 cx.notify();
             }
             CommandKey::Enter => self.areas.shortcuts.help.search.focus(window, cx),

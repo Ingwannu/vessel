@@ -275,3 +275,18 @@ logical workspace target order (full filtered open groups, pinned first, with
 first9 badges, including rows beyond ShowMore paint caps). Child-agent sessions
 are excluded. No parallel target cache, defaults table or key interceptor exists.
 A GPUI modifier-event/timer/preference-reset regression is written, not run.
+
+The old session-list implementation of numeric/relative navigation is removed
+from the core fallback: it must not masquerade as workspace navigation or include
+managed child-agent rows. S2's real workspace owner will register these three
+actions. Badge eligibility also requires an enabled registered workspace handler;
+a pending owner cannot advertise numbers whose keys would do nothing. This is
+an explicit remaining integration task, not a completed navigation claim.
+
+Batched suite caf26ebec type-checked all changed view/kit production and test
+sources and reached App. It reported App lint issues (root-builder length, an
+exhaustive target match, pointer cloning/semicolons, a small dispatcher argument,
+unconsumed focus results and help scrolling arithmetic). The root source was
+split into palette/root.rs, scrolling now uses GPUI item positions, and the other
+issues were corrected. This is not an all-target green claim. The next immutable
+suite includes the badge and actual workspace-owner admission changes.

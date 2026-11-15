@@ -59,9 +59,15 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens) -> AnyElement {
     for (at, section) in visible.into_iter().enumerate() {
         list = list.child(command_heading(section.title, at == 0, tokens));
         for row in section.rows {
-            let keys = row
-                .keys
-                .map(|sequence| {
+            let keys = row.keys.map_or_else(
+                || {
+                    div()
+                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground_muted)
+                        .child(shell.words.shortcuts().unassigned())
+                        .into_any_element()
+                },
+                |sequence| {
                     div()
                         .flex_wrap()
                         .flex()
@@ -85,14 +91,8 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens) -> AnyElement {
                             }),
                         )
                         .into_any_element()
-                })
-                .unwrap_or_else(|| {
-                    div()
-                        .type_(Type::Meta)
-                        .text_color(tokens.neutral.foreground_muted)
-                        .child(shell.words.shortcuts().unassigned())
-                        .into_any_element()
-                });
+                },
+            );
             list = list.child(vessel_app_kit::settings::row(
                 row.label,
                 row.note.map(SharedString::from),

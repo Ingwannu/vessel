@@ -15,6 +15,7 @@ mod entry;
 mod git_source;
 mod messages;
 mod navigation;
+mod root;
 mod rows;
 mod snapshot;
 pub(crate) mod source;
@@ -185,11 +186,11 @@ impl Shell {
         if let Some(prior) = palette.prior.take() {
             prior.focus(window, cx);
             if !prior.is_focused(window) {
-                self.focus_composer(window, cx);
+                let _restored = self.focus_composer(window, cx);
             }
         } else {
             window.blur(cx);
-            self.focus_composer(window, cx);
+            let _restored = self.focus_composer(window, cx);
         }
         self.message_search_query("", cx);
         cx.notify();

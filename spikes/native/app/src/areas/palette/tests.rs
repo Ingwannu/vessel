@@ -167,11 +167,11 @@ fn real_input_queries_only_online_nodes_and_edits_invalidate_before_debounce(
             .all(|ask| ask.request.session.is_none() && ask.request.query.as_str() == "needle")
     );
     update(&view, cx, |shell, _window, cx| {
-        shell.message_searched(answer(&original[0], SessionId::random(), 1), cx)
+        shell.message_searched(answer(&original[0], SessionId::random(), 1), cx);
     });
     cx.run_until_parked();
     update(&view, cx, |shell, _window, _cx| {
-        assert_eq!(shell.message_search_rows().len(), 1)
+        assert_eq!(shell.message_search_rows().len(), 1);
     });
     cx.simulate_input(" changed");
     cx.run_until_parked();
@@ -192,7 +192,7 @@ fn real_input_queries_only_online_nodes_and_edits_invalidate_before_debounce(
             .all(|ask| ask.request.query.as_str() == "needle changed")
     );
     update(&view, cx, |shell, window, cx| {
-        shell.palette_key(CommandKey::Escape, window, cx)
+        shell.palette_key(CommandKey::Escape, window, cx);
     });
     update(&view, cx, |shell, window, cx| {
         shell.message_searched(answer(&changed[0], SessionId::random(), 1), cx);
@@ -374,7 +374,7 @@ fn replacement_refuses_the_old_projected_callback_and_fresh_enter_runs_once(
         let _owner = shell
             .register_command_source(
                 "test-source".parse().unwrap(),
-                vec![owned_command(old_calls.clone())],
+                vec![owned_command(std::rc::Rc::clone(&old_calls))],
                 cx,
             )
             .unwrap();
@@ -391,7 +391,7 @@ fn replacement_refuses_the_old_projected_callback_and_fresh_enter_runs_once(
         let _owner = shell
             .register_command_source(
                 "test-source".parse().unwrap(),
-                vec![owned_command(new_calls.clone())],
+                vec![owned_command(std::rc::Rc::clone(&new_calls))],
                 cx,
             )
             .unwrap();
@@ -401,11 +401,11 @@ fn replacement_refuses_the_old_projected_callback_and_fresh_enter_runs_once(
     assert_eq!(old_calls.get(), 0);
     assert_eq!(new_calls.get(), 0);
     update(&view, cx, |shell, window, cx| {
-        shell.palette_key(CommandKey::Enter, window, cx)
+        shell.palette_key(CommandKey::Enter, window, cx);
     });
     assert_eq!(old_calls.get(), 0);
     assert_eq!(new_calls.get(), 1);
     update(&view, cx, |shell, _, _| {
-        assert!(!shell.areas.palette.is_open())
+        assert!(!shell.areas.palette.is_open());
     });
 }
