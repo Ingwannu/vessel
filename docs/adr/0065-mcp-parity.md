@@ -8,8 +8,9 @@ administration" sections describe the current source; `docs/plans/wp-mcp.md`
 is the current correspondence, decisions, verification ledger and gap list.
 
 This extends ADR 0013 without widening agent grants. The Quality B method
-table is present and MCP_PARITY exists as None. PROTOCOL_VERSION remains
-protocol 23; the integrator assigns the feature number at the wiring merge.
+table is present and MCP_PARITY exists as None. The announced node base is
+protocol 25 (workspace metadata); this package assigns no protocol number. The
+integrator assigns its feature number at the wiring merge.
 Skills selection uses settings-style JSON persistence, with no SQLite schema
 number. No passing whole gate, accepted ADR or callable handover is implied.
 

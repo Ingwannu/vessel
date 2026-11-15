@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: announced gate-50 node head `9c150c6e`, with the shared pending method table. This package selects no protocol or schema number.
+Baseline: announced gate-52 node head `1c762ccf`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -689,3 +689,13 @@ arrays, objects, strings, numbers, booleans and explicit null. This changes no
 node request, policy, selector, effect or grant. ADR0065 records the official
 versioned references and compatibility reason. Exact strict and actual MCP
 execution remain owed; existing pre-change greens are not expanded to this fix.
+
+
+The announced gate52 head `1c762ccf` is merged after the seven-crate
+`6e558f138` strict passed (rc0, 60 seconds). Its protocol25 assignment belongs
+only to workspace metadata; all MCP/browser feature constants remain None.
+The new merge adds that canonical assignment and the already-gated web feedback
+package without changing this MCP response adapter. Its own strict and complete
+MCP suite, including the stricter actual legacy pipe decoder, are the next
+changed-source checks. Current app trees still take only their announced app
+base; this node merge is not an app adoption.
