@@ -17,6 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::Create(ask) => self.create(ask),
             Command::Mentions(ask) => self.mention(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
@@ -72,8 +73,8 @@ impl State {
                 text,
             } => self.resume(&machine, session, text).await,
             Command::Stop { machine, session } => {
-                let input = SessionInput::CancelTurn { turn: None };
-                self.input(&machine, session, input).await;
+                self.input(&machine, session, SessionInput::CancelTurn { turn: None })
+                    .await
             }
             Command::Answer {
                 machine,

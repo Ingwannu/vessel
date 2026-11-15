@@ -100,6 +100,15 @@ pub enum Completion {
 }
 
 impl Flow {
+    /// Which payload a consumer may mutate; completed callbacks cannot recur.
+    #[must_use]
+    pub const fn ticket(&self) -> Option<Ticket> {
+        match self {
+            Self::Creating { ticket, .. } | Self::Failed { ticket, .. } => Some(*ticket),
+            Self::Editing | Self::Complete { .. } => None,
+        }
+    }
+
     /// Only a known refusal may be resubmitted without observing a receipt.
     #[must_use]
     pub const fn may_submit(&self) -> bool {
@@ -125,6 +134,29 @@ impl Flow {
         *self = Self::Creating {
             ticket,
             stage,
+            navigation: Navigation::Foreground,
+        };
+        Transition::Applied
+    }
+
+    /// A person's explicit retry reuses the committed resource, never a new create.
+    #[must_use]
+    pub fn retry_input(&mut self, incoming: Ticket) -> Transition {
+        let Self::Failed {
+            ticket,
+            failure,
+            stage: Stage::InitialInput,
+            ..
+        } = self
+        else {
+            return Transition::Ignored;
+        };
+        if *ticket != incoming || *failure == Failure::OutcomeUnknown {
+            return Transition::Ignored;
+        }
+        *self = Self::Creating {
+            ticket: incoming,
+            stage: Stage::InitialInput,
             navigation: Navigation::Foreground,
         };
         Transition::Applied

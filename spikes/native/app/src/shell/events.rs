@@ -12,6 +12,7 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Creation(answer) => self.creation_answer(answer, cx),
             Event::Mentions(answer) => self.composer_mention_answer(answer, cx),
             Event::MentionRoot(answer) => self.composer_mention_root(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),

@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A correlated creation transition.
+    Creation(super::creation::Answer),
     /// An existing session's registered file root.
     MentionRoot(crate::mentions::RootAnswer),
     /// File suggestions, correlated to their original composer and token.

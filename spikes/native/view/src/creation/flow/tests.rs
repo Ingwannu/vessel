@@ -72,3 +72,26 @@ fn a_late_failure_cannot_change_another_submission_or_a_completed_one() {
     assert_eq!(flow.fail(FIRST, Failure::Offline), Transition::Ignored);
     assert_eq!(flow.complete(SECOND), Completion::Open);
 }
+
+#[test]
+fn retrying_a_known_delivery_failure_keeps_the_same_identity_but_unknown_cannot_retry() {
+    for failure in [
+        Failure::Refused(ErrorCode::Conflict),
+        Failure::OutcomeUnknown,
+    ] {
+        let mut flow = Flow::default();
+        assert_eq!(flow.begin(FIRST, Stage::InitialInput), Transition::Applied);
+        assert_eq!(flow.fail(FIRST, failure), Transition::Applied);
+        assert_eq!(flow.retry_input(SECOND), Transition::Ignored);
+        let retried = flow.retry_input(FIRST);
+        assert_eq!(
+            retried,
+            if failure == Failure::OutcomeUnknown {
+                Transition::Ignored
+            } else {
+                Transition::Applied
+            }
+        );
+        assert_eq!(flow.ticket(), Some(FIRST));
+    }
+}

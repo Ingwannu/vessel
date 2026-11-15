@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Correlated creation distinguishes registration from first-message delivery.
+    Create(super::creation::Ask),
     /// Debounced path suggestions for one captured composer.
     Mentions(crate::mentions::Ask),
     /// A request for one machine’s Agents settings.

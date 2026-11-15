@@ -56,6 +56,7 @@ mod session;
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
 pub mod agents;
+pub mod creation;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;

@@ -178,12 +178,14 @@ impl Shell {
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
+        self.creation_departing();
         self.route = route;
         self.arrive_pending = true;
     }
 
     /// Show `route`.
     pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.creation_departing();
         self.route = route;
         routes::arrive(route, self, window, cx);
         cx.notify();

@@ -8,10 +8,8 @@
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
 //!
-//! A session started from the draft opens before the node has answered:
-//! its first prompt is shown at once with "Starting <agent> on <machine>…"
-//! (agent-orchestrator's local echo and its "gets ready" line), and the
-//! conversation takes its place when the first record arrives.
+//! Draft creation shows its first prompt while registration and delivery
+//! settle separately; only the matching foreground completion may follow it.
 
 use std::cell::Cell;
 
@@ -130,6 +128,7 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.creation_departing();
         self.conversation_opened(&open.machine, open.session, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
