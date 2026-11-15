@@ -1,5 +1,28 @@
 # N3 current checkpoint
 
+## Latest: staged correction accepted; launch-profile contract proposed
+
+V1 accepted `ed34a92b` plus results `f9752ef7` as source-reviewed/staged
+only, closing the liveness return. No callable project listing or product
+node merge is approved. The original failed cleanup probe is retained.
+
+At the clean boundary, `44cbf0d2` merged announced node head `242076b5`;
+the required complete baseline gate passed all eighteen steps. Workspace
+2,252/0/12, TypeScript four, web units 442, E2E 65 and forge fixture four.
+The new plan records the exact run and selected source checks.
+
+The active package is ADR 0076, named launch profiles, in
+`backend-m12-launch-profiles.md`. The coordinator made it the security
+exception to package-end review: ADR before code, to the node reviewer,
+with a simultaneous schema-allocation request to the integrator. No
+launch-profile implementation or registration exists. Quality B's pending
+row is still required; no dummy/current protocol number or second table.
+Account profiles and named launch profiles remain separate domains.
+
+The older checkpoints below are historical. Per-commit checks are now
+narrow; one complete root gate and implementation review close the feature
+package. No new whole gate is run for this docs-only checkpoint.
+
 ## Latest: liveness correction gated, source review pending
 
 V1 completed the provider/service source review and returned only the new
