@@ -66,6 +66,8 @@ pub enum Dismissal {
 pub struct MenuItem {
     /// Idle words, provided by the caller's language table.
     pub label: SharedString,
+    /// Whole caller-localized hint; shown at most two lines while idle.
+    pub description: Option<SharedString>,
     /// Ordinary or destructive colour.
     pub tone: Tone,
     /// Quiet idle presentation; disabled/feedback states take precedence.
@@ -89,6 +91,7 @@ impl MenuItem {
     pub fn new(label: impl Into<SharedString>) -> Self {
         Self {
             label: label.into(),
+            description: None,
             tone: Tone::Plain,
             presentation: Presentation::Normal,
             disabled: false,
@@ -97,6 +100,14 @@ impl MenuItem {
             leading_size: LeadingSize::Small,
             status: ItemStatus::Idle,
             dismissal: Dismissal::Close,
+        }
+    }
+    /// Add the reference auxiliary text without changing activation or tone.
+    #[must_use]
+    pub fn with_description(self, description: impl Into<SharedString>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
         }
     }
     /// A destructive item starting a group.
@@ -168,6 +179,12 @@ impl MenuItem {
         match &self.status {
             ItemStatus::Idle => &self.label,
             ItemStatus::Pending(label) | ItemStatus::Success(label) => label,
+        }
+    }
+    pub(super) fn visible_description(&self) -> Option<&SharedString> {
+        match &self.status {
+            ItemStatus::Idle => self.description.as_ref().filter(|text| !text.is_empty()),
+            ItemStatus::Pending(_) | ItemStatus::Success(_) => None,
         }
     }
     pub(super) fn leading(&self) -> Leading {

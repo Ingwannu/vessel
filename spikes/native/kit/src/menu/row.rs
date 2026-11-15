@@ -153,13 +153,7 @@ pub(super) fn frame(
         .border_color(gpui::transparent_black())
         .children(check_leading)
         .children(leading_content)
-        .child(
-            div()
-                .flex_shrink(1.0)
-                .min_w_0()
-                .truncate()
-                .child(crate::picker::one_line(item.words())),
-        )
+        .child(text(item, surfaces))
         .children(trailing.map(|trailing| {
             div()
                 .ml_auto()
@@ -178,4 +172,34 @@ fn slot(content: AnyElement) -> AnyElement {
         .justify_center()
         .child(content)
         .into_any_element()
+}
+
+// menu-item.tsx:355-363,510-514. Native Meta supplies the shared12/16
+// metrics where the reference leaves the small-text line height implicit.
+const DESCRIPTION_LINES: usize = 2;
+fn text(item: &MenuItem, surfaces: &popup::Surfaces) -> gpui::Div {
+    let label = div()
+        .flex_shrink(1.0)
+        .min_w_0()
+        .truncate()
+        .child(crate::picker::one_line(item.words()));
+    match item.visible_description() {
+        None => label,
+        Some(description) => div()
+            .flex_shrink(1.0)
+            .min_w_0()
+            .flex()
+            .flex_col()
+            .child(label)
+            .child(
+                div()
+                    .mt(px(spacing::S0_5))
+                    .type_(Type::Meta)
+                    .text_color(surfaces.foreground_muted)
+                    .whitespace_normal()
+                    .line_clamp(DESCRIPTION_LINES)
+                    .text_ellipsis()
+                    .child(description.clone()),
+            ),
+    }
 }

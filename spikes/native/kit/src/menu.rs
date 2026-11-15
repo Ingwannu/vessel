@@ -27,6 +27,8 @@
 //! placement, keyboard handling or motion. The prior split changed no behaviour;
 //! typed feedback and dismissal are additive extensions of that renderer.
 
+#[cfg(test)]
+mod description_tests;
 mod draw;
 #[cfg(test)]
 mod feedback_tests;

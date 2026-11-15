@@ -800,3 +800,29 @@ compilation returned101 on five closure-style diagnostics in policy_tests.
 The owning correction adds unit semicolons and uses the existing method
 pointer; the same test-only correction is kept in this union. No assertion,
 policy or test deadline changes. Its isolated successor check remains pending.
+
+## Shared menu auxiliary descriptions
+
+[Decision Log]
+- Purpose: G1's DiffMode menu needs its caller-provided committed description
+  without drawing a second item body in an area.
+- Existing assets: MenuItem owns item state; the shared private row::frame
+  already owns label/check/leading/trailing content and all input uses it.
+- Alternatives: an area-styled subtitle, a second menu row or a new dependency
+  would duplicate the existing renderer and lose feedback-state consistency.
+- Choice: modify the same MenuItem and row renderer with an optional whole
+  localized description. Default None returns the exact prior label element.
+- Why: Paseo components/ui/menu/menu-item.tsx:355-363,510-514 draws the hint
+  only when nonempty and neither pending nor success; it has two lines, margin
+  top2, small12 text and muted foreground. Preserve those rules without trimming
+  or clipping the caller's value at the data boundary.
+- Impact: existing legacy row minimums28/44 and source profile28/40 stay;
+  only an idle nonempty description may grow the content. Native Type::Meta
+  makes the otherwise implicit small-text line-height explicit at16. One-line
+  descriptions therefore occupy46 points and two lines62, including the same
+  label18, gap2, padding8 and border2. Selection and feedback remain independent.
+
+Tests retain the actual shared row frame and literal width/height expectations
+in both schemes and densities, including three-line input capped to two and
+pending/success restoring the old row height. These tests are installed but
+not executed yet. No runtime/UI/G1 consumer or full F4 pass is claimed.

@@ -1338,3 +1338,8 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+Menu items may carry a whole localized auxiliary description with
+MenuItem::with_description. The same row renderer caps it to two muted small
+lines while idle; pending/success feedback hides the hint. Existing items
+without a description retain their previous label element and row geometry.
