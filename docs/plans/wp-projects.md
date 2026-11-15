@@ -518,7 +518,8 @@ whose combined cfg expression hid the test-module context from lint recognition,
 and the shared dispatch function reaching101 lines after project registration.
 The source correction uses the imported type, explicitly classifies the observer's
 unrelated answers and splits the logically identical test/target cfg attributes.
-The dispatch start arm drops a redundant block/statement without changing its
-call, order or result; only the added project arm is new behavior. No size/lint
+The shared dispatch keeps its existing preferences persistence operation in a
+private helper rather than the extensible match. Its call, ordering and result
+are unchanged; the added project arm remains the only new behavior. No size/lint
 allowance is raised. These changes still require current-head checks. The queued
 older native tests remain their original source evidence, not projection proof.

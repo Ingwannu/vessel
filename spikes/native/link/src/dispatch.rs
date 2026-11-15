@@ -107,14 +107,18 @@ impl State {
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Projects(request) => self.projects(request).await,
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => {
-                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-                match saved {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-                }
-            }
+            Command::SavePrefs(prefs) => persist_prefs(prefs).await,
         }
+    }
+}
+
+// Keep the existing persistence operation outside the extensible dispatch match.
+// Command registration must not require raising the dispatcher function budget.
+async fn persist_prefs(prefs: super::Prefs) {
+    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
+    match saved {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
+        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
     }
 }
