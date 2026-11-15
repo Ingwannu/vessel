@@ -262,3 +262,54 @@ async fn an_empty_ack_keeps_legacy_unknown_until_an_actual_mutation() {
     assert_eq!(mark.updated_at(), clock(&dir, session.id));
     store.close().await;
 }
+
+#[tokio::test]
+async fn supplied_creation_or_import_clock_cannot_choose_local_mutation_order() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let mut session = new_session(0);
+    let supplied = SessionUpdatedAt::advance(
+        None,
+        Utc::now().checked_add_signed(TimeDelta::days(1)).unwrap(),
+    )
+    .unwrap();
+    session.updated_at = Some(supplied);
+    let created = store
+        .create_session_committed(session.clone())
+        .await
+        .unwrap();
+    let kept = created.updated_at().unwrap();
+    assert!(kept < supplied);
+    assert_ne!(kept, supplied);
+    assert_eq!(
+        store.session(session.id).await.unwrap().unwrap().updated_at,
+        Some(kept)
+    );
+    store.close().await;
+}
+
+#[tokio::test]
+async fn corrupt_precision_refuses_reads_and_rolls_back_a_metadata_write() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0);
+    store.create_session(session.clone()).await.unwrap();
+    inject(&dir, session.id, at(0));
+    assert!(matches!(store.session(session.id).await,
+        Err(StoreError::MutationTime { session: id,
+            source: InvalidSessionUpdatedAt::Submillisecond }) if id == session.id));
+    assert!(matches!(store.mark(session.id, Mark::Pin, at(1)).await,
+        Err(StoreError::MutationTime { session: id,
+            source: InvalidSessionUpdatedAt::Submillisecond }) if id == session.id));
+    let connection = Connection::open(dir.database_path()).unwrap();
+    let (pinned, kept): (bool, i64) = connection
+        .query_row(
+            "SELECT pinned,updated_at FROM sessions WHERE id=?1",
+            [session.id.to_string()],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert!(!pinned);
+    assert_eq!(kept, at(0).timestamp_nanos_opt().unwrap());
+    store.close().await;
+}

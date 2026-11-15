@@ -1452,3 +1452,11 @@ The inbox cancellation test setup is split into named turn/persistence,
 before-admission and after-admission phases. Only test code moves; every input,
 poll, assertion and deadline remains the same. This keeps the resource-admission
 proof readable without weakening or lengthening its safety budget.
+
+
+Additional clock regressions refuse a corrupt fractional stored value on both
+read and mark, preserving the prior row on failure; supplied creation/import
+clock data cannot choose the destination's local time. A fake-node reopen case
+checks the actual writer clock is already visible when the existing publication
+gate opens, the raw actor watch remains Unknown, and handover retains the final
+acknowledged time. These are new cases, with existing assertions/deadlines kept.

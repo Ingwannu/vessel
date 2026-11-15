@@ -249,3 +249,59 @@ fn cancel_after_admission(fixture: &Fixture, key: InboxKey) {
     );
     drop(call);
 }
+
+#[tokio::test]
+async fn reopen_publishes_its_real_writer_clock_before_opening_the_existing_gate() {
+    vessel_testkit::within(
+        MUTATION_PUBLICATION_BUDGET,
+        Box::pin(async {
+            let fixture = Fixture::new().await;
+            let created = fixture
+                .sessions
+                .create(fixture.structured(), LaunchOptions::default(), None)
+                .await
+                .unwrap();
+            let handle = fixture.runtime.get(created.id).unwrap();
+            let _running = ready(&handle).await.unwrap();
+            handle.kill();
+            let _ended = handle.ended().await;
+            fixture.sessions.wait_stored(created.id).await.unwrap();
+            let before = fixture
+                .store
+                .session(created.id)
+                .await
+                .unwrap()
+                .unwrap()
+                .updated_at;
+            let claim = fixture.sessions.claim(created.id).unwrap();
+            let ended = fixture.sessions.ended(created.id).await.unwrap();
+            let reopened = fixture
+                .sessions
+                .start_again(ended, vessel_session::Relaunch::default(), claim)
+                .await
+                .unwrap();
+            assert!(reopened.info().updated_at > before);
+            assert_eq!(reopened.watch_info().borrow().updated_at, None);
+            let _running = ready(&reopened).await.unwrap();
+            let _page = fixture
+                .sessions
+                .read(created.id, EventSeq::ZERO, 100)
+                .await
+                .unwrap();
+            assert!(reopened.info().updated_at >= before);
+            fixture.runtime.shutdown().await;
+            fixture.settle().await;
+            let kept = fixture
+                .store
+                .session(created.id)
+                .await
+                .unwrap()
+                .unwrap()
+                .updated_at;
+            assert_eq!(reopened.info().updated_at, kept);
+            fixture.stop().await;
+        }),
+    )
+    .await
+    .unwrap();
+}
