@@ -18,3 +18,16 @@ impl FileQuery {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn initial_listing_has_no_protocol_query_and_matching_stays_validated() {
+        assert_eq!(FileQuery::All.text(), None);
+        assert!("".parse::<FindQuery>().is_err());
+        assert!("   ".parse::<FindQuery>().is_err());
+        let query = "src/main".parse::<FindQuery>().unwrap();
+        assert_eq!(FileQuery::Matching(query).text(), Some("src/main"));
+    }
+}
