@@ -282,6 +282,18 @@ projection. The cache hook receives old canonical before observe and new canonic
 from Snapshot, before shell.prefs is replaced. Shortcut, prepared-word and terminal
 cache invalidation remain feature-owned callbacks on canonical/rebased changes.
 
+At initial subscription the window can predate its new Client: a real writer may
+have committed during window construction. Read and mark the watch's initial
+snapshot synchronously, then run the same apply path before any local edit. The
+layout hook's first baseline is this window's actual old layout records; later
+deliveries use the Client's prior canonical records as usual. Otherwise an unseen
+initial snapshot could leave both the UI and a retained removed workspace stale,
+and a local edit could send those old values against the new Client baseline.
+The regression commits a different theme/workspace before subscription, then
+asserts immediate installation, cached-key removal and preservation in the next
+real local publication. Execution remains pending; no extra observer/writer or
+feature resource manager is introduced.
+
 Future sidebar bands are not yet adopted from S2's unchecked source. Header and
 Footer navigation edits must merge independently. Callout dismissal edits are set
 deltas by logical key, preserving concurrent unrelated additions and removals.

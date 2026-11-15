@@ -58,7 +58,13 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
         return;
     };
     let (client, mut updates) = desktop.preferences.client();
+    let previous = shell.prefs.layouts.clone();
+    let initial = updates.borrow_and_update().clone();
     shell.areas.desktop.preferences = Some(client);
+    // A writer can commit between window construction and subscription. Its
+    // initial watch value may never trigger changed(), and the retained layout
+    // cache still belongs to the actual window snapshot, not the new Client.
+    apply_with_layouts(shell, &initial, &previous, window, cx);
     cx.spawn_in(window, async move |this, cx| {
         while updates.changed().await.is_ok() {
             let snapshot = updates.borrow_and_update().clone();
@@ -136,10 +142,28 @@ pub(crate) fn rollback(shell: &mut Shell, window: &mut Window, cx: &mut Context<
 }
 
 fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let Some(previous) = shell
+        .areas
+        .desktop
+        .preferences
+        .as_ref()
+        .map(vessel_app_link::desktop::preferences::Client::canonical_preferences)
+    else {
+        return;
+    };
+    apply_with_layouts(shell, snapshot, &previous.layouts, window, cx);
+}
+
+fn apply_with_layouts(
+    shell: &mut Shell,
+    snapshot: &Snapshot,
+    previous: &[vessel_app_view::layout::RememberedLayout],
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     let Some(client) = &shell.areas.desktop.preferences else {
         return;
     };
-    let previous = client.canonical_preferences();
     let next = match client.observe(snapshot) {
         Observation::Stale => return,
         Observation::Applied(prefs) => prefs,
@@ -152,8 +176,8 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
     let canonical = snapshot.preferences();
     // Layout owns retained dirty/ephemeral trees. Rebase its cache against
     // canonical snapshots before installing this window's optimistic projection.
-    if previous.layouts != canonical.layouts {
-        shell.layout_preferences_applied(&previous.layouts, &canonical.layouts, cx);
+    if previous != canonical.layouts.as_slice() {
+        shell.layout_preferences_applied(previous, &canonical.layouts, cx);
     }
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
