@@ -101,6 +101,14 @@ snapshot/catch-up. One actor owns mutation -> durable reply -> journal publish,
 so request cancellation cannot reorder or skip publication. This transport
 difference preserves the reference's user-visible observation semantics.
 
+The eventual service handler must reuse `NodeService::wait_slot` and the
+existing `Waiter` shares before selecting Observe. Delegated calls answer
+immediately, as terminal/port reads do, and an exhausted connection/origin
+share downgrades Observe to Now. This leaves capacity for other calls on the
+same fleet connection. The client pauses after unchanged immediate polls;
+it must not turn share exhaustion into a busy loop. The staged actor has no
+principal/connection policy of its own; that remains the handler boundary.
+
 ## Differences and version behavior
 
 - SQLite transactions replace the reference's compound JSON commit journal.
