@@ -378,3 +378,17 @@ keep their existing API. A barrier regression with actual actors and a recorded
 synthetic success control is authored; it is not yet execution evidence. The old
 A/B fixture's ignored home reader is corrected with an explicit distinct-proof
 assertion; earlier runs must not be counted as proof of that distinction.
+
+
+### Executed refresh/cache semantics
+
+The ADR now distinguishes the Paseo five-minute reference from Vessel's actual
+strictly cache-only passive reads. An expired observation does not discover a
+login or contact a vendor. Additional-source explicit Refresh awaits/joins the
+bounded job, while legacy saved-login reads keep immediate Refreshing behavior
+when a probe is already active. The 90-second aggregate bound is a request budget,
+not a guarantee of terminal states for every legacy entry. Native/page local
+pending indicators must remain separate from a foreign cached Refreshing phase.
+The newly announced green node base 1c762ccf (protocol25/schema20) is merged;
+feature constants remain pending None. Earlier exact narrow evidence remains
+scoped to its recorded source, and current whole proof is still owed.

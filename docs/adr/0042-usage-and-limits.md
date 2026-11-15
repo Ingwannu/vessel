@@ -365,9 +365,12 @@ All lists and identifiers are bounded at decoding and construction edges; an
 oversized or duplicate identity refuses the response instead of silently losing
 an account. Bounds and serialization tests live beside the types.
 
-The registry owns discovery, cache identity, five-minute freshness, per-source
-admission, identical-fetch coalescing, immutable generation and successful
-history. Source adapters own provider schemas, fixed network destinations and
+The registry owns discovery, cache identity, per-source admission,
+identical-fetch coalescing, immutable generation and successful history. Paseo's
+five-minute source freshness was the reference design; Vessel's executable Read
+is strictly cache-only, including an old observation or a miss. Expiry does not
+initiate credential discovery or a vendor fetch; an explicit authorized Refresh
+is required. Source adapters own provider schemas, fixed network destinations and
 local login reading; the registry never inspects opaque plugin-owned inputs.
 A source-local opaque login reference keeps those inputs in its adapter. Plugin
 Ready/discover/fetch uses these same report types, with the plugin generation
@@ -552,3 +555,15 @@ which does not capture harness-home variables. It now uses HarnessEnv's existing
 home reader and asserts that A and B proofs differ while their account identity
 is equal. Earlier passing executions did not prove distinct resolved homes;
 stronger corrected execution is owed.
+
+### Explicit refresh completion is source-specific
+
+Additional-source Refresh requests await/join their bounded source job. A cached
+Read may immediately expose a Refreshing attempt admitted elsewhere. The three
+legacy saved-login limits retain their existing behavior: the first Refresh
+awaits its actual probe, but a read/Refresh arriving while that binding is already
+Refreshing immediately returns that state, including through reports/inspect.
+The complete list/inspect budget bounds the request; it is not a universal promise
+that every returned report is terminal. Consumers own their local request pending
+state separately from the cached attempt phase, so a foreign Refreshing snapshot
+cannot permanently disable an explicit refresh or a cache-only retry.
