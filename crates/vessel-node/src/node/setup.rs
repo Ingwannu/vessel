@@ -85,7 +85,7 @@ pub(super) async fn settings(
     runtime: &Arc<vessel_session::SessionRuntime>,
     tasks: &tokio_util::task::TaskTracker,
     stop: &tokio_util::sync::CancellationToken,
-) -> Result<Arc<crate::settings::Settings>, crate::error::NodeError> {
+) -> Result<Arc<crate::settings::Settings>, NodeError> {
     let data = config.data_dir.clone();
     let runtime = Arc::clone(runtime);
     let flag = vessel_proto::parking::ParkAfter::from_duration(config.park_after);
@@ -98,7 +98,7 @@ pub(super) async fn settings(
         ))
     })
     .await
-    .map_err(crate::error::NodeError::Task)
+    .map_err(NodeError::Task)
 }
 
 /// The LSP manager's configuration with the operator's roots filled in:

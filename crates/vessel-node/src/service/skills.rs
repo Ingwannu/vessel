@@ -13,39 +13,45 @@ impl NodeService {
         _: &Connection,
         _: GetSkillsStatus,
     ) -> Result<SkillsSnapshot, WireError> {
-        self.skills.status().await.map_err(wire)
+        self.skills.status().await.map_err(|error| wire(&error))
     }
     pub(crate) async fn reconcile_skills(
         &self,
         _: &Connection,
         _: ReconcileSkills,
     ) -> Result<SkillsSnapshot, WireError> {
-        self.skills.reconcile().await.map_err(wire)
+        self.skills.reconcile().await.map_err(|error| wire(&error))
     }
     pub(crate) async fn uninstall_skills(
         &self,
         _: &Connection,
         _: UninstallSkills,
     ) -> Result<SkillsSnapshot, WireError> {
-        self.skills.uninstall().await.map_err(wire)
+        self.skills.uninstall().await.map_err(|error| wire(&error))
     }
     pub(crate) async fn save_skills_selection(
         &self,
         _: &Connection,
         request: SaveSkillsSelection,
     ) -> Result<SkillsSaved, WireError> {
-        self.skills.save(request).await.map_err(wire)
+        self.skills
+            .save(request)
+            .await
+            .map_err(|error| wire(&error))
     }
     pub(crate) async fn import_skills_selection(
         &self,
         _: &Connection,
         request: ImportSkillsSelection,
     ) -> Result<SkillsImported, WireError> {
-        self.skills.import(request).await.map_err(wire)
+        self.skills
+            .import(request)
+            .await
+            .map_err(|error| wire(&error))
     }
 }
-fn wire(error: SkillsError) -> WireError {
-    let code = match &error {
+fn wire(error: &SkillsError) -> WireError {
+    let code = match error {
         SkillsError::Busy | SkillsError::Stopping => ErrorCode::Conflict,
         SkillsError::Skill(vessel_fleet::orchestration::SkillError::UnknownSkill)
         | SkillsError::Selection(vessel_fleet::orchestration::SelectionError::Skill(

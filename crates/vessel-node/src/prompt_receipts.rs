@@ -49,6 +49,11 @@ impl PromptReceipts {
         session: SessionId,
     ) -> Result<Reservation, WireError> {
         let now = Instant::now();
+        // Refuse before allocating authority if the platform cannot represent
+        // the finite retention window; never wrap it into an expired receipt.
+        let expires = now.checked_add(RECEIPT_LIFETIME).ok_or_else(|| {
+            WireError::new(ErrorCode::Internal, "cannot represent receipt expiry")
+        })?;
         let mut entries = self.entries();
         entries.retain(|_id, entry| entry.expires > now);
         if entries.len() >= MAX_RECEIPTS
@@ -70,7 +75,7 @@ impl PromptReceipts {
             Entry {
                 holder,
                 session,
-                expires: now + RECEIPT_LIFETIME,
+                expires,
                 state,
             },
         );

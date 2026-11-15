@@ -7,12 +7,12 @@ use vessel_proto::mcp::{
 use vessel_proto::{Ack, WireError};
 
 impl NodeService {
-    pub(crate) async fn check_prompt_tracking(
+    pub(crate) fn check_prompt_tracking(
         &self,
         _: &Connection,
         _: vessel_proto::mcp::CheckPromptTracking,
-    ) -> Result<Ack, WireError> {
-        Ok(Ack)
+    ) -> std::future::Ready<Result<Ack, WireError>> {
+        std::future::ready(Ok(Ack))
     }
     pub(crate) async fn track_prompt(
         &self,
@@ -49,16 +49,19 @@ impl NodeService {
             )
             .await
     }
-    pub(crate) async fn close_prompt_receipt(
+    pub(crate) fn close_prompt_receipt(
         &self,
         connection: &Connection,
         request: ClosePromptReceipt,
-    ) -> Result<Ack, WireError> {
-        self.prompt_receipts.close(
-            Holder::of(connection.principal()),
-            request.session,
-            request.receipt,
-        )?;
-        Ok(Ack)
+    ) -> std::future::Ready<Result<Ack, WireError>> {
+        std::future::ready(
+            self.prompt_receipts
+                .close(
+                    Holder::of(connection.principal()),
+                    request.session,
+                    request.receipt,
+                )
+                .map(|()| Ack),
+        )
     }
 }

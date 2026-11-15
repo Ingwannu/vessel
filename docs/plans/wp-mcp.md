@@ -411,3 +411,13 @@ use current Vessel tool names and do not invent unavailable creation/profile/
 plugin APIs. Text is independently written for Vessel, not a renamed copy of
 Paseo's implementation-specific SDK/CLI instructions. Build still embeds and
 validates the directory catalogue without installing anything.
+
+
+Exact 2055feb36 node library tests pass 250/0/0, including cancellation and
+receipt authority fixtures. Its strict run found eight source lints after
+the gate40 merge: redundant qualifications, borrowed error mapping, two
+synchronous RPC adapters and unchecked receipt expiry. The synchronous
+adapters now follow the existing ready-future RPC pattern; checked expiry
+refuses before allocating a receipt if the finite platform deadline cannot
+be represented. No lint suppression or assertion change is used. This is
+not yet a successful strict rerun or whole-package gate.
