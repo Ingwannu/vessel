@@ -170,6 +170,16 @@ impl Workspaces {
         live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<Removal, WorkspaceError> {
         let git = self.git()?.clone();
+        let project = self
+            .state()
+            .worktrees
+            .get(&worktree)
+            .map(|entry| entry.info.project)
+            .ok_or(WorkspaceError::UnknownWorktree(worktree))?;
+        // Serialize against provisioning before checking ownership. The task
+        // retains this exact bounded hold through teardown, git and Store ack.
+        let admission = self.admit_project(project).await?;
+        self.require_no_registry_reference(project).await?;
         let claim = self.stop.child_token();
         let (info, root, written) = {
             let mut state = self.state();
@@ -178,6 +188,9 @@ impl Workspaces {
                     .worktrees
                     .get(&worktree)
                     .ok_or(WorkspaceError::UnknownWorktree(worktree))?;
+                if entry.info.project != project {
+                    return Err(WorkspaceError::UnknownWorktree(worktree));
+                }
                 state
                     .projects
                     .get(&entry.info.project)
@@ -206,6 +219,7 @@ impl Workspaces {
         let workspaces = Arc::clone(self);
         self.tasks
             .spawn(async move {
+                let _admission = admission;
                 let removal = workspaces
                     .remove_claimed(&git, &info, &root, if_lost, claim, &written)
                     .await;
