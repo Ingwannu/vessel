@@ -55,6 +55,9 @@ use vessel_proto::search::{MessageRole, SearchHit};
 use crate::areas::session::Open;
 use crate::shell::Shell;
 
+#[cfg(test)]
+mod residency_tests;
+
 /// How long the words rest before they are searched.
 const SETTLE: Duration = Duration::from_millis(150);
 
@@ -74,7 +77,7 @@ impl Shell {
     /// The palette's words changed (empty: it closed or was cleared):
     /// search them once they rest.
     pub(crate) fn message_search_query(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let searching = &mut self.areas.conversation.search;
+        let searching = &mut self.areas.palette.messages_search;
         searching.typed = searching.typed.wrapping_add(1);
         let typed = searching.typed;
         if text.trim().is_empty() {
@@ -86,7 +89,7 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(SETTLE).await;
             let _gone = this.update(cx, |shell, cx| {
-                if shell.areas.conversation.search.typed == typed {
+                if shell.areas.palette.messages_search.typed == typed {
                     shell.message_search_start(&text, cx);
                 }
             });
@@ -105,8 +108,8 @@ impl Shell {
             .collect();
         let asks = self
             .areas
-            .conversation
-            .search
+            .palette
+            .messages_search
             .view
             .start(text, machines.iter().map(String::as_str));
         self.message_search_ask(asks);
@@ -115,7 +118,7 @@ impl Shell {
 
     /// Send `asks`, tagged with the search they belong to.
     fn message_search_ask(&self, asks: Vec<PageAsk>) {
-        let ticket = self.areas.conversation.search.view.ticket();
+        let ticket = self.areas.palette.messages_search.view.ticket();
         for ask in asks {
             self.command(Command::Search(Ask {
                 machine: ask.machine,
@@ -135,8 +138,8 @@ impl Shell {
         };
         let asks =
             self.areas
-                .conversation
-                .search
+                .palette
+                .messages_search
                 .view
                 .answered(answer.ticket, &answer.machine, page);
         self.message_search_ask(asks);
@@ -145,12 +148,12 @@ impl Shell {
 
     /// The group's rows, top to bottom (none while no words are searched).
     pub(crate) fn message_search_rows(&self) -> Vec<Row> {
-        self.areas.conversation.search.view.rows()
+        self.areas.palette.messages_search.view.rows()
     }
 
     /// The person chose More: show the next messages.
     pub(crate) fn message_search_more(&mut self, cx: &mut Context<'_, Self>) {
-        let asks = self.areas.conversation.search.view.more();
+        let asks = self.areas.palette.messages_search.view.more();
         self.message_search_ask(asks);
         cx.notify();
     }
@@ -170,8 +173,8 @@ impl Shell {
         };
         let query = self
             .areas
-            .conversation
-            .search
+            .palette
+            .messages_search
             .view
             .query()
             .map(str::to_owned);
@@ -231,7 +234,7 @@ pub(crate) fn message_row(
         }
         Row::Hit(id) => id,
     };
-    let Some(found) = shell.areas.conversation.search.view.hit(hit) else {
+    let Some(found) = shell.areas.palette.messages_search.view.hit(hit) else {
         return frame.into_any_element();
     };
     let title = card_of(shell, hit).map_or_else(
@@ -347,7 +350,7 @@ fn excerpt(shell: &Shell, hit: &SearchHit, tokens: &Tokens) -> AnyElement {
 /// The lines under the group's rows: searching, no match, the words not a
 /// search, machines too old to search, machines that could not.
 pub(crate) fn message_search_note(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
-    let notes = shell.areas.conversation.search.view.notes();
+    let notes = shell.areas.palette.messages_search.view.notes();
     if notes.is_empty() {
         return None;
     }
@@ -394,7 +397,7 @@ pub(crate) fn example(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let words = example_words()?;
-    let searching = &shell.areas.conversation.search;
+    let searching = &shell.areas.palette.messages_search;
     if searching.example_closed {
         return None;
     }
@@ -417,7 +420,7 @@ pub(crate) fn example(
             .cursor_pointer()
             .on_click(cx.listener(move |shell, _event, window, cx| match &chosen {
                 Row::Hit(hit) => {
-                    shell.areas.conversation.search.example_closed = true;
+                    shell.areas.palette.messages_search.example_closed = true;
                     shell.open_search_hit(hit, window, cx);
                 }
                 Row::More => shell.message_search_more(cx),

@@ -58,7 +58,7 @@ does not invalidate it. Refusal stays handled, including Close, so desktop windo
 fallback cannot discard the guarded window. This is a UI-selection fence only;
 node effects still require the admitted resident and connection lease. Reusing
 the model projection avoids another focus manager or keyboard listener.
-Its `target()` query gives the top compact sheet precedence over the underlying
+Its `target()` / `selected()` queries give the top compact sheet precedence over the underlying
 pane. Composer destination capture must match a current explicit Draft/Agent
 target and workspace; a hidden draft is never a global fallback.
 
