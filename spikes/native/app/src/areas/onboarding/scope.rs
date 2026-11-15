@@ -64,7 +64,7 @@ pub(super) fn prepare(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
     {
         return;
     }
-    let Some(machine) = shell.fleet.machines.first() else {
+    let Some(machine) = super::selected_host(shell) else {
         return;
     };
     if machine.reach != Reach::Online {
@@ -97,10 +97,7 @@ pub(super) fn target<'a>(shell: &'a Shell, machine: &str) -> Option<&'a Target> 
 }
 
 pub(super) fn manual(shell: &mut Shell, window: &Window) {
-    let machine = shell
-        .fleet
-        .machines
-        .first()
+    let machine = super::selected_host(shell)
         .filter(|machine| machine.reach == Reach::Online)
         .map(|machine| MachineKey::from_book(&machine.name));
     if let Some(machine) = machine {
@@ -135,7 +132,9 @@ pub(super) fn actionable(shell: &Shell) -> bool {
     };
     matches!(shell.areas.onboarding.scope.binding, Binding::Ready(visit) if visit == open.visit())
         && shell.fleet.machines.iter().any(|machine| {
-            machine.name == open.host().machine().as_str() && machine.reach == Reach::Online
+            machine.name == open.host().machine().as_str()
+                && machine.reach == Reach::Online
+                && machine.node == Some(open.host().node())
         })
 }
 

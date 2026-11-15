@@ -258,28 +258,52 @@ impl Shell {
     /// "Restart to update": start the installed build with this run's
     /// arguments, and quit.
     pub(crate) fn restart_to_update(&mut self, cx: &mut Context<'_, Self>) {
-        let Some(updater) = self
-            .updates
-            .runtime
-            .as_ref()
-            .and_then(|updates| updates.updater.as_ref())
-        else {
+        let Some(updates) = self.updates.runtime.as_ref().map(std::rc::Rc::clone) else {
             return;
         };
-        // Written here, not through the link: the app quits next, before
-        // the link's write would run.
-        if let Err(error) = self.prefs.save() {
-            tracing::warn!(%error, "the app's preferences could not be saved before the restart");
+        if updates.updater.is_none() || !crate::local_node::begin_finalization(cx) {
+            return;
         }
-        match updater.restart(std::env::args_os().skip(1)) {
-            Ok(()) => cx.quit(),
-            Err(ApplyError::NotReady) => {}
-            Err(ApplyError::Restart(error)) => {
-                tracing::warn!(error = %vessel_app_updater::chain(&error), "the updated app did not start");
-                self.notice = Some(self.updates.restart_failed(self.words).to_string());
-                cx.notify();
+        let finalize = crate::local_node::finalize(self.prefs.local_node.after_quit, false, cx);
+        let flush = crate::desktop::flush_preferences(cx);
+        cx.spawn(async move |this, cx| {
+            let result = finalize.await;
+            if let Err(error) = result {
+                tracing::warn!(%error, "update restart preserved the owned local node");
+                let _closed = this.update(cx, |shell, cx| {
+                    crate::local_node::end_finalization(cx);
+                    shell.areas.local_node.quit_refused = true;
+                    shell.notice = Some(shell.words.local_node().quit_refused().to_owned());
+                    cx.notify();
+                });
+                return;
             }
-        }
+            if let Err(error) = flush.await {
+                tracing::warn!(%error, "update restart could not flush canonical preferences");
+                let _closed = this.update(cx, |shell, cx| {
+                    crate::local_node::end_finalization(cx);
+                    shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
+                    cx.notify();
+                });
+                return;
+            }
+            let _closed = this.update(cx, |shell, cx| {
+                let Some(updater) = updates.updater.as_ref() else {
+                    crate::local_node::end_finalization(cx);
+                    return;
+                };
+                match updater.restart(std::env::args_os().skip(1)) {
+                    Ok(()) => cx.quit(),
+                    Err(ApplyError::NotReady) => crate::local_node::end_finalization(cx),
+                    Err(ApplyError::Restart(error)) => {
+                        crate::local_node::end_finalization(cx);
+                        tracing::warn!(error = %vessel_app_updater::chain(&error), "the updated app did not start");
+                        shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
+                        cx.notify();
+                    }
+                }
+            });
+        }).detach();
     }
 
     /// Whether this build updates itself.

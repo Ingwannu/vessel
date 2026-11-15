@@ -30,6 +30,7 @@ tracing.workspace = true
 # rustls, files on disk), none of which a browser has.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 vessel-client.workspace = true
+vessel-local-node.workspace = true
 vessel-proc.workspace = true
 dirs.workspace = true
 hostname.workspace = true

@@ -40,6 +40,8 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
     // Exhaustive patterns make a new persisted field demand an explicit merge
     // policy, instead of silently resetting it when a second window saves.
     let Prefs {
+        local_node: _,
+        onboarding: _,
         machine: _,
         agent: _,
         folders: _,
@@ -51,7 +53,7 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
         kept: _,
     } = after;
     let mut next = current.clone();
-    fields!(next,before,after;machine,agent,manual_updates,last_label,update_notes);
+    fields!(next,before,after;local_node,onboarding,machine,agent,manual_updates,last_label,update_notes);
     map(&mut next.folders, &before.folders, &after.folders);
     map(&mut next.choices, &before.choices, &after.choices);
     preferences(&mut next.settings, &before.settings, &after.settings);

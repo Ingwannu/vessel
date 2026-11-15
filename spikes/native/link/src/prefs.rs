@@ -48,6 +48,9 @@ use crate::nodes::config_dir;
 /// The remembered choices.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Prefs {
+    /// Desktop managed-node policy, never sent to a remote node.
+    #[serde(default)]
+    pub local_node: vessel_app_view::local_node::Preferences,
     /// Client-local completion; never included in node settings or shared profiles.
     #[serde(default, deserialize_with = "completion_record")]
     pub onboarding: Option<vessel_app_view::onboarding::CompletionRecord>,

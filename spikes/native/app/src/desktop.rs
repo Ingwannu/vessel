@@ -227,3 +227,8 @@ pub(crate) fn with_focused_shell(
         }
     }
 }
+
+/// Canonical current local policy is shared across every window.
+pub(crate) fn current_local_preferences(cx: &App) -> vessel_app_view::local_node::Preferences {
+    cx.global::<Desktop>().preferences.current().local_node
+}

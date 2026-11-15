@@ -12,8 +12,7 @@
 //!   does in Vessel (it falls back where Paseo's alternate key and steer
 //!   differ). The default send's list is in Paseo's order (Interrupt,
 //!   Steer, Queue; `choices.rs`).
-//! - Not shown: Paseo's "Show setup again" (Vessel has no first-run
-//!   walkthrough yet) and "Open location" (no side panes).
+//! - Desktop setup and local-node policy reuse their own area owners here.
 //! - Difference: "Kept" is Vessel's own: where the preferences are kept,
 //!   and why they last this launch only when no file can hold them (the
 //!   page's banner folded into a row; Paseo keeps its settings in the
@@ -120,7 +119,7 @@ pub(crate) fn render(
         tokens,
     ));
     let shown = send_shown || applied(List::Delivery);
-    div()
+    let page = div()
         .flex()
         .flex_col()
         .child(settings::section(
@@ -131,8 +130,12 @@ pub(crate) fn render(
         .when(shown, |page| {
             page.child(settings::section(words.sending, sending, tokens))
         })
-        .child(settings::section(words.kept, kept_card, tokens))
-        .into_any_element()
+        .child(settings::section(words.kept, kept_card, tokens));
+    #[cfg(not(target_arch = "wasm32"))]
+    let page = page.child(crate::areas::local_node::section(
+        shell, tokens, compact, cx,
+    ));
+    page.into_any_element()
 }
 
 /// The select for `list`, opening its list on a click.

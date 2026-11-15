@@ -1,0 +1,224 @@
+//! One process-wide actor owns the desktop's local child across every window.
+//!
+//! [Decision Log]
+//! - Purpose: closing one window must not drop a process another window uses.
+//! - Constraint: GPUI has no Tokio reactor; the shared library owns child authority.
+//! - Alternatives: a controller per window, or a mutex around a long-running call.
+//! - Choice: a bounded actor on one process-owned runtime, with immutable watches.
+//! - Cost: one runtime thread; finalization must complete before app runtime teardown.
+
+mod actor;
+pub mod registration;
+
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::{mpsc, oneshot, watch};
+use vessel_app_view::local_node::{AfterQuit, LocalProvenance, Management, Preferences, Status};
+use vessel_client::NodeClient;
+use vessel_local_node::{Launch, LocalNodeError, NodeHome, QuitPolicy, StopPolicy};
+
+use crate::desktop::environment::ShellEnvironment;
+
+const COMMAND_CAPACITY: usize = 8;
+
+/// A launch recipe resolved only by the application executable edge.
+#[derive(Debug)]
+pub struct Configuration {
+    launch: Option<Launch>,
+    preferences: Preferences,
+}
+
+/// An actor refusal retains typed causes without command output or credentials.
+#[derive(Debug, thiserror::Error)]
+pub enum ManagerError {
+    /// The configured home failed validation.
+    #[error(transparent)]
+    Files(#[from] vessel_local_node::FilesError),
+    /// The fixed packaged launch recipe failed validation.
+    #[error(transparent)]
+    Launch(#[from] vessel_local_node::LaunchError),
+    /// Runtime creation failed.
+    #[error("local node runtime could not start")]
+    Runtime(#[source] std::io::Error),
+    /// The controller retains process ownership after a failed stop.
+    #[error("local node control failed")]
+    Control(#[source] Arc<LocalNodeError>),
+    /// Missing companion binaries are an ordinary distribution state.
+    #[error("local node is not installed")]
+    NotInstalled,
+    /// The controller stopped or cannot accept more work.
+    #[error("local node command queue is unavailable")]
+    Unavailable,
+}
+
+impl Configuration {
+    /// Resolve the fixed packaged binary, never a shell or PATH search.
+    ///
+    /// # Errors
+    /// Relative paths or an environment hook changing the launch recipe.
+    pub fn new(
+        binary: PathBuf,
+        home: PathBuf,
+        environment: &ShellEnvironment,
+        label: &str,
+        preferences: Preferences,
+    ) -> Result<Self, ManagerError> {
+        let launch = if binary.is_file() {
+            Some(
+                Launch::new(
+                    binary,
+                    NodeHome::new(home)?,
+                    crate::nodes::client_info(label),
+                )?
+                .environment(|command| environment.apply(command))?,
+            )
+        } else {
+            None
+        };
+        Ok(Self {
+            launch,
+            preferences,
+        })
+    }
+}
+
+/// The only connection export is authenticated controller evidence, never a PID.
+#[derive(Clone)]
+pub struct Connection {
+    client: NodeClient,
+    provenance: LocalProvenance,
+}
+
+impl std::fmt::Debug for Connection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("node", &self.client.node().id)
+            .field("provenance", &self.provenance)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Actor snapshots are correlated by the current actual connection identity.
+#[derive(Debug, Clone)]
+pub struct Snapshot {
+    /// Exact evidence-backed state, translated by the screen.
+    pub status: Status,
+    /// Original failure, retained for diagnostics rather than parsing messages.
+    pub failure: Option<Arc<LocalNodeError>>,
+    connection: Option<Connection>,
+}
+
+impl Snapshot {
+    /// Each window registers the same authenticated connection in its own link.
+    #[must_use]
+    pub fn connection(&self) -> Option<Connection> {
+        self.connection.clone()
+    }
+}
+
+/// Owned runtime is process-wide, never tied to a particular window's lifetime.
+#[derive(Debug)]
+pub struct Controller {
+    commands: mpsc::Sender<actor::Command>,
+    state: watch::Receiver<Snapshot>,
+    runtime: Option<tokio::runtime::Runtime>,
+}
+
+impl Drop for Controller {
+    fn drop(&mut self) {
+        if let Some(runtime) = self.runtime.take() {
+            runtime.shutdown_background();
+        }
+    }
+}
+
+/// Explicit user intent; interruption requires a distinct confirmed value.
+#[derive(Debug, Clone, Copy)]
+pub enum Action {
+    /// Start or authenticate reuse at the managed home.
+    Start,
+    /// Stop only an owned child; live sessions are protected.
+    Stop,
+    /// Stop then await actual exit before launching a replacement.
+    Restart,
+    /// The person explicitly confirmed interrupting active sessions.
+    InterruptConfirmed,
+}
+
+impl Controller {
+    /// Start one actor; ordinary missing binaries remain a visible status.
+    ///
+    /// # Errors
+    /// The runtime could not be created.
+    pub fn start(configuration: Configuration) -> Result<Self, ManagerError> {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .thread_name("vessel-local-node")
+            .enable_all()
+            .build()
+            .map_err(ManagerError::Runtime)?;
+        let initial = if configuration.launch.is_none() {
+            Status::NotInstalled
+        } else if configuration.preferences.management == Management::Paused {
+            Status::Paused
+        } else {
+            Status::Working
+        };
+        let (published, state) = watch::channel(Snapshot {
+            status: initial,
+            failure: None,
+            connection: None,
+        });
+        let (commands, inbox) = mpsc::channel(COMMAND_CAPACITY);
+        drop(runtime.spawn(actor::run(configuration, inbox, published)));
+        Ok(Self {
+            commands,
+            state,
+            runtime: Some(runtime),
+        })
+    }
+
+    /// Subscribe without another node launch or runtime.
+    #[must_use]
+    pub fn state(&self) -> watch::Receiver<Snapshot> {
+        self.state.clone()
+    }
+
+    /// Synchronous UI admission never blocks the main thread.
+    ///
+    /// # Errors
+    /// The bounded actor queue is full or closed.
+    pub fn request(&self, action: Action) -> Result<(), ManagerError> {
+        self.commands
+            .try_send(actor::Command::Action(action))
+            .map_err(|_closed| ManagerError::Unavailable)
+    }
+
+    /// Capture this future before leaving the GPUI update closure.
+    ///
+    /// # Errors
+    /// Active sessions, actual stop failure, or actor closure; ownership is retained.
+    pub fn finalize(
+        &self,
+        after: AfterQuit,
+        confirmed: bool,
+    ) -> impl Future<Output = Result<(), ManagerError>> + 'static {
+        let commands = self.commands.clone();
+        let policy = match after {
+            AfterQuit::KeepRunning => QuitPolicy::KeepRunning,
+            AfterQuit::Stop => QuitPolicy::Stop(if confirmed {
+                StopPolicy::InterruptConfirmed
+            } else {
+                StopPolicy::Protect
+            }),
+        };
+        async move {
+            let (reply, wait) = oneshot::channel();
+            commands
+                .send(actor::Command::Finalize { policy, reply })
+                .await
+                .map_err(|_closed| ManagerError::Unavailable)?;
+            wait.await.map_err(|_closed| ManagerError::Unavailable)?
+        }
+    }
+}

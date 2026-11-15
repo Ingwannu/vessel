@@ -1,0 +1,78 @@
+//! Desktop-local intent and authenticated provenance; no process or file access.
+
+use crate::machine_book::Name;
+use serde::{Deserialize, Serialize};
+use vessel_proto::NodeId;
+
+/// Deliberate desktop launch policy, persisted independently from node settings.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Management {
+    /// Start the packaged daemon when this desktop starts.
+    #[default]
+    Enabled,
+    /// Explicit opt out; existing remote destinations remain usable.
+    Paused,
+}
+
+/// Closing the desktop does not implicitly authorize interrupting live work.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AfterQuit {
+    /// Graceful stop refuses active sessions until a person chooses otherwise.
+    #[default]
+    Stop,
+    /// Explicitly consume ownership and leave the local node running.
+    KeepRunning,
+}
+
+/// These choices are client-local, never replicated to a remote node.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Preferences {
+    /// Automatic management at the next launch.
+    pub management: Management,
+    /// Finalization when the app closes.
+    pub after_quit: AfterQuit,
+}
+
+/// Evidence of locality comes from the controller's explicit private home.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocalProvenance {
+    /// This app holds the actual spawned child handle.
+    OwnedChild,
+    /// Authenticated reuse at the managed home; no stop authority.
+    AttachedManagedHome,
+}
+
+/// Published only after the link registers this exact authenticated connection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalTarget {
+    /// Authenticated greeting identity, never inferred from an address or alias.
+    pub node: NodeId,
+    /// Collision-checked ephemeral fleet destination, not a saved remote entry.
+    pub machine: Name,
+    /// Ownership evidence remains explicit to every consumer.
+    pub provenance: LocalProvenance,
+}
+
+/// Local-node status displayed independently of the remote fleet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// This distribution does not yet carry the companion daemon.
+    NotInstalled,
+    /// Automatic management is explicitly paused.
+    Paused,
+    /// A controller operation has not finished.
+    Working,
+    /// The app owns the authenticated running child.
+    Owned(NodeId),
+    /// The same local home already had a node; the app only attached.
+    Attached(NodeId),
+    /// Explicit keep-running choice surrendered cleanup authority.
+    Kept(NodeId),
+    /// Actual direct-child exit was observed.
+    Stopped,
+    /// The reused connection closed, without claiming OS process exit.
+    Disconnected,
+    /// The operation failed; a typed cause remains in the link snapshot.
+    Failed,
+}

@@ -114,6 +114,7 @@ vessel-app-updater = { path = "../release/updater" }
 # file in the platform's place for logs.
 vessel-app-log = { path = "../release/applog" }
 
+vessel-local-node = { path = "../../crates/vessel-local-node" }
 vessel-client = { path = "../../crates/vessel-client" }
 vessel-proc = { path = "../../crates/vessel-proc" }
 # Test-only direct access to the already linked RPC framing, for actor regressions.

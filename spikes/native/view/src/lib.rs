@@ -29,6 +29,7 @@ pub mod files;
 pub mod fork;
 pub mod idle_release;
 mod links;
+pub mod local_node;
 pub mod machine_book;
 pub mod machines;
 pub mod mark_attributions;

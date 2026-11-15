@@ -18,6 +18,8 @@ pub(crate) mod desktop;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod local_node;
 pub(crate) mod onboarding;
 pub(crate) mod pair;
 pub(crate) mod palette;
@@ -35,6 +37,8 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) local_node: local_node::LocalNodeArea,
     pub(crate) onboarding: onboarding::Onboarding,
     pub(crate) about: about::AboutState,
     pub(crate) desktop: desktop::DesktopArea,
@@ -61,6 +65,8 @@ pub(crate) struct Areas {
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
+            #[cfg(not(target_arch = "wasm32"))]
+            local_node: local_node::LocalNodeArea::default(),
             onboarding: onboarding::Onboarding::new(cx),
             about: about::AboutState::new(cx),
             desktop: desktop::DesktopArea::new(cx),

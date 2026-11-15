@@ -23,6 +23,9 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Register the authenticated managed-local connection in this window link.
+    #[cfg(not(target_arch = "wasm32"))]
+    LocalNode(crate::local_node::registration::Ask),
     /// Bind setup controls to the authenticated node of a fixed visit.
     Onboarding(crate::onboarding::Ask),
     /// A request for one machine’s Agents settings.

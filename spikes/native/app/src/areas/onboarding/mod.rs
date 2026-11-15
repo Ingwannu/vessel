@@ -77,9 +77,7 @@ fn setup_host(shell: &Shell) -> SetupHost {
     if !shell.loaded {
         return SetupHost::Waiting;
     }
-    // Managed-node registration will take precedence when its controller has
-    // authenticated it; otherwise the reference selects the first saved host.
-    let Some(machine) = shell.fleet.machines.first() else {
+    let Some(machine) = selected_host(shell) else {
         return SetupHost::Waiting;
     };
     if machine.reach != Reach::Online {
@@ -96,6 +94,37 @@ fn setup_host(shell: &Shell) -> SetupHost {
             SetupHost::Waiting
         }
     }
+}
+
+/// A managed launch gets priority before any remote first-host fallback. Wait
+/// through startup/registration instead of pinning setup to an unrelated host.
+fn selected_host(shell: &Shell) -> Option<&vessel_app_view::Machine> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Some(target) = shell.managed_local_target() {
+            return shell
+                .fleet
+                .machines
+                .iter()
+                .find(|machine| machine.name == target.machine.as_str());
+        }
+        if matches!(
+            shell
+                .areas
+                .local_node
+                .snapshot
+                .as_ref()
+                .map(|snapshot| snapshot.status),
+            Some(
+                vessel_app_view::local_node::Status::Working
+                    | vessel_app_view::local_node::Status::Owned(_)
+                    | vessel_app_view::local_node::Status::Attached(_)
+            )
+        ) {
+            return None;
+        }
+    }
+    shell.fleet.machines.first()
 }
 
 fn layout(window: &Window) -> Layout {

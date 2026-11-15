@@ -101,6 +101,8 @@ impl Shell {
             sidebar_sheet: None,
         };
         crate::areas::desktop::start(&mut shell, window, cx);
+        #[cfg(not(target_arch = "wasm32"))]
+        areas::local_node::start(&mut shell, window, cx);
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);

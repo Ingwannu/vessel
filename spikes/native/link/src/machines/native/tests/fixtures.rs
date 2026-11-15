@@ -43,6 +43,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             label: "test".to_owned(),
             events,
             clients: HashMap::new(),
+            local_registration: None,
             follow: None,
             follow_machine: None,
             book_path: BookPath::File(home.book()),

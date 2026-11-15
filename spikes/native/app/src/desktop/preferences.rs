@@ -38,7 +38,9 @@ pub(crate) fn submit(
             Ok(()) => Ok(None),
             Err(why) => Err(vessel_app_link::Unsent::new(why, Command::SavePrefs(prefs))),
         },
-        forward @ (Command::Agents { .. }
+        forward @ (Command::LocalNode(_)
+        | Command::Onboarding(_)
+        | Command::Agents { .. }
         | Command::Machines(_)
         | Command::Reload
         | Command::Devices { .. }

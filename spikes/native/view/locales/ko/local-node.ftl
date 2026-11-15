@@ -1,0 +1,48 @@
+# Desktop local-node control: title. No credentials or process IDs.
+local-node-title = 로컬 노드
+# Desktop local-node control: manage. No credentials or process IDs.
+local-node-manage = 로컬 노드 관리
+# Desktop local-node control: manage-note. No credentials or process IDs.
+local-node-manage-note = Vessel을 열 때 포함된 로컬 노드를 시작합니다.
+# Desktop local-node control: status. No credentials or process IDs.
+local-node-status = 상태
+# Desktop local-node control: keep. No credentials or process IDs.
+local-node-keep = 앱 종료 후에도 계속 실행
+# Desktop local-node control: keep-note. No credentials or process IDs.
+local-node-keep-note = Vessel을 닫아도 로컬 노드를 계속 실행합니다. 기존에 실행 중이던 노드는 항상 유지합니다.
+# Desktop local-node control: start. No credentials or process IDs.
+local-node-start = 노드 시작
+# Desktop local-node control: restart. No credentials or process IDs.
+local-node-restart = 노드 다시 시작
+# Desktop local-node control: stop. No credentials or process IDs.
+local-node-stop = 노드 중지
+# Desktop local-node control: not-installed. No credentials or process IDs.
+local-node-not-installed = 이 빌드에는 로컬 노드가 설치되어 있지 않습니다.
+# Desktop local-node control: paused. No credentials or process IDs.
+local-node-paused = 자동 로컬 관리를 일시 중지했습니다.
+# Desktop local-node control: working. No credentials or process IDs.
+local-node-working = 로컬 노드 상태 확인 중…
+# Desktop local-node control: owned. No credentials or process IDs.
+local-node-owned = 실행 중 · 이 앱에서 관리
+# Desktop local-node control: attached. No credentials or process IDs.
+local-node-attached = 실행 중 · 외부에서 시작됨. 중지 및 다시 시작할 수 없음
+# Desktop local-node control: kept. No credentials or process IDs.
+local-node-kept = 앱의 관리 권한을 해제하고 계속 실행 중입니다.
+# Desktop local-node control: stopped. No credentials or process IDs.
+local-node-stopped = 중지됨 · 프로세스 종료 확인
+# Desktop local-node control: disconnected. No credentials or process IDs.
+local-node-disconnected = 연결이 닫혔습니다. 프로세스 상태를 알 수 없습니다.
+# Desktop local-node control: failed. No credentials or process IDs.
+local-node-failed = 로컬 노드 작업을 완료하지 못했습니다.
+# Desktop local-node control: protected-note. No credentials or process IDs.
+local-node-protected-note = 활성 세션을 보호합니다. 명시적 확인 없이 작업을 중단하지 않습니다.
+# Desktop local-node control: registration-failed. No credentials or process IDs.
+local-node-registration-failed = 로컬 노드를 등록하지 못했습니다. 저장된 머신 이름을 확인하고 다시 시도하세요.
+# Desktop local-node control: quit-refused. No credentials or process IDs.
+local-node-quit-refused = 로컬 노드를 안전하게 중지하지 못해 Vessel을 계속 열어 두었습니다.
+# Desktop local-node control: keep-quit. No credentials or process IDs.
+local-node-keep-quit = 노드를 유지하고 앱 종료
+# Desktop local-node control: interrupt-quit. No credentials or process IDs.
+local-node-interrupt-quit = 활성 세션을 중단하고 앱 종료
+# Desktop local-node control: cancel-quit. No credentials or process IDs.
+local-node-cancel-quit = Vessel 계속 사용

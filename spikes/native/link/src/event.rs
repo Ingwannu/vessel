@@ -20,6 +20,9 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A managed-local destination was registered or invalidated.
+    #[cfg(not(target_arch = "wasm32"))]
+    LocalNode(crate::local_node::registration::Answer),
     /// Setup identity lookup or binding acknowledgement.
     Onboarding(crate::onboarding::Answer),
     /// An Agents response, including background install progress.

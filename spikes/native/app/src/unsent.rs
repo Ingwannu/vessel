@@ -59,6 +59,8 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        #[cfg(not(target_arch = "wasm32"))]
+        Command::LocalNode(ask) => Event::LocalNode(ask.refused()),
         Command::Onboarding(ask) => {
             Event::Onboarding(ask.refused(vessel_app_view::onboarding::scope::Problem::Unsent))
         }

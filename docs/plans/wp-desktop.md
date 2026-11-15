@@ -101,3 +101,39 @@ corresponding verified package binary is absent.
 Validation so far: initial completion/step/visit/orchestration models, seven unit
 tests passed. The first build rejected missing translation context comments;
 those were added before the passing run. Native app/link clippy is queued.
+
+### Managed local node integration (implementation checkpoint)
+
+The root `vessel-local-node` crate is the only child owner. Native `link::local_node`
+adds a bounded process-wide actor and read-only watch snapshots, without GPUI.
+`app::local_node` owns that runtime until process exit; per-window areas register
+its opaque authenticated connection in their own link. Registration uses a typed
+`LocalTarget` with NodeId, validated ephemeral Name and OwnedChild versus
+AttachedManagedHome provenance. A saved-name collision refuses registration; a
+later collision invalidates it before normal book dialing. No credential is added
+to the user's book. A stale registration response cannot publish a stopped target.
+
+Onboarding prioritizes this acknowledged, hydrated local target, waits through
+managed startup/registration, and otherwise chooses the first saved host. Controls
+also compare the fleet's authenticated NodeId with the pinned visit target. All
+controller preferences and completion records pass through the desktop canonical
+three-way preference actor, so another window cannot reset them with a stale save.
+
+ADR0094 fixes companion binaries at the running executable's parent/bin/vesseld
+(or vesseld.exe). The shared W19 bundle getter owns platform layout; macOS is
+explicitly unsupported pending signed helper layout. Missing binaries display
+NotInstalled; no PATH search, shell command, downloaded helper or PID record is a
+launch source. The explicit private home is config/vessel/managed-node. The root
+Store facade dependency adds its existing SQLite dependency to the link graph,
+but this controller only calls DataDir/StartLock and never opens a database.
+
+Quit and update restart await owned-node finalization and canonical preferences
+flush before app exit/restart. Protected stop refuses active sessions; explicit
+keep-running or interruption choices are separate UI actions. A last-window
+refusal opens a window again. OS shutdown uses protected stop, then observation-only
+release on failure, preserving work without an implicit interrupt. Attached nodes
+are never stopped. App updates retain the release track's canonical updater.
+
+Verification: node-line all-target clippy passed at9d13f24f across proc/local-node/
+store/proto/node/testkit. Current onboarding model tests8 passed. Process fixture
+runs and native integration compilation are pending; no runtime or Windows claim.

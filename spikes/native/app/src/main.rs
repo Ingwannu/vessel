@@ -23,6 +23,8 @@ mod chrome;
 mod desktop;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
+mod local_node;
+#[cfg(not(target_arch = "wasm32"))]
 mod motion;
 mod region;
 mod routes;

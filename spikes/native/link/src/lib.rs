@@ -29,6 +29,8 @@ pub mod desktop;
 mod dispatch;
 mod error;
 mod event;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod local_node;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
@@ -186,6 +188,7 @@ impl Link {
             label: label.to_owned(),
             events,
             clients: HashMap::new(),
+            local_registration: None,
             follow: None,
             follow_machine: None,
             book_path: machines::BookPath::discover(),
@@ -251,6 +254,7 @@ struct State {
     label: String,
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
+    local_registration: Option<local_node::registration::Registration>,
     follow: Option<tokio::task::JoinHandle<()>>,
     follow_machine: Option<String>,
     book_path: machines::BookPath,

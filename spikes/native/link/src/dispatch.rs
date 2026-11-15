@@ -17,6 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::LocalNode(ask) => self.register_local(ask).await,
             Command::Onboarding(ask) => self.onboarding(ask).await,
             Command::Reload => self.reload().await,
             Command::Agents {
