@@ -122,7 +122,7 @@ async fn prepared_product_owners_stop_under_the_node_task_tracker_with_retained_
             root.path().join("probe"),
             Arc::new(crate::profiles::launch::NoMcpServers),
             &tasks,
-            stop.clone(),
+            &stop,
         );
         let registrations = manager.registrations();
         let id: ProviderId = "claude".parse().unwrap();

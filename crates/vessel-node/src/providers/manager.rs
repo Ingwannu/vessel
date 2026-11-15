@@ -80,7 +80,7 @@ impl PreparedProviders {
         probe_dir: PathBuf,
         secrets: Arc<dyn McpSource>,
         tasks: &TaskTracker,
-        stop: CancellationToken,
+        stop: &CancellationToken,
     ) -> Providers {
         let producer = Producer::new(
             config.harness_lookup.clone(),

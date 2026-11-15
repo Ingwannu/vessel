@@ -202,6 +202,12 @@ fn private_chain(error: &(dyn std::error::Error + 'static), marker: &str) -> Str
 #[test]
 fn actual_file_decode_and_encode_causes_stay_private_through_the_public_chain() {
     const MARKER: &str = "provider-private-canary-d5c714";
+    struct CannotEncode;
+    impl Serialize for CannotEncode {
+        fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+            Err(serde::ser::Error::custom(MARKER))
+        }
+    }
     let root = tempfile::tempdir().unwrap();
     let data = DataDir::new(root.path());
     let bytes = format!(r#"{{"providers":{{"codex":{{"enabled":"{MARKER}"}}}}}}"#);
@@ -213,12 +219,6 @@ fn actual_file_decode_and_encode_causes_stay_private_through_the_public_chain() 
     assert!(rendered.contains("Data at line 1 column"));
     assert_eq!(fs::read(data.providers_path()).unwrap(), bytes.as_bytes());
 
-    struct CannotEncode;
-    impl Serialize for CannotEncode {
-        fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
-            Err(serde::ser::Error::custom(MARKER))
-        }
-    }
     let raw = serde_json::to_vec(&CannotEncode).unwrap_err();
     assert!(raw.to_string().contains(MARKER));
     let error = ProvidersFileError::Encode(raw.into());

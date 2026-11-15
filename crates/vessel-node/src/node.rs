@@ -314,7 +314,7 @@ async fn core(
         setup.probe_dir.clone(),
         provider_source,
         &tasks,
-        stop.clone(),
+        &stop,
     );
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
