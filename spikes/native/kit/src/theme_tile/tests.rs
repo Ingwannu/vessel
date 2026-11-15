@@ -28,8 +28,7 @@ impl Render for Probe {
             Preview::Single(&tokens)
         };
         let seen = Rc::clone(&self.children);
-        theme_tile(
-            "theme-tile-probe",
+        frame(
             "A very long theme name that must truncate",
             self.state,
             preview,
@@ -37,6 +36,7 @@ impl Render for Probe {
         )
         .w(px(200.0))
         .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds)
+        .id("theme-tile-probe")
     }
 }
 

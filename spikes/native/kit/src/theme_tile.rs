@@ -104,12 +104,27 @@ pub fn theme_tile(
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
+    frame(label, state, preview, tokens)
+        .id(id)
+        .when(state == State::Idle, |tile| {
+            tile.hover(move |style| style.bg(neutral.surface2))
+        })
+}
+
+// Keep the actual layout body a Div so its child bounds can be inspected
+// before GPUI wraps it in the opaque stateful hover/click element.
+fn frame(
+    label: impl Into<SharedString>,
+    state: State,
+    preview: Preview<'_>,
+    tokens: &Tokens,
+) -> Div {
+    let neutral = tokens.neutral;
     let border = match state {
         State::Chosen => neutral.accent,
         State::Idle => gpui::transparent_black(),
     };
     div()
-        .id(id)
         .flex()
         .flex_col()
         .gap(px(TILE_INSET))
@@ -117,9 +132,6 @@ pub fn theme_tile(
         .rounded(px(TILE_RADIUS))
         .border_2()
         .border_color(border)
-        .when(state == State::Idle, |tile| {
-            tile.hover(move |style| style.bg(neutral.surface2))
-        })
         .cursor_pointer()
         .child(
             div()

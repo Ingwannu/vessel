@@ -164,3 +164,9 @@ including quoted commas, CSS hexadecimal escapes and generic intent. Native
 resolution must query installed/embedded names only; it never loads a file
 or a network address from this input. Generic categories use readable
 embedded fallbacks. Raw spelling remains the saved/editable value.
+
+Focused run `themes-20261115T065416Z-f556e55c` compiled the kit and returned
+Rust E0599: GPUI's Stateful wrapper does not expose the Div child-bounds
+hook used by the new test. No test ran. The correction keeps the production
+layout body in one private Div builder and measures it before the opaque
+hover/click wrapper. It changes no authored geometry or expectations.
