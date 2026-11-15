@@ -98,10 +98,41 @@ pub(super) fn for_run(
             tokens,
         )
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
+        let mut copy = button_with_kind(
+            ElementId::Name(format!("script-copy-{}-{index}", port.port).into()),
+            words.copy(),
+            ButtonKind::Secondary,
+            if destination.is_ok() {
+                ButtonState::Enabled
+            } else {
+                ButtonState::Disabled
+            },
+            tokens,
+        )
+        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         if destination.is_ok() {
+            let copy_target = target.clone();
+            let copy_preview = preview_request.clone();
+            copy = copy.on_click(cx.listener(move |shell, _event, window, cx| {
+                if let Some(target) = &copy_target {
+                    shell.script_preview_for(
+                        target,
+                        &copy_preview,
+                        super::UrlAction::Copy,
+                        window,
+                        cx,
+                    );
+                }
+            }));
             preview = preview.on_click(cx.listener(move |shell, _event, window, cx| {
                 if let Some(target) = &target {
-                    shell.script_preview_for(target, &preview_request, window, cx);
+                    shell.script_preview_for(
+                        target,
+                        &preview_request,
+                        super::UrlAction::Open,
+                        window,
+                        cx,
+                    );
                 }
             }));
         }
@@ -132,7 +163,8 @@ pub(super) fn for_run(
                         .type_(Type::Meta)
                         .child(format!("{}:{}", port.address, port.port)),
                 )
-                .child(preview),
+                .child(preview)
+                .child(copy),
         );
     }
     column

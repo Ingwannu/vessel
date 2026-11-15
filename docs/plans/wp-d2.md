@@ -275,3 +275,10 @@ Run button. Preview still checks the current publication/socket at opening and
 does not become in-app Preview authority. Regressions cover repeated tab/read
 numbers across panel recreation, canonical-key refusal, explicit-session mapping,
 shared-root foreign-run exclusion and stale drawn actions after refresh.
+
+Observed-listener rows also copy the validated URL through the kit's existing
+clipboard boundary. Copy and Open share the final captured owner, publication
+revision and current socket/host recheck; neither uses a stale rendered URL
+string. The current route is the legacy direct-host route. Proxy/public route
+selection and persistent preference remain unavailable until their typed
+runtime producer exists.

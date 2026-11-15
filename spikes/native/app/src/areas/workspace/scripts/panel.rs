@@ -292,6 +292,7 @@ impl Shell {
         &mut self,
         expected: &Target,
         preview: &Preview,
+        action: super::UrlAction,
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -306,7 +307,7 @@ impl Shell {
             return;
         };
         match controls.model.preview_url(preview, &controls.host.text(cx)) {
-            Ok(url) => cx.open_url(url.as_str()),
+            Ok(url) => action.deliver(url.as_str(), cx),
             Err(problem) => controls.model.issue = Some(Issue::Preview(problem)),
         }
         cx.notify();

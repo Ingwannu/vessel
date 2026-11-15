@@ -19,6 +19,23 @@ use vessel_app_view::workspace::scripts::{
 };
 use vessel_proto::ProjectId;
 
+/// Both destinations pass the same final owner/publication/socket check.
+#[derive(Clone, Copy)]
+pub(super) enum UrlAction {
+    Open,
+    Copy,
+}
+impl UrlAction {
+    fn deliver(self, url: &str, cx: &mut Context<'_, Shell>) {
+        match self {
+            Self::Open => cx.open_url(url),
+            Self::Copy => cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(
+                url.to_owned(),
+            )),
+        }
+    }
+}
+
 /// Controls survive a detail refresh, while model keys survive every reopen.
 pub(super) struct Scripts {
     pub(super) model: Model,
@@ -247,6 +264,7 @@ impl Shell {
         &mut self,
         expected: &Target,
         preview: &Preview,
+        action: UrlAction,
         cx: &mut Context<'_, Self>,
     ) {
         if !self.scripts_target_is_current(expected) {
@@ -257,7 +275,7 @@ impl Shell {
         match result {
             Ok(url) => {
                 tracing::debug!("opening the observed script listener in the system browser");
-                cx.open_url(url.as_str());
+                action.deliver(url.as_str(), cx);
             }
             Err(problem) => {
                 tracing::debug!(?problem, "script preview refused after socket recheck");
@@ -301,12 +319,13 @@ impl Shell {
         &mut self,
         target: &Target,
         preview: &Preview,
+        action: UrlAction,
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
         match target.surface {
-            Surface::Project => self.script_preview(target, preview, cx),
-            Surface::Panel { .. } => self.script_panel_preview(target, preview, window, cx),
+            Surface::Project => self.script_preview(target, preview, action, cx),
+            Surface::Panel { .. } => self.script_panel_preview(target, preview, action, window, cx),
         }
     }
     fn refresh_scripts_for(
