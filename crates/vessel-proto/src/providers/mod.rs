@@ -1,14 +1,24 @@
 //! Provider policy values (ADR 0081). A definition is not driver availability.
 //! Requests remain unregistered until the shared method table admits them.
 
+mod catalogue;
 mod create;
+mod launch;
 mod text;
 
+pub use catalogue::{
+    Catalogue, CatalogueError, DefaultChoice, MAX_CATALOGUE_ENTRIES, MAX_CHOICE_ID, Model,
+    ModelSpec, ModelVisibility, Models, ThinkingChoice,
+};
 pub use create::{
     ApprovalFlow, AutoAccept, CreateConfig, CreateInput, CreateParent, CreatePolicy, Mode,
     ModeCatalogue, ModeRisk, ProviderKind,
 };
-pub use text::{InvalidProvider, ModeId, ProviderId};
+pub use launch::{
+    Arguments, CommandEdit, DisallowedTools, LaunchConfigError, LaunchSettings, MAX_LAUNCH_ITEMS,
+    MAX_LAUNCH_TEXT, ProviderEnvironment,
+};
+pub use text::{InvalidProvider, MAX_MODE_ID, MAX_PROVIDER_ID, ModeId, ProviderId};
 
 use crate::ProtocolVersion;
 

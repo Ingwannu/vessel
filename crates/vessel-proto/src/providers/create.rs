@@ -6,7 +6,7 @@ use crate::agents::AgentLabel;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-/// Built-in implementation family; custom identities remain open ProviderIds.
+/// Built-in implementation family; custom identities remain open `ProviderIds`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderKind {
@@ -16,7 +16,7 @@ pub enum ProviderKind {
     Codex,
     /// Copilot ACP with its synthetic allow-all mode.
     Copilot,
-    /// OpenCode with dynamic agent names and an auto-accept feature.
+    /// `OpenCode` with dynamic agent names and an auto-accept feature.
     OpenCode,
     /// Pi RPC has no permission modes.
     Pi,
@@ -44,7 +44,7 @@ pub enum ApprovalFlow {
 pub enum AutoAccept {
     /// Permission prompts stay with their normal recipient.
     Off,
-    /// Provider's auto_accept feature is enabled.
+    /// Provider's `auto_accept` feature is enabled.
     On,
 }
 
@@ -90,7 +90,7 @@ impl ModeCatalogue {
     /// Keep provider ordering, rejecting ambiguous IDs and impossible defaults.
     ///
     /// # Errors
-    /// InvalidProvider identifies an oversized, duplicate or inconsistent list.
+    /// `InvalidProvider` identifies an oversized, duplicate or inconsistent list.
     pub fn new(modes: Vec<Mode>, default: Option<ModeId>) -> Result<Self, InvalidProvider> {
         if modes.len() > Self::MAX {
             return Err(InvalidProvider::TooManyModes);
@@ -191,9 +191,9 @@ pub struct CreateInput {
 pub enum CreatePolicy {
     /// Static/ordinary permission mode inheritance.
     Default,
-    /// OpenCode carries unattendedness as a feature, not an agent name.
+    /// `OpenCode` carries unattendedness as a feature, not an agent name.
     OpenCode,
-    /// ACP supports auto_accept across provider boundaries.
+    /// ACP supports `auto_accept` across provider boundaries.
     Acp,
 }
 

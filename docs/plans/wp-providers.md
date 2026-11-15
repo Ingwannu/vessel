@@ -56,3 +56,19 @@ compile/tests are pending. Next: launch/registry/catalogue owner and fake checks
 Wiring waits for the shared method-table head. The integrator approved a
 separate owner-only provider configuration file without a SQLite migration; it
 must reuse the settings file preservation and atomic-write rules.
+
+## Implementation checkpoint
+
+The initial narrow clippy found documentation-markdown and inaccessible bound
+constants; no behavioural result was obtained. Those findings are corrected in
+the launch/catalogue fill-in. Provider commands now resolve default, append and
+replace forms as inert data. Added-provider environment inheritance is explicit,
+parent markers are removed after overlays, and denied tools require a capable
+consumer before a command can be yielded. Tests consult only testkit executable
+paths and temporary homes; no process is started by these policy tests.
+
+Additional deliberate differences: launch text rejects control characters and
+has local resource bounds. The command prefix is represented as program plus
+arguments rather than an untyped argv array. Model metadata in this first
+contract includes identity, label, default, visibility and thinking choices;
+descriptions, aliases and token-window metadata remain a later extension.
