@@ -2,7 +2,7 @@
 
 Resume on `backend/m12-app-schedules`, in this track's existing worktree.
 The active package is F1 schedules and heartbeats; saved prompts come after it.
-Current base9b a7aab9d6 is merged at700b61e32. Historical published-base and
+Current base10 3e7820e3 is merged at4cbf09d32. Historical published-base and
 stop checkpoints below are records only. Read current worker/common briefs and
 the shared-control ledger before further integration. All Rust/Cargo work,
 including metadata and capture builds, runs through the remote gate only.
@@ -394,3 +394,9 @@ repository rule. No other owner's documentation/source was rewritten.
  the same id-vs-selector fixture issue without geometry/input changes.
 -S2 is assigned FooterIconButton; W12 is assigned the existing Tooltips typed
  timing/side extension as well as its Toolbar. No G2 parallel writes.
+
+
+Announced base10 was merged conflict-free after W10b's refreshed overlap check.
+Preserve all incoming resident/diff/registry source; neither olderaf52 Kit proof
+nor the unregistered9440 consumer attempt qualifies the new combined tree.
+The next actual consumer submission must use the current base10 head.

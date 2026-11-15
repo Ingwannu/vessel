@@ -8,8 +8,8 @@ node schedule/store/CLI contract remains the base; a catalog entry is not a clai
 that its native screen is built. Native View decides, Link calls, App draws, and
 Kit owns shared controls. The screen must never contain fixture schedules.
 
-Current announced app base9b a7aab9d6 (base9 db42d9c5 plus shared dialog
-header actions) is merged at700b61e32. The source includes canonical FieldId,
+Current announced app base10 3e7820e3 is merged at4cbf09d32. It includes
+base9b dialog actions, protocol25 registry and the announced resident/diff seams. The source includes canonical FieldId,
 SearchField, multiline identity/minimum and picker admission through their
 announced line; later Code/MD textarea/Form/select/Empty and ordered preference
 save extensions remain F1-owned unreviewed source. No final F1 whole gate,
@@ -1791,3 +1791,10 @@ queried a button id as if it were a debug selector. The actual Save button now
 exposes that debug selector after its guarded shared Button handler is attached;
 no style, hit geometry, domain guard or production input behavior is changed.
 The test will exercise the real footer rather than an invented coordinate.
+
+
+Announced base10 merge is conflict-free. The still-running exactaf52 Kit suite
+remains pinned to its base9b snapshot; its result will not be relabelled as this
+new InputBase/resident/registry union. Next consumer checks use the announced
+base10 tree after the schedules label becomes free. W10b confirmed its own
+active dispatch delta is only Labels and has no competing preference writer.
