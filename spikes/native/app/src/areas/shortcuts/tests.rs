@@ -175,3 +175,30 @@ fn character_preferred_platform_event_propagates_and_clears_pending(cx: &mut Tes
         assert!(!shell.areas.shortcuts.engine.is_pending());
     });
 }
+
+#[gpui::test]
+fn hidden_window_key_events_neither_dispatch_nor_continue_a_prefix(cx: &mut TestAppContext) {
+    let (view, cx) = setup(cx);
+    let before = view.read_with(cx, |probe, cx| {
+        probe.shell.read(cx).prefs.settings.appearance.theme
+    });
+    cx.simulate_visibility_change(gpui::WindowVisibility::Hidden);
+    cx.run_until_parked();
+    cx.simulate_keystrokes(chord());
+    cx.run_until_parked();
+    view.read_with(cx, |probe, cx| {
+        let shell = probe.shell.read(cx);
+        assert_eq!(shell.prefs.settings.appearance.theme, before);
+        assert!(!shell.areas.shortcuts.engine.is_pending());
+    });
+    cx.simulate_visibility_change(gpui::WindowVisibility::Visible);
+    cx.run_until_parked();
+    cx.simulate_keystrokes(chord());
+    cx.run_until_parked();
+    view.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe.shell.read(cx).prefs.settings.appearance.theme,
+            before.next()
+        );
+    });
+}

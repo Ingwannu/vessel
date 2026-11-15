@@ -341,3 +341,11 @@ mutable Window/App to inspect its text engine. The badge visibility helper now
 accepts those references, preserving the actual IME query without a second
 composition cache. No new kit or field API is introduced. This remains failed
 suite evidence until the next source passes; no app-green claim follows.
+
+
+Hidden-window admission is checked explicitly at the same interceptor before
+Settings capture or matching. Window visibility is not inferred from viewport
+width. Existing S2 composition/CharacterInput guards remain first and unchanged;
+the new actual visibility-event regression checks hidden keys cannot cycle the
+theme, and visible keys resume through the same handler. It remains unexecuted
+until the next native test suite.

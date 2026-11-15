@@ -181,6 +181,14 @@ impl Shell {
             badges::clear(&mut self.areas.shortcuts);
             return;
         }
+        // Visibility is independent of viewport availability: a hidden wide
+        // window must neither run a command nor append to Settings capture.
+        if !window.is_visible() {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
+            badges::clear(&mut self.areas.shortcuts);
+            return;
+        }
         if !available(window) {
             self.areas.shortcuts.engine.reset();
             badges::clear(&mut self.areas.shortcuts);
