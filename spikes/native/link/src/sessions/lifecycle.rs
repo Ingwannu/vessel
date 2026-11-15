@@ -19,7 +19,7 @@ pub enum Failure {
     LostReply(ActFailed),
     /// Refresh before retrying because a mutation's outcome is uncertain.
     Uncertain,
-    /// The local queue accepted no mutation.
+    /// Local admission proves no mutation started (queue or synchronous preflight).
     Unsent,
     /// A saved alias now authenticates a different node; no RPC was issued.
     IdentityChanged,

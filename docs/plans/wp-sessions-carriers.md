@@ -103,6 +103,11 @@ Only a successful canonical single-use settle after delivery validity may call
 the acknowledgement adapter. This does not itself perform RPC, clear input,
 retarget/close tabs, or establish dirty/IME/form snapshot coverage for other owners.
 The existing SessionView constructor remains isolated test setup, not scoped input.
+Control-only failure settlement also requires the exact binding/ticket. A proven
+local no-send releases pending lifecycle UI without granting an action; peer
+errors, lost replies and deadlines retain UncertainEffect because an error may
+follow a committed mutation. Neither path clears the actual composer or lets a
+late acknowledgement consume a later operation.
 
 The current package-base-6 projection merge retains G4's reconcile/read-refusal
 policy and protects stale Fleet publication. It has not performed this carrier

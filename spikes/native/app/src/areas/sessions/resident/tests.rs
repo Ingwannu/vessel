@@ -258,3 +258,79 @@ fn exact_decision_and_single_use_canonical_settlement_gate_completion(cx: &mut T
         assert_eq!(owner.readiness(), OwnerReadiness::Ready);
     });
 }
+
+#[gpui::test]
+fn exact_no_send_releases_only_pending_ui_while_peer_error_preserves_uncertainty(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_link::{ActFailed, sessions::lifecycle::Failure};
+    language_tests::init(cx);
+    for failure in [
+        Failure::Unsent,
+        Failure::Refused(ActFailed {
+            code: Some(vessel_proto::ErrorCode::Internal),
+            message: "reply after possible commit".to_owned(),
+        }),
+    ] {
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            let context = admitted(shell, window, cx);
+            let residents = &mut shell.areas.session_residents;
+            let mut owner = LifecycleResources::staged();
+            owner
+                .hydrate(Snapshot::capture(residents, &context).unwrap())
+                .unwrap();
+            let binding = residents
+                .begin_follow(context.resident, |_, _| panic!("first attach retired"))
+                .unwrap();
+            let decision = owner.prepare(binding, LifecycleAction::Fresh).unwrap();
+            let ticket = residents
+                .admit_operation(binding, OperationKind::Lifecycle)
+                .unwrap();
+            owner.sent(decision, ticket).unwrap();
+            residents
+                .resources_mut(&context)
+                .unwrap()
+                .session
+                .composer
+                .set_text(" keep draft ", window, cx);
+            let stale = residents
+                .admit_operation(binding, OperationKind::Lifecycle)
+                .unwrap();
+            assert!(!owner.failed(binding, stale, &failure));
+            assert_eq!(
+                owner.readiness(),
+                OwnerReadiness::Hold(HoldReason::PendingEffect)
+            );
+            assert!(
+                residents
+                    .settle(binding, OperationKind::Lifecycle, ticket, |_| owner
+                        .failed(binding, ticket, &failure))
+                    .unwrap()
+            );
+            let expected = if matches!(failure, Failure::Unsent) {
+                OwnerReadiness::Ready
+            } else {
+                OwnerReadiness::Hold(HoldReason::UncertainEffect)
+            };
+            assert_eq!(owner.readiness(), expected);
+            assert_eq!(owner.acknowledged(binding, ticket), None);
+            assert!(
+                residents
+                    .settle(binding, OperationKind::Lifecycle, ticket, |_| panic!(
+                        "duplicate settled"
+                    ))
+                    .is_err()
+            );
+            assert_eq!(
+                residents
+                    .resources(&context)
+                    .unwrap()
+                    .session
+                    .composer
+                    .text(cx),
+                " keep draft "
+            );
+        });
+    }
+}

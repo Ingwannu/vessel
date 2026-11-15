@@ -125,6 +125,30 @@ impl LifecycleResources {
             None
         }
     }
+    /// Control-only settlement after canonical exact-ticket consumption.
+    /// Only proven local no-send can release pending UI. A peer error can follow
+    /// a committed mutation, so it never grants success or erases uncertainty.
+    pub(crate) fn failed(
+        &mut self,
+        binding: FollowBinding,
+        ticket: OperationTicket,
+        failure: &vessel_app_link::sessions::lifecycle::Failure,
+    ) -> bool {
+        let Phase::Sending(pending) = self.phase else {
+            return false;
+        };
+        if pending.binding != binding || pending.ticket != ticket {
+            return false;
+        }
+        use vessel_app_link::sessions::lifecycle::Failure;
+        self.phase = match failure {
+            Failure::Unsent | Failure::IdentityChanged => Phase::Ready,
+            Failure::Refused(_) | Failure::LostReply(_) | Failure::Uncertain => {
+                Phase::Uncertain(pending)
+            }
+        };
+        true
+    }
     pub(crate) fn retired(&mut self, retirement: &FollowRetirement) {
         match self.phase {
             Phase::Decision(decision) if decision.binding == retirement.binding() => {
