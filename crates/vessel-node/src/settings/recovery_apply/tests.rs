@@ -1,6 +1,5 @@
-//! Policy fences and actual Store failures, without a second settings writer.
+//! Actual Store settlement and debt; engine admission cases stay on its branch.
 use super::*;
-use vessel_proto::ErrorCode;
 use vessel_store::{DataDir, StoreConfig};
 
 struct Fixture {
@@ -34,29 +33,14 @@ fn on() -> RestartRecovery {
 }
 
 #[tokio::test]
-async fn failed_off_save_restores_admission_but_shutdown_seal_never_reopens() {
+async fn effective_current_tracks_saved_value_and_actual_on_store_settlement() {
     let f = Fixture::new().await;
-    let (_, generation) = f.policy.snapshot();
-    assert!(f.policy.check(generation).unwrap());
-    f.apply.begin_write(&RestartRecovery::default());
-    assert!(!f.policy.check(generation).unwrap());
-    f.apply.write_failed();
-    assert!(f.policy.check(generation).unwrap());
-    f.apply.seal_effect_admission();
+    assert_eq!(f.apply.current(), on());
     f.apply.saved(on());
+    assert!(f.policy.needs_sync());
     f.apply.settle_saved(&on()).await.unwrap();
-    f.apply.write_failed();
-    let (_, generation) = f.policy.snapshot();
-    let mut effect = Some(
-        |_: &RestartRecovery| -> Result<(), vessel_proto::WireError> {
-            panic!("a late saved On must not reopen final effect admission")
-        },
-    );
-    assert_eq!(
-        f.policy.admit(generation, &mut effect).unwrap_err().code,
-        ErrorCode::Unavailable
-    );
-    assert!(effect.is_some());
+    assert!(!f.policy.needs_sync());
+    assert_eq!(f.apply.current(), on());
     f.apply.store.close().await;
 }
 
@@ -82,14 +66,11 @@ async fn real_on_apply_failure_stays_paused_and_same_value_does_not_succeed() {
     let f = Fixture::new().await;
     f.apply.store.close().await;
     f.apply.saved(on());
-    let (_, generation) = f.policy.snapshot();
-    assert!(!f.policy.check(generation).unwrap());
     for _ in [(), ()] {
         assert!(matches!(
             f.apply.settle_saved(&on()).await,
             Err(RecoveryApplyError::Apply(StoreError::Closed))
         ));
         assert!(f.policy.needs_sync());
-        assert!(!f.policy.check(generation).unwrap());
     }
 }

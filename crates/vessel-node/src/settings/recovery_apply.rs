@@ -44,6 +44,10 @@ impl RecoveryApply {
     pub(super) fn policy(&self) -> Arc<Policy> {
         Arc::clone(&self.policy)
     }
+    /// The response reads the same effective primitive the owned apply updated.
+    pub(super) fn current(&self) -> RestartRecovery {
+        self.policy.current()
+    }
     /// Seal before settings drain, under the same mutex as final effect enqueue.
     pub(crate) fn seal_effect_admission(&self) {
         self.policy.seal_effect_admission();
