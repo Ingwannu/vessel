@@ -136,3 +136,28 @@ async fn completion_channels_retain_admission_until_consumed_or_dropped() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn admitted_work_is_tracked_before_shutdown_can_observe_an_empty_tracker() {
+    vessel_testkit::within(
+        SAFETY,
+        Box::pin(async {
+            let tasks = TaskTracker::new();
+            let stopping = CancellationToken::new();
+            let jobs = LaunchProfileJobs::new(tasks.clone(), stopping.clone());
+            let admission = jobs.admit(Lane::Metadata).unwrap();
+            stopping.cancel();
+            let _closed = tasks.close();
+            let mut drained = Box::pin(tasks.wait());
+            assert!(futures_util::poll!(&mut drained).is_pending());
+            assert!(matches!(
+                jobs.admit(Lane::Apply),
+                Err(ServiceError::Draining)
+            ));
+            drop(admission);
+            phase("pre-spawn admission releases teardown", drained).await;
+        }),
+    )
+    .await
+    .unwrap();
+}

@@ -229,3 +229,13 @@ fake node while the feature is pending. It owns each child, limits captured
 output, and bounds completion, kill/reap and reader drain separately. The
 pending-only assertion deliberately does not substitute for numbered
 happy-path integration evidence.
+
+A shutdown audit closes the synchronous preflight-to-spawn gap: admission
+now takes a task-tracker token before checking cancellation. A deterministic
+fixture retains that exact production admission while closing the tracker,
+proves drain cannot complete, then releases it. Completion-channel permits
+remain independent so finished replies stay bounded without waiting for a
+caller to poll before considering actual work drained. The next baseline
+merge retains ProcessLifetime and transient SystemPromptOverride with None
+in ordinary probe setups. Shared JSON fixtures use canonical wire harness
+names rather than CLI aliases.

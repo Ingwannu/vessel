@@ -1,1 +1,1 @@
-{"selection":{"harness":"claude","options":[{"id":"model","kind":"select","value":"fake-large","category":"model"}]}}
+{"selection":{"harness":"claude-code","options":[{"id":"model","kind":"select","value":"fake-large","category":"model"}]}}

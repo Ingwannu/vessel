@@ -139,13 +139,14 @@ it must not round-trip unknown fields through a client that loses them.
 
 ## Calls, admission and failures
 
-These are proposed call names, not registrations:
+The implementation registers these names as pending rows; none is callable
+until the integrator assigns the shared feature:
 
 | Call / request | Scope | Response |
 | --- | --- | --- |
 | `launch_profile.list` / `ListLaunchProfiles {}` | Read | `LaunchProfilesSnapshot { revision, profiles }` |
-| `launch_profile.replace` / `ReplaceLaunchProfiles { revision, profiles }` | Admin | The committed current snapshot |
-| `launch_profile.options` / `GetLaunchProfileOptions { selection }` | Read | `LaunchCatalogue { selection, options, probed_at }` |
+| `launch_profile.replace` / `ReplaceLaunchProfiles { expected, profiles }` | Admin | The committed current snapshot |
+| `launch_profile.options` / `GetLaunchProfileOptions { selection }` | Read | `LaunchCatalogue { selection, account, options, probed_at }` |
 
 Owner, direct paired-device and delegated human calls use the usual scope
 intersection. Reading the list is also available to a Read agent, with
@@ -504,3 +505,15 @@ JSON `[provider,model]`, with exact validated opaque keys and no whitespace
 normalization. A golden-id fixture freezes this representation. The
 existing `uuid` crate's `v5` feature supplies the metadata identity; the
 new lockfile dependency is not used for credentials or authorization.
+
+### Admission handoff and field spelling
+
+The CAS request spells the previously read revision `expected`; the reply
+continues to call its committed revision `revision`. This avoids confusing
+an edit precondition with a proposed next revision. Catalogue `account`
+contains only the already described canonical public account name/kind.
+The job tracker token is acquired before shutdown preflight and retained
+through real work. This closes the admission-to-spawn gap: teardown cannot
+observe no work between a successful preflight and its owned task starting.
+The semaphore remains retained separately through queued completion, so a
+slow caller cannot create unlimited completed result storage.

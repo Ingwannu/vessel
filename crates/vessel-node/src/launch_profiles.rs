@@ -7,8 +7,11 @@
 
 use crate::error::ServiceError;
 use std::{future::Future, sync::Arc};
-use tokio::sync::{Semaphore, oneshot};
-use tokio_util::{sync::CancellationToken, task::TaskTracker};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore, oneshot};
+use tokio_util::{
+    sync::CancellationToken,
+    task::{TaskTracker, TaskTrackerToken},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Lane {
@@ -23,6 +26,13 @@ pub(crate) struct LaunchProfileJobs {
     tasks: TaskTracker,
     stopping: CancellationToken,
 }
+// Admission must already be tracked before checking shutdown: otherwise a
+// preempted request can spawn its job after teardown observed an empty tracker.
+struct Admission {
+    permit: OwnedSemaphorePermit,
+    tracked: TaskTrackerToken,
+}
+
 impl LaunchProfileJobs {
     /// One shared definition for both independent finite admission budgets.
     pub(crate) const MAX_ACTIVE: usize = 4;
@@ -42,6 +52,21 @@ impl LaunchProfileJobs {
         F: Future<Output = Result<T, ServiceError>> + Send + 'static,
         Work: FnOnce() -> F + Send + 'static,
     {
+        let Admission { permit, tracked } = self.admit(lane)?;
+        let (send, receive) = oneshot::channel();
+        drop(self.tasks.spawn(async move {
+            let _tracked = tracked;
+            let result = work().await;
+            // The completion channel owns admission too, until consumed or
+            // dropped. A departed caller still waits for actual work above.
+            let _gone = send.send((result, permit));
+        }));
+        let (result, _permit) = receive.await.map_err(ServiceError::LaunchWorker)?;
+        result
+    }
+
+    fn admit(&self, lane: Lane) -> Result<Admission, ServiceError> {
+        let tracked = self.tasks.token();
         if self.stopping.is_cancelled() {
             return Err(ServiceError::Draining);
         }
@@ -52,15 +77,7 @@ impl LaunchProfileJobs {
         let permit = Arc::clone(slots)
             .try_acquire_owned()
             .map_err(ServiceError::LaunchBusy)?;
-        let (send, receive) = oneshot::channel();
-        drop(self.tasks.spawn(async move {
-            let result = work().await;
-            // The completion channel owns admission too, until consumed or
-            // dropped. A departed caller still waits for actual work above.
-            let _gone = send.send((result, permit));
-        }));
-        let (result, _permit) = receive.await.map_err(ServiceError::LaunchWorker)?;
-        result
+        Ok(Admission { permit, tracked })
     }
 }
 
