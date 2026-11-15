@@ -81,8 +81,8 @@ A6 adds no generic session metadata editor or speculative mutation call.
 
 The reviewed source's ListSessions selection preserves null as the legacy
 full list; an explicit selection has required Shown/All scope and AND labels.
-Use `ListSessions::selected(SessionSelection::shown()/all().with_labels(...))`
-only after the announced head. Its unassigned SINCE gate refuses explicit
+Use `ListSessions::selected` with `SessionSelection::shown()` or
+`SessionSelection::all()`, then `with_labels(...)`, only after the announced head. Its unassigned SINCE gate refuses explicit
 selections. These are producer status
 facts, not permission to adopt unreviewed query or iterator code. Session labels
 already stored at schema 17 do not establish RPC availability. The owner will
