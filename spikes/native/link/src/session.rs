@@ -18,23 +18,34 @@
 //!   (a pin and an archive clicked in one breath); each answers with the
 //!   session as it then stands, and the list's next read settles it.
 
-use bytes::Bytes;
-use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::timeline::Until;
-use vessel_client::NodeClient;
 use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
     ErrorCode, EventRecord, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo,
-    SessionInput, SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
+    SessionTitle,
 };
-use vessel_proto::{
-    PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
-};
+use vessel_proto::{PermissionId, PermissionOptionId, QuestionAnswer, QuestionId};
 
+// The acts run on the desktop's runtime through `vessel-client`; a browser
+// has neither (its demo refuses an act, `web.rs`), so only the acts' types
+// build for wasm32.
+#[cfg(not(target_arch = "wasm32"))]
+use bytes::Bytes;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::sync::mpsc;
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_client::NodeClient;
+#[cfg(not(target_arch = "wasm32"))]
+use vessel_proto::{PermissionOutcome, SessionInput, TerminalBytes, TerminalInput, TerminalSize};
+
+#[cfg(not(target_arch = "wasm32"))]
 use crate::{Event, LinkError, State};
 mod terminal_opening;
+#[cfg(target_arch = "wasm32")]
+pub use crate::web::NodeName;
 pub use terminal_opening::TerminalOpening;
+#[cfg(not(target_arch = "wasm32"))]
 pub use vessel_client::book::NodeName;
 
 /// An act on one session.
@@ -236,6 +247,7 @@ pub struct ActAnswer {
     pub result: Result<Acted, ActFailed>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl State {
     /// `act` on `session`, on a task of its own; its answer comes back as
     /// `Event::Acted`.
@@ -271,16 +283,19 @@ impl State {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 async fn answer(events: &mpsc::Sender<Event>, answer: ActAnswer) {
     // The receiver is gone only when the app is closing.
     let _closed = events.send(Event::Acted(answer)).await;
 }
 
 /// Records of `session`'s log read per page.
+#[cfg(not(target_arch = "wasm32"))]
 const PAGE: u32 = 512;
 
 /// `session`'s log from its start, page by page, up to the first record
 /// `until` does not keep (the log is in order) or its end.
+#[cfg(not(target_arch = "wasm32"))]
 async fn read_until(
     client: &NodeClient,
     session: SessionId,
@@ -305,6 +320,7 @@ async fn read_until(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted, ActFailed> {
     let boxed = |info: SessionInfo| Acted::Session(Box::new(info));
     let done = match act {

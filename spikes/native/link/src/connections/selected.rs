@@ -152,10 +152,15 @@ impl SelectedConnection {
                 .await;
         }
     }
+    /// Original immutable peer metadata, never permission or admission proof.
+    /// Effects still pass through the existing call pre/post retirement fence.
+    pub(crate) fn protocol(&self) -> vessel_proto::ProtocolVersion {
+        self.lease.client.protocol()
+    }
     pub(crate) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, RequestFailure> {
         self.guard(self.lease.client.call(request)).await
     }
-    // Minted only by the actual result-envelope producer, from this SAME lease.
+    // Minted once by real A4 result-envelope producers; never by the UI.
     pub(crate) fn delivery_guard(&self) -> crate::DeliveryGuard {
         crate::DeliveryGuard::from_lease(&self.lease)
     }

@@ -45,6 +45,7 @@ fn make_state(
         agents: crate::agents::Hub::default(),
         admissions: vessel_app_view::connection::ConnectionEpochs::default(),
         device_calls: crate::devices::Hub::default(),
+        history_calls: crate::history::Hub::default(),
         sync_calls: crate::sync::Hub::default(),
         offers: std::sync::Arc::default(),
     }
