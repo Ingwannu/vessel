@@ -587,3 +587,40 @@ The extraction's first narrow Clippy found a missing test-only
 inputs and expectations are unchanged. The superseded whole-gate request
 was cancelled while queued. Resume: finish the corrected narrow check,
 commit, then submit the complete native gate before the rename consumer.
+
+### Quality result and shared rename consumer (2026-11-15)
+
+`caa0f632` passed the complete native gate: fonts, formatting, size,
+boundaries, tokens, whole Clippy, normal app build and tests; 1,169 passed,
+none failed, one ignored. The build and test logs both recompiled link,
+kit and app. A missing test-only import found by the first narrow check
+was repaired before that gate; no existing expectation changed. The
+original entry file budgets now measure link 988 and demo 523.
+
+[Decision Log]
+- Purpose: replace Overview's temporary pencil with the existing shared
+  host rename action, preserving the editor and book-edit rules.
+- Reference: `screens/settings/host-appearance-section.tsx:31-71,319-321`
+  uses the static Pencil action with eight points of hit slop; the name
+  row is at 276-284. `components/rename-modal.tsx` owns the editor.
+- Existing assets: the native line already contains `host_rename_button`
+  and its token geometry (`d103ab39`); another area-owned action or a new
+  dependency would duplicate it.
+- Choice (modify): call the shared action unchanged. Attach the editor
+  callback only to its enabled state. Invalid book names retain the
+  existing absence of an edit action. Do not add hover/pressed paint.
+- Verification: actual Overview input at and outside the visual frame;
+  a separate kit audit of disabled cursor/handler refusal, neighbouring
+  controls, parent propagation and overflow clipping. The audit must call
+  the real shared control, not recreate its geometry or hit handling.
+- Scope: no editor engine or select-all change. The shared action's
+  accessibility and keyboard limitations remain as documented by its owner.
+
+### Resume point
+
+- Quality repair committed and gated; review requested before proceeding.
+- Next: install the shared-action consumer and isolated input audit, gate
+  them, capture both schemes/languages and layouts, and report measured
+  bounds separately from screenshots and reviewer approval.
+- Select-all remains waiting for the field module split; do not enlarge
+  that file for this consumer change.
