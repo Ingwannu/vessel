@@ -141,3 +141,13 @@ Plugin text belongs to the plugin's resolver/namespace. A contribution receives
 the validated active Locale (serialized to its tag only at the plugin boundary)
 and refreshes its own prepared labels at a language event;
 it never loads resources or arbitrary keys into the core Fluent registry.
+
+## Installation-owned resources
+
+These folders belong to the shipped core catalog. Plugin contributions keep
+separate bounded resources and use view's shared private Fluent configuration
+and pure AST contract; never load installation keys into the core Translator.
+The core's shipped English/Korean completeness gate stays mandatory. A plugin's
+English source is mandatory and its other translations may be partial, with
+per-message English fallback. Its owner refreshes prepared text on language or
+contribution changes and disposes installation caches/subscriptions together.

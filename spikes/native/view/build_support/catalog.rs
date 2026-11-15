@@ -9,7 +9,7 @@ use fluent_syntax::{
     parser,
 };
 
-use super::{BuildError, Language, Message, Shape, pattern, source};
+use super::{BuildError, Language, Message, contract, source};
 
 pub(crate) fn read(root: &Path) -> Result<Vec<Language>, BuildError> {
     let mut languages = Vec::new();
@@ -76,8 +76,8 @@ pub(crate) fn parse(tag: String, files: BTreeMap<String, String>) -> Result<Lang
                     let value = message
                         .value
                         .ok_or_else(|| source(&file, format!("{id} has no value")))?;
-                    let mut shape = Shape::default();
-                    pattern::scan(&value, &mut shape, &file)?;
+                    let shape =
+                        shape(&value, area).map_err(|error| source(&file, error.to_string()))?;
                     let plain = value
                         .elements
                         .iter()
@@ -116,8 +116,8 @@ pub(crate) fn parse(tag: String, files: BTreeMap<String, String>) -> Result<Lang
                     if !term.attributes.is_empty() {
                         return Err(source(&file, "term attributes are not supported"));
                     }
-                    let mut shape = Shape::default();
-                    pattern::scan(&term.value, &mut shape, &file)?;
+                    let shape = shape(&term.value, area)
+                        .map_err(|error| source(&file, error.to_string()))?;
                     if terms.insert(format!("-{}", term.id.name), shape).is_some() {
                         return Err(source(&file, "duplicate term"));
                     }
@@ -151,4 +151,18 @@ pub(super) fn check_identifier(name: &str, file: &str) -> Result<(), BuildError>
         ));
     }
     Ok(())
+}
+
+fn shape(
+    value: &fluent_syntax::ast::Pattern<&str>,
+    area: &str,
+) -> Result<contract::Shape, contract::ContractError> {
+    let mut shape = contract::Shape::default();
+    let role = if area == "formats" {
+        contract::PatternRole::Formatting
+    } else {
+        contract::PatternRole::Message
+    };
+    contract::scan(value, &mut shape, role)?;
+    Ok(shape)
 }

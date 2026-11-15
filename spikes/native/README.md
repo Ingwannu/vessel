@@ -769,11 +769,23 @@ fake fleet and display when finished; keep the authority cookie private.
 ## Translation files (ADR 0039)
 
 `view::localization` sits beside the legacy tables. Its host build script
-reads `view/locales/<tag>/<area>.ftl`, validates the Fluent AST, and generates
-a typed API from English. The target library embeds the resources and does
+reads `view/locales/<tag>/<area>.ftl`, validates the maintained Fluent AST
+through the pure `view/fluent_contract/` module, and generates a typed API from
+English. Folder/prefix/context and shipped-language policies stay in the host
+`build_support/` layer. The target library embeds the resources and does
 no I/O. Prepare `Translator::get(locale)` before drawing: plain accessors
 borrow retained fields, while messages with values are formatted when those
 values change. The allocation-counting test covers warmed plain access.
+
+Installation-owned plugin text uses separate bundles configured by the
+crate-private `localization::resources::bundles(Locale)` factory. It reuses the
+core NUMBER/DATETIME/PARTICLE functions, private embedded date patterns, pseudo
+transform and independent English fallback locale; it does not add resources to
+the core Translator. The plugin owner supplies bounded validated resources and
+owns prepared values, language/generation refresh and disposal. The pure
+`view/fluent_contract/` AST/variable/reference checks are shared source, without
+host filesystem code or a second parser. See
+[the consumer seam plan](../../docs/plans/wp-f6-localization-seams.md).
 
 `LANGUAGES` exposes each embedded tag, own name and completeness; the
 checking locale `en-XA` is excluded. `resolve_languages` applies the checking

@@ -1,68 +1,17 @@
 //! Gate rules shared by cargo test, generation, and the coverage command.
 //! Missing contributed messages are reported; invalid messages never ship.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
-use super::{BuildError, Coverage, Kind, Language, Shape, pattern, source};
+use super::{BuildError, Contract, Coverage, Kind, Language, contract, source};
 
-pub(crate) fn expanded(language: &Language, key: &str) -> Result<Shape, BuildError> {
-    let shape = expand(language, key, &mut BTreeSet::new())?;
-    if !shape.conflicts.is_empty() {
-        return Err(source(
-            &language.tag,
-            format!(
-                "{key} uses incompatible types for ${}",
-                shape
-                    .conflicts
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(", $")
-            ),
-        ));
-    }
-    Ok(shape)
-}
-
-fn expand(
-    language: &Language,
-    key: &str,
-    visiting: &mut BTreeSet<String>,
-) -> Result<Shape, BuildError> {
-    if visiting.len() >= 64 || !visiting.insert(key.to_owned()) {
-        return Err(source(
-            &language.tag,
-            format!("cyclic or excessively deep reference at {key}"),
-        ));
-    }
-    let mut shape = language
-        .messages
-        .get(key)
-        .map(|m| m.shape.clone())
-        .or_else(|| language.terms.get(key).cloned())
-        .ok_or_else(|| {
-            source(
-                &language.tag,
-                format!("missing reference {key}; translate it too or omit the referring message"),
-            )
-        })?;
-    for reference in &shape.references.clone() {
-        let referenced = expand(language, &reference.key, visiting)?;
-        shape.conflicts.extend(referenced.conflicts);
-        for (name, kind) in referenced.variables {
-            if !reference.bound.contains(&name) {
-                if reference.key.starts_with('-') {
-                    return Err(source(
-                        &language.tag,
-                        format!("{} needs a locally bound ${name} parameter", reference.key),
-                    ));
-                }
-                pattern::merge(&mut shape, &name, kind);
-            }
-        }
-    }
-    let _removed = visiting.remove(key);
-    Ok(shape)
+pub(crate) fn expanded(language: &Language, key: &str) -> Result<Contract, BuildError> {
+    let key = contract::Key::parse(key).map_err(|e| source(&language.tag, e.to_string()))?;
+    contract::expanded(&key, |key| match key {
+        contract::Key::Message(name) => language.messages.get(name.as_str()).map(|m| &m.shape),
+        contract::Key::Term(name) => language.terms.get(&format!("-{name}")),
+    })
+    .map_err(|error| source(&language.tag, error.to_string()))
 }
 
 pub(crate) fn validate(languages: &[Language]) -> Result<Vec<Coverage>, BuildError> {
@@ -86,79 +35,74 @@ pub(crate) fn validate(languages: &[Language]) -> Result<Vec<Coverage>, BuildErr
             ));
         }
     }
-    let mut coverage = Vec::new();
-    for language in languages {
-        if language
-            .messages
-            .get("meta-name")
-            .and_then(|m| m.plain.as_deref())
-            .is_none_or(|n| n.trim().is_empty())
-        {
-            return Err(source(
-                &language.tag,
-                "meta-name must be a nonempty plain native language name",
-            ));
-        }
-        let missing: Vec<_> = contracts
-            .keys()
-            .filter(|key| !language.messages.contains_key(*key))
-            .cloned()
-            .collect();
-        if language.tag == "ko" && !missing.is_empty() {
-            return Err(source(
-                "ko",
-                format!("missing messages: {}", missing.join(", ")),
-            ));
-        }
-        for key in language.terms.keys() {
-            let _checked = expanded(language, key)?;
-        }
-        for key in language.messages.keys() {
-            let expected = contracts
-                .get(key)
-                .ok_or_else(|| source(&language.tag, format!("unknown message {key}")))?;
-            let actual = expanded(language, key)?;
-            if actual
-                .variables
-                .keys()
-                .any(|name| !expected.variables.contains_key(name))
-            {
-                return Err(source(
-                    &language.tag,
-                    format!("{key} uses variables English does not pass"),
-                ));
-            }
-            if language.tag == "ko" && !actual.variables.keys().eq(expected.variables.keys()) {
-                return Err(source(
-                    "ko",
-                    format!("{key} must use the same variables as English"),
-                ));
-            }
-            for (name, kind) in &actual.variables {
-                super::catalog::check_identifier(name, &language.tag)?;
-                if let Kind::Choice(choices) = kind {
-                    for choice in choices {
-                        super::catalog::check_identifier(choice, &language.tag)?;
-                    }
-                }
-                if *kind == Kind::Date && expected.variables.get(name) != Some(&Kind::Date) {
-                    return Err(source(
-                        &language.tag,
-                        format!("{key}: ${name} requires a date but English passes another type"),
-                    ));
-                }
-                if *kind == Kind::Number && expected.variables.get(name) != Some(&Kind::Number) {
-                    return Err(source(
-                        &language.tag,
-                        format!("{key}: ${name} requires a number but English passes text"),
-                    ));
-                }
-            }
-        }
-        coverage.push(Coverage {
-            tag: language.tag.clone(),
-            missing,
-        });
+    languages
+        .iter()
+        .map(|language| validate_language(&contracts, language))
+        .collect()
+}
+
+fn validate_language(
+    contracts: &BTreeMap<String, Contract>,
+    language: &Language,
+) -> Result<Coverage, BuildError> {
+    if language
+        .messages
+        .get("meta-name")
+        .and_then(|m| m.plain.as_deref())
+        .is_none_or(|n| n.trim().is_empty())
+    {
+        return Err(source(
+            &language.tag,
+            "meta-name must be a nonempty plain native language name",
+        ));
     }
-    Ok(coverage)
+    let missing: Vec<_> = contracts
+        .keys()
+        .filter(|key| !language.messages.contains_key(*key))
+        .cloned()
+        .collect();
+    if language.tag == "ko" && !missing.is_empty() {
+        return Err(source(
+            "ko",
+            format!("missing messages: {}", missing.join(", ")),
+        ));
+    }
+    for key in language.terms.keys() {
+        let _checked = expanded(language, key)?;
+    }
+    validate_messages(contracts, language)?;
+    Ok(Coverage {
+        tag: language.tag.clone(),
+        missing,
+    })
+}
+
+fn validate_messages(
+    contracts: &BTreeMap<String, Contract>,
+    language: &Language,
+) -> Result<(), BuildError> {
+    for key in language.messages.keys() {
+        let expected = contracts
+            .get(key)
+            .ok_or_else(|| source(&language.tag, format!("unknown message {key}")))?;
+        let actual = expanded(language, key)?;
+        let coverage = if language.tag == "ko" {
+            contract::VariableCoverage::Exact
+        } else {
+            contract::VariableCoverage::Subset
+        };
+        let parsed_key =
+            contract::Key::parse(key).map_err(|e| source(&language.tag, e.to_string()))?;
+        contract::compare(&parsed_key, expected, &actual, coverage)
+            .map_err(|error| source(&language.tag, error.to_string()))?;
+        for (name, kind) in actual.variables() {
+            super::catalog::check_identifier(name, &language.tag)?;
+            if let Kind::Choice(choices) = kind {
+                for choice in choices {
+                    super::catalog::check_identifier(choice, &language.tag)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }

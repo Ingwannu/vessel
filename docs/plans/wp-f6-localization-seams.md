@@ -48,3 +48,40 @@ The consumer package's whole native gate and integration review remain owed.
 The earlier preferred-system-language package was gated at exact `8a944a23`;
 its gate/captures do not cover this follow-on. Package base 2 (`6036eeb8`) was
 merged after that gate completed; its root crates remain unchanged.
+
+## Pure argument/reference contract
+
+`view/fluent_contract` holds only the maintained Fluent AST walk, validated
+Fluent Name/Key types, Shape/Kind, reference expansion and typed ContractError.
+The host includes that source directly; view tests compile the same source at
+the target side. The plugin consumer promotes that test-only registration to a
+crate-private module when it starts using it; no dead-code allowance or public
+runtime-key API is introduced before there is a consumer.
+
+Reference expansion produces a private-field `Contract` distinct from the raw
+scanned `Shape`; comparison requires that checked type, so reference variables
+cannot be skipped by calling the comparator too early.
+
+The English argument set is compared with Exact coverage for core Korean and
+Subset coverage for partial installation resources. The caller still owns
+resource parsing, duplicate/entry/attribute rejection, key namespace and locale
+presence/coverage policy; a shape scan does not replace those checks. Core
+folder prefixes, context/native-name checks and released EN/KO completeness
+remain in build_support and retain their fixtures. The shared module performs
+no I/O and knows no core registry or plugin RPC/schema.
+
+The existing reference depth limit is a named constant. Expansion memoizes a
+completed subtree plus its height: duplicated DAG edges no longer cause
+exponential re-expansion, and a later deeper path cannot use that cache to
+bypass the depth limit. Tests include both depth boundaries, that cached-path
+case, duplicate edges, cycles, missing references, unbound terms, conflicting
+types and the English/translation variable/type contract. API generation uses
+explicit escaped strings from the validated names; a retained pre-change
+artifact is compared byte-for-byte after the host extraction.
+
+The plugin owner retains resource byte/key/count bounds, fallback/cache/error
+mapping, generation ordering, language refresh and subscription disposal.
+Neither this pure seam nor its tests prove those plugin lifecycle flows.
+
+Pure seam state: installed source; its narrow target/host checks and generated
+API byte comparison are owed. The bundle-only checks above do not cover it.
