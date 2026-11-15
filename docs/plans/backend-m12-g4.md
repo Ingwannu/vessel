@@ -628,5 +628,14 @@ committed source. G2 owns first-use captures with long messages, several
 hosts, phone width, both themes and languages in its separate consumer
 slice. A source/gate pass here will not claim those UI states passed.
 
-Resume point: Devices is with V1; this contract has no implementation yet.
-Next implement only the shared Alert profile and its tests/README entry.
+Implementation: the existing `alert` entry resolves Notice and builds its
+unchanged lead/description/action children; `host_errors` resolves HostErrors
+and places each message directly in the same frame. The private enum has
+no arbitrary style parameters. Existing five-variant/four-size exact tests
+remain, with both-theme host geometry/type/red-300 checks and an exhaustive
+ordinary-profile preservation check. No callers or semantic view enums
+change. README names the additional presentation.
+
+Resume point: Devices is with V1. The shared profile source is ready for
+its own exact-commit A13 gate, not yet passed or consumer-ready. First-use
+captures remain G2's responsibility; no alert UI/capture pass is claimed.
