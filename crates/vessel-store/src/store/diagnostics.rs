@@ -7,8 +7,10 @@
 //! Existing session enumeration clones private labels and state per row.
 //! A single readonly transaction instead projects only schema and counts.
 //! The caller's guard stays in the real blocking reader through cancellation.
-//! A caller-owned cancellation check avoids a new store dependency or a
+//! A caller-owned cancellation check avoids a new product dependency or a
 //! second cancellation engine; it must be nonblocking and do no source I/O.
+//! SQL validates JSON syntax and recognized state tags/count consistency, not
+//! each known status payload: this aggregate is not an integrity scan.
 use crate::{Store, StoreError};
 use rusqlite::{Connection, params};
 use serde::Serialize;
@@ -140,11 +142,13 @@ mod tests {
     use chrono::Utc;
     use futures_util::FutureExt as _;
     use std::{
+        future::Future,
         path::PathBuf,
         sync::{
             Arc,
             atomic::{AtomicBool, Ordering},
         },
+        time::Duration,
     };
     use tempfile::TempDir;
     use tokio::sync::{Notify, oneshot};
@@ -153,6 +157,21 @@ mod tests {
         SessionSpec, TerminalSize,
     };
 
+    const SAFETY_NET: Duration = Duration::from_secs(60);
+    const PHASE_DEADLINE: Duration = Duration::from_secs(20);
+
+    async fn run(test: impl Future<Output = ()>) {
+        vessel_testkit::within(SAFETY_NET, test)
+            .await
+            .unwrap_or_else(|error| panic!("diagnostic fixture exceeded {SAFETY_NET:?}: {error}"));
+    }
+    async fn phase<F: Future>(name: &str, work: F) -> F::Output {
+        tokio::time::timeout(PHASE_DEADLINE, work)
+            .await
+            .unwrap_or_else(|error| {
+                panic!("diagnostic phase {name} exceeded {PHASE_DEADLINE:?}: {error}")
+            })
+    }
     const PRIVATE_WORDS: &str = "PRIVATE-DIAGNOSTIC-SOURCE-CANARY";
     async fn open() -> (TempDir, DataDir, Store) {
         let temp = tempfile::tempdir().unwrap();
@@ -193,133 +212,168 @@ mod tests {
     }
     #[tokio::test]
     async fn actual_store_counts_and_schema_do_not_return_rows_or_messages() {
-        let (_temp, _dir, store) = open().await;
-        let statuses = [
-            SessionStatus::Starting,
-            SessionStatus::Running,
-            SessionStatus::Exited { code: Some(0) },
-            SessionStatus::failed(PRIVATE_WORDS),
-            SessionStatus::Interrupted,
-        ];
-        let total = u64::try_from(statuses.len()).unwrap();
-        let live =
-            u64::try_from(statuses.iter().filter(|status| status.is_live()).count()).unwrap();
-        let mut ids = Vec::new();
-        for status in statuses {
-            ids.push(insert(&store, status).await);
-        }
-        let (facts, ()) = guarded_snapshot(&store, (), || ReadAdmission::Continue)
+        run(async {
+            let (_temp, _dir, store) = phase("store opens", open()).await;
+            let statuses = [
+                SessionStatus::Starting,
+                SessionStatus::Running,
+                SessionStatus::Exited { code: Some(0) },
+                SessionStatus::failed(PRIVATE_WORDS),
+                SessionStatus::Interrupted,
+            ];
+            let total = u64::try_from(statuses.len()).unwrap();
+            let live =
+                u64::try_from(statuses.iter().filter(|status| status.is_live()).count()).unwrap();
+            let mut ids = Vec::new();
+            for status in statuses {
+                ids.push(phase("session is inserted", insert(&store, status)).await);
+            }
+            let (facts, ()) = phase(
+                "store snapshot",
+                guarded_snapshot(&store, (), || ReadAdmission::Continue),
+            )
             .await
             .unwrap();
-        assert_eq!(facts.sessions.total.get(), total);
-        assert_eq!(facts.sessions.live.get(), live);
-        assert_eq!(facts.sessions.ended.get(), total.checked_sub(live).unwrap());
-        assert_eq!(
-            facts.expected_schema.get(),
-            crate::schema::diagnostic_version().unwrap().get()
-        );
-        assert_eq!(facts.observed_schema, facts.expected_schema);
-        assert!(
-            !serde_json::to_string(&facts)
-                .unwrap()
-                .contains(PRIVATE_WORDS)
-        );
-        let encoded = serde_json::to_string(&facts).unwrap();
-        assert!(ids.iter().all(|id| !encoded.contains(&id.to_string())));
-        assert!(!format!("{facts:?}").contains(PRIVATE_WORDS));
-        store.close().await;
+            assert_eq!(facts.sessions.total.get(), total);
+            assert_eq!(facts.sessions.live.get(), live);
+            assert_eq!(facts.sessions.ended.get(), total.checked_sub(live).unwrap());
+            assert_eq!(
+                facts.expected_schema.get(),
+                crate::schema::diagnostic_version().unwrap().get()
+            );
+            assert_eq!(facts.observed_schema, facts.expected_schema);
+            assert!(
+                !serde_json::to_string(&facts)
+                    .unwrap()
+                    .contains(PRIVATE_WORDS)
+            );
+            let encoded = serde_json::to_string(&facts).unwrap();
+            assert!(ids.iter().all(|id| !encoded.contains(&id.to_string())));
+            assert!(!format!("{facts:?}").contains(PRIVATE_WORDS));
+            phase("store closes", store.close()).await;
+        })
+        .await;
     }
     #[tokio::test]
     async fn unknown_status_is_unavailable_instead_of_counted_as_ended() {
-        let (_temp, dir, store) = open().await;
-        let id = insert(&store, SessionStatus::Running).await;
-        let connection = Connection::open(dir.database_path()).unwrap();
-        assert_eq!(
-            connection
-                .execute(
-                    "UPDATE sessions SET status = ?1 WHERE id = ?2",
-                    params![r#"{"state":"future"}"#, id.to_string()],
-                )
-                .unwrap(),
-            1,
-        );
-        let error = guarded_snapshot(&store, (), || ReadAdmission::Continue)
+        run(async {
+            let (_temp, dir, store) = phase("store opens", open()).await;
+            let id = phase(
+                "running session is inserted",
+                insert(&store, SessionStatus::Running),
+            )
+            .await;
+            let connection = Connection::open(dir.database_path()).unwrap();
+            assert_eq!(
+                connection
+                    .execute(
+                        "UPDATE sessions SET status = ?1 WHERE id = ?2",
+                        params![r#"{"state":"future"}"#, id.to_string()],
+                    )
+                    .unwrap(),
+                1,
+            );
+            let error = phase(
+                "store snapshot",
+                guarded_snapshot(&store, (), || ReadAdmission::Continue),
+            )
             .await
             .unwrap_err();
-        assert!(matches!(
-            error,
-            SnapshotError::Invalid(InvalidDiagnostic::CountsDisagree)
-        ));
-        assert_eq!(
-            connection
-                .execute(
-                    "UPDATE sessions SET status = ?1 WHERE id = ?2",
-                    params![
-                        serde_json::to_string(&SessionStatus::Running).unwrap(),
-                        id.to_string()
-                    ],
-                )
-                .unwrap(),
-            1,
-        );
-        store.close().await;
+            assert!(matches!(
+                error,
+                SnapshotError::Invalid(InvalidDiagnostic::CountsDisagree)
+            ));
+            assert_eq!(
+                connection
+                    .execute(
+                        "UPDATE sessions SET status = ?1 WHERE id = ?2",
+                        params![
+                            serde_json::to_string(&SessionStatus::Running).unwrap(),
+                            id.to_string()
+                        ],
+                    )
+                    .unwrap(),
+                1,
+            );
+            phase("store closes", store.close()).await;
+        })
+        .await;
     }
     #[tokio::test]
     async fn schema_is_observed_without_migrating_or_claiming_integrity() {
-        let (_temp, dir, store) = open().await;
-        let before = crate::schema::diagnostic_version().unwrap();
-        let changed = before.get().checked_add(1).unwrap();
-        let connection = Connection::open(dir.database_path()).unwrap();
-        connection
-            .pragma_update(None, "user_version", changed)
-            .unwrap();
-        let (facts, ()) = guarded_snapshot(&store, (), || ReadAdmission::Continue)
+        run(async {
+            let (_temp, dir, store) = phase("store opens", open()).await;
+            let before = crate::schema::diagnostic_version().unwrap();
+            let changed = before.get().checked_add(1).unwrap();
+            let connection = Connection::open(dir.database_path()).unwrap();
+            connection
+                .pragma_update(None, "user_version", changed)
+                .unwrap();
+            let (facts, ()) = phase(
+                "store snapshot",
+                guarded_snapshot(&store, (), || ReadAdmission::Continue),
+            )
             .await
             .unwrap();
-        assert_eq!(facts.expected_schema.get(), before.get());
-        assert_eq!(facts.observed_schema.get(), changed);
-        let after: u32 = connection
-            .pragma_query_value(None, "user_version", |row| row.get(0))
-            .unwrap();
-        assert_eq!(after, changed);
-        store.close().await;
+            assert_eq!(facts.expected_schema.get(), before.get());
+            assert_eq!(facts.observed_schema.get(), changed);
+            let after: u32 = connection
+                .pragma_query_value(None, "user_version", |row| row.get(0))
+                .unwrap();
+            assert_eq!(after, changed);
+            phase("store closes", store.close()).await;
+        })
+        .await;
     }
     #[tokio::test]
     async fn failed_read_and_stopping_remain_distinct_with_internal_sources() {
-        let (_temp, dir, store) = open().await;
-        let connection = Connection::open(dir.database_path()).unwrap();
-        let id = insert(&store, SessionStatus::Running).await;
-        assert_eq!(
-            connection
-                .execute(
-                    "UPDATE sessions SET status = ?1 WHERE id = ?2",
-                    params!["not-json", id.to_string()],
-                )
-                .unwrap(),
-            1,
-        );
-        let stopped = guarded_snapshot(&store, (), || ReadAdmission::Stopping)
+        run(async {
+            let (_temp, dir, store) = phase("store opens", open()).await;
+            let connection = Connection::open(dir.database_path()).unwrap();
+            let id = phase(
+                "running session is inserted",
+                insert(&store, SessionStatus::Running),
+            )
+            .await;
+            assert_eq!(
+                connection
+                    .execute(
+                        "UPDATE sessions SET status = ?1 WHERE id = ?2",
+                        params!["not-json", id.to_string()],
+                    )
+                    .unwrap(),
+                1,
+            );
+            let stopped = phase(
+                "stopping store snapshot",
+                guarded_snapshot(&store, (), || ReadAdmission::Stopping),
+            )
             .await
             .unwrap_err();
-        assert!(matches!(stopped, SnapshotError::Stopping));
-        let failed = guarded_snapshot(&store, (), || ReadAdmission::Continue)
+            assert!(matches!(stopped, SnapshotError::Stopping));
+            let failed = phase(
+                "store snapshot",
+                guarded_snapshot(&store, (), || ReadAdmission::Continue),
+            )
             .await
             .unwrap_err();
-        assert!(matches!(failed, SnapshotError::Query(_)));
-        assert!(std::error::Error::source(&failed).is_some());
-        assert_eq!(
-            connection
-                .execute(
-                    "UPDATE sessions SET status = ?1 WHERE id = ?2",
-                    params![
-                        serde_json::to_string(&SessionStatus::Running).unwrap(),
-                        id.to_string()
-                    ],
-                )
-                .unwrap(),
-            1,
-        );
-        store.close().await;
+            assert!(matches!(failed, SnapshotError::Query(_)));
+            assert!(std::error::Error::source(&failed).is_some());
+            assert_eq!(
+                connection
+                    .execute(
+                        "UPDATE sessions SET status = ?1 WHERE id = ?2",
+                        params![
+                            serde_json::to_string(&SessionStatus::Running).unwrap(),
+                            id.to_string()
+                        ],
+                    )
+                    .unwrap(),
+                1,
+            );
+            phase("store closes", store.close()).await;
+        })
+        .await;
     }
     struct Held {
         released: Arc<AtomicBool>,
@@ -338,15 +392,17 @@ mod tests {
             .enable_all()
             .build()
             .unwrap();
-        runtime.block_on(async {
-            let (_temp, _dir, store) = open().await;
+        runtime.block_on(run(async {
+            let (_temp, _dir, store) = phase("store opens", open()).await;
             let (entered, ready) = oneshot::channel();
             let (release, finish) = std::sync::mpsc::channel();
             let blocker = tokio::task::spawn_blocking(move || {
                 entered.send(()).unwrap();
-                finish.recv().unwrap();
+                // Dropping the timed future closes its release sender before
+                // custom runtime shutdown waits for this blocking operation.
+                let _released = finish.recv();
             });
-            ready.await.unwrap();
+            phase("pool blocker enters", ready).await.unwrap();
             let released = Arc::new(AtomicBool::new(false));
             let wake = Arc::new(Notify::new());
             let held = Held {
@@ -371,10 +427,10 @@ mod tests {
             assert!(!released.load(Ordering::SeqCst));
             stop.store(true, Ordering::SeqCst);
             release.send(()).unwrap();
-            blocker.await.unwrap();
-            wake.notified().await;
+            phase("pool blocker joins", blocker).await.unwrap();
+            phase("cancelled read releases its guard", wake.notified()).await;
             assert!(released.load(Ordering::SeqCst));
-            store.close().await;
-        });
+            phase("store closes", store.close()).await;
+        }));
     }
 }

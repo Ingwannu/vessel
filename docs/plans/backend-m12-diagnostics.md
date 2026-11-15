@@ -63,7 +63,7 @@ These are source-only observations; no real Paseo daemon was exercised.
 |---|---|---|---|
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
 | D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
-| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; staged-source review pending |
+| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; staged-source liveness return; correction prepared, changed-tree gate pending |
 | D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
@@ -352,3 +352,34 @@ authority/compatibility checks, one registered call, client and CLI remain
 owed. Registration still waits for the shared compatibility accessor and RPC
 method metadata on a consumed node head. Native diagnostics is another
 owner's work; these components do not make a machine answer a report yet.
+
+
+### D3 staged-source liveness correction
+
+The immutable `fbfd3ad8` execution remains green; source review returned the
+new concurrent fixtures because a stuck channel or leaked tracker token could
+hang the gate. It found no additional validated product/privacy/lease defect
+in that staged source. This is a source return, not a failed execution or
+permission to integrate the staged modules.
+
+The correction reuses `vessel_testkit::within` with a named safety budget and
+named phase deadlines for new admission, journal and Store waits, including
+process-fixture shutdown. The single-thread blocking pools, barriers, ordering
+and behavioral assertions remain. Release senders live inside the timed test
+futures, so failure drops them before custom runtime shutdown waits on blocked
+receivers. A receiver accepts sender closure as cleanup; the successful path
+still requires its release send to succeed. The Store adds only the existing
+workspace testkit as a development dependency, with no product dependency edge
+or new crate version. No shared-head tests or product mechanisms change.
+
+Store aggregate validation covers malformed JSON, unknown state tags and
+count consistency. It does not deserialize every field of a recognized status
+payload; for example an exited tag with an invalid code payload is still
+counted ended. This is deliberately not a store integrity check.
+
+Resume point: the correction is prepared but has not compiled or run yet.
+Run narrow Clippy for the changed test owners, then one changed-tree whole
+gate through the approved remote runner before resubmitting staged source.
+The original gate evidence above is retained and does not prove this correction.
+D4 remains blocked on consuming the announced shared compatibility accessor
+and method-metadata head; no wire registration or product assembly is added.

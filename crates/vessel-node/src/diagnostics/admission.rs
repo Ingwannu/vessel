@@ -68,6 +68,7 @@ impl Admission {
 
 #[cfg(test)]
 mod tests {
+    use super::super::deadline::{self, phase};
     use super::*;
     use std::{future::Future, pin::Pin, task::Poll};
     use tokio::sync::oneshot;
@@ -101,58 +102,69 @@ mod tests {
     }
     #[tokio::test]
     async fn admitted_before_spawn_keeps_shutdown_waiting() {
-        let stop = CancellationToken::new();
-        let tasks = TaskTracker::new();
-        let admission = Admission::new(&stop, &tasks);
-        // Admission is complete, but no source task has been spawned yet.
-        let lease = admission.admit().unwrap();
-        stop.cancel();
-        assert!(tasks.close());
-        let mut wait = Box::pin(tasks.wait());
-        assert!(is_pending(wait.as_mut()).await);
-        assert!(matches!(admission.admit(), Err(Refused::Stopping)));
-        drop(lease);
-        wait.await;
-        // Requests after a completed shutdown do not leave a tracker token.
-        assert!(matches!(admission.admit(), Err(Refused::Stopping)));
-        assert!(tasks.is_empty());
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let tasks = TaskTracker::new();
+            let admission = Admission::new(&stop, &tasks);
+            // Admission is complete, but no source task has been spawned yet.
+            let lease = admission.admit().unwrap();
+            stop.cancel();
+            assert!(tasks.close());
+            let mut wait = Box::pin(tasks.wait());
+            assert!(is_pending(wait.as_mut()).await);
+            assert!(matches!(admission.admit(), Err(Refused::Stopping)));
+            drop(lease);
+            phase("shutdown tracker drains", wait).await;
+            // Requests after a completed shutdown do not leave a tracker token.
+            assert!(matches!(admission.admit(), Err(Refused::Stopping)));
+            assert!(tasks.is_empty());
+        })
+        .await;
     }
     #[tokio::test]
     async fn caller_cancellation_does_not_release_running_work() {
-        let stop = CancellationToken::new();
-        let tasks = TaskTracker::new();
-        let admission = Arc::new(Admission::new(&stop, &tasks));
-        let (entered, ready) = oneshot::channel();
-        let (release, finish) = oneshot::channel();
-        let caller_admission = Arc::clone(&admission);
-        let caller_tasks = tasks.clone();
-        let caller = tokio::spawn(async move {
-            let lease = caller_admission.admit().unwrap();
-            let source_lease = Arc::clone(&lease);
-            // The real tracked source task survives its caller's JoinHandle.
-            let source = caller_tasks.spawn(async move {
-                let _lease = source_lease;
-                entered.send(()).unwrap();
-                finish.await.unwrap();
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let tasks = TaskTracker::new();
+            let admission = Arc::new(Admission::new(&stop, &tasks));
+            let (entered, ready) = oneshot::channel();
+            let (release, finish) = oneshot::channel();
+            let caller_admission = Arc::clone(&admission);
+            let caller_tasks = tasks.clone();
+            let caller = tokio::spawn(async move {
+                let lease = caller_admission.admit().unwrap();
+                let source_lease = Arc::clone(&lease);
+                // The real tracked source task survives its caller's JoinHandle.
+                let source = caller_tasks.spawn(async move {
+                    let _lease = source_lease;
+                    entered.send(()).unwrap();
+                    phase("source is released", finish).await.unwrap();
+                });
+                phase("source task joins", source).await.unwrap();
+                drop(lease);
             });
-            source.await.unwrap();
-            drop(lease);
-        });
-        ready.await.unwrap();
-        caller.abort();
-        assert!(caller.await.unwrap_err().is_cancelled());
-        let mut others = Vec::new();
-        for _ in 0..COLLECTION_PERMITS.saturating_sub(1) {
-            others.push(admission.admit().unwrap());
-        }
-        assert!(matches!(admission.admit(), Err(Refused::Busy(_))));
-        stop.cancel();
-        assert!(tasks.close());
-        let mut wait = Box::pin(tasks.wait());
-        assert!(is_pending(wait.as_mut()).await);
-        drop(others);
-        release.send(()).unwrap();
-        wait.await;
+            phase("source enters", ready).await.unwrap();
+            caller.abort();
+            assert!(
+                phase("aborted caller joins", caller)
+                    .await
+                    .unwrap_err()
+                    .is_cancelled()
+            );
+            let mut others = Vec::new();
+            for _ in 0..COLLECTION_PERMITS.saturating_sub(1) {
+                others.push(admission.admit().unwrap());
+            }
+            assert!(matches!(admission.admit(), Err(Refused::Busy(_))));
+            stop.cancel();
+            assert!(tasks.close());
+            let mut wait = Box::pin(tasks.wait());
+            assert!(is_pending(wait.as_mut()).await);
+            drop(others);
+            release.send(()).unwrap();
+            phase("shutdown tracker drains", wait).await;
+        })
+        .await;
     }
     #[test]
     fn queued_blocking_work_retains_its_lease_and_skips_io_after_stop() {
@@ -161,7 +173,7 @@ mod tests {
             .enable_all()
             .build()
             .unwrap();
-        runtime.block_on(async {
+        runtime.block_on(deadline::run(async {
             let stop = CancellationToken::new();
             let tasks = TaskTracker::new();
             let admission = Arc::new(Admission::new(&stop, &tasks));
@@ -170,9 +182,12 @@ mod tests {
             // Occupy the actual blocking pool so the next operation queues.
             let blocker = tokio::task::spawn_blocking(move || {
                 entered.send(()).unwrap();
-                finish.recv().unwrap();
+                // The timed future owns release: cancellation closes this
+                // channel too, so runtime destruction cannot retain this job.
+                // A closed sender is cleanup, not a second test failure.
+                let _released = finish.recv();
             });
-            ready.await.unwrap();
+            phase("source enters", ready).await.unwrap();
             let (queued, registered) = oneshot::channel();
             let io_executed = Arc::new(std::sync::atomic::AtomicBool::new(false));
             let source_called = Arc::clone(&io_executed);
@@ -190,14 +205,21 @@ mod tests {
                         }
                     });
                     queued.send(()).unwrap();
-                    work.await.unwrap();
+                    phase("blocking source joins", work).await.unwrap();
                 });
-                source.await.unwrap();
+                phase("source task joins", source).await.unwrap();
                 drop(lease);
             });
-            registered.await.unwrap();
+            phase("blocking source is queued", registered)
+                .await
+                .unwrap();
             caller.abort();
-            assert!(caller.await.unwrap_err().is_cancelled());
+            assert!(
+                phase("aborted caller joins", caller)
+                    .await
+                    .unwrap_err()
+                    .is_cancelled()
+            );
             let mut others = Vec::new();
             for _ in 0..COLLECTION_PERMITS.saturating_sub(1) {
                 others.push(admission.admit().unwrap());
@@ -209,9 +231,9 @@ mod tests {
             let mut wait = Box::pin(tasks.wait());
             assert!(is_pending(wait.as_mut()).await);
             release.send(()).unwrap();
-            blocker.await.unwrap();
-            wait.await;
+            phase("pool blocker joins", blocker).await.unwrap();
+            phase("shutdown tracker drains", wait).await;
             assert!(!io_executed.load(std::sync::atomic::Ordering::SeqCst));
-        });
+        }));
     }
 }

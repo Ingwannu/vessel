@@ -270,33 +270,37 @@ async fn run(
 
 #[cfg(test)]
 mod tests {
+    use super::super::deadline::{self, phase};
     use super::*;
     use vessel_proto::ErrorCode;
     #[tokio::test]
     async fn overload_is_bounded_and_never_copies_the_message() {
-        let stop = CancellationToken::new();
-        let tasks = TaskTracker::new();
-        let journal = Journal::new(&stop, &tasks);
-        let secret = "NOT-FOR-A-DIAGNOSTIC-REPORT";
-        // Current-thread runtime: no await permits the receiver to drain.
-        for _ in 0..OBSERVATION_QUEUE.saturating_add(1) {
-            journal.observe(&WireError::new(ErrorCode::Internal, secret));
-        }
-        let snapshot = journal.snapshot().await.unwrap();
-        assert_eq!(snapshot.entries.len(), MAX_DIAGNOSTIC_FAILURES);
-        assert_eq!(
-            snapshot.omitted.get(),
-            u64::try_from(
-                OBSERVATION_QUEUE
-                    .saturating_sub(MAX_DIAGNOSTIC_FAILURES)
-                    .saturating_add(1)
-            )
-            .unwrap()
-        );
-        assert!(!serde_json::to_string(&snapshot).unwrap().contains(secret));
-        drop(journal);
-        assert!(tasks.close());
-        tasks.wait().await;
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let tasks = TaskTracker::new();
+            let journal = Journal::new(&stop, &tasks);
+            let secret = "NOT-FOR-A-DIAGNOSTIC-REPORT";
+            // Current-thread runtime: no await permits the receiver to drain.
+            for _ in 0..OBSERVATION_QUEUE.saturating_add(1) {
+                journal.observe(&WireError::new(ErrorCode::Internal, secret));
+            }
+            let snapshot = phase("journal snapshot", journal.snapshot()).await.unwrap();
+            assert_eq!(snapshot.entries.len(), MAX_DIAGNOSTIC_FAILURES);
+            assert_eq!(
+                snapshot.omitted.get(),
+                u64::try_from(
+                    OBSERVATION_QUEUE
+                        .saturating_sub(MAX_DIAGNOSTIC_FAILURES)
+                        .saturating_add(1)
+                )
+                .unwrap()
+            );
+            assert!(!serde_json::to_string(&snapshot).unwrap().contains(secret));
+            drop(journal);
+            assert!(tasks.close());
+            phase("journal task drains", tasks.wait()).await;
+        })
+        .await;
     }
     #[test]
     fn retention_is_monotonic_without_sleeping() {
@@ -324,55 +328,87 @@ mod tests {
     }
     #[tokio::test]
     async fn restart_and_shutdown_are_explicit() {
-        let stop = CancellationToken::new();
-        let tasks = TaskTracker::new();
-        let journal = Journal::new(&stop, &tasks);
-        journal.observe(&WireError::new(ErrorCode::Forbidden, "private"));
-        assert_eq!(journal.snapshot().await.unwrap().entries.len(), 1);
-        drop(journal);
-        let next = Journal::new(&stop, &tasks);
-        assert!(next.snapshot().await.unwrap().entries.is_empty());
-        stop.cancel();
-        assert!(tasks.close());
-        tasks.wait().await;
-        assert_eq!(
-            next.snapshot().await.unwrap_err().unavailable(),
-            DiagnosticUnavailable::Stopping,
-        );
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let tasks = TaskTracker::new();
+            let journal = Journal::new(&stop, &tasks);
+            journal.observe(&WireError::new(ErrorCode::Forbidden, "private"));
+            assert_eq!(
+                phase("journal snapshot", journal.snapshot())
+                    .await
+                    .unwrap()
+                    .entries
+                    .len(),
+                1
+            );
+            drop(journal);
+            let next = Journal::new(&stop, &tasks);
+            assert!(
+                phase("restarted journal snapshot", next.snapshot())
+                    .await
+                    .unwrap()
+                    .entries
+                    .is_empty()
+            );
+            stop.cancel();
+            assert!(tasks.close());
+            phase("journal task drains", tasks.wait()).await;
+            assert_eq!(
+                phase("restarted journal snapshot", next.snapshot())
+                    .await
+                    .unwrap_err()
+                    .unavailable(),
+                DiagnosticUnavailable::Stopping,
+            );
+        })
+        .await;
     }
     #[tokio::test]
     async fn unexpected_actor_loss_keeps_its_cause_and_is_not_empty_success() {
-        let stop = CancellationToken::new();
-        let (send, receive) = mpsc::channel(OBSERVATION_QUEUE);
-        drop(receive);
-        let journal = Journal {
-            send,
-            omitted: Arc::new(Omitted::default()),
-            stop: stop.clone(),
-            _cancel: stop.drop_guard(),
-        };
-        let error = journal.snapshot().await.unwrap_err();
-        assert_eq!(error.unavailable(), DiagnosticUnavailable::ReadFailed);
-        assert!(std::error::Error::source(&error).is_some());
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let (send, receive) = mpsc::channel(OBSERVATION_QUEUE);
+            drop(receive);
+            let journal = Journal {
+                send,
+                omitted: Arc::new(Omitted::default()),
+                stop: stop.clone(),
+                _cancel: stop.drop_guard(),
+            };
+            let error = phase("journal snapshot", journal.snapshot())
+                .await
+                .unwrap_err();
+            assert_eq!(error.unavailable(), DiagnosticUnavailable::ReadFailed);
+            assert!(std::error::Error::source(&error).is_some());
+        })
+        .await;
     }
     #[tokio::test]
     async fn cancelled_reply_does_not_remove_accepted_history() {
-        let stop = CancellationToken::new();
-        let tasks = TaskTracker::new();
-        let journal = Journal::new(&stop, &tasks);
-        journal.observe(&WireError::new(ErrorCode::Forbidden, "not retained"));
-        let (reply, receiver) = oneshot::channel();
-        drop(receiver);
-        journal.send.send(Command::Snapshot(reply)).await.unwrap();
-        let snapshot = journal.snapshot().await.unwrap();
-        assert_eq!(snapshot.entries.len(), 1);
-        assert_eq!(
-            snapshot.entries.as_slice().first().unwrap().code,
-            ErrorCode::Forbidden
-        );
-        drop(journal);
-        assert!(tasks.close());
-        tasks.wait().await;
+        deadline::run(async {
+            let stop = CancellationToken::new();
+            let tasks = TaskTracker::new();
+            let journal = Journal::new(&stop, &tasks);
+            journal.observe(&WireError::new(ErrorCode::Forbidden, "not retained"));
+            let (reply, receiver) = oneshot::channel();
+            drop(receiver);
+            phase(
+                "cancelled snapshot is queued",
+                journal.send.send(Command::Snapshot(reply)),
+            )
+            .await
+            .unwrap();
+            let snapshot = phase("journal snapshot", journal.snapshot()).await.unwrap();
+            assert_eq!(snapshot.entries.len(), 1);
+            assert_eq!(
+                snapshot.entries.as_slice().first().unwrap().code,
+                ErrorCode::Forbidden
+            );
+            drop(journal);
+            assert!(tasks.close());
+            phase("journal task drains", tasks.wait()).await;
+        })
+        .await;
     }
     #[test]
     fn omission_count_marks_overflow_instead_of_wrapping_or_rounding() {
