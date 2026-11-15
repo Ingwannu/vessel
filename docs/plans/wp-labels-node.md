@@ -206,3 +206,14 @@ They now return typed directory/Store/name errors to the actual test callers;
 no unwrap allowance or cfg workaround was introduced. Replaced the redundant
 name-access closure with the canonical method reference. Runtime expectations
 and the four test scenarios are unchanged; no runtime test has executed yet.
+
+
+After that run finished, merged announced `93970acb` (gate53, all18 steps0,
+Rust2577/0/12). It supplies iterator/selection/listing and schema21, but no
+LabelsChanged/SetLabels/clock/reload/watermark. The only merge conflict was the
+migration list: preserve its canonical listing SQL, then append label SQL.
+The label relative index now lives in the existing schema entry module because
+the shared migration list is at500 lines; it derives from BACKGROUND_SCHEMA,
+without an invented numeric version or raised size allowance. Preserve W11's
+same-transaction assignment hydration and the new producer's separate metadata
+visibility/refusal logic. Current merged runtime still owes its own checks.

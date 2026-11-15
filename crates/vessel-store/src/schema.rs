@@ -14,6 +14,10 @@ mod listing;
 mod migrations;
 mod workspace_registry;
 
+/// The label append follows the announced listing head; integration rebinds here.
+/// Keep package placement outside the full migration list's shrinking budget.
+const WORKSPACE_LABELS_SCHEMA: usize = migrations::BACKGROUND_SCHEMA.saturating_add(1);
+
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
 pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};
