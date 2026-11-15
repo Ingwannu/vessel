@@ -16,24 +16,35 @@ All twelve named picks applied; none was empty. Existing base callbacks,
 identity, SearchField, FormMinimum and W4 Editability are preserved. The
 six moved function bodies and eighteen retained root function bodies match
 the base. No root crates, ADR0097, E1/F5 code or inherited merges enter it.
-Its sole remote run settings2-20261115T172956Z-bc394c26 is still queued;
-quality/strict/tests are not yet receiving-tree evidence. Keep that tree
-frozen. After terminal success, record actual raw results, correct only the
-two stale Overview module-comment lines and obtain V4 base-only confirmation
-before handing its exact final hash to the lead. Existing captures keep
-their prior385/0a attribution; do not invent a new capture matrix.
+Receiving run settings2-20261115T172956Z-bc394c26 finished with four
+actual rc0 steps (fonts/quality/strict/native tests), raw1516/0/2. All four
+native crates were actually checked/compiled and the seven key selection,
+FormMinimum and real error-clearing cases explicitly passed. The following
+docs-only leaf ba83901b6 records results and fixes the two stale module
+comments; the entire Overview file now equals passed385. V4 d1f3a8c1 same239
+accepted SAME OWNED SOURCE + requested receiving narrow. Exact final hash
+was handed to the lead and merged ascbe74ed9. The lead's combined gate is
+still separate/pending, not a latest-union PASS. Existing captures retain
+prior385/0a attribution; no new fmt/build/export/capture matrix was run.
 
 ## Separate root preparation
 
 Root-only branch backend/m12-e1-client-book starts at announced node1c762ccf.
-Source8be5b008a plus docs297f5ee4d carries exact olde988 route model and
-Unix private-file test staging, with the approved rustix/fs edge and current
-node testkit dev dependency preserved. No native/app ancestry is imported.
-Prior client strict0 applies only toe988. New-base strict and eight route /
-nine private-file tests remain unexecuted. T is checking the changed dev
-graph before reuse of its fixed cargo-only selections. Run them only after
-the sole selection run is terminal. V3's route source verdict does not
-approve the private filesystem code; that source review is requested.
+Initial source8be5b008a plus docs297f5ee4d carried exact olde988 route
+model and Unix private-file test staging. V3 d4184243 returned one fixture
+ownership issue: a FIFO timeout could abandon a blocked worker thread.
+Test-only7240e704c replaces it with an isolated owned self-test process,
+keeps one named three-second budget and explicitly kills/waits before
+failure assertions. A real deliberately blocked probe exercises cleanup;
+all original nine cases remain. Product read code is unchanged.
+
+Merge-onlyac6b3ac6e incorporates announced node27502436/schema21, preserving
+node registrations and the existing testkit dev dependency plus the approved
+rustix edge. Docs leaf9aa0432aa is frozen for the sole current root strict
+run settings2-narrow-20261115T184344Z-9aa0432a. Its result and routes8 /
+private11 runtime remain owed. T audited the old297f fixed recipes; the new
+self-process helper needs its explicit delta audit before private_files
+cargo-only execution. V3's route verdict does not approve filesystem runtime.
 There is no format2 writer/upsert/secure receipt or live file-safety claim.
 
 ## Terminal Settings ownership and irreversible effects
