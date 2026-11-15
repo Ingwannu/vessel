@@ -10,7 +10,7 @@ fn an_unretainable_update_invalidates_the_prior_tool_snapshot() {
     call.id = ToolCallId::new("x".repeat(30_000));
     let tool_id = call.id.clone();
     let mut request = permission();
-    request.tool_call = tool_id.clone();
+    request.tool_call = Some(tool_id.clone());
     let request_id = request.id;
     append(&db, session, 0, AgentEvent::ToolCall(call));
     append(&db, session, 1, AgentEvent::PermissionRequested(request));

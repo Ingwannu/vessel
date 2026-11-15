@@ -21,9 +21,11 @@ fn status(status: SessionStatus) -> SessionEvent {
 
 fn requested(id: PermissionId) -> SessionEvent {
     agent(AgentEvent::PermissionRequested(PermissionRequest {
+        plan_proposal: None,
+        delivery_state: Default::default(),
         tool_scope: None,
         id,
-        tool_call: ToolCallId::new("call-1"),
+        tool_call: Some(ToolCallId::new("call-1")),
         options: Vec::new(),
 
         presentation: None,

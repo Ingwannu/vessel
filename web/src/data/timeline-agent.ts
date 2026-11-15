@@ -89,7 +89,9 @@ export function applyAgent(
       work.entries.push({ ...base, kind: "plan", entries: event.entries });
       return;
     case "permission_requested": {
-      const call = work.findTool(event.tool_call, event.tool_scope);
+      const call = event.tool_call
+        ? work.findTool(event.tool_call, event.tool_scope)
+        : undefined;
       work.permissions.set(event.id, work.entries.length);
       work.attention = base.seq;
       work.entries.push({
@@ -97,7 +99,7 @@ export function applyAgent(
         key: `p${event.id}`,
         kind: "permission",
         request: event,
-        title: call?.tool.title ?? "A tool call",
+        title: event.presentation?.title ?? call?.tool.title ?? "Approval",
         outcome: null,
       });
       return;

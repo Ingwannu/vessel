@@ -45,7 +45,10 @@ fn update(call: &ToolCallUpdate, context: ReferenceContext) -> ToolCallUpdate {
 
 fn permission(request: &PermissionRequest, context: ReferenceContext) -> PermissionRequest {
     let mut adapted = request.clone();
-    adapted.tool_call = context.project(&request.tool_call, request.tool_scope.as_deref());
+    adapted.tool_call = request
+        .tool_call
+        .as_ref()
+        .map(|id| context.project(id, request.tool_scope.as_deref()));
     adapted.tool_scope = None;
     adapted.presentation = None;
     for option in &mut adapted.options {
@@ -75,7 +78,8 @@ fn question_changed(request: &Question) -> bool {
 }
 
 fn permission_changed(request: &PermissionRequest) -> bool {
-    needs_escape(&request.tool_call)
+    !request.legacy_actionable()
+        || request.tool_call.as_ref().is_some_and(needs_escape)
         || request.tool_scope.is_some()
         || request.presentation.is_some()
         || request.options.iter().any(|option| option.action.is_some())
@@ -195,6 +199,11 @@ pub(crate) fn event_with_reference(
             AgentEvent::ToolCallUpdate(update(call, context))
         }
         AgentEvent::PermissionRequested(request) => {
+            if !request.legacy_actionable() {
+                return Some(AgentEvent::HarnessLog {
+                    line: "vessel: this approval requires a newer client".to_owned(),
+                });
+            }
             if !permission_changed(request) {
                 return None;
             }
@@ -303,6 +312,7 @@ pub(crate) fn conversation_with_reference(
         adapted.permissions = value
             .permissions
             .iter()
+            .filter(|value| value.legacy_actionable())
             .map(|value| permission(value, context))
             .collect();
         adapted.questions = value
@@ -332,9 +342,17 @@ pub(crate) fn inbox_with_reference(
         }
         InboxItem::Question { question } => question_changed(question),
         InboxItem::InSession {
+            permission: Some(_),
+            ..
+        }
+        | InboxItem::InSession {
             question: Some(_), ..
         } => true,
-        InboxItem::InSession { question: None, .. }
+        InboxItem::InSession {
+            question: None,
+            permission: None,
+            ..
+        }
         | InboxItem::Finished
         | InboxItem::Failed
         | InboxItem::Limit
@@ -345,6 +363,7 @@ pub(crate) fn inbox_with_reference(
     }
     let mut adapted = entry.clone();
     adapted.item = match &entry.item {
+        InboxItem::Permission { request, .. } if !request.legacy_actionable() => InboxItem::Unknown,
         InboxItem::Permission {
             request,
             tool: body,
@@ -359,8 +378,13 @@ pub(crate) fn inbox_with_reference(
             None => InboxItem::Unknown,
         },
         InboxItem::InSession {
+            permission: Some(_),
+            ..
+        } => InboxItem::Unknown,
+        InboxItem::InSession {
             request,
             question: Some(reference),
+            permission: None,
         } => {
             if reference.lifetime == QuestionLifetime::Session
                 || reference.delivery_state != QuestionDeliveryState::Pending
@@ -370,10 +394,15 @@ pub(crate) fn inbox_with_reference(
                 InboxItem::InSession {
                     request: *request,
                     question: None,
+                    permission: None,
                 }
             }
         }
-        same @ (InboxItem::InSession { question: None, .. }
+        same @ (InboxItem::InSession {
+            question: None,
+            permission: None,
+            ..
+        }
         | InboxItem::Finished
         | InboxItem::Failed
         | InboxItem::Limit

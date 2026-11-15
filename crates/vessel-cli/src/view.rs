@@ -188,7 +188,10 @@ impl Conversation {
                 self.line(text)
             }
             AgentEvent::PermissionRequested(request) => {
-                let mut text = format!("[permission] {} asks for approval:", request.tool_call);
+                let mut text = format!(
+                    "[permission] {} asks for approval:",
+                    request.tool_call.as_ref().map_or("agent", |id| id.as_str())
+                );
                 for (number, option) in (1_u32..).zip(&request.options) {
                     let _infallible =
                         write!(text, "\n  {number}) {} ({:?})", option.name, option.kind);
@@ -343,9 +346,11 @@ mod tests {
 
     fn request() -> PermissionRequest {
         PermissionRequest {
+            plan_proposal: None,
+            delivery_state: Default::default(),
             tool_scope: None,
             id: PermissionId::random(),
-            tool_call: ToolCallId::new("call_1"),
+            tool_call: Some(ToolCallId::new("call_1")),
             options: vec![
                 PermissionOption {
                     id: PermissionOptionId::new("allow"),

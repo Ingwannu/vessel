@@ -111,6 +111,9 @@ pub enum InboxItem {
         /// Lifetime/actionability survives a bounded full-form degradation.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         question: Option<crate::timeline::QuestionReference>,
+        /// New approval lifetime/actionability survives full-card degradation.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        permission: Option<crate::timeline::PermissionReference>,
     },
     /// A normal turn finished.
     Finished,

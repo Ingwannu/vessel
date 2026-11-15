@@ -56,9 +56,11 @@ mod support {
             seq,
             SessionEvent::Agent {
                 event: AgentEvent::PermissionRequested(PermissionRequest {
+                    plan_proposal: None,
+                    delivery_state: Default::default(),
                     tool_scope: None,
                     id: PermissionId::random(),
-                    tool_call: ToolCallId::new("fixture-tool"),
+                    tool_call: Some(ToolCallId::new("fixture-tool")),
                     options: Vec::new(),
 
                     presentation: None,

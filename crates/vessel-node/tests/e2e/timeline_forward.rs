@@ -102,7 +102,7 @@ fn isolated(page: &EventPage) {
             event: AgentEvent::PermissionRequested(request),
         } = &record.event
         {
-            referenced = Some(request.tool_call.clone());
+            referenced = request.tool_call.clone();
         }
     }
     assert_eq!(tools.len(), 3);

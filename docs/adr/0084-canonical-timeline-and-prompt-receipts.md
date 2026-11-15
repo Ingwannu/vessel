@@ -391,3 +391,37 @@ receipt/actor semantics, W12b pure intent/catalog production, W22 native transpo
 The current attached SubmitPrompt/PromptReceipt remain prompt-only until the shared
 amendment and producer capability path are reviewed and implemented. No new number,
 method or second receipt store is allocated by the dormant values.
+
+### Standalone and synthetic plan permission attachment
+
+A permission's optional `tool_call` denotes only an actual native item. Legacy
+turn plans have no item id; assigning one would join unrelated tool display and
+approval context. `Some(actual_id)` retains the previous JSON string encoding.
+A tool-less mode/plan request uses `None`; `PermissionId` remains its response
+identity. This reuses the existing permission channel instead of creating a
+second approval authority.
+
+Only `plan_proposal: Some(actual_key)` identifies the synthetic provider proposal
+whose successful root turn has already completed. Presentation kind `Plan` alone
+does not change ordinary ExitPlanMode lifetime. The provider owns actual proposal
+production, exact-key validation and native transitions; the actor owns human
+request identity, selected-action mapping and persistence acknowledgement.
+`Pending`, `Answering` and `OutcomeUnknown` are separate typed delivery states.
+Only a new explicit Pending response can be admitted. Accepted implement/resume
+means the native follow-up was accepted. Dismiss never implies a running turn.
+Stale/turn-changed refusals withdraw a lost capability; unsupported/resume-unavailable/
+invalid-state refusals apply no action and retain the Pending proposal. Possible
+external effects remain uncertain and cannot trigger automatic replay.
+
+Before old-peer decoding, a tool-less request, tagged synthetic request or an
+admitted/uncertain request becomes an inert log item, is omitted from the
+conversation permission snapshot, and becomes Unknown in the inbox. Full-card
+budget degradation retains a bounded `PermissionReference` (proposal key and
+delivery state) so it cannot bypass that rule as an InSession pointer. Ordinary
+legacy-compatible pointers omit this metadata and keep their original wire shape.
+SQL snapshot degradation preserves the same metadata. No provider label or
+client-supplied field creates a proposal or an action capability.
+
+This checkpoint attaches values, compatibility and constructor adaptations only;
+positive producer transport, actor decision lifetime, native follow-up acceptance
+and deterministic runtime proof remain pending. It does not enable plan approval.

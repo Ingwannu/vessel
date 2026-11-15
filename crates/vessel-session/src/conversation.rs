@@ -251,9 +251,11 @@ mod tests {
 
     fn permission() -> PermissionRequest {
         PermissionRequest {
+            plan_proposal: None,
+            delivery_state: Default::default(),
             tool_scope: None,
             id: PermissionId::random(),
-            tool_call: ToolCallId::new("call"),
+            tool_call: Some(ToolCallId::new("call")),
             options: Vec::new(),
 
             presentation: None,

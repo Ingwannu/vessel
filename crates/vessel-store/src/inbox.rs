@@ -100,12 +100,10 @@ fn agent(
             tools::update(connection, session, record.seq, update)
         }
         AgentEvent::PermissionRequested(request) => {
-            let (tool, detail) = tools::get(
-                connection,
-                session,
-                &request.tool_call,
-                request.tool_scope.as_deref(),
-            )?;
+            let (tool, detail) = match &request.tool_call {
+                Some(call) => tools::get(connection, session, call, request.tool_scope.as_deref())?,
+                None => (None, vessel_proto::inbox::InboxDetail::Complete),
+            };
             insert(
                 connection,
                 session,
@@ -355,10 +353,12 @@ fn deferred(item: &InboxItem) -> InboxItem {
         InboxItem::Permission { request, .. } => InboxItem::InSession {
             request: InboxRequest::Permission { id: request.id },
             question: None,
+            permission: vessel_proto::timeline::PermissionReference::from_request(request),
         },
         InboxItem::Question { question } => InboxItem::InSession {
             request: InboxRequest::Question { id: question.id },
             question: Some(question.into()),
+            permission: None,
         },
         InboxItem::InSession { .. }
         | InboxItem::Finished

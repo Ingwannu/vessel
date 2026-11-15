@@ -226,9 +226,10 @@ impl Turn {
             event: AgentEvent::PermissionRequested(request),
         } = event
         {
-            let what = self
-                .tools
-                .get(&request.tool_call)
+            let what = request
+                .tool_call
+                .as_ref()
+                .and_then(|id| self.tools.get(id))
                 .map_or("(a tool call it did not name)", String::as_str)
                 .to_owned();
             return self.needs_you("a permission for", &what);

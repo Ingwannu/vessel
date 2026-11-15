@@ -62,7 +62,7 @@ function sameList(a: readonly string[], b: readonly string[]): boolean {
 /** The tool entry a pending permission names, if drawn. */
 export function pendingTool(timeline: Timeline): Entry | undefined {
   const pending = timeline.pending;
-  return pending === null
+  return pending === null || !pending.request.tool_call
     ? undefined
     : timeline.entries.find(
         (entry) =>

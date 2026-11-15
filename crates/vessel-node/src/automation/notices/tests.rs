@@ -111,9 +111,11 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
     };
     assert_eq!(turn.take(&agent(AgentEvent::ToolCall(call))), None);
     let asks = agent(AgentEvent::PermissionRequested(PermissionRequest {
+        plan_proposal: None,
+        delivery_state: Default::default(),
         tool_scope: None,
         id: PermissionId::random(),
-        tool_call: ToolCallId::new("call-1"),
+        tool_call: Some(ToolCallId::new("call-1")),
         options: Vec::new(),
 
         presentation: None,

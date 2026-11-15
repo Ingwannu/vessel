@@ -97,7 +97,13 @@ fn put_detail(
                WHEN length(CAST(json_set(item,'$.tool',json(?2),'$.detail',json(?3)) AS BLOB))>262144
                  OR (SELECT pending_bytes FROM inbox_meta)-length(CAST(item AS BLOB))
                      +length(CAST(json_set(item,'$.tool',json(?2),'$.detail',json(?3)) AS BLOB))>33554432
-               THEN json_object('kind','in_session','request',json_object('kind','permission','id',json_extract(item,'$.request.id')))
+               THEN CASE WHEN json_type(item,'$.request.tool_call')='text'
+                   AND json_extract(item,'$.request.plan_proposal') IS NULL
+                   AND coalesce(json_extract(item,'$.request.delivery_state'),'pending')='pending'
+                THEN json_object('kind','in_session','request',json_object('kind','permission','id',json_extract(item,'$.request.id')))
+                ELSE json_object('kind','in_session','request',json_object('kind','permission','id',json_extract(item,'$.request.id')),
+                   'permission',json_object('plan_proposal',json_extract(item,'$.request.plan_proposal'),
+                   'delivery_state',coalesce(json_extract(item,'$.request.delivery_state'),'pending'))) END
                ELSE json_set(item,'$.tool',json(?2),'$.detail',json(?3)) END
              WHERE cursor=?1",
             params![cursor, &encoded, &detail],
@@ -163,8 +169,13 @@ fn defer_tool(
     // Every replacement shrinks the pool, so this needs no row-by-row
     // admission. The existing triggers release its exact complete bytes.
     let _pending = connection.execute(
-        "UPDATE inbox SET item=json_object('kind','in_session','request',
-           json_object('kind','permission','id',json_extract(item,'$.request.id')))
+        "UPDATE inbox SET item=CASE WHEN json_type(item,'$.request.tool_call')='text'
+                   AND json_extract(item,'$.request.plan_proposal') IS NULL
+                   AND coalesce(json_extract(item,'$.request.delivery_state'),'pending')='pending'
+                THEN json_object('kind','in_session','request',json_object('kind','permission','id',json_extract(item,'$.request.id')))
+                ELSE json_object('kind','in_session','request',json_object('kind','permission','id',json_extract(item,'$.request.id')),
+                   'permission',json_object('plan_proposal',json_extract(item,'$.request.plan_proposal'),
+                   'delivery_state',coalesce(json_extract(item,'$.request.delivery_state'),'pending'))) END
          WHERE session=?1 AND json_extract(item,'$.kind')='permission'
            AND json_extract(item,'$.request.tool_call')=?2
            AND coalesce(json_extract(item,'$.request.tool_scope'),'')=?3",

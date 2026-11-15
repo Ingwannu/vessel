@@ -192,9 +192,11 @@ impl Approvals {
             withdrawn: asking.withdrawn,
         });
         let asked = PermissionRequest {
+            plan_proposal: None,
+            delivery_state: Default::default(),
             tool_scope: None,
             id,
-            tool_call,
+            tool_call: Some(tool_call),
             options,
 
             presentation: None,

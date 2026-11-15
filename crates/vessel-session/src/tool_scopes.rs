@@ -46,8 +46,10 @@ impl ToolScopes {
                 }
             }
             AgentEvent::PermissionRequested(request) => {
-                if request.tool_scope.is_none() {
-                    request.tool_scope = Some(Box::new(self.lookup(&request.tool_call, seq)));
+                if request.tool_scope.is_none()
+                    && let Some(call) = &request.tool_call
+                {
+                    request.tool_scope = Some(Box::new(self.lookup(call, seq)));
                 }
             }
             AgentEvent::QuestionAsked(question) => {

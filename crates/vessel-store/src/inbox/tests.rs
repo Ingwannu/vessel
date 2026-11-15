@@ -62,9 +62,11 @@ fn tool() -> ToolCall {
 }
 fn permission() -> PermissionRequest {
     PermissionRequest {
+        plan_proposal: None,
+        delivery_state: Default::default(),
         tool_scope: None,
         id: PermissionId::random(),
-        tool_call: ToolCallId::new("tool"),
+        tool_call: Some(ToolCallId::new("tool")),
         options: vec![PermissionOption {
             id: PermissionOptionId::new("allow"),
             name: "Allow once".to_owned(),
@@ -332,6 +334,7 @@ fn huge_forms_keep_a_pending_reference_instead_of_clipping_choices() {
         InboxItem::InSession {
             request: vessel_proto::inbox::InboxRequest::Permission { id: request.id },
             question: None,
+            permission: None,
         }
     );
     assert!(page.entries[0].item.waiting());
