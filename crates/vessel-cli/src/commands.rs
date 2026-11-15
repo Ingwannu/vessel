@@ -341,6 +341,12 @@ async fn run_session(target: &Target, run: Run) -> Result<(), CliError> {
     spec.profile = run.profile;
     spec.title = run.title;
     let connected = connect_to(target, &resolved, &book).await?;
+    // Pending metadata must refuse before placement can create a worktree.
+    connected
+        .client
+        .check_call(&vessel_proto::Call::CreateSession(
+            vessel_proto::CreateSession { spec: spec.clone() },
+        ))?;
     // A place (protocol 10): the node fills `cwd` with its folder.
     spec.place = workspace::place(
         &connected.client,
