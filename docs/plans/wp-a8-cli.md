@@ -51,3 +51,12 @@ Next: wire snapshot/list output, W23's durable response call, bounded
 confirmation and reconciliation, batch partial-result reporting and tests
 against the in-memory node. Use W17's reviewed output helpers, not a second
 table/JSON/YAML formatter. No real agents or production nodes.
+
+
+Read-only collection now uses a typed Source seam implemented directly by
+NodeClient::inbox and inbox_request, with in-memory page/form fixtures. Listing
+returns rows only after all pages succeed. A maximum of 10,000 pending rows or
+4,096 pages explicitly refuses the command without publishing partial output.
+Every selected form is reloaded by its exact InboxKey before a response batch;
+resolved, substituted and still-compact forms refuse preflight. The response
+runtime is intentionally absent until W23's reviewed rich receipt contract.

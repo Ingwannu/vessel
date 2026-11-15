@@ -6,8 +6,16 @@ use std::collections::HashSet;
 use vessel_proto::SessionId;
 use vessel_proto::inbox::{InboxCursor, InboxPage, ListInbox};
 
+/// Explicit limits refuse oversized traversal rather than print partial success.
+const MAX_ROWS: usize = 10_000;
+const MAX_PAGES: usize = 4_096;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(crate) enum ReadError {
+    #[error(
+        "pending requests exceed this command's collection budget; use the inbox pages instead"
+    )]
+    Limit,
     #[error("the node returned a nonadvancing inbox cursor")]
     Cursor,
     #[error(transparent)]
@@ -35,6 +43,7 @@ pub(crate) struct Pages {
     phase: Phase,
     rows: Vec<Row>,
     seen: HashSet<(SessionId, PendingId)>,
+    pages: usize,
 }
 
 impl Pages {
@@ -64,6 +73,10 @@ impl Pages {
     }
 
     fn append(&mut self, before: Option<InboxCursor>, page: InboxPage) -> Result<(), ReadError> {
+        if self.pages >= MAX_PAGES {
+            return Err(ReadError::Limit);
+        }
+        self.pages = self.pages.saturating_add(1);
         if let (Some(before), Some(next)) = (before, page.next)
             && next >= before
         {
@@ -71,6 +84,9 @@ impl Pages {
         }
         for entry in page.entries {
             if let Some(row) = Row::of(&entry)? {
+                if self.rows.len() >= MAX_ROWS {
+                    return Err(ReadError::Limit);
+                }
                 if !self.seen.insert((row.agent_id, row.id)) {
                     return Err(ReadError::Duplicate);
                 }

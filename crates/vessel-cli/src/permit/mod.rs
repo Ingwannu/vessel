@@ -5,6 +5,7 @@ mod input;
 mod pages;
 mod pending;
 mod selection;
+mod source;
 
 use crate::selector::{IdPrefix, SessionSelector};
 use clap::{Args, Subcommand};

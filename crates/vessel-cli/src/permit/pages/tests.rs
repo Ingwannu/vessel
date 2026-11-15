@@ -97,3 +97,18 @@ fn an_unknown_entry_refuses_the_list_and_completion_cannot_accept_more_pages() {
         Err(ReadError::Finished)
     );
 }
+
+#[test]
+fn collection_budget_refuses_instead_of_publishing_truncated_results() {
+    let mut pages = Pages::default();
+    pages.pages = MAX_PAGES;
+    assert_eq!(pages.accept(page(None, Vec::new())), Err(ReadError::Limit));
+    assert_eq!(pages.finish(), Err(ReadError::Limit));
+    let mut pages = Pages::default();
+    pages.rows = vec![Row::of(&entry()).unwrap().unwrap(); MAX_ROWS];
+    assert_eq!(
+        pages.accept(page(None, vec![entry()])),
+        Err(ReadError::Limit)
+    );
+    assert_eq!(pages.finish(), Err(ReadError::Limit));
+}
