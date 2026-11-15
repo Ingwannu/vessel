@@ -251,3 +251,13 @@ No second saver, lint exception, test relaxation or size record is added. The
 newer base9 candidate remains unadopted until announced green. Exact replacement
 strict and actual tests are required; earlier16/0 and strict0 remain scoped to
 their older source. Shared selected/delivery exports remain untouched.
+
+
+The exact base8e strict run reached the new shared test helper and refused its
+unwraps because it lacked the explicit cfg(test) marker used by the existing
+fixture helpers. The marker is now added to that helper alone, preserving its
+body and all assertions with no lint suppression. No product source changes.
+The already queued db89 actual-test run remains useful: its helper/body and
+all test behavior are unchanged, and the missing marker is a Clippy test-context
+classification issue, not a failed runtime test. It is not cancelled or
+duplicated. A corrected strict receipt remains required.

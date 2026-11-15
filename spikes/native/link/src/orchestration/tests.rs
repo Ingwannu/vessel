@@ -90,6 +90,7 @@ fn errors_carry_no_peer_text() {
     assert!(!format!("{safe:?}").contains(unsafe_text));
 }
 
+#[cfg(test)]
 async fn selected(actor: &mut crate::State) -> (calls::Selected, crate::testing::peer::Peer) {
     let mut peer = crate::testing::peer::connect("host").await;
     let client = peer.client.take().unwrap();
