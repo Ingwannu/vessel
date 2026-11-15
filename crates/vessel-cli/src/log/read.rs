@@ -93,13 +93,17 @@ async fn follow(
     timeline: &mut Timeline,
 ) -> Result<(), CliError> {
     let mut stream = client.follow(session, next).await?;
+    // Keep the receiver alive during output awaits so a signal remains pending.
+    let interrupt = tokio::signal::ctrl_c();
+    tokio::pin!(interrupt);
     loop {
         let item = tokio::select! {
-            item = stream.next() => item,
-            interrupted = tokio::signal::ctrl_c() => {
+            biased;
+            interrupted = &mut interrupt => {
                 interrupted?;
                 return finish(timeline).await;
             }
+            item = stream.next() => item,
         };
         match item {
             None => return finish(timeline).await,
