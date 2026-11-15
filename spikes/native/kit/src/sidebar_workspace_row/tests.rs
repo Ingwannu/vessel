@@ -195,3 +195,38 @@ fn workspace_row_selected_hover_and_drag_backdrops_match_the_source_precedence()
         }
     }
 }
+
+struct DragProbe;
+struct DragGhost;
+impl Render for DragGhost {
+    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+        gpui::Empty
+    }
+}
+impl Render for DragProbe {
+    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+        use gpui::AppContext as _;
+        SidebarWorkspaceRow::new("workspace-drag", "Workspace")
+            .element(Density::Desktop, &Tokens::of(Scheme::Dark), |_, _, _| {})
+            .w(px(320.0))
+            .on_drag((), |(), _, _, cx| cx.new(|_| DragGhost))
+    }
+}
+#[gpui::test]
+fn workspace_row_uses_the_shared_six_point_drag_threshold(cx: &mut TestAppContext) {
+    for (distance, expected) in [(5.0_f32, false), (7.0_f32, true)] {
+        let (_, cx) = cx.add_window_view(|_, _| DragProbe);
+        cx.run_until_parked();
+        cx.simulate_mouse_down(
+            point(px(20.0), px(18.0)),
+            gpui::MouseButton::Left,
+            Modifiers::none(),
+        );
+        cx.simulate_mouse_move(
+            point(px(distance.mul_add(1.0, 20.0)), px(18.0)),
+            gpui::MouseButton::Left,
+            Modifiers::none(),
+        );
+        assert_eq!(cx.update(|_, cx| cx.has_active_drag()), expected);
+    }
+}

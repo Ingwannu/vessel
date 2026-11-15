@@ -257,6 +257,7 @@ fn frame(
     div()
         .id(id.clone())
         .group(id)
+        .drag_threshold(crate::drag::LIST_DRAG_DISTANCE)
         .relative()
         .w_full()
         .flex()

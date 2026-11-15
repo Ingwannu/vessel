@@ -331,3 +331,12 @@ workspace projection. Concrete registry/pane/create/plugin/labels/usage action
 hooks remain their owners' dependencies. The staged pane1720 handoff is on
 HOLD until its self-contained successor; no pane or plugin framework is added.
 One final package gate and actual-fleet capture/review remain owed.
+
+The lead's exact shared linef5e9b3d6 is adopted provisionally as a merge, with
+its own native gate tracked separately. Shared assets preserve all97 unique
+glyphs, both complete test modules and the embedded Lucide notice. Its vendored
+GPUI adds `drag_threshold` without changing the default2. The workspace row
+now names `kit::drag::LIST_DRAG_DISTANCE` (6) so its caller's normal `on_drag`
+uses the reference threshold. A real row-input regression covers5-point no-drag
+and7-point drag; no area gesture state is added. The producer's whole gate is
+not inferred from source adoption.
