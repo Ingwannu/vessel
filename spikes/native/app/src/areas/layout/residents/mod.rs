@@ -2,6 +2,8 @@
 //!
 //! The factory is supplied by scoped owner adapters. In particular, the old
 //! selected-session composer callback is not a production resource constructor.
+#[cfg(test)]
+mod requests_owner_tests;
 mod access;
 mod opening;
 pub(crate) use opening::{SessionAdmission, SessionOpening, SessionOpeningProblem};
