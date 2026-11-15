@@ -42,6 +42,14 @@ pub trait Log: Send + Sync + 'static {
     /// What the subscription's reply describes it with.
     type Info: Clone + fmt::Debug + Send + Sync + 'static;
 
+    /// Bind reply metadata to the exact requested log before any records escape.
+    /// Custom logs without an identity check fail closed; known logs compare
+    /// their typed IDs. This does not grant connection or mutation authority.
+    #[must_use]
+    fn info_matches(_id: Self::Id, _info: &Self::Info) -> bool {
+        false
+    }
+
     /// Subscribe from `from`.
     fn subscribe(
         connection: &Connection,
@@ -65,6 +73,10 @@ pub struct SessionLog;
 impl Log for SessionLog {
     type Id = SessionId;
     type Info = SessionInfo;
+
+    fn info_matches(id: Self::Id, info: &Self::Info) -> bool {
+        info.id == id
+    }
 
     async fn subscribe(
         connection: &Connection,
@@ -98,6 +110,10 @@ pub struct TerminalLog;
 impl Log for TerminalLog {
     type Id = TerminalId;
     type Info = TerminalInfo;
+
+    fn info_matches(id: Self::Id, info: &Self::Info) -> bool {
+        info.id == id
+    }
 
     async fn subscribe(
         connection: &Connection,
@@ -200,13 +216,13 @@ impl<L: Log> LogStream<L> {
     /// Follow `id` from `from` on `connection`.
     ///
     /// # Errors
-    /// The first subscription failed (for example `NotFound`).
+    /// The first subscription failed, or its metadata identified another log.
     pub(crate) async fn open(
         connection: Connection,
         id: L::Id,
         from: EventSeq,
-    ) -> Result<Self, CallError> {
-        let subscription = L::subscribe(&connection, id, from).await?;
+    ) -> Result<Self, StreamError> {
+        let subscription = Self::subscribe_checked(&connection, id, from).await?;
         Ok(Self {
             connection,
             id,
@@ -215,6 +231,20 @@ impl<L: Log> LogStream<L> {
             source: Source::Live(subscription),
             held: None,
         })
+    }
+
+    /// Every establishment, including catch-up resubscribe, has the same join.
+    /// A valid frame and connection cannot bless another log's metadata.
+    async fn subscribe_checked(
+        connection: &Connection,
+        id: L::Id,
+        from: EventSeq,
+    ) -> Result<Subscription<L::Info>, StreamError> {
+        let subscription = L::subscribe(connection, id, from).await?;
+        if !L::info_matches(id, subscription.info()) {
+            return Err(StreamError::UnverifiedIdentity);
+        }
+        Ok(subscription)
     }
 
     /// What it follows, as it was when the stream opened.
@@ -278,9 +308,9 @@ impl<L: Log> LogStream<L> {
                     }
                 }
                 Step::Resubscribe => {
-                    match L::subscribe(&self.connection, self.id, self.cursor).await {
+                    match Self::subscribe_checked(&self.connection, self.id, self.cursor).await {
                         Ok(subscription) => self.source = Source::Live(subscription),
-                        Err(error) => return Some(Err(self.fail(error.into()))),
+                        Err(error) => return Some(Err(self.fail(error))),
                     }
                 }
                 Step::Finish => {

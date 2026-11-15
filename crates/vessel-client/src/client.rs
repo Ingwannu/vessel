@@ -25,7 +25,7 @@ use vessel_rpc::{
 };
 
 use crate::chunks::{ChunkSink, FetchError, fetch_chunks};
-use crate::error::ConnectError;
+use crate::error::{ConnectError, StreamError};
 use crate::stream::{SessionStream, TerminalStream};
 use crate::token::BearerToken;
 use crate::url::NodeUrl;
@@ -681,12 +681,12 @@ impl NodeClient {
     /// session ends.
     ///
     /// # Errors
-    /// The first subscription failed (for example `NotFound`).
+    /// Subscription failed, or metadata identified another log (see [`StreamError`]).
     pub async fn follow(
         &self,
         session: SessionId,
         from: EventSeq,
-    ) -> Result<SessionStream, CallError> {
+    ) -> Result<SessionStream, StreamError> {
         SessionStream::open(self.connection.clone(), session, from).await
     }
 
@@ -712,12 +712,12 @@ impl NodeClient {
     /// the terminal ends.
     ///
     /// # Errors
-    /// The first subscription failed (for example `NotFound`).
+    /// Subscription failed, or metadata identified another log (see [`StreamError`]).
     pub async fn follow_terminal(
         &self,
         terminal: TerminalId,
         from: EventSeq,
-    ) -> Result<TerminalStream, CallError> {
+    ) -> Result<TerminalStream, StreamError> {
         TerminalStream::open(self.connection.clone(), terminal, from).await
     }
 }

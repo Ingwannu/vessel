@@ -60,6 +60,9 @@ async fn unknown_sessions_fail_up_front() {
     let client = connect(Arc::new(FakeNode::new(0))).await;
     let other = SessionId::random();
     let error = client.follow(other, EventSeq::ZERO).await.unwrap_err();
+    let StreamError::Call(error) = error else {
+        panic!("missing the original RPC refusal")
+    };
     assert_eq!(error.code(), Some(ErrorCode::NotFound));
     assert_eq!(
         client.session(other).await.unwrap_err().code(),
