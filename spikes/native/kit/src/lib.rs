@@ -39,6 +39,7 @@ pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
 pub mod drag;
+pub mod external_link;
 pub mod field;
 pub mod focus;
 pub mod fonts;
@@ -110,9 +111,10 @@ pub mod editing {
 }
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
-    Button, ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonSize, ButtonState, TypeExt,
-    button, button_control, button_with_content, button_with_kind, button_with_kind_at, choice,
-    dot, kicker, mark, mark_mono, markdown, outline_button, outline_button_with_glyph,
+    Button, ButtonConfig, ButtonContent, ButtonDesign, ButtonIcon, ButtonKind, ButtonSize,
+    ButtonState, CircleConfig, CircleTone, TypeExt, button, button_control, button_with_content,
+    button_with_design, button_with_kind, button_with_kind_at, choice, dot, kicker, mark,
+    mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so
