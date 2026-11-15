@@ -90,6 +90,7 @@ pub(super) async fn run(
 ) {
     let (lines, incoming) = mpsc::channel(INBOUND);
     drop(tokio::spawn(io::read(stdout, lines)));
+    let children = super::children::Children::new(launched.resumed);
     let mut session = Session {
         out: Writer::start(stdin),
         outputs,
@@ -98,6 +99,7 @@ pub(super) async fn run(
         resumed: launched.resumed,
         _launched: launched,
         translator: Translator::default(),
+        children,
         next: 0,
         initialize: None,
         interrupts: HashSet::new(),
@@ -119,6 +121,7 @@ struct Session {
     /// Kept for the session's life: its MCP file goes with it.
     _launched: Launched,
     translator: Translator,
+    children: super::children::Children,
     /// The next request id's number.
     next: u64,
     /// `initialize`'s id while it is unanswered.

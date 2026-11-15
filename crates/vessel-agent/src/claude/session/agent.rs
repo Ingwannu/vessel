@@ -45,6 +45,8 @@ impl Session {
     }
 
     pub(super) async fn frame(&mut self, frame: Frame) -> Option<Disconnect> {
+        let child_events = self.children.observe(&frame);
+        self.emit_all(child_events).await;
         match frame {
             Frame::System(System::Init(init)) => {
                 if init.session_id != self.conversation.as_str() {
@@ -89,6 +91,10 @@ impl Session {
             tracing::debug!("a result outside a turn of the session's");
             return;
         };
+        if cancelled {
+            let events = self.children.canceled();
+            self.emit_all(events).await;
+        }
         let event = match failure {
             Some(message) => AgentEvent::TurnFailed { message },
             None => Translator::end(result, cancelled),

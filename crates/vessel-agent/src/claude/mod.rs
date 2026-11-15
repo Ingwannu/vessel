@@ -22,6 +22,7 @@
 //!   agent's process and [`history`] lists its conversations (spawning its
 //!   own process, so a listing shapes its own command there).
 
+mod children;
 mod io;
 mod launch;
 mod map;

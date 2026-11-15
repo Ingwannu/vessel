@@ -28,7 +28,11 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+mod children;
 mod written;
+pub(crate) use children::{
+    TaskKind, TaskNotification, TaskProgress, TaskStarted, TaskStatus, TaskUpdated,
+};
 
 pub(crate) use written::{
     HostAnswer, HostRequest, Outgoing, OutgoingBlock, OutgoingMessage, Permission,
@@ -65,6 +69,14 @@ pub(crate) enum Frame {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(tag = "subtype", rename_all = "snake_case")]
 pub(crate) enum System {
+    /// A real subagent/workflow or other task was declared.
+    TaskStarted(TaskStarted),
+    /// Actual lifecycle/backgrounding patch.
+    TaskUpdated(TaskUpdated),
+    /// Actual terminal lifecycle/usage report.
+    TaskNotification(TaskNotification),
+    /// Actual cumulative child usage report.
+    TaskProgress(TaskProgress),
     /// The session started: its id, model and what the CLI can do.
     Init(Init),
     /// An API request failed and is retried.

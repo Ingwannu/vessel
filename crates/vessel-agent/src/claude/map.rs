@@ -22,6 +22,8 @@
 
 use std::collections::HashSet;
 use std::path::PathBuf;
+mod child_budget;
+pub(crate) use child_budget::ChildBudget;
 
 use serde_json::Value;
 use vessel_proto::{
