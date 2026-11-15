@@ -97,11 +97,9 @@ impl Model {
         let mut changed = false;
         for choice in choices {
             let relevant = self.options().is_some_and(|options| {
-                options.options.iter().any(|option| {
-                    REMEMBERED_CATEGORIES.iter().any(|category| {
-                        named_option(&options.options, *category)
-                            .is_some_and(|named| named.id == choice.id)
-                    })
+                REMEMBERED_CATEGORIES.iter().any(|category| {
+                    named_option(&options.options, *category)
+                        .is_some_and(|named| named.id == choice.id)
                 })
             });
             if relevant {
