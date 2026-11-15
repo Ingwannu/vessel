@@ -132,3 +132,6 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &App) -> StateReadiness 
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod consumer_tests;
