@@ -1,152 +1,127 @@
 # F3 native usage presentation
 
-The native area uses view::usage for pure state/formatting and link::usage for
-correlated bounded node calls. Settings, the lazy sidebar modal and conversation
-quota notice share those values; the node remains the sole source/report engine.
-The shared kit owns controls, dialog/popover and meter rendering. Paseo references:
-area-6 B.md:321–347; app usage model.ts:107–150,209–236 and card.tsx:37 onward.
+This continues [wp-c6.md](wp-c6.md). F3 owns tracker rows 622 (query states),
+623 (platforms/connections) and 625 (cards) as well as its other assigned usage
+rows. The node report engine remains documented in
+[wp-f3-sources.md](wp-f3-sources.md) and ADR 0042.
 
+## Architecture and current behavior
 
-### Query state and card ownership correction
+`view::usage` owns pure state/formatting; `link::usage` owns bounded correlated
+node calls; `app::areas::usage` draws Settings, the lazy sidebar modal and the
+conversation quota notice. The kit owns cards/rows, dialog/popover, meter,
+buttons and tooltips. No provider parser or second source registry lives in the
+native app. The reported token/cost ledger and context occupancy remain separate
+from saved-account quota and remain available when external lookup is Off.
 
-Tracker rows 622 (states), 623 (platforms/connections) and 625 (card presentation)
-now belong to this F3 package. The same Settings/modal reader uses authenticated
-ConnectionContext and host feature support; accounting remains visible when only
-external saved-login lookup is Off. Failed inventory reads expose an explicit
-cache-only Retry, and known Off exposes the precise existing three-store
-lookup disclosure with an Enable action. Enabling only changes policy and reads
-cached state; it never grants additional sources or refreshes a vendor.
+Primary references are pinned Paseo area-6 B.md:321–347; app usage
+model.ts:107–181,209–236; card.tsx:37–254; usage-modal.tsx:70–90;
+options.tsx:38–90; and preferences/pinned implementations cited in wp-c6.
 
-Recovery callbacks capture both connection and existing parent-modal ticket, so
-an old retained action cannot apply to a reconnect or reopened parent. The
-mutation also refuses overlap with a source-policy write. Individual typed login
-failures now render translated closed reasons with their actual harness/public
-account label instead of being discarded in favor of the generic summary.
-No raw source diagnostic text is introduced. EN/KO projection checks are authored;
-current combined compilation and actual UI checks remain owed. This does not
-claim card geometry, freshness tooltip or complete row 625 visual acceptance.
+[Decision Log]
+- Purpose: preserve query state, account-attempt state and original successful
+  timestamps without making old facts look like a new fetch.
+- Constraint: the pinned host and agent projections deliberately differ.
+- Choice: host queries use the reader's complete cached observation first;
+  agent queries use `agent_observation`, which hides values on a query error.
+- Alternative: applying error-first to hosts would contradict model.ts:107–150;
+  showing an old agent quota without its query error contradicts :155–181.
+- Why: the two pure projections retain the existing reader and correlation
+  identities, with no additional state machine or generation allocator.
+- Impact: pending same-selection reads may show prior complete data. A host query
+  shows loading/error/Retry only without data; a failed agent query shows its safe
+  error and a cache-only Retry. An account-level Failed/Unavailable entry inside
+  a successful query still displays its explicitly retained success and old time.
 
-### Report card composition and successful freshness
+The pure reader regression covers Timeout and Forbidden, host data preservation,
+agent error precedence, old timestamps during retry and the next actual success.
+The earlier intermediate error-first host implementation was corrected after
+opening the primary implementation and N2's independent source check.
 
-The generic report card now composes existing settings card/row controls: source
-mark and label, optional shared plan badge, current-attempt status dot/text and
-Refresh in the header; account label and successful relative freshness in the
-footer. Existing approved marks fall back through the shared Generic/Bot path;
-no new vendor assets are introduced. Typed per-login problems replace a generic
-summary only when actually present. Failed reports keep their status and original
-successful time even while values are retained.
+Known global Off displays the existing precise three-store disclosure and an
+Enable action. Enabling changes policy and rereads cache; it never grants the
+seven additional sources or initiates a vendor fetch. Unknown policy has no
+false Off toggle. Source-specific consent remains bound to its typed descriptor
+and exact disclosure version. Unsupported sources have no working-looking grant
+or refresh action.
 
-Relative ages floor minutes/hours/days, use just-now under one minute, and derive
-only from the successful observation. Minute cache ticks redraw them without an
-external fetch. The shared Refresh tooltip shows the same freshness; current
-reader observation tickets retire tooltip state/places, and policy/connection
-retirement clears them. Opaque ids remain typed map keys. All header/refresh and
-source-consent callbacks retain connection and parent-modal admission guards.
-No new UI generation allocator or tooltip/card renderer is added.
+## Cards and action admission
 
-EN/KO whole-message and time-boundary projections plus actual shared card-header
-geometry probes are authored. The current delta is uncompiled; no screenshot,
-consumer focus, strict generated-catalog or whole-package pass is claimed.
+A generic card uses the shared settings card/row: source mark and label, optional
+plan badge, current-attempt dot/text and Refresh in its header; account label and
+successful relative freshness in its footer. Existing approved marks use the
+shared Generic/Bot fallback where required by K. No new vendor bytes are added.
+Individual login errors use actual harness/public labels plus translated closed
+failure reasons, never arbitrary source stderr or credential-store paths.
 
-L's bounded wording review accepted the new EN/KO prose but required numeric age
-arguments and per-key context. Age messages now use NUMBER($count); the caller
-supplies the existing checked Number::count after a checked integer conversion.
-Abbreviated units remain whole translated messages, so adding a future plural
-selector does not change Rust argument types. This corrects the authored data
-path without changing elapsed-time thresholds or accepted earlier Usage words.
+Freshness derives only from the successful observation. It floors minutes,
+hours and days, uses just-now under a minute, and distinguishes a current success
+from a retained one. Age fields use NUMBER($count) with checked Number::count
+arguments. Each new EN/KO key has direct translator context; future plural rules
+can use the same numeric Rust input. Minute cache ticks redraw labels without
+external lookup. Query/attempt completion never substitutes a new success time.
 
-### Landed shared header seam
+Callbacks retain authenticated ConnectionContext and the existing parent-modal
+ticket; pins additionally retain the accepted observation ticket. A reconnect,
+parent replacement, changed disclosure or retired observation cannot retarget an
+old action. Pin rows expose checkbox/toggled metadata and their source/window
+identity. This alone does not establish platform accessibility or keyboard
+traversal.
+
+The host picker captures rendered NodeIds, not mutable list indices. Its terminal
+choice uses the shared close_and_restore after admission. Parent close validates
+its own ticket, closes child options and picker, then acknowledges dialog focus.
+Options retain the shared popover's per-open lease separately from domain
+admission; obsolete body/intents are withheld before deferred lease retirement.
+
+## Shared controls and explicit remaining gaps
 
 Announced green line a7aab9d6 supplies W19's reviewed header-actions input on the
-same dialog renderer and brings the announced root base through the app line.
-Usage consumes DialogContent::with_header_actions: host filter, Refresh all and
-Options now live before the existing close control, with no duplicate body
-Refresh all in the modal. Settings retains its own refresh action. Unavailable
-hosts keep only host choice; no-host frames leave the slot absent. Width remains
-the existing 640px Wide layout. Callbacks retain their existing modal ticket,
-ConnectionContext and selected node, separately from UI leases.
+same dialog renderer. The 640px Wide Usage modal puts host choice, Refresh all
+and Options before the existing close control. The modal has no duplicate body
+Refresh all. Unavailable hosts keep only host choice; no-host frames omit the
+empty actions slot. Settings retains its own refresh action. First-frame modal
+captures and exact host-filter geometry remain unverified.
 
-Refresh actions use the already landed RotateCw and typed shared button/loading
-control, including disabled/loading admission and compact sizing. The same helper
-serves report and whole-host refresh. The actual shared tooltip wraps that control;
-it does not introduce another raw button. Header and consumer checks are owed on
-this merged source. No first-frame capture or exact HostFilter-control geometry
-approval is claimed.
+The current regular typed buttons are a working first version, not exact Usage
+chrome. Required source profiles remain separate:
 
-The shared localization owner confirmed that no canonical typed currency/compact
-amount formatter exists yet. USD currency, compact token balances and two-fraction
-other units remain an explicit formatting gap; raw typed finite amounts and their
-units stay visible, including values above Number's u32 decimal bound. The area
-will consume the owner's producer rather than fork a formatter or silently drop
-large values. Relative-age words at e89334984 are separately accepted as word/key/
-context only; that acceptance does not cover number formatting or UI.
+| Surface | Pinned source | Owner / state |
+| --- | --- | --- |
+| Fixed sidebar Usage icon | Footer density 28/44, glyph 16/20, muted-to-foreground hover | S2/G2; no checked ordinary-button profile yet; no footer edit applied |
+| Options and refresh | Toolbar small 20/32, adaptive glyph 14/18, source extra-muted ink | W12; source/narrow candidate, await announced green containing line |
+| Toolbar/card tooltip | Source side/offset and 300ms desktop delay | W12 extends existing Tooltips; source-only follow-up, not adopted |
+| Toolbar loading | Existing ActivityIndicator ring/750ms profile | W12 follow-up; no area spinner substitution |
+| Large Usage word catalog | Shared bounded cached-message generator | L; await checked canonical line, no generator fork |
+| Balance amount formatting | USD currency, compact tokens with one fraction, other units with two | L shared gap; original finite amounts/units remain visible |
 
-The older 3febf32e narrowed run returned RED before Rust tests: the catalog build
-required a direct translator-context comment for usage-fresh-days. That exact
-failure is retained. L's e893 correction already supplied direct comments for all
-ten keys plus numeric arguments; the old run did not execute any card tests and
-is not credited as runtime evidence. The merged consumer's actual narrowed check
-must cover these fixes, the landed header and the shared typed refresh control.
+No area size/ink override, Pill fallback, second tooltip engine or parallel footer
+registry is introduced. The optional summary still uses S2's single preference,
+hidden by default and rendered only with actual pinned data. The always-present
+footer launcher awaits S2's checked equivalent and opens the real shared modal.
+Values above the current Number decimal bound are not silently dropped or clamped
+to fake currency/compact parity.
 
-Pin rows now expose the existing whole-row interaction as a checkbox with its
-actual toggled state and source/window identity. The existing whole Pin/Unpin
-words describe the action; no prose fragments or new translation API are added.
-Both legacy and generic rows retain the current connection/parent-modal receipt
-in addition to the already captured observation ticket, so an old modal row cannot
-edit pins after a parent replacement with the same account observation. This is
-source/typing work only; platform accessibility and keyboard traversal remain
-unverified and are not implied by adding the accessibility metadata.
+## Verification and acceptance boundary
 
-### Query errors and report-attempt failures stay distinct
+L accepted the exact e89334984 EN/KO word/key/context dataset, including the ten
+new compact status/freshness keys and numeric age contract. Earlier accepted
+Usage messages remain unchanged. This is not number-format, runtime or UI proof.
 
-Paseo model.ts:107–150 hides usage values after a failed query. Native previously
-kept a complete old transport snapshot visible, and the session popover could
-omit the query error while rendering old quota. A pure visible_observation
-projection now permits ready/pending snapshots but hides failed-query values;
-accounts, sidebar summaries, session cards and limit notices consume it. The
-reader still retains the original complete observation and timestamp internally
-for a same-selection cache retry. Account-level failed/unavailable reports inside
-a successful query continue to show their explicitly retained successful values.
+| Immutable source / run | Result and scope |
+| --- | --- |
+| 3febf32e / native context 9 | RED before tests: missing direct context comment for usage-fresh-days; corrected in e893 |
+| f80dad10 / native context 10 | RED before tests: agent_name returns String, new fallback selected &str; corrected with owned-label map_or_else |
+| c1679cc9 / native context 11 | 62/0/0: app 3, link 6, view 53; actual card-header theme/locale/width probes, numeric age, login errors, query distinction and existing transport/lifetime cases |
+| 71522d0e follow-up | Removes the unused card import and narrows two private field visibilities; no behavior/assertion change, no separate execution claim |
 
-The session error body now exposes its safe error and a Retry that sends Cached,
-not an external Refresh. Its existing actual-session/connection/binding admission
-check is unchanged. Options also treat a failed-query policy as unknown rather
-than presenting a working-looking cached toggle. Pure reader regressions cover
-both transport timeout and Forbidden, old timestamp preservation during retry,
-and replacement by the next actual successful response. Current combined runtime
-proof remains owed; the already queued f80 consumer run predates this delta.
+Native context 11 emitted those three warnings; it is not a strict Clippy pass.
+Static size/tokens/diff checks are separate evidence. The exact toolbar/footer
+profiles, large-catalog strict check, canonical assigned node wire, whole native
+gate, managed same-source captures and final V4 package review remain owed.
+No full F3 acceptance follows from a scoped producer review or these 62 tests.
 
-Selecting a host is an actual picker dismissal, so it now uses the landed
-close_and_restore API after the admitted preference update. Plain close remains
-the shared producer's intermediate-navigation operation; leaving it here could
-leave keyboard focus on the retired picker. Parent/NodeId admission is unchanged.
-The parent's close already uses the same actual-dismiss acknowledgment before
-its own dialog focus restoration. Consumer interaction verification remains owed.
-
-The f80dad10 consumer narrow returned RED during view compilation: agent_name's
-existing presentation API returns String, while the new login-error fallback had
-selected &str through Option::map_or. The correction uses map_or_else with an
-owned public-label fallback, preserving the same identity/reason text. No tests
-executed in that failed run; the current query/pin/focus deltas also remain owed.
-
-Correction to the preceding query paragraph after opening the pinned implementation:
-model.ts:107–150 `resolveUsageView` prefers host query.data before query.error;
-model.ts:155–181 `resolveAgentUsageView` explicitly prefers error before data.
-The earlier paragraph incorrectly applied the agent rule to hosts. Native now
-keeps a complete prior host snapshot and summary through transport errors, and
-only shows the host loading/error/Retry state when no data exists. Settings policy
-also remains a cached known fact when available. The separate agent projection
-hides quota/notice on query error, with Cached Retry as described above. A pure
-reader regression verifies both views of the same failed read and preserved time.
-Per-report Failed/Unavailable retention remains independent. N2 independently
-identified the distinction; this follows the opened code, not a stricter invented
-machine policy. Current combined execution is still owed.
-
-Exact c1679cc9 narrowed native execution passed 62 tests: app 3, link 6, view 53,
-including actual report-header theme/locale geometry and numeric relative-age,
-login-error and host-data/agent-error lifecycle cases. It emitted an unused card
-import and two private-interface warnings. The follow-up removes that import and
-narrows the two private field visibilities instead of widening their implementation
-types. No behavior or tested assertions changed. This does not close the shared
-large-catalog strict blocker, exact toolbar/footer profile, whole native gate,
-assigned-wire/capture or final package review requirements.
+The moving native branch also inherits earlier pending F3 root ancestry. It must
+not be landed as a provisional runtime/values carrier. Final native adoption waits
+for the reviewed, whole-gated, assigned canonical F3 node through an announced app
+base; unassigned new calls remain unavailable and older peers use real limits23.
