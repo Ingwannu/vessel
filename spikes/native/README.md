@@ -550,6 +550,11 @@ scripts/fonts.sh                  # the faces into assets/fonts (not committed)
 cargo run -p vessel-app
 ```
 
+When the kit's list of faces grows, run `scripts/fonts.sh` again in every
+worktree: the build embeds each listed file and fails on a missing one
+(2026-11-15: Geist Mono's bold, italic and bold italic, for the
+terminal's SGR 1 and 3; CI runs the script on every gate).
+
 A `.cargo/config.toml` beside this file (untracked, one per worktree)
 sends build output to a directory of your own on the data disk with six
 jobs; one build at a time.
