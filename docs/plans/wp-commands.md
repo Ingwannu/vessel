@@ -432,7 +432,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Surface | Owner boundary | Current evidence / remaining work |
 | --- | --- | --- |
 | Workspace creation | W3 new_workspace_current | Source1f95, checked packet pending; no global Draft fallback |
-| Workspace rows, navigation, project create | W11 registry plus S2 visible projection | Canonical values present, no checked native activation packet |
+| Workspace rows, navigation, project create | W11 registry plus S2 visible projection | WorkspaceId present; withdrawn registry carrier absent; runtime registry waits announced base9 and checked native activation packet |
 | Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
 | Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked30a context/exit source adopted in sharedline; native owner source and dispatcher wired, union checks pending |
 | Root Import | W2 open_import | Current c625 strict + App/Link checks pending; root registration reserved and blocked on a checked portable owner range; not adopted |
@@ -442,7 +442,8 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Composer actions and choices | W12b owner setters + resident/W3 getters | Typed action contract exists; actual owner-generation admission and adapter pending |
 | Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
-| Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Source be31d4d65, checks pending; no second writer or duplicate failure toast |
+| Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Recorder admission/helper8c052697 and receipts remain unchecked; no second writer or duplicate failure toast |
+| Git/PR command effects | G1 captured owner target, row policy and physical admission | Existing47e compiled adapter is explicitly unpassed; checked original-connection/root/ticket admission correction still pending |
 | Messages mode | W1 existing Searching controller | Announced base8b window lifetime adopted; F4 immediate invalidation and prepared selection preserved; union checks pending |
 
 Owner-integration rows above remain skeleton. View/Kit/App source and behavioral tests must pass on
