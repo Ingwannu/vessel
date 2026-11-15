@@ -70,7 +70,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Self {
-        let areas = Areas::new(window, cx);
+        let general = areas::settings::PreparedGeneral::new(words, &prefs.kept);
+        let areas = Areas::new(general, window, cx);
         let (link, notice) = match Link::start(crate::LABEL) {
             Ok((link, events)) => {
                 cx.spawn(async move |this, cx| receive(this, events, cx).await)

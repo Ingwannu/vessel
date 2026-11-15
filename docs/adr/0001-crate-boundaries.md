@@ -359,3 +359,24 @@ the temporary no-broadcast fallback, without adding a renderer or unsafe to
 native. Only the binary entry names the crate and captures a plain typed host
 callback; background CLI work consumes that callback after registry mutation.
 Windows failures keep their typed timeout or original OS source in io::Error.
+
+## Local client-book shared values
+
+The coordinator approved BookRouteId and the existing pure appearance
+values in proto as local values, not new wire fields. Client and native
+view can share invariants without depending on each other's I/O/UI layer.
+There is no new crate edge or runtime. Locality policy and colors' paint
+tokens stay outside proto.
+
+## Checked owned process cleanup (W16 shared prerequisite)
+
+The additive proc-owned Child::wait_checked retains the first group/job sweep
+result while legacy wait keeps its leader-status behavior. It returns a private
+OwnedGroupExit receipt or concrete typed wait/first signal cause; no delayed
+numeric group-id retry is introduced. SignalError privately shares its original
+io::Error so the existing signal API and a retained failure share one concrete
+cause without string conversion. The receipt is leader reap plus accepted
+cleanup request, not observed death of every descendant or account process.
+ProcessLifetime revocation and durable PID identity do not mint it. No crate
+edge, dependency, wire field or management caller is added by this mechanism.
+The source/validation record is docs/plans/checked-process-cleanup.md.
