@@ -33,7 +33,7 @@ limits. No current C3 capture or final whole-package gate/review exists.
   b011 maps canonical queries/outcomes/reasons; GIT_PANEL remainsNone and client
   refuses All/Committed before any peer frame. No runtime admission/parity pass.
 
-## Checks as of 14:29 UTC, 2026-11-15
+## Checks as of 14:42 UTC, 2026-11-15
 
 Only the VM compiles Rust. Runs preserve immutable source; a queue receipt or
 source precheck is never a test pass. External evidence is retained under the
@@ -53,8 +53,10 @@ track's named evidence folders, without internal infrastructure in this repo.
   without production changes. Current selection
   `wp-git-root-fence-tests-20261115T142936Z-6e927990` is queued on the same now-terminal
   warm label; also includes laterff6 sibling-cache scope andaf78 lints. No pass yet.
-- `wp-git-writes-narrow-20261115T135839Z-af78f4ae`: queued, exact current Node
-  plus Proto/Client/Workspace strict all-target Clippy.
+- `wp-git-writes-narrow-20261115T135839Z-af78f4ae`: **cargo0**,60s; strict
+  Node/Proto/Client/Workspace all-target Clippy, actual changed Node Checking.
+  Covers sibling-project cache source and old fixture lint fixes, not later6e
+  history fixture correction/execution. Packet af78-root-narrow.json retained.
 - `wp-git-narrow-20261115T141435Z-b0110b04`: queued, exact current App four-crate
   strict all-target Clippy, short/no priority. Meaningful canonical bridge union.
 - `wp-git-consumer-tests-20261115T141431Z-27194df2`: queued, isolated control's
