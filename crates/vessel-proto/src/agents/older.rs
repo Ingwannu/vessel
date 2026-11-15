@@ -105,6 +105,7 @@ impl Reply {
             | Self::ForkSession(info)
             | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
+            Self::DetachSession(detached) => one(&detached.session),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
                 nested(forwarded, protocol)
@@ -169,6 +170,12 @@ impl Reply {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
+            | Self::GetRegistry(_)
+            | Self::ListWorkspaces(_)
+            | Self::GetWorkspace(_)
+            | Self::RenameWorkspace(_)
+            | Self::PinWorkspace(_)
+            | Self::ReleaseWorkspaceAutomation(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)
@@ -185,6 +192,8 @@ impl Reply {
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
+            | Self::GitCompare(_)
+            | Self::GitCompareFile(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)
@@ -275,6 +284,7 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
+            | Self::Diagnostics(_)
             | Self::SearchMessages(_)
             // Pending file-panel replies cannot reach an older peer: admission
             // refuses these methods before execution, just like newer families.
