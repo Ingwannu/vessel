@@ -233,7 +233,9 @@ unknown or incomplete endings, declared errors, tool/refusal content,
 non-text output and multiple Chat choices are unusable. Successfully
 decoded API envelopes retain reported usage and known stops when output is
 refused, rather than fabricating an end turn. A body that cannot decode as
-its API has unknown counts and stop; partial fields are not inferred. Credentials are checked on both the raw envelope and decoded
+its API has unknown counts and stop; partial fields are not inferred. A contradictory
+tool/refusal block makes the text unusable but does not overwrite the
+provider's reported stop. The typed text error carries that refusal. Credentials are checked on both the raw envelope and decoded
 text with the existing Redactor; node schema decoding checks the final
 value too. Completion text and errors have safe Debug output. JSON causes
 stay typed behind a safe diagnostic wrapper because serde messages may
@@ -405,6 +407,10 @@ hold create or prove that the wire acknowledgement has arrived first.
 Terminal sessions, forks, rewinds, imports and resumes are excluded; node
 wiring chooses fresh paths explicitly rather than treating every internal
 create as fresh.
+
+A session without a given title is left unchanged by design. The task
+waits for the accepted turn text that produces that given title; it does
+not synthesize an expected title or fill an empty one directly.
 
 An external read followed by an ordinary rename is racy. A generated
 proposal therefore carries the expected title to the session actor. The

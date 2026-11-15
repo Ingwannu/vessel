@@ -170,25 +170,9 @@ fn json<T: DeserializeOwned>(text: &str) -> Result<T, CompletionError> {
 
 fn finish(
     usage: ir::Usage,
-    mut stop: Option<ir::StopReason>,
+    stop: Option<ir::StopReason>,
     text: Result<String, CompletionError>,
 ) -> Completion {
-    stop = match &text {
-        Err(CompletionError::Tool) => Some(ir::StopReason::ToolUse),
-        Err(CompletionError::Refusal) => Some(ir::StopReason::Refusal),
-        Ok(_)
-        | Err(
-            CompletionError::TooLarge
-            | CompletionError::NotText(_)
-            | CompletionError::Decode(_)
-            | CompletionError::Failed
-            | CompletionError::NotComplete
-            | CompletionError::Outputs
-            | CompletionError::Unsupported
-            | CompletionError::Empty
-            | CompletionError::QuotedKey,
-        ) => stop,
-    };
     let text = text.and_then(|text| {
         match stop {
             Some(ir::StopReason::EndTurn) => {}

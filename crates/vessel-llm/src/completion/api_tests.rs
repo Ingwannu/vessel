@@ -97,6 +97,7 @@ fn chat_cannot_hide_tools_or_refusals_behind_stop() {
             Err(CompletionError::Tool | CompletionError::Refusal)
         ));
         assert_eq!(answer.usage.output, 7);
+        assert_eq!(answer.stop, Some(ir::StopReason::EndTurn));
     }
 }
 #[test]
@@ -129,15 +130,16 @@ fn response_refuses_mixed_tools_unknown_items_and_refusals() {
     ] {
         let mut body = responses();
         body["output"].as_array_mut().unwrap().push(item);
-        assert!(read(Api::OpenAiResponses, &body).text.is_err());
+        let answer = read(Api::OpenAiResponses, &body);
+        assert!(answer.text.is_err());
+        assert_eq!(answer.stop, Some(ir::StopReason::EndTurn));
     }
     let mut body = responses();
     body["output"].as_array_mut().unwrap().last_mut().unwrap()["content"] =
         json!([{"type":"refusal","refusal":"private"}]);
-    assert!(matches!(
-        read(Api::OpenAiResponses, &body).text,
-        Err(CompletionError::Refusal)
-    ));
+    let answer = read(Api::OpenAiResponses, &body);
+    assert!(matches!(answer.text, Err(CompletionError::Refusal)));
+    assert_eq!(answer.stop, Some(ir::StopReason::EndTurn));
 }
 
 #[test]

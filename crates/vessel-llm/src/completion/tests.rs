@@ -84,7 +84,7 @@ fn every_known_abnormal_stop_is_refused_without_losing_usage() {
 }
 
 #[test]
-fn tool_content_overrides_a_contradictory_normal_ending() {
+fn tool_content_is_refused_without_rewriting_the_reported_ending() {
     for block in [
         json!({"type":"tool_use","id":"call_fixture","name":"tool","input":{}}),
         json!({"type":"tool_result","tool_use_id":"call_fixture","content":"result"}),
@@ -92,7 +92,7 @@ fn tool_content_overrides_a_contradictory_normal_ending() {
         let mut body = fixture();
         body["content"].as_array_mut().unwrap().push(block);
         let answer = read(&body);
-        assert_eq!(answer.stop, Some(ir::StopReason::ToolUse));
+        assert_eq!(answer.stop, Some(ir::StopReason::EndTurn));
         assert_eq!(answer.usage.output, 7);
         assert!(matches!(answer.text, Err(CompletionError::Tool)));
     }

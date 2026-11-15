@@ -425,3 +425,10 @@ suite pass; narrow all-targets Clippy also passes. The Chat file is now
 under the product budget and its ratchet is removed; the Responses ratchet
 is lowered. HTTP, node selection, settings and automatic application are
 still unconnected. The exact-commit whole gate remains owed.
+
+Review correction checkpoint: complete-response stop always retains the
+provider's report, including a normal end paired with tool/refusal content.
+That content remains unusable through the typed text error. Adjacent tests
+assert both facts on all supported APIs. The actor contract also states
+that a session with no given title is left alone. These clarify existing
+contracts; no Node caller or model request is added.
