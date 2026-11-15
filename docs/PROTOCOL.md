@@ -1954,3 +1954,23 @@ integrator assigned 24 at the merge; while unassigned, every client send and
 server dispatch refused it through required_protocol.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
+
+
+### Staged workspace service contract (ADR 0066)
+
+The workspace script/service and dedicated service-settings rows are staged
+values under `workspace_services::WORKSPACE_SERVICES`, still unassigned.
+They use unary responses and the existing typed client admission; a staged
+Handler answers Unsupported and compile-time checks forbid assigning its
+number before wiring. Every new row is explicitly nonforwardable. Private
+settings Read and writes require direct Admin at the future real boundary;
+agents and delegated principals cannot gain it from a claimed origin/scope.
+No generic node-settings Read/write carries the private services document.
+
+Snapshot, planned port, health, generated environment and proxy URL values
+are observations, not process/socket/incarnation or publication authority.
+Compact configuration summaries and nested NeedsApproval replies retain
+the complete project approval display gate. The detailed DTO/cursor/bounds,
+permission and activation prerequisites are in
+`plans/workspace-services-api.md`. No runtime handler, private consent schema,
+service listener or browser capability is enabled by the staged rows.

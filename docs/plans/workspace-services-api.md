@@ -1,6 +1,7 @@
 # Workspace scripts and services consumer API
 
-Status: proposed typed contract, not an implemented DTO or runtime API.
+Status: staged DTOs, method rows and typed SDK are authored; generated wire
+and checks are pending. No runtime handler or active service API is supplied.
 ADR 0066 owns the project-file and service security policy. This package
 does not qualify the staged Preview/backend primitives as a working engine.
 
@@ -73,8 +74,8 @@ PROJECT_FILE_KEYS remains independently unassigned until its existing full
 native/web display condition is met; this API cannot bypass that condition.
 
 Append rows at the END of rpc/table.rs, with `(staged WORKSPACE_SERVICES)`
-and unary shape. The names below are the proposed contract, not registered
-calls. Actual rows qualify the feature as
+and unary shape. The rows below exist only as staged values with default Unsupported,
+not active handlers. They qualify the feature as
 `$crate::workspace_services::WORKSPACE_SERVICES` and DTO paths from `$crate`.
 Staged Handler defaults answer Unsupported and require the constant
 to stay None. Add exactly each new Method variant to workspace/policy.rs's
@@ -424,7 +425,9 @@ limits bound aggregate decode before these validated domain values.
 
 ## Resume point
 
-Only this proposed contract exists. No DTO, method row, SDK wrapper, settings
-model or handler has landed. The preceding Preview correction is source
-accepted but still awaiting exact changed-head execution; all real backend
-and public activation boundaries remain closed.
+The DTOs, eight staged rows and typed SDK wrappers are authored in the
+isolated values package. Source review, exact changed-source checks and
+generated-wire freshness remain pending for the latest additions. No private
+settings disk model, runtime handler or actual backend/public activation is
+implemented by this package. Values and fixture tests cannot qualify the
+separate Preview/allocator/helper/runtime producers.
