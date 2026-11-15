@@ -17,7 +17,10 @@ use tokio::{
     time::{Instant, timeout_at},
 };
 use tokio_util::sync::CancellationToken;
-use vessel_proto::checkpoint::{CHECKPOINT_QUEUE, PhysicalRoot};
+use vessel_proto::{
+    WorktreeId,
+    checkpoint::{CHECKPOINT_QUEUE, PhysicalRoot},
+};
 
 /// Bound a wedged admission owner without waiting on filesystem work.
 #[cfg(target_os = "linux")]
@@ -41,17 +44,40 @@ pub(crate) enum RootRefusal {
     NotRecovering,
 }
 #[derive(Debug, Default)]
-pub(crate) struct RecoveryRoots(BTreeSet<PhysicalRoot>);
+pub(crate) struct RecoveryRoots(BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>>);
 impl TryFrom<BTreeSet<PhysicalRoot>> for RecoveryRoots {
     type Error = RootRefusal;
     fn try_from(roots: BTreeSet<PhysicalRoot>) -> Result<Self, Self::Error> {
         if roots.len() > ROOT_LEASES {
             Err(RootRefusal::Busy)
         } else {
-            Ok(Self(roots))
+            Ok(Self(
+                roots
+                    .into_iter()
+                    .map(|root| (root, BTreeSet::new()))
+                    .collect(),
+            ))
         }
     }
 }
+impl RecoveryRoots {
+    pub(super) fn add(
+        &mut self,
+        root: PhysicalRoot,
+        worktree: WorktreeId,
+    ) -> Result<(), RootRefusal> {
+        if !self.0.contains_key(&root) && self.0.len() >= ROOT_LEASES {
+            return Err(RootRefusal::Busy);
+        }
+        let worktrees = self.0.entry(root).or_default();
+        if !worktrees.contains(&worktree) && worktrees.len() >= super::MAX_WORKTREES {
+            return Err(RootRefusal::Busy);
+        }
+        let _inserted = worktrees.insert(worktree);
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct RootLease {
     root: PhysicalRoot,
@@ -73,6 +99,7 @@ impl Drop for RootLease {
 enum Request {
     Claim {
         root: PhysicalRoot,
+        worktrees: BTreeSet<WorktreeId>,
         deadline: Instant,
         reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
     },
@@ -122,13 +149,26 @@ impl RootGate {
         });
         (Self { requests, stop }, task)
     }
+    #[cfg(test)]
     pub(crate) async fn claim(
         &self,
         root: PhysicalRoot,
         deadline: Instant,
     ) -> Result<RootLease, RootRefusal> {
+        self.claim_registered(root, BTreeSet::new(), deadline).await
+    }
+    pub(super) async fn claim_registered(
+        &self,
+        root: PhysicalRoot,
+        worktrees: BTreeSet<WorktreeId>,
+        deadline: Instant,
+    ) -> Result<RootLease, RootRefusal> {
+        if worktrees.len() > super::MAX_WORKTREES {
+            return Err(RootRefusal::Busy);
+        }
         self.request(deadline, |reply| Request::Claim {
             root,
+            worktrees,
             deadline,
             reply,
         })
@@ -176,7 +216,7 @@ impl RootGate {
 #[derive(Debug)]
 struct State {
     active: BTreeMap<PhysicalRoot, CancellationToken>,
-    recovering: BTreeSet<PhysicalRoot>,
+    recovering: BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>>,
 }
 
 fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
@@ -185,19 +225,21 @@ fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
     {
         let Request::Claim {
             root,
+            worktrees,
             deadline,
             reply,
         } = request;
-        let _gone = reply.send(claim(root, deadline, state, notify));
+        let _gone = reply.send(claim(root, &worktrees, deadline, state, notify));
     }
     #[cfg(test)]
     match request {
         Request::Claim {
             root,
+            worktrees,
             deadline,
             reply,
         } => {
-            let _gone = reply.send(claim(root, deadline, state, notify));
+            let _gone = reply.send(claim(root, &worktrees, deadline, state, notify));
         }
         #[cfg(test)]
         Request::Recovered {
@@ -207,7 +249,7 @@ fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
         } => {
             let result = if Instant::now() >= deadline {
                 Err(RootRefusal::TimedOut)
-            } else if state.recovering.remove(&root) {
+            } else if state.recovering.remove(&root).is_some() {
                 Ok(())
             } else {
                 Err(RootRefusal::NotRecovering)
@@ -218,6 +260,7 @@ fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
 }
 fn claim(
     root: PhysicalRoot,
+    worktrees: &BTreeSet<WorktreeId>,
     deadline: Instant,
     state: &mut State,
     notify: &Arc<Notify>,
@@ -225,7 +268,12 @@ fn claim(
     if Instant::now() >= deadline {
         return Err(RootRefusal::TimedOut);
     }
-    if state.recovering.contains(&root) {
+    if state.recovering.contains_key(&root)
+        || state
+            .recovering
+            .values()
+            .any(|pending| !pending.is_disjoint(worktrees))
+    {
         return Err(RootRefusal::RecoveryPending);
     }
     if state.active.contains_key(&root)

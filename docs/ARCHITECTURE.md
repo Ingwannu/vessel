@@ -1785,3 +1785,13 @@ The node must commit complete staged-object evidence before first apply, verify
 whole-scope postconditions and retain its physical/worker/quota leases throughout
 actual I/O. Other platforms require an explicit UnsupportedPlatform adapter;
 there is no supported-platform or end-to-end capability claim from this library.
+
+
+Before starting physical admission, Workspaces hydrates durable checkpoint recovery
+pages into the sole RootGate. Recovery blocks both the original physical root and
+its managed worktree namespace, so replacing a folder inode does not bypass an
+unresolved journal. Actual lock authority remains the opened physical identity.
+The shared admitted-directory helper derives current namespaces/nearest managed
+ancestor from opened FDs; file/Git writers and starts use it, and their placement
+postconditions run in the retained bounded metadata pool. Runtime recovery owner
+claims/completion and the node restore controller remain separate integration work.

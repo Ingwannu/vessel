@@ -655,3 +655,25 @@ ratchet. A real ended fake-runtime fixture checks page selection while handover
 is held, using an explicitly modeled store page; store tests separately validate
 the actual result-event binding and restart transaction. This is unrun and not a
 combined end-to-end restore/subscribe proof.
+
+
+### Hydrated recovery admission and replacement folders
+
+Workspaces now reads all bounded recovery pages and their owner-bound plans before
+starting RootGate. The same gate stores physical roots plus the managed worktree
+namespaces those unresolved rows belong to. A folder replaced with another inode
+cannot bypass recovery by presenting a new physical key for the same worktree.
+This namespace is an additional fail-closed recovery condition, never the key of
+a file lock. Lease.root remains the actual opened-FD identity. Independent logical
+identities sharing a physical root still conflict through that physical key.
+
+A single metadata helper opens the requested directory and registered worktrees,
+finds the nearest physical managed ancestor and all names bound there. Actual file/
+Git writes and starts pass that evidence to the sole gate. Pre/post writer checks
+now use the bounded retained metadata pool and verify that the admitted physical
+root is still in the directory's FD ancestry, including subdirectory starts.
+Only missing unrelated roots are skipped; other metadata failures refuse safely.
+A gate fixture checks old physical key blocking, new inode/same managed id blocking,
+and a genuinely independent root's admission. It has not run. Runtime pin/guarded
+recovery-claim/completion APIs and the actual restore controller remain owed; no
+raw production force-unlock or new lock owner is introduced by this slice.

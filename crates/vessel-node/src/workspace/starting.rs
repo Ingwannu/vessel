@@ -84,39 +84,17 @@ impl Workspaces {
             .await?;
         #[cfg(target_os = "linux")]
         {
-            let roots = self
-                .state()
-                .worktrees
-                .values()
-                .map(|entry| entry.info.path.clone())
-                .collect::<Vec<_>>();
-            let (folder, directory, root) = self
-                .root_metadata(move || {
-                    let directory = Directory::open(&folder)?;
-                    let ancestry = directory.ancestry()?;
-                    let mut known = BTreeSet::new();
-                    for root in roots {
-                        match Directory::open(&root) {
-                            Ok(root) => {
-                                let _inserted = known.insert(root.identity());
-                            }
-                            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                            Err(error) => return Err(error),
-                        }
-                    }
-                    let root = ancestry
-                        .nearest(&known)
-                        .unwrap_or_else(|| directory.identity());
-                    Ok::<_, std::io::Error>((folder, directory, root))
-                })
-                .await?;
+            let opened = self.opened_admission(&folder).await?;
             let deadline = tokio::time::Instant::now()
                 .checked_add(ADMISSION_TIMEOUT)
                 .ok_or(RootRefusal::TimedOut)?;
-            let lease = self.exclusion.claim(root, deadline).await?;
+            let lease = self
+                .exclusion
+                .claim_registered(opened.root, opened.worktrees, deadline)
+                .await?;
             Ok(StartGuard {
                 folder,
-                directory: Arc::new(directory),
+                directory: Arc::new(opened.directory),
                 workspaces: Arc::clone(self),
                 lease,
             })

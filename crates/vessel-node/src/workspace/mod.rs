@@ -22,6 +22,8 @@
 //!   any folder holding the node's data folder (a read-only device could
 //!   otherwise read the node's token and become its owner).
 
+#[cfg(target_os = "linux")]
+mod admission;
 mod error;
 #[cfg(any(test, target_os = "linux"))]
 pub(crate) mod exclusion;
@@ -235,8 +237,9 @@ impl Workspaces {
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
         #[cfg(target_os = "linux")]
-        let (exclusion, owner) =
-            exclusion::RootGate::start(exclusion::RecoveryRoots::default(), stop.child_token());
+        let recovering = admission::recovering(&store).await?;
+        #[cfg(target_os = "linux")]
+        let (exclusion, owner) = exclusion::RootGate::start(recovering, stop.child_token());
         #[cfg(target_os = "linux")]
         let _owner = tasks.spawn(async move {
             if let Err(error) = owner.await {

@@ -43,21 +43,32 @@ impl Workspaces {
         }
         #[cfg(target_os = "linux")]
         let (directory, lease) = {
-            let path = resolved.root.path().to_path_buf();
-            let directory = self.root_metadata(move || Directory::open(&path)).await?;
+            let opened = self.opened_admission(resolved.root.path()).await?;
             let deadline = tokio::time::Instant::now()
                 .checked_add(ADMISSION_TIMEOUT)
                 .ok_or(RootRefusal::TimedOut)?;
-            let lease = self.exclusion.claim(directory.identity(), deadline).await?;
-            (directory, lease)
+            let lease = self
+                .exclusion
+                .claim_registered(opened.root, opened.worktrees, deadline)
+                .await?;
+            (opened.directory, lease)
         };
         let (mut reply, received) = oneshot::channel();
         let cancellation = self.stop.child_token();
         // The tracker owns this task; cancelling its reply receiver never aborts
         // a child blocking syscall or releases an admitted writer early.
+        #[cfg(target_os = "linux")]
+        let workspaces = Arc::clone(self);
         let _retained = self.tasks.spawn(async move {
             #[cfg(target_os = "linux")]
-            let operation = under_root(resolved, make, directory, lease, cancellation.clone());
+            let operation = under_root(
+                workspaces,
+                resolved,
+                make,
+                directory,
+                lease,
+                cancellation.clone(),
+            );
             #[cfg(not(target_os = "linux"))]
             let operation = execute(resolved, make, cancellation.clone());
             tokio::pin!(operation);
@@ -72,6 +83,7 @@ impl Workspaces {
 }
 #[cfg(target_os = "linux")]
 async fn under_root<T, Make, Work>(
+    workspaces: Arc<Workspaces>,
     resolved: Resolved,
     make: Make,
     directory: Directory,
@@ -83,12 +95,9 @@ where
     Work: Future<Output = Result<T, WorkspaceError>>,
 {
     let result = async {
-        if directory.identity() != lease.root() {
-            return Err(RootRefusal::RecoveryPending.into());
-        }
-        let directory = revalidate(directory).await?;
+        let directory = revalidate_in(&workspaces, directory, lease.root()).await?;
         let value = execute(resolved, make, cancellation).await?;
-        let _verified = revalidate(directory).await?;
+        let _verified = revalidate_in(&workspaces, directory, lease.root()).await?;
         Ok(value)
     }
     .await;
@@ -97,13 +106,24 @@ where
     result
 }
 #[cfg(target_os = "linux")]
-async fn revalidate(directory: Directory) -> Result<Directory, WorkspaceError> {
-    tokio::task::spawn_blocking(move || {
-        directory.revalidate()?;
-        Ok(directory)
-    })
-    .await?
-    .map_err(WorkspaceError::Directory)
+async fn revalidate_in(
+    workspaces: &Workspaces,
+    directory: Directory,
+    root: vessel_proto::checkpoint::PhysicalRoot,
+) -> Result<Directory, WorkspaceError> {
+    let (directory, observed) = workspaces
+        .root_metadata(move || {
+            directory.revalidate()?;
+            let observed = directory
+                .ancestry()?
+                .nearest(&std::collections::BTreeSet::from([root]));
+            Ok((directory, observed))
+        })
+        .await?;
+    if observed != Some(root) {
+        return Err(RootRefusal::RecoveryPending.into());
+    }
+    Ok(directory)
 }
 
 async fn execute<T, Make, Work>(

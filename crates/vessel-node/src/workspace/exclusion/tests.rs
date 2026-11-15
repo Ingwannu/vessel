@@ -46,6 +46,37 @@ async fn checkpoint_recovery_is_pinned_until_explicit_verified_resolution() {
     drop(gate);
     owner.await.unwrap();
 }
+
+#[tokio::test]
+async fn checkpoint_replaced_folder_cannot_bypass_its_managed_recovery_namespace() {
+    let worktree = WorktreeId::random();
+    let independent = WorktreeId::random();
+    let mut recovering = RecoveryRoots::default();
+    recovering.add(root(1), worktree).unwrap();
+    let (gate, owner) = RootGate::start(recovering, CancellationToken::new());
+    assert!(matches!(
+        gate.claim_registered(root(2), BTreeSet::from([worktree]), deadline())
+            .await,
+        Err(RootRefusal::RecoveryPending)
+    ));
+    assert!(matches!(
+        gate.claim_registered(root(1), BTreeSet::from([independent]), deadline())
+            .await,
+        Err(RootRefusal::RecoveryPending)
+    ));
+    let other = gate
+        .claim_registered(root(3), BTreeSet::from([independent]), deadline())
+        .await
+        .unwrap();
+    assert_eq!(
+        other.root(),
+        root(3),
+        "the actual physical key remains the lease authority"
+    );
+    drop(other);
+    drop(gate);
+    owner.await.unwrap();
+}
 #[tokio::test(start_paused = true)]
 async fn checkpoint_expired_admission_does_not_create_a_lease() {
     let (gate, owner) = RootGate::start(RecoveryRoots::default(), CancellationToken::new());
@@ -62,13 +93,14 @@ async fn checkpoint_expired_admission_does_not_create_a_lease() {
 async fn checkpoint_dropped_reply_releases_its_undelivered_lease() {
     let mut state = State {
         active: BTreeMap::new(),
-        recovering: BTreeSet::new(),
+        recovering: BTreeMap::new(),
     };
     let released = Arc::new(Notify::new());
     let (reply, received) = oneshot::channel();
     drop(received);
     admit(
         Request::Claim {
+            worktrees: BTreeSet::new(),
             root: root(1),
             deadline: deadline(),
             reply,
@@ -125,6 +157,7 @@ async fn checkpoint_full_admission_queue_refuses_without_spawning_a_waiter() {
         let (reply, _received) = oneshot::channel();
         gate.requests
             .try_send(Request::Claim {
+                worktrees: BTreeSet::new(),
                 root: root(1),
                 deadline: deadline(),
                 reply,
