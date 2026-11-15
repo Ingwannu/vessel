@@ -3,6 +3,8 @@
 //! Resource owners keep concrete snapshots behind the app's scoped accessors.
 mod identity;
 mod registry;
+mod retirement;
+pub use retirement::{FollowRetirement, RetiredOperation};
 mod transport;
 pub use identity::{
     FollowBinding, FollowGeneration, HoldReason, OperationKind, OperationTicket, OwnerReadiness,
