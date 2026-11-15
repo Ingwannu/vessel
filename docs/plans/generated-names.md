@@ -461,3 +461,16 @@ That content remains unusable through the typed text error. Adjacent tests
 assert both facts on all supported APIs. The actor contract also states
 that a session with no given title is left alone. These clarify existing
 contracts; no Node caller or model request is added.
+
+
+### Shared upstream request preparation: contract and resume point
+
+Decision: modify the existing proxy encoding seam. Move its provider flag
+assembly to Provider::upstream_options and delegate encoding to a closed
+vessel-llm upstream Options enum. Byte-equivalence tests compare this
+entry point to each existing typed encoder on both recorded front request
+fixtures. No proxy ending, retry, reasoning, or budget policy changes in
+this extraction. No new library or wire surface is needed. This contract
+precedes the extraction; complete request bounds and Node wiring remain
+next. The complete reply Beta gate is running on its separate committed
+line; actor source and gate are passed.

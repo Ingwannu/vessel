@@ -700,3 +700,23 @@ with Vessel's own project-file text handling. Paseo uses JavaScript trim;
 their Unicode whitespace sets differ. The shared JavaScript-style trim
 helper, if present, is not applied to this own-format reader. This is a
 stated format choice, not a claim of identical whitespace classification.
+
+
+### Shared request options before complete requests
+
+[Decision Log]
+- Purpose and intent: keep provider quirks identical for proxy traffic and
+  the later bounded metadata request.
+- Existing implementation and constraints: the proxy assembles three
+  public upstream option structs and serializes their typed requests.
+  The complete response decoder already lives in vessel-llm; no second
+  provider grammar belongs in the node.
+- Alternatives considered: duplicate the proxy option match in metadata,
+  or introduce an SDK. Both would create a second configuration policy.
+- Choice: move option assembly to a Provider method and add one closed
+  upstream Options enum whose streamed encoder delegates to the existing
+  encoders. This extraction changes neither flags nor request bytes.
+- Why this choice: the node still owns its catalog; vessel-llm still owns
+  API encoding. Existing serde and Bytes suffice; no dependency is added.
+- Effects: the proxy shrinks. Complete-request policy will be a separate
+  change, with actual encoded-budget checks rather than proxy changes.
