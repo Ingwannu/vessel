@@ -1,7 +1,7 @@
 //! These use the real shell controls with no node, updater or credentials.
-use super::*;
 use crate::shell::{Shell, language_tests};
 use gpui::{ClipboardItem, Image, ImageFormat, TestAppContext};
+use std::sync::Arc;
 use vessel_app_kit::field::composer_hooks::{KeyAnswer, Pasted};
 use vessel_app_view::composer::drafts::DraftKey;
 

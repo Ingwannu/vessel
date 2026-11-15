@@ -16,7 +16,7 @@ const ROWS: Motion = Motion {
     length: motion::QUICK,
 };
 
-pub(super) fn menu(
+pub(in crate::areas::composer) fn menu(
     shell: &Shell,
     target: DraftKey,
     tokens: &Tokens,

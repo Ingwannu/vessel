@@ -2,11 +2,12 @@
 //! Source snapshots stay with their composer; replacing or suppressing one
 //! does not mutate another panel's registry or fetch its URL during send.
 use crate::shell::Shell;
+use gpui::FocusHandle;
 use vessel_app_kit::attachment::{Body, PillHandlers, Standing, attachment_pill, attachment_tray};
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
 use vessel_app_kit::ui::{
-    AnyElement, Context, FocusHandle, IntoElement as _, ParentElement as _, SharedString,
-    Styled as _, Window, div,
+    AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, Window,
+    div,
 };
 use vessel_app_kit::{Tokens, assets::Glyph};
 use vessel_app_view::composer::{
@@ -55,7 +56,7 @@ impl Shell {
         cx.notify();
         Ok(())
     }
-    /// W3 seeds this only after claiming the active draft's canonical target.
+    /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
     pub(crate) fn composer_seed_history(
         &mut self,
@@ -190,16 +191,20 @@ pub(super) fn tray(
     if tray.is_empty() {
         return None;
     }
-    let (id, open, remove) = match target {
+    let (id, open, remove): (
+        &str,
+        vessel_app_kit::attachment::PillClick<Shell>,
+        vessel_app_kit::attachment::PillClick<Shell>,
+    ) = match target {
         DraftKey::New => (
             "draft-context",
-            Shell::draft_context_opened as vessel_app_kit::attachment::PillClick<Shell>,
-            Shell::draft_context_removed as vessel_app_kit::attachment::PillClick<Shell>,
+            Shell::draft_context_opened,
+            Shell::draft_context_removed,
         ),
         DraftKey::Session { .. } => (
             "session-context",
-            Shell::session_context_opened as vessel_app_kit::attachment::PillClick<Shell>,
-            Shell::session_context_removed as vessel_app_kit::attachment::PillClick<Shell>,
+            Shell::session_context_opened,
+            Shell::session_context_removed,
         ),
     };
     let pills = tray.visible().enumerate().map(|(index, item)| {

@@ -233,7 +233,7 @@ impl Shell {
             cx.notify();
         }
     }
-    /// W12b delegates before slash handling so an active @ token wins.
+    /// The composer shell delegates before slash handling so an active @ token wins.
     pub(crate) fn composer_file_key(
         &mut self,
         target: DraftKey,

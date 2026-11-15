@@ -65,7 +65,7 @@ fn an_asked_picture_is_read_once_however_often_it_is_asked() {
 fn two_are_read_at_once_the_most_recently_asked_first() {
     let mut pictures = Pictures::default();
     for n in 1..=4 {
-        let _ = pictures.ask(&sent(n));
+        drop(pictures.ask(&sent(n)));
     }
     assert_eq!(pictures.starts(), vec![sent(4), sent(3)]);
     assert!(pictures.starts().is_empty(), "two are running");
@@ -76,8 +76,8 @@ fn two_are_read_at_once_the_most_recently_asked_first() {
 #[test]
 fn a_failed_read_is_not_tried_again_while_kept() {
     let mut pictures = Pictures::default();
-    let _ = pictures.ask(&sent(1));
-    let _ = pictures.starts();
+    drop(pictures.ask(&sent(1)));
+    drop(pictures.starts());
     pictures.read(&sent(1), None);
     assert_eq!(pictures.ask(&sent(1)), Picture::Failed);
     assert!(pictures.starts().is_empty());
@@ -104,7 +104,7 @@ fn at_most_48_are_kept_the_least_recently_asked_dropped() {
     for n in 1..=48 {
         pictures.seed(sent(n), bytes(1));
     }
-    let _ = pictures.ask(&sent(1));
+    drop(pictures.ask(&sent(1)));
     pictures.seed(sent(49), bytes(1));
     assert_eq!(pictures.len(), Pictures::MOST);
     assert_eq!(
@@ -134,7 +134,7 @@ fn at_most_64_mib_are_kept() {
 #[test]
 fn a_picture_being_read_is_not_dropped() {
     let mut pictures = Pictures::default();
-    let _ = pictures.ask(&sent(1));
+    drop(pictures.ask(&sent(1)));
     assert_eq!(pictures.starts(), vec![sent(1)]);
     for n in 2..=60 {
         pictures.seed(sent(n), bytes(1));
