@@ -345,3 +345,10 @@ The automatic merge had no conflicts. Existing shared behavior and Inbox's
 registrations/pending rows remain present; size/token ratchets are not raised.
 No final whole gate was running, so no frozen source was changed. Union checks
 remain owed; previous narrow results retain their original source scope.
+
+Exact native unit run wp-inbox-tests-20261115T133806Z-f21e7293 compiled View then
+returned three Link type errors: existing GetConversation/MarkSession live in
+proto::conversation (not root exports), and selected-call presence returns Ack
+rather than unit. The canonical method table confirms the unchanged wire calls;
+paths and the Ack-to-unit projection are fixed. No new call or scope is invented.
+The current app source includes approved base8; a new union check is required.

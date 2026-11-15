@@ -29,14 +29,14 @@ pub(super) async fn clear(
         return Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported));
     }
     let current = client
-        .call(vessel_proto::GetConversation { session })
+        .call(vessel_proto::conversation::GetConversation { session })
         .await
         .map_err(problem)?;
     if !current.permissions.is_empty() || !current.questions.is_empty() {
         return Err(Problem::Refused(vessel_proto::ErrorCode::Conflict));
     }
     client
-        .call(vessel_proto::MarkSession {
+        .call(vessel_proto::conversation::MarkSession {
             session,
             mark: vessel_proto::Mark::Read { through },
         })

@@ -95,7 +95,7 @@ async fn run(
         };
         let call = async {
             let report = wire(&source, report, client.protocol());
-            client.call(report).await.map_err(problem)
+            client.call(report).await.map(|_ack| ()).map_err(problem)
         };
         let result = tokio::select! {
             biased;
