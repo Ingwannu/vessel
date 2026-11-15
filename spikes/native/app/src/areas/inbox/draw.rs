@@ -110,6 +110,7 @@ fn list(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEleme
         body = body.child(row(source.name().as_str(), entry, shell, tokens, cx));
     }
     body = body.child(more_buttons(shell, tokens, cx));
+    body = body.child(super::terminal_rows::render(shell, tokens, cx));
     body.into_any_element()
 }
 

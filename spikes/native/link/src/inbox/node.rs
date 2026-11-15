@@ -56,6 +56,7 @@ pub(super) async fn list(client: &Client, pages: Pages) -> Result<Snapshot, Prob
     Ok(Snapshot {
         authority,
         attention: attention(client).await?,
+        terminals: super::terminals::list(client).await?,
         counts,
         entries,
         next: next.map(|cursor| Position::new(cursor.get())),

@@ -22,6 +22,7 @@ impl FakeNode {
             snapshot: Snapshot {
                 authority: Authority::Operate,
                 attention: None,
+                terminals: None,
                 counts: Counts::new(42, 7, 9),
                 entries: Vec::new(),
                 extent: Extent::More,
@@ -417,4 +418,47 @@ fn retirement_keeps_form_but_requires_fresh_confirmation_before_actions() {
         detail.begin(inbox.ticket().unwrap(), Operation::Answer),
         Some(entry.key)
     );
+}
+
+#[test]
+fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
+    use vessel_proto::notifications::{
+        TerminalActivity, TerminalAttention, TerminalAttentionReason, TerminalAttentionRevision,
+    };
+    let mut fake = FakeNode::new("terminal");
+    let terminal = vessel_proto::TerminalId::random();
+    let mut state = TerminalAttention {
+        terminal,
+        revision: TerminalAttentionRevision::new(1),
+        activity: TerminalActivity::Working,
+        changed_at: chrono::DateTime::UNIX_EPOCH,
+    };
+    fake.snapshot.terminals = Some(vec![terminals::Row {
+        terminal,
+        title: None,
+        attention: Some(state),
+        failed: false,
+    }]);
+    let mut inbox = Inbox::default();
+    inbox.connect(fake.source.clone());
+    assert!(fake.read(&mut inbox).is_empty());
+    assert!(inbox.take_terminal_notices().is_empty());
+    state.revision = state.revision.next().unwrap();
+    state.activity = TerminalActivity::Attention {
+        reason: TerminalAttentionReason::NeedsInput,
+    };
+    fake.snapshot.terminals.as_mut().unwrap()[0].attention = Some(state);
+    assert!(fake.read(&mut inbox).is_empty());
+    assert_eq!(
+        inbox.take_terminal_notices(),
+        vec![(fake.source.clone(), state)]
+    );
+    assert!(fake.read(&mut inbox).is_empty());
+    assert!(inbox.take_terminal_notices().is_empty());
+    inbox.disconnect(fake.source.node());
+    state.revision = state.revision.next().unwrap();
+    fake.snapshot.terminals.as_mut().unwrap()[0].attention = Some(state);
+    inbox.connect(fake.source.clone());
+    assert!(fake.read(&mut inbox).is_empty());
+    assert!(inbox.take_terminal_notices().is_empty());
 }

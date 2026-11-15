@@ -12,6 +12,8 @@ pub(crate) use reading::start;
 mod receive;
 mod retirement;
 pub(crate) mod settings;
+mod terminal_rows;
+mod terminals;
 pub(crate) use draw::render;
 
 use super::conversation::ConversationArea;
@@ -26,6 +28,7 @@ pub(crate) struct InboxArea {
     pub(crate) window: gpui::AnyWindowHandle,
     pub(crate) admission: vessel_app_view::inbox::admission::Gate,
     pub(crate) granted: Vec<vessel_app_view::inbox::admission::Pending>,
+    pub(super) terminals: terminals::Terminals,
     pub(crate) detail: Detail,
     pub(crate) detail_source: Option<vessel_app_view::inbox::Source>,
     pub(crate) conversation: ConversationArea,
@@ -58,6 +61,7 @@ impl InboxArea {
             window: window.window_handle(),
             admission: vessel_app_view::inbox::admission::Gate::default(),
             granted: Vec::new(),
+            terminals: terminals::Terminals::default(),
             detail: Detail::default(),
             detail_source: None,
             conversation: ConversationArea::new(cx),

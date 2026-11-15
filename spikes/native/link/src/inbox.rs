@@ -16,6 +16,7 @@ mod node;
 mod presence;
 #[cfg(not(target_arch = "wasm32"))]
 mod reading;
+pub mod terminals;
 #[cfg(not(target_arch = "wasm32"))]
 mod transport;
 pub use input::Input;
@@ -59,6 +60,15 @@ impl Target {
 pub enum Ask {
     /// Re-read which machines are connected.
     Discover,
+    /// Operate on one exact terminal attention revision.
+    Terminal {
+        /// Original authenticated admission.
+        source: Source,
+        /// Exact target and requested operation.
+        action: terminals::Action,
+        /// Non-reused local response identity.
+        request: Request,
+    },
     /// Coalesced real activity or focus report for this exact transport.
     Presence {
         /// Authenticated transport receiving the report.
@@ -127,6 +137,13 @@ pub enum Ask {
 pub enum Answer {
     /// Live identities and offline routes, from the current registry.
     Targets(Result<Vec<Target>, Problem>),
+    /// Original admission, exact action and correlated terminal completion.
+    Terminal(
+        Source,
+        terminals::Action,
+        Request,
+        Result<terminals::ResultState, Problem>,
+    ),
     /// Safe status of a connection's last presence report.
     Presence(Source, Result<(), Problem>),
     /// Completion of the exact passive session read.
@@ -158,7 +175,8 @@ impl Ask {
                     Err(Problem::InvalidReply)
                 }
             }
-            Self::Discover
+            Self::Terminal { .. }
+            | Self::Discover
             | Self::List { .. }
             | Self::Presence { .. }
             | Self::ReadSession { .. } => Ok(()),
@@ -183,6 +201,11 @@ impl Ask {
                 Answer::Claimed(pending.source, pending.key, pending.request, Err(problem))
             }
             Self::Discover => Answer::Targets(Err(problem)),
+            Self::Terminal {
+                source,
+                action,
+                request,
+            } => Answer::Terminal(source, action, request, Err(problem)),
             Self::Presence { source, .. } => Answer::Presence(source, Err(problem)),
             Self::ReadSession {
                 source,
@@ -265,7 +288,8 @@ impl crate::State {
         let source = match &ask {
             Ask::Discover => return,
             Ask::Claim(pending) => &pending.source,
-            Ask::ReadSession { source, .. }
+            Ask::Terminal { source, .. }
+            | Ask::ReadSession { source, .. }
             | Ask::Presence { source, .. }
             | Ask::List { source, .. }
             | Ask::Get { source, .. }
@@ -331,6 +355,16 @@ const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 #[cfg(not(target_arch = "wasm32"))]
 async fn bounded(client: &transport::Client, ask: Ask) -> Answer {
     let timeout = match &ask {
+        Ask::Terminal {
+            source,
+            action,
+            request,
+        } => Answer::Terminal(
+            source.clone(),
+            *action,
+            *request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
         Ask::Claim(pending) => Answer::Claimed(
             pending.source.clone(),
             pending.key,
@@ -392,6 +426,11 @@ async fn bounded(client: &transport::Client, ask: Ask) -> Answer {
 #[cfg(not(target_arch = "wasm32"))]
 async fn call(client: &transport::Client, ask: Ask) -> Answer {
     match ask {
+        Ask::Terminal {
+            source,
+            action,
+            request,
+        } => Answer::Terminal(source, action, request, action.run(client).await),
         Ask::Claim(pending) => {
             let result = admission::claim(client, &pending).await;
             Answer::Claimed(pending.source, pending.key, pending.request, result)

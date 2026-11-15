@@ -12,6 +12,7 @@ pub mod presence;
 pub mod reading;
 pub mod settings;
 mod state;
+pub mod terminals;
 pub use pages::{MAX_PAGES, Pages};
 pub mod words;
 pub use detail::{Detail, Operation};

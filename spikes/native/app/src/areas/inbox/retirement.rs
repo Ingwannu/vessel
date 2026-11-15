@@ -18,6 +18,11 @@ impl Shell {
                     area.detail_source = None;
                 }
                 area.read_last = None;
+                area.terminals.queued.retain(|(known, _)| known != source);
+                area.terminals
+                    .pending
+                    .retain(|(known, _, _)| known != source);
+                area.terminals.granted.retain(|(known, _)| known != source);
                 area.granted.retain(|pending| pending.source != *source);
                 *target = Target::Offline(source.name().clone());
                 changed = true;

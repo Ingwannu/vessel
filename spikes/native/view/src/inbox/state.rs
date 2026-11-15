@@ -19,6 +19,8 @@ pub struct Snapshot {
     pub counts: Counts,
     /// Whole-projection session rollups; None explicitly uses legacy log marks.
     pub attention: Option<Vec<vessel_proto::inbox_attention::SessionAttention>>,
+    /// Explicit terminal attention; None means the peer lacks this contract.
+    pub terminals: Option<Vec<super::terminals::Row>>,
     /// Loaded rows, newest first.
     pub entries: Vec<Entry>,
     /// Continuation of the selected page, never inferred from loaded rows.
@@ -72,6 +74,7 @@ pub struct Inbox {
     nodes: Vec<Node>,
     serial: u64,
     selected: Option<Key>,
+    terminal_notices: Vec<(Source, vessel_proto::notifications::TerminalAttention)>,
 }
 impl Inbox {
     /// Retained node scopes for list rendering and failure reporting.
@@ -212,6 +215,15 @@ impl Inbox {
 
         let changed = node.listing != Listing::Ready || node.snapshot.as_ref() != Some(&snapshot);
         let notices = fresh_notices(node, &snapshot);
+        if node.hydrated
+            && let Some(previous) = node.snapshot.as_ref()
+        {
+            for state in super::terminals::fresh(previous, &snapshot) {
+                if self.terminal_notices.len() < super::notices::MAX_PENDING_NOTICES {
+                    self.terminal_notices.push((node.source.clone(), state));
+                }
+            }
+        }
         node.high_water = snapshot
             .entries
             .iter()
@@ -222,6 +234,14 @@ impl Inbox {
         node.hydrated = true;
         node.listing = Listing::Ready;
         (changed, notices)
+    }
+
+    /// Drain bounded terminal delivery opportunities from accepted snapshots.
+    #[must_use]
+    pub fn take_terminal_notices(
+        &mut self,
+    ) -> Vec<(Source, vessel_proto::notifications::TerminalAttention)> {
+        std::mem::take(&mut self.terminal_notices)
     }
 
     /// A node-book removal discards its attention and invalidates selection.
@@ -282,6 +302,15 @@ fn valid(id: NodeId, snapshot: &Snapshot) -> bool {
         .entries
         .iter()
         .all(|entry| entry.key.node == id && seen.insert(entry.key))
+        && {
+            let mut terminals = HashSet::new();
+            snapshot.terminals.iter().flatten().all(|row| {
+                terminals.insert(row.terminal)
+                    && row
+                        .attention
+                        .is_none_or(|state| state.terminal == row.terminal)
+            })
+        }
 }
 
 fn fresh_notices(node: &Node, snapshot: &Snapshot) -> Vec<Key> {

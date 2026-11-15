@@ -114,3 +114,8 @@ inbox-bucket-review = 검토할 준비됨
 
 # Sidebar status heading; priority matches keyboard session navigation.
 inbox-bucket-done = 완료
+
+# Terminal attention metadata in the shared inbox.
+inbox-terminals = 터미널
+# Fallback name for a terminal without a user-supplied title.
+inbox-terminal-untitled = 이름 없는 터미널

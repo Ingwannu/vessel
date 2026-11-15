@@ -336,3 +336,22 @@ forms after retirement. G4's own evidence remains bounded source/Link evidence;
 this adoption still needs its own exact changed-source native checks and final
 package gate. The private follow staging remains unused; no live-stream adoption
 or whole-package approval is implied.
+
+## Terminal attention consumer
+
+Reuse decision: project the existing `terminal.list` metadata into the same node
+Inbox snapshot and call the canonical ADR 0089 claim/clear DTOs through G4's
+selected admission. No terminal parser, pane manager, HTTP ingress or session id
+is invented. Unassigned/old peers retain `terminals: None`; raw shell output does
+not imply Working or Finished. New exact semantic revisions announce once after
+initial hydration; reconnect is silent. Clear retains the observed revision and
+never clears a successor. OS text and tags follow the same generic/opaque policy
+as session entries. Notification activation reveals the exact terminal row in
+Inbox until the checked terminal/layout owner can reveal a real resident.
+
+C2 explicitly reports no ready TerminalId resident/focus producer yet. Therefore
+no terminal focus capability is advertised and no SessionId TUI is converted to a
+TerminalId. Passive visible-terminal clearing and direct pane reveal remain
+unverified/unwired owner integration work; explicit row clearing is staged here.
+Workspace bulk marking still requires W11's authoritative membership and W2's
+capability-gated root relationships; retained membership alone is insufficient.

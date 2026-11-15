@@ -67,13 +67,27 @@ impl DeliveryTag {
     }
 }
 
+/// Local-only destination; OS callbacks carry only the unrelated random tag.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Destination {
+    /// Exact session inbox entry.
+    Session(Key),
+    /// Exact node terminal, with no invented session relationship.
+    Terminal(super::terminals::Key),
+}
+impl From<Key> for Destination {
+    fn from(key: Key) -> Self {
+        Self::Session(key)
+    }
+}
 /// Bounded, process-local open routing. Old notifications after a restart or
 /// eviction open the inbox generically rather than the wrong conversation.
 #[derive(Debug, Default)]
-pub struct NoticeRoutes(VecDeque<(DeliveryTag, Key)>);
+pub struct NoticeRoutes(VecDeque<(DeliveryTag, Destination)>);
 impl NoticeRoutes {
     /// Keep the source locally; it must never be serialized into the OS tag.
-    pub fn remember(&mut self, tag: DeliveryTag, key: Key) {
+    pub fn remember(&mut self, tag: DeliveryTag, key: impl Into<Destination>) {
+        let key = key.into();
         self.0.retain(|(known, _)| *known != tag);
         if self.0.len() == MAX_PENDING_NOTICES {
             let _oldest = self.0.pop_front();
@@ -82,7 +96,7 @@ impl NoticeRoutes {
     }
     /// Activation is consumed once, including duplicate callback delivery.
     #[must_use]
-    pub fn take(&mut self, tag: DeliveryTag) -> Option<Key> {
+    pub fn take(&mut self, tag: DeliveryTag) -> Option<Destination> {
         let index = self.0.iter().position(|(known, _)| *known == tag)?;
         self.0.remove(index).map(|(_, key)| key)
     }
@@ -120,7 +134,7 @@ mod tests {
         let tag = DeliveryTag::new([1; 16]);
         let mut routes = NoticeRoutes::default();
         routes.remember(tag, key);
-        assert_eq!(routes.take(tag), Some(key));
+        assert_eq!(routes.take(tag), Some(Destination::Session(key)));
         assert_eq!(routes.take(tag), None);
         assert_eq!(NoticeRoutes::default().take(tag), None);
         let total = MAX_PENDING_NOTICES.checked_add(1).unwrap();

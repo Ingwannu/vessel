@@ -22,7 +22,15 @@ pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
         let _closed = shell.update(cx, |shell, cx| {
             shell.route_to(Route::Inbox);
             if let Some(key) = key.and_then(|tag| shell.areas.inbox.notice_routes.take(tag)) {
-                shell.inbox_select(key, cx);
+                match key {
+                    vessel_app_view::inbox::notices::Destination::Session(key) => {
+                        shell.inbox_select(key, cx)
+                    }
+                    vessel_app_view::inbox::notices::Destination::Terminal(key) => {
+                        shell.areas.inbox.terminals.selected = Some(key)
+                    }
+                }
+                cx.notify();
             }
             cx.activate(true);
         });
@@ -37,13 +45,28 @@ impl Shell {
         let title = if self.prefs.settings.notifications.title {
             let count =
                 usize::try_from(self.areas.inbox.store.counts().unread()).unwrap_or(usize::MAX);
-            vessel_app_view::notices::title_with(self.t.app, count)
+            let terminal_count = self
+                .areas
+                .inbox
+                .store
+                .nodes()
+                .iter()
+                .filter_map(|node| node.snapshot.as_ref())
+                .flat_map(|snapshot| snapshot.terminals.iter().flatten())
+                .filter(|row| {
+                    row.attention
+                        .is_some_and(vessel_app_view::inbox::terminals::announces)
+                })
+                .count();
+            vessel_app_view::notices::title_with(self.t.app, count.saturating_add(terminal_count))
         } else {
             self.t.app.to_owned()
         };
         window.set_window_title(&title);
         self.inbox_claim_notices(window);
+        self.inbox_terminal_claims(window);
         self.inbox_deliver_grants(window, cx);
+        self.inbox_terminal_deliver(window, cx);
     }
 
     fn inbox_claim_notices(&mut self, window: &Window) {
@@ -179,7 +202,7 @@ impl Shell {
     }
 }
 
-fn tag(token: DeliveryTag) -> String {
+pub(super) fn tag(token: DeliveryTag) -> String {
     format!("{TAG_PREFIX}{}", uuid::Uuid::from_bytes(token.bytes()))
 }
 fn parse_tag(text: &str) -> Option<DeliveryTag> {

@@ -13,6 +13,9 @@ impl Shell {
     pub(crate) fn inbox_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) -> bool {
         let mut changed = true;
         match answer {
+            Answer::Terminal(source, action, request, result) => {
+                return self.inbox_terminal_answer(source, action, request, result, cx);
+            }
             Answer::Claimed(source, key, request, result) => {
                 changed = false;
                 if let Some(pending) = self.areas.inbox.admission.take(&source, key, request) {
@@ -102,6 +105,11 @@ impl Shell {
                         .store
                         .receive_visible(source.node(), request, result);
                 changed = visible;
+                let opportunities = self.areas.inbox.store.take_terminal_notices();
+                let queued = &mut self.areas.inbox.terminals.queued;
+                let remaining = vessel_app_view::inbox::notices::MAX_PENDING_NOTICES
+                    .saturating_sub(queued.len());
+                queued.extend(opportunities.into_iter().take(remaining));
                 let area = &mut self.areas.inbox;
                 area.notices.retain(|key| area.store.entry(*key).is_some());
                 area.notices.extend(notices);

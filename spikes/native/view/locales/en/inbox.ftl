@@ -114,3 +114,8 @@ inbox-bucket-review = Ready to review
 
 # Sidebar status heading; priority matches keyboard session navigation.
 inbox-bucket-done = Done
+
+# Terminal attention metadata in the shared inbox.
+inbox-terminals = Terminals
+# Fallback name for a terminal without a user-supplied title.
+inbox-terminal-untitled = Untitled terminal

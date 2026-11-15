@@ -144,7 +144,7 @@ impl Shell {
             .fleet
             .machines
             .iter()
-            .filter(|machine| machine.name == source.name().as_str())
+            .filter(|machine| machine.connection_context().as_ref() == Some(source.context()))
             .flat_map(|machine| &machine.sessions)
             .find(|card| card.session == key.session)
             .map(Open::of);
