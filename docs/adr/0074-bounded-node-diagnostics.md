@@ -1,6 +1,8 @@
 # ADR 0074: Bounded typed diagnostics from one node
 
-Status: proposed, 2026-11-14.
+Status: proposed, 2026-11-14. Merged on the node line 2026-11-15 and
+assigned protocol 24 (`DIAGNOSTICS_PROTOCOL = Some(24)`); the `None` text
+below describes its review checkpoint.
 
 ## Context and reference evidence
 
@@ -191,3 +193,41 @@ Slice 1 is this proposal and plan only. No diagnostic collector, wire call,
 CLI or native integration has been implemented or runtime-verified here.
 The node plan owns executable acceptance rows and explicit handoff to the app
 owner; this track does not edit `spikes/native` or register a native area.
+
+## E4 product wiring decisions (Quality B)
+
+The pending `node.diagnostics` row is now registered through Quality B's one
+`method_table!`, with Read, unary shape and `DIAGNOSTICS_PROTOCOL = None`.
+No assigned number is invented. `Method::shape()` excludes Envelope from the
+code/time-only failure journal; the generated guard observes the complete
+local outcome including authority refusal. Diagnostics is not fleet-forwardable
+and direct agents retain effective Read admission, like `node.info`. The node's startup clock
+is captured before configuration/store I/O and listener state is published only
+after successful binding. A weak relay reference prevents a service cycle.
+
+Self-process metrics belong to `vessel-proc`, as a process primitive, not a
+second decoder in the node. Linux reads only `/proc/self/status`, capped by
+`MAX_STATUS_BYTES` beside that source. It decodes this process's pid, optional
+parent and checked RSS/virtual bytes. Raw names, group lists, paths and lines
+are discarded at the edge. Missing memory stays unavailable; other operating
+systems explicitly return Unsupported. No new dependency, external command,
+arbitrary process enumeration or environment access is introduced. The wire
+uses a separate checked process identity and JSON-safe count saturation.
+
+The response sources share `RESPONSE_BUDGET`; caller timeout does not kill
+blocking filesystem work. Existing D3 admission leases remain in queued and
+running jobs and keep shutdown tracking/capacity until completion. The typed
+client has a separate end-to-end `DIAGNOSTIC_REQUEST_TIMEOUT`. Typed source
+errors retain their causes internally; only closed reasons enter the report.
+
+The CLI now has a bounded text/JSON renderer and a safe error boundary.
+Assigned-protocol successful wire execution and complete package acceptance
+are tracked separately from selected source/runtime checks. Provider diagnostics belongs to
+A9/W22 and is not implemented or registered by E4.
+
+The self-process decoder reuses the canonical root `vessel_proc::ProcessId`
+from the process-observation owner. It keeps the checked kernel u64-to-u32
+conversion cause and the canonical nonzero constructor cause. A numeric PID
+is an observation, not a lifetime or signalling authority; collection neither
+issues nor changes a ProcessLifetime guard. The wire process id remains a
+separate validated protocol value.
