@@ -203,10 +203,14 @@ shown and a partial comparison cannot claim the commands are unchanged.
   both text and serde for Unix, drive and UNC paths; NUL keeps its own
   diagnostic. The absolute per-component limit remains a native execution
   check, with its reason in ADR 0066.
+- Implemented refactor: one `trim_project_text` input rule now serves
+  port ranges and terminal entries. Their existing tests and digest vectors
+  are unchanged; a shared-rule test pins BOM, NEL and Unicode line/paragraph
+  separators. No accepted input, approval bytes or execution path changes.
 - Then: add the nonempty allocation block and project-relative program
   path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
-  serde through private owners; share the existing JavaScript trim rule
-  across the input edges. A relative bare program is project-rooted,
+  serde through private owners and the shared trim rule. A relative bare
+  program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
   and relative-link containment remain owed. Then add
   the file parser, digest, approval snapshots and exhaustive clients in

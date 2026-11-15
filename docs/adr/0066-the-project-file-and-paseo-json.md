@@ -330,14 +330,18 @@ allocator passes the trimmed command to the plugin's `execFile` wrapper
 (`workspace-service-port-allocator.ts:58–72`,
 `packages/plugin/src/server/process.ts:76–100`); a bare command name uses
 Node's [PATH lookup](https://github.com/nodejs/node/blob/v22.x/doc/api/child_process.md).
-Vessel treats even a bare name as relative to the approved project root,
-without consulting PATH. It also keeps `RelPath`'s portable forward-slash
+Vessel treats even a bare name as relative to the checkout root the way
+`dir` is, without consulting PATH. For a worktree this is its own folder,
+so it runs that worktree's copy of the program while approval covers the
+project file's text. The allocator's cwd is this checkout root; `dir`
+changes the named script's cwd only. Vessel also keeps `RelPath`'s portable forward-slash
 grammar and refusals, including parent, backslash, control and repository
 metadata components. These are the existing project containment floor:
 approval must not silently select an executable elsewhere through PATH
 or a relative path that escapes the root. The runtime test
 `bare_port_script_is_resolved_under_the_approved_root` must put a different
-fake program on PATH and prove that the project program is selected.
+fake program on PATH and prove that the checkout's program is selected,
+including the worktree's copy when it differs from the project's copy.
 Relative symlinks are resolved and checked by `Root::existing` at execution;
 the digest continues to cover the approved text, not a machine's resolved
 filename. These runtime tests remain unimplemented in the value slice.

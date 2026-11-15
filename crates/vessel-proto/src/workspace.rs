@@ -16,6 +16,7 @@ mod git;
 mod path;
 mod port_range;
 mod project;
+mod project_text;
 mod service_port;
 mod support;
 mod text;
@@ -48,6 +49,7 @@ pub use project::{
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
     ProjectState, RemoveProject,
 };
+pub use project_text::trim_project_text;
 pub use service_port::{InvalidServicePort, ServicePort};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
