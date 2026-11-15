@@ -61,6 +61,7 @@ pub struct SessionRuntime {
     /// session asks for its prompts' attachments.
     attachments: Option<AttachmentLoader>,
     checkpoints: Option<crate::CheckpointHooks>,
+    starts: Option<crate::StartupHooks>,
     /// How long an idle structured session runs before its agent is
     /// parked, as the node now says (protocol 12, ADR 0038): every actor
     /// follows it, so a change applies to live sessions at once.
@@ -97,6 +98,7 @@ impl SessionRuntime {
             sessions: RwLock::new(HashMap::new()),
             attachments: None,
             checkpoints: None,
+            starts: None,
             park_after,
             claims: claims::Claims::default(),
             drivers: drivers::Drivers::default(),
@@ -130,6 +132,14 @@ impl SessionRuntime {
     #[must_use]
     pub fn with_attachments(mut self, loader: AttachmentLoader) -> Self {
         self.attachments = Some(loader);
+        self
+    }
+
+    /// Bind replacement starts to node-owned lifecycle/physical admission.
+    /// This does not alter existing actors or grant filesystem authority.
+    #[must_use]
+    pub fn with_startup_hooks(mut self, hooks: crate::StartupHooks) -> Self {
+        self.starts = Some(hooks);
         self
     }
 

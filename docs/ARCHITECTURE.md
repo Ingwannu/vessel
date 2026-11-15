@@ -1842,3 +1842,10 @@ Bootstrap installs turn hooks only when FILE_CHECKPOINTS has its centrally
 assigned version; None leaves baseline turn history untouched. Private fixtures
 may install the typed runtime bridge directly while the wire fixture awaits
 activation. The private collector can reconcile existing journals independently.
+
+Session replacement starts have an optional bounded StartupHooks seam shared by
+wake/move/fork/rewind. A typestate permit marks Starting before spawn and reports
+NotStarted or runtime-owned Registered afterwards. Node lifecycle/root guards
+remain on the node; sender loss while Starting retains uncertainty, and no PID
+or revocation stands for cleanup. The node consumer awaits the canonical
+registry/restart lease producer and is not installed by this source seam.

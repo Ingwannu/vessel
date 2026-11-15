@@ -983,3 +983,26 @@ semicolon in archive verification, and an unconsumed pause Signal in the lost
 receipt regression. The source now terminates the unit statement and explicitly
 asserts Released for that signal. No runtime tests ran; later dependency graph
 and newer producer/collector/physical-binding source still require checks.
+
+### Replacement-start actor seam (source; node consumer staged)
+
+StartupHooks provides bounded queue-inclusive admission for the one start_agent
+path shared by wake, move, fork and rewind. Before any spawn, a granted permit
+becomes Starting. Synchronous spawn failure reports NotStarted; ownership and
+runtime publication report Registered before handshake processing. A dropped
+granted permit never began spawn, while Starting plus sender loss is unknown
+and must keep node exclusion. Registered grants no descendant/I/O cleanup proof.
+The node must bind W11's canonical lifecycle/restart claim and the existing
+physical RootLease before granting; that consumer is not installed yet and no
+local replacement registry/lock is introduced. Initial creation/resume still
+uses its existing retained node admission.
+
+Restart::Admission preserves typed refusal. A move that already linked the
+target profile retains its conversation claim on this failure just as it does
+for spawn/handshake failure; a failed pre-move wake keeps its existing behavior.
+Protocol fixtures distinguish dropped pre-spawn permission from unknown begun
+spawn, terminal progress after sender loss, lost node observer and queue-time
+expiry. The fake ACP wake fixture holds admission, refuses without publishing
+a replacement, then grants and observes the actual admitted wake/next turn.
+These tests are unrun. Wire version/schema and runtime Config remain unchanged;
+there is no production activation option or consumer-ready claim.

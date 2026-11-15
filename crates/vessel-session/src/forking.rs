@@ -196,7 +196,8 @@ fn rewind_failed(failure: Restart) -> SessionError {
         | Restart::Spawn(AgentError::Refused(LaunchRefusal::Fork(refusal))) => {
             SessionError::ForkRefused(refusal)
         }
-        other @ (Restart::Spawn(_)
+        other @ (Restart::Admission(_)
+        | Restart::Spawn(_)
         | Restart::Handshake(_)
         | Restart::Exited(_)
         | Restart::Woken(_)) => SessionError::RewindFailed(other.to_string()),

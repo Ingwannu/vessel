@@ -122,6 +122,9 @@ pub enum MoveError {
 /// Why the new agent did not start.
 #[derive(Debug, thiserror::Error)]
 pub enum Restart {
+    /// The node refused physical/lifecycle admission before spawning.
+    #[error("{0}")]
+    Admission(#[source] crate::StartupRefusal),
     /// It could not be spawned.
     #[error("{0}")]
     Spawn(#[source] AgentError),
@@ -410,10 +413,22 @@ impl StructuredActor {
         &mut self,
         launch: &Launch,
     ) -> Result<Result<(), Restart>, MoveError> {
+        let admitted = match self.admit_restart(launch).await? {
+            crate::checkpoint::RestartAdmission::Detached => None,
+            crate::checkpoint::RestartAdmission::Admitted(attempt) => Some(attempt),
+            crate::checkpoint::RestartAdmission::Refused(reason) => {
+                return Ok(Err(Restart::Admission(reason)));
+            }
+        };
         let (agent, input, outputs) =
             match AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone()) {
                 Ok(started) => started,
-                Err(error) => return Ok(Err(Restart::Spawn(error))),
+                Err(error) => {
+                    if let Some(admitted) = admitted {
+                        admitted.not_started();
+                    }
+                    return Ok(Err(Restart::Spawn(error)));
+                }
             };
         self.life.out.running(Some(agent.lifetime()));
         self.agent = agent;
@@ -422,6 +437,9 @@ impl StructuredActor {
         self.outputs_open = true;
         self.move_state.replaying = true;
         self.move_state.disconnect = None;
+        if let Some(admitted) = admitted {
+            admitted.registered();
+        }
         loop {
             if !self.move_state.replaying {
                 return Ok(Ok(()));

@@ -120,6 +120,8 @@ mod checkpoint;
 mod config;
 pub use checkpoint::{
     CheckpointAdvance, CheckpointHooks, CheckpointPause, CheckpointReceipt, CheckpointRequest,
+    START_ADMISSION_DEADLINE, StartupHooks, StartupPhase, StartupProgress, StartupRefusal,
+    StartupRequest,
 };
 mod conversation;
 mod delivery;

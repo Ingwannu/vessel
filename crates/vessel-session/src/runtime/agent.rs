@@ -95,6 +95,7 @@ impl SessionRuntime {
             desk,
             file_pause: crate::checkpoint::State::default(),
             checkpoints: self.checkpoints.clone(),
+            starts: self.starts.clone(),
             checkpoint_prompt: None,
             gate,
             loader: self.attachments.clone(),
@@ -327,7 +328,10 @@ impl SessionRuntime {
             moved,
             Ok(())
                 | Err(MoveError::Restart(
-                    Restart::Spawn(_) | Restart::Handshake(_) | Restart::Exited(_)
+                    Restart::Admission(_)
+                        | Restart::Spawn(_)
+                        | Restart::Handshake(_)
+                        | Restart::Exited(_)
                 ))
         ) {
             claim.keep();

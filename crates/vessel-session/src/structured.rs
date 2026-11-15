@@ -51,6 +51,7 @@ pub(crate) struct StructuredActor {
     pub(crate) desk: Desk,
     pub(crate) file_pause: crate::checkpoint::State,
     pub(crate) checkpoints: Option<crate::CheckpointHooks>,
+    pub(crate) starts: Option<crate::StartupHooks>,
     pub(crate) checkpoint_prompt: Option<vessel_proto::EventSeq>,
     /// A session started again (protocol 10, `again`) publishes nothing
     /// until its row is reopened: answered then, dropped if it is not.

@@ -52,7 +52,17 @@ impl Fixture {
         Self::configured(None, Some(hooks))
     }
 
+    pub(crate) fn startup_hooks(hooks: vessel_session::StartupHooks) -> Self {
+        Self::configured_with(None, None, Some(hooks))
+    }
     fn configured(after: Option<Duration>, hooks: Option<vessel_session::CheckpointHooks>) -> Self {
+        Self::configured_with(after, hooks, None)
+    }
+    fn configured_with(
+        after: Option<Duration>,
+        hooks: Option<vessel_session::CheckpointHooks>,
+        starts: Option<vessel_session::StartupHooks>,
+    ) -> Self {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let bin =
@@ -91,6 +101,10 @@ impl Fixture {
         );
         let runtime = match hooks {
             Some(hooks) => runtime.with_checkpoint_hooks(hooks),
+            None => runtime,
+        };
+        let runtime = match starts {
+            Some(hooks) => runtime.with_startup_hooks(hooks),
             None => runtime,
         };
         Self { runtime, bin }
