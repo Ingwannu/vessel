@@ -56,6 +56,7 @@ Kit attribution/About registries must list both direct dependencies.
 
 | Immutable source | Execution | Limit |
 |---|---|---|
+| Portable body5c9636a0 | Exact View/Kit/App all-target strict0; actual App `tool_body` tests3/0/0, runs `wp-timeline-narrow-20261115T180704Z-5c9636a0` and `wp-timeline-state-tests-20261115T182140Z-5c9636a0` | Proposed Ready/Loading draw, structural IDs and diff-cache work are exercised. This filter does not replace full three-crate ordinary tests; source review and final adoption remain held. |
 | 5e7c1a14 | View/Kit/App all-target strict rc0, run `wp-timeline-state-tests-20261115T180046Z-5e7c1a14` | Base9 union including glyph inventory and diff metadata cache compiles strictly. Later borrowed-failure signature6729c607 is excluded; App/Kit execution remains queued. |
 | 4b591a90 | Run `wp-timeline-state-tests-20261115T165618Z-4b591a90`: App126/0/2 + Kit215/0/0 =341/0/2 | Real scoped pacing, borrowed-body and f4 Markdown-call source; excludes later diff metadata/failure-prose changes and base9 merge. |
 | 6d8c0cd8 | View all-target strict run `wp-timeline-narrow-20261115T165011Z-6d8c0cd8` rc0 | Includes About and spoken presentation. Base9 and later app-only kernel/source changes require their own union checks. |
@@ -67,7 +68,8 @@ Current in-progress feature execution is corrected base9 App/Kit tests
 on5e7c1a14; its all-target strict finished successfully. Main3a strict returned own import/test idiom diagnostics, now
 corrected without suppressions or weakened assertions; its red log remains.
 Portable body strictf839/ae256 stopped before tests on omitted closure adapters;
-corrected5c9636a0 checks are in progress. None is a current whole-source pass.
+corrected5c9636a0 strict and the three focused tests now pass. The same source's
+full three-crate ordinary tests are submitted; no whole native pass is inferred.
 An older still-queued View74 run was explicitly superseded, confirmed terminal143
 before its one ordinary replacement; its retained logs are not a failure/PASS.
 
@@ -110,6 +112,10 @@ before its one ordinary replacement; its retained logs are not a failure/PASS.
 6. **Semantic output and actions:** K supplies the single syntax mapping/resolver;
    B2/W6/W13 supply actual scoped links/images/root authorization. Actions remain
    None until then; no copied palette, opener or selected-route fallback.
+   The selectable user-prompt draft stays isolated: the current HTML TextView
+   rejects rendered find/reveal ranges and its highlight type has no current-ink
+   override. B2 must coordinate one opt-in capability in that same engine. A
+   retained mark cache key cannot prove that unsupported ranges were accepted.
 7. **Notice/plugin producers:** W18/W23 own the trusted durable notice join under
    ADR0033/0084; the notification body stays level+message with EventRecord.seq
    identity. W16 supplies validated installed plugin surfaces separately. The
