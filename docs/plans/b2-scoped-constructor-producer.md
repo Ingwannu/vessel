@@ -8,3 +8,12 @@
 - Impact: one closure allocation per field; existing function items remain accepted. No extra engine, subscription, protocol, dependency or selected-route fallback. Windowed callbacks from the separate appearance owner must be preserved when combining.
 
 This first leaf contains only the callback control and its captured-Enter regression. It excludes composer height policy, submit-press metadata, send settings, Markdown, attachments and live resident activation. It is prepared on the announced native base `6ebdf8e8`; the source is not an exact standalone compilation or execution pass. The broader composer predecessor contains the same callback design but its evidence does not approve this new combination.
+
+
+## Resource construction leaf
+
+Only `SessionView` and its constructor move to `session/resource.rs`; the parent reexports the same type. `Open`, `Pending`, lifecycle/follow and submit implementations remain byte-for-byte on their existing paths. The selected-session product constructor allocates its one existing callback field and delegates to `with_composer`; the latter never allocates another field. The restore slot is `pub(super)` so the parent retains its existing access.
+
+The opt-in `new_scoped` remains literal `cfg(test)`. It captures the original resident token and claim, refreshes only that same local identity/claim through the sole registry at submit, and requires the current Visible and Focused state. It never substitutes a selected route, re-admits identity or refreshes network settlement. The real keyboard regression retains one field across moves and refuses hidden/released claims, while preserving the sibling draft. This is bounded staged construction, not product layout synchronization, real backing admission, stream hydration or authority. The canonical registry/minter remains staged; W12 owns their coordinated cutover.
+
+The retention/snapshot adapter and submit-press metadata remain separate follow-ups. This minimal constructor has no dependency on the B2 surface or send modules. No recorded size ceiling is raised. Exact combined VM verification is outstanding.
