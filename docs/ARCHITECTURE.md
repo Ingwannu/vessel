@@ -1536,3 +1536,22 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+
+### ADR 0087 comparison reads
+
+`vessel-workspace::git::Comparison` selects committed-only, uncommitted, All or
+one immutable commit through the existing protected runner and typed parsers.
+All can restore base entries into an exclusive private index while preserving
+the person's real index byte-for-byte. The library's complete read entry points
+await cleanup on success and failure; a request-bound cancellation token reaches
+every preparation and diff subprocess. The node retains the operation on its
+existing task tracker through cleanup, independently of its reply receiver.
+
+The workspace-pinned `tempfile` (MIT OR Apache-2.0), previously test-only here,
+owns that bounded lease in the workspace crate. This reuses collision-safe
+creation and removal rather than a second temporary-file implementation; Unix
+scratch entries start at0700/0600 and the repository's modes stay unchanged.
+The node supplies its absolute scratch parent. New Quality B methods remain
+pending until the integrator assigns their protocol admission; legacy calls
+and their existing scope meanings remain unchanged.

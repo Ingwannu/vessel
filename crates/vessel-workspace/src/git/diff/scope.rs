@@ -10,10 +10,8 @@ use super::Resolved;
 use crate::git::{Git, GitError};
 
 impl Git {
-    /// ADR 0087's staged comparison resolver. Quality B wiring removes this
-    /// staging flag when the new read methods are admitted; old calls cannot
-    /// accidentally send a new enum variant to a peer that cannot decode it.
-    #[cfg(test)]
+    /// ADR 0087's comparison resolver. Separate pending methods keep the
+    /// existing admitted DiffScope calls and older peers unchanged.
     pub(crate) async fn resolve_comparison(
         &self,
         dir: &Path,

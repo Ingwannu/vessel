@@ -23,7 +23,7 @@ use std::time::Duration;
 use vessel_proto::workspace::{GitSupport, GitVersion};
 
 pub use clone::{Failed as CloneFailed, Progress as CloneProgress};
-pub use diff::Resolved;
+pub use diff::{Comparison, ComparisonError, Resolved};
 pub(crate) use redact::{redact, tail};
 pub use run::GitSetup;
 pub use run::own_config::OwnConfigRefusal;
@@ -36,6 +36,9 @@ pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
 #[derive(Debug, Clone)]
 pub struct Git {
     runner: run::Runner,
+    /// An owned comparison's cancellation reaches every helper command,
+    /// including base/index preparation, rather than only its final diff.
+    cancel: Option<tokio_util::sync::CancellationToken>,
     version: GitVersion,
     /// Shared by every clone: the runs that change a repository's
     /// worktrees take turns per repository (`repository_lock`).
@@ -110,6 +113,7 @@ impl Git {
                 support: GitSupport::Found { version },
                 git: Some(Self {
                     runner,
+                    cancel: None,
                     version,
                     worktrees: std::sync::Arc::default(),
                 }),
@@ -123,9 +127,23 @@ impl Git {
         self.version
     }
 
+    /// Bind a tracked operation's cancellation to all of its subprocesses.
+    /// Existing unbound callers retain their current runner behaviour.
+    #[must_use]
+    pub fn cancellable(&self, token: tokio_util::sync::CancellationToken) -> Self {
+        Self {
+            cancel: Some(token),
+            ..self.clone()
+        }
+    }
+
     /// A command run in `dir`.
     pub(crate) fn command(&self, dir: &Path) -> GitCommand {
-        self.runner.command(dir)
+        let command = self.runner.command(dir);
+        match &self.cancel {
+            Some(token) => command.cancel_on(token.clone()),
+            None => command,
+        }
     }
 }
 

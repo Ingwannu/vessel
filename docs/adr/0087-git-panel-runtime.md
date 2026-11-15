@@ -27,8 +27,11 @@ second method table is introduced. Registry identity belongs to ADR 0082.
 - Relabel Base as Committed: returns the wrong changes.
 - Poll every individual file and status from every panel: duplicate work,
   lost invalidation, transient false empty states and high process counts.
-- New filesystem/git dependencies: existing workspace/file observation and
-  process ownership suffice; no new dependency is proposed.
+- A handwritten temporary-file allocator would duplicate collision-safe names,
+  exclusive creation and cleanup. The workspace-pinned tempfile dependency
+  already used in tests provides the private index lease in production too;
+  it keeps MIT OR Apache-2.0 licensing and introduces no git/parser engine.
+  Existing process ownership and the shared filesystem observer remain reused.
 
 ## Choice
 
@@ -76,7 +79,9 @@ credential redaction, execution deadlines and repository serialization remain.
 Merge targets are resolved/validated under the same worktree ownership rules;
 conflict cleanup cannot act on another checkout. Passive fetch cannot prompt.
 Each correlated rejection settles a typed failure, including unsent/full/closed.
-No service files, permissions or platform-specific signals are introduced.
+No service files or platform-specific signals are introduced. Private index
+scratch entries are created owner-only (0700 directory/0600 file on Unix);
+existing repository/index permissions are never changed.
 
 ## Compatibility and costs
 
@@ -92,3 +97,17 @@ observable ordering, cancellation, freshness and ownership are preserved and
 tested. Runtime/cache ownership adds state on the node but avoids per-panel
 pollers and duplicate subprocesses. No stronger atomic filesystem snapshot is
 claimed than the git reads can provide; changed revisions supersede old data.
+
+
+## Comparison operation ownership
+
+The library exposes only complete comparison reads, not the private index path
+or a cloneable lease. Its summary and body entry points always finish cleanup
+on a blocking worker, retaining both failures if a read and cleanup fail.
+An explicitly bound cancellation token reaches every git helper command.
+The node must run this future on its existing TaskTracker until it returns:
+client disappearance drops only the reply receiver, never the cleanup future.
+Node shutdown cancels git commands and waits for tracked cleanup. The separate
+comparison queue admits at most64 reads and executes4 snapshots; it does not
+replace the runner's process pools. Cancellation/shutdown and resource-bound
+checks are required before pending method registration is called ready.

@@ -29,10 +29,12 @@ bounded by 128 paths and 16 KiB of conservatively escaped arguments. Clipped
 ls-files output or an incomplete restoration set is a typed failure, never
 false completeness. UTF-8/object/path decoding preserves its original source.
 
-Current service staging uses the existing test-only tempfile dependency. Before
-normal admission, resource ownership must include cancellation/shutdown cleanup,
-and any dependency promotion needs the matching ADR/architecture update. There
-is no production tempfile dependency, permission change or new transport yet.
+The existing workspace-pinned tempfile dependency is now a normal dependency
+for the complete comparison read API; ADR0087 and ARCHITECTURE record its
+license, alternative and tradeoff. Each entry point awaits private-index cleanup
+on success and failure. Bound cancellation reaches all helper commands. Node
+TaskTracker ownership and its bounded execution queue are the next caller;
+there is still no new admitted RPC, cache or transport.
 
 ## Verification boundaries
 
@@ -63,3 +65,11 @@ Quality B rows in the single method table. Complete revision/cache/watch,
 classified history, branch stash metadata, merge-to/from-base and generated
 commit behaviour. Root whole gate and V3 review occur once the node package is
 complete; app package verification remains separate.
+
+
+Latest executed staged result at614d8026: workspace library111 passed,0 failed,
+1 ignored, including actual Unix0700/0600 assertions. Run
+`wp-git-node-narrow-20261115T074017Z-614d8026`. This is the fixed private-mode
+source, not proof of the later complete-read entry points or their node caller.
+The complete-read API adds real-git tests for paired summary/body cleanup and
+cancellation after index preparation; those changed-source tests are pending.

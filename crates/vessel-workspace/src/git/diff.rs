@@ -15,10 +15,11 @@ mod file;
 mod scope;
 mod summary;
 
-// ADR 0087, pending Quality B admission: private-index All comparisons are
-// exercised here before any RPC can expose them. Wiring removes this flag.
-#[cfg(test)]
 mod all_index;
+mod comparison;
+
+pub use all_index::IndexError as ComparisonError;
+pub use comparison::Comparison;
 
 use std::path::{Path, PathBuf};
 

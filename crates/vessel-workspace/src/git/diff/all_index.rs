@@ -1,4 +1,4 @@
-//! Staged All comparison restoration after checkout-git.ts:3533–3577.
+//! All comparison restoration after checkout-git.ts:3533–3577.
 //! A path removed from HEAD/index but recreated on disk must be compared to
 //! its base blob once, rather than reported as deleted plus separately added.
 //!
@@ -9,8 +9,9 @@
 //! - Alternative: stage the person's index, or interpret patches in the app.
 //!   Both change authority and lose rename/mode behaviour.
 //! - Repeated cacheinfo arguments avoid extending the runner with stdin.
-//! - Quality B must give the runtime explicit lease/cancellation ownership;
-//!   this module remains test-staged, not an admitted service or cache.
+//! - The node runs comparisons on its task tracker: losing the requesting
+//!   connection never abandons the private index before explicit cleanup.
+//!   Both success and read failure close the lease on a blocking worker.
 
 use std::io::{Read as _, Write as _};
 use std::path::Path;
@@ -34,35 +35,47 @@ const CACHEINFO_ENTRY_BYTES: usize = 128;
 
 /// Keep disk and git failures typed without erasing their source.
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum IndexError {
+pub enum IndexError {
+    /// A protected git command failed.
     #[error("git could not prepare the All comparison")]
     Git(#[from] GitError),
+    /// Creating, copying or removing the private index failed.
     #[error("the comparison index could not be prepared")]
     Io(#[from] std::io::Error),
+    /// A blocking copy/cleanup task failed to join.
     #[error("the comparison index worker stopped")]
     Task(#[from] tokio::task::JoinError),
+    /// A base record contains invalid UTF-8.
     #[error("git printed a base index entry that is not UTF-8")]
     Utf8(#[from] std::str::Utf8Error),
+    /// A base record contains an invalid object id.
     #[error("git printed an invalid base object id")]
     Object(#[from] InvalidText),
+    /// A base record contains an escaping or invalid path.
     #[error("git printed an invalid base index path")]
     Path(#[from] InvalidRelPath),
+    /// Both the read and removing its private index failed.
     #[error("the All comparison failed and its private index could not be removed: {cleanup}")]
     Cleanup {
+        /// The original git failure.
         #[source]
         read: GitError,
+        /// The removal failure, retained alongside the original cause.
         cleanup: std::io::Error,
     },
+    /// Both the read and joining its cleanup task failed.
     #[error("the All comparison failed and its cleanup worker stopped: {cleanup}")]
     CleanupTask {
+        /// The original git failure.
         #[source]
         read: GitError,
+        /// The cleanup task failure, retained alongside the original cause.
         cleanup: tokio::task::JoinError,
     },
 }
 
-/// A staging lease; tests close it explicitly on a blocking worker. Before
-/// admission, the runtime must also prove cancellation and shutdown cleanup.
+/// Private lease: neither its path nor a cloneable scope escapes the read.
+/// The tracked node operation must await completion, including cleanup.
 #[must_use]
 #[derive(Debug)]
 pub(crate) struct Prepared {
@@ -71,6 +84,21 @@ pub(crate) struct Prepared {
 }
 
 impl Prepared {
+    /// Finish every read through one boundary; a failed read still waits for
+    /// cleanup, retaining both errors if removing its private index fails.
+    pub(super) async fn finish<T>(mut self, read: Result<T, GitError>) -> Result<T, IndexError> {
+        match read {
+            Ok(value) => {
+                self.close().await?;
+                Ok(value)
+            }
+            Err(read) => match self.directory.take() {
+                Some(directory) => Err(close_failed_read(directory, read).await),
+                None => Err(read.into()),
+            },
+        }
+    }
+
     pub(super) async fn changes(
         &self,
         git: &Git,
