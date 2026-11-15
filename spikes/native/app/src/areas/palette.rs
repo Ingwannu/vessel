@@ -10,26 +10,30 @@
 //! still a placeholder would be a dead end), and machines only once
 //! Settings › Machines is drawn.
 
+mod commands;
 mod entry;
+mod messages;
 mod rows;
+#[cfg(test)]
+mod tests;
 
 pub(crate) use entry::{sidebar_row, title_trigger};
 
-use rows::{child_at, glyph_of, ids, keys_of, subtitle};
+use rows::{child_at, ids};
 
 use gpui::{FocusHandle, ScrollHandle};
 use vessel_app_kit::command::{
-    CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandRowParts, CommandState,
-    CommandText, command_empty, command_frame_animated, command_heading, command_row_parts,
+    CommandAnimation, CommandFrame, CommandHandlers, CommandKey, CommandState,
+    command_frame_animated,
 };
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
-    Direction, PaletteCursor, PaletteEntry, PaletteTarget, marks, palette_entries, palette_groups,
+    Direction, MessageCursor, PaletteCursor, PaletteEntry, PaletteGroup, PaletteMode,
+    PaletteTarget, palette_entries, palette_groups,
 };
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 use vessel_app_view::settings::Section;
@@ -56,6 +60,12 @@ pub(crate) struct PaletteArea {
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
     cursor: PaletteCursor,
+    /// Message selection has record identity rather than a command id.
+    messages: MessageCursor,
+    /// Commands remain the normal entry; transcript search is explicit.
+    mode: PaletteMode,
+    /// A result can disappear between the query and selection.
+    unavailable: Option<messages::Unavailable>,
     /// The list's scroll, to keep the active row in sight.
     scroll: ScrollHandle,
     /// What held the keys before it opened.
@@ -81,6 +91,9 @@ impl PaletteArea {
             ),
             query: String::new(),
             cursor: PaletteCursor::default(),
+            messages: MessageCursor::default(),
+            mode: PaletteMode::default(),
+            unavailable: None,
             scroll: ScrollHandle::new(),
             prior: None,
         }
@@ -96,11 +109,15 @@ impl Shell {
         if !palette.motion.is_open() {
             palette.prior = window.focused(cx);
             palette.motion.present();
-            palette
-                .scroll
-                .set_offset(vessel_app_kit::ui::point(px(0.0), px(0.0)));
+            palette.scroll.set_offset(vessel_app_kit::ui::point(
+                px(vessel_app_kit::theme::spacing::S0),
+                px(vessel_app_kit::theme::spacing::S0),
+            ));
             palette.query.clear();
             palette.cursor.reset();
+            palette.messages.reset();
+            palette.mode = PaletteMode::default();
+            palette.unavailable = None;
             palette.search.set_placeholder(placeholder, window, cx);
             palette.search.clear(window, cx);
         }
@@ -118,17 +135,37 @@ impl Shell {
         palette.query.clear();
         palette.search.clear(window, cx);
         palette.cursor.reset();
+        palette.messages.reset();
+        palette.unavailable = None;
         if let Some(prior) = palette.prior.take() {
             prior.focus(window, cx);
         } else {
             window.blur(cx);
         }
+        self.message_search_query("", cx);
         cx.notify();
     }
 
     fn palette_searched(&mut self, text: String, cx: &mut Context<'_, Self>) {
+        if !self.areas.palette.is_open() {
+            return;
+        }
         self.areas.palette.query = text;
         self.areas.palette.cursor.reset();
+        self.areas.palette.messages.reset();
+        self.areas.palette.unavailable = None;
+        if self.areas.palette.mode == PaletteMode::Messages {
+            let query = self.areas.palette.query.clone();
+            self.areas
+                .palette
+                .scroll
+                .set_offset(vessel_app_kit::ui::point(
+                    px(vessel_app_kit::theme::spacing::S0),
+                    px(vessel_app_kit::theme::spacing::S0),
+                ));
+            self.message_search_query(&query, cx);
+            return;
+        }
         // A query reveals its highest-ranked row once. Passive fleet
         // refreshes only resolve identity and never commandeer scrolling.
         let all = self.palette_all();
@@ -168,10 +205,23 @@ impl Shell {
         if !settings::drawn(Section::Overview) {
             all.retain(|entry| !matches!(entry.target, PaletteTarget::Machine(_)));
         }
+        all.push(PaletteEntry {
+            id: "search-messages".to_owned(),
+            label: self.words.message_search().open().to_owned(),
+            detail: None,
+            keywords: Some("messages search".to_owned()),
+            group: PaletteGroup::Actions,
+            target: PaletteTarget::Messages,
+            activity_at: None,
+        });
         all
     }
 
     fn palette_key(&mut self, key: CommandKey, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.palette.mode == PaletteMode::Messages {
+            self.message_palette_key(key, window, cx);
+            return;
+        }
         match key {
             CommandKey::Up | CommandKey::Down => {
                 let all = self.palette_all();
@@ -208,8 +258,15 @@ impl Shell {
 
     /// Close the palette and do what `target` says.
     fn run_palette(&mut self, target: Target, window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.close_palette(window, cx);
+        if !matches!(target, PaletteTarget::Messages) {
+            self.close_palette(window, cx);
+        }
         match target {
+            PaletteTarget::Messages => {
+                self.palette_mode(PaletteMode::Messages, window, cx);
+                self.areas.palette.search.clear(window, cx);
+                self.palette_searched(String::new(), cx);
+            }
             PaletteTarget::NewSession(machine) => {
                 self.go(Route::Draft, window, cx);
                 if let Some(machine) = machine {
@@ -261,61 +318,17 @@ pub(crate) fn render(
     if motion.hidden {
         return None;
     }
-    let all = shell.palette_all();
-    let words = shell.t.lang.palette();
-    let theme = shell.prefs.settings.appearance.theme;
-    let query = shell.areas.palette.query.as_str();
-    let groups = palette_groups(&all, query);
-    let ids = ids(&groups);
-    let active = shell.areas.palette.cursor.settle(&ids);
-    let palette = &shell.areas.palette;
-    let list = if groups.is_empty() {
-        command_empty(words.nothing, tokens).into_any_element()
-    } else {
-        let mut children: Vec<AnyElement> = Vec::new();
-        for (at, (group, entries)) in groups.iter().enumerate() {
-            children.push(command_heading(words.group(*group), at == 0, tokens).into_any_element());
-            for entry in entries {
-                let row = CommandRowParts {
-                    glyph: Some(glyph_of(&entry.target)),
-                    title: CommandText::new(entry.label.clone(), marks(query, &entry.label)),
-                    subtitle: entry.detail.as_ref().map(|detail| subtitle(detail, query)),
-                    keys: keys_of(&entry.target, shell),
-                    checked: matches!(entry.target, PaletteTarget::Theme(shown) if shown == theme),
-                    active: active == Some(entry.id.as_str()),
-                };
-                let target = entry.target.clone();
-                let id = SharedString::from(format!("palette-{}", entry.id));
-                let arrived = row.active;
-                let drawn = command_row_parts(id.clone(), row, compact, tokens).on_click(
-                    cx.listener(move |shell, _event, window, cx| {
-                        if shell.areas.palette.motion.is_open() {
-                            shell.run_palette(target.clone(), window, cx);
-                        }
-                    }),
-                );
-                children.push(if arrived {
-                    vessel_app_kit::popup::fill_in(
-                        SharedString::from(format!("{id}-arrive")),
-                        drawn,
-                        tokens.neutral.surface1,
-                    )
-                    .into_any_element()
-                } else {
-                    drawn.into_any_element()
-                });
-            }
-        }
-        div()
-            .id("palette-list")
-            .flex_1()
-            .min_h(px(0.0))
-            .overflow_y_scroll()
-            .track_scroll(&palette.scroll)
-            .children(children)
-            .into_any_element()
+    let list = match shell.areas.palette.mode {
+        PaletteMode::Commands => commands::render(shell, tokens, window, cx),
+        PaletteMode::Messages => messages::render(shell, tokens, window, cx),
     };
-    let search = palette.search.bare(tokens, cx);
+    let search = div()
+        .flex()
+        .flex_col()
+        .child(messages::scope(shell, tokens, window, cx))
+        .child(shell.areas.palette.search.bare(tokens, cx))
+        .into_any_element();
+    let palette = &shell.areas.palette;
     Some(command_frame_animated(
         CommandFrame {
             search,

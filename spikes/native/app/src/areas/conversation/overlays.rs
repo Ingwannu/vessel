@@ -65,7 +65,6 @@ pub(crate) fn overlays(
     let area = &shell.areas.conversation;
     let narrow = breakpoint::phone(window);
     let mut floating = Vec::new();
-    floating.extend(super::search::example(shell, tokens, window, cx));
     floating.extend(going_back(shell, tokens, narrow, cx));
     let items = super::bar::menu_items(shell);
     if let Some(menu) = menu(

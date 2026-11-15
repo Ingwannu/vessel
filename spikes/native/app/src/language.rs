@@ -57,6 +57,7 @@ const PLACEHOLDERS: &[RefreshWords] = &[
             .set_placeholder(shell.t.lang.board().archive_search, window, cx);
     },
     |shell, window, cx| shell.refresh_find_words(window, cx),
+    |shell, window, cx| shell.refresh_palette_words(window, cx),
     Shell::refresh_question_words,
     |shell, window, cx| shell.refresh_queue_words(window, cx),
     |shell, window, cx| shell.refresh_project_words(window, cx),
