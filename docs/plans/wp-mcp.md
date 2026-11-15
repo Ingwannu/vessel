@@ -175,6 +175,11 @@ changes or captures are required by this node-only package.
   derived embedded catalogue. Fleet validates declaration identities, portable
   paths and byte/file/count bounds before any home can be modified. These
   assets are not installed by build or by catalogue reads.
+- Staged: `fleet::orchestration::staged` holds explicit home roots and safe
+  relative file primitives using the existing directory handles. It and two
+  directory helpers compile only in tests until the pending-row wiring commit;
+  no product endpoint can call them. Regression fixtures cover obsolete-file
+  edits, symlink refusal and same-root directory staging. Execution pending.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.
 

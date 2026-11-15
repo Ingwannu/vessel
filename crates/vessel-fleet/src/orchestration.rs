@@ -26,4 +26,21 @@ pub enum SkillError {
     /// Every selected skill needs a matching frontmatter identity.
     #[error("bundled skill has no matching SKILL.md declaration")]
     Declaration,
+    /// Only explicit absolute home roots may be used.
+    #[error("skill home must be an absolute path without traversal")]
+    Root,
+    /// A link, special file or unexpected directory blocks this operation.
+    #[error("a managed skill path is not a plain file or directory")]
+    Blocked,
+    /// A filesystem error is retained without quoting its private path.
+    #[error("skill filesystem operation failed")]
+    Io(#[from] std::io::Error),
+    /// A manifest must be decoded at its owning edge.
+    #[error("invalid managed skill manifest")]
+    Manifest(#[from] serde_json::Error),
 }
+
+// Staged while skill RPCs await the shared pending-row method table. The wiring
+// commit removes this attribute and mounts the node's serialized controller.
+#[cfg(test)]
+mod staged;
