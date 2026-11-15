@@ -18,7 +18,7 @@ use vessel_proto::providers::{
 /// Reference discovery budget; queued work shares this finite budget here.
 pub(super) const REFRESH_TIMEOUT: Duration = Duration::from_secs(120);
 pub(super) const PER_PROVIDER: usize = 4;
-const MAX_JOBS: usize = 32;
+pub(super) const MAX_JOBS: usize = 32;
 const MAX_WAITERS: usize = 64;
 const MAILBOX: usize = 32;
 /// Slow subscribers receive Lagged and must reread a cached snapshot.

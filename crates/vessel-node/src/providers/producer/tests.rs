@@ -2,7 +2,10 @@
 
 use super::super::cache::{Admission, Cache, Refresh};
 use super::*;
-use crate::profiles::launch::NoMcpServers;
+use crate::{
+    profiles::launch::NoMcpServers,
+    providers::owner::{MAX_JOBS, PER_PROVIDER},
+};
 use vessel_harness::providers::ProviderRegistry;
 use vessel_proto::providers::{
     CommandEdit, DisallowedTools, ProviderEnvironment, ProviderOverride, ProviderOverrides,
@@ -135,11 +138,11 @@ async fn unsupported_driver_missing_launcher_and_denied_policy_are_distinct_befo
 
 async fn lease() -> WorkLease {
     WorkLease::new(
-        Arc::new(tokio::sync::Semaphore::new(32))
+        Arc::new(tokio::sync::Semaphore::new(MAX_JOBS))
             .acquire_owned()
             .await
             .unwrap(),
-        Arc::new(tokio::sync::Semaphore::new(4))
+        Arc::new(tokio::sync::Semaphore::new(PER_PROVIDER))
             .acquire_owned()
             .await
             .unwrap(),
@@ -177,7 +180,7 @@ impl Drop for Gate {
 }
 
 fn gate() -> (Gate, tokio::sync::mpsc::Receiver<()>) {
-    let (entered, calls) = tokio::sync::mpsc::channel(32);
+    let (entered, calls) = tokio::sync::mpsc::channel(MAX_JOBS);
     (
         Gate(Arc::new(PreparationBarrier {
             entered,

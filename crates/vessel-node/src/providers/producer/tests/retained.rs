@@ -1,8 +1,14 @@
 //! Hold the actual Producer command-preparation closure, not a synthetic future.
 use super::*;
-use crate::providers::owner::{Owner, OwnerError, PER_PROVIDER, REFRESH_TIMEOUT};
+use crate::providers::owner::{MAX_JOBS, Owner, OwnerError, PER_PROVIDER, REFRESH_TIMEOUT};
 use tokio::{sync::mpsc, task::JoinHandle};
 use vessel_proto::providers::{Enabled, ProviderDiagnostic, ProviderKind, ProviderState};
+
+const PREPARATION_START_TIMEOUT: Duration = Duration::from_secs(10);
+const DEADLINE_SLACK: Duration = Duration::from_secs(1);
+const STOP_TIMEOUT: Duration = Duration::from_secs(5);
+const GLOBAL_TEST_TIMEOUT: Duration = Duration::from_secs(30);
+const SATURATED_PROVIDERS: usize = MAX_JOBS.div_ceil(PER_PROVIDER);
 
 fn fixtures(root: &std::path::Path, count: usize) -> ProviderOverrides {
     let fake = vessel_testkit::Fake::CodexAppServer.path().unwrap();
@@ -67,7 +73,7 @@ fn ask(owner: &Owner, provider: &str) -> JoinHandle<Result<ProviderDiagnostic, O
 }
 
 async fn entered(calls: &mut mpsc::Receiver<()>) {
-    tokio::time::timeout(Duration::from_secs(10), calls.recv())
+    tokio::time::timeout(PREPARATION_START_TIMEOUT, calls.recv())
         .await
         .unwrap()
         .unwrap();
@@ -83,7 +89,7 @@ async fn actual_preparation_retains_per_provider_slots_after_timeout_supersessio
     entered(&mut calls).await;
     // The timeout exists before the actual blocking closure enters its gate.
     tokio::time::pause();
-    tokio::time::advance(REFRESH_TIMEOUT + Duration::from_secs(1)).await;
+    tokio::time::advance(REFRESH_TIMEOUT + DEADLINE_SLACK).await;
     tokio::time::resume();
     let timed_out = first.await.unwrap().unwrap();
     assert!(matches!(
@@ -137,7 +143,7 @@ async fn actual_preparation_retains_per_provider_slots_after_timeout_supersessio
     assert!(!stopping.is_finished());
     assert!(!task.is_finished());
     gate.0.release();
-    tokio::time::timeout(Duration::from_secs(5), stopping)
+    tokio::time::timeout(STOP_TIMEOUT, stopping)
         .await
         .unwrap()
         .unwrap()
@@ -149,11 +155,15 @@ async fn actual_preparation_retains_per_provider_slots_after_timeout_supersessio
 
 #[tokio::test]
 async fn actual_preparation_global_capacity_and_stop_include_all_retained_workers() {
-    vessel_testkit::within(Duration::from_secs(30), async {
+    vessel_testkit::within(GLOBAL_TEST_TIMEOUT, async {
         let root = tempfile::tempdir().unwrap();
         let (gate, mut calls) = gate();
-        let (owner, task) = start(root.path(), &fixtures(root.path(), 9), &gate);
-        for provider in 0..8 {
+        let (owner, task) = start(
+            root.path(),
+            &fixtures(root.path(), SATURATED_PROVIDERS.saturating_add(1)),
+            &gate,
+        );
+        for provider in 0..SATURATED_PROVIDERS {
             let name = format!("fixture-{provider}");
             let mut previous = None::<JoinHandle<Result<ProviderDiagnostic, OwnerError>>>;
             for _ in 0..PER_PROVIDER {
@@ -170,10 +180,11 @@ async fn actual_preparation_global_capacity_and_stop_include_all_retained_worker
             // Cancel the caller, but the actual fourth preparation stays owned.
             previous.as_ref().unwrap().abort();
         }
-        let queued = ask(&owner, "fixture-8");
+        let extra = format!("fixture-{SATURATED_PROVIDERS}");
+        let queued = ask(&owner, &extra);
         tokio::task::yield_now().await;
         let _barrier = owner
-            .cached("fixture-8".parse().unwrap(), CatalogueScope::Global)
+            .cached(extra.parse().unwrap(), CatalogueScope::Global)
             .await
             .unwrap();
         assert!(calls.try_recv().is_err());
