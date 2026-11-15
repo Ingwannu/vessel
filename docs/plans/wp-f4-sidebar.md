@@ -357,3 +357,13 @@ compact hints and reads the effective keyboard registry; its final W22b
 primary-key seam and actual long-label/action fit remain to be integrated
 and verified. E2 reserved only three mechanical tooltip-clear calls at its
 existing navigation controller entries; its frame/nav/layout remain untouched.
+
+### Narrow check correction at 10:38 UTC
+
+The existing local check at `13c9afbfe` finished with Clippy 101 before the
+filtered tests ran (`f4-core-narrow-2`). Two test assertions accidentally gained
+`let _token =` while correcting ignored successful registration results. Restore
+those assertions as expressions; the production admission policy and both error
+expectations remain unchanged. This is an author error, not a base failure.
+All subsequent compilation, tests, capture builds and gates use the remote
+build helper, following the operator's 10:3x rule. No local Cargo job remains.

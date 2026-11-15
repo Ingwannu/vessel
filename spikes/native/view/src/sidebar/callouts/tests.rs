@@ -73,7 +73,7 @@ fn capacity_and_counter_refusals_preserve_the_preceding_registration() {
         let _token = state.register(id, Priority::default(), None, id).unwrap();
     }
     assert_eq!(
-        let _token = state.register(MAX_CALLOUTS, Priority::new(100), None, 99),
+        state.register(MAX_CALLOUTS, Priority::new(100), None, 99),
         Err(Problem::ProvidersFull)
     );
     assert_eq!(state.active().unwrap().content(), &0);
@@ -81,7 +81,7 @@ fn capacity_and_counter_refusals_preserve_the_preceding_registration() {
     assert_eq!(state.active().unwrap().content(), &100);
     state.next = u64::MAX;
     assert_eq!(
-        let _token = state.register(0, Priority::new(100), None, 200),
+        state.register(0, Priority::new(100), None, 200),
         Err(Problem::TokensExhausted)
     );
     assert_eq!(state.active().unwrap().content(), &100);
