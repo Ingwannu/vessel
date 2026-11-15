@@ -1,6 +1,11 @@
 # 0082: Explicit project metadata and independent workspaces
 
-Status: proposed
+Status: proposed. On 2026-11-15 the six registry metadata methods
+(`workspace.registry`, `.list`, `.get`, `.rename`, `.pin`,
+`.release_automation`) merged on the node line and were assigned protocol 25
+(`PROJECT_WORKSPACE_REGISTRY = Some(25)`); creation, provisioning, archive,
+restore, config and editor work stay unassigned. Text below saying no
+protocol number is claimed describes the review checkpoint.
 
 ## Purpose and intent
 

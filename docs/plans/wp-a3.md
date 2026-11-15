@@ -391,3 +391,12 @@ the same half-deadline intervals, and the callback now has its required
 semicolon. Test semantics and deadlines are unchanged. Its receipt remains red;
 changed-source strict/tests are still required, after the approved node review
 correction qualification.
+
+The announced base10 (3e7820e3) is merged before the next native check. Its
+staged A7 resident owner/seat/tests arrive byte-identical to the base, while A3
+keeps its existing recursive navigation vote and one window-owned search value.
+Only the Architecture append conflicted; both complete texts are preserved.
+No staging attribute or shared delivery/fixture exposure is changed. All 57
+native Rust delta files pass formatting, and native size/tokens/diff checks
+pass. This is source integration evidence; no union compilation/runtime or
+navigation authority is inherited from the base's green gate.
