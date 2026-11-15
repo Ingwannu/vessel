@@ -1,6 +1,9 @@
-//! Typed host-level skill administration; unavailable while MCP_PARITY is pending.
+//! Typed host-level skill administration; unavailable while `MCP_PARITY` is pending.
 use crate::NodeClient;
-use vessel_proto::skills::*;
+use vessel_proto::skills::{
+    GetSkillsStatus, ImportSkillsSelection, ReconcileSkills, SaveSkillsSelection, SkillsImported,
+    SkillsSaved, SkillsSnapshot, UninstallSkills,
+};
 use vessel_rpc::CallError;
 
 impl NodeClient {

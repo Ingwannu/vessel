@@ -386,3 +386,9 @@ canonical path, so a supported relative node data directory is not rejected
 as a relative skill root. Manifest unknown fields are refused rather than
 being erased by an older writer. Unknown skill selections remain invalid
 requests through both direct validation and the transactional save error.
+
+
+Exact ee3be73e store tests pass 85/0/0. Its strict check stopped in the new
+client adapter on a wildcard import and a documentation backtick lint; those
+are corrected explicitly, without suppressions. Protocol's earlier 289/0/0
+result is retained separately from that strict failure.
