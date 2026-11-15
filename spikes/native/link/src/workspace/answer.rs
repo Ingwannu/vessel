@@ -43,6 +43,8 @@ pub enum GitWritten {
 pub enum Answer {
     /// A correlated script read or lifecycle receipt.
     Scripts(super::ScriptAnswer),
+    /// Correlated backing-entity action result.
+    Layout(super::layout::Answer),
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -249,6 +251,14 @@ impl Ask {
 pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
     match ask {
         Ask::Scripts(ask) => Answer::Scripts(super::scripts::refused(ask, problem)),
+        Ask::Layout(ask) => Answer::Layout(ask.refused(match problem {
+            Problem::Unsent => vessel_app_view::layout::RenameProblem::Busy,
+            Problem::Node { code, .. } => vessel_app_view::layout::RenameProblem::Node(*code),
+            Problem::Older => {
+                vessel_app_view::layout::RenameProblem::Node(vessel_proto::ErrorCode::Unsupported)
+            }
+            Problem::Gone(_) => vessel_app_view::layout::RenameProblem::Offline,
+        })),
         Ask::Project(ask) => project_refused(ask, problem),
         Ask::Worktree(ask) => worktree_refused(ask, problem),
         Ask::Git(ask) => git_refused(ask, problem),

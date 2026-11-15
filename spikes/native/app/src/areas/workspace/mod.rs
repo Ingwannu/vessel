@@ -130,6 +130,7 @@ impl Shell {
     ) -> bool {
         match answer {
             Answer::Scripts(answer) => self.scripts_answer(answer, cx),
+            Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
                     .areas

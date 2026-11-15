@@ -19,6 +19,7 @@ use super::{
 pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask) {
     let answer = match ask {
         Ask::Scripts(ask) => Answer::Scripts(super::scripts::run(client, ask).await),
+        Ask::Layout(ask) => Answer::Layout(super::layout::run(client, ask).await),
         Ask::Project(ask) => project(hub, client, reply, ask).await,
         Ask::Worktree(ask) => worktree(client, ask).await,
         Ask::Git(ask) => git_ask(client, ask).await,

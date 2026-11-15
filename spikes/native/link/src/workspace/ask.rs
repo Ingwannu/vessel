@@ -16,6 +16,8 @@ use super::StartAsk;
 pub enum Ask {
     /// A project's supervised scripts and discovered ports.
     Scripts(super::ScriptAsk),
+    /// Correlated backing-entity actions from workspace tabs.
+    Layout(super::layout::Ask),
     /// About its projects.
     Project(ProjectAsk),
     /// About worktrees and snapshots.
