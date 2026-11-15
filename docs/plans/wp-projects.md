@@ -476,3 +476,28 @@ that semantic refusal while checking the same admission. The old ad4 strict chec
 failed first on an unquoted NodeId doc identifier; owned new doc identifiers are
 quoted, with the original failed log retained. No successful compile is inferred
 for newer code from that old run.
+
+
+### Cache reads must also observe original-lease retirement
+
+The captured context and a settled read ticket do not by themselves prove a
+live admission. A transport may retire before the queued fleet-retired event is
+installed. C1 must retain the canonical link `DeliveryGuard` with each complete
+project/registry cache and validate it on every readiness, inventory and lookup
+query, as well as immediately before reply installation. A retired guard makes
+Existing/Empty unavailable even if the fleet still paints the old context.
+Forms and writes keep their original context/ticket checks in addition to this
+read guard. The guard is weak and cannot keep a retired client alive.
+
+This work waits for the shared production export/minter and its reviewed real
+consumer to land; C1 does not change the shared staging attributes or mint a
+replacement guard. Pure view models remain free of link ownership, while the
+app's private cache adapter must validate the canonical guard before exposing
+those models to onboarding, sidebar, palette or pane lookup. No context-only
+runtime readiness or early helper adoption is claimed.
+
+The reviewed values-only carrier has source/blob identity evidence for all
+20 files but awaits the app lead's adoption. Its values provide no Store,
+actor or native runtime. The next combined node base may legitimately contain
+newer content in shared files, in which case the landed node files replace the
+carrier. The unregistered projection remains excluded from current checks.
