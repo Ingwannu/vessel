@@ -8,10 +8,11 @@ slice order. The docs commit adds both and no command.
 
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
-- Source: 2p1 moves only the generic kernel query and opaque snapshots to
+- Gated: 2p1 moves only the generic kernel query and opaque snapshots to
   proc; the store facade, parser behavior and existing assertions remain.
-  Manifest, active map and name restriction land together. Focused checks
-  and the merged-tree whole gate are pending.
+  Manifest, active map and name restriction land together. Its exact whole
+  gate passed (2,211 Rust tests, no failures, 12 ignored; forge 4,
+  web unit 442 and e2e 65). Review is pending.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -45,16 +46,17 @@ slice order. The docs commit adds both and no command.
   the first narrow clippy failure is retained, not called green.
 - Merged: node head `242076b5`, conflict-free, before the proc move. Its
   existing tables, documents and tests remain intact.
-- Next: gate the pure query move, then descriptor/generation verification
-  and the real force caller as separate slices. Service observations and
-  config/reload/session-restart work remain; actual managers and agents
-  are unverified. The separate service-observation source has only focused
-  checks and is not included in this move.
+- Next: gate service observations on the merged tree, then descriptor
+  possession, generation/namespace verification and the real force caller
+  as separately reviewed slices. Config/reload/session-restart work and
+  real manager/agent execution remain unverified.
 - Reviewed: 2h0's documents-only observation contract passed review.
 - Source: 2h service-file observations reuse installer paths and rendering,
   with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
   match gives loaded-manager authority. The first focused clippy found a
-  test-doc Markdown issue; final focused and whole gates are pending.
+  test-doc Markdown issue; final auxiliary clippy, 16 service units and
+  18 stop cases passed. The merged-tree focused checks and whole gate
+  are pending.
 
 ## Existing asset check
 
@@ -467,7 +469,7 @@ cases derive their timeout and diagnostic expectation from one named test
 budget and find the node Serving after the CLI exits. No service manager,
 signal, new wire call or dependency is introduced. Book/credential/pinning
 paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
-This source is not yet compiled or gated.
+Its gate and review are recorded in the Resume point.
 
 
 ### Slice 2p1: behavior-preserving process-query move
@@ -496,8 +498,9 @@ personal file, invalid Unicode, draining, a blocked FIFO and another local
 directory's malformed file. A manager stand-in records any invocation;
 its log must remain absent. Existing test cases remain unchanged. Fixture
 HOME, VESSEL_HOME and XDG_CONFIG_HOME are isolated before the first lookup.
-The root remains on its independent 2g2 gate commit while this source is
-prepared in a separate tree. Proc work starts at the next clean boundary.
+The source was prepared separately while the independent 2g2 gate stayed
+frozen, then merged after the process-query move. The combined gate remains
+pending; the earlier focused checks do not replace it.
 
 A Linux child also receives a stderr socket whose peer was closed before
 exec. Its warning write must fail and the node must stay Serving. This
