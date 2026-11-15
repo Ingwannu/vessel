@@ -752,3 +752,18 @@ private inspected entries. Rust path and product qualification still separate.
   No ServerFrame, RPC sink/client subscription, node producer or visible frame is
   added here. Tests use real PNG bytes of our own synthetic canary solely for
   metadata admission; no engine/codec/paint/security qualification is inferred.
+
+The announced node82ae7c91 was merged unchanged (staged-row support/stop signals/
+provider child values/CLI output seam); it does not contain the checked settings
+writer or checked-wait producer. App independently merged announced packagebase7
+(d18bb794), with no browser registry/visibility/focus override or node-head merge.
+Native f05b1051 changed-union view/app strict passed0 before that later base7 merge.
+No native whole/capture or union acceptance is inferred for the new base.
+
+Coordinator authorized a fixed exact-SHA vessel-browser lib-test export, now
+installed by T. It builds only that crate's --locked test executable on the VM,
+exports immutable0500 plus commit/features/toolchain/UID/SHA/ABI proof into a new
+out directory, then selected fixtures may run on the approved CFT host as its
+service account with sandbox on. No arbitrary target scp/local Cargo/second
+runtime is used. No actual artifact has been exported/run by W14 yet; existing
+remote ordinary tests remain intact, and source/runtime qualification is owed.
