@@ -2,6 +2,7 @@
 //! Local completion additionally requires the authenticated directory lock.
 //! Process signalling and service management remain separate slices.
 
+mod local_read;
 mod lock_wait;
 mod observe;
 

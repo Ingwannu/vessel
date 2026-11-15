@@ -520,3 +520,17 @@ No row of the crate table changes.
   citations and retain the raw-chunk test; the selection render context changes
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
+
+### Reviewed prerequisite landing on the integrated method table
+
+This merge carries only the reviewed label admission and reload prerequisite,
+without discovery values, typed iterator or other background work. Readable
+session events keep the head's title-origin mask, with the single optional
+availability accessor and string-preserving formatters. Event pages retain
+the head's projection-based precheck, including the Replayed usage mask fix.
+The existing label requirement is folded once into `Call::since()` after its
+assigned method/field requirement; `required_protocol()` and fleet recursion
+remain the head's. The head's newly added title-origin event assertion uses
+`Some` around the same assigned version under the single-accessor contract.
+The owned event fixture fills its new origin field with Unknown; its previous
+wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
