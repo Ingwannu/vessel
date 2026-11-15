@@ -178,3 +178,27 @@ partly implemented provider/tool/usage integrations. No process is spawned and
 no product caller, node method, protocol number or settings key is registered
 by this DTO commit. Transport/supervision drafts remain scratch until their
 ownership, limits, cancellation and non-root fake-child proof are complete.
+
+## Staged helper supervision
+
+The crate vessel-plugin now owns bounded framing, one correlated callback actor,
+private logs and an owned process supervisor. The node still has no install,
+management or callback RPC caller. Admission is16 calls and8MiB across queued
+and active work; two-frame pipe queues and30s callback/initialization/write
+budgets are named in runtime_types. Cancellation retains count/byte permits
+until actual settlement or permanent retirement. Full cancellation queues retire
+the helper. Monotonic correlations classify retired versus never-issued replies
+without an unbounded tombstone set; generation changes revoke pending replies.
+
+A self-audit found that a ready reply and expired timer could be arbitrated in
+the same select turn. Settlement now checks the captured deadline before
+removing pending admission; its regression sets that private deadline directly,
+without a timing race or sleep. The actor then retires with the timeout class.
+
+Shutdown consumes checked proc622465a9 and returns its actual OwnedGroupExit.
+That receipt proves leader reap plus accepted first group cleanup request,
+not descendant OS death. Cleanup refusal remains a concrete typed error and
+must prevent node replacement/disable acknowledgement. No such node lifecycle
+caller is activated yet. Linux fake-helper ownership/descendant fixtures are
+source only until executed on the build VM; no macOS/Windows, real permission
+refusal, installed runtime or unsandboxed isolation proof is claimed.

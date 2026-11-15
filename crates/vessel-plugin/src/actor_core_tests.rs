@@ -114,6 +114,26 @@ async fn stale_missing_and_expired_calls_never_reach_the_helper() {
 }
 
 #[tokio::test]
+async fn ready_reply_cannot_win_an_expired_deadline_or_release_live_admission() {
+    let mut fixture = Fixture::new(8);
+    let (request, receive, _cancel) = fixture.request();
+    fixture.core.admit(request).expect("admit");
+    let id = fixture.issued();
+    fixture.core.pending.get_mut(&id).expect("pending").deadline = tokio::time::Instant::now();
+    assert!(matches!(
+        fixture.core.receive(HelperToNode::Result {
+            request: id,
+            output: payload(),
+        }),
+        Err(RuntimeError::CallTimeout)
+    ));
+    assert_eq!(fixture.bytes.available_permits(), 999);
+    fixture.core.retire(CallError::Timeout);
+    assert_eq!(receive.await.expect("reply"), Err(CallError::Timeout));
+    assert_eq!(fixture.bytes.available_permits(), 999);
+}
+
+#[tokio::test]
 async fn cancellation_retains_count_and_bytes_until_actual_settlement() {
     let mut fixture = Fixture::new(8);
     let (request, receive, cancel) = fixture.request();
