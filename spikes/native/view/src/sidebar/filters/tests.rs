@@ -49,7 +49,7 @@ fn named_labels_and_unlabelled_share_one_or_selection_without_a_second_normalize
 #[test]
 fn label_filter_and_hidden_rows_prune_differently_from_an_originally_empty_project() {
     assert!(keep_project::<u8, u8>(&[], &[], &[]));
-    assert!(!keep_project(&[1], &[], &[] as &[LabelChoice<u8>]));
+    assert!(!keep_project::<_, u8>(&[1], &[], &[]));
     assert!(!keep_project::<u8, u8>(
         &[],
         &[],

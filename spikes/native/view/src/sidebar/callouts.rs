@@ -166,10 +166,10 @@ impl<I: PartialEq, C> State<I, C> {
     pub fn active(&self) -> Option<&Entry<I, C>> {
         let mut chosen: Option<&Entry<I, C>> = None;
         for entry in &self.entries {
-            if let Some(key) = &entry.dismissal {
-                if self.loaded == Load::Waiting || self.dismissed.contains(key) {
-                    continue;
-                }
+            if let Some(key) = &entry.dismissal
+                && (self.loaded == Load::Waiting || self.dismissed.contains(key))
+            {
+                continue;
             }
             if chosen.is_none_or(|prior| entry.priority > prior.priority) {
                 chosen = Some(entry);
@@ -189,13 +189,13 @@ impl<I: PartialEq, C> State<I, C> {
             .entries
             .get(index)
             .and_then(|entry| entry.dismissal.as_ref());
-        if let Some(key) = key {
-            if !self.dismissed.contains(key) {
-                if self.dismissed.len() >= MAX_DISMISSALS {
-                    return Err(Problem::DismissalsFull);
-                }
-                self.dismissed.push(key.clone());
+        if let Some(key) = key
+            && !self.dismissed.contains(key)
+        {
+            if self.dismissed.len() >= MAX_DISMISSALS {
+                return Err(Problem::DismissalsFull);
             }
+            self.dismissed.push(key.clone());
         }
         Ok(Some(self.entries.remove(index).content))
     }
