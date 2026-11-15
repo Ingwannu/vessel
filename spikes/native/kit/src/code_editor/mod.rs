@@ -24,9 +24,15 @@
 
 #[cfg(test)]
 mod composition_tests;
+mod diff;
 mod find;
 mod navigation;
 mod syntax;
+
+pub use diff::{
+    DiffDocumentEditor, DiffEditor, DiffLine, DiffRowIndex, DiffSide, DiffText, DiffTextError,
+    DiffTone, DiffWrapping,
+};
 
 use std::rc::Rc;
 
@@ -228,8 +234,13 @@ impl CodeEditor {
 /// gutter, no fill on the current line, and the theme's code colours for
 /// the syntax kinds.
 fn project(state: &Entity<EditorState>, tokens: &Tokens, cx: &mut App) {
+    state.update(cx, |state, _cx| state.set_editor_style(style(tokens)));
+}
+
+/// Keep the ordinary editor and read-only diff on the same syntax/theme projection.
+pub(super) fn style(tokens: &Tokens) -> InputEditorStyle {
     let neutral = tokens.neutral;
-    let style = InputEditorStyle {
+    InputEditorStyle {
         foreground: neutral.foreground,
         muted_foreground: neutral.foreground_muted,
         background: neutral.surface0,
@@ -244,6 +255,5 @@ fn project(state: &Entity<EditorState>, tokens: &Tokens, cx: &mut App) {
             tokens.scheme,
         ))),
         ..InputEditorStyle::default()
-    };
-    state.update(cx, |state, _cx| state.set_editor_style(style));
+    }
 }
