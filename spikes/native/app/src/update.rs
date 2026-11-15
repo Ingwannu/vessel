@@ -308,6 +308,10 @@ impl Shell {
                 return;
             }
             let _closed = this.update(cx, |shell, cx| {
+                if !crate::quit::admit(cx) {
+                    crate::local_node::end_finalization(cx);
+                    return;
+                }
                 let Some(updater) = updates.updater.as_ref() else {
                     crate::local_node::end_finalization(cx);
                     return;

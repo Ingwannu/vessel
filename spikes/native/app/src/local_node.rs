@@ -13,6 +13,7 @@ pub(crate) struct Managed {
 impl Global for Managed {}
 
 pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
+    crate::quit::initialize(cx);
     if cx.has_global::<Managed>() {
         return;
     }
@@ -133,6 +134,9 @@ pub(crate) fn request_confirmed_quit(confirmation: Confirmation, cx: &mut App) {
 }
 
 pub(crate) fn begin_finalization(cx: &mut App) -> bool {
+    if !crate::quit::admit(cx) {
+        return false;
+    }
     if !cx.has_global::<Managed>() {
         return true;
     }
@@ -169,7 +173,13 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
         let result = finalize.await;
         match result {
             Ok(()) => match cx.update(|cx| crate::desktop::flush_preferences(cx)).await {
-                Ok(()) => cx.update(App::quit),
+                Ok(()) => cx.update(|cx| {
+                    if crate::quit::admit(cx) {
+                        cx.quit();
+                    } else {
+                        end_finalization(cx);
+                    }
+                }),
                 Err(error) => cx.update(|cx| failed(cx, &error, None)),
             },
             Err(error) => cx.update(|cx| failed(cx, &error, error.failure_snapshot().cloned())),

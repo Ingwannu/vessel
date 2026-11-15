@@ -5,3 +5,5 @@ pub mod cli;
 mod navigation;
 pub mod window;
 pub use navigation::{NavigationError, NavigationTarget};
+
+pub mod quit;

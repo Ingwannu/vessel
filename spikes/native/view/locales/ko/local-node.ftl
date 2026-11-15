@@ -78,3 +78,10 @@ local-node-cancel = 취소
 local-node-confirm-update = 업데이트를 위해 Vessel을 다시 시작할까요?
 # Explicitly authorize interrupting the captured owned node before app-update restart.
 local-node-interrupt-update = 세션을 중단하고 업데이트 재시작
+
+# Ordinary quit/update admission; editor retains all unsaved buffers.
+local-node-documents-dirty = 종료하거나 다시 시작하기 전에 저장하지 않은 문서를 저장하거나 변경을 취소하세요.
+# Ordinary quit/update admission; original editor write tickets are unsettled.
+local-node-documents-pending = 문서 쓰기가 끝난 뒤 다시 시도하세요.
+# Ordinary quit/update admission; failed writes retain their modified buffers.
+local-node-documents-failed = 저장하지 못한 문서가 있습니다. 편집기에서 해결한 뒤 종료하거나 다시 시작하세요.

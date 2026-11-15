@@ -201,3 +201,23 @@ owned by DialogSize rather than the renderer; dimensions and behavior are
 unchanged and no lint/size allowance was raised. This is a failed narrow result,
 not app type-check or runtime evidence. The earlier 51949423 NodeHome type error
 was already corrected before this suite.
+
+### Document owner joins ordinary quit
+
+`app::quit::set_document_guard(fn(&Shell)->DocumentReadiness,cx)` is C5's sole
+read-only admission hook. C5 registers from CodePanel::new before any buffer can
+become dirty. The guard must include every active/retained buffer and original
+write ticket; read-failed empty viewers alone are not modifications. The desktop
+registry supplies existing live Shell owners, with no second window registry.
+Normal quit and app-update restart check admission before node finalization and
+again immediately before actual process exit/spawn, with no await after the final
+check. A later edit while the node is stopping therefore still prevents exit.
+Dirty/Pending/Failed preserves windows and reports a localized refusal; W15 never
+saves or discards document content. C5 may expose an explicit keyed Save All as
+its own separate user action. The initial no-document guard is replaced by C5;
+until its registration lands, this is a staged seam, not editor protection proof.
+
+C5 confirms no recovery journal exists. Forced OS/process exit can lose unsaved
+edits; on_app_quit's node/prefs backstop cannot veto it or provide document
+recovery. This limitation remains explicit and is not covered by ordinary quit
+admission or any process-lifecycle test result.

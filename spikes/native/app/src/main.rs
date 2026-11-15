@@ -26,6 +26,8 @@ mod language;
 mod local_node;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;
+#[cfg(not(target_arch = "wasm32"))]
+mod quit;
 mod region;
 mod routes;
 mod shell;
