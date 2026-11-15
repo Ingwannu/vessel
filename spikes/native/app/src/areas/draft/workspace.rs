@@ -209,14 +209,39 @@ pub(crate) fn render_panel(
     let Some(field) = shell.workspace_draft_field(panel.workspace, *draft) else {
         return unavailable(shell);
     };
+    let LayoutKey::Workspace { node, workspace } = panel.workspace else {
+        return unavailable(shell);
+    };
+    let source = DraftKey::Workspace {
+        node: *node,
+        workspace: *workspace,
+        draft: *draft,
+    };
+    let editable = panel.focus == PanelFocus::Focused
+        && entry.creation.flow.may_submit()
+        && !shell.composer_attachments_blocked(source);
     field.set_editability(
-        if panel.focus == PanelFocus::Focused && entry.creation.flow.may_submit() {
+        if editable {
             vessel_app_kit::Editability::Editable
         } else {
             vessel_app_kit::Editability::ReadOnly
         },
         cx,
     );
+    let editor = match entry.launch {
+        Launch::Chat => {
+            let Some(card) =
+                crate::areas::composer::workspace_card(shell, source, editable, tokens, window, cx)
+            else {
+                return unavailable(shell);
+            };
+            card.into_any_element()
+        }
+        // Terminal input uses this retained field without agent affordances.
+        Launch::BlankTerminal | Launch::Profile(_) => field
+            .element(tokens, vessel_app_kit::breakpoint::phone(window), cx)
+            .into_any_element(),
+    };
     div()
         .size_full()
         .flex()
@@ -231,7 +256,7 @@ pub(crate) fn render_panel(
             }
             .to_owned(),
         )
-        .child(field.element(tokens, vessel_app_kit::breakpoint::phone(window), cx))
+        .child(editor)
         .children(entry.error.iter().cloned().map(|error| div().child(error)))
         .into_any_element()
 }

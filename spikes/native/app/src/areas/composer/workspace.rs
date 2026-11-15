@@ -8,13 +8,6 @@ use vessel_app_kit::{
 use vessel_app_view::composer::drafts::DraftKey;
 
 /// W3 passes an admitted exact draft key and its own creation editability.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "W3 panel renderer adopts this scoped attachment card next"
-    )
-)]
 pub(crate) fn workspace_card(
     shell: &Shell,
     target: DraftKey,
