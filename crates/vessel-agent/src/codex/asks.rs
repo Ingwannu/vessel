@@ -41,6 +41,9 @@ use crate::error::InputError;
 use crate::mapper;
 use crate::recent::Recent;
 
+mod choices;
+use choices::{command_choice, option};
+
 /// A request of Codex's, settled: answer `request` with `response`.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Settled {
@@ -71,14 +74,6 @@ pub(super) struct Approvals {
 pub(super) struct Asking {
     options: Vec<(PermissionOption, Value)>,
     withdrawn: Value,
-}
-
-fn option(id: &str, name: &str, kind: PermissionOptionKind) -> PermissionOption {
-    PermissionOption {
-        id: PermissionOptionId::new(id),
-        name: name.to_owned(),
-        kind,
-    }
 }
 
 impl Asking {
@@ -161,39 +156,6 @@ impl Asking {
 
 /// A command decision as an option: its id, its words and its kind;
 /// `None` for one this build does not know.
-fn command_choice(decision: &Value) -> Option<(&str, &'static str, PermissionOptionKind)> {
-    let id = match decision {
-        Value::String(id) => id.as_str(),
-        // A decision carrying what it applies: its one key names it.
-        Value::Object(fields) if fields.len() == 1 => fields.keys().next()?.as_str(),
-        Value::Object(_) | Value::Null | Value::Bool(_) | Value::Number(_) | Value::Array(_) => {
-            return None;
-        }
-    };
-    let (name, kind) = match id {
-        "accept" => ("Run", PermissionOptionKind::AllowOnce),
-        "acceptForSession" => (
-            "Run, and do not ask again this session",
-            PermissionOptionKind::AllowAlways,
-        ),
-        "acceptWithExecpolicyAmendment" => (
-            "Run, and allow commands like it from now on",
-            PermissionOptionKind::AllowAlways,
-        ),
-        "applyNetworkPolicyAmendment" => (
-            "Apply the proposed network rule from now on",
-            PermissionOptionKind::AllowAlways,
-        ),
-        "decline" => ("Do not run", PermissionOptionKind::RejectOnce),
-        "cancel" => (
-            "Do not run, and stop the turn",
-            PermissionOptionKind::RejectOnce,
-        ),
-        _ => return None,
-    };
-    Some((id, name, kind))
-}
-
 impl Approvals {
     /// Hold `asking` for Codex's request `request` on `tool_call`: the
     /// permission request to publish, and an older approval withdrawn to

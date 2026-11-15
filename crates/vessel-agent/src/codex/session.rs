@@ -63,6 +63,9 @@ use crate::input::{Command, Reply, SteerOutcome, SteerReply};
 use crate::introduction::Introduction;
 use crate::output::AgentOutput;
 
+mod replies;
+use replies::{answer, handshake_failed, read, version_of};
+
 /// Lines read ahead of the loop.
 const INBOUND: usize = 64;
 
@@ -998,39 +1001,6 @@ impl Session {
         // The consumer gone means the session is over; the owner stops the
         // agent.
         let _gone = self.outputs.send(output).await;
-    }
-}
-
-/// A notification's parameters as `T`, or `None` (logged) when they do
-/// not read.
-fn read<T: serde::de::DeserializeOwned>(method: &str, params: Value) -> Option<T> {
-    match serde_json::from_value(params) {
-        Ok(read) => Some(read),
-        Err(error) => {
-            tracing::warn!(method, %error, "a Codex notification that does not read");
-            None
-        }
-    }
-}
-
-fn handshake_failed(message: String) -> Disconnect {
-    Disconnect::Handshake {
-        message,
-        refused: None,
-        fork_refused: None,
-    }
-}
-
-/// The version in Codex's user agent (`codex_cli_rs/0.166.0 (...)`).
-fn version_of(user_agent: &str) -> Option<AgentVersion> {
-    let first = user_agent.split_whitespace().next()?;
-    let version = first.split_once('/').map_or(first, |(_, version)| version);
-    version.parse().ok()
-}
-
-fn answer(reply: Reply, result: Result<(), InputError>) {
-    if reply.send(result).is_err() {
-        tracing::debug!("agent command reply dropped");
     }
 }
 
