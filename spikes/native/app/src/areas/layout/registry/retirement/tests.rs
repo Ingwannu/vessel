@@ -393,3 +393,91 @@ fn failed_first_transaction_creates_no_workspace_or_owner_notice(cx: &mut TestAp
         assert!(shell.areas.layout.menu_tab.is_none());
     });
 }
+
+fn remember_scripts(shell: &mut Shell) -> (LayoutKey, TabId) {
+    let key = key();
+    let mut layout = Layout::default();
+    let tab = layout
+        .open(
+            Target::Scripts,
+            OpenIntent::Reveal,
+            Placement::Focused,
+            AgentRole::Unknown,
+            vessel_app_view::layout::LayoutMode::SplitPanes,
+        )
+        .unwrap();
+    shell.prefs.layouts = vec![vessel_app_view::layout::RememberedLayout::new(
+        key.clone(),
+        &layout,
+    )];
+    assert!(shell.areas.layout.book.borrow().is_none());
+    (key, tab)
+}
+
+#[gpui::test]
+fn cold_remembered_first_retarget_notifies_the_original_owner(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        let (key, tab) = remember_scripts(shell);
+        shell
+            .layout_register_retirement(Owner::Scripts, observed)
+            .unwrap();
+        retarget(shell, &key, tab, Target::WorkingDiff, cx);
+        assert_eq!(shell.notice.as_deref(), Some("Retargeted:Scripts"));
+        assert_eq!(shell.areas.layout.menu_tab.as_ref(), Some(&(key, tab)));
+    });
+}
+
+#[gpui::test]
+fn cold_remembered_failed_first_batch_keeps_target_without_a_notice(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        let (key, tab) = remember_scripts(shell);
+        shell
+            .layout_register_retirement(Owner::Scripts, observed)
+            .unwrap();
+        let result: Result<(), LayoutError> = shell.update_layout(
+            &key,
+            |layout| {
+                let _tab = layout.retarget(RetargetRequest {
+                    tab,
+                    target: Target::WorkingDiff,
+                    intent: OpenIntent::Reveal,
+                    role: AgentRole::Unknown,
+                })?;
+                Err(LayoutError::UnsupportedHost)
+            },
+            cx,
+        );
+        assert_eq!(result, Err(LayoutError::UnsupportedHost));
+        assert!(shell.areas.layout.menu_tab.is_none());
+        let book = shell.areas.layout.book.borrow();
+        assert_eq!(
+            book.as_ref()
+                .unwrap()
+                .get(&key)
+                .unwrap()
+                .tab(tab)
+                .unwrap()
+                .target(),
+            &Target::Scripts
+        );
+    });
+}
+
+#[gpui::test]
+fn initializing_a_remembered_cache_alone_does_not_retire_a_panel(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, _cx| {
+        let (key, tab) = remember_scripts(shell);
+        shell
+            .layout_register_retirement(Owner::Scripts, observed)
+            .unwrap();
+        super::super::super::initialized(shell);
+        assert!(shell.areas.layout.menu_tab.is_none());
+        assert!(shell.layout_tab_exists(&key, tab));
+    });
+}

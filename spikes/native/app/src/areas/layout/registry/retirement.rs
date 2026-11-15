@@ -95,6 +95,9 @@ pub(crate) enum Source {
 pub(crate) struct Before(Vec<(LayoutKey, Layout)>);
 impl Before {
     pub(crate) fn layout(shell: &Shell, key: &LayoutKey) -> Self {
+        // A cold cache may already have a remembered target. Snapshot that
+        // canonical entry before the first committed mutation, not an empty cache.
+        super::super::initialized(shell);
         Self(
             shell
                 .areas

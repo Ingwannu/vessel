@@ -78,7 +78,9 @@ completion, compact sheet dismissal, acknowledged host rename/forget, canonical
 preferences rebase and the staged single-slot minter. Host forget notifies old
 legacy owners even when a dirty tree is kept for recovery. Split, focus, navigation,
 resize and sheet promotion preserve target identity and emit nothing. Initial
-cache restoration has no existing owner instance to retire. Render-time insertion
+cache restoration alone does not retire an owner; the following mutation first
+loads and snapshots remembered entries so a cold first retarget cannot be missed.
+Render-time insertion
 only adds the absent root agent and never removes an existing target.
 
 Generic feature batches now apply to a cloned metadata tree and commit only on
