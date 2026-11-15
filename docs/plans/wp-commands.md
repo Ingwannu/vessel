@@ -357,3 +357,9 @@ Settings renderer signature but ignores that presentation flag; actual viewport
 availability alone chooses unavailable vs binding rows. The new real Settings
 render regression uses700 (phone form but keyboard available) and599 (hidden
 binding rows). Global PHONE and E2 navigation/form policy remain unchanged.
+
+
+Settings builds one effective-binding snapshot per page render and passes it to
+all rows. Long user sequences wrap between whole chords inside the existing row
+width using kit::command::key_badges for every cap. No new badge style/control
+is introduced; final visual inspection still owes long-sequence layout evidence.

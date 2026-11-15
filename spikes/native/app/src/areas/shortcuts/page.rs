@@ -112,6 +112,12 @@ pub(crate) fn render(
     let Ok(definitions) = visible_definitions(default_context(Platform::native())) else {
         return div().into_any_element();
     };
+    let Ok(bindings) = vessel_app_view::shortcuts::effective_bindings(
+        &shell.prefs.settings.shortcuts,
+        default_context(Platform::native()),
+    ) else {
+        return div().into_any_element();
+    };
     let mut trailing = (!shell.prefs.settings.shortcuts.is_empty()).then(|| {
         button_with_kind(
             "shortcuts-reset-all",
@@ -138,7 +144,7 @@ pub(crate) fn render(
             .filter(|definition| definition.action.group() == group)
             .enumerate()
         {
-            card = card.child(row::row(shell, definition, at == 0, tokens, cx));
+            card = card.child(row::row(shell, definition, &bindings, at == 0, tokens, cx));
         }
         page = page.child(vessel_app_kit::settings::section_with_trailing(
             group_label(group, shell.words),

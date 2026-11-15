@@ -9,16 +9,16 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::shortcuts::definitions::Definition;
+use vessel_app_view::shortcuts::engine::EffectiveBinding;
 use vessel_app_view::shortcuts::sequence_capture::{CaptureFault, CaptureVerdict, SequenceCapture};
-use vessel_app_view::shortcuts::{
-    Action, Chord, Platform, action_label, chord_caps, default_context, effective_bindings,
-};
+use vessel_app_view::shortcuts::{Action, Chord, Platform, action_label, chord_caps};
 const WHY_MOST: f32 = 260.0;
 const SLOT: f32 = 32.0;
 
 pub(super) fn row(
     shell: &Shell,
     definition: &Definition<Action>,
+    bindings: &[EffectiveBinding<Action>],
     first: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -81,36 +81,38 @@ pub(super) fn row(
             )
     } else {
         let id = definition.id.clone();
-        right.child(keys(shell, definition, tokens)).child(
-            div().size(px(SLOT)).flex_none().child(
-                div()
-                    .id(SharedString::from(format!("shortcut-menu-{id}")))
-                    .debug_selector({
-                        let id = id.clone();
-                        move || format!("shortcut-menu-{id}")
-                    })
-                    .size(px(SLOT))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .rounded(px(radius::R2))
-                    .cursor_pointer()
-                    .hover(|button| button.bg(neutral.surface2))
-                    .active(|button| button.bg(neutral.surface3))
-                    .child(
-                        svg()
-                            .path(Glyph::More.path())
-                            .size(px(14.0))
-                            .text_color(neutral.foreground_muted),
-                    )
-                    .on_mouse_down(
-                        MouseButton::Left,
-                        cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                            shell.shortcut_menu(id.clone(), event.position, window, cx);
-                        }),
-                    ),
-            ),
-        )
+        right
+            .child(keys(shell, definition, bindings, tokens))
+            .child(
+                div().size(px(SLOT)).flex_none().child(
+                    div()
+                        .id(SharedString::from(format!("shortcut-menu-{id}")))
+                        .debug_selector({
+                            let id = id.clone();
+                            move || format!("shortcut-menu-{id}")
+                        })
+                        .size(px(SLOT))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .rounded(px(radius::R2))
+                        .cursor_pointer()
+                        .hover(|button| button.bg(neutral.surface2))
+                        .active(|button| button.bg(neutral.surface3))
+                        .child(
+                            svg()
+                                .path(Glyph::More.path())
+                                .size(px(14.0))
+                                .text_color(neutral.foreground_muted),
+                        )
+                        .on_mouse_down(
+                            MouseButton::Left,
+                            cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
+                                shell.shortcut_menu(id.clone(), event.position, window, cx);
+                            }),
+                        ),
+                ),
+            )
     };
     div()
         .flex()
@@ -124,13 +126,12 @@ pub(super) fn row(
         .child(label)
         .child(right)
 }
-fn keys(shell: &Shell, definition: &Definition<Action>, tokens: &Tokens) -> Div {
-    let Ok(bindings) = effective_bindings(
-        &shell.prefs.settings.shortcuts,
-        default_context(Platform::native()),
-    ) else {
-        return div();
-    };
+fn keys(
+    shell: &Shell,
+    definition: &Definition<Action>,
+    bindings: &[EffectiveBinding<Action>],
+    tokens: &Tokens,
+) -> Div {
     let bindings: Vec<_> = bindings
         .iter()
         .filter(|binding| binding.id == definition.id)
@@ -157,8 +158,8 @@ fn keys(shell: &Shell, definition: &Definition<Action>, tokens: &Tokens) -> Div 
                     .into_any_element()
             });
             or.into_iter().chain(std::iter::once(
-                vessel_app_kit::command::key_badges(
-                    &vessel_app_view::shortcuts::help::display_caps(
+                wrapped_caps(
+                    vessel_app_view::shortcuts::help::display_caps(
                         definition.action,
                         &binding.keys,
                         vessel_app_view::shortcuts::modified(
@@ -191,7 +192,23 @@ fn caps<'a>(chords: impl Iterator<Item = &'a Chord>, tokens: &Tokens) -> Div {
     let caps: Vec<SharedString> = chords
         .map(|chord| chord_caps(chord, Platform::native()).join(joiner).into())
         .collect();
-    vessel_app_kit::command::key_badges(&caps, tokens)
+    wrapped_caps(caps, tokens)
+}
+
+// Each chord stays intact, while a 16-step user sequence can wrap inside the
+// Settings row. The shared badge renderer remains the only cap renderer.
+fn wrapped_caps(caps: Vec<SharedString>, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_wrap()
+        .min_w_0()
+        .max_w(px(WHY_MOST))
+        .justify_end()
+        .gap(px(spacing::S1))
+        .children(
+            caps.into_iter()
+                .map(|cap| vessel_app_kit::command::key_badges(&[cap], tokens)),
+        )
 }
 fn capturing_keys(
     shell: &Shell,
