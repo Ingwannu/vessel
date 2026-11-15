@@ -122,13 +122,13 @@ Section "Vessel"
   ; happen in the app, never in this registry command.
   WriteRegStr HKCU "${URL_KEY}" "" "URL:Vessel session link"
   WriteRegStr HKCU "${URL_KEY}" "URL Protocol" ""
-  WriteRegStr HKCU "${URL_KEY}\shell\open\command" "" ${URL_COMMAND}
+  WriteRegStr HKCU "${URL_KEY}\shell\open\command" "" '${URL_COMMAND}'
 SectionEnd
 
 Section "Uninstall"
   ; A later installation or a user-customized handler is not ours to remove.
   ReadRegStr $0 HKCU "${URL_KEY}\shell\open\command" ""
-  StrCmp $0 ${URL_COMMAND} 0 url_handler_not_owned
+  StrCmp $0 '${URL_COMMAND}' 0 url_handler_not_owned
   DeleteRegKey HKCU "${URL_KEY}"
   url_handler_not_owned:
   Delete "$SMPROGRAMS\${NAME}.lnk"

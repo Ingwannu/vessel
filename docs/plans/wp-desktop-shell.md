@@ -95,3 +95,27 @@ release-note renderer in the merge. The desktop changelog renderer remains the
 registered entry, and the superseded renderer will be removed in the following
 implementation commit. No base test expectation was edited. Root changes in this
 merge are inherited from the announced base, not desktop wire additions.
+
+
+## Additional decisions from integration
+
+- Multiple windows revealed a stale whole-document preference overwrite. One
+  process-wide coordinator now applies typed three-way deltas to the latest
+  snapshot (including map-key removal and non-settings fields), writes through
+  the existing private Prefs helper, and broadcasts canonical snapshots. Failed
+  writes retain canonical state; bounded-queue refusals use the existing unsent
+  UI path. New persisted fields demand an explicit merge policy.
+- R's updater is owned by an App Global behind Rc, so opening/closing the first
+  window cannot start another downloader or stop updates for remaining windows.
+- The updater already marks relaunches in the child's environment. Such starts
+  wait for the kernel file lock with a finite startup deadline instead of
+  forwarding into the quitting app. Normal launches still forward. This avoids
+  a restart race without changing the updater or temporarily releasing the old
+  instance's lock. A timeout displays an error-only window with no node/writer.
+- A Windows sibling vessel.exe would be the GUI Vessel.exe on a case-insensitive
+  filesystem. The distinct bundled CLI name is vessel-cli.exe; Unix uses vessel.
+  No CLI binary is bundled on the current base. Installation remains visibly
+  unavailable until the release format supplies that executable.
+- The release owner's initial NSIS check found a command-macro quoting error;
+  the two registry-command uses now preserve the macro as one quoted argument.
+  Packaging runtime evidence remains separate from app behavior verification.

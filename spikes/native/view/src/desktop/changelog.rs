@@ -94,10 +94,19 @@ pub fn parse(markdown: &str) -> Vec<Release> {
 
 fn finish(out: &mut Vec<Release>, heading: Option<(String, String)>, body: &[&str]) {
     if let Some((version, date)) = heading {
+        let start = body
+            .iter()
+            .position(|line| !line.trim().is_empty())
+            .unwrap_or(body.len());
+        let count = body
+            .iter()
+            .rposition(|line| !line.trim().is_empty())
+            .map_or(0, |last| last.saturating_add(1).saturating_sub(start));
+        let body: Vec<_> = body.iter().copied().skip(start).take(count).collect();
         out.push(Release {
             version: version.into(),
             date: date.into(),
-            markdown: body.join("\n").trim_matches('\n').into(),
+            markdown: body.join("\n").into(),
         });
     }
 }
@@ -121,7 +130,13 @@ fn release_heading(line: &str) -> Option<&str> {
     }
     let title = line.trim_start_matches(' ').strip_prefix("##")?;
     if title.is_empty() || title.starts_with([' ', '\t']) {
-        Some(title.trim().trim_end_matches('#').trim_end())
+        let title = title.trim();
+        let without_hashes = title.trim_end_matches('#');
+        Some(if without_hashes.ends_with([' ', '\t']) {
+            without_hashes.trim_end()
+        } else {
+            title
+        })
     } else {
         None
     }
@@ -140,10 +155,11 @@ fn split_heading(heading: &str) -> (String, String) {
     } else {
         (heading.as_str(), "")
     };
+    let version = version.trim();
     let version = version
-        .trim()
-        .trim_start_matches('[')
-        .trim_end_matches(']')
+        .strip_prefix('[')
+        .and_then(|text| text.strip_suffix(']'))
+        .unwrap_or(version)
         .trim();
     let version = version
         .strip_prefix(['v', 'V'])
@@ -207,5 +223,14 @@ mod tests {
         assert_eq!(revealed.count(), FIRST_PAGE);
         revealed.show_more();
         assert_eq!(revealed.count(), FIRST_PAGE.saturating_add(PAGE_SIZE));
+    }
+
+    #[test]
+    fn literal_hashes_survive_and_only_outer_blank_lines_are_trimmed() {
+        let releases = parse("## C#\n \n  body  \n\t\n## [[2]] ###\nnext");
+        let first = releases.first().unwrap();
+        assert_eq!(first.version(), "C#");
+        assert_eq!(first.markdown(), "  body  ");
+        assert_eq!(releases.last().unwrap().version(), "[2]");
     }
 }

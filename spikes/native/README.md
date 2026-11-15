@@ -1041,3 +1041,44 @@ Desktop launch I/O lives in `link::desktop`; login environment resolution uses
 are applied only to explicitly owned children; Rust process globals are never
 mutated after threads start. This edge reuses the existing process abstraction
 instead of duplicating unsafe platform job/signal code (ADR 0035 extension).
+
+
+### Desktop shell ownership
+
+`view::desktop` owns bounded session-link parsing, restoration geometry, CLI
+control admission and structural changelog parsing. `link::desktop` owns private
+local IPC, installation/PATH file operations, the serialized window writer, the
+canonical preference coordinator and login-shell capture. `app::desktop` owns
+window registration and host startup; `areas::desktop` draws kit menus and CLI
+settings; `areas::about::changelog` draws release history. The native updater
+remains in `app::update` and is shared through an App Global.
+
+A GUI launch is parsed before CLI passthrough. The single-instance lock and a
+private Unix socket (Windows: local named pipe) deliver bounded, acknowledged
+requests. An OS link contains only validated host/session identity. After book
+hydration it enters the session area's authenticated lookup; a project directory
+enters the project area's registration draft. Neither path creates a session,
+sends a prompt or releases project trust. Owning areas register the typed host
+callbacks, rather than duplicating identity lookup in the window manager.
+
+Only the primary window contributes restored bounds. One serial writer coalesces
+changes and acknowledges a final save after earlier writes. Invalid/newer window
+state is preserved. Multiple windows publish deltas against their own last
+snapshot; the canonical preference actor merges those deltas, uses the existing
+private Prefs writer, then broadcasts success or refusal. A corrupt/unreadable
+preferences file stays launch-only and is never replaced.
+
+Login-shell capture has a finite deadline, bounded output and no value logging.
+It uses vessel-proc process groups/jobs and supplies redacted environment data to
+explicitly owned children; process-global environment mutation is unnecessary.
+Windows keeps its inherited environment. `VESSEL_APP_NO_SHELL_ENV` disables the
+capture for an isolated fixture run. `VESSEL_APP_SIZE` remains a geometry override
+for capture runs; it is never persisted as a user preference.
+
+The release contains one compiled signed update channel, so no runtime channel
+selector is offered. An update relaunch uses the updater's existing marker to
+wait for the old instance lock instead of forwarding back into a quitting app.
+The CLI must be bundled separately: `vessel-cli.exe` beside `Vessel.exe` on
+Windows, `vessel` beside `vessel-app` on Unix. A build without it shows an explicit
+unavailable state. User-local installation refuses unrelated files and preserves
+shell rc contents; removal leaves PATH configuration for other local tools.

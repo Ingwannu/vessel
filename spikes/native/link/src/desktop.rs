@@ -41,6 +41,9 @@ pub enum Error {
     /// A primary process has not acknowledged the request within the deadline.
     #[error("the running desktop application did not acknowledge the launch")]
     LaunchDeadline,
+    /// A relaunch must never forward into the process that is still closing.
+    #[error("the previous Vessel application did not finish closing before the restart deadline")]
+    RestartDeadline,
     /// A login shell did not return a bounded, well-formed environment.
     #[error("the login shell environment could not be resolved")]
     ShellEnvironment,

@@ -19,6 +19,13 @@ const QUEUE_CAPACITY: usize = 32;
 const MAX_PACKET_BYTES: u32 = 4096;
 const REQUEST_DEADLINE: std::time::Duration = std::time::Duration::from_secs(3);
 const ACCEPTED: u8 = 1;
+const RESTART_DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
+
+#[derive(Clone, Copy)]
+enum LockMode {
+    Normal,
+    Restart,
+}
 
 /// Parsed GUI launch intent, independent of argv or a transport encoding.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,6 +129,56 @@ pub enum Instance {
 /// # Errors
 /// Returns lock, IPC, version/packet and acknowledgement failures with no argv text.
 pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
+    claim_with(directory, launch, LockMode::Normal)
+}
+
+/// A relaunch waits for the old primary instead of forwarding into a quitting app.
+///
+/// # Errors
+/// The bounded startup wait returns an explicit restart deadline or OS error.
+pub fn claim_restart(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
+    claim_with(directory, launch, LockMode::Restart)
+}
+
+struct LockWait {
+    result: std::sync::mpsc::Receiver<Result<File, std::io::Error>>,
+    waiting: std::sync::mpsc::Receiver<()>,
+}
+
+fn lock_waiter(file: File) -> Result<LockWait, Error> {
+    let (done, result) = std::sync::mpsc::sync_channel(1);
+    let (started, waiting) = std::sync::mpsc::sync_channel(1);
+    let _worker = std::thread::Builder::new()
+        .name("vessel-restart-lock".into())
+        .spawn(move || {
+            let acquired = match file.try_lock() {
+                Ok(()) => Ok(file),
+                Err(std::fs::TryLockError::WouldBlock) => {
+                    drop(started.send(()));
+                    file.lock().map(|()| file)
+                }
+                Err(std::fs::TryLockError::Error(error)) => Err(error),
+            };
+            drop(done.send(acquired));
+        })?;
+    Ok(LockWait { result, waiting })
+}
+
+fn wait_for_lock(file: File) -> Result<File, Error> {
+    // OS acquisition blocks in the kernel. A bounded startup receiver avoids
+    // polling; if the error-only app closes, process exit ends this helper.
+    let LockWait { result, waiting } = lock_waiter(file)?;
+    drop(waiting);
+    result
+        .recv_timeout(RESTART_DEADLINE)
+        .map_err(|error| match error {
+            std::sync::mpsc::RecvTimeoutError::Timeout => Error::RestartDeadline,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::Closed,
+        })?
+        .map_err(Error::from)
+}
+
+fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Instance, Error> {
     if !directory.is_absolute() {
         return Err(Error::RelativePath);
     }
@@ -129,7 +186,7 @@ pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
     crate::prefs::private_dir(&directory)?;
     #[cfg(unix)]
     unix::check_directory(&directory)?;
-    let lock = match crate::prefs::new_private_file(&directory.join("lock")) {
+    let mut lock = match crate::prefs::new_private_file(&directory.join("lock")) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
             std::fs::OpenOptions::new()
@@ -142,39 +199,46 @@ pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
-    match lock.try_lock() {
-        Ok(()) => {
-            let (sender, launches) = mpsc::channel(QUEUE_CAPACITY);
-            let (stop, cancel) = oneshot::channel();
-            #[cfg(unix)]
-            let listener = unix::bind(&directory, &runtime)?;
-            #[cfg(windows)]
-            let listener = windows::bind(&directory, &runtime)?;
-            let worker = std::thread::Builder::new()
-                .name("vessel-desktop-launch".into())
-                .spawn(move || {
-                    #[cfg(unix)]
-                    runtime.block_on(unix::serve(listener, sender, cancel));
-                    #[cfg(windows)]
-                    runtime.block_on(windows::serve(listener, sender, cancel));
-                })?;
-            Ok(Instance::Primary {
-                guard: Primary {
-                    stop: Some(stop),
-                    worker: Some(worker),
-                    _lock: lock,
-                },
-                launches,
-            })
-        }
-        Err(std::fs::TryLockError::WouldBlock) => {
-            #[cfg(unix)]
-            runtime.block_on(unix::forward(&directory, launch))?;
-            #[cfg(windows)]
-            runtime.block_on(windows::forward(&directory, launch))?;
-            Ok(Instance::Forwarded)
-        }
-        Err(std::fs::TryLockError::Error(error)) => Err(error.into()),
+    let acquired = match lock.try_lock() {
+        Ok(()) => true,
+        Err(std::fs::TryLockError::WouldBlock) => match mode {
+            LockMode::Normal => false,
+            LockMode::Restart => {
+                lock = wait_for_lock(lock)?;
+                true
+            }
+        },
+        Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
+    };
+    if acquired {
+        let (sender, launches) = mpsc::channel(QUEUE_CAPACITY);
+        let (stop, cancel) = oneshot::channel();
+        #[cfg(unix)]
+        let listener = unix::bind(&directory, &runtime)?;
+        #[cfg(windows)]
+        let listener = windows::bind(&directory, &runtime)?;
+        let worker = std::thread::Builder::new()
+            .name("vessel-desktop-launch".into())
+            .spawn(move || {
+                #[cfg(unix)]
+                runtime.block_on(unix::serve(listener, sender, cancel));
+                #[cfg(windows)]
+                runtime.block_on(windows::serve(listener, sender, cancel));
+            })?;
+        Ok(Instance::Primary {
+            guard: Primary {
+                stop: Some(stop),
+                worker: Some(worker),
+                _lock: lock,
+            },
+            launches,
+        })
+    } else {
+        #[cfg(unix)]
+        runtime.block_on(unix::forward(&directory, launch))?;
+        #[cfg(windows)]
+        runtime.block_on(windows::forward(&directory, launch))?;
+        Ok(Instance::Forwarded)
     }
 }
 
@@ -224,6 +288,60 @@ async fn bounded<T>(future: impl Future<Output = Result<T, Error>>) -> Result<T,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn normal_second_launch_forwards_and_relaunch_waits_for_the_old_guard() {
+        let root = std::env::temp_dir().join(format!("vessel-instance-{}", SessionId::random()));
+        let Instance::Primary {
+            guard,
+            mut launches,
+        } = claim(&root, &Launch::NewWindow).unwrap()
+        else {
+            panic!("first launch must own IPC");
+        };
+        let target = Launch::Session(NavigationTarget::Session {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        });
+        assert!(matches!(
+            claim(&root, &target).unwrap(),
+            Instance::Forwarded
+        ));
+        assert_eq!(launches.blocking_recv(), Some(target));
+        let (ready, started) = std::sync::mpsc::sync_channel(1);
+        let directory = root.clone();
+        let restarted = std::thread::spawn(move || {
+            ready.send(()).unwrap();
+            claim_restart(&directory, &Launch::NewWindow).unwrap()
+        });
+        started.recv_timeout(REQUEST_DEADLINE).unwrap();
+        drop(guard);
+        let Instance::Primary {
+            guard: new_guard,
+            launches: _new_launches,
+        } = restarted.join().unwrap()
+        else {
+            panic!("restart cannot forward");
+        };
+        drop(new_guard);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_shared_ipc_directory_is_refused_instead_of_opened_to_other_accounts() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let root =
+            std::env::temp_dir().join(format!("vessel-instance-private-{}", SessionId::random()));
+        let directory = root.join("desktop-instance");
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(
+            matches!(claim(&root,&Launch::NewWindow),Err(Error::Io(error)) if error.kind()==std::io::ErrorKind::PermissionDenied)
+        );
+        assert!(!directory.join("lock").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[tokio::test]
     async fn packets_validate_identity_and_acknowledge_after_bounded_delivery() {

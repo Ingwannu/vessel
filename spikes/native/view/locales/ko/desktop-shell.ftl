@@ -94,3 +94,12 @@ desktop-shell-cli-path = 터미널 PATH
 
 # CLI settings: status or complete action label; keep short.
 desktop-shell-refresh = 새로 고침
+
+# Error-only window after the previous app exceeded its restart deadline.
+desktop-shell-restart-failed = Vessel을 다시 시작하지 못했습니다
+
+# Error-only window after the previous app exceeded its restart deadline.
+desktop-shell-restart-hint = 이전 앱이 아직 종료 중입니다. 앱을 닫은 다음 Vessel을 다시 열어 주세요.
+
+# Error-only launch window: no session action has been performed.
+desktop-shell-launch-hint = 링크나 폴더를 확인한 다음 Vessel을 다시 열어 주세요. 기존 세션은 변경되지 않았습니다.

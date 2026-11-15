@@ -64,49 +64,20 @@ pub enum State {
 impl State {
     /// Ownership and release contents gate the offered operation before I/O starts.
     #[must_use]
-    pub const fn allows(self, operation: Operation) -> bool {
-        match (self, operation) {
-            (
-                Self::Ready {
-                    availability: Availability::Bundled,
-                    status: Status::Absent,
-                    ..
+    pub fn allows(self, operation: Operation) -> bool {
+        match self {
+            Self::Checking | Self::Working(_) | Self::Failed => false,
+            Self::Ready {
+                availability,
+                status,
+                ..
+            } => match operation {
+                Operation::Install => match availability {
+                    Availability::Bundled => status == Status::Absent,
+                    Availability::Missing => false,
                 },
-                Operation::Install,
-            )
-            | (
-                Self::Ready {
-                    status: Status::Installed,
-                    ..
-                },
-                Operation::Remove,
-            ) => true,
-            (
-                Self::Checking | Self::Working(_) | Self::Failed,
-                Operation::Install | Operation::Remove,
-            )
-            | (
-                Self::Ready {
-                    availability: Availability::Missing,
-                    status: Status::Absent,
-                    ..
-                },
-                Operation::Install,
-            )
-            | (
-                Self::Ready {
-                    status: Status::Installed | Status::Foreign,
-                    ..
-                },
-                Operation::Install,
-            )
-            | (
-                Self::Ready {
-                    status: Status::Absent | Status::Foreign,
-                    ..
-                },
-                Operation::Remove,
-            ) => false,
+                Operation::Remove => status == Status::Installed,
+            },
         }
     }
 }

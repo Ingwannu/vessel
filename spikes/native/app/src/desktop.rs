@@ -2,6 +2,7 @@
 
 pub(crate) mod preferences;
 mod startup;
+mod startup_error;
 mod windows;
 
 use crate::shell::Shell;
@@ -166,7 +167,7 @@ fn install(
     .detach();
     cx.on_app_quit(|cx| {
         let desktop = cx.global::<Desktop>();
-        let flush = desktop.preferences.flush();
+        let flush = flush_preferences(cx);
         let final_write = desktop
             .writer
             .as_ref()
@@ -184,6 +185,21 @@ fn install(
     })
     .detach();
     Ok(())
+}
+
+/// Update restart and normal quit await the same canonical preferences queue.
+pub(crate) fn flush_preferences(
+    cx: &App,
+) -> impl Future<Output = Result<(), vessel_app_link::desktop::Error>> + 'static {
+    let flush = cx
+        .try_global::<Desktop>()
+        .map(|desktop| desktop.preferences.flush());
+    async move {
+        match flush {
+            Some(flush) => flush.await,
+            None => Ok(()),
+        }
+    }
 }
 
 pub(crate) fn with_focused_shell(

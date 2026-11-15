@@ -126,6 +126,7 @@ mod tests {
         }
         std::fs::write(path.join("window-state.json"), "unreadable").unwrap();
         assert!(store.load_window().is_err());
+        assert!(store.save_window(WindowState::default()).is_err());
         assert_eq!(
             std::fs::read_to_string(path.join("window-state.json")).unwrap(),
             "unreadable"

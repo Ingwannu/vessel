@@ -94,3 +94,12 @@ desktop-shell-cli-path = Terminal PATH
 
 # CLI settings: status or complete action label; keep short.
 desktop-shell-refresh = Refresh
+
+# Error-only window after the previous app exceeded its restart deadline.
+desktop-shell-restart-failed = Vessel could not restart
+
+# Error-only window after the previous app exceeded its restart deadline.
+desktop-shell-restart-hint = The previous application is still closing. Close it, then open Vessel again.
+
+# Error-only launch window: no session action has been performed.
+desktop-shell-launch-hint = Check the link or directory, then close and reopen Vessel. Your sessions are unchanged.

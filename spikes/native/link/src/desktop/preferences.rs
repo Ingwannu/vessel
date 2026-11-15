@@ -5,6 +5,7 @@ mod merge;
 use super::Error;
 use crate::Prefs;
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::{Arc, mpsc};
 use tokio::sync::{oneshot, watch};
@@ -53,10 +54,42 @@ impl Snapshot {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct Sequence(u64);
+#[derive(Debug, Clone, Copy, Default)]
+struct Acknowledged {
+    sequence: Sequence,
+    revision: Revision,
+}
+#[derive(Debug)]
+struct Pending {
+    sequence: Sequence,
+    before: Arc<Prefs>,
+    after: Arc<Prefs>,
+}
+
+/// Rebased local intent remains visible until its own correlated acknowledgement.
+#[derive(Debug)]
+pub enum Observation {
+    /// This scheduled snapshot predates one already applied by the window.
+    Stale,
+    /// Canonical state with this window's still-unacknowledged edits rebased on it.
+    Applied(Arc<Prefs>),
+    /// The combined local projection exceeds the same model bound as persistence.
+    Refused {
+        /// Valid projection with only admitted pending edits applied.
+        prefs: Arc<Prefs>,
+        /// The existing preference model explains why an edit was refused.
+        failure: vessel_app_view::prefs::Refused,
+    },
+}
+
 enum Command {
     Change {
         before: Arc<Prefs>,
         after: Arc<Prefs>,
+        sequence: Sequence,
+        acknowledged: watch::Sender<Acknowledged>,
     },
     Flush(oneshot::Sender<()>),
 }
@@ -74,6 +107,10 @@ pub struct Client {
     commands: mpsc::SyncSender<Command>,
     baseline: RefCell<Arc<Prefs>>,
     revision: std::cell::Cell<Revision>,
+    sequence: std::cell::Cell<Sequence>,
+    pending: RefCell<VecDeque<Pending>>,
+    acknowledged: watch::Sender<Acknowledged>,
+    acknowledgements: watch::Receiver<Acknowledged>,
 }
 
 impl Coordinator {
@@ -114,11 +151,16 @@ impl Coordinator {
     #[must_use]
     pub fn client(&self) -> (Client, watch::Receiver<Snapshot>) {
         let snapshot = self.current.borrow().clone();
+        let (acknowledged, acknowledgements) = watch::channel(Acknowledged::default());
         (
             Client {
                 commands: self.commands.clone(),
                 baseline: RefCell::new(snapshot.preferences()),
                 revision: std::cell::Cell::new(snapshot.revision()),
+                sequence: std::cell::Cell::new(Sequence::default()),
+                pending: RefCell::new(VecDeque::new()),
+                acknowledged,
+                acknowledgements,
             },
             self.current.clone(),
         )
@@ -128,6 +170,12 @@ impl Coordinator {
     #[must_use]
     pub fn current(&self) -> Arc<Prefs> {
         self.current.borrow().preferences()
+    }
+
+    /// Rejection recovery needs the same revision and outcome as the canonical value.
+    #[must_use]
+    pub fn snapshot(&self) -> Snapshot {
+        self.current.borrow().clone()
     }
 
     /// Wait for every accepted edit before the process exits.
@@ -152,26 +200,66 @@ impl Client {
     /// # Errors
     /// A full or closed queue leaves the baseline unchanged for an explicit retry.
     pub fn publish(&self, prefs: &Prefs) -> Result<(), crate::Rejected> {
+        if self.pending.borrow().len() >= QUEUE_CAPACITY {
+            return Err(crate::Rejected::Full);
+        }
+        let sequence = Sequence(
+            self.sequence
+                .get()
+                .0
+                .checked_add(1)
+                .ok_or(crate::Rejected::Closed)?,
+        );
         let after = Arc::new(prefs.clone());
         let before = Arc::clone(&self.baseline.borrow());
         self.commands
             .try_send(Command::Change {
-                before,
+                before: Arc::clone(&before),
                 after: Arc::clone(&after),
+                sequence,
+                acknowledged: self.acknowledged.clone(),
             })
             .map_err(|error| match error {
                 mpsc::TrySendError::Full(_) => crate::Rejected::Full,
                 mpsc::TrySendError::Disconnected(_) => crate::Rejected::Closed,
             })?;
+        self.sequence.set(sequence);
+        self.pending.borrow_mut().push_back(Pending {
+            sequence,
+            before,
+            after: Arc::clone(&after),
+        });
         let _previous = self.baseline.replace(after);
         Ok(())
     }
 
-    /// An older scheduled acknowledgement cannot replace a newer canonical revision.
-    pub fn observe(&self, snapshot: &Snapshot) {
-        if snapshot.revision >= self.revision.get() {
-            self.revision.set(snapshot.revision);
-            let _previous = self.baseline.replace(snapshot.preferences());
+    /// Rebase pending intent; an old failure cannot roll back a newer committed edit.
+    #[must_use]
+    pub fn observe(&self, snapshot: &Snapshot) -> Observation {
+        if snapshot.revision < self.revision.get() {
+            return Observation::Stale;
+        }
+        self.revision.set(snapshot.revision);
+        let acknowledged = *self.acknowledgements.borrow();
+        let mut pending = self.pending.borrow_mut();
+        // A later acknowledgement may race an earlier watch delivery. Only a
+        // revision included by this snapshot can remove an optimistic edit.
+        if acknowledged.revision <= snapshot.revision {
+            pending.retain(|edit| edit.sequence > acknowledged.sequence);
+        }
+        let mut projection = (*snapshot.prefs).clone();
+        let mut refused = None;
+        for edit in pending.iter() {
+            match merge::apply(&projection, &edit.before, &edit.after) {
+                Ok(next) => projection = next,
+                Err(failure) => refused = Some(failure),
+            }
+        }
+        let prefs = Arc::new(projection);
+        let _previous = self.baseline.replace(Arc::clone(&prefs));
+        match refused {
+            Some(failure) => Observation::Refused { prefs, failure },
+            None => Observation::Applied(prefs),
         }
     }
 }
@@ -185,7 +273,21 @@ fn run(
     while let Ok(command) = receiver.recv() {
         match command {
             Command::Flush(done) => drop(done.send(())),
-            Command::Change { before, after } => {
+            Command::Change {
+                before,
+                after,
+                sequence,
+                acknowledged,
+            } => {
+                let Some(revision) = snapshot.revision.0.checked_add(1) else {
+                    snapshot.outcome = Outcome::Failed(Arc::new(Error::Closed));
+                    acknowledged.send_replace(Acknowledged {
+                        sequence,
+                        revision: snapshot.revision,
+                    });
+                    published.send_replace(snapshot);
+                    break;
+                };
                 let next = merge::apply(&snapshot.prefs, &before, &after)
                     .map_err(Error::from)
                     .and_then(|next| {
@@ -194,7 +296,7 @@ fn run(
                         }
                         Ok(next)
                     });
-                snapshot.revision = Revision(snapshot.revision.0.saturating_add(1));
+                snapshot.revision = Revision(revision);
                 snapshot.outcome = match next {
                     Ok(next) => {
                         snapshot.prefs = Arc::new(next);
@@ -206,6 +308,10 @@ fn run(
                     }
                     Err(error) => Outcome::Failed(Arc::new(error)),
                 };
+                acknowledged.send_replace(Acknowledged {
+                    sequence,
+                    revision: snapshot.revision,
+                });
                 published.send_replace(snapshot.clone());
             }
         }
@@ -216,6 +322,39 @@ fn run(
 mod tests {
     use super::*;
     use vessel_app_view::prefs::{Grouping, Theme};
+
+    #[tokio::test]
+    async fn older_ack_keeps_pending_intent_and_old_failure_cannot_roll_back_newer_commit() {
+        let initial = Prefs::default();
+        let coordinator = Coordinator::start(initial.clone()).unwrap();
+        let (client, _updates) = coordinator.client();
+        let mut first = initial;
+        first.settings.appearance.theme = Theme::Light;
+        client.publish(&first).unwrap();
+        coordinator.flush().await.unwrap();
+        let older = coordinator.snapshot();
+        let mut next = first;
+        next.settings.sidebar.group = Grouping::Status;
+        client.publish(&next).unwrap();
+        // This explicit older snapshot remains deterministic even if the writer
+        // has already acknowledged the newer request on the other thread.
+        let Observation::Applied(projected) = client.observe(&older) else {
+            panic!("valid projection");
+        };
+        assert_eq!(projected.settings.sidebar.group, Grouping::Status);
+        coordinator.flush().await.unwrap();
+        let Observation::Applied(committed) = client.observe(&coordinator.snapshot()) else {
+            panic!("current projection");
+        };
+        assert_eq!(committed.settings.sidebar.group, Grouping::Status);
+        let mut old_failure = older;
+        old_failure.outcome = Outcome::Failed(Arc::new(Error::Closed));
+        assert!(matches!(client.observe(&old_failure), Observation::Stale));
+        assert_eq!(
+            client.baseline.borrow().settings.sidebar.group,
+            Grouping::Status
+        );
+    }
 
     #[tokio::test]
     async fn stale_windows_merge_and_failed_save_keeps_canonical_state() {
@@ -260,7 +399,22 @@ mod tests {
 
     #[tokio::test]
     async fn corrupt_file_remains_launch_only_and_never_gets_replaced() {
-        let initial = Prefs::default();
+        let root =
+            std::env::temp_dir().join(format!("vessel-corrupt-prefs-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("prefs.json");
+        std::fs::write(&path, b"unreadable").unwrap();
+        let mut initial = Prefs::default();
+        initial.kept = Kept::ThisLaunch {
+            why: vessel_app_view::prefs::LaunchOnly::Unreadable {
+                fault: vessel_app_view::files::FileFault {
+                    path: path.display().to_string(),
+                    at: None,
+                    problem: vessel_app_view::files::FileProblem::CannotOpen,
+                    field: None,
+                },
+            },
+        };
         let coordinator = Coordinator::start(initial.clone()).unwrap();
         let (client, updates) = coordinator.client();
         let mut next = initial;
@@ -269,5 +423,7 @@ mod tests {
         coordinator.flush().await.unwrap();
         assert!(coordinator.current().manual_updates);
         assert!(matches!(updates.borrow().outcome(), Outcome::LaunchOnly));
+        assert_eq!(std::fs::read(path).unwrap(), b"unreadable");
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

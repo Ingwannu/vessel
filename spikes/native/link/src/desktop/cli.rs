@@ -143,7 +143,7 @@ impl Installation {
     #[cfg(windows)]
     fn trampoline(&self) -> String {
         format!(
-            "@echo off\r\n\"{}\" %*\r\nexit /b %errorlevel%\r\n",
+            "@echo off\r\nsetlocal DisableDelayedExpansion\r\n\"{}\" %*\r\nexit /b %errorlevel%\r\n",
             self.source.display()
         )
     }

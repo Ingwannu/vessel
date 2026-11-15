@@ -3,7 +3,7 @@
 use super::Desktop;
 use crate::shell::Shell;
 use gpui::{Context, Window};
-use vessel_app_link::desktop::preferences::{Outcome, Snapshot};
+use vessel_app_link::desktop::preferences::{Observation, Outcome, Snapshot};
 use vessel_app_link::{Command, Prefs};
 
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
@@ -72,8 +72,8 @@ pub(crate) fn rollback(shell: &mut Shell, window: &mut Window, cx: &mut Context<
         && shell.prefs == expected
         && let Some(desktop) = cx.try_global::<Desktop>()
     {
-        let current = desktop.preferences.current();
-        apply_preferences(shell, (*current).clone(), window, cx);
+        let snapshot = desktop.preferences.snapshot();
+        apply(shell, &snapshot, window, cx);
     }
 }
 
@@ -81,8 +81,15 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
     let Some(client) = &shell.areas.desktop.preferences else {
         return;
     };
-    client.observe(snapshot);
-    let next = snapshot.preferences();
+    let next = match client.observe(snapshot) {
+        Observation::Stale => return,
+        Observation::Applied(prefs) => prefs,
+        Observation::Refused { prefs, failure } => {
+            tracing::warn!(%failure,"pending preferences exceed their model bound");
+            shell.notice = Some(shell.words.desktop_shell().preferences_failed().to_owned());
+            prefs
+        }
+    };
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
     }

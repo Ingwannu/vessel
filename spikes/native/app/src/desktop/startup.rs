@@ -18,22 +18,36 @@ const OS_LAUNCH_CAPACITY: usize = 32;
 
 pub(crate) fn run(choice: SchemeChoice, application: fn() -> gpui::Application) -> ExitCode {
     match start(choice, application) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => code,
         Err(error) => {
+            let kind = if matches!(&error, Error::RestartDeadline) {
+                super::startup_error::Kind::Restart
+            } else {
+                super::startup_error::Kind::Launch
+            };
+            super::startup_error::show(kind, choice, application);
             tracing::error!(%error,"desktop startup could not complete");
             ExitCode::FAILURE
         }
     }
 }
 
-fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result<(), Error> {
+fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result<ExitCode, Error> {
     let mode = if std::env::var_os("VESSEL_DESKTOP_CLI").is_some_and(|value| value == "1") {
         Mode::Cli
     } else {
         Mode::Automatic
     };
     let launch = match invocation::parse(std::env::args_os().skip(1), mode)? {
-        Invocation::Cli(arguments) => return passthrough(arguments),
+        Invocation::Cli(arguments) => {
+            return Ok(match passthrough(arguments) {
+                Ok(code) => code,
+                Err(error) => {
+                    tracing::error!(%error,"Vessel CLI could not start");
+                    ExitCode::FAILURE
+                }
+            });
+        }
         Invocation::Gui(launch) => launch,
     };
     let directory = std::env::var_os("VESSEL_CONFIG_DIR")
@@ -43,12 +57,17 @@ fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result
         .join("vessel")
         .join("desktop");
     let store = Store::new(directory)?;
+    let instance = if std::env::var_os(vessel_app_updater::RESTARTED_FROM).is_some() {
+        instance::claim_restart(store.directory(), &launch)?
+    } else {
+        instance::claim(store.directory(), &launch)?
+    };
     let Instance::Primary {
         guard,
         mut launches,
-    } = instance::claim(store.directory(), &launch)?
+    } = instance
     else {
-        return Ok(());
+        return Ok(ExitCode::SUCCESS);
     };
     let environment = resolve_environment();
     let (sender, mut requests) = mpsc::channel(OS_LAUNCH_CAPACITY);
@@ -73,21 +92,23 @@ fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result
     application.run(move |cx| {
         if let Err(error)=vessel_app_kit::init(cx,choice) {tracing::error!(%error,"the kit could not start");cx.quit();return;}
         crate::motion::follow(cx);
-        super::install(store,environment,cx);
+        if let Err(error)=super::install(store,environment,cx) {tracing::error!(%error,"desktop state could not start");cx.quit();return;}
         super::windows::open_primary(Some(launch),cx);
         cx.spawn(async move |cx| {
             loop {
-                let next=tokio::select! {request=requests.recv()=>request,request=launches.recv()=>request};
-                let Some(request)=next else {break;};
-                cx.update(|cx|super::windows::deliver(request,cx));
+                tokio::select! {
+                    Some(request)=requests.recv()=>cx.update(|cx|super::windows::deliver(request,cx)),
+                    Some(request)=launches.recv()=>cx.update(|cx|super::windows::deliver(request,cx)),
+                    else=>break,
+                }
             }
         }).detach();
     });
     drop(guard);
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }
 
-fn passthrough(arguments: Vec<OsString>) -> Result<(), Error> {
+fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, Error> {
     let platform = if cfg!(windows) {
         vessel_app_link::desktop::cli::path_setup::Platform::Windows
     } else if cfg!(target_os = "macos") {
@@ -103,11 +124,10 @@ fn passthrough(arguments: Vec<OsString>) -> Result<(), Error> {
     let status = std::process::Command::new(binary)
         .args(arguments)
         .status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(Error::InvalidLaunch)
-    }
+    Ok(status
+        .code()
+        .and_then(|code| u8::try_from(code).ok())
+        .map_or(ExitCode::FAILURE, ExitCode::from))
 }
 
 fn resolve_environment() -> ShellEnvironment {
