@@ -7813,6 +7813,7 @@ dependencies = [
 name = "vessel-app-updater"
 version = "0.0.0"
 dependencies = [
+ "flate2",
  "minisign-verify",
  "reqwest",
  "rustls",
