@@ -141,7 +141,7 @@ async fn node_refusals_keep_the_original_wire_error() {
             vessel_proto::ErrorCode::Unsupported,
         ] {
             let peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Respond::Refuse(code)).await;
-            let ModelsError::Call(vessel_client::CallError::Remote(wire)) =
+            let ModelsError::Call(CallError::Remote(wire)) =
                 phase("model refusal", read(&peer.client))
                     .await
                     .unwrap_err()
