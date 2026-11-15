@@ -82,9 +82,6 @@ pub enum InboxRequest {
     Question {
         /// The actor's request id.
         id: crate::QuestionId,
-
-        lifetime: Default::default(),
-        delivery_state: Default::default(),
     },
 }
 

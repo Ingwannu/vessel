@@ -3,6 +3,7 @@
 use serde_json::json;
 
 use super::*;
+use super::{conversation as adapt_conversation, event as adapt_event};
 use crate::conversation::AttachmentLimits;
 use crate::inbox::{InboxCounts, InboxCursor, InboxDetail, InboxKey, InboxPage, InboxRead};
 use crate::timeline::{
@@ -81,7 +82,7 @@ fn optional_fields_and_canceled_status_obey_unassigned_and_synthetic_assigned_th
     let older = ProtocolVersion::new(29);
     let event = AgentEvent::ToolCall(rich_tool());
     for (peer, assigned) in [(version, None), (older, Some(version))] {
-        let AgentEvent::ToolCall(masked) = super::event(&event, peer, assigned).unwrap() else {
+        let AgentEvent::ToolCall(masked) = adapt_event(&event, peer, assigned).unwrap() else {
             panic!("tool retained")
         };
         assert_eq!(masked.status, ToolCallStatus::Failed);
@@ -90,7 +91,7 @@ fn optional_fields_and_canceled_status_obey_unassigned_and_synthetic_assigned_th
         );
     }
     for peer in [version, ProtocolVersion::new(31)] {
-        assert!(super::event(&event, peer, Some(version)).is_none());
+        assert!(adapt_event(&event, peer, Some(version)).is_none());
     }
 }
 
@@ -109,7 +110,7 @@ fn question_snapshots_hide_nonblocking_or_uncertain_requests_instead_of_false_ac
         abilities: None,
         limits: AttachmentLimits::DEFAULT,
     };
-    let masked = super::conversation(&value, protocol, None).unwrap();
+    let masked = adapt_conversation(&value, protocol, None).unwrap();
     assert_eq!(masked.questions.len(), 1);
     assert!(masked.permissions[0].presentation.is_none());
     assert!(masked.permissions[0].options[0].action.is_none());
@@ -123,9 +124,9 @@ fn question_snapshots_hide_nonblocking_or_uncertain_requests_instead_of_false_ac
     assert!(masked.queue.entries[0].client_message_id.is_none());
     let mut uncertain = question(QuestionLifetime::Turn);
     uncertain.delivery_state = QuestionDeliveryState::OutcomeUnknown;
-    let masked = super::event(&AgentEvent::QuestionAsked(uncertain), protocol, None).unwrap();
+    let masked = adapt_event(&AgentEvent::QuestionAsked(uncertain), protocol, None).unwrap();
     assert!(matches!(masked, AgentEvent::HarnessLog { .. }));
-    assert!(super::conversation(&value, protocol, Some(protocol)).is_none());
+    assert!(adapt_conversation(&value, protocol, Some(protocol)).is_none());
 }
 
 #[test]
