@@ -50,6 +50,9 @@ struct PlanInput {
 /// from a real canonical producer and legacy decoding owns its resulting text.
 #[must_use]
 pub fn plan_text(source: &impl ToolDetailSource) -> Option<Cow<'_, str>> {
+    if source.agent_message().is_some() {
+        return None;
+    }
     match source.detail() {
         Some(ToolCallDetail::Plan(plan)) => return Some(Cow::Borrowed(&plan.text)),
         Some(
@@ -270,6 +273,9 @@ mod tests {
             }
             fn detail(&self) -> Option<&ToolCallDetail> {
                 self.detail.as_ref()
+            }
+            fn agent_message(&self) -> Option<&vessel_proto::timeline::AgentMessageProvenance> {
+                None
             }
             fn failure(&self) -> Option<&ToolFailure> {
                 None

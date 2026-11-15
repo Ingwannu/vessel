@@ -31,6 +31,7 @@
 //!   the session screen moves to this one when its area is drawn.
 
 mod agent;
+mod agent_message;
 mod append;
 mod approval;
 mod compaction;
@@ -74,6 +75,7 @@ mod window;
 #[cfg(test)]
 mod bounds_tests;
 
+pub use agent_message::agent_message_display;
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
 pub use compaction::{CompactionCaption, CompactionThousands, merge_compaction};
 pub use diff::{DiffLine, MAX_LINES, Side, diff_lines, json_text, unified_lines};

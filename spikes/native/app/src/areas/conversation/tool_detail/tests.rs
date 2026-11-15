@@ -11,6 +11,7 @@ struct Fake {
     view: ToolView,
     detail: ToolCallDetail,
     failure: Option<ToolFailure>,
+    message: Option<vessel_proto::timeline::AgentMessageProvenance>,
 }
 
 impl ToolDetailSource for Fake {
@@ -19,6 +20,9 @@ impl ToolDetailSource for Fake {
     }
     fn detail(&self) -> Option<&ToolCallDetail> {
         Some(&self.detail)
+    }
+    fn agent_message(&self) -> Option<&vessel_proto::timeline::AgentMessageProvenance> {
+        self.message.as_ref()
     }
     fn failure(&self) -> Option<&ToolFailure> {
         self.failure.as_ref()
@@ -39,6 +43,7 @@ fn fixture(detail: ToolCallDetail, status: ToolCallStatus) -> Fake {
         },
         detail,
         failure: None,
+        message: None,
     }
 }
 
@@ -84,4 +89,41 @@ fn empty_running_details_offer_loading_but_empty_settled_details_have_no_dead_ac
         ToolCallStatus::Completed,
     );
     assert!(can_open(&shell));
+}
+
+#[test]
+fn delivery_provenance_wins_over_a_plan_or_marker_without_turning_into_approval() {
+    use vessel_app_view::timeline::plan_text;
+    use vessel_proto::timeline::{
+        AgentMessageEvent, AgentMessageProvenance, AgentMessageSender, PlanDetail,
+    };
+    let mut source = fixture(
+        ToolCallDetail::Plan(PlanDetail {
+            text: "# Plan".to_owned(),
+        }),
+        ToolCallStatus::Completed,
+    );
+    assert!(plan_text(&source).is_some());
+    source.message = Some(AgentMessageProvenance {
+        event: AgentMessageEvent::PermissionRequired,
+        sender: AgentMessageSender {
+            id: "external-sender".parse().unwrap(),
+            server_id: None,
+            title: None,
+        },
+        text: "Please inspect".to_owned(),
+    });
+    assert!(plan_text(&source).is_none());
+    assert!(can_open(&source));
+    source.detail = ToolCallDetail::SubAgent(SubAgentDetail {
+        sub_agent_type: None,
+        description: None,
+        child_session_id: None,
+        log: None,
+        actions: None,
+    });
+    assert!(
+        can_open(&source),
+        "provenance still has its literal body when the underlying call is a launch marker"
+    );
 }

@@ -27,3 +27,16 @@ timeline-tool-plan = 계획
 timeline-tool-thinking = 추론
 # Fallback when a provider supplied no tool name. Short tool row label.
 timeline-tool-tool = 도구
+
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-message-received = 메시지 수신
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-finished = 에이전트 완료
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-errored = 에이전트 오류
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-permission = 에이전트 권한 필요
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-closed = 에이전트 종료
+# $id is the original external sender id, display provenance only; never a navigation authority.
+timeline-tool-from-agent = 보낸 에이전트: { $id }

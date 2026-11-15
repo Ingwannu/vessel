@@ -33,10 +33,7 @@ pub(super) fn card(
     if let Some(text) = plan {
         return proposal(paint, index, (tool, &text), open, window, cx);
     }
-    let head = match source.detail() {
-        Some(detail) => super::tool_detail::header(paint, index, source, detail, open, cx),
-        None => legacy_head(paint, index, tool, open, cx),
-    };
+    let head = super::tool_detail::header(paint, index, source, open, cx);
     let mut row = div().flex().flex_col().child(head);
     if open && super::tool_detail::can_open(source) {
         row = row.child(
@@ -48,7 +45,7 @@ pub(super) fn card(
     row.into_any_element()
 }
 
-fn legacy_head(
+pub(super) fn legacy_head(
     paint: &Paint<'_>,
     index: usize,
     tool: &ToolView,
@@ -129,6 +126,9 @@ pub(super) fn body(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    if let Some(message) = source.agent_message() {
+        return super::tool_detail::message_body(paint, index, source, message, window, cx);
+    }
     if let Some(detail) = source.detail() {
         return super::tool_detail::body(paint, index, source, detail, window, cx);
     }
@@ -146,7 +146,12 @@ pub(super) fn body(
     };
     let words = paint.words;
     if tool.input.is_none() && tool.output.is_none() && tool.content.is_empty() {
-        return div().child(super::tool_sheet::empty(paint, index, tool.working()));
+        return match source.failure() {
+            Some(reported) => div().child(super::tool_detail::failure(
+                paint, index, reported, window, cx,
+            )),
+            None => div().child(super::tool_sheet::empty(paint, index, tool.working())),
+        };
     }
     let mut body = div().mt(px(4.0)).mb(px(6.0)).flex().flex_col().gap(px(6.0));
     if let Some(input) = &tool.input {
@@ -196,7 +201,11 @@ pub(super) fn body(
             cx,
         ));
     }
-    body
+    body.children(
+        source
+            .failure()
+            .map(|reported| super::tool_detail::failure(paint, index, reported, window, cx)),
+    )
 }
 
 /// A tool call's diff, as its opened row shows it: what a permission card

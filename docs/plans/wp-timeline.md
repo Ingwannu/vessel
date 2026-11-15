@@ -727,3 +727,27 @@ to the group's new lead. Removed targets enter the existing actual-dismissal pat
 preserving dialog focus restoration and generation fencing rather than dropping
 an open sheet silently. These UI rules have additional native regressions; actual
 child context/callback integration remains held for checked W2/W12 producers.
+
+
+The same selectable failure helper now serves canonical and legacy detail bodies.
+An explicit failure supplied without a detail body is not lost behind the legacy
+empty/loading branch, and it is not inferred from ordinary output text.
+
+
+### Inter-agent provenance presentation
+
+Paseo `tool-call-display.ts:153` and
+`paseo-tool-presentation/agent-message.ts:21` prioritize typed agentMessage over
+ordinary tool names/details. ToolDetailSource now requires that optional typed
+provenance. The current compatibility projection reports None until W23's field
+handoff, while fakes can exercise all five delivery events. Native uses the shared
+host mark (its own asset), event label, title-or-external-id summary, and literal
+localized sender line plus full message body. External host/agent ids grant no
+local navigation or node authority; there is no invented sender-open action.
+
+The summary scan/output use the source's 480/120 UTF-16 bounds, normalize shared
+whitespace, append an ellipsis when capped, and keep Rust scalar boundaries rather
+than emitting a dangling surrogate. Only the summary is shortened; the body stays
+literal/selectable. One cached enum adapter supplies complete EN/KO event labels.
+Canonical Plan detection also respects provenance priority. This is source/typed
+fixture work pending checked node fields, runtime and final native validation.

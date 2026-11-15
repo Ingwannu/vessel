@@ -4,7 +4,7 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use vessel_proto::timeline::{ToolCallDetail, ToolIcon};
+use vessel_proto::timeline::{AgentMessageEvent, ToolCallDetail, ToolIcon};
 use vessel_proto::{RawJson, ToolKind};
 
 /// Closed captions are translated; provider prose retains its original spelling.
@@ -12,6 +12,8 @@ use vessel_proto::{RawJson, ToolKind};
 pub enum ToolLabel<'a> {
     /// A canonical category in the person's language.
     Kind(ToolLabelKind),
+    /// A delivery event is independent of the receiving tool's lifecycle status.
+    AgentMessage(AgentMessageEvent),
     /// A provider-supplied category or humanized ordinary tool name.
     Provided(Cow<'a, str>),
 }

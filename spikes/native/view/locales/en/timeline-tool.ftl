@@ -27,3 +27,16 @@ timeline-tool-plan = Plan
 timeline-tool-thinking = Thinking
 # Fallback when a provider supplied no tool name. Short tool row label.
 timeline-tool-tool = Tool
+
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-message-received = Message received
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-finished = Agent finished
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-errored = Agent errored
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-permission = Agent needs permission
+# Delivery event category, independent of the receiving tool status. Short row label.
+timeline-tool-agent-closed = Agent closed
+# $id is the original external sender id, display provenance only; never a navigation authority.
+timeline-tool-from-agent = From agent: { $id }
