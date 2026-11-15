@@ -108,15 +108,9 @@ mod tests {
         TerminalAttentionRevision,
     };
     use vessel_session::terminals::{ScriptStart, Scrollback, start_script};
-    #[tokio::test(flavor = "current_thread")]
-    async fn activity_capability_cannot_read_sessions_claim_notifications_or_report_another_terminal()
-     {
-        // The current-thread actor remains unpolled until the final wait;
-        // its nonexistent command can never start a process on any platform.
-        let tasks = TaskTracker::new();
-        let stop = CancellationToken::new();
+    fn terminal(tasks: &TaskTracker, stop: &CancellationToken) -> TerminalHandle {
         let id = vessel_proto::TerminalId::random();
-        let handle = start_script(ScriptStart {
+        start_script(ScriptStart {
             info: vessel_proto::terminals::TerminalInfo::new(
                 id,
                 vessel_proto::terminals::TerminalPlace::Session {
@@ -129,13 +123,23 @@ mod tests {
                 chrono::DateTime::UNIX_EPOCH,
             ),
             spec: vessel_proc::CommandSpec::new("/synthetic-not-executable"),
-            leftover: Default::default(),
+            leftover: vessel_proc::Leftover::default(),
             service: false,
             approved: || true,
             scrollback: Scrollback::DEFAULT,
             shutdown: stop.clone(),
             tasks: tasks.clone(),
-        });
+        })
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn activity_capability_cannot_read_sessions_claim_notifications_or_report_another_terminal()
+     {
+        // The current-thread actor remains unpolled until the final wait;
+        // its nonexistent command can never start a process on any platform.
+        let tasks = TaskTracker::new();
+        let stop = CancellationToken::new();
+        let handle = terminal(&tasks, &stop);
+        let id = handle.id();
         let producer = ActivityProducer::new(handle.clone());
         assert_eq!(
             producer

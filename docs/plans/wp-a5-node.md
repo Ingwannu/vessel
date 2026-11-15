@@ -230,3 +230,10 @@ fixtures still accessed NotificationSource as a struct (already corrected in
 Store argument and missing doc backticks. Those three are now corrected without
 changing deadlines/admission. The queued corrected30e9 run predates these lint
 fixes; its immutable result must be retained rather than relabelled current.
+
+Corrected30e9 strict then reached two additional own test lints: the activity
+capability test was 106/100 lines and used an ambiguous Default constructor.
+Its unchanged unpolled/nonexistent-command handle fixture is extracted and uses
+Leftover::default explicitly. Assertions, denial boundaries and deadlines stay
+unchanged. The previously submitted dbf strict predates this test-only fix;
+its immutable evidence must not be called current.
