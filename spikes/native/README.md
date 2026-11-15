@@ -1266,8 +1266,8 @@ its host dialog; no second scrim or area popup is drawn. See
 
 ### Adaptive caller-content popover
 
-`kit::popover` is the shared control for arbitrary settings bodies: measured
-start/end anchoring on desktop and the existing dialog/snap renderer on compact
+`kit::popover` is the shared control for arbitrary settings bodies: captured
+start/end anchor points on desktop and the existing dialog/snap renderer on compact
 layouts. `PopoverState::open` returns an opaque lease; `PopoverHandlers::admit`
 must accept that opening before any close or ReturnFocus acknowledgment. The
 control rechecks after admission, so retained old input cannot close a newer
@@ -1278,6 +1278,15 @@ and optional existing CompactLayout. DialogLayout's typed BodySpacing::Caller
 avoids adding a second inset around forms; legacy dialogs keep Inset24 and all
 existing geometry defaults. See `docs/plans/wp-adaptive-popover.md` for exact
 Paseo references, API, pending remote tests and V1/lead handoff requirements.
+
+### Caller-owned dialog title actions
+
+`DialogContent::with_header_actions(controls)` adds an optional trailing element
+before the existing close button, through the same `dialog` renderer. Plain
+struct literals still convert without actions; their geometry/defaults stay the
+same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
+retain and check their action context/ticket; the slot grants no host authority.
+See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
 
 ### Allocation block approval boundary (base 5 adapter)
 
