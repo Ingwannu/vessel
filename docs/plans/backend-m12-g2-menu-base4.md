@@ -41,3 +41,9 @@ owns the forthcoming generic ReturnFocus helper; the private menu implementation
 will consume that reviewed helper instead of creating another generic primitive.
 No dialog renderer is edited. Linux first-use/input captures, new-base UI and
 all consuming Git/F1 behavior remain unverified until their feature packages.
+
+A rendered headless regression activates KeepOpen by pointer and keyboard,
+replaces the same row with Pending, Success and disabled states, checks that
+neither input activates stale content, then reenables and explicitly dismisses.
+Both themes use the real shared renderer and mixed EN/KO text. This is not OS
+input/capture proof and does not supersede the historical Linux F5 HOLD.

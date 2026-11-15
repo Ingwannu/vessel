@@ -29,6 +29,8 @@
 
 mod draw;
 #[cfg(test)]
+mod feedback_tests;
+#[cfg(test)]
 mod focus_tests;
 mod item;
 #[cfg(test)]
