@@ -26,7 +26,7 @@ pub(crate) enum WorkspaceError {
     #[error("no project {0} on this machine")]
     UnknownProject(ProjectId),
     /// A retained workspace or interrupted backing reservation owns this project.
-    #[error("the project has retained workspace ownership; use workspace lifecycle actions")]
+    #[error("project {0} has retained workspace ownership; use workspace lifecycle actions")]
     RegistryProjectOwned(ProjectId),
     /// No such worktree.
     #[error("no worktree {0} on this machine")]
