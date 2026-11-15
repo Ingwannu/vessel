@@ -59,3 +59,6 @@ appearance-nord = Nord
 appearance-gruvbox = Gruvbox
 # Syntax option, proper name.
 appearance-solarized = Solarized
+
+# Native preview preparation failed without changing saved preferences.
+appearance-preview-unavailable = 미리보기를 표시할 수 없습니다

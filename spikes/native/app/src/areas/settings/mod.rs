@@ -95,6 +95,7 @@ pub(crate) struct SettingsState {
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
     overview: overview::State,
+    appearance: appearance::State,
     /// The book as read for the machine pages (Overview, Connections).
     book: book::BookRead,
     language: language::State,
@@ -121,6 +122,7 @@ impl SettingsState {
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
+            appearance: appearance::State::new(window, cx),
             book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
@@ -153,6 +155,7 @@ pub(crate) struct Anchors {
     code: Anchor,
     width: Anchor,
     display: Anchor,
+    syntax: Anchor,
 }
 
 impl Anchors {
@@ -165,6 +168,7 @@ impl Anchors {
             List::Code => &self.code,
             List::Width => &self.width,
             List::Display => &self.display,
+            List::Syntax => &self.syntax,
         }
     }
 }
@@ -238,6 +242,7 @@ impl Shell {
         let at = match list {
             // Paseo's host picker opens at its trigger's left edge.
             List::Machine => drawn,
+            List::Syntax => drawn.map(|bounds| select::end_aligned(bounds, select::SHORT_WIDTH)),
             List::Send
             | List::Delivery
             | List::Interface
@@ -321,6 +326,7 @@ pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
 /// the conversation's width and display.
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     devices::start(shell, window, cx);
+    appearance::sync(shell, window, cx);
     apply_theme(shell, window, cx);
     apply_text_sizes(shell, cx);
     apply_composer(shell, window, cx);
@@ -428,7 +434,8 @@ pub(crate) const fn applied(list: List) -> bool {
         | List::Interface
         | List::Code
         | List::Width
-        | List::Display => true,
+        | List::Display
+        | List::Syntax => true,
     }
 }
 
@@ -452,6 +459,7 @@ fn list(
     };
     let (header, width) = match open {
         List::Machine => (nav::picker_header(shell, phone), nav::PICKER_WIDTH),
+        List::Syntax => (select::header(), select::SHORT_WIDTH),
         List::Send
         | List::Delivery
         | List::Interface

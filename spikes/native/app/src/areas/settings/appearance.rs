@@ -17,7 +17,61 @@
 //!   supplies preference identities, labels and actions. Remaining font
 //!   draft controls are added through the existing field engine.
 
-use theme_tile::{Columns, Preview, State};
+mod fields;
+mod preview;
+mod rows;
+mod syntax;
+pub(super) use syntax::{label as syntax_label, palette as syntax_palette};
+
+use gpui::{App, Window};
+use vessel_app_kit::code_preview::{PreviewError, PreviewRow, PreviewTypography};
+use vessel_app_view::prefs::Appearance;
+
+/// Inputs and prepared local preview; the text engine alone owns raw drafts.
+pub(super) struct State {
+    fields: fields::Fields,
+    saved: Option<Appearance>,
+    preview: Option<PreviewTypography>,
+    rows: Result<Vec<PreviewRow>, PreviewError>,
+}
+impl State {
+    pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        Self {
+            fields: fields::Fields::new(window, cx),
+            saved: None,
+            preview: None,
+            rows: preview::rows(),
+        }
+    }
+}
+/// Hydrate/selectively resync outside paint, retaining unrelated live drafts.
+pub(super) fn sync(shell: &mut Shell, window: &mut Window, cx: &mut App) {
+    let placeholder = shell.words.appearance().default_family();
+    for field in [
+        vessel_app_view::appearance::form::Field::InterfaceFamily,
+        vessel_app_view::appearance::form::Field::MonoFamily,
+    ] {
+        shell
+            .areas
+            .settings
+            .appearance
+            .fields
+            .of(field)
+            .set_placeholder(placeholder, window, cx);
+    }
+    let full = shell
+        .t
+        .lang
+        .settings()
+        .width(vessel_app_view::prefs::ContentWidth::Full);
+    shell
+        .areas
+        .settings
+        .appearance
+        .sync(&shell.prefs.settings.appearance, full, window, cx);
+}
+
+use theme_tile::{Columns, Preview, State as TileState};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
@@ -25,9 +79,6 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Scheme, Tokens, settings, theme_tile};
 use vessel_app_view::prefs::{PreferenceChange, Theme};
 
-use super::applied;
-use super::choices::List;
-use super::general::select_for;
 use crate::shell::Shell;
 
 /// The Appearance page.
@@ -45,50 +96,14 @@ pub(crate) fn render(
         grid = grid.child(tile(theme, shell, columns, tokens, cx));
     }
     let theme = settings::card(tokens).p(px(12.0)).child(grid);
-    let fonts = settings::card(tokens)
-        .when(applied(List::Interface), |card| {
-            card.child(settings::row_at(
-                words.interface_size,
-                Some(words.interface_size_note.into()),
-                None,
-                Some(select_for(List::Interface, shell, compact, tokens, cx)),
-                true,
-                compact,
-                tokens,
-            ))
-        })
-        .when(applied(List::Code), |card| {
-            card.child(settings::row_at(
-                words.code_size,
-                Some(words.code_size_note.into()),
-                None,
-                Some(select_for(List::Code, shell, compact, tokens, cx)),
-                !applied(List::Interface),
-                compact,
-                tokens,
-            ))
-        });
-    let layout = settings::card(tokens).child(settings::row_at(
-        words.content_width,
-        Some(words.content_width_note.into()),
-        None,
-        Some(select_for(List::Width, shell, compact, tokens, cx)),
-        true,
-        compact,
-        tokens,
-    ));
-    // Each row once what it changes is drawn from it (`super::applied`).
     div()
         .flex()
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
         .child(super::motion::section(shell, tokens, compact, cx))
-        .when(applied(List::Interface) || applied(List::Code), |page| {
-            page.child(settings::section(words.fonts, fonts, tokens))
-        })
-        .when(applied(List::Width), |page| {
-            page.child(settings::section(words.layout, layout, tokens))
-        })
+        .child(rows::fonts(shell, tokens, compact, cx))
+        .child(rows::layout(shell, tokens, compact, cx))
+        .child(rows::syntax(shell, tokens, compact, cx))
         .into_any_element()
 }
 
@@ -101,9 +116,9 @@ fn tile(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let state = if shell.prefs.settings.appearance.theme == theme {
-        State::Chosen
+        TileState::Chosen
     } else {
-        State::Idle
+        TileState::Idle
     };
     let light = Tokens::of(Scheme::Light);
     let dark = Tokens::of(Scheme::Dark);
@@ -127,3 +142,6 @@ fn tile(
     }));
     theme_tile::cell(tile, columns)
 }
+
+#[cfg(test)]
+mod tests;

@@ -37,6 +37,9 @@ use crate::widgets::TypeExt as _;
 /// Paseo's select list is 220 wide.
 pub const WIDTH: f32 = 220.0;
 
+/// The reference short-option menu width (Appearance syntax choices).
+pub const SHORT_WIDTH: f32 = 200.0;
+
 /// Where a trigger was last drawn, in the window.
 pub type Anchor = Rc<Cell<Option<Bounds<Pixels>>>>;
 

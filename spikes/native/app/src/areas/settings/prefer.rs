@@ -33,6 +33,7 @@ impl Shell {
         match self.prefs.prefer(change) {
             Ok(()) => {
                 self.areas.settings.refused = None;
+                super::appearance::sync(self, window, cx);
                 self.command(Command::SavePrefs(self.prefs.clone()));
                 match change {
                     PreferenceChange::Language(_) => {

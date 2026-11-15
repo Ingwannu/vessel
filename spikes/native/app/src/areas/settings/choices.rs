@@ -28,6 +28,8 @@ pub(crate) enum List {
     Width,
     /// How a conversation shows tool calls.
     Display,
+    /// Syntax colours, independent of app palette.
+    Syntax,
 }
 
 /// The default send's choices in the order Paseo's list offers them
@@ -74,6 +76,9 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
     let words = shell.t.lang.settings();
     let appearance = &shell.prefs.settings.appearance;
     match list {
+        List::Syntax => {
+            super::appearance::syntax_label(appearance.syntax_theme, shell.words).to_owned()
+        }
         List::Machine => chosen_machine(shell)
             .map_or_else(|| words.machine.to_owned(), |machine| machine.name.clone()),
         List::Send => send_key_label(shell.prefs.settings.composer.send, primary()),
@@ -101,6 +106,15 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
         ..ComboRow::new(label)
     };
     match list {
+        List::Syntax => vessel_app_view::appearance::SyntaxTheme::ALL
+            .into_iter()
+            .map(|theme| {
+                row(
+                    super::appearance::syntax_label(theme, shell.words).to_owned(),
+                    theme == appearance.syntax_theme,
+                )
+            })
+            .collect(),
         List::Machine => {
             let chosen = chosen_machine(shell).map(|machine| machine.name.as_str());
             let mut rows: Vec<ComboRow> = shell
@@ -171,6 +185,10 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
 pub(crate) fn change(list: List, index: usize) -> Option<PreferenceChange> {
     match list {
         List::Machine => None,
+        List::Syntax => vessel_app_view::appearance::SyntaxTheme::ALL
+            .get(index)
+            .copied()
+            .map(PreferenceChange::SyntaxTheme),
         List::Send => SendKey::ALL.get(index).copied().map(PreferenceChange::Send),
         List::Delivery => DELIVERIES
             .get(index)

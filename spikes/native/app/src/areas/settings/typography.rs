@@ -26,6 +26,10 @@ pub(super) fn apply(shell: &Shell, cx: &mut App) {
     let code = stack(&appearance.mono_family, Typeface::Code, &available);
     vessel_app_kit::set_font_stacks(cx, interface, code);
     vessel_app_kit::set_typography_sizes(cx, sizes);
+    vessel_app_kit::set_syntax_palette(
+        cx,
+        super::appearance::syntax_palette(appearance.syntax_theme),
+    );
 }
 
 fn sizes(appearance: &Appearance) -> Option<TextSizes> {
@@ -36,7 +40,7 @@ fn sizes(appearance: &Appearance) -> Option<TextSizes> {
     })
 }
 
-fn stack(family: &FontFamily, role: Typeface, available: &[String]) -> FontStack {
+pub(super) fn stack(family: &FontFamily, role: Typeface, available: &[String]) -> FontStack {
     use vessel_app_kit::fonts::{HANGUL, MONO, SANS};
     let names = family.faces().iter().filter_map(|face| match face {
         FamilyFace::Named(name) => available

@@ -25,6 +25,7 @@ mod motion;
 mod region;
 mod routes;
 mod shell;
+mod syntax_kind;
 mod unsent;
 // A browser build does not update itself: `update_off.rs` stands in.
 #[cfg_attr(target_arch = "wasm32", path = "update_off.rs")]

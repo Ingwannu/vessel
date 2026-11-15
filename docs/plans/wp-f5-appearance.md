@@ -275,3 +275,34 @@ float-operation, unnecessary-qualification and borrowed-large-value lints).
 Current corrections remove them without exemptions; focused checks still
 need execution on the corrected controls. Engine callback/profile tests and
 preview geometry are included but have not yet run here.
+
+### Current consumer seam (not yet validated)
+
+The existing six registered line fields now compose the Appearance rows.
+One window-aware editor stream filters numeric edits outside IME composition,
+previews only content/code/family drafts, and commits/restores against CURRENT
+preferences on Enter/blur. The shared numeric-focus select-all hook is deferred
+until focus settles. Per-axis saved-text comparison preserves unrelated drafts
+when a palette, syntax or another field changes. Width accepts source radix /
+exponent notation, retains legacy Full until changed, and resets to following
+820. The existing list owns eight syntax choices; one exhaustive adapter sets
+the shared code resolver. Source example rows use the existing workspace lexer
+and sole semantic kind bridge, also used by the editor's line adapter.
+
+Deliberate native preview bound: uncommitted numeric drafts are clamped to the
+same source min/max as committing, rather than attempting an unbounded glyph
+allocation. No global typography changes while typing. Invalid/empty draft
+falls back to the current saved axis. The preview uses source py8/px12 and
+full-row marker/tint tokens; it prepares code/ranges outside paint. Preparation
+failure shows a translated unavailable message and never changes preferences.
+
+These are preparation sources only: selected checks and real form-event tests
+are still owed, and no new F5 screen, plugin catalogue or package gate is claimed.
+
+The prior baseline's fractional native UI type steps remain scaled from their
+original values (fonts.rs::ui); Paseo apply.ts:35–45 rounds its canonical
+integer size ramp. Preserving the existing native fractional Card/Tiny and
+line-height steps avoids changing other owners' default frame geometry in
+this package. Content/code axes and preview line heights are absolute and
+rounded per source. The existing lightweight classifier is retained rather
+than claiming Shiki token-by-token equivalence for the preview example.
