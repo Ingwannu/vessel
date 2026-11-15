@@ -476,6 +476,14 @@ mod tests {
 
     use super::SessionError;
 
+    #[test]
+    fn a_transient_system_prompt_refusal_keeps_the_unsupported_error_code() {
+        let error = SessionError::agent_not_started(AgentError::Refused(
+            LaunchRefusal::SystemPromptUnsupported(vessel_agent::Driver::Acp),
+        ));
+        assert_eq!(error.code(), ErrorCode::Unsupported);
+    }
+
     /// A direct driver's refusal before its agent starts (ADR 0057) is
     /// answered as the ACP path answers the same problem.
     #[test]
