@@ -355,16 +355,23 @@ loader. Preserve unknown fields if the common policy preserves them. Selection
 is not a secret-store transaction and caches no credential. Read/start errors
 must not expose a secret name through an existing store error's diagnostic.
 
-Half-done: the independent TLS-root cache and fixed multipart encoder are staged
-beside audio. The form uses the real WAV encoder; only its test fixture bypasses
-resampling and silence to keep framing tests independent. The cancelled-waiter,
-form framing, collision and entropy-cause tests are beside those rules. Narrow
-node clippy passes; this commit still needs its whole gate for runtime evidence.
-The returned endpoint contract now explicitly chooses one upload with retries
-disabled; the HTTP implementation and request-count tests are still owed.
+Done as staged source: the independent TLS-root cache and fixed multipart
+encoder, with the three new tests and the whole gate (Rust 1992/0/12, web unit
+417, e2e 62). They remain test-only until wiring and its product gate. A failed
+root initialization also stays cached; wiring owes a test of shared failure
+across starts and recovery by re-creating the service. The fixed prompt has no
+environment override, unlike Paseo's.
 
-Next: finish the root/form whole gate, then stage JSON decoding, the HTTP
-client and the actor in small review slices. Wiring waits for the shared protocol accessor and call-table refactor,
+Half-done: the foreign JSON decoder and six tests are staged beside those
+helpers. It returns only validated Transcript or a fixed typed error, retains
+syntax/status causes, and checks decoded text with Redactor::finds. The literal
+escape-looking speech fixture distinguishes this from parsing escapes again.
+Its narrow node clippy passes; the whole gate still owes runtime evidence for
+these six tests. No HTTP request is wired.
+
+Next: finish the decoder checks, then stage the HTTP client and the actor in
+small review slices. The one-upload contract is passed; HTTP request-count,
+deadline and response-cap tests still belong to that client slice. Wiring waits for the shared protocol accessor and call-table refactor,
 removes staging, and gets a whole product gate with actual transport close and
 scope tests. Name the one-second input-chunk duration beside the segment bound
 when wiring it; the segment limit must keep following the proto chunk rule.

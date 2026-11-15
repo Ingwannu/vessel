@@ -240,7 +240,11 @@ These numbers are Paseo's, with the environment overrides removed:
 The prompt given to a provider, when that provider has a prompt
 field, is Paseo's default sentence: transcribe only what the speaker
 says, add no words, preserve punctuation and casing, and return an
-empty transcript for silence or non-speech. It is not a setting.
+empty transcript for silence or non-speech. It is not a setting and has no
+process-environment override. Paseo permits
+`PASEO_DICTATION_TRANSCRIPTION_PROMPT` (dictation-stream-manager.ts188-190);
+Vessel's library receives typed settings rather than reading process
+configuration, so its fixed prompt is the stated difference.
 
 Confidence is not a dictation setting and not a field of `Partial` or
 `Final`. Paseo's shared speech-to-text client computes
@@ -358,6 +362,14 @@ Choice: one independent TLS-only initializer per dictation service loads the
 existing http_tls config on a blocking worker. Cancellation drops only a waiter;
 no second loader starts. OS trust-store changes take effect when this service
 is recreated, normally on node restart; live trust-store watching is not added.
+A failed root initialization is cached for the service's lifetime too, whether
+it is a rustls refusal or a worker JoinError. A new dictation id does not retry
+that initialization. Re-creating the dictation service (normally a node restart)
+creates a fresh cache and is the recovery path; this keeps cancellation or a
+failing worker from spawning repeated loaders. Wiring owes a test that failed
+starts share the same cached failure and a re-created service can initialize
+again. This preparation rule is separate from the one-upload request policy.
+
 Each stream builds its own HTTP client after its URL and
 sensitive authorization header validate. Connect has a ten-second deadline;
 the entire request, including response body, has a sixty-second deadline. The
@@ -402,8 +414,12 @@ the same in-memory body. It is not a general form encoder or another HTTP client
 
 The bounded foreign JSON decoding edge may inspect a local Value. Only typed
 Transcript or fixed typed failures escape it. Decode JSON escapes once, then
-use Redactor::finds on decoded text: holds would attempt a second JSON parse and
-falsely refuse ordinary speech containing a backslash. Refuse credential echoes;
+use Redactor::finds on decoded text: holds would interpret escape-looking speech
+again. A literal spoken backslash-u sequence must remain literal. Missing or
+wrongly typed text is refused instead of treated as silence or coerced text:
+stt.ts246 forwards the SDK text directly, and manager300 uses an empty fallback
+for an absent value; explicit shape validation is the typed-refusal floor at
+Vessel's compatible-server edge. Refuse credential echoes;
 never quote a provider body. Only error.message classifies TooSmall; an unrelated
 field or a non-JSON body cannot. This structured classification is a security
 floor over matching arbitrary SDK error text. Non-success HTTP statuses and

@@ -7,4 +7,5 @@
 mod audio;
 mod multipart;
 mod owner;
+mod provider_json;
 mod roots;
