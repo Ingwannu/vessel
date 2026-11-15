@@ -52,7 +52,7 @@ impl Shell {
         let visible = self.inbox_visibility(window);
         let area = &mut self.areas.inbox;
         area.admission
-            .retain(|source| area.store.nodes().iter().any(|node| node.source == *source));
+            .retain(|source| area.targets.iter().any(|target| matches!(target, vessel_app_link::inbox::Target::Online(known) if known == source)));
         for key in notices {
             if !visible.permits(key)
                 || (delivery.desktop == Channel::Disabled && delivery.sound == Channel::Disabled)
@@ -98,10 +98,9 @@ impl Shell {
             if !self
                 .areas
                 .inbox
-                .store
-                .nodes()
+                .targets
                 .iter()
-                .any(|node| node.source == pending.source)
+                .any(|target| matches!(target, vessel_app_link::inbox::Target::Online(source) if *source == pending.source))
             {
                 continue;
             }

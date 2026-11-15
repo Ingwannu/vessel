@@ -13,51 +13,73 @@ const PAGE_ENTRIES: usize = 16;
 
 pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, Problem> {
     let authority = Authority::of(&client.device_self().await.map_err(problem)?.scopes);
-    let mut before = None;
-    let mut entries = Vec::new();
-    let mut counts = None;
-    let mut extent = Extent::Complete;
-    let mut seen = std::collections::HashSet::new();
-    for _page in 0..pages.get() {
-        let page = client.inbox(ListInbox { before }).await.map_err(problem)?;
-        if page.entries.len() > PAGE_ENTRIES || (page.entries.is_empty() && page.next.is_some()) {
-            return Err(Problem::InvalidReply);
-        }
-        if counts.is_none() {
-            counts = Some(Counts::new(
-                page.counts.total.get(),
-                page.counts.waiting.get(),
-                page.counts.unread.get(),
-            ));
-        }
-        let mut boundary = before;
-        for entry in page.entries {
-            if boundary.is_some_and(|prior| entry.cursor >= prior) || !seen.insert(entry.key) {
-                return Err(Problem::InvalidReply);
-            }
-            boundary = Some(entry.cursor);
-            entries.push(project(client.node().id, entry));
-        }
-        let Some(next) = page.next else {
-            extent = Extent::Complete;
-            break;
-        };
-        if boundary != Some(next) || before.is_some_and(|prior| next >= prior) {
-            return Err(Problem::InvalidReply);
-        }
-        before = Some(next);
-        extent = Extent::More;
-    }
-    let counts = counts.ok_or(Problem::InvalidReply)?;
+    let head = read_page(client, None).await?;
+    let counts = Counts::new(
+        head.counts.total.get(),
+        head.counts.waiting.get(),
+        head.counts.unread.get(),
+    );
     if counts.waiting() > counts.total() || counts.unread() > counts.total() {
         return Err(Problem::InvalidReply);
     }
+    let mut entries: Vec<_> = head
+        .entries
+        .into_iter()
+        .map(|entry| project(client.node().id, entry))
+        .collect();
+    let next = if let Some(before) = pages.before() {
+        let older = read_page(
+            client,
+            Some(vessel_proto::inbox::InboxCursor::new(before.get())),
+        )
+        .await?;
+        let mut keys: std::collections::HashSet<_> =
+            entries.iter().map(|entry| entry.key).collect();
+        entries.extend(
+            older
+                .entries
+                .into_iter()
+                .map(|entry| project(client.node().id, entry))
+                .filter(|entry| keys.insert(entry.key)),
+        );
+        entries.sort_by_key(|entry| std::cmp::Reverse(entry.position));
+        older.next
+    } else {
+        head.next
+    };
     Ok(Snapshot {
         authority,
         counts,
         entries,
-        extent,
+        next: next.map(|cursor| Position::new(cursor.get())),
+        extent: if next.is_some() {
+            Extent::More
+        } else {
+            Extent::Complete
+        },
     })
+}
+
+async fn read_page(
+    client: &NodeClient,
+    before: Option<vessel_proto::inbox::InboxCursor>,
+) -> Result<vessel_proto::inbox::InboxPage, Problem> {
+    let page = client.inbox(ListInbox { before }).await.map_err(problem)?;
+    if page.entries.len() > PAGE_ENTRIES || (page.entries.is_empty() && page.next.is_some()) {
+        return Err(Problem::InvalidReply);
+    }
+    let mut boundary = before;
+    let mut keys = std::collections::HashSet::new();
+    for entry in &page.entries {
+        if boundary.is_some_and(|prior| entry.cursor >= prior) || !keys.insert(entry.key) {
+            return Err(Problem::InvalidReply);
+        }
+        boundary = Some(entry.cursor);
+    }
+    if page.next.is_some() && page.next != boundary {
+        return Err(Problem::InvalidReply);
+    }
+    Ok(page)
 }
 
 pub(super) async fn get(client: &NodeClient, key: Key) -> Result<Option<Entry>, Problem> {

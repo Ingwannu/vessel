@@ -162,8 +162,8 @@ impl Presence {
     /// A bounded OS probe supplied a sample, or explicitly became unknown.
     /// The sample itself never counts as actual app input.
     #[must_use]
-    pub fn system_idle(&mut self, age: Option<IdleAge>, now: Instant) -> Report {
-        self.idle = age.map(|age| IdleSample::new(age, now));
+    pub fn system_idle(&mut self, sample: Option<IdleSample>, now: Instant) -> Report {
+        self.idle = sample;
         let mut report = self.report(now);
         if report.activity == Activity::Unchanged {
             report.idle = self.idle;
@@ -229,7 +229,7 @@ mod tests {
     fn cached_os_idle_ages_and_unknown_never_becomes_zero_idle() {
         let now = Instant::now();
         let mut presence = Presence::default();
-        let report = presence.system_idle(Some(IdleAge::new(100_000)), now);
+        let report = presence.system_idle(Some(IdleSample::new(IdleAge::new(100_000), now)), now);
         assert_eq!(report.activity, Activity::Unchanged);
         let later = now.checked_add(Duration::from_secs(80)).unwrap();
         assert_eq!(report.idle.unwrap().age_at(later).get(), 180_000);

@@ -254,3 +254,15 @@ off-page entries) and inbox.read (Read-scoped direct person, existing mark order
 and transaction, live/durable pending veto). No whole-session read is substituted
 for an exact entry mark. Native badge/reader consumption of this contract is
 pending; SessionInfo marks are not silently redefined.
+
+## Bounded older-entry navigation
+
+The initial prefix expansion could require 256 sequential calls and then stop
+at 4096 rows. It is replaced by a cursor window: every refresh reads the newest
+page (authoritative counts/new opportunities) and at most one selected older
+page. Strict descending cursors allow arbitrarily old retained attention with
+at most 32 entries retained per node and at most two page reads. A Newest action
+resets the window without resetting notification watermarks. Overlap after
+projection removal is deduplicated by exact key, never by title. This uses only
+existing inbox.list cursors. The new regression traverses 9999 cursor windows
+without increasing memory/read bounds. Runtime results are pending.

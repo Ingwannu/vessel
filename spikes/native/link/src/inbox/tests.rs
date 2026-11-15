@@ -70,9 +70,14 @@ async fn pages_preserve_whole_counts_and_require_explicit_expansion() {
     assert_eq!(first.entries.len(), 1);
     assert_eq!(first.extent, Extent::More);
     assert_eq!(first.authority, Authority::ReadOnly);
-    let expanded = node::list(&peer.client, Pages::default().more().unwrap())
-        .await
-        .unwrap();
+    let expanded = node::list(
+        &peer.client,
+        Pages::default()
+            .more(vessel_app_view::inbox::Position::new(10))
+            .unwrap(),
+    )
+    .await
+    .unwrap();
     assert_eq!(expanded.entries.len(), 2);
     assert_eq!(expanded.counts.unread(), 90);
     assert_eq!(expanded.extent, Extent::Complete);

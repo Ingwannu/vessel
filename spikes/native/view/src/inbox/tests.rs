@@ -19,6 +19,7 @@ impl FakeNode {
                 counts: Counts::new(42, 7, 9),
                 entries: Vec::new(),
                 extent: Extent::More,
+                next: Some(Position::new(1)),
             },
         }
     }
@@ -293,11 +294,13 @@ fn page_expansion_preserves_its_bound_and_does_not_run_beside_an_inflight_read()
     );
     assert_eq!(inbox.expand(fake.source.node), Some(fake.source.clone()));
     let mut pages = Pages::default();
-    for _ in 1..MAX_PAGES {
-        pages = pages.more().unwrap();
+    for cursor in (1..10_000).rev() {
+        pages = pages.more(Position::new(cursor)).unwrap();
+        assert_eq!(pages.get(), MAX_PAGES);
     }
-    assert_eq!(pages.get(), MAX_PAGES);
-    assert_eq!(pages.more(), None);
+    assert_eq!(pages.more(Position::new(1)), None);
+    assert_eq!(inbox.newest(fake.source.node), Some(fake.source.clone()));
+    assert_eq!(inbox.nodes()[0].pages.before(), None);
 }
 
 #[test]

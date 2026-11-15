@@ -93,3 +93,6 @@ inbox-test-requested = 테스트 알림 전송을 요청했습니다
 
 # Notification settings: known backend status, never a delivery-success claim.
 inbox-test-unconfirmed = 알림이 표시됐는지 확인하세요. 표시되지 않으면 운영체제의 알림 권한을 확인하세요.
+
+# Return from an older cursor page without losing the node's full unread counts.
+inbox-newest = 최신 항목

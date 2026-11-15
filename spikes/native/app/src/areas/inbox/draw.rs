@@ -290,6 +290,23 @@ fn machine_notes(
 fn more_buttons(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let mut buttons = div().flex().flex_col().gap(px(S2));
     for node in shell.areas.inbox.store.nodes() {
+        if node.pages.before().is_some() {
+            let id = node.source.node;
+            buttons = buttons.child(
+                outline_button(
+                    ElementId::Name(format!("inbox-newest-{id}").into()),
+                    shell.words.inbox().newest(),
+                    true,
+                    tokens,
+                )
+                .on_click(cx.listener(move |shell, _event, _window, cx| {
+                    if shell.areas.inbox.store.newest(id).is_some() {
+                        shell.inbox_refresh();
+                    }
+                    cx.notify();
+                })),
+            );
+        }
         if node
             .snapshot
             .as_ref()
@@ -300,7 +317,7 @@ fn more_buttons(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> 
                 outline_button(
                     ElementId::Name(format!("inbox-more-{id}").into()),
                     shell.words.inbox().more(),
-                    node.pages.more().is_some(),
+                    true,
                     tokens,
                 )
                 .on_click(cx.listener(move |shell, _event, _window, cx| {

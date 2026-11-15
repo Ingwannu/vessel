@@ -19,7 +19,9 @@ pub struct Snapshot {
     pub counts: Counts,
     /// Loaded rows, newest first.
     pub entries: Vec<Entry>,
-    /// Whether the transport stopped at its current page budget.
+    /// Continuation of the selected page, never inferred from loaded rows.
+    pub next: Option<Position>,
+    /// Whether older entries remain.
     pub extent: Extent,
 }
 
@@ -54,7 +56,7 @@ pub struct Node {
     pub listing: Listing,
     /// Last successful data, retained visibly stale while offline.
     pub snapshot: Option<Snapshot>,
-    /// The explicitly expanded prefix to reload after background changes.
+    /// The selected cursor window, bounded independently of history depth.
     pub pages: Pages,
     pending: Option<Request>,
     hydrated: bool,
@@ -83,7 +85,18 @@ impl Inbox {
         if node.pending.is_some() {
             return None;
         }
-        node.pages = node.pages.more()?;
+        node.pages = node.pages.more(node.snapshot.as_ref()?.next?)?;
+        Some(node.source.clone())
+    }
+
+    /// Return to the newest window without replaying its notice watermark.
+    #[must_use]
+    pub fn newest(&mut self, id: NodeId) -> Option<Source> {
+        let node = self.nodes.iter_mut().find(|node| node.source.node == id)?;
+        if node.pending.is_some() {
+            return None;
+        }
+        node.pages = Pages::default();
         Some(node.source.clone())
     }
 

@@ -5,7 +5,7 @@
 use crate::shell::Shell;
 use std::time::Duration;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::inbox::presence::IdleAge;
+use vessel_app_view::inbox::presence::{IdleAge, IdleSample};
 
 const INTERVAL: Duration = Duration::from_secs(5);
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
@@ -50,10 +50,11 @@ impl Probe {
             sender: worker(),
         }
     }
-    async fn sample(&mut self, cx: &mut gpui::AsyncWindowContext) -> Option<IdleAge> {
+    async fn sample(&mut self, cx: &mut gpui::AsyncWindowContext) -> Option<IdleSample> {
         #[cfg(any(target_os = "linux", target_os = "freebsd"))]
         {
             let sender = self.sender.as_ref()?;
+            let observed = std::time::Instant::now();
             let (reply, receive) = tokio::sync::oneshot::channel();
             if sender.try_send(reply).is_err() {
                 self.sender = None;
@@ -68,7 +69,7 @@ impl Probe {
             if result.is_none() {
                 self.sender = None;
             }
-            result
+            result.map(|age| IdleSample::new(age, observed))
         }
         #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
         {

@@ -93,3 +93,6 @@ inbox-test-requested = Test notification requested
 
 # Notification settings: known backend status, never a delivery-success claim.
 inbox-test-unconfirmed = Check that it appeared. If it did not, check notification permissions in your operating system.
+
+# Return from an older cursor page without losing the node's full unread counts.
+inbox-newest = Newest entries

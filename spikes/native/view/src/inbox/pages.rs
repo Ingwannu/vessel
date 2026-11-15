@@ -1,30 +1,30 @@
-//! A person expands the loaded prefix explicitly. A named ceiling bounds the
-//! amount retained per node while the node's exact counters remain visible.
-
-/// Maximum simultaneously loaded pages per machine; older attention remains
-/// on the node and can still be opened through its source conversation.
-pub const MAX_PAGES: u16 = 256;
-
-/// Nonzero page budget with a bounded growth path.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Pages(u16);
-impl Default for Pages {
-    fn default() -> Self {
-        Self(1)
-    }
+//! A cursor window has no arbitrary history-depth ceiling. Refresh reads only
+//! the newest page plus the selected older page, never an ever-growing prefix.
+use super::Position;
+/// At most two pages per refresh, independent of how far back the person goes.
+pub const MAX_PAGES: u16 = 2;
+/// Current page boundary; the newest page is also read for new notices/counts.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Pages {
+    before: Option<Position>,
 }
 impl Pages {
-    /// The sequential page reads in one bounded refresh.
+    /// Named maximum reads needed by this window.
     #[must_use]
     pub const fn get(self) -> u16 {
-        self.0
+        if self.before.is_some() { MAX_PAGES } else { 1 }
     }
-    /// Load one older page without wrapping or growing past the memory budget.
+    /// Node-local exclusive boundary of the selected older page.
     #[must_use]
-    pub fn more(self) -> Option<Self> {
-        self.0
-            .checked_add(1)
-            .filter(|pages| *pages <= MAX_PAGES)
-            .map(Self)
+    pub const fn before(self) -> Option<Position> {
+        self.before
+    }
+    /// Move strictly backward; a faulty continuation cannot loop or grow RAM.
+    #[must_use]
+    pub fn more(self, next: Position) -> Option<Self> {
+        if self.before.is_some_and(|before| next >= before) {
+            return None;
+        }
+        Some(Self { before: Some(next) })
     }
 }
