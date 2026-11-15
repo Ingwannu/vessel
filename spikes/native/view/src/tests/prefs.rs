@@ -10,9 +10,10 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, OptionValueId};
 use crate::Lang;
 use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
-    ActionId, AgentKind, Bindings, Choices, ContentWidth, InvalidActionId, InvalidKeyBinding, Kept,
-    KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults, Panel, PreferenceChange,
-    Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme, TurnDelivery,
+    ActionId, AgentKind, Bindings, Choices, ContentWidth, Grouping, InvalidActionId,
+    InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
+    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
+    SidebarView, Theme, TurnDelivery,
 };
 
 const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
@@ -29,26 +30,55 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
     // Keep the page/bridge fixture unchanged. The native document adds two
-    // explicit fields (the language, and Appearance's Animations, word 39);
-    // every byte of its other defaults still comes from that fixture, and
-    // both old and extended documents must read identically.
+    // explicit fields (the language, and Appearance's Animations, word 39)
+    // and differs in one stated default: ended sessions are listed
+    // (`SidebarView::default`, 2026-11-14; the page and the bridge still
+    // write `"ended":false` until the node line's slice moves them, and
+    // then this exception goes). Every other byte of its defaults still
+    // comes from that fixture.
     let native_default = DEFAULT
         .replacen('{', r#"{"language":"system","#, 1)
         .replacen(
             r#""conversation":"full""#,
             r#""conversation":"full","animations":"on""#,
             1,
-        );
+        )
+        .replacen(r#""ended":false"#, r#""ended":true"#, 1);
     assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
         serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
+    // The page's document reads as the defaults with its own stated
+    // `"ended":false`: the one temporary difference, kept as written.
+    let page_default = Preferences {
+        sidebar: SidebarView {
+            ended: false,
+            ..values.sidebar
+        },
+        ..values.clone()
+    };
     assert_eq!(
         serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
-        values
+        page_default
     );
     assert_eq!(serde_json::from_str::<Preferences>("{}").unwrap(), values);
+}
+
+/// Ended sessions: a document without the field lists them (Paseo's, and
+/// 0.0.0.0.16's); one the person turned off stays off; an unreadable value
+/// lists them as a missing one does.
+#[test]
+fn ended_sessions_are_listed_unless_turned_off() {
+    let missing: Preferences =
+        serde_json::from_str(r#"{"sidebar":{"group":"status","sort":"activity"}}"#).unwrap();
+    assert!(missing.sidebar.ended);
+    assert_eq!(missing.sidebar.group, Grouping::Status);
+    let off: Preferences = serde_json::from_str(r#"{"sidebar":{"ended":false}}"#).unwrap();
+    assert!(!off.sidebar.ended);
+    let unreadable: Preferences = serde_json::from_str(r#"{"sidebar":{"ended":"yes"}}"#).unwrap();
+    assert!(unreadable.sidebar.ended);
+    assert!(Preferences::default().sidebar.ended);
 }
 
 /// "the first paint": the values written, and the defaults for the rest.

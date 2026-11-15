@@ -75,7 +75,7 @@ impl Areas {
             shortcuts: shortcuts::ShortcutListener::new(cx),
             sidebar: sidebar::SidebarState::new(window, cx),
             toasts: vessel_app_view::toasts::Toasts::default(),
-            composer: composer::ComposerArea::default(),
+            composer: composer::ComposerArea::new(cx),
             regions: crate::region::Regions::default(),
             terminal: terminal::TerminalArea::new(cx),
         };
@@ -108,6 +108,7 @@ impl Shell {
     ) -> Redraw {
         self.records(session, records, cx);
         self.offers_commands_seen();
+        self.composer_files_seen(cx);
         if self.terminal_output_only(session, records) {
             Redraw::GridAlone
         } else {

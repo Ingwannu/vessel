@@ -67,6 +67,11 @@ pub enum ErrorDetail {
         /// The stable fleet reason.
         reason: crate::FleetControlError,
     },
+    /// The node cannot issue a pairing invitation.
+    DeviceInvite {
+        /// The stable pairing setup reason.
+        reason: crate::DeviceInviteError,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,
@@ -114,6 +119,44 @@ mod detail_tests {
         assert_eq!(
             serde_json::from_str::<WireError>(future).unwrap().detail,
             Some(ErrorDetail::Unknown)
+        );
+    }
+}
+
+#[cfg(test)]
+mod invite_tests {
+    use super::*;
+
+    #[derive(Debug, Deserialize, PartialEq, Eq)]
+    struct OldWireError {
+        code: ErrorCode,
+        message: String,
+    }
+
+    #[test]
+    fn pairing_setup_errors_are_typed_and_old_clients_keep_guidance() {
+        let text = r#"{"code":"conflict","message":"configure a direct address or relay","detail":{"kind":"device_invite","reason":"no_routes"}}"#;
+        let error: WireError = serde_json::from_str(text).unwrap();
+        assert_eq!(
+            error.detail,
+            Some(ErrorDetail::DeviceInvite {
+                reason: crate::DeviceInviteError::NoRoutes
+            })
+        );
+        assert_eq!(serde_json::to_string(&error).unwrap(), text);
+        assert_eq!(
+            serde_json::from_str::<OldWireError>(text).unwrap(),
+            OldWireError {
+                code: ErrorCode::Conflict,
+                message: "configure a direct address or relay".to_owned()
+            }
+        );
+        let future = r#"{"code":"conflict","message":"new setup guidance","detail":{"kind":"device_invite","reason":"future_reason"}}"#;
+        assert_eq!(
+            serde_json::from_str::<WireError>(future).unwrap().detail,
+            Some(ErrorDetail::DeviceInvite {
+                reason: crate::DeviceInviteError::Unknown
+            })
         );
     }
 }

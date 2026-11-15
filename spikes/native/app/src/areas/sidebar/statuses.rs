@@ -23,6 +23,7 @@ pub(super) fn groups(
     view: SidebarView,
     shell: &Shell,
     tokens: &Tokens,
+    touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.t.lang.sidebar();
@@ -50,6 +51,7 @@ pub(super) fn groups(
                 Some(card.machine.as_str()),
                 shell,
                 tokens,
+                touch,
                 cx,
             ));
         }

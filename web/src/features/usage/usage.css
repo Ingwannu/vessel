@@ -1,0 +1,18 @@
+/* Keep the existing Settings spacing, with readable values at narrow
+   widths: an ellipsis must not turn a small reported cost into zero. */
+.usage-report {
+  display: contents;
+}
+
+.usage-report .row-controls {
+  max-width: 55%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.usage-report .fact-value {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: right;
+}

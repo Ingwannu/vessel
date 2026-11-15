@@ -1,7 +1,9 @@
-//! Where the pull request entry sits in the git menu: Paseo's secondary
-//! list puts the remote actions first and the pull request action in the
-//! feature group after them (`git/policy.ts`, `secondaryIds`), so here it
-//! follows Fetch, as a group of its own.
+//! Where the pull request rows sit in the git menu: Paseo's secondary
+//! list puts the remote actions first and its feature group after them
+//! (`git/policy.ts`, `secondaryIds`: the pull request action, then the
+//! direct merges), so here they follow Fetch, as a group of their own.
+
+use vessel_proto::forge::MergeMethod;
 
 use super::entry::PullEntry;
 use crate::workspace::git::{Action, ActionRow};
@@ -13,26 +15,33 @@ pub enum MenuEntry {
     Git(ActionRow),
     /// The pull request entry (never [`PullEntry::Hidden`]).
     Pull(PullEntry),
+    /// A direct merge (`pull::merge_methods`).
+    Merge(MergeMethod),
 }
 
-/// `rows` with `entry` after the remote actions; a hidden entry adds
-/// nothing.
+/// `rows` with `entry` and then `merges` after the remote actions; a
+/// hidden entry adds nothing, merges included.
 #[must_use]
-pub fn with_pull(rows: Vec<ActionRow>, entry: PullEntry) -> Vec<MenuEntry> {
+pub fn with_pull(rows: Vec<ActionRow>, entry: PullEntry, merges: &[MergeMethod]) -> Vec<MenuEntry> {
     let at = rows
         .iter()
         .rposition(|row| matches!(row.action, Action::Quick(_)))
         .map_or(0, |last| last.saturating_add(1));
     let mut entries: Vec<MenuEntry> = rows.into_iter().map(MenuEntry::Git).collect();
     if entry != PullEntry::Hidden {
-        entries.insert(at, MenuEntry::Pull(entry));
+        let group = std::iter::once(MenuEntry::Pull(entry))
+            .chain(merges.iter().copied().map(MenuEntry::Merge));
+        let _shifted: Vec<MenuEntry> = entries.splice(at..at, group).collect();
     }
     entries
 }
 
 #[cfg(test)]
 mod tests {
-    //! The entry follows Fetch and the next group still starts its own.
+    //! The rows follow Fetch, merges right after the pull request entry,
+    //! and the next group still starts its own.
+
+    use vessel_proto::forge::MergeMethod;
 
     use super::{MenuEntry, with_pull};
     use crate::workspace::git::fixtures::status;
@@ -48,7 +57,7 @@ mod tests {
 
     #[test]
     fn create_follows_fetch() {
-        let entries = with_pull(listed(), PullEntry::Create);
+        let entries = with_pull(listed(), PullEntry::Create, &[]);
         let at = entries
             .iter()
             .position(|entry| matches!(entry, MenuEntry::Pull(_)))
@@ -64,9 +73,30 @@ mod tests {
     }
 
     #[test]
+    fn merges_follow_the_pull_request_entry_in_order() {
+        let methods = [MergeMethod::Squash, MergeMethod::Rebase];
+        let entries = with_pull(listed(), PullEntry::Create, &methods);
+        let at = entries
+            .iter()
+            .position(|entry| matches!(entry, MenuEntry::Pull(_)))
+            .unwrap();
+        assert_eq!(
+            entries.get(at.saturating_add(1)),
+            Some(&MenuEntry::Merge(MergeMethod::Squash))
+        );
+        assert_eq!(
+            entries.get(at.saturating_add(2)),
+            Some(&MenuEntry::Merge(MergeMethod::Rebase))
+        );
+    }
+
+    #[test]
     fn a_hidden_entry_adds_no_row() {
         let rows = listed();
         let count = rows.len();
-        assert_eq!(with_pull(rows, PullEntry::Hidden).len(), count);
+        assert_eq!(
+            with_pull(rows, PullEntry::Hidden, &[MergeMethod::Squash]).len(),
+            count
+        );
     }
 }

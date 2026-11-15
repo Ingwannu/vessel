@@ -16,8 +16,8 @@ use vessel_app_kit::dialog::{DialogContent, DialogSize};
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, HighlightStyle, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, StyledText, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, button_with_kind,
@@ -54,7 +54,10 @@ pub(crate) fn dialog(
         FactsRead::Loading => (loading(tokens), None),
         FactsRead::Failed(problem) => (failed(shell, problem, tokens), None),
         FactsRead::Ready(view) => match &view.pull_request {
-            Some(pull) => (whole(shell, pull, tokens), Some(pull.summary.url.clone())),
+            Some(pull) => (
+                whole(shell, pull, view.feedback, tokens, narrow, cx),
+                Some(pull.summary.url.clone()),
+            ),
             None => (empty(shell, view, tokens), None),
         },
     };
@@ -180,7 +183,14 @@ fn empty(shell: &Shell, view: &PullRequestView, tokens: &Tokens) -> AnyElement {
 }
 
 /// The header, the checks and the reviews.
-fn whole(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
+fn whole(
+    shell: &Shell,
+    pull: &PullRequest,
+    feedback: bool,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     div()
         .flex()
         .flex_col()
@@ -190,6 +200,8 @@ fn whole(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
         .child(checks(shell, pull, tokens))
         .child(divider(tokens))
         .child(activity(shell, pull, tokens))
+        .child(divider(tokens))
+        .child(super::feedback::row(shell, feedback, tokens, touch, cx))
         .into_any_element()
 }
 
@@ -201,28 +213,36 @@ fn divider(tokens: &Tokens) -> AnyElement {
         .into_any_element()
 }
 
-/// Paseo's header: the title with " #42" muted, then the state's glyph
-/// and word, then the repository.
+/// Paseo's header (`pull-request-panel/pane.tsx` 524-552): the title at
+/// the body size and weight with " #42" muted in the same run of text,
+/// so a wrapped title carries the number at its end, then the state's
+/// glyph and word, then the repository.
 fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     let summary = &pull.summary;
     let phase = PullPhase::of(summary);
     let repo = summary.repo.path.as_str().to_owned();
+    let mut title = summary.title.as_str().to_owned();
+    let start = title.len();
+    title.push_str(" #");
+    title.push_str(&summary.number.get().to_string());
+    let number = vec![(
+        start..title.len(),
+        HighlightStyle {
+            color: Some(neutral.foreground_muted),
+            ..HighlightStyle::default()
+        },
+    )];
     div()
         .flex()
         .flex_col()
         .gap(px(spacing::S1))
         .child(
             div()
-                .type_(Type::Title)
+                .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .whitespace_normal()
-                .child(summary.title.as_str().to_owned())
-                .child(
-                    div()
-                        .text_color(neutral.foreground_muted)
-                        .child(format!(" #{}", summary.number.get())),
-                ),
+                .child(StyledText::new(title).with_highlights(number)),
         )
         .child(
             div()

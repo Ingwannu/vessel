@@ -49,7 +49,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bytes::Bytes;
 use serde_json::{Value, json};
@@ -976,10 +976,89 @@ async fn transfers(
 
 // ---------------------------------------------------------------------
 
+/// Where the canary is, for a run that hits its safety net.
+///
+/// [Decision Log]
+/// - Purpose: the canary runs one 60 s safety net over a relay, four nodes
+///   and every step; a timeout said nothing of which step it was in (N1's
+///   review run, 2026-11-14, on a starved machine). Each phase's name and
+///   time now go to stderr when the next begins, and the last one when the
+///   test's future is dropped, by a timeout or by finishing.
+/// - Static only: a phase is a fixed name and a duration. Nothing the
+///   canary plants or captures, no argument, path or id, is ever written
+///   here, so the diagnostic cannot be where a secret leaks.
+/// - Written to stderr's handle rather than with `eprintln!` (denied in
+///   the workspace) and outside libtest's capture, so the phases show in a
+///   gate's log on a timeout too. Nothing about the test's waits, deadlines
+///   or assertions changes (the coordinator's decision 3, 2026-11-14).
+#[derive(Debug, Clone, Copy)]
+enum Phase {
+    Setup,
+    MakeHome,
+    JoinMember,
+    JoinPlain,
+    JoinRouteless,
+    CopySecrets,
+    Profiles,
+    Sessions,
+    AgentTools,
+    Transfers,
+    SessionLogs,
+    Credentials,
+    Scan,
+    AssertClean,
+    StopHome,
+    StopMember,
+    StopPlain,
+    StopRouteless,
+    StopRelay,
+}
+/// The phase the canary is in and when it began.
+struct Progress {
+    phase: Phase,
+    began: Instant,
+}
+impl Progress {
+    fn new() -> Self {
+        Self {
+            phase: Phase::Setup,
+            began: Instant::now(),
+        }
+    }
+    fn enter(&mut self, phase: Phase) {
+        self.report();
+        self.phase = phase;
+        self.began = Instant::now();
+    }
+    fn report(&self) {
+        use std::io::Write as _;
+        let _written = writeln!(
+            io::stderr().lock(),
+            "canary phase {:?}: {}ms",
+            self.phase,
+            self.began.elapsed().as_millis()
+        );
+    }
+}
+impl Drop for Progress {
+    fn drop(&mut self) {
+        // Timeout drops the test future before the outer assertion reports
+        // its error, so this identifies the last phase without its data.
+        self.report();
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "one canary run, its steps in order, each marked with its phase for a timeout's \
+              log; whether to split the run is decided after the phase timings are compared \
+              (the coordinator's canary decision, 2026-11-14)"
+)]
 async fn no_secret_value_appears_where_it_does_not_belong() {
     let _log = tracing_log();
     within(async {
+        let mut progress = Progress::new();
         let planted = Planted {
             profile: canary("PROFILE"),
             docs: canary("DOCS"),
@@ -1004,25 +1083,35 @@ async fn no_secret_value_appears_where_it_does_not_belong() {
         let client = owner(&home).await;
         let mut captured = Captured::default();
 
+        progress.enter(Phase::MakeHome);
         make_home(&home, &planted, &mut captured).await;
+        progress.enter(Phase::JoinMember);
         join(&home, &member, "read,operate,admin", &client, &mut captured).await;
+        progress.enter(Phase::JoinPlain);
         join(&home, &plain, "read,operate", &client, &mut captured).await;
+        progress.enter(Phase::JoinRouteless);
         join(&home, &routeless, "read,operate", &client, &mut captured).await;
         assert_eq!(
             linked(&routeless),
             std::slice::from_ref(&relay.url),
             "the routeless member is linked to the home's relay"
         );
+        progress.enter(Phase::CopySecrets);
         copy_secrets(&home, [&member, &plain], &planted, &mut captured).await;
+        progress.enter(Phase::Profiles);
         profiles(&home, &planted, &mut captured).await;
         let reports = tempfile::tempdir().unwrap();
+        progress.enter(Phase::Sessions);
         let (started, mcp, mut agents) =
             sessions(&home, &client, &planted, reports.path(), &mut captured).await;
         let agent = agent_env(&mcp);
+        progress.enter(Phase::AgentTools);
         agent_tools(&agent, &mut captured).await;
+        progress.enter(Phase::Transfers);
         transfers(&home, &member, &client, started[1], &mut captured).await;
         // The sessions' logs, as the node serves them and as `vessel log`
         // prints them.
+        progress.enter(Phase::SessionLogs);
         for session in &started {
             let text = session_text(&client, session.id).await;
             captured.text(format!("session {}", session.id), &text);
@@ -1031,6 +1120,7 @@ async fn no_secret_value_appears_where_it_does_not_belong() {
 
         // Credentials Vessel made: the member's on the home, the home's on
         // the member, and the Claude Code terminal session's agent.
+        progress.enter(Phase::Credentials);
         let device = credential_secret(&member.data().join("fleet/member.credential"));
         assert_owner_only(&member.data().join("fleet/member.credential"));
         let grants = home.data().join("fleet/grants");
@@ -1054,6 +1144,7 @@ async fn no_secret_value_appears_where_it_does_not_belong() {
 
         // Everything captured so far, and every file but the few a value
         // belongs in.
+        progress.enter(Phase::Scan);
         scan(
             &mut captured,
             &home,
@@ -1077,16 +1168,22 @@ async fn no_secret_value_appears_where_it_does_not_belong() {
                 .iter()
                 .map(|agent| ("agent credential", agent.as_str())),
         );
+        progress.enter(Phase::AssertClean);
         captured.assert_clean(&canaries);
         assert!(
             contains(&traced(), b"client connected"),
             "the nodes' tracing was captured"
         );
 
+        progress.enter(Phase::StopHome);
         home.stop().await;
+        progress.enter(Phase::StopMember);
         member.stop().await;
+        progress.enter(Phase::StopPlain);
         plain.stop().await;
+        progress.enter(Phase::StopRouteless);
         routeless.stop().await;
+        progress.enter(Phase::StopRelay);
         relay.shutdown.cancel();
         relay.serving.await.unwrap().unwrap();
     })

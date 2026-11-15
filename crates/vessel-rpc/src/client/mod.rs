@@ -28,6 +28,7 @@
 //!   The [`Unary`] marker makes that a compile error.
 
 mod driver;
+mod protocol;
 mod subscription;
 
 use std::num::NonZeroUsize;
@@ -65,12 +66,16 @@ impl Unary for ListHarnesses {}
 impl Unary for ListSessions {}
 impl Unary for GetSession {}
 impl Unary for CreateSession {}
+impl Unary for vessel_proto::side_questions::OpenSideQuestion {}
+impl Unary for vessel_proto::side_questions::PromptSideQuestion {}
+impl Unary for vessel_proto::side_questions::ResetSideQuestion {}
 impl Unary for SendInput {}
 impl Unary for KillSession {}
 impl Unary for ReadEvents {}
 impl Unary for Unsubscribe {}
 impl Unary for StopNode {}
 impl Unary for InviteDevice {}
+impl Unary for vessel_proto::GetDeviceSelf {}
 impl Unary for ListDevices {}
 impl Unary for RevokeDevice {}
 impl Unary for ListProfiles {}
@@ -206,6 +211,7 @@ impl Unary for vessel_proto::JoinFleet {}
 impl Unary for vessel_proto::LeaveFleet {}
 impl Unary for vessel_proto::SyncFleet {}
 impl Unary for vessel_proto::GetFleetStatus {}
+impl Unary for vessel_proto::GetPublished {}
 impl Unary for vessel_proto::automation::PreviewSchedule {}
 impl Unary for vessel_proto::automation::ListSchedules {}
 impl Unary for vessel_proto::automation::GetSchedule {}
@@ -216,10 +222,20 @@ impl Unary for vessel_proto::automation::ResumeSchedule {}
 impl Unary for vessel_proto::automation::RunSchedule {}
 impl Unary for vessel_proto::automation::DeleteSchedule {}
 impl Unary for vessel_proto::automation::ListRuns {}
+impl Unary for vessel_proto::usage::QueryUsage {}
+impl Unary for vessel_proto::limits::GetUsageLimits {}
+impl Unary for vessel_proto::limits::SetUsageLookup {}
 impl Unary for vessel_proto::automation::ListPrompts {}
 impl Unary for vessel_proto::automation::CreatePrompt {}
 impl Unary for vessel_proto::automation::UpdatePrompt {}
 impl Unary for vessel_proto::automation::DeletePrompt {}
+impl Unary for vessel_proto::inbox::ListInbox {}
+impl Unary for vessel_proto::inbox::MarkInbox {}
+impl Unary for vessel_proto::inbox::GetInboxEntry {}
+impl Unary for vessel_proto::push::GetPushKey {}
+impl Unary for vessel_proto::push::SubscribePush {}
+impl Unary for vessel_proto::push::UnsubscribePush {}
+impl Unary for vessel_proto::push::ReportPushPresence {}
 impl Unary for vessel_proto::search::SearchMessages {}
 impl Unary for vessel_proto::parking::ParkSession {}
 impl Unary for vessel_proto::parking::WakeSession {}
@@ -227,6 +243,7 @@ impl Unary for vessel_proto::settings::GetNodeSettings {}
 impl Unary for vessel_proto::settings::SetNodeSettings {}
 impl Unary for vessel_proto::forking::ForkSession {}
 impl Unary for vessel_proto::forking::RewindSession {}
+impl Unary for vessel_proto::history::GetAgentHistory {}
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -277,12 +294,16 @@ const fn is_unary(method: Method) -> bool {
         | Method::ListSessions
         | Method::GetSession
         | Method::CreateSession
+        | Method::OpenSideQuestion
+        | Method::PromptSideQuestion
+        | Method::ResetSideQuestion
         | Method::SendInput
         | Method::KillSession
         | Method::ReadEvents
         | Method::Unsubscribe
         | Method::StopNode
         | Method::InviteDevice
+        | Method::GetDeviceSelf
         | Method::ListDevices
         | Method::RevokeDevice
         | Method::ListProfiles
@@ -405,6 +426,7 @@ const fn is_unary(method: Method) -> bool {
         | Method::LeaveFleet
         | Method::SyncFleet
         | Method::GetFleetStatus
+        | Method::GetPublished
         | Method::PreviewSchedule
         | Method::ListSchedules
         | Method::GetSchedule
@@ -415,17 +437,28 @@ const fn is_unary(method: Method) -> bool {
         | Method::RunSchedule
         | Method::DeleteSchedule
         | Method::ListRuns
+        | Method::GetUsageLimits
+        | Method::SetUsageLookup
+        | Method::QueryUsage
         | Method::ListPrompts
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
+        | Method::ListInbox
+        | Method::GetInboxEntry
+        | Method::MarkInbox
+        | Method::GetPushKey
+        | Method::SubscribePush
+        | Method::UnsubscribePush
+        | Method::ReportPushPresence
         | Method::SearchMessages
         | Method::ParkSession
         | Method::WakeSession
         | Method::GetNodeSettings
         | Method::SetNodeSettings
         | Method::ForkSession
-        | Method::RewindSession => true,
+        | Method::RewindSession
+        | Method::GetAgentHistory => true,
     }
 }
 
@@ -682,20 +715,13 @@ impl Connection {
 
     async fn start(&self, call: Call, waiter: Waiter) -> Result<PendingCall<'_>, CallError> {
         let negotiated = self.shared.welcome.protocol;
-        let needs = call.since();
-        if needs > negotiated {
-            return Err(CallError::NotInProtocol {
-                method: call.method(),
-                needs,
-                negotiated,
-            });
-        }
+        protocol::check(call.method(), call.required_protocol(), negotiated)?;
         let id = self
             .shared
             .ids
             .next()
             .ok_or(CallError::RequestIdsExhausted)?;
-        let command = Command::Call { id, call, waiter };
+        let command = Command::call(id, call, waiter);
         // The queue is bounded; while waiting for room, also watch for the
         // connection closing, so a caller never waits on a dead driver.
         let queued = tokio::select! {

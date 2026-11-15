@@ -110,6 +110,7 @@ fn paint<'a>(
     window: &Window,
 ) -> Paint<'a> {
     Paint {
+        catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
@@ -123,7 +124,7 @@ fn paint<'a>(
         rewinds: rewinds(shell, area).then_some(&area.timeline),
         forks: std::ptr::eq(area, &raw const shell.areas.conversation)
             .then_some((&area.timeline, &area.forking)),
-        fleet: &shell.fleet,
+        fork_headers: &shell.areas.conversation.forking.headers,
         above: area.above(),
     }
 }

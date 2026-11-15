@@ -52,6 +52,27 @@ fn same_screen(actual: &TerminalModel, expected: &TerminalModel) {
 }
 
 #[gpui::test]
+fn record_dispatch_retains_the_terminal_only_redraw_boundary(cx: &mut TestAppContext) {
+    let (shell, cx) = setup(cx);
+    shell.update(cx, |shell, cx| {
+        let session = SessionId::random();
+        open(shell, session, cx);
+        shell.areas.terminal.phase = Phase::Ready;
+        assert_eq!(
+            shell.link_records(&session, &[record(0, b"output")], cx),
+            crate::areas::Redraw::GridAlone,
+        );
+        let mut nonterminal = record(1, b"");
+        nonterminal.event = SessionEvent::Woken;
+        assert_eq!(
+            shell.link_records(&session, &[nonterminal], cx),
+            crate::areas::Redraw::Shell,
+        );
+    });
+    cx.run_until_parked();
+}
+
+#[gpui::test]
 fn reopening_a_rejects_the_old_history_completion(cx: &mut TestAppContext) {
     let (shell, cx) = setup(cx);
     shell.update(cx, |shell, cx| {

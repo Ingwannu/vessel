@@ -109,7 +109,12 @@ mod tests {
             serde_json::from_str(r#"{"cadence":{"kind":"every","seconds":60}}"#).unwrap();
         assert_eq!(request.count, PreviewCount::default());
         let call = request.into_call();
-        assert_eq!(call.method().scope(), Scope::Read);
+        assert_eq!(
+            call.method()
+                .scope()
+                .expect("legacy method requires a scope"),
+            Scope::Read
+        );
         assert_eq!(call.since(), ProtocolVersion::new(13));
         let json = serde_json::to_string(&call).unwrap();
         assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);

@@ -25,6 +25,7 @@ pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;
+pub mod fork;
 pub mod idle_release;
 mod links;
 pub mod machine_book;
@@ -40,6 +41,7 @@ pub mod pairing;
 pub mod palette;
 pub mod panels;
 pub mod prefs;
+pub mod rewind;
 pub mod search;
 pub mod session;
 pub mod settings;
@@ -53,6 +55,7 @@ mod tests;
 mod text;
 pub mod timeline;
 pub mod toasts;
+pub mod updates;
 pub mod workspace;
 
 pub use agent_mark::AgentMark;
@@ -68,8 +71,8 @@ pub use options::{
 };
 pub use text::localization;
 pub use text::{
-    AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
-    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText,
-    NoticeWords, OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords,
-    SidebarWords, Text, UpdateText, grouped, meter_tokens, short_tokens,
+    BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
+    GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
+    OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    grouped, meter_tokens, short_tokens,
 };

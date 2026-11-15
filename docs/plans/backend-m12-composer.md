@@ -12,7 +12,7 @@ named below with its reason.
 | a | Change the model, effort or permissions of a running session | built; permissions rows marked as Paseo's |
 | — | An agent's lists kept and refreshed behind the controls (owner word 28) | built |
 | b | `/` the agent's commands | built (a running session's composer and the new chat's) |
-| c | Attach images and files | not started |
+| c | Attach images and files | built in both composers (c1 rules and uploads, c2 the screen); sent messages' pictures next (c3) |
 | d | `@` a file of the project | not started (track F's seam) |
 | e | Drafts kept per session; Up and Down recall sent messages | built |
 
@@ -292,7 +292,13 @@ What the app does (`view::composer::{drafts, recall}`,
 - What is typed in a session's composer stays that session's draft, and
   the new chat's its own; another session opening puts the one open's
   text away and brings the other's back. A sent prompt empties the
-  composer, and so its draft.
+  composer, and so its draft: a session's when it is sent, the new
+  chat's once its session has started (until then a failed start's text,
+  put back in the composer, is still the draft). The emptying is written
+  to the draft by the app itself: the field reports only what is typed
+  (gpui-base's `set_value` turns its events off), which at first left a
+  sent prompt behind as the draft, back after a restart (found in slice
+  c's captures).
 - Kept on the device a second after the last edit (one write for a burst
   of typing): `drafts.json` beside the agents' lists, owner-only (0600 in
   a 0700 folder, checked by a test), versioned. Read once at start; the
@@ -327,3 +333,134 @@ Deliberate differences:
 
 Checked: the view's rules and the file's (round trip per composer,
 owner-only modes, a file set aside, a missing file) by tests.
+
+## Slice c: attachments
+
+Followed: Paseo `composer/index.tsx` (`renderAttachmentTray`, the image,
+file and labelled pills), `components/attachment-pill.tsx` (a body 48
+high, an image 48 by 48, a label 260 wide at most, the remove button 24
+across at the top left), `composer/input/input.tsx` (the attach button and
+its menu: an image, a file); for what Vessel's node needs, Vessel's own
+page (`web/src/data/attach.ts`, `tray.ts`, `upload.ts`), which settled the
+same node.
+
+The node already has every call (protocol 10, ADR 0025): `attachment.begin`,
+`write` and `finish` send a file in pieces to a live structured session,
+`attachment.read` reads one back, and a prompt names a sent file as a
+`ContentBlock::Attachment`. Nothing new on the wire.
+
+How it behaves (`view::composer::{attach, tray, trays}`, `link::attachments`):
+
+- A file's type follows its extension, the CLI's table; its kind is the
+  node's (`AttachmentKind::of`); its name is made one the node takes (no
+  `/ \ : * ? " < > |` or control character, no leading dot or space, not a
+  Windows device, at most 255 bytes cut before a short extension).
+- A file is checked when it is attached, or once the composer has a session
+  whose agent said what it takes: images and audio only for an agent that
+  takes them, nothing empty, nothing past the node's size for its kind, at
+  most 16 a prompt and 25 MiB of images and audio. A refused file stays as
+  a pill with its reason and stops Send until it is removed; removing a
+  file looks at the refused ones again.
+- Files are uploaded when Send is pressed, two at a time, each a piece at
+  a time from what the node says it has; an image whose first bytes are
+  not its type's is refused before anything is sent. A failed upload stops
+  Send; a retry goes on from what the node has, an upload the node dropped
+  is begun again, a file that changed or that the node judged wrong is not
+  tried again. The prompt goes, text first and then each file, when every
+  file is in.
+- Each composer keeps its tray while the app runs (a session's, the new
+  chat's), sixteen at most, the least recently used dropped first; the new
+  chat's becomes its session's once the session exists.
+
+On screen (`app/src/areas/composer/{attach,files}.rs`, the kit's
+`attachment`):
+
+- The attach button (Paseo's `+`, 28 across, 44 on touch) leads the
+  composer's left group and opens Paseo's menu: Add image, Upload file
+  (the system's file dialog). Files dropped on the card (its edge takes the
+  accent while files are dragged over it) and images or files pasted into
+  the text join the tray too.
+- The tray sits over the text: an image as its 48 by 48 picture, any other
+  file as its name over its extension; the remove button at the top left
+  shows on hover (always on touch). A file on its way shows its progress
+  along its pill's foot; a refused or failed one has a red edge and says
+  why in its second line, and a click on a failed one tries it again.
+- Send in a session's composer with files takes the text with them: the
+  composer's text empties, the message shows in the conversation, and the
+  prompt goes once every file is in. Until then the files stay in the
+  tray with their progress, and Send takes nothing more (what is typed
+  meanwhile stays): a second send would take the waiting prompt's place.
+  Nor does Send go while a file is refused (the send button is off).
+  Send in the new chat with files starts the
+  session without its prompt; once the session exists its tray is the
+  session's, once its agent has said what it takes (its first records)
+  the files go, and the prompt follows.
+
+Deliberate differences:
+
+- **Uploaded at Send.** Paseo keeps a picked file on the device and sends
+  it with the message in one call; Vessel's node takes a file only into a
+  live session, in pieces, before the prompt names it.
+- **One waiting prompt a session.** Paseo empties its composer, files and
+  all, at Send and can take the next message at once; here the waiting
+  prompt's files are the composer's tray until they are in (the tray is
+  the composer's, not the message's), so the next send waits for them.
+  Files added in that time go with the waiting prompt.
+- **Removing a file looks at the refused ones again** (the page keeps them
+  refused until its session changes).
+- **No image viewer yet.** A click on Paseo's image pill opens the image;
+  here a click does nothing but retry a failed file.
+- **The menu's rows have no icons** (the kit's menu has none), and both
+  rows open the same dialog: GPUI's file dialog takes no type filter.
+  Paseo's issue, pull request and plugin rows are not Vessel's yet.
+- **The node's limits are this build's.** The app does not read a
+  conversation's own limits; the node checks again at `attachment.begin`
+  and its refusal shows on the pill.
+- **An ended session's files wait.** Send in a session that is not running
+  starts it again with the text (as before); its files go with the next
+  send once it runs.
+
+
+Not seen on screen: the three ways a file reaches the composer besides an
+image pasted (the system's file dialog, a file list pasted, files dropped
+on the card). Under the capture display (Xvfb) GPUI's dialog needs the
+desktop portal, which is absent; GPUI's X11 clipboard does not read a
+file list (`text/uri-list` is not among its formats); and a drop reaches
+GPUI (its `XDND_DATA` is read, the drag source is told it succeeded) but
+the card's `on_drop` and `drag_over` did not run. They wait for a run on a
+real desktop.
+
+### Captures: a screen behind its keys (measured, not a defect)
+
+Two c2 captures showed keys handled but not drawn: typed text missing
+from the screen until the next pointer event, and a Return whose effect
+showed only after a click. One capture's bubble read its text twice: the
+first typing was in the composer but not yet on screen, so it was typed
+again, and the app sent what the composer held (one text block; the fake
+agent's echo has no space between the two copies). The capture was
+retaken with the text typed once.
+
+No state change lacks a notify. The composer's text is its model, kept as
+the draft (`drafts.json`), and the model held every key while the screen
+did not show them; the next frame showed them all. GPUI draws a dirty
+window before it dispatches each key (`Window::dispatch_key_event`) and
+presents only when the X events of that wake are handled (the 60 Hz
+refresh timer). A burst of keys therefore costs one draw a key before
+anything is presented. Measured on the capture display (software
+renderer), 24 keys typed in about 0.3 s:
+
+| build | main thread CPU | screen 0.6 s after the last key |
+| --- | --- | --- |
+| debug | 1.42 s and 1.61 s (about 60 ms a key) | before the burst |
+| release | 0.15 s and 0.16 s (about 6 ms a key) | after the burst |
+
+The capture host adds a second stall: the debug binary (over 400 MB) is on
+a spinning data disk under heavy I/O pressure (`/proc/pressure/io` "some"
+about 55 %), and code run for the first time waits for its pages: the
+main thread was seen waiting on the disk (`folio_wait_bit_common`) for
+12.5 s while a cold binary started and for 0.6 s when a session first
+opened. Replays of both captures' paths, with the binary's pages cached,
+drew every key at once.
+
+So a capture waits until the app's main thread has been idle in its event
+loop (`ep_poll`, ten samples 50 ms apart) before it is taken.

@@ -205,6 +205,9 @@ pub enum Glyph {
     Remove,
     /// A file (the Files tree, Paseo's `File`).
     File,
+    /// A file with lines of text: an attached file's pill (Paseo's
+    /// `FileText`).
+    FileText,
     /// The code panel's toggle (Paseo's `PanelRight`).
     PanelRight,
     /// The desktop sidebar toggle, preserving the existing right-panel glyph.
@@ -214,7 +217,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 84] = [
+const ALL: [Glyph; 85] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -296,6 +299,7 @@ const ALL: [Glyph; 84] = [
     Glyph::Grip,
     Glyph::Remove,
     Glyph::File,
+    Glyph::FileText,
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
@@ -357,6 +361,7 @@ impl Glyph {
             Self::Plus => "kit/plus.svg",
             Self::Branch => "kit/branch.svg",
             Self::File => "kit/file.svg",
+            Self::FileText => "kit/file-text.svg",
             Self::PanelRight => "kit/panel-right.svg",
             Self::PanelLeft => "kit/panel-left.svg",
             Self::MenuCompact => "kit/menu-compact.svg",
