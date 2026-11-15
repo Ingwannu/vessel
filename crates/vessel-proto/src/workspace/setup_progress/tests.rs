@@ -5,15 +5,29 @@ fn the_values_carrier_assigns_no_protocol_or_dispatch_surface() {
 }
 
 #[test]
-fn command_indices_reject_values_outside_the_parser_bound_on_decode() {
-    assert_eq!(
-        serde_json::from_str::<SetupCommandIndex>("0")
+fn command_ordinals_match_first_last_and_approved_list_order_on_roundtrip() {
+    let approved: Vec<_> = (0..MAX_PROJECT_COMMANDS)
+        .map(|position| format!("command {position}"))
+        .collect();
+    for (position, command) in approved.iter().enumerate() {
+        let ordinal = u32::try_from(position.checked_add(1).unwrap()).unwrap();
+        let index = SetupCommandIndex::try_from(ordinal).unwrap();
+        let decoded: SetupCommandIndex =
+            serde_json::from_str(&serde_json::to_string(&index).unwrap()).unwrap();
+        assert_eq!(decoded.get(), ordinal);
+        let approved_position = usize::try_from(decoded.get())
             .unwrap()
-            .get(),
-        0
-    );
+            .checked_sub(1)
+            .unwrap();
+        assert_eq!(approved.get(approved_position), Some(command));
+    }
+    let first = NonZeroU32::MIN.get();
+    assert_eq!(SetupCommandIndex::try_from(first).unwrap().get(), first);
+    let last = u32::try_from(MAX_PROJECT_COMMANDS).unwrap();
+    assert_eq!(SetupCommandIndex::try_from(last).unwrap().get(), last);
+    assert!(serde_json::from_str::<SetupCommandIndex>("0").is_err());
     assert!(
-        serde_json::from_str::<SetupCommandIndex>(&MAX_SETUP_PROGRESS_COMMANDS.to_string())
+        serde_json::from_str::<SetupCommandIndex>(&last.checked_add(1).unwrap().to_string())
             .is_err()
     );
     assert!(serde_json::from_str::<SetupCommandIndex>("-1").is_err());
