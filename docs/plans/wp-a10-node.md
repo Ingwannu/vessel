@@ -263,3 +263,8 @@ line/column in output and Debug. The command boundary stops cause-chain
 rendering for that one input error because serde diagnostics can quote
 untrusted values or field names; a synthetic-marker regression covers the
 actual CLI formatter. Other command errors keep their existing rendering.
+
+The raw admission fixture now sends a nonempty shared CAS payload, then
+checks the actual store remains at revision zero. An accidentally dispatched
+write cannot pass merely because reply adaptation also refuses it. This
+strengthens the pre-dispatch assertion without changing any deadline.

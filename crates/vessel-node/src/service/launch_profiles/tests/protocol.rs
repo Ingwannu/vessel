@@ -14,10 +14,10 @@ use vessel_rpc::{Server, ServerConfig, memory};
 fn calls(session: vessel_proto::SessionId) -> Vec<Call> {
     vec![
         ListLaunchProfiles {}.into_call(),
-        ReplaceLaunchProfiles {
-            expected: LaunchProfileRevision::ZERO,
-            profiles: LaunchProfiles::default(),
-        }
+        serde_json::from_str::<ReplaceLaunchProfiles>(
+            vessel_testkit::launch_profile_fixtures::REPLACE,
+        )
+        .unwrap()
         .into_call(),
         GetLaunchProfileOptions {
             selection: LaunchSelection::new(
