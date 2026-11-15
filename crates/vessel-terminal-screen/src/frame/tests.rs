@@ -44,6 +44,66 @@ fn trimmed_history_still_projects_every_promised_live_and_snapshot_cell() {
     assert_eq!(frame.cell(Row(0), Column(0)).unwrap().text(), "f");
     assert_eq!(frame.cell(Row(2), Column(0)).unwrap().text(), "t");
 }
+
+fn assert_complete(frame: &FrameView<'_>) {
+    let mut cells = 0_u32;
+    for row in 0..frame.rows().get() {
+        for column in 0..frame.columns() {
+            assert!(frame.cell(Row(row), Column(column)).is_some());
+            cells = cells.checked_add(1).unwrap();
+        }
+    }
+    assert_eq!(cells, frame.cells().get());
+    assert!(frame.cell(Row(0), Column(frame.columns())).is_none());
+    assert!(frame.cell(Row(frame.rows().get()), Column(0)).is_none());
+}
+
+#[test]
+fn compacted_padding_survives_resize_and_preserves_wide_ink_and_snapshot_geometry() {
+    let mut engine = screen();
+    feed(
+        &mut engine,
+        "\x1b[31m한\x1b[0m\r\n\r\nthird\r\nfourth\r\nlast".as_bytes(),
+    );
+    let anchor = engine.create_marker(LineIndex(0)).unwrap();
+    let retained = engine.snapshot();
+    let snapshot = retained
+        .frame(ViewportRequest::Pinned(&anchor), rows())
+        .unwrap();
+    assert_complete(&snapshot);
+    let lead = snapshot.cell(Row(0), Column(0)).unwrap();
+    let continuation = snapshot.cell(Row(0), Column(1)).unwrap();
+    assert_eq!(lead.text(), "한");
+    assert_eq!(lead.width(), crate::Width::Two);
+    assert_eq!(lead.attributes().foreground(), crate::Color::Indexed(1));
+    assert_eq!(continuation.width(), crate::Width::Continuation);
+    assert_eq!(continuation.attributes(), lead.attributes());
+    assert_eq!(snapshot.cell(Row(0), Column(7)), Some(Cell::blank()));
+    assert!(
+        crate::projection::frame_cell(engine.parser.screen(), LineIndex(u32::MAX), Column(0))
+            .is_none()
+    );
+    for columns in [16, 4] {
+        engine.resize(Size::new(columns, 3).unwrap()).unwrap();
+        let pinned = engine
+            .frame(ViewportRequest::Pinned(&anchor), rows())
+            .unwrap();
+        assert_eq!(pinned.columns(), columns);
+        assert_complete(&pinned);
+        assert_complete(&engine.frame(ViewportRequest::FollowLive, rows()).unwrap());
+        assert_eq!(snapshot.columns(), 8);
+        assert_complete(&snapshot);
+        assert_eq!(snapshot.cell(Row(0), Column(0)), Some(lead));
+    }
+    feed(&mut engine, b"\x1b[?1049halt");
+    assert_complete(
+        &engine
+            .frame(ViewportRequest::Pinned(&anchor), rows())
+            .unwrap(),
+    );
+    feed(&mut engine, b"\x1bc");
+    assert_complete(&engine.frame(ViewportRequest::FollowLive, rows()).unwrap());
+}
 #[test]
 fn live_and_pinned_frames_report_actual_origin_cursor_modes_and_borrowed_cells() {
     let mut engine = screen();

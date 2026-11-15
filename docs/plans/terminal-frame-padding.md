@@ -22,3 +22,20 @@ cardinality for both the live authority and its immutable snapshot, including
 an entirely compacted empty history row. It also asserts out-of-frame refusal
 and that the physical buffer API is not silently widened. Narrow checks remain
 owed. The frozen2807 source/whole is unchanged and cannot prove this repair.
+
+Exact06f3 narrow verification executed38 tests with no failures and strict
+all-target Clippy passed. Additional review coverage checks every selected
+cell through wider/narrower resize, alternate/reset transitions, preserved
+wide/continuation ink and unchanged snapshot geometry, and directly checks
+that a nonexistent physical row remains unavailable. That strengthened test
+head still needs its own narrow result and changed-source enclosing gate.
+
+The strengthened a637 head executed39 tests with no failures. Its strict check
+rejected unchecked arithmetic in the test's full-grid counter. The counter now
+checks overflow without weakening the cardinality assertion or changing product
+code. Exact3878 all-target strict Clippy passed in
+termscreen-query-20261115T170651Z-3878b5ad. Its executable correction is
+byte-identical to the a637 runtime39/0 source; only the test counter changed.
+The changed-source enclosing whole remains owed, as does full consumer
+qualification under row217. The original2807 whole remains evidence for its
+own source, including its unrelated heartbeat test failure, never this repair.
