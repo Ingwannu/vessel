@@ -201,3 +201,21 @@ chunk. Bounded loopback regressions hold headers/body and verify cancellation
 returns without an upstream reply. These fakes use only a synthetic credential
 and explicitly release their held server responses before teardown. They are
 not a provider/device test and still require narrow verification.
+
+### Staged transient update delivery
+
+Voice owns a bounded two-audio/sixteen-control FIFO and one pending long poll.
+A canceled actor reply receiver restores its exact queued update before another
+await; a second waiter is refused. Stop/failure clears unsent payloads and holds
+one terminal independently of queue room. Successful oneshot send is the actor's
+response-ready point, not network delivery or audible output. Separate played
+receipts still time out/fail when a response is lost or a client never plays it.
+This module does not mutate generic RPC framing or borrow dictation's private
+policy API. Actor/service integration and corresponding transport evidence remain
+owed; tests only exercise the staged ownership mechanism.
+
+Provider-cancellation strict check75458da5 compiled the new transport paths
+but returned seven unnecessary fully qualified token names in fixtures; fixed
+by using the parent module's imported type. No operation or diagnostic policy
+was weakened. The new bounded update mechanism still owes its own first narrow
+compile/runtime check.

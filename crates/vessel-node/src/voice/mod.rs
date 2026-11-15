@@ -17,3 +17,4 @@ mod stt_endpoint;
 mod stt_form;
 mod transcript;
 mod tts_endpoint;
+mod updates;

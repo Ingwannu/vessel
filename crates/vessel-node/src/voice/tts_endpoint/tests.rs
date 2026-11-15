@@ -59,7 +59,7 @@ async fn default_request_and_pcm_response_keep_key_in_header_and_redact_debug() 
     assert!(!format!("{endpoint:?}").contains(SYNTHETIC_KEY));
     assert!(!format!("{endpoint:?}").contains("127.0.0.1"));
     let audio = endpoint
-        .synthesize(&text(), &tokio_util::sync::CancellationToken::new())
+        .synthesize(&text(), &CancellationToken::new())
         .await
         .unwrap();
     assert_eq!(audio.format.rate().get(), 24_000);
@@ -103,7 +103,7 @@ async fn redirects_and_rejections_never_retry_or_reach_a_destination() {
     let error = server
         .endpoint()
         .await
-        .synthesize(&text(), &tokio_util::sync::CancellationToken::new())
+        .synthesize(&text(), &CancellationToken::new())
         .await
         .unwrap_err();
     assert_eq!(error, TtsError::Rejected);
@@ -146,7 +146,7 @@ async fn malformed_and_oversized_response_bodies_cannot_become_playback() {
             server
                 .endpoint()
                 .await
-                .synthesize(&text(), &tokio_util::sync::CancellationToken::new())
+                .synthesize(&text(), &CancellationToken::new())
                 .await
                 .unwrap_err(),
             wanted
@@ -188,7 +188,7 @@ async fn bad_credentials_and_oversized_segments_refuse_before_network_work() {
         server
             .endpoint()
             .await
-            .synthesize(&long, &tokio_util::sync::CancellationToken::new())
+            .synthesize(&long, &CancellationToken::new())
             .await
             .unwrap_err(),
         TtsError::Segment
