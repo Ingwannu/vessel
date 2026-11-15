@@ -41,12 +41,14 @@ pub(crate) struct DesktopArea {
 }
 
 impl DesktopArea {
-    pub(crate) fn new(_cx: &mut gpui::App) -> Self {
+    pub(crate) fn new(cx: &mut gpui::App) -> Self {
+        #[cfg(target_arch = "wasm32")]
+        let _browser = cx;
         Self {
             #[cfg(not(target_arch = "wasm32"))]
             pending: None,
             #[cfg(not(target_arch = "wasm32"))]
-            menu: vessel_app_kit::menu::MenuState::new(_cx),
+            menu: vessel_app_kit::menu::MenuState::new(cx),
             #[cfg(not(target_arch = "wasm32"))]
             group: menus::Group::File,
             #[cfg(not(target_arch = "wasm32"))]
@@ -132,7 +134,7 @@ pub(crate) fn cli_section(
 ) -> Option<vessel_app_kit::ui::Div> {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        cli::section(shell, tokens, cx)
+        Some(cli::section(shell, tokens, cx))
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -153,10 +155,10 @@ impl Shell {
         match action {
             HelpAction::Changelog => self.open_changelog(window, cx),
             HelpAction::About => {
-                self.open_settings(Some(vessel_app_view::settings::Section::About), window, cx)
+                self.open_settings(Some(vessel_app_view::settings::Section::About), window, cx);
             }
             HelpAction::ReportIssue => {
-                cx.open_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new/choose"))
+                cx.open_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new/choose"));
             }
         }
     }

@@ -11,6 +11,7 @@ use vessel_app_view::desktop::window::{
 #[cfg(all(test, not(target_os = "macos")))]
 mod tests;
 
+#[derive(Clone, Copy)]
 enum Placement {
     Primary,
     Additional,
@@ -132,7 +133,7 @@ pub(super) fn deliver(launch: Launch, cx: &mut App) {
     match launch {
         Launch::NewWindow => open_additional(cx),
         Launch::Project(directory) => {
-            open(Placement::Additional, Some(Launch::Project(directory)), cx)
+            open(Placement::Additional, Some(Launch::Project(directory)), cx);
         }
         session @ Launch::Session(_) => {
             let active = cx.active_window();

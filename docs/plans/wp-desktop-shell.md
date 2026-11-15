@@ -261,3 +261,8 @@ Legacy non-settings choices are likewise merged by their typed HarnessRef within
 each machine's retained vector, so independent providers cannot erase one
 another's remembered options. A second regression covers stale additions and
 per-provider removal. Each provider's option bag remains one atomic field.
+
+App narrow 8 typechecked the app but strict lints still refused unused producer
+seams and statement/result formatting. Statement/result handling is corrected;
+W15/C2/W11 must consume their real adapters before full clippy can pass. No
+blanket dead-code allowance is used to stand in for those integrations.

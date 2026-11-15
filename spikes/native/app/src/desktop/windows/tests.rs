@@ -45,7 +45,7 @@ fn last_window_stays_open_until_quit_finishes_but_additional_windows_close(
     });
     let (first, cx) = cx.add_window_view(|_window, _cx| Empty);
     cx.run_until_parked();
-    cx.update(|window, cx| vessel_app_kit::chrome::request_close(window, cx));
+    cx.update(vessel_app_kit::chrome::request_close);
     cx.run_until_parked();
     first.read_with(cx, |_view, cx| {
         assert_eq!(
@@ -65,9 +65,9 @@ fn last_window_stays_open_until_quit_finishes_but_additional_windows_close(
     cx.update(|_window, cx| {
         extra
             .update(cx, |_view, window, cx| {
-                vessel_app_kit::chrome::request_close(window, cx)
+                vessel_app_kit::chrome::request_close(window, cx);
             })
-            .unwrap()
+            .unwrap();
     });
     cx.run_until_parked();
     first.read_with(cx, |_view, cx| {

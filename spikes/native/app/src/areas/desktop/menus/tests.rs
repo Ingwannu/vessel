@@ -65,13 +65,13 @@ fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestA
             let clipboard = cx.read_from_clipboard().unwrap().text().unwrap();
             match (copy, paste) {
                 (CopyState::Available, PasteState::Available | PasteState::Unavailable) => {
-                    assert_eq!(clipboard, "selected")
+                    assert_eq!(clipboard, "selected");
                 }
                 (CopyState::Unavailable, PasteState::Available) => {
-                    assert_eq!(probe.field.text(cx), "replacement")
+                    assert_eq!(probe.field.text(cx), "replacement");
                 }
                 (CopyState::Unavailable, PasteState::Unavailable) => {
-                    assert_eq!(probe.field.text(cx), "selected")
+                    assert_eq!(probe.field.text(cx), "selected");
                 }
             }
         });
@@ -79,7 +79,7 @@ fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestA
             cx.simulate_input("chosen selection");
             cx.run_until_parked();
             view.read_with(cx, |probe, cx| {
-                assert_eq!(probe.field.text(cx), "chosen selection")
+                assert_eq!(probe.field.text(cx), "chosen selection");
             });
         }
     }

@@ -194,7 +194,7 @@ impl Shell {
     }
 }
 
-pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<Div> {
+pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.words.desktop_shell();
     let state = shell.areas.desktop.cli.state;
     let hint = match state {
@@ -235,19 +235,18 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         Operation::Install => words.install_cli(),
         Operation::Remove => words.remove_cli(),
     };
-    let control =
-        outline_button(
-            "desktop-cli-operation",
-            label.to_owned(),
-            state.allows(operation),
-            tokens,
-        )
-        .when(state.allows(operation), |control| {
-            control.on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.desktop_cli_operation(operation, cx)
-            }))
-        })
-        .into_any_element();
+    let control = outline_button(
+        "desktop-cli-operation",
+        label.to_owned(),
+        state.allows(operation),
+        tokens,
+    )
+    .when(state.allows(operation), |control| {
+        control.on_click(cx.listener(move |shell, _event, _window, cx| {
+            shell.desktop_cli_operation(operation, cx);
+        }))
+    })
+    .into_any_element();
     let mut card = settings::card(tokens).child(settings::row(
         words.cli(),
         Some(hint.to_owned().into()),
@@ -291,5 +290,5 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         false,
         tokens,
     ));
-    Some(settings::section(words.cli().to_owned(), card, tokens))
+    settings::section(words.cli().to_owned(), card, tokens)
 }

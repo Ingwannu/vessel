@@ -137,11 +137,11 @@ fn action(item: Item) -> Box<dyn gpui::Action> {
 }
 
 pub(super) fn listen(cx: &mut App) {
-    cx.on_action(|_: &NewWindow, cx| crate::desktop::open_additional(cx));
-    cx.on_action(|_: &Quit, cx| crate::desktop::request_quit(cx));
+    let _registered = cx.on_action(|_: &NewWindow, cx| crate::desktop::open_additional(cx));
+    let _registered = cx.on_action(|_: &Quit, cx| crate::desktop::request_quit(cx));
     macro_rules! route {
         ($action:ident,$item:expr) => {
-            cx.on_action(|_: &$action, cx| invoke($item, cx));
+            let _registered = cx.on_action(|_: &$action, cx| invoke($item, cx));
         };
     }
     route!(CloseWindow, Item::Desktop(DesktopAction::CloseWindow));
@@ -169,6 +169,6 @@ pub(super) fn listen(cx: &mut App) {
 
 fn invoke(item: Item, cx: &mut App) {
     crate::desktop::with_focused_shell(cx, move |shell, window, cx| {
-        menus::invoke(shell, item, None, window, cx)
+        menus::invoke(shell, item, None, window, cx);
     });
 }
