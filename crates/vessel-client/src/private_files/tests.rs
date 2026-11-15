@@ -230,3 +230,26 @@ fn exposed_credentials_and_mutable_shared_targets_are_refused_without_chmod() {
     );
     std::fs::set_permissions(temp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
 }
+
+#[test]
+fn the_eof_probe_never_grows_the_encoded_document_buffer() {
+    for bytes in [b"".as_slice(), b"x".as_slice(), b"12345678".as_slice()] {
+        let text = read_limited(&mut Cursor::new(bytes), ByteLimit(8)).unwrap();
+        assert_eq!(text.as_str().as_bytes(), bytes);
+        assert!(text.0.capacity() <= 8);
+    }
+    assert!(matches!(
+        read_limited(&mut Cursor::new(b"123456789"), ByteLimit(8)),
+        Err(Error::TooLarge { .. })
+    ));
+    assert_eq!(
+        read_limited(&mut Cursor::new(b""), ByteLimit(0))
+            .unwrap()
+            .as_str(),
+        ""
+    );
+    assert!(matches!(
+        read_limited(&mut Cursor::new(b"x"), ByteLimit(0)),
+        Err(Error::TooLarge { .. })
+    ));
+}

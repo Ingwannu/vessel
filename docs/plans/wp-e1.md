@@ -217,3 +217,16 @@ import, without a new dependency, RPC/version/TS or persistence operation.
 The ADR0097 4096-byte UTF-8 cap remains a future file-edge visible refusal,
 never a hidden label truncation. Compile/tests and V3 quick source review
 are owed before the integrator/B0 can land this shared producer.
+
+The private reader keeps its one-byte EOF probe on the stack rather than
+reserving cap+1 encoded bytes. This prevents two maximum preimage/output
+pairs from exceeding ADR0097's exact4MiB encoded-document budget by two
+bytes, and avoids read_to_end growing a full vector to probe EOF. It pays
+one bounded zero-fill per rare file read. The ninth prepared regression
+checks empty/exact/one-over reads and retained capacity. Actual tests,
+worker aggregate admission, writer/retention and production wiring remain
+owed; this is not a total-heap or cancellation-runtime claim.
+
+V3 independently SOURCE-passed only the ccedd4860 appearance-value move.
+Its3 root producer tests and7 unchanged native consumers still require
+execution before integration; private reader staging is outside that pass.

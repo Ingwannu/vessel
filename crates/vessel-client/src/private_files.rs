@@ -93,21 +93,29 @@ enum Error {
     Utf8(#[source] Utf8Error),
 }
 
-/// One byte past the limit distinguishes exact EOF from truncation. Reservation
-/// is finite before reading; UTF-8 conversion occurs only after the cap check.
+/// The one-byte EOF probe stays on the stack, outside the capped document
+/// buffer. Two maximum input/output pairs therefore keep ADR0097's exact
+/// encoded-byte budget; this is not a claim about total allocator overhead.
 fn read_limited(reader: &mut impl Read, limit: ByteLimit) -> Result<Text, Error> {
-    let probe = limit.0.checked_add(1).ok_or(Error::PlatformLimit)?;
-    let capacity = usize::try_from(probe).map_err(|_| Error::PlatformLimit)?;
+    let capacity = usize::try_from(limit.0).map_err(|_| Error::PlatformLimit)?;
     let mut bytes = Vec::new();
     bytes
         .try_reserve_exact(capacity)
         .map_err(Error::Allocation)?;
-    reader
-        .take(u64::from(probe))
-        .read_to_end(&mut bytes)
-        .map_err(Error::Io)?;
-    let len = u64::try_from(bytes.len()).map_err(|_| Error::PlatformLimit)?;
-    if len > u64::from(limit.0) {
+    // A finite zeroed slice avoids Read::read_to_end growing a full Vec just
+    // to ask for EOF. The file worker is rare and its maximum is one MiB.
+    bytes.resize(capacity, 0);
+    let mut filled = 0_usize;
+    while filled < capacity {
+        let remaining = bytes.get_mut(filled..).ok_or(Error::PlatformLimit)?;
+        let read = read_retry(reader, remaining)?;
+        if read == 0 {
+            break;
+        }
+        filled = filled.checked_add(read).ok_or(Error::PlatformLimit)?;
+    }
+    bytes.truncate(filled);
+    if filled == capacity && read_retry(reader, &mut [0_u8; 1])? != 0 {
         return Err(Error::TooLarge { limit });
     }
     String::from_utf8(bytes)
@@ -115,6 +123,17 @@ fn read_limited(reader: &mut impl Read, limit: ByteLimit) -> Result<Text, Error>
         // FromUtf8Error's Debug contains the original bytes. Keep only its
         // Utf8Error cause, which identifies the position/kind without them.
         .map_err(|error| Error::Utf8(error.utf8_error()))
+}
+
+/// Interrupted syscalls retain the admitted worker; no replacement task or
+/// additional document allocation is made while retrying that same read.
+fn read_retry(reader: &mut impl Read, bytes: &mut [u8]) -> Result<usize, Error> {
+    loop {
+        match reader.read(bytes) {
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+            result => return result.map_err(Error::Io),
+        }
+    }
 }
 
 #[cfg(test)]
