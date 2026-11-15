@@ -153,10 +153,12 @@ struct Session {
     /// The running turn was cancelled: what Codex asks until it ends is
     /// withdrawn at once.
     cancelling: bool,
+    children: super::children::Children,
 }
 
 impl Session {
     fn new(out: Outgoing, outputs: mpsc::Sender<AgentOutput>, setup: AgentSetup) -> Self {
+        let children = super::children::Children::new(setup.resume.is_some());
         Self {
             out,
             outputs,
@@ -174,6 +176,7 @@ impl Session {
             questions: Questions::default(),
             announced: HashSet::new(),
             cancelling: false,
+            children,
         }
     }
 

@@ -208,3 +208,24 @@ Routing-map budgets count both retained key and value copies, including identica
 canonical strings, in addition to translator streaming/tool keys. Pair admission
 is transactional before insertion. Descriptor text/identity copies are separately
 bounded by the actual serialized descriptor-set budget.
+
+### Native Codex observation boundary
+
+The child router reads actual collaboration receiver thread ids and sub-agent
+activity markers in a dedicated typed native envelope; the canonical parent
+ThreadItem decoder remains the timeline owner's boundary. Only the managed root
+or an already registered child can announce another route. Native sender ids must
+match that source. Child turn/item/delta/plan conversion reuses existing canonical
+protocol structs and mapper functions with separate deduplication per child.
+Parent tool completion is never a child lifecycle proof: reported agentsStates,
+activity interruption and child turn lifecycle supply those facts. Missing state
+and timestamps remain unknown. Prompt marker keys and routing keys share the same
+finite identity budget as Claude; saturation reports partial without eviction.
+
+The current first native version does not issue provider thread/read or retain
+unattributed pre-announcement notifications. Resume reports a missing retained
+prefix; unknown source threads are ignored rather than adopted into this parent's
+history. Historical child replay and final streamed-text suffix repair remain
+explicit gaps until the canonical provider/timeline owner supplies those paths.
+Native Task/Agent display details remain that owner's canonical SubAgent mapper;
+this router does not decode semantic tool input a second time.

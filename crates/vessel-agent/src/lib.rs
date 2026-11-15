@@ -51,6 +51,7 @@
 
 mod abilities;
 mod attached;
+mod child_ids;
 mod claude;
 mod codex;
 mod context;

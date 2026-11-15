@@ -23,7 +23,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 mod child_budget;
-pub(crate) use child_budget::ChildBudget;
+pub(crate) use crate::child_ids::ChildBudget;
 
 use serde_json::Value;
 use vessel_proto::{

@@ -13,6 +13,9 @@ impl Session {
         let Some(thread) = self.thread.clone() else {
             return;
         };
+        for event in self.children.observe(&thread, method, &params) {
+            self.emit(event).await;
+        }
         let ours = |of: &str| of == thread;
         match method {
             "turn/completed" => self.completed(&thread, params).await,

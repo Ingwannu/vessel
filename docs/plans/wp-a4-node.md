@@ -101,3 +101,19 @@ ChildDescriptors validates count, actual escaped JSON bytes, unique ids and nest
 Exacta511 collection check failed at the test vector's ambiguous collect type and two strict map_err_ignore lints, before product/shared-consumer completion. The vector now explicitly collects Vec<_>; intentionally sanitized bound/encoding failures use named ignored errors. No bound or assertion is weakened. No test execution is claimed from that red run.
 
 The3530 strict proto check then found a test-only unreachable macro, a single-match fallback and a wildcard compatibility arm. The all-variant fixture now explicitly tests the real pending ProviderChild variant as Option(None), retaining all old assigned fixtures; page fallback uses if-let; compatibility uses explicit family/envelope tests without an enum wildcard. None of the limits or behavioral assertions are weakened. This local completed red result is retained; all subsequent compilation follows the operator's build-VM-only rule.
+
+## Native child drivers and development prerequisites
+
+The Claude router310d5d50 and its corrected retained-map budget share the existing
+canonical translator per child. Codex's router uses typed native collaboration
+and activity envelopes; canonical message/tool/plan decoding is reused. Native
+Claude remains unselectable until W22 supplies real transport/permissions proof.
+Real provider execution, historical native replay and child final streamed suffix
+repair are still unverified or incomplete; none is implied by pure fixtures.
+
+W23 explicitly authorized staging its behavior-neutral93f4e6ed/594b345d/4e9e1eb9
+extractions for combined development checks. They are cherry-picked here as
+6a9d976ad/3fd8bbd89/5927fe8b6; the size conflict preserves the current head's
+client723 entry and removes only the two divided Codex files. The child hook is
+isolated in session/notifications.rs. These are staged prerequisites, not claimed
+checked/reviewed consumer-ready. The source owner retains canonical mapper edits.
