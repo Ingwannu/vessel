@@ -350,6 +350,15 @@ integration contract; no alias-only locality inference is introduced.
 
 ### Irrevocable OS exit and GPUI's 200ms shutdown window
 
+[Decision Log]
+- Selection: modification of the existing controller, using its existing Tokio
+  reactor and standard-library thread/channel ownership; no external API/crate.
+- Rejected alternatives: blocking the non-vetoable callback beyond its platform
+  budget, leaking a runtime without an explicit reaper, or duplicating node stop
+  policy. None establishes the intended cleanup/observation lifetime.
+- Tradeoff: one blocked supervisor thread is retained alongside the existing
+  reactor worker; ordinary user-mediated finalization still owns all vetoes.
+
 Verified local GPUI0.3.10 app.rs:79 and shutdown:1219-1268: on_app_quit cannot
 veto and waits only SHUTDOWN_TIMEOUT=200ms, then cancels its futures. Waiting for
 our 15s protected stop there could cancel the callback before its Keep fallback
