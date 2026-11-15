@@ -38,7 +38,7 @@ pub(super) fn combined(
             }
             Progress::Pending | Progress::Running => return Err(Problem::Failed),
         }
-        text.push_str("  Provider diagnostic: API unavailable\n  Extended process metrics: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
+        text.push_str("  Extended process metrics: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
         if text.len() > MAX_REPORT_BYTES {
             return Err(Problem::TooLarge);
         }

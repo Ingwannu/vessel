@@ -34,15 +34,11 @@ diagnostic-flow-exhausted = 진단 요청을 더 이상 보낼 수 없습니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-daemon = 데몬 진단
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-provider = 공급자 진단
-# Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-process = 프로세스 진단
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = 데몬 로그
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-daemon-note = 기본 머신 정보는 별도로 수집합니다. 전체 데몬 보고서에는 머신의 API 지원이 필요합니다.
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-provider-note = 진단 정보 수집은 공급자 탐색이나 로그인을 시작하지 않습니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-process-note = 프로세스 상세 정보에는 머신의 API 지원이 필요합니다. 로컬 프로세스를 검색하지 않습니다.
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -51,8 +47,6 @@ diagnostic-flow-logs-note = 데몬 로그를 보려면 머신의 API 지원이 �
 diagnostic-flow-privacy = 보고서에는 기본 머신 식별 정보와 제공되지 않는 항목을 표시합니다. 머신 이름, 접속 경로, 키, 원본 오류는 제외합니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = 보고서 생성
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-providers = 공급자 열기
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-partial = 기본 정보만 제공
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -63,3 +57,6 @@ diagnostic-flow-unavailable-badge = 제공 안 됨
 
 # A settled host read whose independent sources are incomplete.
 diagnostic-flow-collected-partial = 일부 항목 수집 완료
+
+# A reconnect invalidates the previous observation, including same-node reconnects.
+diagnostic-flow-connection-changed = 머신 연결이 변경되었습니다. 보고서를 다시 생성하세요.

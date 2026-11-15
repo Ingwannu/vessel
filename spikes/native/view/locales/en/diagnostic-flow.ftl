@@ -34,15 +34,11 @@ diagnostic-flow-exhausted = No more diagnostic requests can be issued. Reopen th
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-daemon = Daemon diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-provider = Provider diagnostics
-# Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-process = Process diagnostics
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-logs = Daemon logs
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-daemon-note = Basic host information is collected separately. The full daemon report needs a supported host API.
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-provider-note = Collecting diagnostics does not start provider discovery or sign-in.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-process-note = Process details require a supported host API. No local process scan is run.
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -51,8 +47,6 @@ diagnostic-flow-logs-note = Daemon log viewing needs a supported host API. Sessi
 diagnostic-flow-privacy = Reports contain basic host identity and explicit unavailable sections. Host names, routes, keys and raw errors are excluded.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-report = Run report
-# Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-providers = Open providers
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-partial = Basic information only
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -63,3 +57,6 @@ diagnostic-flow-unavailable-badge = Unavailable
 
 # A settled host read whose independent sources are incomplete.
 diagnostic-flow-collected-partial = Collected with unavailable sections
+
+# A reconnect invalidates the previous observation, including same-node reconnects.
+diagnostic-flow-connection-changed = The host connection changed. Run the report again.

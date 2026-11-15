@@ -1,5 +1,5 @@
 //! The bounded read never asks agent.status, which can spawn discovery.
-use super::{Answer, Ask, MAX_PARALLEL_HOSTS};
+use super::{Answer, Ask, MAX_PARALLEL_HOSTS, Message};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
 use vessel_app_view::diagnostics::collection::{HostResult, NodeFacts, Problem};
@@ -17,13 +17,17 @@ impl Default for Hub {
 impl crate::State {
     pub(crate) async fn diagnostic(&self, ask: Ask) {
         let Ok(client) = self.client(ask.machine.as_str()).cloned() else {
-            self.emit(crate::Event::Diagnostics(ask.refused(Problem::Offline)))
-                .await;
+            self.emit(crate::Event::Diagnostics(Message::Answered(
+                ask.refused(Problem::Offline),
+            )))
+            .await;
             return;
         };
         let Ok(permit) = Arc::clone(&self.diagnostic_calls.0).try_acquire_owned() else {
-            self.emit(crate::Event::Diagnostics(ask.refused(Problem::Busy)))
-                .await;
+            self.emit(crate::Event::Diagnostics(Message::Answered(
+                ask.refused(Problem::Busy),
+            )))
+            .await;
             return;
         };
         let events = self.events.clone();
@@ -34,7 +38,9 @@ impl crate::State {
                 ticket: ask.ticket,
                 result: Ok(collect(&client).await),
             };
-            let _closed = events.send(crate::Event::Diagnostics(answer)).await;
+            let _closed = events
+                .send(crate::Event::Diagnostics(Message::Answered(answer)))
+                .await;
         }));
     }
 }

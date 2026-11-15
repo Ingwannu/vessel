@@ -7,7 +7,7 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{
     Command,
-    diagnostics::{Answer, Ask, MAX_PARALLEL_HOSTS},
+    diagnostics::{Ask, MAX_PARALLEL_HOSTS, Message},
 };
 use vessel_app_view::Reach;
 use vessel_app_view::devices::{MachineKey, Tickets};
@@ -75,12 +75,20 @@ impl Shell {
         state.dialog.focus(window, cx);
         cx.notify();
     }
-    pub(crate) fn diagnostic_answer(&mut self, answer: Answer) {
-        self.areas.settings.diagnostics.collection.answer(
-            answer.ticket,
-            &answer.machine,
-            answer.result,
-        );
+    pub(crate) fn diagnostic_answer(&mut self, message: Message) {
+        match message {
+            Message::Answered(answer) => self.areas.settings.diagnostics.collection.answer(
+                answer.ticket,
+                &answer.machine,
+                answer.result,
+            ),
+            Message::Connected { machine, node } => self
+                .areas
+                .settings
+                .diagnostics
+                .collection
+                .connected(&machine, node),
+        }
         self.pump_diagnostics();
     }
     fn pump_diagnostics(&mut self) {

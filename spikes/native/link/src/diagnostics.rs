@@ -26,6 +26,20 @@ pub struct Answer {
     /// Safe facts or a closed reason.
     pub result: Result<HostResult, Problem>,
 }
+/// Answers and connection lifecycle notices share one feature event seam.
+#[derive(Debug)]
+pub enum Message {
+    /// Exactly one correlated read outcome.
+    Answered(Answer),
+    /// A new authenticated connection invalidates every old stay, even for the same node id.
+    Connected {
+        /// Existing parsed node-book entry.
+        machine: MachineKey,
+        /// Identity admitted by the replacement connection.
+        node: vessel_proto::NodeId,
+    },
+}
+
 impl Ask {
     /// Settle refusal through the same event path as a node answer.
     #[must_use]

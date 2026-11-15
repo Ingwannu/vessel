@@ -65,7 +65,6 @@ pub(crate) fn render(
     let mut sources = settings::card(tokens);
     let sections = [
         (labels.daemon(), labels.daemon_note()),
-        (labels.provider(), labels.provider_note()),
         (labels.process(), labels.process_note()),
         (labels.logs(), labels.logs_note()),
     ];

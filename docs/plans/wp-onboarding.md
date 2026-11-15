@@ -126,3 +126,23 @@ Resume: shared ratchets now pass, independent approved DTO consumer and typed
 partial fixtures are written. Run updated changed-crate Clippy and diagnostics
 tests, then connect L's accepted framing when its head is announced. Captures
 and the one full native gate remain owed.
+
+### Connection lifecycle and provider ownership
+
+A connected notice is a new observation generation even when the book name and
+NodeId are identical. The feature message now has Answered and Connected forms;
+a Connected notice invalidates the previous row and rejects its old result.
+The existing shared connection_ready seam remains the one producer; its owner
+is supplying a standalone seam rather than importing another feature stack.
+A test covers same-node reconnect before and after completion, then a fresh run.
+
+Provider-specific diagnostics belongs to the providers package (catalogue row
+568). Its unused source placeholder/words were handed to that owner and removed
+from this package's final UI and copyable sections. The host report's approved
+allowlisted cached Agents section remains part of ADR 0074, with no provider
+discovery or agent.status call.
+
+Resume: typed consumer compile check is queued. Connection message contract is
+written/tested in source; shared lifecycle producer is pending its owner's seam.
+The lead line now includes accepted Diagnostics localization at f2cb8cb6; merge
+that accepted integration and preserve its copy-notice/language contract.

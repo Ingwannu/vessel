@@ -147,6 +147,7 @@ fn byte_and_host_caps_refuse_whole_report_instead_of_truncating() {
 fn all_failure_categories_remain_explicit_and_a_zero_host_report_is_copyable() {
     let failures = [
         Problem::Offline,
+        Problem::ConnectionChanged,
         Problem::Busy,
         Problem::Unavailable,
         Problem::Unsupported,
@@ -221,4 +222,32 @@ fn a_failed_refresh_invalidates_its_predecessor_and_cannot_copy_the_old_report()
     run.answer(t, &host, Ok(result(NodeId::random())));
     assert_eq!(run.phase(), &Phase::Failed(Problem::Exhausted));
     assert!(run.report().is_none());
+}
+
+#[test]
+fn equal_node_reconnect_invalidates_old_results_before_and_after_completion() {
+    for settled in [false, true] {
+        let mut tickets = Tickets::default();
+        let ticket = tickets.next_ticket().unwrap();
+        let host = MachineKey::from_book("same book entry");
+        let node = NodeId::random();
+        let mut run = Collection::default();
+        run.start(ticket, client(), [(host.clone(), Ok(()))]);
+        run.running(ticket, &host);
+        if settled {
+            run.answer(ticket, &host, Ok(result(node)));
+        }
+        run.connected(&host, node);
+        run.answer(ticket, &host, Ok(result(node)));
+        assert!(matches!(
+            run.rows().first().unwrap().progress,
+            Progress::Failed(Problem::ConnectionChanged)
+        ));
+        assert!(!run.report().unwrap().as_str().contains("Protocol:"));
+        let fresh = tickets.next_ticket().unwrap();
+        run.start(fresh, client(), [(host.clone(), Ok(()))]);
+        run.running(fresh, &host);
+        run.answer(fresh, &host, Ok(result(node)));
+        assert!(run.report().unwrap().as_str().contains("Protocol:"));
+    }
 }

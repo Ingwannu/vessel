@@ -56,6 +56,9 @@ pub enum Problem {
     /// No connection at request time.
     #[error("host is not connected")]
     Offline,
+    /// An earlier connection can no longer supply this report.
+    #[error("host connection changed; run the report again")]
+    ConnectionChanged,
     /// A bounded collector has no free permit.
     #[error("diagnostics is busy")]
     Busy,
@@ -249,6 +252,15 @@ impl Collection {
             Err(problem) => Progress::Failed(problem),
         };
         self.finish();
+    }
+    /// A new connection is a new observation generation, including the same node id.
+    pub fn connected(&mut self, machine: &MachineKey, node: NodeId) {
+        if let Some(row) = self.rows.iter_mut().find(|row| &row.machine == machine) {
+            row.admitted = Some(node);
+            row.progress = Progress::Failed(Problem::ConnectionChanged);
+            self.report = None;
+            self.finish();
+        }
     }
     /// A renamed/forgotten/offline entry cannot retain a pending old-connection result.
     pub fn invalidate(&mut self, machine: &MachineKey) {

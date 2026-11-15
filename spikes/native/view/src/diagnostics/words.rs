@@ -8,6 +8,7 @@ pub fn problem(problem: Problem, words: &'static Translator) -> &'static str {
     let words = words.diagnostic_flow();
     match problem {
         Problem::Offline => words.offline(),
+        Problem::ConnectionChanged => words.connection_changed(),
         Problem::Busy => words.busy(),
         Problem::Unavailable => words.unavailable(),
         Problem::Unsupported => words.unsupported(),

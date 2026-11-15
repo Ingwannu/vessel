@@ -21,7 +21,7 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 #[derive(Debug)]
 pub enum Event {
     /// A safe correlated diagnostics result.
-    Diagnostics(super::diagnostics::Answer),
+    Diagnostics(super::diagnostics::Message),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
