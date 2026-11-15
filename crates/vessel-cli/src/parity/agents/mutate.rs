@@ -78,9 +78,14 @@ pub(super) async fn delete(
         if info.status.is_live() {
             let _archived = client.mark(info.id, Mark::Archive).await?;
         }
-        deleted.push(client.delete_session(info.id).await?);
+        let _receipt = client.delete_session(info.id).await?;
+        deleted.push(info.id);
     }
-    output::single(presentation, &ids, &deleted).await
+    let result = Deleted {
+        deleted_count: Count(deleted.len()),
+        agent_ids: deleted,
+    };
+    output::single(presentation, &ids, &result).await
 }
 
 pub(super) async fn archive(
@@ -91,6 +96,9 @@ pub(super) async fn archive(
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = id.resolve(&client).await?;
+    if info.marks.archived_at.is_some() {
+        return Err(CliError::Usage("agent is already archived"));
+    }
     if !force && info.status.is_live() {
         structured(&info)?;
         if observe::snapshot(&client, info.id).await?.state() != State::Idle {
@@ -105,7 +113,17 @@ pub(super) async fn archive(
         ));
     }
     let archived = client.mark(info.id, Mark::Archive).await?;
-    output::single(presentation, &info.id.to_string(), &archived).await
+    let result = Archived {
+        agent_id: info.id,
+        status: ArchivedStatus::Archived,
+        archived_at: archived
+            .marks
+            .archived_at
+            .ok_or(CliError::ParityInvalidReceipt(
+                "archive acknowledgement omitted its archived timestamp",
+            ))?,
+    };
+    output::single(presentation, &info.id.to_string(), &result).await
 }
 
 pub(super) async fn mode(
@@ -195,4 +213,23 @@ struct Count(usize);
 struct Stopped {
     stopped_count: Count,
     agent_ids: Vec<vessel_proto::SessionId>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Deleted {
+    deleted_count: Count,
+    agent_ids: Vec<vessel_proto::SessionId>,
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ArchivedStatus {
+    Archived,
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Archived {
+    agent_id: vessel_proto::SessionId,
+    status: ArchivedStatus,
+    archived_at: chrono::DateTime<chrono::Utc>,
 }

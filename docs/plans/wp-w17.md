@@ -386,3 +386,8 @@ CLI-only narrow check 55b342d8 reached the full executable/tests and reported on
 including long command dispatch functions and one oversized schedule future. Terminal capture,
 key-send effects, preview cadence and usage report formatting now have separate typed helpers;
 the schedule future is boxed at dispatch. No lint suppression or file budget was raised.
+
+Delete now emits deletedCount/agentIds only after each node deletion acknowledgement.
+Archive emits agentId/status=archived/archivedAt from the acknowledged marks and refuses an
+already archived session. Missing archivedAt is an invalid node receipt, not a fabricated
+local timestamp. Live idle archival without force remains pending atomic node support.

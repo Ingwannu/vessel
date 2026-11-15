@@ -13,6 +13,8 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error("node acknowledgement violated the command contract: {0}")]
+    ParityInvalidReceipt(&'static str),
     #[error(transparent)]
     ParityCron(#[from] vessel_proto::automation::InvalidCron),
     #[error(transparent)]
