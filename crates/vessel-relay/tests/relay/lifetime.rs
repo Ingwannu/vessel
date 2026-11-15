@@ -1,8 +1,18 @@
 //! A completed registration drain leaves an already handed-off secure carrier alive.
 use super::support::{Relay, tls, token};
 use futures_util::{SinkExt as _, StreamExt as _};
-use std::{future::Future, sync::Arc, time::Duration};
-use tokio::{sync::mpsc, task::JoinHandle};
+use std::{
+    future::Future,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
+use tokio::{
+    sync::{mpsc, oneshot, watch},
+    task::JoinHandle,
+};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::RouteUrl;
 use vessel_relay::{LinkState, NodeLink, WsCarrier, dial};
@@ -34,25 +44,12 @@ async fn registration_stop_acknowledges_after_handoff_without_closing_encrypted_
         Box::pin(async {
             let mut relay = Relay::start().await;
             let key = Arc::new(NodeKeypair::generate().unwrap());
-            let link = NodeLink::new(relay.url.clone(), Arc::clone(&key), token(), tls());
-            let mut state = link.state();
-            let stop = CancellationToken::new();
             let (accept, mut accepted) = mpsc::channel(ACCEPTED);
-            let mut running = Running {
-                stop: stop.clone(),
-                task: tokio::spawn(link.run(
-                    move |carrier| {
-                        accept.try_send(carrier).unwrap();
-                    },
-                    stop,
-                )),
-            };
-            phase(
-                "configured registration ready",
-                state.wait_for(|state| *state == LinkState::Registered),
-            )
-            .await
-            .unwrap();
+            let Registration { mut running, state } =
+                registered(&relay.url, &key, move |carrier| {
+                    accept.try_send(carrier).unwrap();
+                })
+                .await;
             let EncryptedPair {
                 mut client,
                 mut server,
@@ -146,4 +143,123 @@ async fn encrypted_pair(
     let client = client.unwrap();
     let server = server.unwrap();
     EncryptedPair { client, server }
+}
+
+struct Registration {
+    running: Running,
+    state: watch::Receiver<LinkState>,
+}
+
+async fn registered<F>(relay: &RouteUrl, key: &Arc<NodeKeypair>, accept: F) -> Registration
+where
+    F: Fn(WsCarrier) + Send + Sync + 'static,
+{
+    let link = NodeLink::new(relay.clone(), Arc::clone(key), token(), tls());
+    let mut state = link.state();
+    let stop = CancellationToken::new();
+    let running = Running {
+        stop: stop.clone(),
+        task: tokio::spawn(link.run(accept, stop)),
+    };
+    phase(
+        "configured registration ready",
+        state.wait_for(|state| *state == LinkState::Registered),
+    )
+    .await
+    .unwrap();
+    Registration { running, state }
+}
+
+struct HeldAccept {
+    entry: oneshot::Receiver<()>,
+    release: std::sync::mpsc::SyncSender<()>,
+    finished: Arc<AtomicUsize>,
+}
+impl HeldAccept {
+    fn new() -> (impl Fn(WsCarrier) + Send + Sync + 'static, Self) {
+        const RELEASE_CAPACITY: usize = 1;
+        let (entered, entry) = oneshot::channel();
+        let (release, wait) = std::sync::mpsc::sync_channel::<()>(RELEASE_CAPACITY);
+        let gate = Mutex::new((Some(entered), wait));
+        let finished = Arc::new(AtomicUsize::new(0));
+        let completed = Arc::clone(&finished);
+        let callback = move |_carrier| {
+            // Hold the actual public runner's final handoff, with a finite
+            // deadline and without occupying its executor worker meanwhile.
+            tokio::task::block_in_place(|| {
+                let (entered, wait) = &mut *gate.lock().unwrap();
+                entered.take().unwrap().send(()).unwrap();
+                wait.recv_timeout(PHASE)
+                    .expect("release public runner accept");
+                completed.fetch_add(1, Ordering::SeqCst);
+            });
+        };
+        (
+            callback,
+            Self {
+                entry,
+                release,
+                finished,
+            },
+        )
+    }
+    async fn assert_stop_waits(&mut self, registration: &mut Registration) {
+        phase("public runner accept callback entered", &mut self.entry)
+            .await
+            .unwrap();
+        registration.running.stop.cancel();
+        let pending = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(
+                std::pin::Pin::new(&mut registration.running.task)
+                    .poll(cx)
+                    .is_pending(),
+            )
+        })
+        .await;
+        assert!(
+            pending,
+            "the public run must join its pending callbacks before ACK"
+        );
+        assert_eq!(self.finished.load(Ordering::SeqCst), 0);
+        assert_ne!(*registration.state.borrow(), LinkState::Stopped);
+        self.release.try_send(()).unwrap();
+        phase(
+            "public runner joins the released callback",
+            &mut registration.running.task,
+        )
+        .await
+        .unwrap();
+        assert_eq!(self.finished.load(Ordering::SeqCst), 1);
+        assert_eq!(*registration.state.borrow(), LinkState::Stopped);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_public_run_cannot_acknowledge_while_its_accept_callback_is_held() {
+    vessel_testkit::within(
+        OUTER,
+        Box::pin(async {
+            let mut relay = Relay::start().await;
+            let key = Arc::new(NodeKeypair::generate().unwrap());
+            let (callback, mut held) = HeldAccept::new();
+            let mut registration = registered(&relay.url, &key, callback).await;
+            let id = routing_id(key.public());
+            let transport = tls();
+            let carrier = phase(
+                "client triggers the public runner's data open",
+                dial(&relay.url, &id, &transport),
+            )
+            .await
+            .unwrap();
+            held.assert_stop_waits(&mut registration).await;
+            drop(carrier);
+            phase(
+                "relay fixture stopped after callback drain",
+                relay.stop_owned(),
+            )
+            .await;
+        }),
+    )
+    .await
+    .expect("public runner callback outer safety");
 }

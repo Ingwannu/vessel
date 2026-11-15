@@ -74,3 +74,19 @@ vessel-relay or in vessel-node's relays.rs. The queued corrected narrow run
 devices-relay-life-20261115T133940Z-5a02b847 remains evidence for its exact
 pre-merge source only. The final root package gate must use the merged head;
 no old result is relabelled as a combined-tree pass.
+
+
+## Public runner acknowledgement barrier
+
+A further integration regression holds the actual NodeLink::run accept callback
+after a real relay data open. It observes that the public run's JoinHandle and
+Stopped state cannot acknowledge while the callback is held, then releases it
+and joins the same owned handle. This catches omission of the pending.stop
+hook itself, which an owner-only DataOpens unit case would not catch. The
+existing encrypted-carrier survival assertions are retained; their common
+registration setup is shared. Named five-second phases, outer thirty-second
+safety and abort ownership are unchanged.
+
+This additional test is newer than the queued5a02 narrow source. That narrow
+result cannot cover it; the final merged package gate must compile/run it.
+No additional narrow run or runtime PASS is claimed from this preparation.
