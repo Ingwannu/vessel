@@ -28,14 +28,8 @@ pub(super) fn card(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    use std::borrow::Cow;
-    use vessel_proto::timeline::ToolCallDetail;
     let tool = source.tool();
-    let plan = match source.detail() {
-        Some(ToolCallDetail::Plan(plan)) => Some(Cow::Borrowed(plan.text.as_str())),
-        Some(_) => None,
-        None => vessel_app_view::timeline::plan_text(tool).map(Cow::Owned),
-    };
+    let plan = vessel_app_view::timeline::plan_text(source);
     if let Some(text) = plan {
         return proposal(paint, index, (tool, &text), open, window, cx);
     }

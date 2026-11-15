@@ -706,3 +706,13 @@ test. The only failure was the new compaction sentence expectation omitting the
 shared Fluent resolver's bidi isolation around its string argument. The expected
 whole EN/KO sentences now retain those U+2068/U+2069 controls, consistent with
 existing locale tests; no formatter or production message was weakened/changed.
+
+
+Canonical Plan detection now goes through the same generic `plan_text` seam in
+all existing grouping/disclosure/dock-hiding/sheet eligibility paths, rather than
+only in the tool body. It borrows canonical Markdown, respects a canonical
+non-Plan even when old input resembles a plan, and decodes legacy input only
+when no detail was supplied. This prepares field adoption without activating it.
+A typed fake regression covers canonical Plan with broad kind Other/no raw input,
+canonical non-Plan precedence, empty canonical Plan and unchanged legacy fallback.
+The shared Plan card renderer and approval semantics are unchanged.

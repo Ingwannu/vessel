@@ -2,10 +2,12 @@
 //! A tool finishing does not prove approval: only its permission record does.
 
 use serde::Deserialize;
+use std::borrow::Cow;
 use std::collections::HashMap;
+use vessel_proto::timeline::ToolCallDetail;
 use vessel_proto::{PermissionOutcome, ToolCallId, ToolKind};
 
-use super::{Entry, PlanExpansion, PlanOutcome, ToolView, allows};
+use super::{Entry, PlanExpansion, PlanOutcome, ToolDetailSource, allows};
 
 /// User choices survive text updates, but a new decision starts a fresh card.
 #[derive(Debug, Default)]
@@ -43,9 +45,28 @@ struct PlanInput {
     plan: String,
 }
 
-/// Plan Markdown already carried by the tool, without rendering its JSON wrapper.
+/// Canonical Plan semantics win over legacy kind/input in every stream path.
+/// Only an absent detail may use the old opaque plan field; Markdown is borrowed
+/// from a real canonical producer and legacy decoding owns its resulting text.
 #[must_use]
-pub fn plan_text(tool: &ToolView) -> Option<String> {
+pub fn plan_text(source: &impl ToolDetailSource) -> Option<Cow<'_, str>> {
+    match source.detail() {
+        Some(ToolCallDetail::Plan(plan)) => return Some(Cow::Borrowed(&plan.text)),
+        Some(
+            ToolCallDetail::Shell(_)
+            | ToolCallDetail::Read(_)
+            | ToolCallDetail::Edit(_)
+            | ToolCallDetail::Write(_)
+            | ToolCallDetail::Search(_)
+            | ToolCallDetail::Fetch(_)
+            | ToolCallDetail::WorktreeSetup(_)
+            | ToolCallDetail::SubAgent(_)
+            | ToolCallDetail::PlainText(_)
+            | ToolCallDetail::Unknown(_),
+        ) => return None,
+        None => {}
+    }
+    let tool = source.tool();
     if tool.kind != ToolKind::SwitchMode {
         return None;
     }
@@ -53,6 +74,7 @@ pub fn plan_text(tool: &ToolView) -> Option<String> {
         .ok()
         .map(|input| input.plan)
         .filter(|plan| !plan.trim().is_empty())
+        .map(Cow::Owned)
 }
 
 impl super::Timeline {
@@ -233,5 +255,56 @@ mod tests {
             plan_outcome(&[], &ToolCallId::new("plan")),
             PlanOutcome::Proposed
         );
+    }
+    #[test]
+    fn canonical_plan_semantics_control_all_disclosure_paths_without_legacy_input() {
+        use super::super::ToolView;
+        use vessel_proto::timeline::{PlanDetail, ToolFailure, UnknownToolDetail};
+        struct Source {
+            tool: ToolView,
+            detail: Option<ToolCallDetail>,
+        }
+        impl ToolDetailSource for Source {
+            fn tool(&self) -> &ToolView {
+                &self.tool
+            }
+            fn detail(&self) -> Option<&ToolCallDetail> {
+                self.detail.as_ref()
+            }
+            fn failure(&self) -> Option<&ToolFailure> {
+                None
+            }
+        }
+        let mut timeline = super::super::Timeline::default();
+        let _change = timeline.apply(&[proposal()]);
+        let mut source = Source {
+            tool: timeline
+                .tool_call(&ToolCallId::new("plan"))
+                .unwrap()
+                .clone(),
+            detail: None,
+        };
+        assert_eq!(
+            plan_text(&source).as_deref(),
+            Some("## A plan\n\nRead, then fix.")
+        );
+        source.detail = Some(ToolCallDetail::Unknown(UnknownToolDetail {
+            input: None,
+            output: None,
+        }));
+        assert!(
+            plan_text(&source).is_none(),
+            "canonical non-plan must not fall back to old input"
+        );
+        source.tool.kind = ToolKind::Other;
+        source.tool.input = None;
+        source.detail = Some(ToolCallDetail::Plan(PlanDetail {
+            text: "# Canonical".to_owned(),
+        }));
+        assert_eq!(plan_text(&source).as_deref(), Some("# Canonical"));
+        source.detail = Some(ToolCallDetail::Plan(PlanDetail {
+            text: String::new(),
+        }));
+        assert_eq!(plan_text(&source).as_deref(), Some(""));
     }
 }
