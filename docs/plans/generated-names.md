@@ -855,3 +855,12 @@ reply arms introduced by the automatic merge. The older-reply file is now
 exactly the head's: its existing adapters already call the composed settings
 projection, so the title work needs no additional arms there. Final merged
 Clippy and settings/protocol tests remain before the package gate.
+
+
+TS preflight found one additional head recovery-reply fixture that constructs
+the full settings value. It gains only metadata's default, retaining all old
+fields and assertions. Two unnecessary paths in the new projection tests are
+shortened. The RPC test for a semantically invalid metadata patch checks both
+settings and file remain unchanged: pending builds refuse before sending;
+a later assigned build must reject the invalid route before writing. Strict
+unknown-key decoding remains covered separately by the protocol tests.

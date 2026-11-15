@@ -7,7 +7,7 @@ fn settings() -> NodeSettings {
     NodeSettings {
         park_after: ParkAfter::Never,
         drivers: AgentDrivers::default(),
-        restart_recovery: crate::restart::RestartRecovery::default(),
+        restart_recovery: RestartRecovery::default(),
         metadata: MetadataSettings::new(vec![MetadataProvider {
             route: "fast".parse().unwrap(),
             model: None,
@@ -93,7 +93,7 @@ fn an_assigned_threshold_keeps_metadata_only_for_readers_of_that_threshold() {
 #[test]
 fn metadata_masking_keeps_the_heads_recovery_projection_even_when_metadata_is_default() {
     let mut original = settings();
-    original.restart_recovery = crate::restart::RestartRecovery {
+    original.restart_recovery = RestartRecovery {
         enabled: true,
         prompt: "synthetic recovery instruction".parse().unwrap(),
     };

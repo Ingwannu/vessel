@@ -20,6 +20,8 @@ use crate::support::{Fixture, within};
 
 #[cfg(test)]
 mod aside;
+#[cfg(test)]
+mod metadata;
 
 fn idle(minutes: u16) -> ParkAfter {
     ParkAfter::Idle {
