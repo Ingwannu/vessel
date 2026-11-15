@@ -10,6 +10,8 @@ use std::sync::Arc;
 
 use vessel_proto::HttpUrl;
 
+use crate::matcher::whitespace;
+
 /// A path parsed from assistant prose; it grants no authority to read that path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathToken(Arc<str>);
@@ -92,7 +94,7 @@ pub enum Link {
 /// Classify a target, preserving raw percent escapes outside authored hrefs.
 #[must_use]
 pub fn classify(value: &str, origin: Origin, workspace: Workspace) -> Option<Link> {
-    let value = value.trim();
+    let value = value.trim_matches(whitespace);
     if let Some(url) = http_url(value) {
         return Some(Link::External(url));
     }
@@ -130,7 +132,9 @@ fn http_url(value: &str) -> Option<HttpUrl> {
 /// Parse the location alone, without performing navigation or filesystem access.
 #[must_use]
 pub fn parse_file(value: &str, origin: Origin) -> Option<FileTarget> {
-    let value = value.trim().trim_matches(['\'', '"', '`']);
+    let value = value
+        .trim_matches(whitespace)
+        .trim_matches(['\'', '"', '`']);
     if value.is_empty() || value.contains('?') || value.chars().any(char::is_control) {
         return None;
     }

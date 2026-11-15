@@ -133,3 +133,23 @@ fn fragment_grammar_requires_digits_and_at_most_one_line_or_column_marker() {
         assert!(parse_file(value, Origin::Href).is_none(), "{value}");
     }
 }
+
+#[test]
+fn file_tokens_use_the_reference_whitespace_set_without_erasing_nel_controls() {
+    for origin in [Origin::Href, Origin::Inferred] {
+        let target = parse_file("\u{feff} /src/lib.rs:4 \u{feff}", origin).unwrap();
+        assert_eq!(target.path.as_str(), "/src/lib.rs");
+        assert_eq!(target.lines.unwrap().start().get(), 4);
+        for value in ["\u{0085}/src/lib.rs", "/src/lib.rs\u{0085}"] {
+            assert!(classify(value, origin, Workspace::Known).is_none());
+        }
+    }
+    assert!(matches!(
+        classify(
+            "\u{feff}HTTPS://example.com/a",
+            Origin::Href,
+            Workspace::Unknown
+        ),
+        Some(Link::External(_))
+    ));
+}
