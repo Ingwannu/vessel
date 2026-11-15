@@ -1,6 +1,6 @@
-# Message search from the command palette
+# Search, chat find and prompt outline
 
-Status: contract; implementation follows. Extends ADR 0037; no new wire calls,
+Status: message-search skeleton implemented; expanded find/outline work follows. Extends ADR 0037; no new wire calls,
 protocol fields, crate edges or dependencies.
 
 ## Reference behaviour
@@ -85,6 +85,34 @@ the evidence and all unverified surfaces. No production node or real agent.
 
 ## Resume point
 
-Done: references and existing interfaces inspected; contract recorded.
-Next: typed scope/cursor; palette wiring; immediate invalidation and destination
-retention; regressions; narrow checks; whole gate, captures and review.
+Done: typed scope/cursor, palette wiring, immediate invalidation, prepared
+destination, EN/KO labels and language refresh. Narrow palette tests: app 5
+passed and view 31 passed. Compile warnings were corrected afterward; lint and
+the full package gate remain pending.
+Next: expanded find/outline and server prompt-index contract; narrow checks;
+then one combined capture matrix, whole gate and review.
+
+
+## Expanded search and outline contract
+
+The package also audits Paseo's timeline search and prompt-index behaviour,
+chat find and outline (timeline survey items 17, 18, 48, 49).
+`packages/server/src/server/agent/timeline-prompt-index.ts:16-40` indexes all user
+messages with collapsed whitespace and a bounded preview.
+`agent-stream/chat-outline/hover-intent.ts:44-86` keeps its initial timer while
+moving vertically and restarts it only on horizontal transit.
+
+Existing assets: `timeline::Finder` incrementally scans readable text with a
+retained revision cache; conversation `find` already yields to the UI
+between slices, marks occurrences and reveals folded entries. `timeline::outline`
+and the existing rail derive prompts from the subscribed log. Reuse these rather
+than introduce another timeline. Differences needing work: find shortcut observer
+must not bypass overlay/IME/rebinding policy; closing should restore focus; outline
+must honour the Chat setting and its hover intent. The server prompt-index call
+is absent from the actual node method table; that boundary awaits the central
+node contract or a ruling on deriving the full index from the complete log.
+No fictional call is registered.
+
+Current state: global Messages implementation and regressions drafted; narrow
+checks queued. Find/outline parity audit started; full-history prompt index
+boundary reported. Final captures and whole gate cover the expanded package.

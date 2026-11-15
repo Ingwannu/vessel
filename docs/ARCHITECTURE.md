@@ -1204,3 +1204,16 @@ available, and `fleet sync` always addresses the selected node (ADR 0044).
 The CLI's existing test-only `serde_json` dependency is now a normal one:
 encoding the already-confirmed invitation uses the protocol's formatter and
 retains its concrete error source rather than inventing a string error.
+
+
+## Native palette message search
+
+The command palette's explicit Messages scope reuses protocol 12's
+`session.search`, ADR 0037. `view::palette::messages` keeps scope and record
+selection; `view::search` merges each machine's pages; `link::search` is the
+existing node adapter. `app::areas::palette::messages` draws controls and
+activates the conversation area's prepared search destination. An edit or close
+invalidates the previous query before debounce; a selection retains its query
+before clearing and reveals the chosen message with find open. No crate edge or
+backend contract changes. See `docs/plans/wp-a3.md` for reference differences and
+validation.

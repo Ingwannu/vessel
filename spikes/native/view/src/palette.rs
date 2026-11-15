@@ -13,12 +13,14 @@
 //!   the target it gets back.
 
 mod cursor;
+mod messages;
 mod ranking;
 mod subtitle;
 
 pub use subtitle::{DisplayPath, MarkedSubtitle, Subtitle, TextPart};
 
 pub use cursor::{Direction, PaletteCursor};
+pub use messages::{MessageCursor, PaletteMode};
 
 use std::cmp::Reverse;
 use std::ops::Range;
@@ -59,6 +61,8 @@ impl PaletteGroup {
 /// What choosing an entry does.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PaletteTarget<S, T> {
+    /// Enter transcript search from the keyboard without a pointer.
+    Messages,
     /// Start a new session, on this machine when one is chosen.
     NewSession(Option<String>),
     /// Add a machine.

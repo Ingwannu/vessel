@@ -91,6 +91,18 @@ to the best result; passive fleet updates retain identity and do not
 scroll. The app only supplies entries, draws kit rows and reveals the
 selection when the person types or presses an arrow.
 
+Open Search from the sidebar or Mod+K, then choose **Messages** to search the
+contents of every session on connected machines. Each row shows its session,
+machine, message time, speaker and matching excerpt; Enter or a click opens that
+message with find on the query. Up/Down wrap, and **Show more messages** pages
+without closing. **Commands** retains ordinary local navigation. Closing or
+changing scope cancels pending query work; old/offline/refusing nodes do not
+prevent other results. A session removed before selection produces an inline
+notice. `view::palette::messages` owns typed scope/selection and `view::search`
+owns merging; the palette area reuses `conversation::search` and `link::search`
+for debounce, node calls and reveal. The contract and reference differences are
+in `docs/plans/wp-a3.md`.
+
 Git action preparation lives beside the code panel's existing models in
 `view::workspace::git`: commit scope and validated message, branch
 create/rename/switch, per-file index actions, discard decisions and stash

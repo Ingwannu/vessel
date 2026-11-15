@@ -133,4 +133,4 @@ behaviour; it does not change search semantics or the wire contract. Reusing
 `view::search`, `link::search` and the conversation's reveal/find avoids a second
 index or navigation model. Input changes and closing invalidate earlier replies
 before the debounce; selection captures the validated query before closing.
-The contract, alternatives and validation are in `docs/plans/wp-a1.md`.
+The contract, alternatives and validation are in `docs/plans/wp-a3.md`.

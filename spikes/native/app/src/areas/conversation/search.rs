@@ -24,33 +24,28 @@
 //!   rows top to bottom, by typed id; [`message_row`] draws one;
 //!   [`message_search_note`] the lines under them; choosing a row calls
 //!   [`Shell::open_search_hit`] or [`Shell::message_search_more`].
-//! - Until the palette draws the group, [`example`] does (the scroll
-//!   bench's way: only when `VESSEL_APP_MESSAGE_SEARCH` names words, a
-//!   palette-sized card over the session shown), so the seams have a
-//!   caller and the rows can be checked on a fleet. It goes when the
-//!   palette's group lands.
 //! - Cost: the place shown is the machine only (GOAT adds the project; a
 //!   card here does not name one).
 
-use std::cell::Cell;
 use std::time::Duration;
 
 use chrono::Utc;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, HighlightStyle,
-    InteractiveElement as _, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, StyledText, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, HighlightStyle, IntoElement as _,
+    ParentElement as _, Styled as _, StyledText, Window, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, popup};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_link::search::{Answer as Searched, Ask, Refusal};
 use vessel_app_view::Card;
 use vessel_app_view::ago::Ago;
 use vessel_app_view::board::Reach;
 use vessel_app_view::search::{Answer, HitId, MessageSearch, Note, PageAsk, Row};
-use vessel_proto::search::{MessageRole, SearchHit};
+use vessel_proto::EventSeq;
+use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
 
 use crate::areas::session::Open;
 use crate::shell::Shell;
@@ -62,55 +57,32 @@ const SETTLE: Duration = Duration::from_millis(150);
 #[derive(Debug, Default)]
 pub(crate) struct Searching {
     view: MessageSearch,
-    /// Keystrokes seen, so a search starts only for the last words.
-    typed: u64,
-    /// [`example`]'s words were searched (set while drawing).
-    example_started: Cell<bool>,
-    /// [`example`] was closed by choosing a row.
-    example_closed: bool,
 }
 
 impl Shell {
-    /// The palette's words changed (empty: it closed or was cleared):
-    /// search them once they rest.
+    /// Invalidate old rows and replies immediately; debounce only the node work.
     pub(crate) fn message_search_query(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let searching = &mut self.areas.conversation.search;
-        searching.typed = searching.typed.wrapping_add(1);
-        let typed = searching.typed;
-        if text.trim().is_empty() {
-            let _nothing = searching.view.start("", std::iter::empty());
-            cx.notify();
-            return;
-        }
-        let text = text.to_owned();
-        cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(SETTLE).await;
-            let _gone = this.update(cx, |shell, cx| {
-                if shell.areas.conversation.search.typed == typed {
-                    shell.message_search_start(&text, cx);
-                }
-            });
-        })
-        .detach();
-    }
-
-    /// Search `text` on every machine the app reaches.
-    fn message_search_start(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let machines: Vec<String> = self
+        let machines = self
             .fleet
             .machines
             .iter()
             .filter(|machine| machine.reach == Reach::Online)
-            .map(|machine| machine.name.clone())
-            .collect();
-        let asks = self
-            .areas
-            .conversation
-            .search
-            .view
-            .start(text, machines.iter().map(String::as_str));
-        self.message_search_ask(asks);
+            .map(|machine| machine.name.as_str());
+        let asks = self.areas.conversation.search.view.start(text, machines);
+        let ticket = self.areas.conversation.search.view.ticket();
         cx.notify();
+        if asks.is_empty() {
+            return;
+        }
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(SETTLE).await;
+            let _gone = this.update(cx, |shell, _cx| {
+                if shell.areas.conversation.search.view.ticket() == ticket {
+                    shell.message_search_ask(asks);
+                }
+            });
+        })
+        .detach();
     }
 
     /// Send `asks`, tagged with the search they belong to.
@@ -155,32 +127,35 @@ impl Shell {
         cx.notify();
     }
 
-    /// Open the session of `hit` at its message, with find open on the
-    /// words searched (the palette closes itself first). Nothing when the
-    /// machine no longer lists the session.
+    /// Prepare before clearing the palette; stale or removed rows cannot navigate.
+    pub(crate) fn message_search_destination(&self, hit: &HitId) -> Option<Destination> {
+        let view = &self.areas.conversation.search.view;
+        let found = view.hit(hit)?;
+        Some(Destination {
+            open: card_of(self, hit).map(Open::of)?,
+            seq: found.seq,
+            query: view.query_value()?.clone(),
+        })
+    }
+
+    /// Open with the query retained before closing invalidated the result set.
     pub(crate) fn open_search_hit(
         &mut self,
-        hit: &HitId,
+        destination: Destination,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(open) = card_of(self, hit).map(Open::of) else {
-            tracing::debug!(session = %hit.session, "a search hit's session is not listed");
-            return;
-        };
-        let query = self
-            .areas
-            .conversation
-            .search
-            .view
-            .query()
-            .map(str::to_owned);
-        self.open_session(open, window, cx);
-        self.conversation_reveal(hit.seq, cx);
-        if let Some(query) = query {
-            self.find_at(&query, hit.seq, window, cx);
-        }
+        self.open_session(destination.open, window, cx);
+        self.conversation_reveal(destination.seq, cx);
+        self.find_at(destination.query.as_str(), destination.seq, window, cx);
     }
+}
+
+/// A prepared selection cannot lose its query when the palette closes.
+pub(crate) struct Destination {
+    open: Open,
+    seq: EventSeq,
+    query: SearchQuery,
 }
 
 /// The card of `hit`'s session, when its machine lists it.
@@ -210,11 +185,15 @@ pub(crate) fn message_row(
     let frame = div()
         .flex()
         .flex_row()
-        .gap(px(8.0))
-        .min_h(px(if compact { 32.0 } else { 28.0 }))
-        .px(px(8.0))
-        .py(px(6.0))
-        .rounded(px(4.0))
+        .gap(px(spacing::S2))
+        .min_h(px(if compact {
+            vessel_app_kit::breakpoint::TOUCH_TARGET
+        } else {
+            spacing::S7
+        }))
+        .px(px(spacing::S2))
+        .py(px(spacing::S1_5))
+        .rounded(px(spacing::S1))
         .when(active, |row| row.bg(neutral.surface2));
     let hit = match row {
         Row::More => {
@@ -223,7 +202,7 @@ pub(crate) fn message_row(
                 .child(glyph(Glyph::ChevronDown, 16.0, neutral.foreground_muted))
                 .child(
                     div()
-                        .text_size(px(14.0))
+                        .text_size(px(spacing::S3_5))
                         .text_color(neutral.foreground_muted)
                         .child(words.search_more()),
                 )
@@ -242,7 +221,7 @@ pub(crate) fn message_row(
     let head = head(title, &hit.machine, tokens);
     frame
         .items_start()
-        .child(div().flex_none().pt(px(2.0)).child(glyph(
+        .child(div().flex_none().pt(px(spacing::S0_5)).child(glyph(
             Glyph::Message,
             16.0,
             neutral.foreground_muted,
@@ -250,7 +229,7 @@ pub(crate) fn message_row(
         .child(
             div()
                 .flex_1()
-                .min_w(px(0.0))
+                .min_w(px(spacing::S0))
                 .flex()
                 .flex_col()
                 .child(head)
@@ -259,9 +238,9 @@ pub(crate) fn message_row(
         .child(
             div()
                 .flex_none()
-                .min_w(px(48.0))
+                .min_w(px(spacing::S12))
                 .text_right()
-                .text_size(px(12.0))
+                .text_size(px(spacing::S3))
                 .text_color(neutral.foreground_extra_muted)
                 .child(when),
         )
@@ -275,12 +254,12 @@ fn head(title: String, machine: &str, tokens: &Tokens) -> Div {
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(6.0))
-        .min_w(px(0.0))
-        .text_size(px(14.0))
+        .gap(px(spacing::S1_5))
+        .min_w(px(spacing::S0))
+        .text_size(px(spacing::S3_5))
         .child(
             div()
-                .min_w(px(0.0))
+                .min_w(px(spacing::S0))
                 .truncate()
                 .text_color(neutral.foreground)
                 .child(title),
@@ -288,9 +267,9 @@ fn head(title: String, machine: &str, tokens: &Tokens) -> Div {
         .child(
             div()
                 .flex_none()
-                .max_w(px(160.0))
+                .max_w(gpui::relative(0.4))
                 .truncate()
-                .text_size(px(12.0))
+                .text_size(px(spacing::S3))
                 .text_color(neutral.foreground_extra_muted)
                 .child(machine.to_owned()),
         )
@@ -336,9 +315,9 @@ fn excerpt(shell: &Shell, hit: &SearchHit, tokens: &Tokens) -> AnyElement {
         text.push('…');
     }
     div()
-        .min_w(px(0.0))
+        .min_w(px(spacing::S0))
         .truncate()
-        .text_size(px(12.0))
+        .text_size(px(spacing::S3))
         .text_color(neutral.foreground_muted)
         .child(StyledText::new(text).with_highlights(marks))
         .into_any_element()
@@ -366,99 +345,12 @@ pub(crate) fn message_search_note(shell: &Shell, tokens: &Tokens) -> Option<AnyE
         div()
             .flex()
             .flex_col()
-            .gap(px(2.0))
-            .px(px(8.0))
-            .py(px(6.0))
+            .gap(px(spacing::S0_5))
+            .px(px(spacing::S2))
+            .py(px(spacing::S1_5))
             .type_(Type::Meta)
             .text_color(tokens.neutral.foreground_muted)
             .children(lines.map(|line| div().child(line)))
-            .into_any_element(),
-    )
-}
-
-/// The words [`example`] searches, from `VESSEL_APP_MESSAGE_SEARCH`.
-fn example_words() -> Option<String> {
-    std::env::var("VESSEL_APP_MESSAGE_SEARCH")
-        .ok()
-        .filter(|words| !words.trim().is_empty())
-}
-
-/// The Messages group in a palette-sized card over the session shown,
-/// until the palette draws it: only with `VESSEL_APP_MESSAGE_SEARCH` set,
-/// for checking the rows on a fleet. Its first row is drawn as the one
-/// the keys are on; a press chooses a row as the palette's Enter will.
-pub(crate) fn example(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let words = example_words()?;
-    let searching = &shell.areas.conversation.search;
-    if searching.example_closed {
-        return None;
-    }
-    if !searching.example_started.get() {
-        searching.example_started.set(true);
-        cx.defer_in(window, move |shell, _window, cx| {
-            shell.message_search_query(&words, cx);
-        });
-    }
-    let neutral = tokens.neutral;
-    let compact = breakpoint::phone(window);
-    let rows = shell.message_search_rows();
-    let listed = rows.iter().enumerate().map(|(index, row)| {
-        let chosen = row.clone();
-        div()
-            .id(ElementId::NamedInteger(
-                "message-search-row".into(),
-                super::entries::id(index),
-            ))
-            .cursor_pointer()
-            .on_click(cx.listener(move |shell, _event, window, cx| match &chosen {
-                Row::Hit(hit) => {
-                    shell.areas.conversation.search.example_closed = true;
-                    shell.open_search_hit(hit, window, cx);
-                }
-                Row::More => shell.message_search_more(cx),
-            }))
-            .child(message_row(shell, row, index == 0, compact, tokens))
-    });
-    let card = div()
-        .id("message-search-example")
-        .occlude()
-        .w(px(if compact { 360.0 } else { 640.0 }))
-        .max_h(px(480.0))
-        .overflow_y_scroll()
-        .flex()
-        .flex_col()
-        .p(px(4.0))
-        .rounded(px(12.0))
-        .border_1()
-        .border_color(neutral.border_accent)
-        .bg(neutral.surface1)
-        .shadow(popup::shadow_md(tokens))
-        .face(Type::Body)
-        .child(
-            div()
-                .px(px(8.0))
-                .pt(px(6.0))
-                .pb(px(4.0))
-                .type_(Type::Kicker)
-                .text_color(neutral.foreground_muted)
-                .child(shell.t.lang.conversation().search_group()),
-        )
-        .children(listed)
-        .children(message_search_note(shell, tokens));
-    Some(
-        div()
-            .absolute()
-            .top(px(56.0))
-            .left_0()
-            .right_0()
-            .flex()
-            .justify_center()
-            .child(card)
             .into_any_element(),
     )
 }

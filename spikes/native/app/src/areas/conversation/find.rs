@@ -402,3 +402,15 @@ impl Shell {
 
 #[cfg(test)]
 mod language_tests;
+
+/// Inspect the retained find destination without starting a real session.
+#[cfg(test)]
+impl Shell {
+    pub(crate) fn find_destination(&self) -> Option<(&str, Option<EventSeq>)> {
+        self.areas
+            .conversation
+            .find
+            .as_ref()
+            .map(|bar| (bar.query.as_str(), bar.at))
+    }
+}

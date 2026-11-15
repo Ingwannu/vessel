@@ -42,6 +42,7 @@ pub(super) const fn glyph_of(target: &Target) -> Glyph {
         PaletteTarget::NewSession(_) => Glyph::Plus,
         PaletteTarget::AddMachine | PaletteTarget::Machine(_) => Glyph::Machine,
         PaletteTarget::Board => Glyph::Board,
+        PaletteTarget::Messages => Glyph::Message,
         PaletteTarget::Settings(section) => settings::section_glyph(*section),
         PaletteTarget::Session { structured, .. } => {
             if *structured {
@@ -92,7 +93,8 @@ const fn action_of(target: &Target) -> Option<Action> {
             | Section::Plugins
             | Section::Models => None,
         },
-        PaletteTarget::AddMachine
+        PaletteTarget::Messages
+        | PaletteTarget::AddMachine
         | PaletteTarget::Machine(_)
         | PaletteTarget::Session { .. }
         | PaletteTarget::Theme(_) => None,

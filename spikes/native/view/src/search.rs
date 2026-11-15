@@ -197,6 +197,12 @@ impl MessageSearch {
         self.query.as_ref().map(SearchQuery::as_str)
     }
 
+    /// Retain the validated query before closing the palette and clearing results.
+    #[must_use]
+    pub const fn query_value(&self) -> Option<&SearchQuery> {
+        self.query.as_ref()
+    }
+
     /// Whether a search is under way or shown (the group is drawn).
     #[must_use]
     pub const fn active(&self) -> bool {
