@@ -14,6 +14,7 @@ pub mod agents;
 pub mod automation;
 mod base64_bytes;
 mod board;
+mod book_route;
 pub mod conversation;
 mod device;
 pub mod diagnostics;
@@ -74,6 +75,7 @@ pub use agent::{
 };
 pub use agents::{AgentName, AgentNameError, HarnessRef, TerminalSupport, UnknownAgent};
 pub use board::{Activity, DisplayStatus, KanbanColumn, SessionBoard};
+pub use book_route::BookRouteId;
 pub use conversation::{
     AgentAbilities, AgentCommand, AttachmentKind, AttachmentLimits, AttachmentName, AttachmentRef,
     ContextUsage, Conversation, Delivered, Delivery, KeptMarks, Mark, PromptQueue, Question,
