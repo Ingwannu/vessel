@@ -581,3 +581,9 @@ Conflicts were limited to these equivalent extractions, imports, equal-valued
 geometry tokens and shrinking allowance records. No rule or test expectation
 was changed. Next: gate this integration, then replace the temporary pencil
 with the shared host rename action now present in the native line.
+
+The extraction's first narrow Clippy found a missing test-only
+`OptionCategory` import. The existing test now imports it directly; its
+inputs and expectations are unchanged. The superseded whole-gate request
+was cancelled while queued. Resume: finish the corrected narrow check,
+commit, then submit the complete native gate before the rename consumer.

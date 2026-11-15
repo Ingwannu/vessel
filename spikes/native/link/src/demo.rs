@@ -525,6 +525,7 @@ fn long_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
 mod tests {
     use super::*;
     use vessel_app_view::Conversation;
+    use vessel_proto::OptionCategory;
 
     fn fold(records: &[EventRecord]) -> Conversation {
         let mut conversation = Conversation::default();
