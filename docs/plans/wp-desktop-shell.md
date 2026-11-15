@@ -29,9 +29,9 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line91407173 (base8, native1431/0/2), merged
-in876df47ba: reviewed FieldId and S2 menu leases plus the line's node82ae7c91
-union. No node head was merged directly into this application tree. Existing
+latest application base is package line2b806402 (base8c, native1464/0/2), merged
+in578c28d7. It contains the reviewed shared popover and current pane/query seams.
+No node head was merged directly into this application tree. Existing
 immutable narrow/Windows runs retain their selected older commits.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
@@ -92,7 +92,8 @@ Shell preferences. The hook retains locally modified, dirty, compact-sheet and
 owner-held trees; independent additions/removals update the cache. Only the two
 agreed cfg(test) staging attributes were removed with this real caller. A product
 apply-path regression checks that another window's new workspace survives the
-next local layout save; its combined run is still pending.
+next local layout save; it passed in older-source unit19. The new-base union is
+being checked separately in unit20.
 
 ## Windows and startup
 
@@ -384,7 +385,7 @@ wp-desktop-popover-narrow-20261115T143258Z-7730d570, exact7730d570a on base8,
 native fmt/quality/all-target Clippy0 and tests1444/0/2 (Kit193/0/0,13 control
 regressions). V1 row233 passed bounded source/requested narrow on exact773,
 docs-only6c70, and the lead merged the selected producer as8c359d0f; the combined
-line gate remains pending. UI lease is not host/context/ticket/transport authority:
+line gate passed in announced2b806402. UI lease is not host/context/ticket/transport authority:
 consumers separately retire domain intents/body actions before deferred close.
 This contains no E3
 App/Link policy, native-build, capture or OS approval and cannot validate this
@@ -446,9 +447,10 @@ tests that merged source separately; no result is inferred before completion.
   current-focus semantics. The actual retained-key regression covers both Copy
   and Paste with an interceptor moving focus after event-path capture; execution
   remains pending. This identity is UI input authority, not host/session authority.
-The new control producer uses the clean dd13 base separately.
-Current source-size checks passed708 files/14 existing exceptions; no allowance
-increased. Direct rustfmt checks the Rust files changed from dd13ce37; this
+The reviewed control producer is isolated on base91407173; the additive header
+slot is another isolated follow-up on that reviewed control head.
+Current source-size checks passed717 files/13 existing exceptions; no allowance
+increased. Direct rustfmt checks changed Rust files; this
 is formatting evidence only, without a local Cargo/Rustc invocation.
 
 All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
