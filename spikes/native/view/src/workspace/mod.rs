@@ -14,6 +14,7 @@ pub mod command_changes;
 pub mod diff_rows;
 pub mod editor;
 pub mod explorer;
+pub mod explorer_memory;
 pub mod file_ticket;
 pub mod file_tree;
 pub mod find;

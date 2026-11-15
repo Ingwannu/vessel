@@ -44,6 +44,7 @@ impl Shell {
             HiddenFiles::Show => HiddenFiles::Hide,
             HiddenFiles::Hide => HiddenFiles::Show,
         };
+        self.restore_visible_tree();
         self.tree_options_changed(cx);
     }
 }

@@ -87,7 +87,8 @@ impl CodeEditor {
 
     /// End highlights and return focus to this document's editor.
     pub fn close_find(&self, window: &mut Window, cx: &mut App) {
-        self.state.update(cx, gpui_base::input::EditorState::close_search);
+        self.state
+            .update(cx, gpui_base::input::EditorState::close_search);
         self.focus(window, cx);
     }
 

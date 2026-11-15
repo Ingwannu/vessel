@@ -108,12 +108,13 @@ impl Shell {
     /// A folder's entries arrived.
     pub(in crate::areas::workspace) fn folder_read(
         &mut self,
+        machine: &str,
         ask: &ListDir,
         result: Result<DirListing, Problem>,
     ) {
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
-        if panel.root().map(|(_, root)| root) != Some(&ask.root) {
+        if panel.root() != Some((machine, &ask.root)) {
             return;
         }
         let listing = match result {
@@ -124,6 +125,7 @@ impl Shell {
         };
         let _was = panel.files.listings.insert(ask.dir.clone(), listing);
         panel.files.relist();
+        self.restore_tree_children(&ask.dir);
     }
 
     pub(super) fn toggle_folder(&mut self, path: &RelPath, cx: &mut Context<'_, Self>) {
@@ -133,6 +135,7 @@ impl Shell {
             self.read_folder(path);
         }
         self.areas.workspace.code.files.relist();
+        self.remember_file_tree();
         cx.notify();
     }
 

@@ -44,6 +44,7 @@ mod layout_adapter;
 mod line_syntax;
 mod search;
 mod tree;
+mod tree_memory;
 mod tree_toolbar;
 mod viewer;
 
@@ -387,6 +388,7 @@ impl Shell {
             Err(problem) => Place::Failed(words.problem(problem)),
         };
         target.cwd = result.ok().and_then(|info| info.spec.cwd);
+        self.restore_file_tree();
         self.code_read_tab();
     }
 

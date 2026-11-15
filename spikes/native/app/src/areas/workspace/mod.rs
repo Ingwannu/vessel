@@ -165,7 +165,7 @@ impl Shell {
             Answer::Session { session, result } => self.code_session_read(session, result),
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
-            Answer::Listed { ask, result } => self.folder_read(&ask, result),
+            Answer::Listed { ask, result } => self.folder_read(machine, &ask, result),
             Answer::Read { ask, result } => self.file_read(machine, &ask, result, cx),
             Answer::EditorRead {
                 ask,
