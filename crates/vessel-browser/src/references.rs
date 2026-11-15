@@ -9,11 +9,36 @@ use std::collections::BTreeMap;
 use vessel_proto::browser::{ElementRef, InvalidBrowserIdentity};
 
 /// Paseo's accessibility traversal assigns at most this many current refs.
-const MAX_REFERENCES: usize = 500;
+pub(crate) const MAX_REFERENCES: usize = 500;
 
 /// A snapshot generation differs from state/frame transport revisions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SnapshotGeneration(u64);
+
+/// A range is consumed before traversal; failed/late scripts cannot reuse its names.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SnapshotNamespace {
+    start: u64,
+    generation: SnapshotGeneration,
+}
+impl SnapshotNamespace {
+    pub(crate) fn at(self, offset: u32) -> Result<ElementRef, ReferenceError> {
+        if usize::try_from(offset).map_or(true, |offset| offset >= MAX_REFERENCES) {
+            return Err(ReferenceError::Limit);
+        }
+        let ordinal = self
+            .start
+            .checked_add(u64::from(offset))
+            .ok_or(ReferenceError::Exhausted)?;
+        format!("@e{ordinal}")
+            .parse()
+            .map_err(ReferenceError::Encoding)
+    }
+    /// Serialized as a decimal string, never through a JavaScript Number.
+    pub(crate) fn start_decimal(self) -> String {
+        self.start.to_string()
+    }
+}
 
 /// A failed reference allocation never falls back to a different element.
 #[derive(Debug, thiserror::Error)]
@@ -69,6 +94,51 @@ impl<T> References<T> {
             .ok_or(ReferenceError::Exhausted)?;
         self.generation = SnapshotGeneration(generation);
         Ok(self.generation)
+    }
+
+    /// Reserve the complete bounded namespace before dispatch, including unsuccessful snapshots.
+    pub(crate) fn begin_snapshot(&mut self) -> Result<SnapshotNamespace, ReferenceError> {
+        let generation = self.invalidate()?;
+        let size = u64::try_from(MAX_REFERENCES).map_err(|_overflow| ReferenceError::Exhausted)?;
+        let next = self
+            .next
+            .checked_add(size)
+            .ok_or(ReferenceError::Exhausted)?;
+        let namespace = SnapshotNamespace {
+            start: self.next,
+            generation,
+        };
+        self.next = next;
+        Ok(namespace)
+    }
+
+    /// Only the decoder may retain a graph binding from its current reserved range.
+    pub(crate) fn retain(
+        &mut self,
+        namespace: SnapshotNamespace,
+        reference: ElementRef,
+        value: T,
+    ) -> Result<(), ReferenceError> {
+        if namespace.generation != self.generation {
+            return Err(ReferenceError::Stale);
+        }
+        let ordinal = reference
+            .as_str()
+            .strip_prefix("@e")
+            .and_then(|digits| digits.parse::<u64>().ok())
+            .ok_or(ReferenceError::Stale)?;
+        let offset = ordinal
+            .checked_sub(namespace.start)
+            .and_then(|offset| u32::try_from(offset).ok())
+            .ok_or(ReferenceError::Stale)?;
+        if namespace.at(offset)? != reference || self.current.contains_key(&reference) {
+            return Err(ReferenceError::Stale);
+        }
+        if self.current.len() >= MAX_REFERENCES {
+            return Err(ReferenceError::Limit);
+        }
+        let _absent = self.current.insert(reference, value);
+        Ok(())
     }
 
     /// Retain one real backend element from the current traversal.

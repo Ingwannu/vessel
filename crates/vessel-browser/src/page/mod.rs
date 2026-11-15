@@ -6,6 +6,7 @@
 //! only close is allowed: an uncertain mutation must not be silently replayed.
 
 mod input;
+mod snapshot;
 
 use crate::cdp::{CdpError, Client, SessionId, TargetId, requests};
 use vessel_proto::browser::{
@@ -33,6 +34,8 @@ pub(crate) enum PageError {
     Unsupported,
     #[error("browser rejected navigation")]
     Navigation,
+    #[error("browser snapshot could not be produced")]
+    Snapshot(#[from] crate::snapshot::SnapshotError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,6 +54,7 @@ pub(crate) struct Page {
     viewport: ViewportSize,
     pointer: requests::PointerState,
     pointer_position: Option<vessel_proto::browser::CssPoint>,
+    references: crate::references::References<crate::snapshot::Binding>,
 }
 impl std::fmt::Debug for Page {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -116,6 +120,7 @@ impl Page {
                 viewport,
                 pointer: requests::PointerState::default(),
                 pointer_position: None,
+                references: crate::references::References::default(),
             }),
             Err(source) => {
                 // Never report a ready target after partial setup. The profile
@@ -139,6 +144,9 @@ impl Page {
 
     /// The owner invalidates its element references at this same boundary.
     pub(crate) fn invalidate(&mut self) -> Result<BrowserRevision, PageError> {
+        self.references
+            .invalidate()
+            .map_err(crate::snapshot::SnapshotError::from)?;
         self.revision = self.revision.next().ok_or(PageError::Exhausted)?;
         Ok(self.revision)
     }

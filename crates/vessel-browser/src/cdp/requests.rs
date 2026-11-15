@@ -47,6 +47,9 @@ methods! {
     ClearViewport => "Emulation.clearDeviceMetricsOverride",
     InsertText => "Input.insertText",
     MouseEvent => "Input.dispatchMouseEvent",
+    FrameTree => "Page.getFrameTree",
+    IsolatedWorld => "Page.createIsolatedWorld",
+    SnapshotTraversal => "Runtime.callFunctionOn",
 }
 
 macro_rules! request {
@@ -59,7 +62,9 @@ macro_rules! request {
     };
 }
 mod pointer;
+mod snapshot;
 pub(crate) use pointer::{MouseEvent, PointerState};
+pub(crate) use snapshot::{FrameTree, IsolatedWorld, SnapshotTraversal};
 
 macro_rules! empty_requests {
     ($($name:ident => $response:ty,$method:ident,$doc:literal;)+) => {$(

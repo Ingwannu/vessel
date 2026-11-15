@@ -548,3 +548,40 @@ also now checks the opened regular file's other-execute bit in addition to root
 ownership, nonwritable ancestors and fixed digest. A non-root service may not
 accept a non-executable candidate just because its contents hash correctly.
 No chmod/chown or host policy change is performed on refusal.
+
+## Independently implemented snapshot, staged after row206 contract PASS
+
+The coordinator and V3 rejected reuse/adaptation of Paseo snapshot code/assets.
+The corrected contract755b500ef (app66805baca) passed contract review only. The
+new JS traversal is written here from behavior requirements; no reference script
+or notices are vendored. Reuse is limited to Vessel's existing sealed CDP edge,
+current-ref owner, redacted bounded content and geometry/lifetime boundaries.
+
+The new tagged flat graph decoder rejects excess nodes before their payload,
+unknown roles/states, depth/count inconsistency, aggregate text+fingerprint bytes,
+nonconsecutive/wrong-generation refs and invalid output. It clears partial refs on
+failure. The existing500 ref owner reserves a full monotonic range before sending
+any traversal; failed or cancelled traversals consume their range. Script config
+serializes the host's one node/ref/depth/text budget and exact decimal ref start.
+JS BigInt avoids Number aliases above2^53. Output escapes content into complete
+YAML lines and reserves the visible reference truncation marker within80k UTF-8.
+Fingerprints and element handles stay in the private realm/current host map.
+
+The page controller creates an isolated world with grantUniveralAccess=false
+(the upstream spelling), then invokes only our fixed function with typed JSON
+arguments. Frame and loader identities must match a post-traversal frame query
+before refs publish. User evaluate cannot select this world. The official CDP
+command definitions inspected were Page.createIsolatedWorld/getFrameTree and
+Runtime.callFunctionOn in https://github.com/ChromeDevTools/devtools-protocol/tree/master/json .
+These current schema facts require actual149 runtime verification, not assumed
+API compatibility. Malformed/exceptional output never returns an empty success.
+
+Current algorithm limits/differences needing behavior and real-engine fixtures:
+label text scans share the1500 considered-work budget (including repeated nodes),
+DOM wrapper depth also stops at32, aggregate graph strings reuse the80k byte cap,
+and a fingerprint that cannot fit gets no ref. A visible truncation fact accompanies
+these limits. Semantic leaf roles emit their name without duplicate descendant
+text. The role/name coverage, same-origin frame traversal, hostile-page isolation,
+replacement fingerprints and actionability are not yet parity-qualified. No live
+snapshot/tool/frame is offered by these outer cfg(test) modules. All changed-source
+Rust execution evidence is still owed; static graph tests are not an engine.

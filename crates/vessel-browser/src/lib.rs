@@ -24,3 +24,6 @@ mod profile;
 mod proxy;
 #[cfg(test)]
 mod references;
+
+#[cfg(test)]
+mod snapshot;

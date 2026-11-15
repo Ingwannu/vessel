@@ -61,3 +61,16 @@ opaque_id!(
     SessionId,
     "A flattened CDP session id, unrelated to a Vessel `SessionId`."
 );
+
+opaque_id!(
+    FrameId,
+    "A private frame id within the admitted flattened target session."
+);
+opaque_id!(
+    LoaderId,
+    "A private loader id; snapshots cannot cross a navigation."
+);
+/// A context is re-created/rechecked per traversal, never selected by a caller.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub(crate) struct ContextId(NonZeroU64);
