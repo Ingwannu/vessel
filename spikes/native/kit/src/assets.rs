@@ -791,5 +791,6 @@ mod activity_indicator_asset_tests {
         }
     }
 }
+
 #[cfg(test)]
 mod added_navigation_tests;

@@ -331,6 +331,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -1358,3 +1362,12 @@ snapshots must remain separate from legacy account/default/install/remove facts
 until the node supplies an explicit actor-owned binding. The registry's temporary
 ordinary search field is pending the assigned shared SearchField producer; this
 source registration is not visual-parity approval.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.

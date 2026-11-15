@@ -34,3 +34,23 @@ returned one float_cmp lint in the new parsed-stroke assertion; no tests ran.
 The regression now compares IEEE bits to literal1.5_f32, preserving exactness
 without an epsilon or lint exception. SVG/vector bytes and all render cases
 are unchanged; old-source red outcome is retained. Corrected checks are owed.
+
+## Corrected isolated narrow result
+
+Exact645c52d2 passed remote Kit all-target --locked Clippy and128/0/0 lib
+tests, runs schedules-narrow-20261115T104039Z-645c52d2 and
+schedules-narrow-20261115T111006Z-645c52d2. Both executed native-fonts/cargo
+with0/no skip; actual Kit Checking/Compiling and the new registered/grid/stroke/
+16–24-render test are in the logs. Step digests were recomputed against each
+raw log. The old5ecd float_cmp red and original VM143 remain separate.
+Packet /tmp/work/m12-g2/glyph-final-packet-20261115 pins all5 changed Git blobs,
+bytes/SHA, exact diff and result logs. The two source-SVG comparison images at
+/tmp/work/m12-g2/usage-catalog-glyph-svg-comparison were personally inspected:
+Gauge/PackagePlus at16/20/24 are unclipped beside CircleCheck/Folder in both
+themes. This is librsvg source rendering, NOT a native/consumer UI capture.
+
+Source/narrow review is submitted to V1; consumer handoff waits for that bounded
+disposition. Glyphs append to newer inventories; the isolated074-base count87
+must never replace a consumer's newer inventory. No full F1/source-integration/
+OS/consumer-first-use/native visual pass is claimed or requested from this
+producer suite. No unchanged whole gate is added.

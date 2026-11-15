@@ -43,7 +43,7 @@ pub(crate) enum ServiceError {
 
 /// Parsing and generation use one platform choice and one location rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Manager {
+pub(crate) enum Manager {
     /// Only the invoking user's service namespace is relevant.
     Systemd,
     /// Agents are per user; custom jobs remain the person's responsibility.
@@ -52,7 +52,7 @@ pub(super) enum Manager {
 
 impl Manager {
     /// Other systems retain the installer's service-unavailable outcome.
-    pub(super) const fn current() -> Option<Self> {
+    pub(crate) const fn current() -> Option<Self> {
         if cfg!(target_os = "linux") {
             Some(Self::Systemd)
         } else if cfg!(target_os = "macos") {
@@ -66,7 +66,7 @@ impl Manager {
     ///
     /// # Errors
     /// The current directory cannot be resolved for a relative user home.
-    pub(super) fn file(self, home: &Path, config: Option<&Path>) -> Result<PathBuf, ServiceError> {
+    pub(crate) fn file(self, home: &Path, config: Option<&Path>) -> Result<PathBuf, ServiceError> {
         let file = match self {
             Self::Systemd => config
                 .filter(|path| path.is_absolute())
