@@ -1,5 +1,6 @@
 //! Embed the shipped directory catalogue so `all` grows with the asset tree.
 
+use std::fmt::Write as _;
 use std::fs;
 use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
@@ -25,7 +26,12 @@ fn main() -> io::Result<()> {
             .to_str()
             .ok_or_else(|| io::Error::other("skill path is not UTF-8"))?
             .replace('\\', "/");
-        source.push_str(&format!("({relative:?}, include_bytes!({absolute:?})),\n"));
+        let absolute = absolute
+            .to_str()
+            .ok_or_else(|| io::Error::other("skill source path is not UTF-8"))?;
+        // Debug escaping is required because these are Rust string literals.
+        writeln!(&mut source, "({relative:?}, include_bytes!({absolute:?})),")
+            .map_err(io::Error::other)?;
     }
     source.push_str("];\n");
     fs::write(output, source)?;
