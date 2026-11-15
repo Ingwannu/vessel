@@ -299,11 +299,13 @@ run proceeds but remains incomplete. Read failure, receiver loss or join failure
 cannot certify drained output; wait errors remain unconfirmed process exit.
 Facts accumulate across service attempts, so a later clean attempt cannot erase
 earlier uncertainty. A completed actor alone does not certify cleanup. A run
-that never successfully spawned can certify no child/I/O only after auxiliary
+that never attempted a spawn can certify no child/I/O only after auxiliary
 cleanup also succeeds. Real descendant and I/O acknowledgements remain required
 before normal terminal-backed workspace deletion can be connected. New component
-and actual-runner regressions are written, not executed; no safety acceptance or
-consumer-ready producer is claimed.
+and actual-runner regressions executed at scoped checkpoint `d0797e41` (four
+actual actor cases and two cleanup units within its 49 passing tests). This does
+not validate a newer merged tree or establish descendant/backing cleanup;
+no safety acceptance or consumer-ready producer is claimed.
 
 ## Announced registry base and remaining effect boundary
 
@@ -326,4 +328,27 @@ for the stronger cleanup evidence required before backing mutation.
 The node union also merges announced `1c762ccf` after its gate 52 passed. The A2
 feature constant stays None. The generated wire baseline is unchanged between
 `9c150c6e` and `1c762ccf`; combined A2 TypeScript generation and changed-source
-checks remain required. The unannounced listing/schema-21 candidate is excluded.
+checks remained required at that checkpoint; the then-unannounced listing
+candidate was excluded from it.
+
+## Announced schema-21 source checkpoint
+
+The node part now merges announced `27502436` (gate 54, protocol 25, schema 21).
+The full session query is `ListSessions::default()`; explicit selection uses the
+typed tuple request. All incoming file/skills rows remain untouched, and the two
+A2 pending rows append after `skills.import_selection`. The A2 feature constant
+remains None. There is still no physical workspace archive/restore adapter.
+
+Run `wp-sessions-node-narrow-20261115T173022Z-24be2992` compiled and ran the five
+proto/web generator tests successfully, then failed tracked-wire freshness as
+expected. Its source commit and artifact hashes were checked before copying the
+actual generated file into checkpoint `b78856ab`; other generated files were
+byte-identical. That is older-source generator evidence, not current freshness.
+Generated whitespace is retained exactly as emitted by the canonical generator.
+
+During the schema-21 merge, the incoming generated file was retained verbatim;
+the combined A2 declarations must be regenerated on the VM again. Run
+`wp-sessions-node-narrow-20261115T184415Z-7cdbc38e` is queued for that combined
+table. Its result, current strict/runtime checks and the final gate/review remain
+owed. No declaration, protocol number, backing generation or exit proof is
+invented to make an unavailable effect look ready.
