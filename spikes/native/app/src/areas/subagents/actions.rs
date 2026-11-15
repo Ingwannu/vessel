@@ -3,9 +3,8 @@ use super::HostRead;
 use crate::{areas::session::Open, shell::Shell};
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_view::{
-    devices::MachineKey,
-    subagents::{ChildPane, ChildQuery, Host, SubagentAsk as Ask, Target, Track, TrackProblem},
+use vessel_app_view::subagents::{
+    ChildPane, ChildQuery, Host, SubagentAsk as Ask, Target, Track, TrackProblem,
 };
 use vessel_proto::{SessionRef, subagents::ProviderChildId};
 
@@ -15,23 +14,17 @@ impl Shell {
             self.areas.subagents.track = None;
             return;
         }
-        let Some(node) = self
+        let Some(context) = self
             .fleet
             .machines
             .iter()
-            .find(|m| m.name == open.machine)
-            .and_then(|m| m.node)
+            .find(|machine| machine.name == open.machine)
+            .and_then(vessel_app_view::Machine::connection_context)
         else {
             self.areas.subagents.track = None;
             return;
         };
-        let target = Target {
-            machine: MachineKey::from_book(&open.machine),
-            address: SessionRef {
-                node,
-                session: open.session,
-            },
-        };
+        let target = Target::new(context, open.session);
         if self
             .areas
             .subagents
@@ -139,12 +132,8 @@ impl Shell {
         let hosts = self
             .fleet
             .online()
-            .filter_map(|machine| {
-                machine.node.map(|node| Host {
-                    machine: MachineKey::from_book(&machine.name),
-                    node,
-                })
-            })
+            .filter_map(vessel_app_view::Machine::connection_context)
+            .map(Host::new)
             .collect::<Vec<_>>();
         self.areas.subagents.hosts.clear();
         for host in hosts {
@@ -286,14 +275,11 @@ impl Shell {
             self.areas.subagents.failure = Some(TrackProblem::Offline);
             return;
         };
-        self.subagent_navigate(
-            Target {
-                machine: MachineKey::from_book(&machine.name),
-                address: parent,
-            },
-            window,
-            cx,
-        );
+        let Some(context) = machine.connection_context() else {
+            self.areas.subagents.failure = Some(TrackProblem::IdentityChanged);
+            return;
+        };
+        self.subagent_navigate(Target::new(context, parent.session), window, cx);
     }
     pub(super) fn subagent_confirm(
         &mut self,

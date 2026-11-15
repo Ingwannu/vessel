@@ -90,6 +90,8 @@ fn managed_row<'a>(
         .iter()
         .find(|row| row.target.address == *address)?;
     let card = vessel_app_view::Card::from_session(child.target.machine.as_str(), &child.info);
+    let parent = track.target().clone();
+    let detach_parent = parent.clone();
     let address = *address;
     let open = button_with_kind(
         ElementId::NamedInteger("subagent-open".into(), super::draw::row_number(index)),
@@ -98,7 +100,17 @@ fn managed_row<'a>(
         ButtonState::Enabled,
         tokens,
     )
-    .on_click(cx.listener(move |shell, _, window, cx| shell.subagent_managed(address, window, cx)))
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        if shell
+            .areas
+            .subagents
+            .track
+            .as_ref()
+            .is_some_and(|track| track.target() == &parent)
+        {
+            shell.subagent_managed(address, window, cx);
+        }
+    }))
     .into_any_element();
     let detach = button_with_kind(
         ElementId::NamedInteger("subagent-detach".into(), super::draw::row_number(index)),
@@ -111,7 +123,17 @@ fn managed_row<'a>(
         },
         tokens,
     )
-    .on_click(cx.listener(move |shell, _, window, cx| shell.subagent_confirm(address, window, cx)))
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        if shell
+            .areas
+            .subagents
+            .track
+            .as_ref()
+            .is_some_and(|track| track.target() == &detach_parent)
+        {
+            shell.subagent_confirm(address, window, cx);
+        }
+    }))
     .into_any_element();
     Some(RowParts {
         label: words.managed(),
@@ -130,7 +152,8 @@ fn provider_row<'a>(
     let area = &shell.areas.subagents;
     let words = shell.words.subagents();
     let track = area.track.as_ref()?;
-    let parent = track.target().address;
+    let parent = track.target().clone();
+    let hidden_parent = parent.clone();
 
     let scope = area.pane.as_ref().map(|pane| pane.query().child.clone());
     let child = track.providers(scope.as_ref()).find(|row| &row.id == id)?;
@@ -166,7 +189,7 @@ fn provider_row<'a>(
                 .subagents
                 .track
                 .as_ref()
-                .is_some_and(|track| track.target().address == parent)
+                .is_some_and(|track| track.target() == &parent)
         {
             shell.subagent_provider(&chosen);
             cx.notify();
@@ -193,7 +216,7 @@ fn provider_row<'a>(
                 .subagents
                 .track
                 .as_ref()
-                .is_some_and(|track| track.target().address == parent)
+                .is_some_and(|track| track.target() == &hidden_parent)
         {
             shell.subagent_hide(&hidden);
             cx.notify();

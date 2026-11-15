@@ -4,13 +4,12 @@ use vessel_proto::subagents::{ChildDescriptors, DetachReceipt};
 use vessel_proto::{Creator, HarnessKind, SessionId, SessionMode, SessionSpec};
 
 fn target(node: NodeId) -> Target {
-    Target {
-        machine: MachineKey::from_book("fixture"),
-        address: SessionRef {
-            node,
-            session: SessionId::random(),
-        },
-    }
+    Target::new(
+        crate::connection::ConnectionEpochs::default()
+            .admit(MachineKey::from_book("fixture"), node)
+            .unwrap(),
+        SessionId::random(),
+    )
 }
 fn managed(parent: SessionRef, node: NodeId, time: i64) -> ManagedChild {
     let target = target(node);
@@ -67,6 +66,9 @@ fn managed_rows_use_current_parent_full_identity_and_oldest_first_order() {
     let host = Host {
         machine: MachineKey::from_book("fixture"),
         node,
+        context: crate::connection::ConnectionEpochs::default()
+            .admit(MachineKey::from_book("fixture"), node)
+            .unwrap(),
     };
     let mut detached = managed(parent.address, node, 1);
     detached.info.detach_receipt = Some(DetachReceipt::new(

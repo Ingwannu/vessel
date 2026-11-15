@@ -1,16 +1,15 @@
 use super::*;
 use crate::{devices::MachineKey, timeline::EntryKind};
-use vessel_proto::{AgentEvent, ContentBlock, NodeId, SessionEvent, SessionId, SessionRef};
+use vessel_proto::{AgentEvent, ContentBlock, NodeId, SessionEvent, SessionId};
 
 fn query(id: &str) -> ChildQuery {
     ChildQuery {
-        target: Target {
-            machine: MachineKey::from_book("fixture"),
-            address: SessionRef {
-                node: NodeId::random(),
-                session: SessionId::random(),
-            },
-        },
+        target: Target::new(
+            crate::connection::ConnectionEpochs::default()
+                .admit(MachineKey::from_book("fixture"), NodeId::random())
+                .unwrap(),
+            SessionId::random(),
+        ),
         child: id.parse().unwrap(),
     }
 }

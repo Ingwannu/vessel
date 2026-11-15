@@ -9,20 +9,43 @@ use vessel_proto::{
     Creator, HarnessKind, SessionId, SessionInfo, SessionMode, SessionRef, SessionSpec,
 };
 
+fn admitted(
+    peer: &peer::Peer,
+) -> (
+    crate::testing::Home,
+    crate::State,
+    crate::connections::SelectedConnection,
+    vessel_app_view::connection::ConnectionContext,
+    tokio::sync::mpsc::Receiver<crate::Event>,
+) {
+    let home = crate::testing::Home::new();
+    let (mut state, events) = crate::testing::state(&home);
+    let context = state
+        .admissions
+        .admit(MachineKey::from_book("fixture"), peer.client.node().id)
+        .unwrap();
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    state.clients.insert(
+        "fixture".into(),
+        crate::Connected::new(peer.client.clone(), vec![], binding, context.clone()),
+    );
+    let selected = state.selected_connection(&context).unwrap();
+    (home, state, selected, context, events)
+}
 #[tokio::test]
 async fn unassigned_relationship_protocol_refuses_before_any_rpc_is_sent() {
     let peer = peer::connect(vec![]).await;
-    let target = Target {
-        machine: MachineKey::from_book("fixture"),
-        address: SessionRef {
-            node: peer.client.node().id,
-            session: SessionId::random(),
-        },
-    };
+    let (_home, _state, selected, context, _events) = admitted(&peer);
+    let target = Target::new(context, SessionId::random());
     let mut track = Track::new(target);
     let read = track.refresh(&mut Tickets::default()).unwrap();
     assert!(matches!(
-        answer(&peer.client, Ask::Providers(read)).await,
+        answer(&selected, Ask::Providers(read)).await,
         Reply::Providers {
             result: Err(TrackProblem::Unsupported),
             ..
@@ -33,17 +56,13 @@ async fn unassigned_relationship_protocol_refuses_before_any_rpc_is_sent() {
 #[tokio::test]
 async fn a_reused_book_alias_is_refused_before_read_or_mutation() {
     let peer = peer::connect(vec![]).await;
-    let target = Target {
-        machine: MachineKey::from_book("fixture"),
-        address: SessionRef {
-            node: vessel_proto::NodeId::random(),
-            session: SessionId::random(),
-        },
-    };
+    let (_home, _state, selected, context, _events) = admitted(&peer);
+    let mut target = Target::new(context, SessionId::random());
+    target.address.node = vessel_proto::NodeId::random();
     let ticket = Tickets::default().next_ticket().unwrap();
     assert!(matches!(
         answer(
-            &peer.client,
+            &selected,
             Ask::Lookup {
                 target: target.clone(),
                 ticket
@@ -60,7 +79,7 @@ async fn a_reused_book_alias_is_refused_before_read_or_mutation() {
         child: target,
     };
     assert!(matches!(
-        answer(&peer.client, Ask::Detach { choice, ticket }).await,
+        answer(&selected, Ask::Detach { choice, ticket }).await,
         Reply::Detached {
             result: Err(TrackProblem::IdentityChanged),
             ..
@@ -73,13 +92,13 @@ fn receipt() -> (DetachChoice, DetachedSession) {
         node: vessel_proto::NodeId::random(),
         session: SessionId::random(),
     };
-    let child = Target {
-        machine: MachineKey::from_book("fixture"),
-        address: SessionRef {
-            node: vessel_proto::NodeId::random(),
-            session: SessionId::random(),
-        },
-    };
+    let context = vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            MachineKey::from_book("fixture"),
+            vessel_proto::NodeId::random(),
+        )
+        .unwrap();
+    let child = Target::new(context, SessionId::random());
     let mut info = SessionInfo::new(
         child.address.session,
         SessionSpec::new(
@@ -133,11 +152,43 @@ fn durable_detach_receipts_are_bound_to_the_confirmed_complete_identities() {
 #[test]
 fn a_lost_mutation_response_is_uncertain_and_never_automatic_retry() {
     assert_eq!(
-        mutation_failure(vessel_client::CallError::Disconnected),
+        mutation_failure(crate::connections::RequestFailure::Call(
+            vessel_client::CallError::Disconnected
+        )),
         TrackProblem::Uncertain
     );
     assert_eq!(
-        read_failure(vessel_client::CallError::Disconnected),
+        read_failure(crate::connections::RequestFailure::Call(
+            vessel_client::CallError::Disconnected
+        )),
         TrackProblem::Offline
     );
+}
+
+#[tokio::test]
+async fn same_node_reconnect_refuses_an_old_admission_before_any_subagent_rpc() {
+    let peer = peer::connect(vec![]).await;
+    let (_home, mut state, _selected, old, mut events) = admitted(&peer);
+    let previous = state.clients.get("fixture").unwrap().clone();
+    let next = state
+        .admissions
+        .admit(MachineKey::from_book("fixture"), old.node())
+        .unwrap();
+    assert_eq!(old.node(), next.node());
+    assert_ne!(old.epoch(), next.epoch());
+    state
+        .clients
+        .insert("fixture".into(), previous.renamed(next));
+    let target = Target::new(old, SessionId::random());
+    let ticket = Tickets::default().next_ticket().unwrap();
+    state.subagents(Ask::Lookup { target, ticket }).await;
+    let reply = crate::testing::within(async { events.recv().await.unwrap() }).await;
+    assert!(matches!(
+        reply,
+        crate::Event::Subagents(Reply::LookedUp {
+            result: Err(TrackProblem::IdentityChanged),
+            ..
+        })
+    ));
+    assert!(peer.calls.lock().unwrap().is_empty());
 }

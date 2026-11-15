@@ -118,6 +118,11 @@ impl SelectedConnection {
                 .await;
         }
     }
+    /// Original immutable peer metadata, never permission or admission proof.
+    /// Effects still pass through the existing call pre/post retirement fence.
+    pub(crate) fn protocol(&self) -> vessel_proto::ProtocolVersion {
+        self.client.protocol()
+    }
     pub(crate) async fn call<R: Unary>(&self, request: R) -> Result<R::Response, RequestFailure> {
         self.guard(self.client.call(request)).await
     }

@@ -100,13 +100,7 @@ impl Shell {
                     let rows = infos
                         .into_iter()
                         .map(|info| ManagedChild {
-                            target: Target {
-                                machine: host.machine.clone(),
-                                address: vessel_proto::SessionRef {
-                                    node: host.node,
-                                    session: info.id,
-                                },
-                            },
+                            target: Target::new(host.context.clone(), info.id),
                             visibility: if info.marks.archived_at.is_some() {
                                 Visibility::Archived
                             } else {

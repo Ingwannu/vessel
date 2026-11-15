@@ -67,9 +67,9 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod history;
-pub mod subagents;
 pub mod node_settings;
 pub mod search;
+pub mod subagents;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -201,6 +201,7 @@ impl Link {
 
             admissions: ConnectionEpochs::default(),
             device_calls: devices::Hub::default(),
+            subagent_calls: subagents::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -268,6 +269,7 @@ struct State {
 
     admissions: ConnectionEpochs,
     device_calls: devices::Hub,
+    subagent_calls: subagents::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

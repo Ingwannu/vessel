@@ -120,6 +120,17 @@ impl SubagentAsk {
             },
         }
     }
+    /// Immutable actor-owned admission selected before the request was drawn.
+    #[must_use]
+    pub fn context(&self) -> &crate::connection::ConnectionContext {
+        match self {
+            Self::Lookup { target, .. } => &target.context,
+            Self::Managed { host, .. } => &host.context,
+            Self::Providers(read) => &read.target.context,
+            Self::Timeline(read) => &read.query.target.context,
+            Self::Detach { choice, .. } => &choice.child.context,
+        }
+    }
     /// Parsed machine routing key; the adapter separately verifies welcome identity.
     #[must_use]
     pub fn machine(&self) -> &crate::devices::MachineKey {

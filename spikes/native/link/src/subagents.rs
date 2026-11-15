@@ -9,27 +9,62 @@ const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 #[cfg(not(target_arch = "wasm32"))]
 const DETACH_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
 
+/// Match the shared Devices bound: navigation cannot grow background RPC tasks.
+#[cfg(not(target_arch = "wasm32"))]
+const MAX_CALLS: usize = 8;
+#[cfg(not(target_arch = "wasm32"))]
+const PUBLICATION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
+#[cfg(not(target_arch = "wasm32"))]
+impl Default for Hub {
+    fn default() -> Self {
+        Self(std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CALLS)))
+    }
+}
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    pub(crate) fn subagents(&self, ask: Ask) {
-        let client = self.client(ask.machine().as_str()).cloned();
+    pub(crate) async fn subagents(&self, ask: Ask) {
+        let selected =
+            if ask.context().node() == ask.node() && ask.context().machine() == ask.machine() {
+                self.selected_connection(ask.context())
+                    .map_err(|_| TrackProblem::IdentityChanged)
+            } else {
+                Err(TrackProblem::IdentityChanged)
+            };
+        let client = match selected {
+            Ok(client) => client,
+            Err(problem) => {
+                self.emit(crate::Event::Subagents(ask.refused(problem)))
+                    .await;
+                return;
+            }
+        };
+        let Ok(permit) = std::sync::Arc::clone(&self.subagent_calls.0).try_acquire_owned() else {
+            self.emit(crate::Event::Subagents(ask.refused(TrackProblem::Busy)))
+                .await;
+            return;
+        };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
-            let reply = match client {
-                Ok(client) => answer(&client, ask).await,
-                Err(_) => ask.refused(TrackProblem::Offline),
-            };
-            let _closed = events.send(crate::Event::Subagents(reply)).await;
+            let reply = answer(&client, ask).await;
+            let _closed = tokio::time::timeout(
+                PUBLICATION_DEADLINE,
+                events.send(crate::Event::Subagents(reply)),
+            )
+            .await;
+            drop(permit);
         }));
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
+async fn answer(client: &crate::connections::SelectedConnection, ask: Ask) -> Reply {
     use vessel_proto::subagents::{
         ChildLimit, DetachSession, ListProviderChildren, ReadProviderChild,
     };
-    if client.node().id != ask.node() {
+    if ask.context().node() != ask.node() || ask.context().machine() != ask.machine() {
         return ask.refused(TrackProblem::IdentityChanged);
     }
     // Current-parent metadata is unsafe to infer from immutable Creator when
@@ -61,15 +96,17 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
             parent,
             ticket,
         } => {
-            let result = read(client.sessions()).await.and_then(|rows| {
-                if rows.len() > vessel_app_view::subagents::MAX_MANAGED_SNAPSHOTS
-                    || rows.iter().any(|info| info.parentage().is_err())
-                {
-                    Err(TrackProblem::InvalidReply)
-                } else {
-                    Ok(rows)
-                }
-            });
+            let result = read(client.call(vessel_proto::ListSessions {}))
+                .await
+                .and_then(|rows| {
+                    if rows.len() > vessel_app_view::subagents::MAX_MANAGED_SNAPSHOTS
+                        || rows.iter().any(|info| info.parentage().is_err())
+                    {
+                        Err(TrackProblem::InvalidReply)
+                    } else {
+                        Ok(rows)
+                    }
+                });
             Reply::Managed {
                 host,
                 parent,
@@ -122,7 +159,7 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
 }
 #[cfg(not(target_arch = "wasm32"))]
 async fn read<T>(
-    operation: impl std::future::Future<Output = Result<T, vessel_client::CallError>>,
+    operation: impl std::future::Future<Output = Result<T, crate::connections::RequestFailure>>,
 ) -> Result<T, TrackProblem> {
     tokio::time::timeout(READ_DEADLINE, operation)
         .await
@@ -145,7 +182,19 @@ fn validate_detach(
     Ok(result)
 }
 #[cfg(not(target_arch = "wasm32"))]
-fn read_failure(error: vessel_client::CallError) -> TrackProblem {
+fn read_failure(error: crate::connections::RequestFailure) -> TrackProblem {
+    match error {
+        crate::connections::RequestFailure::Refused(
+            vessel_app_view::connection::Refusal::Changed,
+        ) => TrackProblem::IdentityChanged,
+        crate::connections::RequestFailure::Refused(
+            vessel_app_view::connection::Refusal::Closed,
+        ) => TrackProblem::Offline,
+        crate::connections::RequestFailure::Call(error) => call_failure(error),
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn call_failure(error: vessel_client::CallError) -> TrackProblem {
     match error {
         vessel_client::CallError::Disconnected => TrackProblem::Offline,
         vessel_client::CallError::Remote(error) => TrackProblem::Refused(error.code),
@@ -156,11 +205,12 @@ fn read_failure(error: vessel_client::CallError) -> TrackProblem {
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
-fn mutation_failure(error: vessel_client::CallError) -> TrackProblem {
+fn mutation_failure(error: crate::connections::RequestFailure) -> TrackProblem {
     match error {
-        vessel_client::CallError::Disconnected | vessel_client::CallError::UnexpectedReply(_) => {
-            TrackProblem::Uncertain
-        }
+        crate::connections::RequestFailure::Refused(_)
+        | crate::connections::RequestFailure::Call(
+            vessel_client::CallError::Disconnected | vessel_client::CallError::UnexpectedReply(_),
+        ) => TrackProblem::Uncertain,
         other => read_failure(other),
     }
 }

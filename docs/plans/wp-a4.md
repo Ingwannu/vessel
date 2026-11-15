@@ -173,3 +173,21 @@ facts and active managed turns/provider running reports. Unknown/idle/completed
 states gain no invented active mark. Prepared localized segments pair their own
 kit status dot and count; a mixed fan-out is never collapsed into an urgent color
 that would imply all work stopped. Labels use whole Fluent messages in EN/KO.
+
+## Shared physical connection admission
+
+Subagent Target/Host now carry the existing ConnectionContext from Machine's
+single authenticated snapshot, alongside full managed address. State validates
+that context and uses the common SelectedConnection::call pre-poll and post-answer
+retirement fence. No raw client, alias-by-node reconnect, extra allocator or
+feature-specific connection registry is introduced. G4 delegated one tiny protocol
+metadata getter; node identity remains Context.node. Metadata is never authority.
+Same-node reconnect invalidates target equality and old drawn row actions. Retired
+writes are conservatively uncertain because an already sent detach can complete;
+there is no automatic replay. Node capability remains separately required.
+
+A shared eight-call native bound (matching Devices) retains permits through bounded
+UI publication. Rejected admission/full capacity uses actor backpressure before
+spawning, so rapid navigation cannot create an unbounded refusal task queue.
+The actor regression replaces the same-node admission then proves the old A4
+request refuses before any framed RPC, without a real node/credential or browser.

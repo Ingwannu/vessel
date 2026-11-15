@@ -20,6 +20,8 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
     for (index, descriptor) in track.provider_path(&source.child).into_iter().enumerate() {
         let target = descriptor.id.clone();
         let expected = source.clone();
+        let admission = track.target().clone();
+        let revision = pane.projection_revision();
         let title = descriptor
             .title
             .as_ref()
@@ -43,6 +45,19 @@ pub(super) fn render(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
             )
             .on_click(cx.listener(move |shell, _, _, cx| {
                 if !current
+                    && shell
+                        .areas
+                        .subagents
+                        .track
+                        .as_ref()
+                        .is_some_and(|track| track.target() == &admission)
+                    && shell
+                        .areas
+                        .subagents
+                        .pane
+                        .as_ref()
+                        .and_then(|pane| pane.projection_revision())
+                        == revision
                     && shell
                         .areas
                         .subagents

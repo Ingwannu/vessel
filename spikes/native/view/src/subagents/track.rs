@@ -14,6 +14,8 @@ pub struct Host {
     pub machine: MachineKey,
     /// Node that answered the welcome.
     pub node: NodeId,
+    /// Exact authenticated admission; reconnect never revives an old request.
+    pub context: crate::connection::ConnectionContext,
 }
 /// A managed session target is never a provider child id.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +24,36 @@ pub struct Target {
     pub machine: MachineKey,
     /// Complete canonical node/session identity.
     pub address: SessionRef,
+    /// The captured original connection, independent of a mutable book alias.
+    pub context: crate::connection::ConnectionContext,
+}
+impl Host {
+    /// Carry the existing actor-owned admission, without minting another identity.
+    #[must_use]
+    pub fn new(context: crate::connection::ConnectionContext) -> Self {
+        Self {
+            machine: context.machine().clone(),
+            node: context.node(),
+            context,
+        }
+    }
+}
+impl Target {
+    /// Derive the address from the same answering connection as the route.
+    #[must_use]
+    pub fn new(
+        context: crate::connection::ConnectionContext,
+        session: vessel_proto::SessionId,
+    ) -> Self {
+        Self {
+            machine: context.machine().clone(),
+            address: SessionRef {
+                node: context.node(),
+                session,
+            },
+            context,
+        }
+    }
 }
 /// Typed failures retain uncertainty for a detach whose response was lost.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -260,6 +292,7 @@ impl Track {
             if row.target.address.node != host.node
                 || row.target.machine != host.machine
                 || row.info.id != row.target.address.session
+                || row.target.context != host.context
             {
                 return Err(TrackProblem::IdentityChanged);
             }
