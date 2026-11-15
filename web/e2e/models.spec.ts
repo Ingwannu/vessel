@@ -72,9 +72,13 @@ test("a routed structured session lists its model calls", async ({ page }) => {
   ).toBeVisible();
   const call = page.locator(".t-item.model-call");
   await expect(call).toHaveCount(1);
-  // fake-provider reports 12 prompt and 5 completion tokens.
+  // fake-provider reports 12 prompt and 5 completion tokens. The call's
+  // time is whatever the machine took, so every form `duration()` writes
+  // is accepted: `40 ms`, `1.2 s` (from a second), `2 m 5 s` (from a
+  // minute). A loaded runner took over a second and the old `\d+ ms`
+  // failed on the correct "1.0 s".
   await expect(call).toContainText(
-    /Model call · qwen-coder · qwen\/qwen3-coder · 12 in · 5 out · end turn · \d+ ms/,
+    /Model call · qwen-coder · qwen\/qwen3-coder · 12 in · 5 out · end turn · (?:\d+ ms|\d+\.\d s|\d+ m \d+ s)/,
   );
   const summary = page.getByRole("complementary", { name: "Session panel" });
   await expect(

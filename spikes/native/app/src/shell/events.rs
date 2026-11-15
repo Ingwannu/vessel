@@ -42,6 +42,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);
                 }
@@ -70,6 +71,7 @@ impl Shell {
                 {
                     self.acted(answer, cx);
                 }
+                self.refresh_fork_headers();
             }
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),

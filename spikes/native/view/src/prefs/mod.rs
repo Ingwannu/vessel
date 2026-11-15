@@ -256,7 +256,7 @@ pub enum Alerts {
 }
 
 /// How the sidebar lists sessions.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SidebarView {
     /// What sessions are grouped by.
@@ -265,9 +265,48 @@ pub struct SidebarView {
     /// Their order within a group.
     #[serde(deserialize_with = "lenient")]
     pub sort: SessionSort,
-    /// Whether ended sessions are listed.
-    #[serde(deserialize_with = "lenient")]
+    /// Whether ended sessions are listed (on unless the person turned it
+    /// off; see [`SidebarView::default`]).
+    #[serde(deserialize_with = "lenient_on")]
     pub ended: bool,
+}
+
+/// [Decision Log] Ended sessions are listed by default (2026-11-14, the
+/// coordinator's ruling after the 0.0.0.0.17 smoke test)
+/// - Purpose: a machine whose sessions have all ended (interrupted or
+///   exited) showed an empty sidebar after the update, though 0.0.0.0.16
+///   listed them; the person's one session vanished until the switch was
+///   found.
+/// - Reference: Paseo lists a session until it is archived; the switch
+///   stays for hiding ended ones.
+/// - Before: the page's and the bridge's shared document (ADR 0036) says
+///   `"ended": false` (`web/src/data/prefs-change.ts`,
+///   `crates/vessel-web/src/wire/prefs.rs`), and this model followed it.
+/// - Choice: native moves first: a document without the field reads as
+///   on, and a stored `false` (the person's choice) stays off. The page
+///   and the bridge are the node line's to move (its own slice); until
+///   then the two read a document without the field differently, which
+///   `tests/prefs.rs` pins as the one stated difference. Once they move,
+///   the contract fixture says `true` and that exception goes.
+impl Default for SidebarView {
+    fn default() -> Self {
+        Self {
+            group: Grouping::default(),
+            sort: SessionSort::default(),
+            ended: true,
+        }
+    }
+}
+
+/// [`lenient`] for a switch that is on unless written off: an unreadable
+/// value reads as on, as a missing one does.
+fn lenient_on<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Maybe::<bool>::deserialize(deserializer)?
+        .known()
+        .unwrap_or(true))
 }
 
 /// What the sidebar groups sessions by.

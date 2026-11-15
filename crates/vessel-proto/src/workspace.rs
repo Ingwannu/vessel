@@ -9,10 +9,17 @@
 
 mod approval;
 mod diff;
+mod exec_path;
+mod file_terminals;
 mod files;
 mod git;
 mod path;
+mod port_range;
+mod port_script;
 mod project;
+mod project_text;
+mod service_port;
+mod service_ports;
 mod support;
 mod text;
 mod url;
@@ -23,6 +30,8 @@ pub use diff::{
     ChangeStatus, DiffContent, DiffLine, DiffScope, DiffSummary, FileChange, FileDiff, GetChanges,
     GetFileDiff, Hunk, LineKind, ModeChange,
 };
+pub use exec_path::{ExecPath, ExecPathSyntax, InvalidExecPath};
+pub use file_terminals::{FileTerminal, PROJECT_FILE_KEYS};
 pub use files::{
     CreateDir, DeletePath, DirEntry, DirListing, EntryKind, FileContent, FileRead, FileVersion,
     FindFiles, FoundFile, FoundFiles, GrepCase, GrepMatch, GrepMode, GrepResult, ListDir, ReadFile,
@@ -36,11 +45,16 @@ pub use git::{
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
 pub use path::{InvalidRelPath, RelPath, is_git_dir};
+pub use port_range::{InvalidPortRange, PortRange};
+pub use port_script::{InvalidPortScript, PortScript, PortScriptPath};
 pub use project::{
     AddProject, ApproveCommands, CloneFailure, CloneProject, CloneStage, GetProject,
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
     ProjectState, RemoveProject,
 };
+pub use project_text::trim_project_text;
+pub use service_port::{InvalidServicePort, ServicePort};
+pub use service_ports::{InvalidServicePorts, ServicePorts};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,

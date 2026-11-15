@@ -136,8 +136,13 @@ test("every New leads to the new-session page, on the machine in view", async ({
   await page.keyboard.press("n");
   await expect(heading).toBeVisible();
   await expect(machine).toContainText("laptop");
-  // The command palette's action.
+  // The command palette's action. The shell's key listener is an effect:
+  // a Control+K sent as soon as the page has loaded can arrive before it
+  // and open nothing (gate 30, 2026-11-15). The board's sessions come in
+  // a later render, after the shell's effects have run, so they are the
+  // sign that keys are heard.
   await page.goto(`${origin}/sessions`);
+  await page.getByRole("group", { name: "Sessions by status" }).waitFor();
   await page.keyboard.press("Control+k");
   await page
     .getByRole("dialog", { name: "Command palette" })

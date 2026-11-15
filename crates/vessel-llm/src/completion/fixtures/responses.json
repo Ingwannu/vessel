@@ -1,0 +1,32 @@
+{
+  "id": "resp_fixture",
+  "model": "fixture-model",
+  "status": "completed",
+  "output": [
+    {
+      "type": "reasoning",
+      "summary": []
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "answer"
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 17,
+    "output_tokens": 7,
+    "input_tokens_details": {
+      "cached_tokens": 3
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 2
+    }
+  }
+}

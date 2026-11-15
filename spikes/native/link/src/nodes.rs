@@ -12,7 +12,7 @@ use vessel_client::{
 };
 use vessel_proto::{ClientInfo, PairingLink};
 
-use crate::{Event, KeptLists, LinkError};
+use crate::{Event, LinkError};
 
 /// Where the book and the credentials are: `VESSEL_CONFIG_DIR` (as the
 /// CLI reads it), else the system's configuration directory.
@@ -355,34 +355,6 @@ impl crate::State {
                 }
             };
             self.emit(event).await;
-        }
-    }
-}
-
-impl crate::State {
-    /// A machine just connected: the lists its agents gave last time, if
-    /// any are kept ([`Event::OptionsKept`]).
-    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
-        let node = &client.node().id;
-        let lists: Vec<KeptLists> = match self.offers.lock() {
-            Ok(store) => store
-                .for_node(node)
-                .into_iter()
-                .filter(|kept| kept.profile.is_none())
-                .map(|kept| KeptLists {
-                    harness: kept.agent.clone(),
-                    options: kept.options.clone(),
-                    commands: kept.commands.clone(),
-                })
-                .collect(),
-            Err(_poisoned) => Vec::new(),
-        };
-        if !lists.is_empty() {
-            self.emit(Event::OptionsKept {
-                machine: machine.to_owned(),
-                lists,
-            })
-            .await;
         }
     }
 }

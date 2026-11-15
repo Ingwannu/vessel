@@ -55,6 +55,7 @@ impl NodeService {
         connection: &Connection,
         request: CreateSession,
     ) -> Result<SessionInfo, WireError> {
+        crate::label_ingress::spec(&request.spec)?;
         self.create(connection, request.spec, None).await
     }
 
@@ -77,11 +78,37 @@ impl NodeService {
     pub(crate) async fn create_as(
         &self,
         principal: &Principal,
-        spec: SessionSpec,
+        mut spec: SessionSpec,
         origin: Option<SessionOrigin>,
         unattended: Option<String>,
     ) -> Result<SessionInfo, WireError> {
-        self.create_starting(principal, spec, (origin, unattended), None)
+        if origin.is_some() {
+            spec.side_question_of = None;
+        }
+        if let Some(parent) = spec.side_question_of {
+            // This path inherits a spec or reuses a side; never discard an override.
+            if !spec.labels.is_empty() {
+                return Err(wire(&ServiceError::SideCreationLabels));
+            }
+            if unattended.is_some() {
+                return Err(crate::side_questions::SideError::Template.wire());
+            }
+            return self.open_side_as(principal, parent).await;
+        }
+        self.create_core_as(principal, spec, origin, unattended, None)
+            .await
+    }
+
+    /// Resolved side creation retains its serialization lease through launch.
+    pub(super) async fn create_core_as(
+        &self,
+        principal: &Principal,
+        spec: SessionSpec,
+        origin: Option<SessionOrigin>,
+        unattended: Option<String>,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+    ) -> Result<SessionInfo, WireError> {
+        self.create_starting(principal, spec, (origin, unattended), None, lease)
             .await
     }
 
@@ -95,6 +122,7 @@ impl NodeService {
         mut spec: SessionSpec,
         (origin, unattended): (Option<SessionOrigin>, Option<String>),
         fork: Option<vessel_session::ForkStart>,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
@@ -118,6 +146,7 @@ impl NodeService {
             options.questions = false;
             options.notices.push(line);
         }
+        options.title_origin = title_origin(&spec, origin.as_ref(), fork.as_ref());
         // An import says where it came from; otherwise the launcher's
         // (a call delivered from another node records `remote`).
         if origin.is_some() {
@@ -152,7 +181,7 @@ impl NodeService {
             }
         }
         options.fork = fork.map(Box::new);
-        let created = self.sessions.create(spec, options).await;
+        let created = self.sessions.create(spec, options, lease).await;
         if created.is_err() {
             self.agents.forget(id);
             self.models.retire(id);
@@ -249,5 +278,21 @@ impl NodeService {
             .await
             .map(|()| Ack)
             .map_err(|error| wire(&error.into()))
+    }
+}
+
+/// A copied specification cannot attest who wrote its title. Locally
+/// derived side/fork names remain given; explicit names (including a
+/// person's schedule name) keep `SessionInfo`'s typed default.
+fn title_origin(
+    spec: &SessionSpec,
+    origin: Option<&SessionOrigin>,
+    fork: Option<&vessel_session::ForkStart>,
+) -> Option<vessel_proto::TitleOrigin> {
+    match origin {
+        Some(SessionOrigin::Imported { .. }) => Some(vessel_proto::TitleOrigin::Unknown),
+        Some(SessionOrigin::Remote { .. }) | None => (spec.side_question_of.is_some()
+            || fork.is_some())
+        .then_some(vessel_proto::TitleOrigin::Given),
     }
 }

@@ -34,7 +34,6 @@ mod settings;
 mod shortcuts;
 mod sidebar;
 mod sync;
-mod update;
 pub mod workspace;
 
 pub use app::Text;
@@ -54,7 +53,6 @@ pub use schedules::ScheduleWords;
 pub use settings::SettingsText;
 pub use shortcuts::ShortcutWords;
 pub use sidebar::SidebarWords;
-pub use update::UpdateText;
 
 /// A language the app speaks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

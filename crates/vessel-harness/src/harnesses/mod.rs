@@ -40,6 +40,8 @@ pub(crate) struct Descriptor {
     pub(crate) layout: HarnessLayout,
     /// Arguments after the binary that report whether it is logged in,
     /// without changing anything; `None` if the harness has no such command.
+    /// Saved OAuth store supported by opt-in account quota lookup.
+    pub(crate) limits: Option<vessel_proto::limits::LimitLoginStore>,
     pub(crate) login: Option<&'static [&'static str]>,
     /// How to find one session's files under the home; `None` if they
     /// cannot be moved between homes.

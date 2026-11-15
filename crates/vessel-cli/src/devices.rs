@@ -17,7 +17,7 @@ use std::io::IsTerminal as _;
 
 use qrcode::QrCode;
 use qrcode::render::unicode::Dense1x2;
-use vessel_proto::{DeviceInfo, Invitation};
+use vessel_proto::{DeviceInfo, DeviceSelf, Invitation};
 
 use crate::args::{DevicesCommand, Target};
 use crate::connect::connect;
@@ -87,10 +87,17 @@ pub(crate) async fn devices(
     command: Option<DevicesCommand>,
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
-    let devices = client.devices().await?;
     match command {
-        None => Ok(io::out(list(&devices).as_bytes()).await?),
+        Some(DevicesCommand::SelfInfo) => {
+            let own = client.device_self().await?;
+            Ok(io::out(own_authority(&own).as_bytes()).await?)
+        }
+        None => {
+            let devices = client.devices().await?;
+            Ok(io::out(list(&devices).as_bytes()).await?)
+        }
         Some(DevicesCommand::Revoke { device }) => {
+            let devices = client.devices().await?;
             let chosen = find(&devices, &device)?;
             client.revoke_device(chosen.id).await?;
             io::note(&format!(
@@ -101,6 +108,20 @@ pub(crate) async fn devices(
             Ok(())
         }
     }
+}
+
+fn own_authority(own: &DeviceSelf) -> String {
+    let device = own
+        .device
+        .map_or_else(|| "none".to_owned(), |id| id.to_string());
+    let scopes = own
+        .scopes
+        .iter()
+        .map(|scope| scope.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let scopes = if scopes.is_empty() { "none" } else { &scopes };
+    format!("device  {device}\nscopes  {scopes}\n")
 }
 
 /// The device whose id is `text` or starts with it.

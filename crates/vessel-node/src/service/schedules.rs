@@ -69,6 +69,7 @@ impl NodeService {
         connection: &Connection,
         request: CreateSchedule,
     ) -> Result<ScheduleInfo, WireError> {
+        crate::label_ingress::target(&request.definition.target)?;
         let asker = asker(connection.principal());
         if !matches!(asker.via, Via::Delegated { .. }) {
             self.check_target(connection.principal(), &request.definition.target)
@@ -85,6 +86,7 @@ impl NodeService {
         connection: &Connection,
         request: UpdateSchedule,
     ) -> Result<ScheduleInfo, WireError> {
+        crate::label_ingress::target(&request.definition.target)?;
         let asker = asker(connection.principal());
         if !matches!(asker.via, Via::Delegated { .. }) {
             self.check_target(connection.principal(), &request.definition.target)
@@ -174,6 +176,9 @@ impl NodeService {
         principal: &Principal,
         spec: &SessionSpec,
     ) -> Result<(), WireError> {
+        if spec.side_question_of.is_some() {
+            return Err(crate::side_questions::SideError::Template.wire());
+        }
         // Kept with a schedule or a saved prompt and sent in every list:
         // bounded as the prompt is, so 256 of them stay far under a frame
         // (a spec's folder, model and options are not bounded on their
@@ -230,6 +235,9 @@ impl NodeService {
                     .get(*session)
                     .await
                     .map_err(|error| wire(&error))?;
+                if info.spec.side_question_of.is_some() {
+                    return Err(crate::side_questions::SideError::PromptOnly.wire());
+                }
                 if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
                     return Err(WireError::new(
                         ErrorCode::Unsupported,

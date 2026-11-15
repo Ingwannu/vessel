@@ -22,6 +22,9 @@ mod support {
     use vessel_testkit::Fake;
 
     /// A fresh directory under the system temp dir, removed on drop.
+    /// Owner-only, as the node's MCP directory is: the tests write MCP
+    /// files in it, and `McpFile::write` refuses a directory open to
+    /// others.
     pub(super) struct TempDir(PathBuf);
 
     impl TempDir {
@@ -30,7 +33,10 @@ mod support {
             let n = NEXT.fetch_add(1, Ordering::Relaxed);
             let path = std::env::temp_dir()
                 .join(format!("vessel-profiles-test-{}-{n}", std::process::id()));
-            std::fs::create_dir_all(&path).unwrap();
+            let mut builder = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            let _owner_only = std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+            builder.create(&path).unwrap();
             Self(path.canonicalize().unwrap())
         }
 
@@ -273,6 +279,44 @@ fn a_claude_terminal_gets_the_profile_and_an_owner_only_mcp_file() {
     let path = written.path().to_owned();
     drop(written);
     assert!(!path.exists());
+}
+
+/// Claude Code's direct driver gets the file its terminal sessions get
+/// (ADR 0057): the same one argument and the same text.
+#[test]
+fn the_direct_driver_gets_the_terminal_sessions_mcp_file() {
+    let bin = TempDir::new();
+    let tui = fake(vessel_testkit::Fake::Tui);
+    let _claude = install(bin.path(), HarnessKind::ClaudeCode, Role::Terminal, &tui).unwrap();
+    let lookup = Lookup::new([bin.path().to_owned()]);
+    let (argument, file) = vessel_harness::claude_mcp_file(&servers(), bin.path())
+        .unwrap()
+        .unwrap();
+    let mut flag = std::ffi::OsString::from("--mcp-config=");
+    flag.push(file.path());
+    assert_eq!(argument, flag);
+    assert!(file.path().starts_with(bin.path()));
+    let direct = file.write().unwrap();
+    let terminal = launch(
+        &lookup,
+        &terminal(HarnessKind::ClaudeCode, &[], bin.path()),
+        &Profile::default_for(HarnessKind::ClaudeCode),
+        &servers(),
+    )
+    .unwrap()
+    .mcp_file
+    .unwrap()
+    .write()
+    .unwrap();
+    assert_eq!(
+        std::fs::read_to_string(direct.path()).unwrap(),
+        std::fs::read_to_string(terminal.path()).unwrap()
+    );
+    assert!(
+        vessel_harness::claude_mcp_file(&ResolvedMcpServers::new(), bin.path())
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]

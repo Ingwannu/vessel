@@ -52,19 +52,8 @@ pub(crate) struct Shell {
     /// the link): what arriving does (focus, placeholders) runs on the
     /// next frame.
     arrive_pending: bool,
-    /// The updater, in a build that updates itself (`update.rs`).
-    pub(crate) updates: Option<crate::update::Updates>,
-    /// What it is doing, as last reported.
-    pub(crate) update_state: crate::update::UpdateState,
-    /// The person asked for a check (the About screen then says the
-    /// outcome, "up to date" included).
-    #[cfg_attr(
-        target_arch = "wasm32",
-        expect(dead_code, reason = "a browser build has no updater (update_off.rs)")
-    )]
-    pub(crate) update_asked: bool,
-    /// The note shown once after an update, until dismissed.
-    pub(crate) updated: Option<crate::update::Updated>,
+    /// The updater's facts and prepared translated messages, refreshed together.
+    pub(crate) updates: crate::update_words::UpdateUi,
     /// At a phone's width, the sidebar's sheet is open, over what was on
     /// screen when it opened: going anywhere else closes it.
     sidebar_sheet: Option<(Route, Option<vessel_proto::SessionId>)>,
@@ -111,10 +100,7 @@ impl Shell {
             ),
             loaded: false,
             arrive_pending: false,
-            updates: None,
-            update_state: crate::update::UpdateState::Idle,
-            update_asked: false,
-            updated: None,
+            updates: crate::update_words::UpdateUi::new(words),
             sidebar_sheet: None,
         };
         crate::update::start(&mut shell, cx);
@@ -388,7 +374,7 @@ impl Render for Shell {
                                             .overflow_hidden()
                                             .relative()
                                             .child(self.brand.backdrop(&tokens))
-                                            .children(self.updated.as_ref().map(|updated| {
+                                            .children(self.updates.announcement.as_ref().map(|updated| {
                                                 areas::about::updated(self, updated, &tokens, cx)
                                             }))
                                             .child(page::arriving(self, frame))
