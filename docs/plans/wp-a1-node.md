@@ -131,3 +131,10 @@ creation keys/configured names, numeric revisions/waits, canonical handles
 and argv content by its existing policy. ClientMessageId remains W23's value;
 its first wire use is branded alongside WorkspaceId/WorkspaceOperationId.
 Rust/JSON identity and pending version assignment remain with their owners.
+
+Duplicate reservation compatibility audit: the other production caller is
+service/again.rs::start_again. It obtains Sessions::ended first, which refuses
+live/visible rows. Sessions::hand_over retires the old Agents entry before
+forgetting the visible runtime row. Thus a valid legacy resume reaches a
+vacant count entry; the new same-lock duplicate refusal protects held/restored
+ids without replacing that resume admission path or its grants.
