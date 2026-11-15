@@ -679,3 +679,11 @@ changes inherit this green result. A control-only patch/byte manifest for the
 existing composition extraction is recorded under the package evidence folder;
 consumers retain W4 FieldId and W13/K callback factories instead of copying the
 older whole field file. No standalone control gate or V4 acceptance is claimed.
+
+Same exact a675 App/Kit run wp-commands-20261115T124814Z-a6751199 is now GREEN:
+App112/0/2ignored, Kit168/0/0; total280pass/0fail/2ignore. Actual production
+interceptor/menu/capture, modifier150ms/preference reset, platform base-key and
+CodeEditor marked-Hangul/focus-switch/commit regressions all executed and passed.
+This closes the earlier two fixture failures and the control packet's previously
+unexecuted IME case. Later c526/FieldId/menu/FileQuery/whitespace union remains a
+different source and receives its own combined narrow validation next.
