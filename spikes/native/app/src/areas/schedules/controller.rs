@@ -1,6 +1,6 @@
 //! Route and action wiring. The timer updates cached words only, never polls
 //! schedule/list; reads follow arrival, reconnect and explicit invalidation.
-use super::{DeletePrompt, Tick};
+use super::{DeletePrompt, Popup, Tick};
 use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::{
     select::Anchor,
@@ -84,6 +84,21 @@ impl Shell {
         });
         self.areas.schedules.tick = Some(Tick { tier, task });
     }
+    // Link replies have no Window. Reclaim an unmounted popup on the next UI
+    // frame, through the same shared return-focus API as a direct dismissal.
+    pub(super) fn schedules_overlay_frame(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let ui = &mut self.areas.schedules.ui;
+        for popup in std::mem::take(&mut ui.pending_focus) {
+            match popup {
+                Popup::Actions => ui.menu.close_and_restore(window, cx),
+                Popup::Hosts => ui.picker.close_and_restore(window, cx),
+            }
+        }
+    }
     pub(super) fn schedule_menu(
         &mut self,
         key: &RowKey,
@@ -105,6 +120,8 @@ impl Shell {
             return;
         };
         let ui = &mut self.areas.schedules.ui;
+        let _removed = ui.pending_focus.remove(&Popup::Actions);
+        ui.picker.close_and_restore(window, cx);
         ui.selected = Some(key.clone());
         ui.menu.open_end(bounds, window, cx);
         cx.notify();
@@ -183,7 +200,8 @@ pub(crate) fn leaving(
         }
         let ui = &mut shell.areas.schedules.ui;
         ui.menu.close_and_restore(window, cx);
-        ui.picker.close();
+        ui.picker.close_and_restore(window, cx);
         ui.deleting = None;
+        ui.pending_focus.clear();
     }
 }

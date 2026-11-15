@@ -32,6 +32,9 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    if !shell.areas.schedules.ui.pending_focus.is_empty() {
+        cx.defer_in(window, Shell::schedules_overlay_frame);
+    }
     let touch = kit::breakpoint::phone(window);
     let title = shell.t.lang.schedules().title;
     let header = if touch {

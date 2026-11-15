@@ -191,3 +191,17 @@ choices keep the popup focus; a newer field/dialog wins. The keyboard handler
 moves to picker/keys.rs to lower the parent's recorded size rather than raising
 it. Actual headless window regressions are added but not yet executed; Linux
 first-use focus remains unverified and the earlier menu F5 HOLD remains open.
+
+The list's popup lifecycle now closes an action menu whose prepared row/actions
+vanished, and the host picker when its filter unmounts. Link callbacks do not
+have a Window, so they mark a typed pending focus cleanup; the next UI frame
+uses the shared close-and-restore APIs. Opening either popup first closes the
+other through that same API, preventing a hidden popup from becoming the return
+target. Navigation restores before leaving. Dialog policy is still G4-owned.
+These integration paths have source inspection only; actual input/capture proof
+and changed-crate checks are still owed.
+
+The existing Page::listed unit-return API remains compatible. The auxiliary
+calendar edge uses accept_list's explicit accepted result; ordinary callers do
+not silently discard a new bool under unused_results. Deferred focus set
+insert/remove results are explicitly named bookkeeping, not ignored outcomes.

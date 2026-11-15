@@ -13,7 +13,7 @@ use crate::shell::Shell;
 pub(crate) use controller::{arrive, leaving, sidebar};
 use data::Data;
 pub(crate) use draw::render;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use vessel_app_kit::{
     ComboboxState,
     dialog::DialogState,
@@ -38,6 +38,12 @@ pub(super) struct Ui {
     deleting: Option<DeletePrompt>,
     dialog: DialogState,
     anchors: BTreeMap<RowKey, RowControl>,
+    pending_focus: BTreeSet<Popup>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum Popup {
+    Actions,
+    Hosts,
 }
 #[derive(Debug)]
 pub(super) struct RowControl {
@@ -62,6 +68,7 @@ impl Area {
                 deleting: None,
                 dialog: DialogState::new(cx),
                 anchors: BTreeMap::new(),
+                pending_focus: BTreeSet::new(),
             },
             tick: None,
         }

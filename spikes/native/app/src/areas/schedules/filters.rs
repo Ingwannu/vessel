@@ -54,6 +54,8 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
             )
             .on_click(cx.listener(|shell, _, window, cx| {
                 let ui = &mut shell.areas.schedules.ui;
+                let _removed = ui.pending_focus.remove(&super::Popup::Hosts);
+                ui.menu.close_and_restore(window, cx);
                 ui.picker.set_anchor(ui.anchor.get());
                 ui.picker.open(None, window, cx);
                 cx.notify();

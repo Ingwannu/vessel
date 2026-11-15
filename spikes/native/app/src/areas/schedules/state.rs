@@ -1,5 +1,5 @@
 //! Comparable draw inputs prepared at data/language/clock updates, not in Render.
-use super::{Area, RowControl};
+use super::{Area, Popup, RowControl};
 use vessel_app_kit::{select::Anchor, ui::SharedString};
 use vessel_app_view::{
     Fleet,
@@ -58,6 +58,25 @@ impl Area {
         self.data.local = local;
         {
             let ui = &mut self.ui;
+            if ui.selected.as_ref().is_some_and(|key| {
+                !self
+                    .data
+                    .rows
+                    .iter()
+                    .any(|row| row.key == *key && !row.menu.is_empty())
+            }) {
+                ui.selected = None;
+                if ui.menu.is_open() {
+                    ui.menu.close();
+                    let _new = ui.pending_focus.insert(Popup::Actions);
+                }
+            }
+            if ui.picker.is_open()
+                && (!self.data.page.filters_visible() || !self.data.page.multiple_machines())
+            {
+                ui.picker.close();
+                let _new = ui.pending_focus.insert(Popup::Hosts);
+            }
             ui.anchors
                 .retain(|key, _| self.data.rows.iter().any(|row| row.key == *key));
             for row in &self.data.rows {

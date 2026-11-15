@@ -229,9 +229,13 @@ impl Page {
     }
 
     /// Apply only the expected read and preserve row-local permission evidence.
+    pub fn listed(&mut self, request: &Request, answer: Result<Snapshot, Failure>) {
+        let _accepted = self.accept_list(request, answer);
+    }
+
     /// True means this exact successful snapshot was accepted, so its auxiliary
     /// viewer calendar may update the comparable presentation cache.
-    pub fn listed(&mut self, request: &Request, answer: Result<Snapshot, Failure>) -> bool {
+    pub fn accept_list(&mut self, request: &Request, answer: Result<Snapshot, Failure>) -> bool {
         if request.ask != Ask::List || !self.retire(request) {
             return false;
         }

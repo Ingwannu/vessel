@@ -47,7 +47,7 @@ impl Data {
             Ask::List => match result {
                 Ok(Value::List(list)) => {
                     let (snapshot, clock) = snapshot(*list);
-                    if self.page.listed(&answer.request, Ok(snapshot)) {
+                    if self.page.accept_list(&answer.request, Ok(snapshot)) {
                         self.clock = clock;
                     }
                 }
