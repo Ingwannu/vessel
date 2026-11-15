@@ -4,8 +4,8 @@
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, FluentBuilder as _, ParentElement as _, StatefulStyled as _, Window,
-    div, px,
+    Context, Div, ElementId, FluentBuilder as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_link::workspace::{Ask, Form, ProjectChange};
