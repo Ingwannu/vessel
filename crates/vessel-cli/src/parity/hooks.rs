@@ -1,5 +1,8 @@
 //! Missing hook attribution is intentionally silent; no arbitrary activity can alter turn state.
 use crate::{args::parity::HookInvocation, error::CliError};
+use vessel_proto::notifications::{
+    TERMINAL_ACTIVITY_ID_ENV, TERMINAL_ACTIVITY_SECRET_ENV, TERMINAL_ACTIVITY_SOCKET_ENV,
+};
 
 pub(super) fn run(invocation: HookInvocation) -> Result<(), CliError> {
     let HookInvocation {
@@ -11,14 +14,14 @@ pub(super) fn run(invocation: HookInvocation) -> Result<(), CliError> {
         return Ok(());
     }
     Err(CliError::ParityBlocked(
-        "terminal hook ingestion awaits W7's reviewed attribution/token contract",
+        "terminal hook ingestion awaits W7's reviewed restricted IPC SDK/producer",
     ))
 }
 fn configured(present: impl Fn(&str) -> bool) -> bool {
     [
-        "VESSEL_TERMINAL_ID",
-        "VESSEL_ACTIVITY_TOKEN",
-        "VESSEL_TERMINAL_ACTIVITY_URL",
+        TERMINAL_ACTIVITY_ID_ENV,
+        TERMINAL_ACTIVITY_SECRET_ENV,
+        TERMINAL_ACTIVITY_SOCKET_ENV,
     ]
     .into_iter()
     .all(present)
@@ -29,9 +32,9 @@ mod tests {
     #[test]
     fn partial_attribution_never_reads_stdin_or_connects() {
         for missing in [
-            "VESSEL_TERMINAL_ID",
-            "VESSEL_ACTIVITY_TOKEN",
-            "VESSEL_TERMINAL_ACTIVITY_URL",
+            TERMINAL_ACTIVITY_ID_ENV,
+            TERMINAL_ACTIVITY_SECRET_ENV,
+            TERMINAL_ACTIVITY_SOCKET_ENV,
         ] {
             assert!(!configured(|key| key != missing));
         }

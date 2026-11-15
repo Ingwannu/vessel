@@ -1124,3 +1124,20 @@ only the duplicate generated flag, not version handling, and add no argv scanner
 runtime version path. Root clap and actual process exit regressions now cover all
 three spellings (source only; execution owed). This uses the already pinned builder
 API, without a new dependency or node interaction.
+
+### Canonical W7 values consumed without ingress (2026-11-15 14:30 UTC)
+
+W7 handed off reviewed values-only c2dcebea058968d207da0a7a6b1ff604af883bc7
+(V3 row162 supplemental SOURCE PASS, integrator batch12 a5311bc2). Merged exactly
+that leaf on its ede base, not the unreviewed runtime branch. It adds only the two
+proto modules and declarations; no row, SDK, LocalCredential, field installation
+or protocol assignment. Its None constant remains None. W7's f887 source tests4/0/0
+are scoped producer evidence, not a W17 or live-hook pass.
+
+The CLI presence check now uses canonical TERMINAL_ACTIVITY_ID_ENV,
+TERMINAL_ACTIVITY_SECRET_ENV and TERMINAL_ACTIVITY_SOCKET_ENV instead of invented
+ID/token/URL names. Missing attribution remains silent0 without reading stdin or
+connecting. Presence alone does not read/log a secret or grant an action; configured
+paths explicitly await the restricted IPC SDK/producer. No listener, URL ingestion,
+normal node credential, TerminalInfo activity field or semantic-state inference is
+added. Its own changed-source check is still owed.
