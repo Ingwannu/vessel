@@ -53,7 +53,7 @@ impl ReferenceContext {
 
 impl crate::Forwarded {
     /// Refuse scope-dependent mutations on display-only or staging fleet data.
-    /// Permission answers use their own PermissionId capability and do not use this resolver.
+    /// Permission answers use their own `PermissionId` capability and do not use this resolver.
     /// # Errors
     /// Legacy or unassigned references cannot identify a canonical scoped target.
     pub fn check_scoped_references(&self) -> Result<(), crate::ErrorCode> {
@@ -74,7 +74,7 @@ impl crate::Forwarded {
         protocol: crate::ProtocolVersion,
         assigned: Option<crate::ProtocolVersion>,
     ) {
-        if !assigned.is_some_and(|since| protocol >= since) {
+        if assigned.is_none_or(|since| protocol < since) {
             self.reference_origin = Some(TimelineReferenceOrigin::LegacyProjected);
         }
     }
