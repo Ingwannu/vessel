@@ -265,6 +265,11 @@ curator emits "No activity to display." Vessel preserves its existing log
 capture contract: stdout is selected session output, stderr is selected
 status and genuine retention notices, without a fabricated activity entry.
 
+Paseo also writes a follow-start banner to stdout after history and before
+live output (`logs.ts:362-363,402`). Vessel writes no boundary banner on
+either stream: stdout remains session output and stderr remains status and
+real stream notices, preserving the same capture contract for follow.
+
 ### MCP
 
 On the session's own `vessel` server, as one protocol call each:

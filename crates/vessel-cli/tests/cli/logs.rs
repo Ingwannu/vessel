@@ -63,6 +63,18 @@ impl Drop for Following {
     }
 }
 
+fn following(fixture: &Fixture, session: SessionId) -> (Following, Captured, Captured) {
+    let id = session.to_string();
+    let mut child = Following(fixture.spawn_vessel_at(
+        &fixture.node_address(),
+        &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
+    ));
+    drop(child.0.stdin.take());
+    let stdout = Captured::start(child.0.stdout.take().unwrap());
+    let stderr = Captured::start(child.0.stderr.take().unwrap());
+    (child, stdout, stderr)
+}
+
 async fn create(fixture: &Fixture, owner: &NodeClient) -> SessionId {
     let mut spec = SessionSpec::new(
         HarnessKind::ClaudeCode,
@@ -174,14 +186,7 @@ async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
         let owner = fixture.owner().await;
         let session = create(&fixture, &owner).await;
         let _history_from = turn(&owner, session, "plain").await;
-        let id = session.to_string();
-        let mut child = Following(fixture.spawn_vessel_at(
-            &fixture.node_address(),
-            &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
-        ));
-        drop(child.0.stdin.take());
-        let mut stdout = Captured::start(child.0.stdout.take().unwrap());
-        let stderr = Captured::start(child.0.stderr.take().unwrap());
+        let (mut child, mut stdout, stderr) = following(&fixture, session);
         stdout.wait_for("echo: plain", 1).await;
         // This can arrive between history and subscription: the saved cursor must catch it.
         let _live_from = turn(&owner, session, "loaded").await;
@@ -194,6 +199,52 @@ async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
         assert_eq!(text.matches("loaded none").count(), 1, "{text}");
         assert!(text.contains("echo: plain\n> loaded"), "{text}");
         assert!(!stderr.text().contains("pruned"), "{}", stderr.text());
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+async fn interrupt(child: &mut tokio::process::Child) {
+    assert!(child.try_wait().unwrap().is_none());
+    let pid = child.id().unwrap();
+    let executable = tokio::fs::read_link(format!("/proc/{pid}/exe"))
+        .await
+        .unwrap();
+    let expected = tokio::fs::canonicalize(env!("CARGO_BIN_EXE_vessel"))
+        .await
+        .unwrap();
+    assert_eq!(executable, expected);
+    let status = tokio::process::Command::new(which::which("kill").unwrap())
+        .arg("-INT")
+        .arg(pid.to_string())
+        .status()
+        .await
+        .unwrap();
+    assert!(status.success());
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn interrupting_follow_exits_successfully_and_keeps_the_session_running() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let session = create(&fixture, &owner).await;
+        let _history_from = turn(&owner, session, "plain").await;
+        let (mut child, mut stdout, stderr) = following(&fixture, session);
+        stdout.wait_for("echo: plain", 1).await;
+        let _live_from = turn(&owner, session, "loaded").await;
+        stdout.wait_for("loaded none", 1).await;
+        // A live match acknowledges the loop. The exact signal-during-write
+        // scheduling cannot be forced here; the pinned receiver must retain it.
+        interrupt(&mut child.0).await;
+        assert!(child.0.wait().await.unwrap().success(), "{}", stderr.text());
+        stdout.wait_for("loaded none\n", 1).await;
+        assert!(owner.session(session).await.unwrap().status.is_live());
+        assert!(!stdout.text().contains("--- Following logs"));
+        assert!(stderr.text().is_empty(), "{}", stderr.text());
+        owner.kill(session).await.unwrap();
         fixture.stop().await;
     })
     .await;
