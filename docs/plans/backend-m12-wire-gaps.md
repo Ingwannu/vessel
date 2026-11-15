@@ -415,7 +415,7 @@ screen track receive the exact command and seed format. Project-wide PR
 listing is the following slice, not claimed by this one.
 
 The coordinator assigned ADR 0060 to the fixture forge and ADR 0061 to the
-following project-wide PR listing. ADR 0059 belongs to restart recovery.
+following project-wide PR listing. ADR 0098 belongs to restart recovery.
 
 
 ADR 0060 implementation uses `fake/seed` for typed, whole-file validation

@@ -40,11 +40,14 @@ impl SessionRuntime {
         notices: Vec<String>,
         actor: ActorStart,
     ) -> Result<Created, SessionError> {
+        if self.is_shutting_down() {
+            return Err(SessionError::ShuttingDown);
+        }
         // `fork`/`exec` on this thread, as `tokio::process` does.
         let (agent, input, outputs) =
             AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
                 .map_err(SessionError::agent_not_started)?;
-        if self.shutdown.is_cancelled() {
+        if self.is_shutting_down() {
             // Dropping the agent kills its process group.
             drop(agent);
             return Err(SessionError::ShuttingDown);

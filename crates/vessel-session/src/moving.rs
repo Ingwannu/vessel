@@ -147,6 +147,11 @@ pub(crate) enum Control {
     Cancel(Cancel),
     /// Park or wake the agent (protocol 12).
     Park(ParkOrder),
+    /// A bounded node diagnostic, sequenced by the actor rather than the store.
+    Notice {
+        line: String,
+        reply: oneshot::Sender<Result<(), crate::SessionError>>,
+    },
     /// Take the conversation back to a turn's end (protocol 14, ADR 0052).
     Rewind(crate::forking::RewindOrder),
     /// The private directory the actor's current launch carries (tests:
@@ -308,7 +313,7 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => {
-                    self.life.apply(&mut self.agent, step);
+                    self.life.apply_stop(&mut self.agent, step).await;
                     return Err(MoveError::Stopped);
                 }
                 done = &mut future => return Ok(done),
@@ -331,7 +336,7 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => {
-                    self.life.apply(&mut self.agent, step);
+                    self.life.apply_stop(&mut self.agent, step).await;
                     return Err(MoveError::Stopped);
                 }
                 output = self.outputs.next() => match output {
@@ -372,7 +377,7 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => {
-                    self.life.apply(&mut self.agent, step);
+                    self.life.apply_stop(&mut self.agent, step).await;
                     return Err(MoveError::Stopped);
                 }
                 _code = self.agent.wait() => break,
@@ -430,7 +435,7 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => {
-                    self.life.apply(&mut self.agent, step);
+                    self.life.apply_stop(&mut self.agent, step).await;
                     return Err(MoveError::Stopped);
                 }
                 output = self.outputs.next(), if self.outputs_open => match output {

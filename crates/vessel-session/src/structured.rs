@@ -110,7 +110,7 @@ impl StructuredActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => {
-                    self.life.apply(&mut self.agent, step);
+                    self.life.apply_stop(&mut self.agent, step).await;
                     // A parked session has no process to wait for: a kill
                     // or the node stopping ends it now (protocol 12).
                     if self.parking.parked.is_some() {
@@ -132,6 +132,10 @@ impl StructuredActor {
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
+                        Some(Control::Notice { line, reply }) => {
+                            self.life.notices(&mut self.agent, vec![line]).await;
+                            drop(reply.send(Ok(())));
+                        }
                         #[cfg(test)]
                         Some(Control::PrivateDir(reply)) => {
                             drop(reply.send(self.launch.setup.private_dir.clone()));

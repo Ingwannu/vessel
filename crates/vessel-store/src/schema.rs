@@ -9,6 +9,7 @@
 #[cfg(test)]
 mod labels;
 mod migrations;
+mod restart_migration;
 
 use rusqlite::Connection;
 

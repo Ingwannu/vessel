@@ -47,6 +47,7 @@ use vessel_proto::{
     StopNode, Subscribe, Unsubscribe, WatchFleet, WireError,
 };
 
+use crate::recovery::Intervention;
 use crate::service::{Connection, NodeService};
 
 /// The node's service behind the scope check. This is the handler every
@@ -101,11 +102,22 @@ macro_rules! guarded_method {
                 .principal()
                 .permit(<$request as Request>::METHOD)?;
             crate::workspace::refuse_agents(connection.principal(), <$request as Request>::METHOD)?;
-            if let Some(session) = Target::target(&request) {
+            let operation = if let Some(session) = Target::target(&request) {
                 self.0.check_owner(connection.principal(), session).await?;
                 self.0.refuse_older(connection, session).await?;
-            }
-            self.0.$handler(connection, request).await
+                Some(
+                    self.0
+                        .recovery
+                        .before_operation(session, Target::intervention(&request))
+                        .await?,
+                )
+            } else {
+                None
+            };
+            let owned = operation.map(|operation| connection.with_operation(operation));
+            self.0
+                .$handler(owned.as_ref().unwrap_or(connection), request)
+                .await
         }
     };
 }
@@ -113,6 +125,9 @@ macro_rules! guarded_method {
 /// The session an `operate` call acts on, for the ownership rule.
 trait Target {
     fn target(&self) -> Option<SessionId>;
+    fn intervention(&self) -> Intervention {
+        Intervention::Wait
+    }
 }
 
 macro_rules! targets {
@@ -125,6 +140,39 @@ macro_rules! targets {
             }
         )*
     };
+}
+
+impl Target for SendInput {
+    fn target(&self) -> Option<SessionId> {
+        Some(self.session)
+    }
+    fn intervention(&self) -> Intervention {
+        if matches!(self.input, vessel_proto::SessionInput::CancelTurn { .. }) {
+            Intervention::Stop
+        } else {
+            Intervention::Wait
+        }
+    }
+}
+impl Target for KillSession {
+    fn target(&self) -> Option<SessionId> {
+        Some(self.session)
+    }
+    fn intervention(&self) -> Intervention {
+        Intervention::Stop
+    }
+}
+impl Target for vessel_proto::conversation::MarkSession {
+    fn target(&self) -> Option<SessionId> {
+        Some(self.session)
+    }
+    fn intervention(&self) -> Intervention {
+        if matches!(self.mark, vessel_proto::Mark::Archive) {
+            Intervention::Stop
+        } else {
+            Intervention::Wait
+        }
+    }
 }
 
 macro_rules! untargeted {
@@ -154,8 +202,6 @@ targets!(
     vessel_proto::parking::WakeSession,
     vessel_proto::forking::ForkSession,
     vessel_proto::forking::RewindSession,
-    SendInput,
-    KillSession,
     MoveProfile,
     ExportSession,
     SetSessionOption,
@@ -163,7 +209,6 @@ targets!(
     vessel_proto::conversation::PromptSession,
     vessel_proto::conversation::ChangeQueue,
     vessel_proto::conversation::ResumeSession,
-    vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
     vessel_proto::conversation::BeginUpload,
     // Protocol 11: opening, merging and the feedback switch act on a

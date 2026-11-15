@@ -1438,6 +1438,12 @@ switch is implemented by these commands. Actual vendor-account and macOS
 Keychain behavior require a separate operator check; automated tests use only
 offline synthetic fixtures.
 
-Startup continuation is being prepared in separate slices (ADR 0059). Its
-policy values and settings reply projection exist, with an unassigned protocol;
-there is no new startup setting or automatic resume behavior in this slice.
+Restart recovery (ADR 0098) extends saved node settings with disabled-by-default
+continuation of eligible interrupted active structured turns, using the same
+provider conversation and the exact configured prompt (default `Resume working.`).
+Manually stopped, parked, archived, side-helper, agent-created and delegated
+sessions are excluded. Pending intent is consumed before dispatch; an uncertain
+attempt is never retried automatically. The node implementation is under
+verification. Its explicit settings read and CLI options `--resume-on-startup`
+and `--resume-prompt` remain unavailable until the feature protocol is assigned;
+ordinary settings operations retain their existing behavior.
