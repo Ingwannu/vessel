@@ -143,7 +143,8 @@ impl SessionResidents {
                     ResidentProblem::OwnerConflict,
                 ));
             }
-            self.context(entry.token, &claim)
+            let _existing = self
+                .context(entry.token, &claim)
                 .map_err(SessionOpeningProblem::Resident)?;
         }
         Ok((next, claim, pane))

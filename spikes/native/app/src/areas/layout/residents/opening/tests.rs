@@ -41,7 +41,7 @@ fn build(
         context.resident.address.node,
         match context.claim.workspace {
             LayoutKey::Workspace { node, .. } => node,
-            LayoutKey::Session { .. } => unreachable!(),
+            LayoutKey::Session { .. } => panic!("rejected work must not execute"),
         }
     );
     SessionResources {
@@ -84,7 +84,7 @@ fn actual_tab_claim_exists_before_factory_and_same_session_keeps_its_field(
                 &registry,
                 |_, _, _| {
                     called.set(true);
-                    unreachable!("existing resources must not be reconstructed")
+                    panic!("existing resources must not be reconstructed")
                 },
                 |_, retired| assert_eq!(retired.binding(), first.binding),
                 window,
@@ -170,8 +170,8 @@ fn refused_switch_does_not_delay_retirement_or_clear_protected_input(cx: &mut Te
         let result = shell.admit_session_open(
             &other,
             &registry,
-            |_, _, _| unreachable!(),
-            |_, _| unreachable!(),
+            |_, _, _| panic!("rejected work must not execute"),
+            |_, _| panic!("rejected work must not execute"),
             window,
             cx,
         );
@@ -197,17 +197,14 @@ fn refused_switch_does_not_delay_retirement_or_clear_protected_input(cx: &mut Te
         let residents = &mut shell.areas.session_residents;
         assert!(
             residents
-                .receive(first.binding, |_| unreachable!())
+                .receive(first.binding, |_| panic!("rejected work must not execute"))
                 .is_err()
         );
         assert!(
             residents
-                .settle(
-                    first.binding,
-                    OperationKind::Composer,
-                    ticket,
-                    |_| unreachable!()
-                )
+                .settle(first.binding, OperationKind::Composer, ticket, |_| panic!(
+                    "rejected work must not execute"
+                ))
                 .is_err()
         );
         let kept = residents.resources(&first.context).unwrap();
@@ -239,7 +236,7 @@ fn old_connection_notice_cannot_retire_same_node_successor(cx: &mut TestAppConte
             .admit_session_open(
                 &next,
                 &registry,
-                |_, _, _| unreachable!(),
+                |_, _, _| panic!("rejected work must not execute"),
                 |_, _| {},
                 window,
                 cx,
@@ -249,7 +246,7 @@ fn old_connection_notice_cannot_retire_same_node_successor(cx: &mut TestAppConte
         shell
             .areas
             .session_residents
-            .connection_retired(&original, |_, _| unreachable!())
+            .connection_retired(&original, |_, _| panic!("rejected work must not execute"))
             .unwrap();
         shell
             .areas
@@ -276,8 +273,8 @@ fn deferred_open_refuses_changed_membership_before_allocating_a_tab(cx: &mut Tes
         let result = shell.admit_session_open(
             &opening,
             &changed,
-            |_, _, _| unreachable!(),
-            |_, _| unreachable!(),
+            |_, _, _| panic!("rejected work must not execute"),
+            |_, _| panic!("rejected work must not execute"),
             window,
             cx,
         );
