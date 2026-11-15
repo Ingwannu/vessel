@@ -140,45 +140,50 @@ impl Shell {
         };
         if self.areas.import.model.answer(reply) {
             self.areas.import.reproject();
-            let outcomes = self.areas.import.model.outcomes();
-            let identity = source.as_ref().and_then(|source| {
-                self.fleet
-                    .machines
+            if let Some(source) = source {
+                let open = self.history_receipt_open(&source);
+                if self
+                    .areas
+                    .import
+                    .model
+                    .outcomes()
                     .iter()
-                    .find(|machine| machine.name == source.as_str())
-                    .and_then(|machine| machine.node)
-            });
-            let pinned = self.areas.import.model.listed_node();
-            let matches_node = identity.is_some() && identity == pinned;
-            if source.is_some() && !matches_node {
-                self.areas.import.failure = Some(if identity.is_some() {
-                    Problem::IdentityChanged
-                } else {
-                    Problem::Offline
-                });
-            }
-            let imported = source
-                .filter(|_| matches_node)
-                .filter(|_| {
-                    !outcomes.is_empty() && outcomes.iter().all(|outcome| outcome.result.is_ok())
-                })
-                .and_then(|machine| {
-                    outcomes
-                        .last()
-                        .and_then(|outcome| outcome.result.as_ref().ok())
-                        .map(|info| {
-                            Open::of(&vessel_app_view::Card::from_session(machine.as_str(), info))
-                        })
-                });
-            if let Some(open) = imported {
-                self.command(Command::Reload);
-                if self.areas.import.open {
-                    self.areas.import.open = false;
-                    self.areas.import.pending_open = Some(open);
+                    .any(|outcome| outcome.result.is_ok())
+                {
+                    self.command(Command::Reload);
+                }
+                match open {
+                    Ok(Some(open)) if self.areas.import.open => {
+                        self.areas.import.open = false;
+                        self.areas.import.pending_open = Some(open);
+                    }
+                    Ok(Some(_) | None) => {}
+                    Err(problem) => self.areas.import.failure = Some(problem),
                 }
             }
         }
         cx.notify();
+    }
+
+    fn history_receipt_open(&self, source: &MachineKey) -> Result<Option<Open>, Problem> {
+        let outcomes = self.areas.import.model.outcomes();
+        if outcomes.is_empty() || outcomes.iter().any(|outcome| outcome.result.is_err()) {
+            return Ok(None);
+        }
+        let node = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == source.as_str())
+            .and_then(|machine| machine.node)
+            .ok_or(Problem::Offline)?;
+        if Some(node) != self.areas.import.model.listed_node() {
+            return Err(Problem::IdentityChanged);
+        }
+        Ok(outcomes
+            .last()
+            .and_then(|outcome| outcome.result.as_ref().ok())
+            .map(|info| Open::of(&vessel_app_view::Card::from_session(source.as_str(), info))))
     }
 
     pub(super) fn history_open_pending(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {

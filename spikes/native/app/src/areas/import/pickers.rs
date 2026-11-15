@@ -73,10 +73,11 @@ pub(super) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let which = shell.areas.import.choosing?;
-    let rows: Vec<_> = choices(shell, which)
+    let (choices, rows): (Vec<_>, Vec<_>) = choices(shell, which)
         .into_iter()
-        .map(|(_, row)| row)
-        .collect();
+        .map(|(choice, row)| ((choice, row.disabled), row))
+        .unzip();
+    let scope = shell.areas.import.model.scope().cloned();
     combobox(
         "history-picker",
         &shell.areas.import.picker,
@@ -84,23 +85,22 @@ pub(super) fn render(
         &rows,
         &ComboHandlers {
             state: |shell: &mut Shell| &mut shell.areas.import.picker,
-            chose: |shell: &mut Shell,
-                    index: usize,
-                    window: &mut Window,
-                    cx: &mut Context<'_, Shell>| {
-                let Some(which) = shell.areas.import.choosing else {
-                    return;
-                };
-                if let Some((choice, row)) = choices(shell, which).get(index).cloned()
-                    && !row.disabled
+            chose: std::rc::Rc::new(move |shell: &mut Shell, index, window, cx| {
+                if shell.areas.import.choosing != Some(which)
+                    || shell.areas.import.model.scope() != scope.as_ref()
                 {
-                    shell.history_choose(choice);
+                    return;
+                }
+                if let Some((choice, disabled)) = choices.get(index)
+                    && !disabled
+                {
+                    shell.history_choose(choice.clone());
                 }
                 shell.areas.import.picker.close();
                 shell.areas.import.choosing = None;
                 shell.areas.import.dialog.focus(window, cx);
                 cx.notify();
-            },
+            }),
             back: None,
         },
         vessel_app_kit::select::WIDTH,
