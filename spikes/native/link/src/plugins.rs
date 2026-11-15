@@ -5,18 +5,15 @@
 
 use std::future::Future;
 
-use vessel_app_view::plugins::{CatalogTicket, Installation, Problem};
-use vessel_proto::NodeId;
+use vessel_app_view::plugins::{CatalogTicket, Problem};
+use vessel_proto::{NodeId, plugins::ClientCatalog};
 
 /// The plugin catalog's node boundary is an actual open extension seam; the
 /// native worker uses an in-memory source until its node implementation exists.
 /// Generic dispatch keeps neither dynamic casts nor node internals in the app.
 pub trait CatalogSource {
     /// Read one host's authoritative running installations.
-    fn catalog(
-        &self,
-        node: NodeId,
-    ) -> impl Future<Output = Result<Vec<Installation>, Problem>> + Send;
+    fn catalog(&self, node: NodeId) -> impl Future<Output = Result<ClientCatalog, Problem>> + Send;
 }
 
 /// Honest product behavior before the pending plugin protocol is assigned.
@@ -27,7 +24,7 @@ impl CatalogSource for UnavailableNode {
     fn catalog(
         &self,
         _node: NodeId,
-    ) -> impl Future<Output = Result<Vec<Installation>, Problem>> + Send {
+    ) -> impl Future<Output = Result<ClientCatalog, Problem>> + Send {
         std::future::ready(Err(Problem::Unsupported))
     }
 }
@@ -47,7 +44,7 @@ pub enum Event {
         /// Captured ownership of the request.
         ticket: CatalogTicket,
         /// Parsed catalog or a safe typed failure.
-        result: Result<Vec<Installation>, Problem>,
+        result: Result<ClientCatalog, Problem>,
     },
 }
 
@@ -87,25 +84,23 @@ mod native {
         use super::*;
         use crate::plugins::UnavailableNode;
         use vessel_app_view::plugins::{HostSupport, Registry};
-        use vessel_proto::NodeId;
+        use vessel_proto::{NodeId, plugins::ClientCatalog};
 
         struct InMemory;
         impl CatalogSource for InMemory {
             fn catalog(
                 &self,
-                _node: NodeId,
-            ) -> impl Future<Output = Result<Vec<vessel_app_view::plugins::Installation>, Problem>> + Send
-            {
-                std::future::ready(Ok(vec![]))
+                node: NodeId,
+            ) -> impl Future<Output = Result<ClientCatalog, Problem>> + Send {
+                std::future::ready(
+                    ClientCatalog::new(node, vec![]).map_err(|_invalid| Problem::InvalidCatalog),
+                )
             }
         }
 
         struct Pending;
         impl CatalogSource for Pending {
-            async fn catalog(
-                &self,
-                _node: NodeId,
-            ) -> Result<Vec<vessel_app_view::plugins::Installation>, Problem> {
+            async fn catalog(&self, _node: NodeId) -> Result<ClientCatalog, Problem> {
                 std::future::pending().await
             }
         }
@@ -121,7 +116,11 @@ mod native {
                 result,
             } = run(Command::ReadCatalog(ticket), &InMemory).await;
             assert_eq!(returned, ticket);
-            assert_eq!(result, Ok(vec![]));
+            assert_eq!(
+                result,
+                ClientCatalog::new(ticket.node(), vec![])
+                    .map_err(|_invalid| Problem::InvalidCatalog)
+            );
             let Event::CatalogRead { result, .. } =
                 run(Command::ReadCatalog(ticket), &UnavailableNode).await;
             assert_eq!(result, Err(Problem::Unsupported));

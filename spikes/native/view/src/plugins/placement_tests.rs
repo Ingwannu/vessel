@@ -1,4 +1,5 @@
 use super::*;
+use crate::plugins::testing::catalog;
 use vessel_proto::plugins::{
     ClientDocument, Contribution, ContributionId, ContributionKind, PluginAddress,
     RuntimeGeneration, Surface,
@@ -44,7 +45,7 @@ fn publish(registry: &mut Registry, installation: Installation) {
         .begin(installation.address().node, HostSupport::Supported)
         .expect("read");
     assert_eq!(
-        registry.apply(ticket, Ok(vec![installation])),
+        registry.apply(ticket, catalog(ticket.node(), vec![installation])),
         Ok(SnapshotApplied::Applied)
     );
 }
@@ -143,7 +144,7 @@ fn changed_declarations_require_a_new_generation_before_publication() {
         .begin(address.installation.node, HostSupport::Supported)
         .expect("read");
     assert_eq!(
-        registry.apply(ticket, Ok(vec![invalid])),
+        registry.apply(ticket, catalog(ticket.node(), vec![invalid])),
         Err(Problem::InvalidCatalog)
     );
     let context = PluginPanelContext::Workspace {};

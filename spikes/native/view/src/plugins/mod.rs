@@ -7,6 +7,8 @@
 mod placement;
 mod registry;
 mod surface;
+#[cfg(test)]
+mod testing;
 
 // Staged external-resource validation. Production registration follows the
 // typed catalog-resource DTO and sole app Hub publication/language lifecycle.
@@ -19,5 +21,6 @@ pub use surface::{
 };
 
 pub use registry::{
-    CatalogBudget, CatalogTicket, HostSupport, Installation, Problem, Registry, SnapshotApplied,
+    CatalogBudget, CatalogTicket, HostSupport, Installation, MAX_RETAINED_CATALOG_BYTES, Problem,
+    Registry, SnapshotApplied,
 };

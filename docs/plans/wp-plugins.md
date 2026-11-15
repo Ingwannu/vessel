@@ -388,3 +388,46 @@ The base merge changes no root crates/Cargo files. Pending root Node/proto
 carrier checks on2fa4b832 therefore still cover the identical root source;
 new native consumers require their own current combined verification. The
 private-development-only handoff restriction remains in force.
+
+## Canonical catalog receiver
+
+The coordinator-required private-tree prerequisites are complete on exact2fa4b832:
+root `vesseld` build run wp-plugins-app-node-build-20261115T152545Z-2fa4b832
+rc0 and proto plugins run wp-plugins-app-proto-20261115T152545Z-2fa4b832,
+35/0/0. Later announced2b806402 and editor changes alter no root source. This
+permits private F6 development only; shared-line handoff still waits for the
+integrator's exact value adoption and an announced containing app base.
+
+CatalogSource, its returned event and Registry::apply now accept ONLY canonical
+ClientCatalog. No Vec<Installation> transport or second catalog decoder remains.
+Installation is a retained immutable view projection, with the existing shared
+origin Arc, not another wire schema. Test factories also construct/check the
+canonical value before delivery. The receiver rechecks the authenticated ticket
+node and receiving client floor before projection, then preserves its existing
+semantic-generation and stale-ticket rules. An invalid replacement retains the
+last safe snapshot and a typed failure without substituting another host.
+The eventual node handler must additionally filter incompatible installations
+before serialization; this typed receiver is not a universal pre-decode gate.
+
+[Decision Log]
+- Purpose: node count limits alone allow128 individually large retained catalogs,
+  including offline facts, to multiply memory use without a fleet byte boundary.
+- Reuse: ClientCatalog's checked cached canonical encoded size. No formatting or
+  serialization happens while drawing, and per-node count/theme/byte validation
+  remains in its one canonical model.
+- Choice: MAX_RETAINED_CATALOG_BYTES is64MiB across all retained hosts. Replacement
+  subtracts the old host implicitly by summing only other hosts; admission is
+  atomic, and failure does not change any retained size or silently evict data.
+- Reason: this permits16 maximum-size node catalogs, or many more small ones,
+  without multiplying the node's4MiB envelope by the full128-host limit.
+- Cost: a large fleet can receive an explicit capacity failure until data is
+  withdrawn or reduced. This is an encoded admission bound, not an exact RSS or
+  pre-allocation guarantee for all outstanding network responses. The real Hub
+  must also bound/coalesce in-flight reads rather than launch one per invalidation.
+
+Offline retains the same facts and byte accounting; explicit forget or an
+unsupported capability withdraws them. Regression coverage fills the real byte
+budget with valid canonical graphs, refuses another host without eviction,
+then admits it only after explicit withdrawal. A valid other-node snapshot and
+a structurally valid newer-client floor also refuse atomically. These new receiver
+cases are authored; current changed-source execution remains owed.

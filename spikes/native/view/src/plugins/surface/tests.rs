@@ -1,4 +1,5 @@
 use super::*;
+use crate::plugins::testing::catalog;
 mod origin;
 use crate::plugins::{HostSupport, Installation, SnapshotApplied};
 use vessel_proto::plugins::{
@@ -100,7 +101,7 @@ fn publish(registry: &mut Registry, installation: Installation) {
         .begin(installation.address().node, HostSupport::Supported)
         .expect("begin");
     assert_eq!(
-        registry.apply(ticket, Ok(vec![installation])),
+        registry.apply(ticket, catalog(ticket.node(), vec![installation])),
         Ok(SnapshotApplied::Applied)
     );
 }

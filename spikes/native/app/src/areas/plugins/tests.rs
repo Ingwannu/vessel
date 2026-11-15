@@ -1,11 +1,11 @@
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_kit::{Scheme, SchemeChoice};
-use vessel_app_view::plugins::{HostSupport, Installation, Submission};
+use vessel_app_view::plugins::{HostSupport, SnapshotApplied, Submission};
 use vessel_proto::plugins::{
-    Action, Availability, Button, ButtonBehavior, ClientDocument, Contribution,
-    ContributionContent, ContributionKind, Control, ControlContent, PluginAddress,
-    RuntimeGeneration, Surface,
+    Action, Availability, Button, ButtonBehavior, ClientCatalog, ClientDocument,
+    ClientInstallation, Contribution, ContributionContent, ContributionKind, Control,
+    ControlContent, PluginAddress, RuntimeGeneration, Surface,
 };
 
 #[gpui::test]
@@ -211,12 +211,13 @@ fn fixture_with_markdown(markdown: Option<&str>) -> (Rc<RefCell<Registry>>, Cont
     let ticket = registry
         .begin(installation.node, HostSupport::Supported)
         .expect("begin");
-    registry
-        .apply(
-            ticket,
-            Ok(vec![Installation::from_document(installation, document)]),
-        )
-        .expect("publish");
+    let entry = ClientInstallation::new(installation, vessel_proto::PROTOCOL_VERSION, document)
+        .expect("canonical installation");
+    let catalog = ClientCatalog::new(ticket.node(), vec![entry]).expect("canonical catalog");
+    assert_eq!(
+        registry.apply(ticket, Ok(catalog)),
+        Ok(SnapshotApplied::Applied)
+    );
     (Rc::new(RefCell::new(registry)), address)
 }
 

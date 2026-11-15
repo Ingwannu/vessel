@@ -1,19 +1,21 @@
 //! The selected node and helper generation remain authoritative while offline.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::Arc;
 
 use crate::devices::{Ticket, Tickets};
 use vessel_proto::plugins::{
-    ClientDocument, Contribution, ContributionAddress, PluginAddress, PluginId, RuntimeGeneration,
-    ThemeContribution,
+    ClientCatalog, ClientDocument, Contribution, ContributionAddress,
+    MAX_CATALOG_INSTALLATIONS as MAX_INSTALLATIONS, MAX_CATALOG_THEMES as MAX_THEMES,
+    PluginAddress, RuntimeGeneration, ThemeContribution,
 };
 use vessel_proto::{ErrorCode, NodeId};
 
 const MAX_HOSTS: usize = 128;
-const MAX_INSTALLATIONS: usize = 128;
-const MAX_THEMES: usize = 256;
+/// Encoded retained facts across the fleet, including offline snapshots. This
+/// is an admission budget, not an exact allocator/RSS measurement.
+pub const MAX_RETAINED_CATALOG_BYTES: usize = 64 * 1024 * 1024;
 
 /// Safe failure classes; a helper's diagnostic text is never a translated UI error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -33,6 +35,9 @@ pub enum Problem {
     /// Host ownership and uniqueness must hold before replacing any snapshot.
     #[error("the plugin catalog is invalid")]
     InvalidCatalog,
+    /// The node must omit installations requiring a newer receiving client.
+    #[error("plugin declarations require a newer client")]
+    NewerClient,
     /// The captured contribution no longer exists in its own namespace.
     #[error("the plugin contribution is unavailable")]
     MissingContribution,
@@ -65,6 +70,8 @@ pub enum CatalogBudget {
     Installations,
     /// Too many themes across one node's plugins.
     Themes,
+    /// Fleet-wide retention, independent from the canonical per-node cap.
+    RetainedBytes,
 }
 
 impl fmt::Display for CatalogBudget {
@@ -73,6 +80,7 @@ impl fmt::Display for CatalogBudget {
             Self::Hosts => write!(f, "{MAX_HOSTS} hosts"),
             Self::Installations => write!(f, "{MAX_INSTALLATIONS} installations per host"),
             Self::Themes => write!(f, "{MAX_THEMES} themes per host"),
+            Self::RetainedBytes => write!(f, "{MAX_RETAINED_CATALOG_BYTES} retained catalog bytes"),
         }
     }
 }
@@ -174,6 +182,7 @@ struct Host {
     connection: Connection,
     pending: Option<Ticket>,
     installations: Arc<[Installation]>,
+    encoded_bytes: usize,
     failure: Option<Problem>,
 }
 
@@ -232,6 +241,7 @@ impl Registry {
             connection: Connection::Online,
             pending: None,
             installations: Arc::from([]),
+            encoded_bytes: 0,
             failure: None,
         });
         host.connection = Connection::Online;
@@ -250,26 +260,60 @@ impl Registry {
     pub fn apply(
         &mut self,
         ticket: CatalogTicket,
-        result: Result<Vec<Installation>, Problem>,
+        result: Result<ClientCatalog, Problem>,
     ) -> Result<SnapshotApplied, Problem> {
         if ticket.owner != self.generation {
             return Ok(SnapshotApplied::Stale);
         }
-        let Some(host) = self.hosts.get_mut(&ticket.node) else {
+        let Some(host) = self.hosts.get(&ticket.node) else {
             return Ok(SnapshotApplied::Stale);
         };
         if host.pending != Some(ticket.request) {
             return Ok(SnapshotApplied::Stale);
         }
-        host.pending = None;
-        let validated = result.and_then(|entries| {
-            validate_snapshot(ticket.node, &entries)?;
+        let retained_elsewhere = self
+            .hosts
+            .iter()
+            .filter(|(node, _)| **node != ticket.node)
+            .fold(0_usize, |bytes, (_, host)| {
+                bytes.saturating_add(host.encoded_bytes)
+            });
+        let validated = result.and_then(|catalog| {
+            if catalog.node() != ticket.node {
+                return Err(Problem::InvalidCatalog);
+            }
+            if retained_elsewhere.saturating_add(catalog.encoded_bytes())
+                > MAX_RETAINED_CATALOG_BYTES
+            {
+                return Err(Problem::Capacity(CatalogBudget::RetainedBytes));
+            }
+            if catalog
+                .installations()
+                .iter()
+                .any(|item| item.required_client() > vessel_proto::PROTOCOL_VERSION)
+            {
+                return Err(Problem::NewerClient);
+            }
+            // This is a retained view projection of the ONE canonical wire
+            // schema, not another decoder or parallel Vec transport path.
+            let entries = catalog
+                .installations()
+                .iter()
+                .map(|item| {
+                    Installation::from_document(item.address().clone(), item.document().clone())
+                })
+                .collect::<Vec<_>>();
             validate_generations(&host.installations, &entries)?;
-            Ok(entries)
+            Ok((entries, catalog.encoded_bytes()))
         });
+        let Some(host) = self.hosts.get_mut(&ticket.node) else {
+            return Ok(SnapshotApplied::Stale);
+        };
+        host.pending = None;
         match validated {
-            Ok(entries) => {
+            Ok((entries, encoded_bytes)) => {
                 host.installations = entries.into();
+                host.encoded_bytes = encoded_bytes;
                 host.failure = None;
                 Ok(SnapshotApplied::Applied)
             }
@@ -341,26 +385,6 @@ impl Registry {
             .find(|item| item.id == address.contribution && item.content.kind() == address.kind)
             .ok_or(Problem::MissingContribution)
     }
-}
-
-fn validate_snapshot(node: NodeId, entries: &[Installation]) -> Result<(), Problem> {
-    if entries.len() > MAX_INSTALLATIONS {
-        return Err(Problem::Capacity(CatalogBudget::Installations));
-    }
-    let mut ids = BTreeSet::<&PluginId>::new();
-    let mut themes = 0_usize;
-    for entry in entries {
-        if entry.address.node != node || !ids.insert(&entry.address.plugin) {
-            return Err(Problem::InvalidCatalog);
-        }
-        // The budget covers the whole host, preventing many individually valid
-        // installations from exceeding the picker/catalog memory envelope.
-        themes = themes.saturating_add(entry.themes().len());
-        if themes > MAX_THEMES {
-            return Err(Problem::Capacity(CatalogBudget::Themes));
-        }
-    }
-    Ok(())
 }
 
 fn validate_generations(

@@ -39,7 +39,7 @@ fn old_request_cannot_transfer_to_a_new_state_with_changed_graph_at_the_same_add
             .expect("refresh");
         assert_eq!(
             registry
-                .apply(empty, Ok(vec![]))
+                .apply(empty, catalog(empty.node(), vec![]))
                 .expect("authoritative withdrawal"),
             SnapshotApplied::Applied
         );
