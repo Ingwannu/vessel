@@ -49,7 +49,8 @@ mod pulls;
 #[cfg(not(target_arch = "wasm32"))]
 mod run;
 pub mod scoped;
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod scoped_tests;
 mod start;
 
