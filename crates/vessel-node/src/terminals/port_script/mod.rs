@@ -25,7 +25,7 @@ const MAX_OUTPUT_BYTES: u16 = 1024;
 
 /// A fixed refusal without helper output or arguments in its diagnostic.
 #[derive(Debug, thiserror::Error)]
-enum PortScriptError {
+pub(super) enum PortScriptError {
     #[error("the port-script path cannot be interpreted on this platform")]
     Platform,
     #[error(
@@ -71,7 +71,7 @@ enum PortScriptError {
 }
 
 /// Execute one owner selected by an approval-checked caller, without a shell.
-async fn invoke(
+pub(super) async fn invoke(
     root: &ScriptRoot,
     name: &ScriptName,
     program: &PortScript,

@@ -344,3 +344,15 @@ resolution under the explicit Windows naming policy: an approved `.exe`
 alias resolving to a mixed-case batch file is refused before any spawn.
 This portable filesystem model supplements the Windows-compiled refusal
 test and does not certify Windows native path resolution or execution.
+
+Allocator selection preparation reuses the approved `ScriptEntry` owner,
+`ServicePorts`, helper primitive and Tokio's existing socket API. Explicit
+ports precede the block; helper precedes range; absent choices bind a kernel
+ephemeral IPv4 loopback port and release the probe socket. Range traversal
+uses a caller-supplied seed for a deterministic starting offset, skips
+reserved/busy candidates, and visits each endpoint exactly once. The plan
+owner remains responsible for global dynamic reservations and bounded
+retries; this primitive does not claim to reserve a socket or a plan.
+Existing explicit declarations are checked only against the same place,
+matching Paseo; dynamic choices also exclude other dynamic owners. No
+new dependency, wire field, protocol number or product caller is added.

@@ -21,6 +21,9 @@
 
 mod env;
 mod ports;
+// Staged until the service plan owns reservations and approval-checked starts.
+#[cfg(test)]
+mod port_allocator;
 // Staged until the approval-checked service allocator connects one invocation.
 #[cfg(test)]
 mod port_script;
