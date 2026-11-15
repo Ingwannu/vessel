@@ -73,3 +73,8 @@ local-node-interrupt-restart = Interrupt sessions and restart
 
 # Leave a local-node stop/restart/quit confirmation without changing the process.
 local-node-cancel = Cancel
+
+# App-update restart refusal, after the owned node protected its active sessions.
+local-node-confirm-update = Restart Vessel to update?
+# Explicitly authorize interrupting the captured owned node before app-update restart.
+local-node-interrupt-update = Interrupt sessions and restart to update

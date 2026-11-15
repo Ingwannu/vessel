@@ -152,7 +152,8 @@ fn prompt_content(
     let title = match prompt.intent {
         Intent::Quit => words.quit_refused(),
         Intent::Stop => words.confirm_stop(),
-        Intent::Restart | Intent::Update => words.confirm_restart(),
+        Intent::Restart => words.confirm_restart(),
+        Intent::Update => words.confirm_update(),
     };
     let body = div()
         .flex()
@@ -197,7 +198,8 @@ fn prompt_content(
         let label = match intent {
             Intent::Quit => words.interrupt_quit(),
             Intent::Stop => words.interrupt_stop(),
-            Intent::Restart | Intent::Update => words.interrupt_restart(),
+            Intent::Restart => words.interrupt_restart(),
+            Intent::Update => words.interrupt_update(),
         };
         footer.push(
             outline_button("local-confirm-interrupt", label, true, tokens)

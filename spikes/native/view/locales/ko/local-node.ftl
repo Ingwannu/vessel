@@ -73,3 +73,8 @@ local-node-interrupt-restart = 세션을 중단하고 다시 시작
 
 # Leave a local-node stop/restart/quit confirmation without changing the process.
 local-node-cancel = 취소
+
+# App-update restart refusal, after the owned node protected its active sessions.
+local-node-confirm-update = 업데이트를 위해 Vessel을 다시 시작할까요?
+# Explicitly authorize interrupting the captured owned node before app-update restart.
+local-node-interrupt-update = 세션을 중단하고 업데이트 재시작
