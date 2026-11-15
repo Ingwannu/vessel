@@ -265,6 +265,57 @@ test("/ lists the agent's commands and @ says when there is nothing to search", 
   ).toContainText("This session has no project to search.");
 });
 
+// The caret a chosen suggestion puts after itself is placed with the text,
+// not a frame later: a later frame undid a selection made meanwhile, so
+// typing over a selected box appended instead (W11's run, 2026-11-15:
+// "/review /co" listed no command). The page's animation frames are held
+// while /review is chosen and the box is selected, then let go, and only
+// then is the box typed over.
+test("a box selected just after a command is chosen is typed over, not added to", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const frame = window.requestAnimationFrame.bind(window);
+    const held: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = (callback) =>
+      frame((time) => {
+        if (document.documentElement.dataset["holdFrames"] === "on") {
+          held.push(callback);
+        } else {
+          callback(time);
+        }
+      });
+    document.addEventListener("release-frames", () => {
+      document.documentElement.dataset["holdFrames"] = "off";
+      const now = performance.now();
+      for (const callback of held.splice(0)) {
+        callback(now);
+      }
+    });
+  });
+  await openUi(page);
+  await startSession(page, "laptop", "Structured", "plain");
+  await expect(timeline(page).getByText("echo: plain")).toBeVisible();
+  await text(page).fill("/");
+  const list = page.getByRole("listbox", { name: "Commands" });
+  await expect(list.getByRole("option")).toHaveText([/\/compact/, /\/review/]);
+  await text(page).press("ArrowDown");
+  await page.evaluate(() => {
+    document.documentElement.dataset["holdFrames"] = "on";
+  });
+  await text(page).press("Enter");
+  await expect(text(page)).toHaveValue("/review ");
+  await text(page).evaluate((area: HTMLTextAreaElement) => {
+    area.select();
+  });
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event("release-frames"));
+  });
+  await page.keyboard.insertText("/co");
+  await expect(text(page)).toHaveValue("/co");
+  await expect(list.getByRole("option")).toHaveText([/\/compact/]);
+});
+
 test("a question the agent asks is answered in the dock over the composer", async ({
   page,
 }) => {

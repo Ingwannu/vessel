@@ -5,6 +5,9 @@
 mod local_read;
 mod lock_wait;
 mod observe;
+mod service_probe;
+
+use self::local_read::{Kind, Pending};
 
 use vessel_client::book::Resolved;
 use vessel_client::{CallError, NodeClient};
@@ -33,7 +36,12 @@ async fn graceful(target: &Target, policy: StopPolicy) -> Result<(), CliError> {
     // Only the implicit local token establishes this directory as the home.
     if connect::is_here(&resolved) && resolved.token.is_none() && target.token.is_none() {
         let dir = connect::data_dir(target)?;
-        tokio::task::spawn_blocking(move || require_running(&dir)).await??;
+        let mut pending = Pending::spawn(
+            Kind::Preflight,
+            move || require_running(&dir),
+            || tracing::debug!("node preflight completed after its command ended"),
+        )?;
+        pending.wait().await.map_err(CliError::PreflightReader)??;
     }
     let connected = connect::connect_to(target, &resolved, &book).await?;
     let client = &connected.client;
@@ -45,6 +53,10 @@ async fn graceful(target: &Target, policy: StopPolicy) -> Result<(), CliError> {
         .collect();
     let when = choose(&resolved, &live, policy).await?;
     let mut observer = observe::Observer::bind(target, &resolved, client, when).await?;
+    let service = service_probe::inspect(observer.directory()).await?;
+    if let Some(warning) = service.warning() {
+        io::note(warning).await?;
+    }
     request(client, when).await?;
     let completion = observer.completed().await?;
     io::out(completion.message().as_bytes()).await?;

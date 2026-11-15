@@ -23,8 +23,8 @@
 //!   after it, not the protocol 4 clients that exist); refusing old clients
 //!   (the range `MIN_PROTOCOL_VERSION..` promises they work).
 //! - Choice: every event knows the version it appeared in
-//!   ([`SessionEvent::since`]); for an older connection it has a stand-in
-//!   that version can read ([`SessionEvent::for_protocol`]), with the same
+//!   ([`SessionEvent::required_protocol`]); for an older connection or pending
+//!   assignment it has a stand-in that version can read ([`SessionEvent::for_protocol`]), with the same
 //!   `seq`. `vessel-rpc` applies it where it encodes frames, the one place
 //!   that knows the connection's version.
 //! - Trade-off: an older client sees a stand-in, not the event: for
@@ -37,7 +37,7 @@
 //! - Protocol 10 is the first to add to what an existing event holds: a
 //!   prompt (`TurnStarted`) may name an attachment, a content block a
 //!   version 9 client cannot decode. So an agent event's version is read
-//!   from its content too ([`AgentEvent::since`]), and its stand-in keeps
+//!   from its content too ([`AgentEvent::required_protocol`]), and its stand-in keeps
 //!   the event, each attachment shown as a `ResourceLink` to
 //!   `attachment:<id>`. Fields added as optional (`Ready.abilities`,
 //!   `TurnEnded.usage`) need none: older clients skip what they do not
@@ -164,20 +164,22 @@ pub enum SessionEvent {
 }
 
 impl SessionEvent {
-    /// The first protocol version that has this event.
+    /// The assigned protocol requirement for this event. A future variant
+    /// awaiting assignment returns `None`, so projections must provide its
+    /// older representation to every peer instead of inventing a number.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Status { .. } | Self::Terminal(_) => ProtocolVersion::new(2),
-            Self::Agent { event } => event.since(),
-            Self::ProfileChanged { .. } => ProtocolVersion::new(5),
-            Self::ModelCall(_) => ProtocolVersion::new(7),
-            Self::OptionsChanged { .. } | Self::Renamed { .. } => ProtocolVersion::new(9),
+            Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
+            Self::Agent { event } => event.required_protocol(),
+            Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
+            Self::ModelCall(_) => Some(ProtocolVersion::new(7)),
+            Self::OptionsChanged { .. } | Self::Renamed { .. } => Some(ProtocolVersion::new(9)),
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
-            | Self::UsageChanged { .. } => ProtocolVersion::new(10),
-            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
-            Self::Forked { .. } | Self::Rewound { .. } => ProtocolVersion::new(14),
+            | Self::UsageChanged { .. } => Some(ProtocolVersion::new(10)),
+            Self::Parked { .. } | Self::Woken => Some(ProtocolVersion::new(12)),
+            Self::Forked { .. } | Self::Rewound { .. } => Some(ProtocolVersion::new(14)),
         }
     }
 
@@ -185,13 +187,23 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol
+        // An assigned enclosing variant can still contain optional fields
+        // introduced later. Always let the inner event mask those fields.
+        if let Self::Agent { event } = self {
+            return event
+                .for_protocol(protocol)
+                .map(|event| Self::Agent { event });
+        }
+        let readable = self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol);
+        if readable
             && let Self::UsageChanged { usage } = self
             && let Some(usage) = usage.for_protocol(protocol)
         {
             return Some(Self::UsageChanged { usage });
         }
-        if self.since() <= protocol {
+        if readable {
             return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
         let log = |line: String| {
@@ -204,50 +216,13 @@ impl SessionEvent {
             Self::Agent { event } => event
                 .for_protocol(protocol)
                 .map(|event| Self::Agent { event }),
-            Self::ProfileChanged { from, to } => {
-                let name = |profile: &Option<ProfileName>| {
-                    profile
-                        .as_ref()
-                        .map_or_else(|| "default".to_owned(), ToString::to_string)
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog {
-                        line: format!(
-                            "vessel: profile changed from {} to {}",
-                            name(from),
-                            name(to)
-                        ),
-                    },
-                })
-            }
-            Self::ModelCall(call) => {
-                let line = match call.failure {
-                    None => format!(
-                        "vessel: model call to {}: {} in, {} out",
-                        call.model,
-                        call.usage.total_input().get(),
-                        call.usage.output.get()
-                    ),
-                    Some(failure) => format!(
-                        "vessel: model call to {} failed ({})",
-                        call.model,
-                        failure.as_str()
-                    ),
-                };
-                Some(Self::Agent {
-                    event: AgentEvent::HarnessLog { line },
-                })
-            }
-            Self::OptionsChanged { options } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: options: {}", SessionOption::summary(options)),
-                },
-            }),
-            Self::Renamed { title, .. } => Some(Self::Agent {
-                event: AgentEvent::HarnessLog {
-                    line: format!("vessel: renamed to {title}"),
-                },
-            }),
+            Self::ProfileChanged { from, to } => log(profile_line(from.as_ref(), to.as_ref())),
+            Self::ModelCall(call) => log(model_line(call)),
+            Self::OptionsChanged { options } => log(format!(
+                "vessel: options: {}",
+                SessionOption::summary(options)
+            )),
+            Self::Renamed { title, .. } => log(format!("vessel: renamed to {title}")),
             Self::QueueChanged { queue } => log(queue_line(queue)),
             Self::CommandsChanged { commands } => log(commands_line(commands)),
             Self::UsageChanged { usage } => log(usage_line(usage)),
@@ -299,18 +274,20 @@ impl SessionEvent {
 
 impl AgentEvent {
     /// The first protocol version that can decode this event: its
-    /// variant's, or 10 for a prompt holding an attachment.
+    /// variant's, or 10 for a prompt holding an attachment. A feature
+    /// awaiting its assigned protocol returns `None`; it must never be
+    /// published as though it belonged to the current protocol.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::TurnStarted { content } if content.iter().any(is_attachment) => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::UserMessageChunk { content } if is_attachment(content) => {
-                ProtocolVersion::new(10)
+                Some(ProtocolVersion::new(10))
             }
             Self::Ready { .. }
             | Self::TurnStarted { .. }
@@ -324,7 +301,7 @@ impl AgentEvent {
             | Self::PermissionResolved { .. }
             | Self::TurnEnded { .. }
             | Self::TurnFailed { .. }
-            | Self::HarnessLog { .. } => ProtocolVersion::new(2),
+            | Self::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         }
     }
 
@@ -332,7 +309,10 @@ impl AgentEvent {
     /// it can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol {
+        if self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol)
+        {
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
@@ -398,6 +378,33 @@ fn first_line(content: &[ContentBlock]) -> Option<&str> {
         | ContentBlock::Opaque { .. }
         | ContentBlock::Attachment { .. } => None,
     })
+}
+
+fn profile_line(from: Option<&ProfileName>, to: Option<&ProfileName>) -> String {
+    let name = |profile: Option<&ProfileName>| {
+        profile.map_or_else(|| "default".to_owned(), ToString::to_string)
+    };
+    format!(
+        "vessel: profile changed from {} to {}",
+        name(from),
+        name(to)
+    )
+}
+
+fn model_line(call: &ModelCall) -> String {
+    match call.failure {
+        None => format!(
+            "vessel: model call to {}: {} in, {} out",
+            call.model,
+            call.usage.total_input().get(),
+            call.usage.output.get()
+        ),
+        Some(failure) => format!(
+            "vessel: model call to {} failed ({})",
+            call.model,
+            failure.as_str()
+        ),
+    }
 }
 
 fn queue_line(queue: &PromptQueue) -> String {
@@ -471,3 +478,10 @@ impl EventRecord {
         })
     }
 }
+
+#[cfg(test)]
+mod admission_tests;
+
+#[cfg(test)]
+#[path = "event/protocol_tests.rs"]
+mod protocol_tests;

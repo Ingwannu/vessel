@@ -257,3 +257,17 @@ passed with the fix. Its combined node gate is still running. This dependency
 will merge the announced complete node head when available, as instructed,
 before retrying the whole gate. No web source was edited here. Source review
 and dependency adoption remain pending.
+
+
+## Announced caret-fix node merge
+
+The complete announced gate44 node head ede20014 is merged under A8, rather than
+taking its web fix alone. Its root gate passed Rust2377/0/12, web464, e2e68 and
+forge4; that is base evidence, not this registry union's gate. The node head owns
+rpc/contract.rs and rpc/table.rs; the registry's redundant request.rs extraction
+is removed, and its six pending rows are appended at the method table's end.
+The head's existing rows, tests, protocol and schema entries remain intact. The
+registry append still follows the unchanged newest head migration. Architecture
+and protocol documents preserve the head's new process/service-port facts and
+append the independent registry section. Changed-head TS/narrow/full checks are
+required next, all on the remote build machine.

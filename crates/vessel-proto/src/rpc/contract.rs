@@ -1,5 +1,4 @@
-//! The typed request/response contract, separate from the single method table.
-//! This boundary has no routing policy or transport behavior of its own.
+//! Request/reply association is independent of method registration.
 
 use super::{Call, Method, Reply};
 use serde::{Serialize, de::DeserializeOwned};
