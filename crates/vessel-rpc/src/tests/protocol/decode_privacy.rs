@@ -12,6 +12,10 @@ use super::*;
 /// A string no product text contains, so finding it means it was echoed.
 const MARKER: &str = "vessel-privacy-marker-7f3c19";
 
+/// The same, spelled like a protocol field name (lower case, digits and
+/// underscores), so no spelling rule can tell it from one.
+const LOWER: &str = "private_canary_7f3c19";
+
 /// Everything the node may log about `error`: Display, Debug and the
 /// Display of every source.
 fn everything_logged(error: &ServeError<Disconnected>) -> String {
@@ -29,6 +33,16 @@ async fn ended(served: Served) -> ServeError<Disconnected> {
         Err(error) => error,
         Ok(()) => panic!("the server should end the connection on an undecodable frame"),
     }
+}
+
+/// The connection ended on an undecodable frame and no call reached the
+/// handler.
+async fn ended_with_nothing_run(mut served: Served) -> ServeError<Disconnected> {
+    let Err(error) = (&mut served.task).await.unwrap() else {
+        panic!("the server should end the connection on an undecodable frame")
+    };
+    assert!(served.seen.try_recv().is_err(), "no call was dispatched");
+    error
 }
 
 async fn answer_to(client: &mut MemoryTransport, frame: &str) -> WireError {
@@ -62,6 +76,20 @@ async fn bad_parameters_are_answered_with_their_place_not_their_value() {
     assert_eq!(error.code, ErrorCode::InvalidRequest);
     assert!(!error.message.contains(MARKER), "{}", error.message);
 
+    // A map key a caller chose, spelled like a field name, is not kept
+    // either: the value under it fails, and the path shows only depth.
+    let frame = format!(
+        r#"{{"type":"request","id":8,"call":{{"method":"session.create","params":{{"spec":{{"labels":{{"{LOWER}":5}}}}}}}}}}"#
+    );
+    let error = answer_to(&mut client, &frame).await;
+    assert_eq!(error.code, ErrorCode::InvalidRequest);
+    assert!(!error.message.contains(LOWER), "{}", error.message);
+    assert!(
+        error.message.contains("`session.create`"),
+        "{}",
+        error.message
+    );
+
     // A map key chosen by the caller becomes a placeholder in the path.
     let frame = format!(
         r#"{{"type":"request","id":6,"call":{{"method":"session.get","params":{{"{MARKER}-Key":1}}}}}}"#
@@ -93,4 +121,32 @@ async fn a_bad_hello_is_refused_without_its_values() {
     assert!(!error.message.contains(MARKER), "{}", error.message);
     let logged = everything_logged(&ended(served).await);
     assert!(!logged.contains(MARKER), "{logged}");
+}
+
+#[tokio::test]
+async fn bytes_after_a_valid_frame_end_the_connection_as_before() {
+    for tail in [" trailing", r#"{"type":"cancel","id":1}"#] {
+        let (mut client, served, _) =
+            raw_client_with_node(vessel_proto::PROTOCOL_VERSION.get()).await;
+        let frame = format!(
+            r#"{{"type":"request","id":9,"call":{{"method":"node.info","params":null}}}}{tail}"#
+        );
+        client.send(frame).await.unwrap();
+        let logged = everything_logged(&ended_with_nothing_run(served).await);
+        assert!(logged.contains("undecodable frame"), "{logged}");
+    }
+    // Whitespace after the value is still one frame.
+    let (mut client, _served, _) = raw_client_with_node(vessel_proto::PROTOCOL_VERSION.get()).await;
+    client
+        .send("{\"type\":\"request\",\"id\":10,\"call\":{\"method\":\"node.info\",\"params\":null}}  \n".to_owned())
+        .await
+        .unwrap();
+    let text = client.next().await.unwrap().unwrap();
+    assert!(
+        matches!(
+            serde_json::from_str::<ServerFrame>(&text),
+            Ok(ServerFrame::Response { .. })
+        ),
+        "{text}"
+    );
 }

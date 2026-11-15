@@ -243,8 +243,7 @@ where
         return Ok(None);
     };
     let text = frame.map_err(ServeError::Transport)?;
-    let mut frame = serde_json::Deserializer::from_str(&text);
-    match serde_path_to_error::deserialize::<_, ClientFrame>(&mut frame) {
+    match crate::decode::whole::<ClientFrame>(&text) {
         Ok(ClientFrame::Hello(hello)) => Ok(Some(hello)),
         Ok(ClientFrame::Request { .. } | ClientFrame::Cancel { .. }) => {
             let violation = ProtocolViolation::ExpectedHello;
@@ -255,9 +254,9 @@ where
             .await?;
             Err(ServeError::Violation(violation))
         }
-        Err(error) => {
+        Err(undecoded) => {
             // Where and what kind, never a value (`DecodeFailure`).
-            let failure = crate::DecodeFailure::new(None, error.path(), error.inner());
+            let failure = undecoded.failure(None);
             reject(
                 sink,
                 WireError::new(

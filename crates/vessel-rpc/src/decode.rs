@@ -18,13 +18,19 @@
 //!   own words, both of which can carry input); keep the error but print
 //!   a fixed text (the source chain still reaches the log).
 //! - Choice: a typed [`DecodeFailure`] that keeps only the method (when it
-//!   is a known one), the field path (segments that are protocol field
-//!   names; anything else becomes a placeholder) and the error's kind. It
+//!   is a known one), the field path (the frame's own fixed names, `call`,
+//!   `params` and the like; every name below them becomes a placeholder,
+//!   since a map key a caller chose looks like any field name) and the
+//!   error's kind. It
 //!   has no source, and its Display and Debug are built from those parts
 //!   alone. The path comes from `serde_path_to_error`, already in the
 //!   workspace's lock.
+//! - The whole text must be one JSON value: trailing bytes after it fail
+//!   the frame, as `serde_json::from_str` did before this module.
 //! - Cost: a validator's own reason ("label key too long") is reported as
-//!   "an invalid value" at its path; the caller sees where, not why.
+//!   "an invalid value", and the path below `params` shows its depth and
+//!   list positions, not field names; the caller sees where in the frame
+//!   and what kind, and reads the method's request type for the rest.
 
 use std::fmt::{self, Write as _};
 
@@ -34,8 +40,12 @@ use vessel_proto::Method;
 /// At most this many path segments are kept; deeper ones are summarised.
 const MAX_SEGMENTS: usize = 12;
 
-/// The longest field name kept in a path; protocol names are far shorter.
-const MAX_NAME: usize = 48;
+/// The names a client frame itself uses (`ClientFrame`, `Call`, `Hello`),
+/// fixed by this protocol rather than chosen by a caller: the only names a
+/// path keeps.
+const FRAME_NAMES: [&str; 7] = [
+    "type", "id", "call", "method", "params", "protocol", "client",
+];
 
 /// Why a client frame did not decode, without any of its values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,13 +79,13 @@ impl DecodeFailure {
     /// that is a known method.
     pub(crate) fn new(
         method: Option<Method>,
-        path: &serde_path_to_error::Path,
+        path: Option<&serde_path_to_error::Path>,
         error: &serde_json::Error,
     ) -> Self {
         Self {
             method,
             kind: DecodeKind::of(error),
-            path: render(path),
+            path: path.map(render).unwrap_or_default(),
         }
     }
 
@@ -132,8 +142,8 @@ impl DecodeKind {
     }
 }
 
-/// The path with protocol field names kept and anything else (map keys,
-/// unknown names chosen by the caller) replaced, bounded.
+/// The path with the frame's own names kept and every other name replaced
+/// (it may be a map key the caller chose), bounded.
 fn render(path: &serde_path_to_error::Path) -> String {
     let mut out = String::new();
     for (index, segment) in path.iter().enumerate() {
@@ -149,7 +159,11 @@ fn render(path: &serde_path_to_error::Path) -> String {
                 if !out.is_empty() {
                     out.push('.');
                 }
-                out.push_str(if is_field_name(key) { key } else { "<key>" });
+                out.push_str(if FRAME_NAMES.contains(&key.as_str()) {
+                    key
+                } else {
+                    "<field>"
+                });
             }
             Segment::Unknown => {
                 if !out.is_empty() {
@@ -162,14 +176,33 @@ fn render(path: &serde_path_to_error::Path) -> String {
     out
 }
 
-/// A protocol field name: lower-case letters, digits and underscores,
-/// starting with a letter, short.
-fn is_field_name(key: &str) -> bool {
-    key.len() <= MAX_NAME
-        && key.starts_with(|c: char| c.is_ascii_lowercase())
-        && key
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+/// Why a whole client frame did not decode: where (when tracked) and the
+/// serde error, from which only the kind is kept ([`DecodeFailure`]).
+pub(crate) struct Undecoded {
+    path: Option<serde_path_to_error::Path>,
+    error: serde_json::Error,
+}
+
+impl Undecoded {
+    /// The failure to report, for `method` when the frame named a known one.
+    pub(crate) fn failure(&self, method: Option<Method>) -> DecodeFailure {
+        DecodeFailure::new(method, self.path.as_ref(), &self.error)
+    }
+}
+
+/// Decode `text` as exactly one `T`: trailing bytes after the value fail it,
+/// as `serde_json::from_str` does; the path of a failure is tracked.
+pub(crate) fn whole<T: serde::de::DeserializeOwned>(text: &str) -> Result<T, Undecoded> {
+    let mut frame = serde_json::Deserializer::from_str(text);
+    let value =
+        serde_path_to_error::deserialize::<_, T>(&mut frame).map_err(|error| Undecoded {
+            path: Some(error.path().clone()),
+            error: error.into_inner(),
+        })?;
+    frame
+        .end()
+        .map_err(|error| Undecoded { path: None, error })?;
+    Ok(value)
 }
 
 impl fmt::Display for DecodeFailure {

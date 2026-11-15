@@ -312,27 +312,24 @@ struct HeaderCall {
 }
 
 fn decode(text: &str) -> Inbound {
-    let mut frame = serde_json::Deserializer::from_str(text);
-    match serde_path_to_error::deserialize::<_, ClientFrame>(&mut frame) {
+    match crate::decode::whole::<ClientFrame>(text) {
         Ok(ClientFrame::Request { id, call }) => Inbound::Call { id, call },
         Ok(ClientFrame::Cancel { id }) => Inbound::Cancel(id),
         Ok(ClientFrame::Hello(_)) => Inbound::Hello,
-        Err(error) => match serde_json::from_str::<RequestHeader>(text) {
+        Err(undecoded) => match serde_json::from_str::<RequestHeader>(text) {
             Ok(RequestHeader::Request { id, call }) => {
                 let method = call.and_then(|call| call.method).and_then(|name| {
                     vessel_proto::Method::ALL
                         .iter()
                         .copied()
-                        .find(|m| m.as_str() == name)
+                        .find(|known| known.as_str() == name)
                 });
                 Inbound::Invalid {
                     id,
-                    failure: DecodeFailure::new(method, error.path(), error.inner()),
+                    failure: undecoded.failure(method),
                 }
             }
-            Ok(RequestHeader::Other) | Err(_) => {
-                Inbound::Garbage(DecodeFailure::new(None, error.path(), error.inner()))
-            }
+            Ok(RequestHeader::Other) | Err(_) => Inbound::Garbage(undecoded.failure(None)),
         },
     }
 }
