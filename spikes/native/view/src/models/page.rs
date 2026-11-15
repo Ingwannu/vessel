@@ -203,11 +203,26 @@ impl<E> State<E> {
     /// Select a validated book key. An actual change clears only the page,
     /// never the request sequence. Reselecting the same key keeps its facts.
     pub fn select(&mut self, machine: Option<crate::agent_status::pages::MachineKey>) {
+        let _changed = self.select_reported(machine.map(|machine| Selection {
+            machine,
+            node: None,
+        }));
+    }
+    /// Bind a newly selected page to the Fleet's shared welcome identity.
+    /// An unchanged key cannot overwrite a newer actual-connection notice:
+    /// that notice arrives before the replacement Fleet is published.
+    #[must_use]
+    pub fn select_reported(&mut self, selection: Option<Selection>) -> bool {
+        let (machine, node) = selection.map_or((None, None), |selection| {
+            (Some(selection.machine), selection.node)
+        });
         if machine != self.machine {
             self.machine = machine;
-            self.node = None;
+            self.node = node;
             self.page = Page::default();
+            return true;
         }
+        false
     }
     /// A real connection replaces cached and pending facts even when the
     /// node id is unchanged. Tickets survive, so old replies stay stale.
@@ -267,6 +282,15 @@ impl<E> State<E> {
         self.page.received(ticket, result)
     }
 }
+/// A selected book entry and the shared Fleet's optional welcome identity.
+/// No selected entry is represented by Option<Selection>, not a loose node id.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Selection {
+    /// The existing validated machine-book route.
+    pub machine: crate::agent_status::pages::MachineKey,
+    /// Absent if no machine answered; never inferred from a display label.
+    pub node: Option<vessel_proto::NodeId>,
+}
 /// Actual reconnect identity emitted by the shared connection-ready fan-out.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connection {
@@ -279,6 +303,38 @@ pub struct Connection {
 mod navigation_tests {
     use super::*;
     use crate::agent_status::pages::MachineKey;
+    #[test]
+    fn shared_fleet_identity_initializes_selection_but_cannot_undo_an_early_reconnect() {
+        let machine = MachineKey::from_book("one");
+        let old = vessel_proto::NodeId::random();
+        let current = vessel_proto::NodeId::random();
+        let selected = || Selection {
+            machine: machine.clone(),
+            node: Some(old),
+        };
+        let mut state = State::<&str>::default();
+        assert!(state.select_reported(Some(selected())));
+        assert_eq!(state.node(), Some(old));
+        assert!(state.connected(&Connection {
+            machine: machine.clone(),
+            node: current,
+        }));
+        let pending = state.begin().unwrap();
+        assert!(
+            !state.select_reported(Some(selected())),
+            "Fleet still has old node"
+        );
+        assert_eq!(state.node(), Some(current));
+        assert_eq!(state.page().pending(), Some(pending));
+        assert!(!state.select_reported(Some(Selection {
+            machine,
+            node: Some(current),
+        })));
+        assert_eq!(state.page().pending(), Some(pending));
+        assert!(state.select_reported(None));
+        assert_eq!(state.node(), None);
+        assert_eq!(state.page().pending(), None);
+    }
     #[test]
     fn every_real_reconnect_clears_cached_and_pending_facts_without_reusing_tickets() {
         let machine = MachineKey::from_book("one");

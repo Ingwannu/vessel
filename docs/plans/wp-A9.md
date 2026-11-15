@@ -120,3 +120,18 @@ continues to use the single connection-ready fan-out. The shared field's
 event extraction and typed Editability API are retained, not reimplemented.
 The size-list merge preserves this branch's measured slider 711 and the
 new base's lower field 635/demo 583. No allowance is raised.
+
+The Models area passes the shared `Machine.node` into a new selection's
+pure state. A later render of the old Fleet must not undo an earlier real
+connection notice: the shared producer intentionally emits before its
+new Fleet. A regression checks old-Fleet render → new-Fleet render while
+the replacement request remains pending. Same-key connection changes still
+use only the canonical fan-out, not Fleet-difference inference.
+
+Next own-area correctness fix: the legacy default-choice writer silently
+filters ids/values past its saved-choice bound. Before changing preferences,
+the page must validate the whole proposed choice list with the existing
+`view::prefs::Choices` contract and show a translated refusal while keeping
+the previous defaults. This finding is from source inspection; its callback
+and persistence flow have not yet been exercised, and no writer fix or
+storage-contract change is claimed here.

@@ -57,12 +57,14 @@ impl Shell {
         let shown = self.route == Route::Settings
             && self.areas.settings.section == Section::Models
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
-        let machine = super::choices::chosen_machine(self)
+        let selection = super::choices::chosen_machine(self)
             .filter(|_| shown)
-            .map(|machine| vessel_app_link::agents::MachineKey::from_book(machine.name.as_str()));
+            .map(|machine| models::page::Selection {
+                machine: vessel_app_link::agents::MachineKey::from_book(machine.name.as_str()),
+                node: machine.node,
+            });
         let state = &mut self.areas.settings.models;
-        if state.page.machine() != machine.as_ref() {
-            state.page.select(machine);
+        if state.page.select_reported(selection) {
             state.refused = None;
             state.reset.set(SearchReset::Clear);
         }
