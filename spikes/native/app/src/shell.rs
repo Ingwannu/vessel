@@ -247,6 +247,10 @@ impl Shell {
                 self.records(&session, &records, cx);
                 // Track P: a session's reported `/` commands kept for its agent.
                 self.offers_commands_seen();
+                // A terminal's output draws its grid alone (ADR 0073).
+                if self.terminal_output_only(&session, &records) {
+                    return;
+                }
             }
             Event::Started(card) => self.started(&card, cx),
             Event::Sent { .. } => {}

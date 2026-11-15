@@ -49,7 +49,7 @@ use vessel_app_view::terminal::grid::{Generation, Scroll};
 use vessel_app_view::terminal::paint::rows;
 use vessel_app_view::terminal::{GridSize, ScrollbackLines, TerminalLog, TerminalModel};
 use vessel_app_view::timeline::Until;
-use vessel_proto::{EventRecord, SessionId, TerminalSize};
+use vessel_proto::{EventRecord, SessionEvent, SessionId, TerminalSize};
 
 pub(crate) use body::body;
 use grid::TerminalGrid;
@@ -201,6 +201,22 @@ impl Shell {
         area.pending.clear();
         area.settling = None;
         area.blinking = None;
+    }
+
+    /// Whether `records` are only output of the terminal shown. Then the
+    /// grid, which the area notifies by itself, is all they change, and
+    /// the shell is not drawn again for them (the region rule; measured
+    /// before this, every batch a program printed drew the shell, its
+    /// sidebar and the session's frame).
+    pub(crate) fn terminal_output_only(
+        &self,
+        session: &SessionId,
+        records: &[EventRecord],
+    ) -> bool {
+        self.areas.terminal.shows(session)
+            && records
+                .iter()
+                .all(|record| matches!(record.event, SessionEvent::Terminal(_)))
     }
 
     /// Records of the session followed.
