@@ -1271,3 +1271,21 @@ its entry identity. Trusted NoticeKey/source, captured parent/grant lifetime and
 internal receipt admission remain their node contract. A7 adds neither a body-id
 field, label parser, parallel event union nor duplicate user bubble. Positive
 notice runtime and event activation still await that reviewed producer.
+
+
+Minimal resident preparation is isolated on announced2b806402 as7ae881e59,
+without the full A7 presentation branch, node types or layout changes. Its
+with_display(existing ConversationDisplay, App) initializer is now shared by the
+full with_presentation wrapper here; reasoning/turn state remains with A7. Both
+variants move the entire original Area and use one caller-supplied W1 aggregate
+navigation vote. Origin recursion checks local A7 protection without introducing
+a new navigation Ready. W1 recursive metadata/hover/query hook10a8a905 is still
+source-only/unexecuted, not copied into that packet. W12 requested the bounded
+checked packet for its next core union; source checks/tests are still owed.
+
+A8 coordination: Conversation.through covers actor-event membership only. A high
+unrelated watermark cannot clear Answering/Unknown/Unconfirmed. Owner request/read
+tickets and authoritative current pending delivery metadata remain with W4;
+resolved log beats stale Live. Original context/lease/binding admission must occur
+before the owner changes that state. This timeline adapter creates no A8 read
+registry and does not infer no-effect from a transcript watermark.

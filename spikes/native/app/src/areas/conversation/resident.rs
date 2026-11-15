@@ -43,6 +43,18 @@ impl std::fmt::Debug for TimelineSnapshot {
 }
 
 impl ConversationArea {
+    /// Base-compatible empty constructor; the admitted owner supplies identity.
+    /// Full A7 adds reasoning/turn presentation through the wrapper below.
+    #[must_use]
+    pub(crate) fn with_display(display: ConversationDisplay, cx: &mut App) -> Self {
+        let mut area = Self::new(cx);
+        area.collapse = super::area::collapsing(Some(display));
+        area.folds = area
+            .collapse
+            .then(vessel_app_view::timeline::Folds::default);
+        area
+    }
+
     /// A new admitted resource uses the kept Chat choices, not whichever empty
     /// defaults happened to seed the old selected window. Identity/admission
     /// remains entirely in the registry; this constructor launches no follow.
@@ -51,8 +63,7 @@ impl ConversationArea {
         reasoning: ReasoningExpansion,
         cx: &mut App,
     ) -> Self {
-        let mut area = Self::new(cx);
-        area.collapse = super::area::collapsing(Some(display));
+        let mut area = Self::with_display(display, cx);
         area.turns = super::turns::enabled(Some(display)).then(super::turns::Turns::default);
         area.folds = area
             .collapse
@@ -61,8 +72,9 @@ impl ConversationArea {
         area
     }
 
-    /// W1 supplies its navigation hold; A8 and lifecycle owners separately vote in
-    /// the same registry. Their forms/confirmations are never inferred from text.
+    /// W1 supplies its ONE tree-aggregated navigation hold; A8/lifecycle vote in
+    /// the same registry. Origin recursion below checks local protection only,
+    /// never a fabricated default navigation Ready. Forms stay with their owner.
     pub(crate) fn snapshot_readiness(&self, navigation: OwnerReadiness) -> OwnerReadiness {
         match navigation {
             OwnerReadiness::Hold(_) => navigation,
@@ -94,7 +106,7 @@ impl ConversationArea {
             Origin::Wanted { .. } | Origin::Reading { .. } => {
                 OwnerReadiness::Hold(HoldReason::Loading)
             }
-            Origin::Shown(area) => area.snapshot_readiness(OwnerReadiness::Ready),
+            Origin::Shown(area) => area.local_snapshot_readiness(),
             Origin::None | Origin::Unread { .. } => OwnerReadiness::Ready,
         }
     }
