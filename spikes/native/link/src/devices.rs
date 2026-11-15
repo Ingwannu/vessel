@@ -199,7 +199,10 @@ fn problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        vessel_client::CallError::NotInProtocol { .. } => {
+        // A feature with no protocol number yet is refused before sending,
+        // just as one this node is too old for: both read as unsupported.
+        vessel_client::CallError::NotInProtocol { .. }
+        | vessel_client::CallError::UnassignedProtocol { .. } => {
             Problem::Refused(vessel_proto::ErrorCode::Unsupported)
         }
         vessel_client::CallError::UnexpectedReply(_) => Problem::InvalidReply,

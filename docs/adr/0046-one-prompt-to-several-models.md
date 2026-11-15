@@ -208,6 +208,13 @@ busy target never falls through to queue, steer, interrupt or resume. A lost
 prompt response is UncertainPrompt with its known SessionId: inspect/open
 that session before any new explicit send.
 
+A target's Started state means its one ordinary Start acknowledgement was
+received. It is not a TurnStarted publication or durable-log checkpoint.
+Consumers observe the session timeline through the existing read/follow APIs;
+a prompt acknowledgement must not be used as a readiness condition for indexing
+history. The fake-provider regression observes its plain turn's completion
+before the existing durable-prefix history query and attachment/count checks.
+
 ### Owner lifetime and cancellation
 
 The worker owns all mutable target states, frozen common input and in-flight

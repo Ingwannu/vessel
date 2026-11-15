@@ -7,6 +7,8 @@ mod conversation;
 #[cfg(test)]
 mod diagnostics;
 mod forge;
+mod inbox;
+mod push;
 mod search;
 mod usage;
 
@@ -45,6 +47,7 @@ pub struct Store {
     /// How many sessions retention has removed since the store opened
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
+    inbox: watch::Receiver<()>,
     /// Whether some session's messages are not in the search index yet
     /// (protocol 12, [`Store::indexed`]).
     indexing: watch::Receiver<bool>,
@@ -99,11 +102,13 @@ impl Store {
 
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
+        let (inbox, inbox_changes) = watch::channel(());
         let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
             pruned,
+            inbox,
             indexing: indexing_sender,
         };
         writer::spawn(connection, ops, setup)?;
@@ -113,6 +118,7 @@ impl Store {
             usage_reads: Arc::new(tokio::sync::Semaphore::new(usage::MAX_READS)),
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
+            inbox: inbox_changes,
             indexing,
         };
         Ok(Opened { store, interrupted })

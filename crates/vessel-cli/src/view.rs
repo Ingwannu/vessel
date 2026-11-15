@@ -65,6 +65,16 @@ pub(crate) struct Conversation {
 }
 
 impl Conversation {
+    /// A selected gap must not join chunks from different messages on one line.
+    pub(crate) fn finish_line(&mut self) -> &'static str {
+        let ending = match self.streaming {
+            Streaming::Nothing => "",
+            Streaming::Reply | Streaming::UserReplay => "\n",
+        };
+        self.streaming = Streaming::Nothing;
+        ending
+    }
+
     /// The text for one record.
     pub(crate) fn show(&mut self, record: &EventRecord) -> String {
         match &record.event {

@@ -91,8 +91,19 @@ What a person changed is kept in `settings.json` in the data directory
 (only what was changed, owner-only, replaced atomically) and wins over
 `--park-after` at start, field by field, so a service started with the
 flag does not undo a change at its next restart; the node logs when it
-does. A file that cannot be read or parsed, or a saved choice this build
-does not know, leaves the flag's value. A change is written first and
+does. A saved choice this build does not know leaves the flag's value,
+and fields it does not know are ignored at every level, so a file from a
+later build still parses after a downgrade; such a file (anything this
+build did not read from it, found by comparing the two at start) is
+copied to `settings.json.later-<UTC time>` before the first change this
+build writes, so the later build's settings can be recovered from the
+copy (nothing is merged back on its own). A file that cannot be read or
+parsed leaves the flag's value too, and is first moved aside as
+`settings.json.unreadable-<UTC time>` (owner-only, never over an earlier
+copy), so the next change cannot replace it (2026-11-14; before, it did,
+and every saved setting was lost). If the move fails, the node refuses
+any change that would replace the file (`conflict`, with the reason)
+rather than destroy it. A change is written first and
 applied after, under one lock; a change that changes nothing writes
 nothing. Applied live: the session runtime holds the value in a watch,
 and every structured session's actor re-arms its idle timer from its

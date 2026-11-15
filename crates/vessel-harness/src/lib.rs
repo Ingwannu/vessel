@@ -61,8 +61,13 @@ mod harnesses;
 mod home;
 mod launch;
 mod layout;
+mod limits;
 mod login_status;
 mod lookup;
+pub use limits::{
+    LimitBinding, LimitContext, LimitEnvironment, LimitLoginIdentity, LimitProbe, LimitProbeResult,
+    limits_binding,
+};
 mod mcp;
 mod memory;
 mod profile;

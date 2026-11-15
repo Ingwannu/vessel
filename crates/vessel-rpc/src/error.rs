@@ -95,6 +95,12 @@ pub enum CallError {
     /// This connection has used every request id (2^64 calls).
     #[error("request ids exhausted on this connection")]
     RequestIdsExhausted,
+    /// A field is not assigned a protocol number yet; nothing was sent.
+    #[error("`{}` uses a feature whose protocol version is not assigned", method.as_str())]
+    UnassignedProtocol {
+        /// The method, without any request content.
+        method: Method,
+    },
     /// The call needs a newer protocol than this connection negotiated, so
     /// it was not sent (the node would refuse it, or ignore a field it does
     /// not know).
@@ -110,12 +116,15 @@ pub enum CallError {
 }
 
 impl CallError {
-    /// The node's error code, if the node answered with an error.
+    /// A peer refusal's code, or `Unsupported` when local admission
+    /// prevents a call from reaching the peer.
     #[must_use]
     pub const fn code(&self) -> Option<ErrorCode> {
         match self {
             Self::Remote(error) => Some(error.code),
-            Self::NotInProtocol { .. } => Some(ErrorCode::Unsupported),
+            Self::NotInProtocol { .. } | Self::UnassignedProtocol { .. } => {
+                Some(ErrorCode::Unsupported)
+            }
             Self::Disconnected | Self::UnexpectedReply(_) | Self::RequestIdsExhausted => None,
         }
     }

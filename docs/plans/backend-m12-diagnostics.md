@@ -444,3 +444,25 @@ reviewed again with D4/D5. D2's value-only acceptance remains independent.
 No code, generated declaration, dependency or wire constant changes in this
 acceptance note. The prerequisite head has not been consumed; no alternate
 protocol mechanism or temporary assigned number is introduced.
+
+
+### Shared-accessor head merge checkpoint
+
+The branch merges the supplied green node head
+`f453ec2eda51191e73ebd388c3313be2544ed71a` after the staged-source acceptance.
+This preserves its assigned protocol, schema and migration order, existing
+method/older-peer tables, test expectations and canonical generated output.
+There were no merge conflicts. Existing owner files gain only the previously
+accepted test-gated declarations and the existing testkit development edge;
+the staged diagnostic modules are retained unchanged. No call is registered.
+
+The shared `required_protocol()` accessor is now present. The existing
+`rpc_methods!` table is also retained unchanged. Before call plumbing and the
+failure observer, the common method-metadata/Quality B requirement recorded
+in D1 and the staged-source acceptance still needs to be resolved; there is
+no replacement metadata list or compatibility engine in this branch.
+
+Resume point: run the merged-tree gate through the approved remote runner
+before adding product code. That result is separate from the earlier D3
+gates. `DIAGNOSTICS_PROTOCOL` remains `None`; no diagnostic field, request,
+client call, CLI command or native screen is added by this merge.

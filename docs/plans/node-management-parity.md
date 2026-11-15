@@ -6,16 +6,34 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Done: ADR 0064 and this plan. Status is proposed. A foreground restart
-  on Linux runs the lock holder's executable, not `vesseld.owner`. When
-  `readlink` of `/proc/<pid>/exe` ends in ` (deleted)` because the file
-  was replaced, restart runs the regular file now at that path only if
-  the record still names it. A missing path is its own refusal. The
-  invoker's environment, the sibling settings keys and the Windows
-  refusals are stated. No code.
-- Half-done: nothing.
-- Next: slice 2, after this commit's fast checks are green. A further
-  return is fixed before slice 2.
+- Reviewed: process ownership contract (2p0) passed review. The move still
+  awaits its integration decision; no proc code has changed. Binding name
+  restrictions are recorded in ADR 0001 before implementation. Active map
+  rows and manifests are still unchanged.
+
+- Done: slices 1, 2a (launchd), 2b (graceful stop).
+- Source committed: 2c (`337f92b8`) adds authenticated directory binding
+  and OS-lock completion. Its whole gate had one shared side-question
+  lifecycle failure; the authorized isolated retry passed and review passed.
+  No full-green claim is made for that first run.
+- Done: 2d (`019995ae`) adds a bounded kernel observation at `NodeLock`.
+  Its whole gate passed (1,985 Rust tests, no failures, 12 ignored) and
+  review passed. It sends no signal.
+- Done: 2e (`295937af`) compares dev/inode before strict PID decoding,
+  so foreign malformed rows cannot hide the selected writer. Its whole
+  gate passed (1,986 Rust tests, no failures, 12 ignored) and review passed.
+- Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
+  push. The next slice's gate covers this merged tree, including the
+  explicit forge-fixture clippy and test steps.
+- Returned: 2f passed its whole gate (2,066 Rust tests, no failures,
+  12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
+  hyphens in the launchd comment encoder. The revision uses single-pass
+  character emission and an independent XML/plist parsing regression; its
+  parser helper is inside the existing test module. Final focused checks
+  and the whole gate are pending.
+- Next: gate the 2f revision, then deadline-safe local reads, service
+  observation/finalization, force/restart and slices 3/4. Actual service
+  managers and real agents remain unverified.
 
 ## Existing asset check
 
@@ -120,10 +138,10 @@ Edge cases the slices have to keep a typed answer for:
 - reload of a path pinned by the environment;
 - a password that is empty, mismatched, or typed with no terminal.
 
-## What Vessel does today
+## Starting point before implementation
 
-Recorded in ADR 0064's "Existing implementation". The gaps this plan
-closes are the missing commands `stop`, `restart`, `config` and `reload`,
+Recorded in ADR 0064's "Existing implementation". At the start, the gaps
+were the missing commands `stop`, `restart`, `config` and `reload`,
 and a launchd unit that would undo a clean stop. The gaps it does not
 close are Paseo's features this decision does not add (plugins, voice, a
 daemon password, terminals that survive a restart, resume on startup).
@@ -142,6 +160,18 @@ and `node scripts/check-boundaries.mjs`. Clippy and `cargo test` are
 not run. Nothing under `web/` changes.
 
 ### Slice 2: `vessel node stop` and `vessel node restart`
+
+Split into 2a (launchd clean-exit policy), 2b (graceful stop), 2c (local
+identity and lock completion), then forced cleanup, service finalization
+and restart. Each is independently tested and gated.
+2a reuses `init/service.rs` and `write_once`: no dependency or crate edge
+is added. Standard-library rendering and the existing service manager
+are sufficient. Unlike Paseo's retained supervisor launch
+(`restart.ts` 20–21, 118), Vessel runs the node directly as a user service;
+clean exit must therefore stay stopped. This is the service difference
+already decided in ADR 0064. Linux's template and Windows's existing
+service refusal are unchanged. Runtime launchd behaviour requires macOS.
+
 
 As the ADR's Stop and Restart sections. Tests beside the command, with
 the testkit's node, never a real agent and never the network:
@@ -184,25 +214,30 @@ updated for `KeepAlive` only on a failed exit. No `sleep` as the wait.
 
 ### Slice 3: `config` and `reload`
 
-Two methods, as the ADR. The number is given at merge. The code gates
-them on `NODE_CONFIG_PROTOCOL` and leaves `PROTOCOL_VERSION` at the base
-until that assignment; the constant then equals the base, and the
-integrator changes that one constant. `docs/PROTOCOL.md` is updated in
-this commit because the methods are registered. The mapping exhaustively
-destructures `SetNodeSettings`, so a new field does not compile until it
-has a variant and the reload class its own ADR decided. Generated
-TypeScript is regenerated in the same commit (`web/src/wire/`), and the
-page checks run because the wire changed.
+Two methods, as the ADR. `NODE_CONFIG_PROTOCOL` is
+`Option<ProtocolVersion> = None`; the number is given at merge, and only
+the integrator writes `Some(n)`. Before registering either method, merge
+the node head with the shared `required_protocol()` accessor from the
+titles track. Until that merge, ship value types only, with no registered
+call or parallel gating mechanism. `PROTOCOL_VERSION` stays at its base.
+The client refuses `None` before sending and the node refuses before
+dispatch with typed `Unsupported` / `UnassignedProtocol`.
 
-Tests: round trip; `admin` required to set, unset and reload; `read`
-enough to get; a peer negotiated below `NODE_CONFIG_PROTOCOL` answers
-`unsupported` and the CLI does not send; while the constant equals the
-base, `unsupported` is what tells the CLI the node lacks the method;
-unset clears the saved value so the flag applies; a bad
-`settings.json` on reload changes nothing; an unknown key is refused
-before a call; `restart_required` and `override_controlled` are empty;
-secrets are not in the output (the settings types have none, and the test
-uses a token file the command must not print).
+`docs/PROTOCOL.md` is updated when the methods are registered. Exhaustively
+destructure `SetNodeSettings`: a new field must receive a key and its
+ADR's reload class. `config set` names the whole field. `mcp.inject` and
+`mcp.policy` apply to the next session; `mcp.serve` applies at once
+(ADR 0065, added at merge). This track invents no dotted syntax.
+
+Tests after the shared accessor arrives: round trip; Admin to mutate,
+Read to get; unassigned calls refused without sending or dispatch; lower
+negotiated versions refused after assignment; unset restores the launch
+value; invalid settings reload changes nothing; unknown keys refuse
+before a call; empty restart/override lists for this track's existing
+keys; secret-free output. Any later addition to existing replies/events
+must test every direct/list/page/nested/forwarded per-peer path while its
+feature is unassigned and below its assigned version. Generated TS and
+web gates accompany registration.
 
 ### Slice 4: sessions across a restart
 
@@ -236,3 +271,155 @@ The ADR has the full table. The ones a review will look for:
 - remote restart is refused; remote stop works;
 - `restart_required` and `override_controlled` exist and are empty;
 - saved `park_after` keeps beating the flag.
+
+## Slice 2b implementation evidence
+
+- Read Paseo `packages/cli/src/commands/daemon/stop.ts` 13–21
+  (15-second graceful and 3-second forced defaults), 44–71 (remaining
+  deadline, RPC, local-only force), 95–98 (remote exit unverified);
+  `local-daemon.ts` 74–79 (positive finite seconds, rounded up to ms).
+- Reused `NodeClient::closed` and the existing Admin-scoped `stop_node`;
+  the lock is re-exported through `vessel-node` for local lifecycle checks,
+  without adding a dependency edge or duplicating persistence rules.
+  The preflight lock check applies only when connection uses the implicit
+  local token: a book endpoint's explicit token file may name a different
+  local data directory and must still be usable over the RPC.
+- `[modify]`: extend CLI dispatch and arguments; reuse the update's live
+  listing and confirmation. Those existing functions now receive the
+  resolved target and live-session slice; confirmation returns a typed
+  reply so the new call crosses no raw name/count/boolean boundary.
+  The update command retains the same output and approval rule. A supervisor, external API or new dependency
+  is unnecessary for graceful shutdown. The Rust standard library parses
+  deadlines; unrepresentable monotonic deadlines are typed refusals.
+- Differences already decided in ADR 0064: explicit live-session consent,
+  drain choice and no terminal preservation. New numerical refusal:
+  values too large for the monotonic clock are refused rather than
+  becoming an overflowing deadline. This is a checked-arithmetic safety floor.
+- Current slice limit: graceful stop only. `--force`, `--kill-timeout`,
+  service-manager finalization and `restart` follow separately. Windows
+  uses the same graceful RPC and event; actual Windows and macOS execution
+  still require those operating systems.
+- No wire changes or generated TypeScript changes.
+
+## Slice 2c existing assets and verification
+
+`[modify]`: reuse `DataDir::read_node_id`, the authenticated greeting,
+`NodeClient::closed` and the standard-library lock already used by
+`NodeLock`. The new observer separates connection-only and directory-bound
+postconditions. The small waiter exists because neither the client event
+nor `NodeLock::holder` provides a cancellable release event; it uses no new
+dependency. ADR 0064 records the alternatives and startup race.
+
+Paseo `packages/server/src/server/daemon-instance.ts` 200–214 was read:
+its local exit loop checks the pid and instance replacement, then delays
+100 ms. Vessel waits on the existing directory lock rather than polling
+that pid. Defaults and the remote request-only result are unchanged.
+The preflight and waiter briefly acquiring a lock can cause a concurrent
+start's typed refusal; no atomic stop/start guarantee is claimed.
+
+The focused checks cover the stop CLI plus the three waiter tests.
+The process-exit test holds the lock in its parent and proves a cancelled
+waiter does not keep the child command alive. The two-node CLI test proves
+an explicit endpoint does not wait on another still-running local node.
+The whole gate runs once after committing and prints HEAD/status first.
+No wire, TypeScript, dependency or crate-edge change.
+
+Bounds: the stop default/minimum, waiter test budget and handshake test budget
+are each named once beside the relevant type or fixture. Checks and
+expiry/error output use those values, and boundary tests derive from the
+constants. The default is rendered by clap rather than duplicated in a
+help comment. No fixed budget is copied into an expectation string.
+
+
+## Slice 2d: one kernel observation boundary
+
+`[modify]`: extend store `NodeLock`, which already owns lock/owner formats;
+standard `MetadataExt` and bounded file reads need no new dependency or
+unsafe call. The CLI must reuse this edge for later force/restart instead
+of keeping a second decoder. `NodeLock::holder` and existing tests remain
+unchanged; the observation is additive and does not claim to hold a lease.
+
+Paseo `packages/server/src/server/daemon-instance.ts` 197–214 was read:
+it refuses reserved/self PIDs and detects instance replacement while
+waiting. The stated Rust difference is kernel agreement before process
+control, as ADR 0064 already requires. This slice sends no signal. Linux
+`/proc/locks` absence is `NotVisible`, never a free-lock result; namespace
+filtering and filesystem emulation are documented in the primary manuals
+linked in the ADR. The OS fallback remains and its startup race is still
+stated. A positive writer lets a damaged owner be refused without another
+acquisition attempt. macOS/Windows return `Unsupported`, retaining the
+existing graceful RPC and OS fallback.
+
+Tests beside the rule cover real held/free/stale and damaged records,
+missing paths without file creation, writer decoding, reserved PID, bounded
+allocation/error text and duplicate writers. Existing CLI stop tests cover
+the preflight's held/unreadable and stale owner refusals. Bounds are
+named beside `NodeProcess` and `LockTable`; boundary tests derive from them.
+No new call, field, protocol number, schema migration or crate edge.
+
+
+### Slice 2e: selected-file kernel decoding
+
+Modify the existing kernel edge, retaining its numeric decoder and typed
+errors. Compare the decoded file identity once before interpreting its PID;
+foreign and unidentifiable rows cannot terminate this selected-file query.
+A matching invalid PID is still an error and multiple matching writers
+still refuse. Existing missing-field selection tests now expect no candidate
+when a row cannot identify the selected file; the new regression places
+foreign failures both before and after a valid row. No head test is changed.
+
+The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
+format source. No new dependency, wire call, application bound or platform
+path is added. Focused store clippy and seven lock tests pass, and the
+whole workspace gate and review passed.
+
+
+### Slice 2f: service path fidelity
+
+Modify the existing installer; reuse its renderers and the existing
+`RemoteCommand` POSIX quoting. Standard-library absolute paths avoid
+manager-cwd ambiguity without canonicalizing symlinks. The ADR records
+Unicode/control refusal and systemd data-argument dollar escaping, distinct
+from Environment quoting. There is no new dependency, crate edge, wire call
+or numeric bound. Existing service test cases remain unchanged; add unit
+cases for location/encoding/quoting and a process-level relative installation
+through the existing fake service tools. Windows still skips installation.
+
+The larger stop-time observer draft is deliberately separate: it must not
+expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
+bounded reads and loaded-manager authority validation follow in separate
+reviewable changes. The original whole gate passed; its returned XML-comment
+encoding finding is being corrected and will have a new whole gate.
+
+
+Move file I/O off the async worker while preserving both platform reports.
+Exclusive file creation makes the existing no-overwrite promise hold when two initializers run concurrently; a barrier-based test
+checks that one wins and its content survives. Those checks passed in the
+original whole gate; the comment-encoding revision adds independent XML
+parsing over longer hyphen runs and delimiter-bearing home paths.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
+
+
+## Process-mechanism ownership contract (slice 2p0)
+
+`[modify]`: reuse proc's existing OS inspection and Nix signal ownership.
+ADR 0001 and ARCHITECTURE record a proposed Store-to-Proc edge for the pure
+move and a CLI-to-Proc edge only for the eventual real caller. Active map
+rows and manifests change together at those later steps; this contract is
+papers only. ADR 0064 names the change to its earlier no-new-edge assumption.
+No proc source, PID accessor, signal, wire field or external dependency is
+added here.
+
+Review of the contract precedes any proc code. Then the move, descriptor/
+generation/namespace proof, and actual caller are separate reviewed commits
+with separate whole gates. Existing NodeLock behavior and typed causes stay;
+private assertions move with their rule rather than becoming public getters.
+The ADR lists each phase's test obligations, remaining numeric-signal race
+and platform limits. Deadline-safe local reads and service observations can
+continue independently while the contract is reviewed.
