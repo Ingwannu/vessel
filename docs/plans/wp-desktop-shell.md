@@ -29,9 +29,10 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line dd13ce37 (base 6, connection preflight,
-the safe Windows environment broadcast, reviewed G2 menu profiles and corrected
-Cargo.lock). No node head was merged directly into this application tree.
+latest application base is package line91407173 (base8, native1431/0/2), merged
+in876df47ba: reviewed FieldId and S2 menu leases plus the line's node82ae7c91
+union. No node head was merged directly into this application tree. Existing
+immutable narrow/Windows runs retain their selected older commits.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
 
@@ -160,8 +161,9 @@ assigned S2, sole menu writer, an opaque per-open token checked before pointer,
 key, highlight, outside, close and focus mutations, with retained-render A-to-B
 regressions. V1 reviews and the lead lands that shared fix before consumption.
 S2 reports exactd0954f4b V1 source/Kit narrow PASS (173/0, strict Clippy0), including
-direct and nested retained-render paths. Lead landing is still awaited; no moving
-S2 branch is consumed. The historical native/Linux focused-field F5 proof remains open.
+direct and nested retained-render paths. Its lead-landed source is now consumed
+through package base8; no moving S2 branch was merged. The historical native/Linux
+focused-field F5 proof remains open.
 The app action guard is retained but is not claimed to protect dismissal; this
 package does not edit a second menu renderer or work around it by reopening.
 
