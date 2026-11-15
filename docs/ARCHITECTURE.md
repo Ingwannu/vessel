@@ -1458,3 +1458,15 @@ reply adaptation refuses it to peers without the assigned field version.
 The CLI's `file_terminals` formatter makes those commands visible. Runtime
 terminal creation, service-port assignment and health are later changes.
 No dependency edge, external dependency or store schema changes.
+
+## Project pull-request values (ADR 0061, transport pending)
+
+`vessel-proto::forge` owns an opaque bounded provider cursor, a cursor's
+source-repository association and a validated page of open PR summaries.
+The page decoder caps retained entries before constructing domain data;
+duplicate numbers, another repository, non-open entries and empty
+continuations fail the whole page. Cursor diagnostics omit provider text.
+These values register no call and add no fields to existing replies or
+events. Their feature version remains unassigned; `pr.list` continues to
+mean watched sessions. Project resolution, provider listing and client/CLI
+transport are a following stage, not exposed by these value definitions.
