@@ -194,14 +194,14 @@ fn failed(cx: &mut App, error: &dyn std::fmt::Display, failure: Failure) {
         let message = match failure {
             Failure::State => {
                 shell.local_node_quit_refused(None);
-                shell.words.quit().state_unsaved()
+                shell.words.quit().state_unsaved().to_owned()
             }
             Failure::Node(snapshot) => {
                 shell.local_node_quit_refused(snapshot);
-                shell.words.local_node().quit_refused()
+                shell.words.local_node().quit_refused().to_owned()
             }
         };
-        shell.notice = Some(message.to_owned());
+        shell.notice = Some(message);
         cx.notify();
     });
 }
