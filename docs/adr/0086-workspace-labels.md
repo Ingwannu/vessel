@@ -109,6 +109,13 @@ same fleet connection. The client pauses after unchanged immediate polls;
 it must not turn share exhaustion into a busy loop. The staged actor has no
 principal/connection policy of its own; that remains the handler boundary.
 
+Normal node shutdown queues the actor's close marker before closing the store.
+The actor drains earlier accepted changes through durable reply and publication,
+acknowledges that marker, and refuses work after it. Dropping an RPC does not
+make its accepted mutation disappear from that drain. A scripted held-commit
+regression checks the ordering and post-marker refusal; production cleanup
+must wire this acknowledgement before `Store::close`.
+
 ## Differences and version behavior
 
 - SQLite transactions replace the reference's compound JSON commit journal.

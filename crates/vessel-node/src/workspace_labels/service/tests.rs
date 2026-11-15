@@ -10,6 +10,8 @@ use vessel_proto::{
 
 use super::*;
 
+const SHUTDOWN_TEST_LIMIT: Duration = Duration::from_secs(30);
+
 struct Gate {
     entered: oneshot::Sender<()>,
     release: oneshot::Receiver<()>,
@@ -270,4 +272,55 @@ async fn cancelled_observer_releases_its_watch_receiver() {
     drop(service);
     actor.await.unwrap();
     assert_eq!(changed.receiver_count(), 0);
+}
+
+#[tokio::test]
+async fn normal_shutdown_drains_a_cancelled_accepted_commit_and_refuses_commands_after_its_marker()
+{
+    let check = async {
+        let (entered, started) = oneshot::channel();
+        let (release, waiting) = oneshot::channel();
+        let service = Labels::start(Script::new([Reply::Assign(Step {
+            result: Ok(assigned()),
+            gate: Some(Gate {
+                entered,
+                release: waiting,
+            }),
+        })]))
+        .await
+        .unwrap();
+        let initial = service.list(ListWorkspaceLabels::default()).await.unwrap();
+        let caller = service.clone();
+        let pending = tokio::spawn(async move { caller.assign(assign()).await });
+        started.await.unwrap();
+        pending.abort();
+        assert!(pending.await.unwrap_err().is_cancelled());
+
+        // Poll close once while the writer is held: the marker is queued after
+        // the accepted mutation, but has not claimed that it finished draining.
+        let closing = service.close();
+        tokio::pin!(closing);
+        tokio::select! {
+            biased;
+            _ = &mut closing => panic!("the durable write is still held"),
+            () = tokio::task::yield_now() => {}
+        }
+        let caller = service.clone();
+        let later = tokio::spawn(async move { caller.assign(assign()).await });
+        tokio::task::yield_now().await;
+        release.send(()).unwrap();
+        closing.await.unwrap();
+        assert_eq!(
+            initial.head.after.next(),
+            Some(service.changed.borrow().after)
+        );
+        assert!(matches!(later.await.unwrap(), Err(StoreError::Closed)));
+        assert!(matches!(
+            service.list(ListWorkspaceLabels::default()).await,
+            Err(StoreError::Closed)
+        ));
+    };
+    tokio::time::timeout(SHUTDOWN_TEST_LIMIT, check)
+        .await
+        .unwrap();
 }

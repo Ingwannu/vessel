@@ -53,6 +53,7 @@ pub(super) trait Backend: Send + 'static {
 }
 
 enum Command {
+    Close(oneshot::Sender<()>),
     List(Option<CatalogCursor>, oneshot::Sender<CatalogList>),
     Assign(
         AssignWorkspaceLabel,
@@ -106,6 +107,17 @@ impl Labels {
             Ok(Err(_closed)) => Err(StoreError::Closed),
             Err(_elapsed) => Ok(snapshot),
         }
+    }
+
+    /// Drain changes accepted before this marker before the node closes its
+    /// store. Later commands refuse Closed, as the store writer's close does.
+    pub(super) async fn close(&self) -> Result<(), StoreError> {
+        let (answer, reply) = oneshot::channel();
+        self.commands
+            .send(Command::Close(answer))
+            .await
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)
     }
 
     // Queue/reply channel errors mean closure only. Do not retain a rejected
@@ -176,6 +188,11 @@ async fn run(
 ) {
     while let Some(command) = incoming.recv().await {
         match command {
+            Command::Close(answer) => {
+                incoming.close();
+                let _cancelled = answer.send(());
+                break;
+            }
             Command::List(cursor, answer) => {
                 let _cancelled = answer.send(journal.synchronize(cursor));
             }
