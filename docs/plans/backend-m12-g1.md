@@ -1047,9 +1047,9 @@ The real UI write completed: its toast said `PR merged`, the header's glyph
 changed, the refreshed facts said `Merged`, and merge rows disappeared. However,
 the fixture's summary retained `mergeable`, so Activity still said `Ready to
 merge` beneath `Merged`. That is historical data, not current readiness. The
-facts projection now offers readiness only for an open request, including a
-draft. Closed, merged and unknown states omit it; their state remains in the
-header. All six mergeability values are tested across those states and both
+facts projection offers readiness only for a non-draft open request.
+Draft, closed, merged and unknown requests omit it; their state remains in
+the header. All six mergeability values are tested across those states and both
 open/draft forms. Review pills and a distinct review verdict remain unchanged.
 This follows Paseo's state header and Activity summary (the pane has no extra
 readiness line); Vessel's additional readiness fact remains for open requests.
@@ -1098,3 +1098,23 @@ this changed tree needs its own gate and merged-facts retake.
   Artifact locations and run identifiers are in the private review report.
 - Next: source and visual review, then native-lead integration for build
   0.0.0.0.19. No push or release was performed by this slice.
+
+
+### Draft-readiness source review correction (2026-11-15)
+
+The review returned one source finding: state, draft and mergeability are
+independent wire fields. An open draft can report `Mergeable` or `Unstable`;
+the previous test incorrectly required every draft to expose that reading.
+`Merge::for_open` now returns no current readiness for any draft. The Draft
+header, checks and review facts remain; it neither invents a Blocked response
+nor changes merge permissions. Paseo `git/policy.ts:560–591` and the existing
+`merge_methods` already refuse drafts. Explicit expected results for all six
+non-draft open outcomes remain; terminal/unknown states are tested with both
+draft flags for all six values. This is a wording projection correction,
+not a node or transport change.
+
+The previous 41 captures and their source assignments remain unchanged.
+The reviewer checked each original image, dimension and hash, with no
+additional visual return. A fresh independent Draft+Mergeable/Unstable seed
+and changed-tree native gate are the remaining verification for this fix.
+No old screenshot or old passing gate is claimed as proof of this correction.

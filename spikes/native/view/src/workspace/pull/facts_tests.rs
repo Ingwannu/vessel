@@ -142,24 +142,28 @@ fn review_pills_remove_only_the_same_verdict_and_preserve_different_facts() {
 }
 
 #[test]
-fn a_finished_or_unknown_request_never_claims_current_merge_readiness() {
-    for mergeable in [
-        Mergeable::Mergeable,
-        Mergeable::Conflicting,
-        Mergeable::Blocked,
-        Mergeable::Unstable,
-        Mergeable::Behind,
-        Mergeable::Unknown,
+fn a_draft_or_nonopen_request_never_claims_current_merge_readiness() {
+    for (mergeable, expected) in [
+        (Mergeable::Mergeable, Merge::Ready),
+        (Mergeable::Conflicting, Merge::Conflicts),
+        (Mergeable::Blocked, Merge::Blocked),
+        (Mergeable::Unstable, Merge::Unstable),
+        (Mergeable::Behind, Merge::Behind),
+        (Mergeable::Unknown, Merge::Unknown),
     ] {
         for state in [PullState::Merged, PullState::Closed, PullState::Unknown] {
-            let mut pull = summary(state, false);
-            pull.mergeable = mergeable;
-            assert_eq!(Merge::for_open(&pull), None);
+            for draft in [false, true] {
+                let mut pull = summary(state, draft);
+                pull.mergeable = mergeable;
+                assert_eq!(Merge::for_open(&pull), None);
+            }
         }
-        for draft in [false, true] {
-            let mut pull = summary(PullState::Open, draft);
-            pull.mergeable = mergeable;
-            assert_eq!(Merge::for_open(&pull), Some(Merge::of(mergeable)));
-        }
+        let mut open = summary(PullState::Open, false);
+        open.mergeable = mergeable;
+        assert_eq!(Merge::for_open(&open), Some(expected));
+
+        let mut draft = summary(PullState::Open, true);
+        draft.mergeable = mergeable;
+        assert_eq!(Merge::for_open(&draft), None);
     }
 }

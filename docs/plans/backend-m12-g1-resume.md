@@ -1,7 +1,8 @@
 # Git and pull-request resume record — 2026-11-15
 
-Current source is the committed `54b8aaa1` base plus `175491aa` and
-`d230934a`. The current result is in
+The prior reviewed source is the committed `54b8aaa1` base plus `175491aa`
+and `d230934a`. The draft-readiness correction described below supersedes
+its permissive draft wording; it is awaiting fresh verification. The current result is in
 [the plan's PR closeout section](backend-m12-g1.md#pr-closeout-result-and-resume-point-2026-11-15).
 The older stop record below is historical, not a statement that the current
 registered Git/PR screen remains an uncommitted prototype.
@@ -15,7 +16,12 @@ registered Git/PR screen remains an uncommitted prototype.
   their source/executable/image hashes are in the private review artifacts.
 - A discovered post-merge contradiction was fixed: a merged request no
   longer says it is ready to merge. Existing review facts remain visible.
-- Review is the next step, followed by native-lead integration for
+- Review returned only the draft-readiness wording: the correction now
+  suppresses readiness for every draft, preserves header/check/review facts,
+  and retains explicit non-draft and terminal/unknown assertions. A new
+  independent fake-node Draft seed and one changed-tree gate are pending.
+  The old 41 image/source assignments stay intact.
+- Re-review is the next step, followed by native-lead integration for
   0.0.0.0.19. No release/push was made. The original checkout is unchanged;
   the finishing checkout has its own build target. All owned fleet/display
   processes were stopped. No other track is waiting on a new shared control
