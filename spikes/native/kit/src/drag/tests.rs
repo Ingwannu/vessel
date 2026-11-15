@@ -2,8 +2,8 @@
 //! events: an element that names one waits for it, one that does not
 //! keeps GPUI's 2 points.
 use gpui::{
-    AppContext as _, Context, IntoElement, Modifiers, MouseButton, Pixels, Render,
-    StatefulInteractiveElement as _, Styled as _, TestAppContext, Window, div, point, px,
+    AppContext as _, Context, InteractiveElement as _, IntoElement, Modifiers, MouseButton, Pixels,
+    Render, StatefulInteractiveElement as _, Styled as _, TestAppContext, Window, div, point, px,
 };
 
 use super::LIST_DRAG_DISTANCE;
