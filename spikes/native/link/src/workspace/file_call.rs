@@ -46,9 +46,8 @@ fn closed_problem(error: &vessel_client::CallError) -> Problem {
             message: String::new(),
         },
         CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. } => Problem::Older,
-        CallError::Disconnected
-        | CallError::UnexpectedReply(_)
-        | CallError::RequestIdsExhausted => {
+        CallError::RequestIdsExhausted => Problem::Unsent,
+        CallError::Disconnected | CallError::UnexpectedReply(_) => {
             Problem::Gone("file request did not complete".to_owned())
         }
     }

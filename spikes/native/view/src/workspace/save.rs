@@ -80,7 +80,13 @@ pub fn save_guard(base: Option<&FileVersion>) -> Option<WriteExpect> {
 }
 
 /// A refused write, read back for the banner.
-fn conflict_of(read: Result<FileRead, Problem>, mine: String) -> Saved {
+#[derive(Clone, Copy)]
+enum MissingReadback {
+    LegacyConflict,
+    Deleted,
+}
+
+fn conflict_of(read: Result<FileRead, Problem>, mine: String, missing: MissingReadback) -> Saved {
     match read {
         Ok(read) => {
             // Only a file read whole in its first page is compared line by
@@ -100,7 +106,12 @@ fn conflict_of(read: Result<FileRead, Problem>, mine: String) -> Saved {
                 mine,
             }
         }
-        Err(problem) if problem.code() == Some(ErrorCode::NotFound) => Saved::Missing { mine },
+        Err(problem)
+            if problem.code() == Some(ErrorCode::NotFound)
+                && matches!(missing, MissingReadback::Deleted) =>
+        {
+            Saved::Missing { mine }
+        }
         Err(_problem) => Saved::Conflict {
             disk: None,
             disk_text: None,
@@ -125,6 +136,22 @@ where
     R: FnOnce() -> RF,
     RF: Future<Output = Result<FileRead, Problem>>,
 {
+    save_guarded(write, read, text, base, MissingReadback::LegacyConflict).await
+}
+
+async fn save_guarded<W, WF, R, RF>(
+    write: W,
+    read: R,
+    text: String,
+    base: Option<&FileVersion>,
+    missing: MissingReadback,
+) -> Saved
+where
+    W: FnOnce(WriteExpect, String) -> WF,
+    WF: Future<Output = Result<FileVersion, Problem>>,
+    R: FnOnce() -> RF,
+    RF: Future<Output = Result<FileRead, Problem>>,
+{
     let Some(expect) = save_guard(base) else {
         return Saved::Failed(SaveFailure::NoGuard);
     };
@@ -134,13 +161,22 @@ where
         // Only a guarded write's refusal is a conflict to show; an
         // Overwrite's failure is said as the node said it.
         Err(problem) if guarded && problem.code() == Some(ErrorCode::Conflict) => {
-            conflict_of(read().await, text)
+            conflict_of(read().await, text, missing)
         }
-        Err(problem @ (Problem::Older | Problem::Unsent)) => {
-            Saved::Failed(SaveFailure::Call(problem))
-        }
+        Err(problem) if known_not_written(&problem) => Saved::Failed(SaveFailure::Call(problem)),
         Err(problem) => Saved::Uncertain(problem),
     }
+}
+
+// Only authentication/policy refusals are classified here: the node checks
+// these before invoking file.write. Filesystem/post-publication errors are not
+// proven no-effect and remain uncertain, including a trailing version failure.
+fn known_not_written(problem: &Problem) -> bool {
+    matches!(problem, Problem::Older | Problem::Unsent)
+        || matches!(
+            problem.code(),
+            Some(ErrorCode::Forbidden | ErrorCode::Unauthorized)
+        )
 }
 
 /// Editor overwrite is restricted to a freshly confirmed existing text file.
@@ -162,7 +198,7 @@ where
     RF: Future<Output = Result<FileRead, Problem>>,
 {
     if base.is_some() {
-        return save_text(write, read, text, base).await;
+        return save_guarded(write, read, text, base, MissingReadback::Deleted).await;
     }
     let current = match read().await {
         Ok(current) => current,
@@ -192,9 +228,7 @@ where
             disk_text: None,
             mine: text,
         },
-        Err(problem @ (Problem::Older | Problem::Unsent)) => {
-            Saved::Failed(SaveFailure::Call(problem))
-        }
+        Err(problem) if known_not_written(&problem) => Saved::Failed(SaveFailure::Call(problem)),
         Err(problem) => Saved::Uncertain(problem),
     }
 }
@@ -365,8 +399,10 @@ mod tests {
         ));
         assert_eq!(
             saved,
-            Saved::Missing {
-                mine: "mine".to_owned()
+            Saved::Conflict {
+                disk: None,
+                disk_text: None,
+                mine: "mine".to_owned(),
             }
         );
     }
@@ -393,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn an_unclassified_write_failure_keeps_the_original_effect_uncertain() {
+    fn says_another_refusal_as_the_node_said_it() {
         let saved = now(save_text(
             |_expect, _text| ready(Err(refused(ErrorCode::Forbidden, "read only"))),
             || -> Ready<Result<FileRead, Problem>> { panic!("not read") },
@@ -402,7 +438,10 @@ mod tests {
         ));
         assert_eq!(
             saved,
-            Saved::Uncertain(refused(ErrorCode::Forbidden, "read only"))
+            Saved::Failed(SaveFailure::Call(refused(
+                ErrorCode::Forbidden,
+                "read only"
+            )))
         );
     }
 
@@ -425,6 +464,34 @@ mod tests {
         assert!(matches!(
             saved,
             Saved::Conflict { disk: Some(disk), disk_text: None, .. } if disk == changed()
+        ));
+    }
+
+    #[test]
+    fn source_guarded_conflict_can_distinguish_confirmed_deletion() {
+        assert_eq!(
+            now(save_existing_text(
+                |_, _| ready(Err(refused(ErrorCode::Conflict, "changed"))),
+                || ready(Err(refused(ErrorCode::NotFound, "missing"))),
+                "mine".into(),
+                Some(&read_version()),
+            )),
+            Saved::Missing {
+                mine: "mine".into()
+            }
+        );
+    }
+
+    #[test]
+    fn a_post_publication_node_failure_keeps_the_original_effect_uncertain() {
+        assert!(matches!(
+            now(save_existing_text(
+                |_, _| ready(Err(refused(ErrorCode::Internal, "result version failed"))),
+                || -> Ready<Result<FileRead, Problem>> { panic!("not read") },
+                "mine".into(),
+                Some(&read_version()),
+            )),
+            Saved::Uncertain(_)
         ));
     }
 

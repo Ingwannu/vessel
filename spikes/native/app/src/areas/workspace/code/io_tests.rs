@@ -472,9 +472,7 @@ fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut T
         shell.open_file_at("b.txt".parse().unwrap(), None, cx);
         let b = shell.areas.workspace.code.file_key().unwrap();
         // Exercise the reservation without allocating a budget-sized string.
-        assert!(
-            shell.reserve_readonly_source(&b, vessel_proto::workspace::FileSize(32 * 1024 * 1024))
-        );
+        assert!(shell.reserve_readonly_source(&b, super::buffers::MAX_READONLY_SOURCE));
         assert!(!shell.areas.workspace.code.files.retained.contains_key(&a));
         let ticket = shell
             .areas
@@ -486,9 +484,7 @@ fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut T
             .unwrap();
         shell.file_read_answered_for(&b, &read(root, "b.txt"), ticket, Ok(text("visible")), cx);
         // A late retained acquisition cannot evict the currently visible source.
-        assert!(
-            !shell.reserve_readonly_source(&a, vessel_proto::workspace::FileSize(32 * 1024 * 1024))
-        );
+        assert!(!shell.reserve_readonly_source(&a, super::buffers::MAX_READONLY_SOURCE));
         assert!(shell.areas.workspace.code.viewer_at(&b).is_some());
     });
 }

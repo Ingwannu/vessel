@@ -471,3 +471,18 @@ The readonly payload reservation regression uses small actual retained sources
 and a budget-sized reservation without allocating a large fixture. It pins
 parked-only eviction and refusal to evict a visible owner for a late response.
 No editable draft is truncated or discarded to meet the readonly cache cap.
+
+### Generic save compatibility and proven non-dispatch
+
+The generic save helper retains its original missing-conflict representation;
+only the source-specific helper reports confirmed deletion. Both share one
+write/conflict-read core. The two original head cases for missing disk and a
+Forbidden refusal are restored unchanged, with separate source-deletion and
+post-publication Internal-error regressions added. A narrowly classified
+Forbidden/Unauthorized response is a terminal pre-handler policy/auth rejection:
+node service/files delegates to workspace/files, whose filesystem error mapper
+workspace/error emits Internal for I/O, including after publication, rather
+than these authentication codes. Such proven policy rejection and local request
+id exhaustion settle known not sent. A G4 call refusal, disconnect, unexpected
+reply, timeout or unclassified filesystem error remains sticky uncertain.
+Neither a later read nor reconnection releases an original unknown effect.

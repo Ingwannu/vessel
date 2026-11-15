@@ -14,7 +14,7 @@ use vessel_proto::workspace::FileSize;
 const MAX_RETAINED_FILES: usize = 32;
 /// Logical read-only source payload, excluding lexer/row/control allocations.
 /// Oversize paste/undo in an editable draft is never discarded to meet this cap.
-const MAX_READONLY_SOURCE: FileSize = FileSize(32 * 1024 * 1024);
+pub(super) const MAX_READONLY_SOURCE: FileSize = FileSize(32 * 1024 * 1024);
 
 fn readonly_size(viewer: &Viewer) -> FileSize {
     match &viewer.text {
