@@ -38,6 +38,7 @@ fn every_envelope_recursively_requires_the_inner_method_or_field_version() {
         (ListInbox::default().into_call(), ProtocolVersion::new(22)),
         (
             SetNodeSettings {
+                browser_tools: None,
                 park_after: None,
                 drivers: Some(SetAgentDrivers {
                     codex: Some(AgentDriver::Acp),

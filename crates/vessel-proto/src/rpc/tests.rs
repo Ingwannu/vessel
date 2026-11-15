@@ -685,11 +685,13 @@ fn a_forwarded_call_nests_its_inner_call() {
 fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
     use crate::settings::{AgentDriver, SetAgentDrivers, SetNodeSettings};
     let parking = SetNodeSettings {
+        browser_tools: None,
         park_after: Some(crate::parking::ParkAfter::Never),
         drivers: None,
     };
     assert_eq!(parking.into_call().since(), Some(ProtocolVersion::new(12)));
     let drivers = SetNodeSettings {
+        browser_tools: None,
         park_after: None,
         drivers: Some(SetAgentDrivers {
             codex: Some(AgentDriver::Acp),

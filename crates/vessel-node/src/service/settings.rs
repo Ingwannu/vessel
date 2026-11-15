@@ -20,15 +20,23 @@ impl NodeService {
     /// `node.set_settings`: change, keep and apply what the request names.
     pub(crate) async fn set_node_settings(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: SetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
+        if request.browser_tools.is_some() {
+            super::browser::human(
+                connection.principal(),
+                vessel_proto::Method::SetNodeSettings,
+            )?;
+        }
         self.settings.change(request).await.map_err(|error| {
             let code = match error {
-                SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
-                    ErrorCode::InvalidRequest
+                SettingsError::Unknown
+                | SettingsError::UnknownDriver(_)
+                | SettingsError::UnknownBrowser => ErrorCode::InvalidRequest,
+                SettingsError::NoDirect(_) | SettingsError::BrowserPending => {
+                    ErrorCode::Unsupported
                 }
-                SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 // The node's own file needs a person's hand first.
                 SettingsError::Kept(_) => ErrorCode::Conflict,
                 SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,

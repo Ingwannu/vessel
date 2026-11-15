@@ -65,6 +65,12 @@ pub(crate) enum SettingsError {
     /// A driver this node does not know.
     #[error("this node does not know that driver for {0}; send acp or direct")]
     UnknownDriver(HarnessKind),
+    /// A newer browser preference is never interpreted as an enable request.
+    #[error("this node does not know that browser-tools choice; send on or off")]
+    UnknownBrowser,
+    /// Persistence is not wired before the shared writer/cancellation repair.
+    #[error("browser tools are not available on this node")]
+    BrowserPending,
     /// An agent's own protocol this build does not offer yet.
     #[error("this build of Vessel does not offer {0} over its own protocol yet; it runs over ACP")]
     NoDirect(HarnessKind),
@@ -166,6 +172,9 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
+            // Typed pending plumbing only: checked shared writer integration
+            // and actual session-offer/engine wiring still precede any enable.
+            browser_tools: vessel_proto::browser::BrowserTools::Off,
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
@@ -184,6 +193,13 @@ impl Settings {
         &self,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
+        if let Some(browser) = change.browser_tools {
+            return Err(match browser {
+                vessel_proto::browser::BrowserTools::Unknown => SettingsError::UnknownBrowser,
+                vessel_proto::browser::BrowserTools::Off
+                | vessel_proto::browser::BrowserTools::On => SettingsError::BrowserPending,
+            });
+        }
         if change.park_after == Some(ParkAfter::Unknown) {
             return Err(SettingsError::Unknown);
         }

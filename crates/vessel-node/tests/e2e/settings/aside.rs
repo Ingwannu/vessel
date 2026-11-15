@@ -54,6 +54,7 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
         // A change writes a new file; the copy stays as it was.
         let changed = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
             })
@@ -88,6 +89,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
         assert!(set_aside(&fixture, "later").is_empty(), "only a change copies");
         let _in_force = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(idle(5)),
                 drivers: None,
             })
@@ -105,6 +107,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
         // Copied once: a second change writes without another copy.
         let _in_force = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
             })
@@ -118,6 +121,7 @@ async fn a_later_builds_file_is_copied_before_the_first_change() {
         let owner = fixture.connect(&node).await;
         let _in_force = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(idle(7)),
                 drivers: None,
             })

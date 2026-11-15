@@ -130,6 +130,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             let settings = if park_after.is_some() || drivers.is_some() {
                 client
                     .call(SetNodeSettings {
+                        browser_tools: None,
                         park_after,
                         drivers,
                     })

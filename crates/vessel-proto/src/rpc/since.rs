@@ -101,7 +101,13 @@ impl Call {
             // cannot decode it (its guard compared a time instead).
             // Drivers came in 18 (ADR 0057): an older node would keep
             // running the agent over ACP and say nothing.
-            Self::SetNodeSettings(request) => request.drivers.map(|_| 18),
+            Self::SetNodeSettings(request) => {
+                let mut fields = request.drivers.map(|_| 18);
+                if request.browser_tools.is_some() {
+                    fields = fields.max(Some(crate::browser::BROWSER_PROTOCOL?.get()));
+                }
+                fields
+            }
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,

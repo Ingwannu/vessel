@@ -691,3 +691,45 @@ That read shares the traversal's work/text budgets; if it cannot complete, no re
 is assigned and truncation is explicit. These are our own DOM operations, not
 copied reference code. The updated real149 semantic/form fixture is in flight;
 old script-hash evidence does not qualify this changed source. Engine stays closed.
+
+## Pending browser setting value plumbing after row220 CONTRACT PASS
+
+Proto now carries default-Off browser_tools and a present-only strict decoder on
+the optional change. Null/boolean/object/array refuse instead of becoming None;
+unknown strings remain a named Unknown for explicit refusal. Any named value
+(including Off/Unknown) requires BROWSER_PROTOCOL at every envelope hop. Reply
+projection composes the existing recovery mask and omits unsupported On/Unknown.
+Required settings literal adaptations are otherwise unchanged old behavior.
+
+This commit does NOT integrate persistence: shared settings writer repair row204
+(aa70782dc source pass/gate owed) and privacy repair row187 are not yet in this
+announced base. No writer is copied. The existing settings owner currently rejects
+every explicit browser change before its lock/I/O (unknown choice Invalid, known
+choice unavailable); the generic service additionally checks direct human Admin.
+Effective browser preference remains Off. The field and codec are pending value
+plumbing only, not a consumer-ready saved preference or session-start offer.
+Once the checked shared owner lands, extend its existing overlay/merge under the
+same guard/tracker and remove the pending refusal with the actual browser wiring.
+No protocol number or supported engine is assigned by these types.
+
+Exact47f43541 strict completed red on13 snapshot lint diagnostics. They are now
+fixed: typed binding comparison supplies its actual field consumer, fixture math
+and explicit results/enum matches are checked, complete takes a borrowed graph,
+and rendering appends without a redundant format allocation. The earlier run
+predates the later keyboard/proxy-drain/settings work, whose current combined
+strict/tests remain owed. No assertions or bounds were weakened to pass it.
+
+On13:25 UTC the debugger-EOF diagnostic observed14 actual owned Chrome processes
+by exact fixture profile/process group and kernel PID fds. All observed identities
+exited without forced cleanup when the debugger pipes closed; leader exit0 and
+profile/files stayed private. This is a finite observed set, not every possible
+future descendant's death, the Rust process supervisor, Preview or Windows proof.
+Artifacts: /tmp/work/wp-browser/pipe-eof-lifetime-diagnostic. The shared checked-wait
+producer b37a3ee8 separately means leader reap plus original accepted cleanup;
+its contract does not turn that receipt into an all-descendant OS-death proof.
+
+The changed own DOM script5b091b2fa89c54700a0675449f2762261264a17e027a797eadf2d40d74bfb6f9
+passed its actual149 expanded semantic fixture: inherited fieldset disabling,
+exact contenteditable whitespace fingerprints, prior same/cross-origin/hidden/
+main-prototype canaries and exact big refs. UID/GID1000, sandbox on, exit0 and
+private inspected entries. Rust path and product qualification still separate.

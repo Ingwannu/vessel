@@ -15,6 +15,7 @@
 //!   agent that has one of its own. A node of 17 answers without it, which
 //!   reads as ACP for every agent, what it runs.
 
+mod browser;
 mod metadata;
 pub use metadata::{
     InvalidMetadata, MAX_METADATA_PROVIDERS, MetadataEffort, MetadataProvider, MetadataSettings,
@@ -41,6 +42,10 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
+    /// Saved preference only; default-Off and hidden while browser protocol is pending.
+    /// On does not qualify an engine or create a session-start offered-tool lease.
+    #[serde(default, skip_serializing_if = "crate::browser::BrowserTools::is_off")]
+    pub browser_tools: crate::browser::BrowserTools,
 }
 
 impl NodeSettings {
@@ -48,7 +53,15 @@ impl NodeSettings {
     /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+        let mut projected =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        browser::project(
+            self,
+            &mut projected,
+            protocol,
+            crate::browser::BROWSER_PROTOCOL,
+        );
+        projected
     }
 
     fn for_recovery_protocol(
@@ -185,6 +198,14 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// A named mutation needs the browser feature even when turning Off.
+    /// Raw null is invalid; it must not turn a named field into omission.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "browser::change"
+    )]
+    pub browser_tools: Option<crate::browser::BrowserTools>,
 }
 
 #[cfg(test)]
@@ -194,6 +215,7 @@ mod tests {
     #[test]
     fn recovery_projection_respects_a_synthetic_assigned_boundary() {
         let original = NodeSettings {
+            browser_tools: crate::browser::BrowserTools::Off,
             park_after: ParkAfter::Never,
             drivers: AgentDrivers::default(),
             restart_recovery: RestartRecovery {

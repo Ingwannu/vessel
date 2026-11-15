@@ -47,6 +47,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
 
         let changed = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(ParkAfter::Never),
                 drivers: None,
             })
@@ -61,6 +62,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
             code(
                 owner
                     .call(SetNodeSettings {
+                        browser_tools: None,
                         park_after: Some(ParkAfter::Unknown),
                         drivers: None,
                     })
@@ -89,6 +91,7 @@ async fn a_change_is_kept_across_a_restart_and_wins_over_the_flag() {
         );
         let changed = owner
             .call(SetNodeSettings {
+                browser_tools: None,
                 park_after: Some(idle(5)),
                 drivers: None,
             })
@@ -119,6 +122,7 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
             code(
                 agent
                     .call(SetNodeSettings {
+                        browser_tools: None,
                         park_after: Some(ParkAfter::Never),
                         drivers: None,
                     })
@@ -139,6 +143,7 @@ async fn an_agent_reads_the_settings_but_may_not_change_them() {
 /// A change naming `drivers` only.
 fn drivers(drivers: SetAgentDrivers) -> SetNodeSettings {
     SetNodeSettings {
+        browser_tools: None,
         park_after: None,
         drivers: Some(drivers),
     }

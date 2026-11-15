@@ -70,7 +70,7 @@ impl NodeService {
     }
 }
 
-fn human(principal: &Principal, method: Method) -> Result<(), WireError> {
+pub(super) fn human(principal: &Principal, method: Method) -> Result<(), WireError> {
     principal.permit(method)?;
     match principal {
         Principal::Owner | Principal::Device { .. } => Ok(()),
@@ -148,6 +148,34 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_named_generic_browser_setting_is_direct_human_admin_only() {
+        let device = |scopes| Principal::Device {
+            id: DeviceId::random(),
+            scopes,
+        };
+        assert!(human(&Principal::Owner, Method::SetNodeSettings).is_ok());
+        assert!(human(&device(vec![Scope::Admin]), Method::SetNodeSettings).is_ok());
+        assert!(human(&device(vec![Scope::Operate]), Method::SetNodeSettings).is_err());
+        let agent = Principal::Agent {
+            node: NodeId::random(),
+            session: SessionId::random(),
+            scopes: Scope::ALL.to_vec(),
+        };
+        assert!(human(&agent, Method::SetNodeSettings).is_err());
+        let delegated = Principal::delegated(
+            DeviceId::random(),
+            &Scope::ALL,
+            Origin {
+                node: NodeId::random(),
+                by: OriginBy::Owner,
+                scopes: Scope::ALL.to_vec(),
+            },
+            NodeId::random(),
+        );
+        assert!(human(&delegated, Method::SetNodeSettings).is_err());
     }
 
     #[test]
