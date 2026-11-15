@@ -154,9 +154,10 @@ impl Worker {
             .ok_or_else(|| Arc::new(RegistryError::Gone))?;
         let factory = Arc::clone(&self.factory);
         let snapshot = self.snapshot.clone();
+        let stopped = control.work();
         let preparing = async move {
             let current = snapshot.current().await;
-            factory.prepare(&current, lease).await
+            factory.prepare(&current, lease, &stopped).await
         };
         let source = self.await_preparation(reply, control, preparing).await?;
         let lease = self

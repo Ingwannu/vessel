@@ -39,14 +39,22 @@ async fn values_are_fresh_and_presence_never_returns_the_selected_name_or_value(
             KeyPresence::Absent
         );
         crate::fleet::set_secret(&reader.files, &name, "synthetic-first").unwrap();
-        let first = reader.resolve(&name, None).await.unwrap().unwrap();
+        let first = reader
+            .resolve(&name, Admission::Presence)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(first.expose() == "synthetic-first");
         assert_eq!(
             reader.presence(Some(&name)).await.unwrap(),
             KeyPresence::Present
         );
         crate::fleet::set_secret(&reader.files, &name, "synthetic-second").unwrap();
-        let second = reader.resolve(&name, None).await.unwrap().unwrap();
+        let second = reader
+            .resolve(&name, Admission::Presence)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(second.expose() == "synthetic-second");
         assert!(crate::fleet::delete_secret(&reader.files, &name).unwrap());
         assert_eq!(
@@ -64,6 +72,50 @@ async fn values_are_fresh_and_presence_never_returns_the_selected_name_or_value(
 }
 
 #[tokio::test]
+async fn cancelled_preparation_neither_waits_for_nor_enters_the_read_gate() {
+    let (_temp, reader, name) = fixture();
+    let held = Arc::clone(&reader.slots)
+        .acquire_many_owned(u32::try_from(NODE_STREAMS).unwrap())
+        .await
+        .unwrap();
+    let stopped = CancellationToken::new();
+    let lease = crate::dictation::quota::tests::lease();
+    let weak = Arc::downgrade(&lease);
+    let mut reading = Box::pin(reader.resolve(
+        &name,
+        Admission::Preparing {
+            lease,
+            stopped: &stopped,
+        },
+    ));
+    assert!(futures_util::poll!(reading.as_mut()).is_pending());
+    stopped.cancel();
+    // Every permit is still held: success here cannot depend on a read ending.
+    assert!(matches!(
+        futures_util::poll!(reading.as_mut()),
+        std::task::Poll::Ready(Err(ReadError::Cancelled))
+    ));
+    drop(reading);
+    assert!(weak.upgrade().is_none());
+    assert_eq!(reader.slots.available_permits(), 0);
+    drop(held);
+    // Already cancelled admission also wins when capacity is immediately ready.
+    assert!(matches!(
+        reader
+            .resolve(
+                &name,
+                Admission::Preparing {
+                    lease: crate::dictation::quota::tests::lease(),
+                    stopped: &stopped,
+                },
+            )
+            .await,
+        Err(ReadError::Cancelled)
+    ));
+    assert_eq!(reader.slots.available_permits(), NODE_STREAMS);
+}
+
+#[tokio::test]
 async fn dropping_a_waiter_retains_read_capacity_and_stream_lease_until_actual_io_ends() {
     tokio::time::timeout(TEST_LIMIT, async {
         let (_temp, mut reader, name) = fixture();
@@ -76,7 +128,17 @@ async fn dropping_a_waiter_retains_read_capacity_and_stream_lease_until_actual_i
         let lease = crate::dictation::quota::tests::lease();
         let weak = Arc::downgrade(&lease);
         let running = reader.clone();
-        let task = tokio::spawn(async move { running.resolve(&name, Some(lease)).await });
+        let task = tokio::spawn(async move {
+            running
+                .resolve(
+                    &name,
+                    Admission::Preparing {
+                        lease,
+                        stopped: &CancellationToken::new(),
+                    },
+                )
+                .await
+        });
         hook.entered.notified().await;
         assert_eq!(reader.slots.available_permits(), NODE_STREAMS - 1);
         task.abort();
@@ -102,7 +164,10 @@ async fn corrupt_store_diagnostics_keep_the_cause_without_names_paths_or_payload
         let (_temp, reader, name) = fixture();
         std::fs::create_dir_all(reader.files.secrets().parent().unwrap()).unwrap();
         std::fs::write(reader.files.secrets(), "TRANSCRIPTION = [synthetic-hidden").unwrap();
-        let error = reader.resolve(&name, None).await.unwrap_err();
+        let error = reader
+            .resolve(&name, Admission::Presence)
+            .await
+            .unwrap_err();
         assert!(matches!(error, ReadError::Store(_)));
         assert!(std::error::Error::source(&error).is_some());
         for rendered in [format!("{error}"), format!("{error:?}")] {

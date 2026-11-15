@@ -928,3 +928,18 @@ uses the real selected secret store, corrupts it, and requests only a parking
 change: the supported reply must refuse before either the saved settings file or
 settings in force changes. It would expose a presence lookup moved after the
 write. This is an additional unexecuted case, not new runtime evidence.
+
+### Cancelled preparation before read admission
+
+Source reading found that the registry deliberately awaited preparation during
+retirement, but had not passed the stop signal to the read gate. A cancelled
+start could thus begin a new disk read after it eventually acquired capacity.
+The existing reader now distinguishes presence from stream preparation, with
+the latter carrying its existing lease and first-stop token. Admission observes
+that token; started blocking I/O retains the unchanged ownership rule. No
+credential cache, new reader, quota or storage format is introduced. A regression
+holds every read permit, cancels an explicitly pending preparation and requires
+immediate typed refusal while all permits remain held; it also checks cancellation
+wins against immediately available capacity. Existing started-I/O retention
+assertions are unchanged. These cases still require execution on the current
+package source; the already-queued strict snapshot predates this correction.

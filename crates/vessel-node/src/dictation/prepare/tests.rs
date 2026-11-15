@@ -67,13 +67,21 @@ async fn every_preparation_reads_the_selected_key_fresh_and_keeps_its_own_client
         crate::fleet::set_secret(&files, &name, "synthetic-first").unwrap();
         let first = prepared(
             factory
-                .prepare(&saved, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &saved,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new(),
+                )
                 .await,
         );
         crate::fleet::set_secret(&files, &name, "synthetic-second").unwrap();
         let second = prepared(
             factory
-                .prepare(&saved, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &saved,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new(),
+                )
                 .await,
         );
         let segment =
@@ -84,7 +92,11 @@ async fn every_preparation_reads_the_selected_key_fresh_and_keeps_its_own_client
         assert!(crate::fleet::delete_secret(&files, &name).unwrap());
         assert!(matches!(
             factory
-                .prepare(&saved, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &saved,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new()
+                )
                 .await,
             Err(PrepareError::KeyAbsent)
         ));
@@ -104,6 +116,7 @@ async fn defaults_disabled_and_unknown_choices_refuse_without_reading_the_secret
             .prepare(
                 &SetDictation::default(),
                 crate::dictation::quota::tests::lease(),
+                &CancellationToken::new(),
             )
             .await;
         match local {
@@ -125,7 +138,11 @@ async fn defaults_disabled_and_unknown_choices_refuse_without_reading_the_secret
         };
         assert!(matches!(
             factory
-                .prepare(&off, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &off,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new()
+                )
                 .await,
             Err(PrepareError::Disabled)
         ));
@@ -135,7 +152,11 @@ async fn defaults_disabled_and_unknown_choices_refuse_without_reading_the_secret
         };
         assert!(matches!(
             factory
-                .prepare(&unknown, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &unknown,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new()
+                )
                 .await,
             Err(PrepareError::Configuration(
                 DictationDecodeError::UnknownProvider
@@ -153,21 +174,33 @@ async fn absent_blank_and_invalid_header_keys_never_become_a_provider() {
         let saved = endpoint(&name, EndpointBase::openai());
         assert!(matches!(
             factory
-                .prepare(&saved, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &saved,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new()
+                )
                 .await,
             Err(PrepareError::KeyAbsent)
         ));
         crate::fleet::set_secret(&files, &name, " \t\n ").unwrap();
         assert!(matches!(
             factory
-                .prepare(&saved, crate::dictation::quota::tests::lease())
+                .prepare(
+                    &saved,
+                    crate::dictation::quota::tests::lease(),
+                    &CancellationToken::new()
+                )
                 .await,
             Err(PrepareError::KeyAbsent)
         ));
         let marker = "synthetic-invalid\nheader";
         crate::fleet::set_secret(&files, &name, marker).unwrap();
         let Err(error) = factory
-            .prepare(&saved, crate::dictation::quota::tests::lease())
+            .prepare(
+                &saved,
+                crate::dictation::quota::tests::lease(),
+                &CancellationToken::new(),
+            )
             .await
         else {
             panic!("a multiline credential became a provider");

@@ -9,9 +9,10 @@ use super::{
     jobs::Source,
     quota::Lease,
     roots,
-    secret_read::{ReadError, Reader},
+    secret_read::{Admission, ReadError, Reader},
 };
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 use vessel_proto::dictation::{
     DictationDecodeError, DictationProvider, DictationSwitch, KeyPresence, LocalModelId,
     SetDictation,
@@ -117,12 +118,13 @@ impl Factory {
         &self,
         saved: &SetDictation,
         lease: Arc<Lease>,
+        stopped: &CancellationToken,
     ) -> Result<Source, PrepareError> {
         let (saved, config) = selection(saved)?;
         let name = saved.key_name().ok_or(PrepareError::KeyAbsent)?;
         let key = self
             .reader
-            .resolve(name, Some(Arc::clone(&lease)))
+            .resolve(name, Admission::Preparing { lease, stopped })
             .await
             .map_err(PrepareError::Secret)?
             .ok_or(PrepareError::KeyAbsent)?;

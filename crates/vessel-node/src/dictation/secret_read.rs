@@ -7,11 +7,14 @@ use super::quota::{Lease, NODE_STREAMS};
 use crate::fleet::{FleetFiles, SecretsError};
 use std::sync::Arc;
 use tokio::sync::{AcquireError, Semaphore};
+use tokio_util::sync::CancellationToken;
 use vessel_proto::{ResolvedValue, SecretName, dictation::KeyPresence};
 
 /// Settings and provider admission retain causes behind their fixed public boundaries.
 #[derive(thiserror::Error)]
 pub(crate) enum ReadError {
+    #[error("the dictation preparation stopped before its secret read began")]
+    Cancelled,
     #[error("the dictation secret read gate is closed")]
     Closed(#[source] AcquireError),
     #[error("the dictation secret store could not be read")]
@@ -24,6 +27,15 @@ pub(crate) enum ReadError {
     #[cfg(test)]
     #[error("the synthetic read gate did not finish")]
     Hook(#[source] std::sync::mpsc::RecvTimeoutError),
+}
+
+/// A retiring stream cancels admission, but never abandons already-started I/O.
+pub(super) enum Admission<'a> {
+    Presence,
+    Preparing {
+        lease: Arc<Lease>,
+        stopped: &'a CancellationToken,
+    },
 }
 impl std::fmt::Debug for ReadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -53,12 +65,22 @@ impl Reader {
     pub(super) async fn resolve(
         &self,
         name: &SecretName,
-        lease: Option<Arc<Lease>>,
+        admission: Admission<'_>,
     ) -> Result<Option<ResolvedValue>, ReadError> {
-        let permit = Arc::clone(&self.slots)
-            .acquire_owned()
-            .await
-            .map_err(ReadError::Closed)?;
+        let acquiring = Arc::clone(&self.slots).acquire_owned();
+        let permit = match &admission {
+            Admission::Presence => acquiring.await,
+            Admission::Preparing { stopped, .. } => tokio::select! {
+                biased;
+                () = stopped.cancelled() => return Err(ReadError::Cancelled),
+                permit = acquiring => permit,
+            },
+        }
+        .map_err(ReadError::Closed)?;
+        let lease = match admission {
+            Admission::Presence => None,
+            Admission::Preparing { lease, .. } => Some(lease),
+        };
         let files = self.files.clone();
         let name = name.clone();
         #[cfg(test)]
@@ -83,7 +105,7 @@ impl Reader {
         let Some(name) = name else {
             return Ok(KeyPresence::Absent);
         };
-        Ok(match self.resolve(name, None).await? {
+        Ok(match self.resolve(name, Admission::Presence).await? {
             Some(value) if !value.expose().trim().is_empty() => KeyPresence::Present,
             Some(_) | None => KeyPresence::Absent,
         })

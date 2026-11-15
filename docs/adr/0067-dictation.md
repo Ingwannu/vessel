@@ -400,6 +400,13 @@ read/start wire diagnostics never reveal a name, value or path. Hidden replies
 to unassigned/older peers skip the presence work entirely. The gate is independent
 of the stream quotas so a read does not look like an active recording.
 
+Preparation passes its existing first-stop signal into that admission wait.
+Retirement can therefore finish waiting for preparation without causing an
+unstarted read to enter the gate after cancellation. The signal cancels only
+acquisition; once admitted, the real blocking read retains its lease and must
+finish. Presence callers use their own future cancellation and the same gate,
+without a recording lease. This preserves one reader and one storage policy.
+
 A supported settings change resolves the candidate's key presence before writing,
 even when only a parking or driver option changes. If the secret store cannot be
 read, the whole change is refused before persistence. This avoids an inaccurate
