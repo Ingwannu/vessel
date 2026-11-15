@@ -14,7 +14,6 @@ mod parts;
 #[cfg(test)]
 mod private_dir;
 
-#[cfg(test)]
 mod diagnostics;
 
 use std::collections::HashMap;

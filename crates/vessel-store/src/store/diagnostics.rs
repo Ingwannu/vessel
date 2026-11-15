@@ -1,8 +1,5 @@
-//! Read-only diagnostic aggregates, staged under cfg(test) until wiring.
-//! The wiring commit after shared admission and method metadata removes
-//! staging and makes deliberate cross-crate visibility changes. No new
-//! product Store API or product error variant exists for this staged code.
-//!
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 //! [Decision Log]
 //! Existing session enumeration clones private labels and state per row.
 //! A single readonly transaction instead projects only schema and counts.
@@ -24,7 +21,7 @@ use vessel_proto::{
 };
 
 #[derive(Debug, thiserror::Error)]
-enum SnapshotError {
+enum Cause {
     #[error("diagnostic store reader failed")]
     Reader(#[from] StoreError),
     #[error("diagnostic aggregate query failed")]
@@ -43,8 +40,11 @@ enum SnapshotError {
     Stopping,
 }
 // This is queued-work cancellation, never a permission grant or wire scope.
-enum ReadAdmission {
+/// Caller cancellation policy checked before queued source I/O starts.
+pub enum ReadAdmission {
+    /// The caller still permits queued work to start.
     Continue,
+    /// Skip source I/O because shutdown has started.
     Stopping,
 }
 
@@ -52,7 +52,7 @@ async fn guarded_snapshot<G, C>(
     store: &Store,
     guard: G,
     admission: C,
-) -> Result<(DiagnosticStore, G), SnapshotError>
+) -> Result<(DiagnosticStore, G), Cause>
 where
     G: Send + 'static,
     C: FnOnce() -> ReadAdmission + Send + 'static,
@@ -60,7 +60,7 @@ where
     let (facts, guard) = store
         .read(move |reader| {
             if matches!(admission(), ReadAdmission::Stopping) {
-                return Ok((Err(SnapshotError::Stopping), guard));
+                return Ok((Err(Cause::Stopping), guard));
             }
             // Keep the nested error so both the existing reader's failure
             // and the projection's own cause survive without new product
@@ -77,7 +77,7 @@ struct StatusGroups {
     live: Vec<SessionStatus>,
     ended: Vec<SessionStatus>,
 }
-fn groups() -> Result<String, SnapshotError> {
+fn groups() -> Result<String, Cause> {
     // Serialize real variants instead of duplicating serde's status names.
     // The exhaustive match forces a new variant to be classified here.
     let representatives = [
@@ -97,11 +97,11 @@ fn groups() -> Result<String, SnapshotError> {
         });
     Ok(serde_json::to_string(&StatusGroups { live, ended })?)
 }
-fn count(raw: i64) -> Result<DiagnosticCount, SnapshotError> {
-    let value = u64::try_from(raw).map_err(SnapshotError::Count)?;
+fn count(raw: i64) -> Result<DiagnosticCount, Cause> {
+    let value = u64::try_from(raw).map_err(Cause::Count)?;
     Ok(DiagnosticCount::new(value))
 }
-fn snapshot(connection: &Connection) -> Result<DiagnosticStore, SnapshotError> {
+fn snapshot(connection: &Connection) -> Result<DiagnosticStore, Cause> {
     let transaction = connection.unchecked_transaction()?;
     let observed: i64 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
     let classification = groups()?;
@@ -120,8 +120,8 @@ fn snapshot(connection: &Connection) -> Result<DiagnosticStore, SnapshotError> {
     }
     // Getter is staged inside schema's owner too; no migration runs here.
     // It returns MIGRATIONS.len(), not another independently written number.
-    let expected = crate::schema::diagnostic_version().map_err(SnapshotError::Version)?;
-    let observed = u32::try_from(observed).map_err(SnapshotError::Schema)?;
+    let expected = crate::schema::diagnostic_version().map_err(Cause::Version)?;
+    let observed = u32::try_from(observed).map_err(Cause::Schema)?;
     let facts = DiagnosticStore {
         expected_schema: expected,
         observed_schema: DiagnosticSchemaVersion::try_from(observed)?,
@@ -291,7 +291,7 @@ mod tests {
             .unwrap_err();
             assert!(matches!(
                 error,
-                SnapshotError::Invalid(InvalidDiagnostic::CountsDisagree)
+                Cause::Invalid(InvalidDiagnostic::CountsDisagree)
             ));
             assert_eq!(
                 connection
@@ -360,14 +360,14 @@ mod tests {
             )
             .await
             .unwrap_err();
-            assert!(matches!(stopped, SnapshotError::Stopping));
+            assert!(matches!(stopped, Cause::Stopping));
             let failed = phase(
                 "store snapshot",
                 guarded_snapshot(&store, (), || ReadAdmission::Continue),
             )
             .await
             .unwrap_err();
-            assert!(matches!(failed, SnapshotError::Query(_)));
+            assert!(matches!(failed, Cause::Query(_)));
             assert!(std::error::Error::source(&failed).is_some());
             assert_eq!(
                 connection
@@ -442,5 +442,33 @@ mod tests {
             assert!(released.load(Ordering::SeqCst));
             phase("store closes", store.close()).await;
         }));
+    }
+}
+
+/// Store diagnostic failure. Display is content-free; its source is internal
+/// diagnostic evidence and must never be rendered into a shareable report.
+#[derive(Debug, thiserror::Error)]
+#[error("diagnostic store snapshot failed")]
+pub struct DiagnosticSnapshotError(#[source] Cause);
+
+impl Store {
+    /// Read schema and durable counts through the ordinary blocking reader.
+    /// The guard stays in queued/running work even if the caller drops it.
+    ///
+    /// # Errors
+    /// Source/read failures, stopping, invalid JSON/state tags or inconsistent
+    /// counts. This is not a full store integrity scan.
+    pub async fn diagnostic_snapshot<G, C>(
+        &self,
+        guard: G,
+        admission: C,
+    ) -> Result<(DiagnosticStore, G), DiagnosticSnapshotError>
+    where
+        G: Send + 'static,
+        C: FnOnce() -> ReadAdmission + Send + 'static,
+    {
+        guarded_snapshot(self, guard, admission)
+            .await
+            .map_err(DiagnosticSnapshotError)
     }
 }

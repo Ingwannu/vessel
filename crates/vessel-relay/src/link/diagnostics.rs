@@ -1,11 +1,13 @@
-//! Relay watch projection, staged under cfg(test) until product wiring.
-//! Shared admission/method metadata wiring removes staging. The state owner
-//! matches its own variants exhaustively; no node wildcard hides new states.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use super::LinkState;
 use tokio::sync::watch;
 use vessel_proto::diagnostics::{DiagnosticCount, DiagnosticRelayCounts};
 
-fn observation(source: &watch::Receiver<LinkState>) -> DiagnosticRelayCounts {
+/// Observe one relay watch without copying its route or refusal details.
+/// A closed watch is unknown even if its final value was registered.
+#[must_use]
+pub fn observation(source: &watch::Receiver<LinkState>) -> DiagnosticRelayCounts {
     let state = source.borrow();
     // A closed producer is not evidence that its last Registered value is
     // still live. The close check is the observation admission boundary.

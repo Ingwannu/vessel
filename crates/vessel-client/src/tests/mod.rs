@@ -424,6 +424,7 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        diagnostics: vessel_proto::diagnostics::GetDiagnostics => vessel_proto::diagnostics::DiagnosticReport;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;

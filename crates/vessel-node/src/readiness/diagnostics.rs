@@ -1,7 +1,5 @@
-//! Cached facts, staged under cfg(test) until shared-admission/method wiring.
-//! The collector must supply the current default-profile key. No refresh or
-//! cross-profile selection is performed here; only borrowed safe fields leave.
-//! No help, path, introduction method or free-form version is ever cloned.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use super::{Handshake, Key, Readiness};
 use chrono::{DateTime, Utc};
 use std::sync::PoisonError;
@@ -14,17 +12,17 @@ use vessel_proto::{
 
 /// Safe cache projection; absence is not a request to run a refresh.
 #[derive(Debug)]
-struct Cached {
-    sign_in: DiagnosticSignIn,
-    version: Option<DiagnosticVersion>,
-    refusal: Option<DiagnosticAgentRefusal>,
-    at: DateTime<Utc>,
-    stale: bool,
+pub(crate) struct Cached {
+    pub(crate) sign_in: DiagnosticSignIn,
+    pub(crate) version: Option<DiagnosticVersion>,
+    pub(crate) refusal: Option<DiagnosticAgentRefusal>,
+    pub(crate) at: DateTime<Utc>,
+    pub(crate) stale: bool,
 }
 impl Readiness {
     /// Historical facts stay explicitly stale without evicting/refreshing
     /// the ordinary readiness cache or cloning its private strings.
-    fn diagnostic(&self, key: &Key, observed_at: DateTime<Utc>) -> Option<Cached> {
+    pub(crate) fn diagnostic(&self, key: &Key, observed_at: DateTime<Utc>) -> Option<Cached> {
         let kept = self.kept.lock().unwrap_or_else(PoisonError::into_inner);
         let checked = kept.get(key)?;
         let stale = observed_at > checked.until;

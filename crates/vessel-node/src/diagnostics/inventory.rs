@@ -1,7 +1,5 @@
-//! Complete bounded agent selection, staged under cfg(test) until D4 wiring.
-//! Wiring after shared compatibility admission/method metadata removes
-//! staging. Selection borrows parsed definitions; it does not inspect paths,
-//! clone configuration values, probe a program or silently truncate inventory.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use vessel_harness::{AddedAgent, AddedAgents};
 use vessel_proto::{
     HarnessKind,
@@ -11,7 +9,7 @@ use vessel_proto::{
     },
 };
 
-enum Entry<'a> {
+pub(super) enum Entry<'a> {
     Builtin(HarnessKind),
     Added {
         slot: CustomAgentSlot,
@@ -19,15 +17,15 @@ enum Entry<'a> {
     },
 }
 impl Entry<'_> {
-    fn id(&self) -> DiagnosticAgentId {
+    pub(super) fn id(&self) -> DiagnosticAgentId {
         match self {
             Self::Builtin(harness) => DiagnosticAgentId::Builtin { harness: *harness },
             Self::Added { slot, .. } => DiagnosticAgentId::Custom { slot: *slot },
         }
     }
 }
-struct Inventory<'a> {
-    entries: Vec<Entry<'a>>,
+pub(super) struct Inventory<'a> {
+    pub(super) entries: Vec<Entry<'a>>,
 }
 impl std::fmt::Debug for Inventory<'_> {
     fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,14 +35,14 @@ impl std::fmt::Debug for Inventory<'_> {
     }
 }
 #[derive(Debug, thiserror::Error)]
-enum SelectionError {
+pub(super) enum SelectionError {
     #[error("diagnostic inventory exceeds {limit} agents", limit = MAX_DIAGNOSTIC_AGENTS)]
     TooMany,
     #[error("diagnostic report-local agent identity violates its bound: {0}")]
     Slot(#[from] InvalidDiagnostic),
 }
 impl SelectionError {
-    fn unavailable(&self) -> DiagnosticUnavailable {
+    pub(super) fn unavailable(&self) -> DiagnosticUnavailable {
         match self {
             Self::TooMany => DiagnosticUnavailable::TooManyAgents,
             Self::Slot(_) => DiagnosticUnavailable::ReadFailed,
@@ -52,7 +50,7 @@ impl SelectionError {
     }
 }
 impl<'a> Inventory<'a> {
-    fn select(configured: &'a AddedAgents) -> Result<Self, SelectionError> {
+    pub(super) fn select(configured: &'a AddedAgents) -> Result<Self, SelectionError> {
         let total = HarnessKind::ALL
             .len()
             .checked_add(configured.all().count())

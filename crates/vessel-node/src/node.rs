@@ -100,6 +100,7 @@ impl Node {
     /// The data directory or event log is unusable, another node holds the
     /// data directory, or the local socket or the address cannot be bound.
     pub async fn start(config: Config) -> Result<Self, NodeError> {
+        let diagnostic_started = tokio::time::Instant::now();
         // Checked before anything starts, so a misconfigured relay or
         // proxy is an error at once rather than a node that is unreachable
         // (or limited as one client) later.
@@ -128,7 +129,16 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
+        } = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relaying,
+            session_setup,
+            diagnostic_started,
+        )
+        .await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -143,6 +153,7 @@ impl Node {
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
+        service.0.diagnostics.bound(tcp.is_some());
 
         let secure = SecureGateway {
             keypair,
@@ -296,6 +307,7 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    diagnostic_started: tokio::time::Instant,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
@@ -452,6 +464,13 @@ async fn core(
     let service = Arc::new(Guarded(NodeService::new(Parts {
         lsp,
         lsp_roots: config.lsp_roots.clone(),
+        diagnostics: crate::diagnostics::Setup {
+            started: diagnostic_started,
+            tasks: tasks.clone(),
+            stop: stop.clone(),
+            runtime: Arc::clone(&runtime),
+            relays: Arc::downgrade(&relays),
+        },
         lifecycle: lifecycle.clone(),
         lookup: config.harness_lookup.clone(),
         sessions,

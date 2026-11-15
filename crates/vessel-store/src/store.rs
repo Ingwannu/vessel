@@ -4,8 +4,8 @@
 mod attached;
 mod automation;
 mod conversation;
-#[cfg(test)]
 mod diagnostics;
+pub use diagnostics::{DiagnosticSnapshotError, ReadAdmission as DiagnosticReadAdmission};
 mod forge;
 mod inbox;
 mod push;

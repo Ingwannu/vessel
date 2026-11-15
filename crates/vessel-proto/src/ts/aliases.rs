@@ -131,6 +131,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
+    ("DiagnosticProcessId", Alias::Handle),
     ("DeviceId", Alias::Handle),
     ("DiagnosticSchemaVersion", Alias::Quantity),
     ("DraftText", Alias::Content),

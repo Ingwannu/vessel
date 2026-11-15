@@ -49,6 +49,7 @@ mod error;
 #[cfg(unix)]
 mod group;
 pub mod listening;
+pub mod self_process;
 mod session;
 mod signal;
 mod spec;

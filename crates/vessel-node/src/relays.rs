@@ -309,3 +309,28 @@ pub(crate) fn relay_tls(relays: &[RouteUrl]) -> Result<TlsConfig, NodeError> {
         }
     }
 }
+
+impl Relays {
+    pub(crate) fn diagnostic_counts(&self) -> vessel_proto::diagnostics::DiagnosticRelays {
+        use vessel_proto::diagnostics::DiagnosticRelayCounts;
+        fn add(total: &mut DiagnosticRelayCounts, source: &watch::Receiver<LinkState>) {
+            let count = vessel_relay::diagnostic_observation(source);
+            total.connecting = total.connecting.saturating_add(count.connecting);
+            total.registered = total.registered.saturating_add(count.registered);
+            total.refused = total.refused.saturating_add(count.refused);
+            total.stopped = total.stopped.saturating_add(count.stopped);
+            total.unrecognized = total.unrecognized.saturating_add(count.unrecognized);
+        }
+        let state = self.state();
+        let mut result = vessel_proto::diagnostics::DiagnosticRelays::default();
+        for (_route, source) in &state.configured {
+            add(&mut result.configured, source);
+        }
+        if let Some(callback) = &state.callback {
+            for (_route, source, _stop) in &callback.links {
+                add(&mut result.callback, source);
+            }
+        }
+        result
+    }
+}

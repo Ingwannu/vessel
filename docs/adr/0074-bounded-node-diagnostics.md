@@ -191,3 +191,33 @@ Slice 1 is this proposal and plan only. No diagnostic collector, wire call,
 CLI or native integration has been implemented or runtime-verified here.
 The node plan owns executable acceptance rows and explicit handoff to the app
 owner; this track does not edit `spikes/native` or register a native area.
+
+## E4 product wiring decisions (Quality B)
+
+The pending `node.diagnostics` row is now registered through Quality B's one
+`method_table!`, with Read, unary shape and `DIAGNOSTICS_PROTOCOL = None`.
+No assigned number is invented. `Method::shape()` excludes Envelope from the
+code/time-only failure journal; the generated guard observes the complete
+local outcome including authority refusal. Diagnostics is not fleet-forwardable
+and agents are refused by the existing node policy. The node's startup clock
+is captured before configuration/store I/O and listener state is published only
+after successful binding. A weak relay reference prevents a service cycle.
+
+Self-process metrics belong to `vessel-proc`, as a process primitive, not a
+second decoder in the node. Linux reads only `/proc/self/status`, capped by
+`MAX_STATUS_BYTES` beside that source. It decodes this process's pid, optional
+parent and checked RSS/virtual bytes. Raw names, group lists, paths and lines
+are discarded at the edge. Missing memory stays unavailable; other operating
+systems explicitly return Unsupported. No new dependency, external command,
+arbitrary process enumeration or environment access is introduced. The wire
+uses a separate checked process identity and JSON-safe count saturation.
+
+The response sources share `RESPONSE_BUDGET`; caller timeout does not kill
+blocking filesystem work. Existing D3 admission leases remain in queued and
+running jobs and keep shutdown tracking/capacity until completion. The typed
+client has a separate end-to-end `DIAGNOSTIC_REQUEST_TIMEOUT`. Typed source
+errors retain their causes internally; only closed reasons enter the report.
+
+This checkpoint has not completed CLI rendering, assigned-protocol successful
+wire execution, full package tests or review. Provider diagnostics belongs to
+A9/W22 and is not implemented or registered by E4.

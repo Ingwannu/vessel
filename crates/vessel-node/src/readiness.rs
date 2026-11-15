@@ -28,8 +28,7 @@
 //!   `vessel_harness::MAX_STATUS_OUTPUT`; the handshake by the node's
 //!   handshake timeout.
 
-#[cfg(test)]
-mod diagnostics;
+pub(crate) mod diagnostics;
 
 use std::collections::HashMap;
 use std::process::Stdio;

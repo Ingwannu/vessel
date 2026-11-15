@@ -1,6 +1,5 @@
-//! Typed supported-schema projection, staged under cfg(test) until wiring.
-//! Shared admission/method metadata wiring removes staging. Migration SQL
-//! and the canonical migration list remain owned by the parent unchanged.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use std::num::TryFromIntError;
 use vessel_proto::diagnostics::{
     DiagnosticSchemaVersion, InvalidDiagnostic, MAX_DIAGNOSTIC_SCHEMA,

@@ -1,12 +1,14 @@
-//! Runtime metadata counts, staged under cfg(test) until product wiring.
-//! Wiring after shared compatibility admission and method metadata removes
-//! staging and reviews its caller/visibility. No session list or log is cloned.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use super::SessionRuntime;
 use std::sync::PoisonError;
 use vessel_proto::diagnostics::{DiagnosticCount, DiagnosticRuntimeSessions};
 
 impl SessionRuntime {
-    fn diagnostic_counts(&self) -> DiagnosticRuntimeSessions {
+    /// Borrow live and parked counts without cloning session descriptions.
+    /// This is one observation per actor, not a global transaction.
+    #[must_use]
+    pub fn diagnostic_counts(&self) -> DiagnosticRuntimeSessions {
         let handles = self.sessions.read().unwrap_or_else(PoisonError::into_inner);
         let mut counts = DiagnosticRuntimeSessions {
             live: DiagnosticCount::default(),

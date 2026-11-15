@@ -69,7 +69,6 @@ mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
-#[cfg(test)]
 mod diagnostics;
 mod envelope;
 mod error;

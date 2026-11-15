@@ -99,4 +99,3 @@ pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local
         "node listening"
     );
 }
-

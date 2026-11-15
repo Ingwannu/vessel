@@ -10,11 +10,8 @@
 mod labels;
 mod migrations;
 
-// Staged schema projection; wiring after shared admission/method metadata
-// removes cfg(test), without changing migrations or their order.
-#[cfg(test)]
+// Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
-#[cfg(test)]
 pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};
 
 use rusqlite::Connection;

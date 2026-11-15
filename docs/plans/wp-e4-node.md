@@ -48,9 +48,9 @@ Existing assets and reuse decision:
 | Bundled web UI | Existing node-hosted web package and its gate | Preserve it; audit any advertised capability separately from report readiness |
 | Shareable rendering and failure output | Validated values only | Bound the complete export; exclude raw connection/error cause text |
 
-The RPC is currently missing, not passed: there is no registered diagnostic
-method or `NodeClient::diagnostics()` implementation. The private components
-are a compiled source skeleton, not an end-to-end skeleton of that RPC.
+The pending diagnostic method and `NodeClient::diagnostics()` are now wired
+as an unverified product checkpoint. The number remains unassigned, so no
+successful wire request is claimed. CLI and package-level validation remain.
 
 ## Contract and canonical wiring
 
@@ -144,7 +144,7 @@ unchanged whole-gate rerun is needed for this plan.
 
 Quality B head `29eebb8bcc285fb04bf9cb4c7a38a10d0622f6c1` is consumed by
 a conflict-free merge. It preserves protocol 23, minimum 2 and schema 18.
-The canonical pending row and MethodShape now allow wiring; no diagnostic
-call has been registered yet. Provider cached-diagnostic API is still pending
-its owner. No native sources changed and the package remains incomplete.
+The canonical pending row and MethodShape now allow wiring; the pending diagnostic
+row is registered, with execution refused until the integrator assigns it. Provider diagnostics is A9/W22, including tracker row 568; E4 does not
+implement its collector or RPC. No native sources changed and the package remains incomplete.
 Under A14 this merge receives narrow checks; the whole gate is at package end.

@@ -1,6 +1,5 @@
-//! Process facts projected from existing lifecycle metadata, staged for D4.
-//! Wiring after shared admission/method metadata removes cfg(test). The
-//! caller must pass the clock captured at `Node::start` entry, not after I/O.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use crate::lifecycle::Lifecycle;
 use tokio::time::Instant;
 use vessel_proto::{
@@ -8,7 +7,7 @@ use vessel_proto::{
     diagnostics::{DiagnosticArch, DiagnosticHome, DiagnosticNode, DiagnosticOs},
 };
 
-fn observation(lifecycle: &Lifecycle, started: Instant) -> DiagnosticNode {
+pub(super) fn observation(lifecycle: &Lifecycle, started: Instant) -> DiagnosticNode {
     let source = lifecycle.watch_info();
     let node = source.borrow();
     DiagnosticNode {

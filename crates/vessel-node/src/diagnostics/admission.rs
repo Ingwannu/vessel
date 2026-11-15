@@ -1,7 +1,5 @@
-//! Nonqueued collection admission, staged under cfg(test) until wiring.
-//! Shared admission/method metadata wiring removes staging and supplies the
-//! product-build evidence. This module owns no report data or source I/O.
-//!
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 //! [Decision Log]
 //! A caller deadline cannot stop a queued/running filesystem operation.
 //! Its lease therefore travels into every source job. A task token acquired
@@ -18,7 +16,7 @@ use tokio_util::{
 const COLLECTION_PERMITS: usize = 2;
 
 #[derive(Debug, thiserror::Error)]
-enum Refused {
+pub(super) enum Refused {
     #[error("diagnostic collectors are busy (limit {limit})", limit = COLLECTION_PERMITS)]
     Busy(#[source] TryAcquireError),
     #[error("the node is stopping")]
@@ -27,25 +25,25 @@ enum Refused {
 
 /// Every source job retains a clone until its blocking operation completes.
 #[derive(Debug)]
-struct Lease {
+pub(super) struct Lease {
     _task: TaskTrackerToken,
     _permit: OwnedSemaphorePermit,
 }
 #[derive(Debug)]
-struct Admission {
+pub(super) struct Admission {
     slots: Arc<Semaphore>,
     stop: CancellationToken,
     tasks: TaskTracker,
 }
 impl Admission {
-    fn new(stop: &CancellationToken, tasks: &TaskTracker) -> Self {
+    pub(super) fn new(stop: &CancellationToken, tasks: &TaskTracker) -> Self {
         Self {
             slots: Arc::new(Semaphore::new(COLLECTION_PERMITS)),
             stop: stop.clone(),
             tasks: tasks.clone(),
         }
     }
-    fn admit(&self) -> Result<Arc<Lease>, Refused> {
+    pub(super) fn admit(&self) -> Result<Arc<Lease>, Refused> {
         // Node shutdown cancels before closing/waiting on this same tracker.
         // If wait has already completed, this request sees stop and does no
         // work; otherwise the token keeps it pending through job registration.

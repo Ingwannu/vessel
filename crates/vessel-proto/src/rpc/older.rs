@@ -287,6 +287,7 @@ impl Reply {
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
+            | Self::Diagnostics(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)

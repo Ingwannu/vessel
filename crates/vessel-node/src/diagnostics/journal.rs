@@ -1,7 +1,5 @@
-//! Bounded observations of failed local typed calls; never raw log capture.
-//! Staged under cfg(test); wiring after shared admission/method metadata
-//! removes staging and supplies the product-build evidence.
-//!
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 //! [Decision Log]
 //! The guard's error must reach its caller without waiting for diagnostics.
 //! A bounded actor therefore receives code/time only by `try_send`; overflow
@@ -121,7 +119,7 @@ enum Closure {
     Lost,
 }
 #[derive(Debug, thiserror::Error)]
-enum SnapshotError {
+pub(super) enum SnapshotError {
     #[error("the node is stopping")]
     Stopping,
     #[error("the diagnostic observation queue closed")]
@@ -142,7 +140,7 @@ enum SnapshotError {
 impl SnapshotError {
     // The collector projects one closed section state at this privacy edge;
     // internal callers still have the bounded constructor/channel cause.
-    fn unavailable(&self) -> DiagnosticUnavailable {
+    pub(super) fn unavailable(&self) -> DiagnosticUnavailable {
         match self {
             Self::Stopping
             | Self::Request {
@@ -167,7 +165,7 @@ impl SnapshotError {
 }
 
 /// Nonblocking observer; tracked child task owns the history.
-struct Journal {
+pub(super) struct Journal {
     send: mpsc::Sender<Command>,
     omitted: Arc<Omitted>,
     stop: CancellationToken,
@@ -181,7 +179,7 @@ impl std::fmt::Debug for Journal {
     }
 }
 impl Journal {
-    fn new(parent: &CancellationToken, tasks: &TaskTracker) -> Self {
+    pub(super) fn new(parent: &CancellationToken, tasks: &TaskTracker) -> Self {
         let stop = parent.child_token();
         let cancel = stop.clone().drop_guard();
         let (send, receive) = mpsc::channel(OBSERVATION_QUEUE);
@@ -194,7 +192,7 @@ impl Journal {
             _cancel: cancel,
         }
     }
-    fn observe(&self, error: &WireError) {
+    pub(super) fn observe(&self, error: &WireError) {
         // Never clone error.message/detail, a method name or caller id.
         let event = Command::Observe(Observation {
             error: DiagnosticFailure {
@@ -220,7 +218,7 @@ impl Journal {
             Closure::Lost
         }
     }
-    async fn snapshot(&self) -> Result<DiagnosticFailureWindow, SnapshotError> {
+    pub(super) async fn snapshot(&self) -> Result<DiagnosticFailureWindow, SnapshotError> {
         if self.stop.is_cancelled() {
             return Err(SnapshotError::Stopping);
         }

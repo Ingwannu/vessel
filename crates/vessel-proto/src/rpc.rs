@@ -128,6 +128,8 @@ macro_rules! method_table {
         $callback! {
             /// Describe the node.
             NodeInfo / node_info / "node.info" [Read, 2, unary]: $crate::GetNode => $crate::NodeInfo;
+            /// Collect bounded content-free diagnostics; refuses until assigned.
+            Diagnostics / diagnostics / "node.diagnostics" [Read, (pending $crate::diagnostics::DIAGNOSTICS_PROTOCOL), unary]: $crate::diagnostics::GetDiagnostics => $crate::diagnostics::DiagnosticReport;
             /// List installed harnesses.
             ListHarnesses / list_harnesses / "harness.list" [Read, 2, unary]: $crate::ListHarnesses => Vec<$crate::Harness>;
             /// List sessions.

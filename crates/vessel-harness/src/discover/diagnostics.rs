@@ -1,10 +1,5 @@
-//! Filesystem-only harness facts. Never starts a version/login/ACP process.
-//! Staged under cfg(test); wiring after shared admission/method metadata
-//! removes staging and supplies the product-build evidence.
-//!
-//! Diagnostics cannot use `discover()`, which runs --version. The same
-//! descriptor and configured lookup own executable/adapter selection here;
-//! only closed facts leave this module, never a path or install command.
+//! Diagnostic source used by the bounded node collector (ADR 0074).
+//! Source owners omit private paths, arbitrary text and credentials.
 use crate::{
     AddedAgent, Lookup,
     harnesses::{Structured, descriptor},
@@ -16,13 +11,13 @@ use vessel_proto::{
 
 /// Metadata facts do not claim sign-in, responsiveness or a successful turn.
 #[derive(Debug)]
-struct AgentMetadata {
+pub struct AgentMetadata {
     /// Whether the configured lookup found the program.
-    executable: DiagnosticPresence,
+    pub executable: DiagnosticPresence,
     /// Whether the required executable/adapter is present.
-    structured: DiagnosticAvailability,
+    pub structured: DiagnosticAvailability,
     /// Whether terminal mode exists and its program is present.
-    terminal: DiagnosticAvailability,
+    pub terminal: DiagnosticAvailability,
 }
 fn missing(reason: DiagnosticAgentRefusal) -> DiagnosticAvailability {
     DiagnosticAvailability::Unavailable { reason }
@@ -30,7 +25,7 @@ fn missing(reason: DiagnosticAgentRefusal) -> DiagnosticAvailability {
 /// Inspect a builtin's metadata without running any program. Blocks on
 /// filesystem lookup and must be called from a blocking context.
 #[must_use]
-fn builtin_metadata(kind: HarnessKind, lookup: &Lookup) -> AgentMetadata {
+pub fn builtin_metadata(kind: HarnessKind, lookup: &Lookup) -> AgentMetadata {
     let descriptor = descriptor(kind);
     let found = lookup.find(descriptor.binary).is_some();
     let structured = if found {
@@ -64,7 +59,7 @@ fn builtin_metadata(kind: HarnessKind, lookup: &Lookup) -> AgentMetadata {
 /// Inspect an added agent's written program/search path without executing it.
 /// An added agent has no terminal mode, as ordinary discovery already states.
 #[must_use]
-fn added_metadata(agent: &AddedAgent, lookup: &Lookup) -> AgentMetadata {
+pub fn added_metadata(agent: &AddedAgent, lookup: &Lookup) -> AgentMetadata {
     let found = crate::discover::found(agent, lookup).is_some();
     AgentMetadata {
         executable: if found {

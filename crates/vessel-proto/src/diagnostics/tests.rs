@@ -28,6 +28,7 @@ fn fields() -> DiagnosticReportFields {
             uptime: DurationMs::from_duration(std::time::Duration::ZERO),
             home: DiagnosticHome::Redacted,
         },
+        process: unavailable(),
         store: unavailable(),
         agents: unavailable(),
         sessions: unavailable(),
@@ -69,10 +70,12 @@ fn failure() -> DiagnosticFailure {
 }
 
 #[test]
-fn feature_is_unassigned_and_has_no_registered_call() {
-    assert_eq!(DIAGNOSTICS_PROTOCOL, None);
-    // The unregistered method cannot be decoded at the method boundary.
-    assert!(serde_json::from_str::<crate::Method>(r#""node.diagnostics""#).is_err());
+fn feature_is_unassigned_and_refused_by_protocol() {
+    use crate::Request as _;
+    let method = serde_json::from_str::<crate::Method>(r#""node.diagnostics""#).unwrap();
+    assert_eq!(method, crate::Method::Diagnostics);
+    assert_eq!(method.since(), DIAGNOSTICS_PROTOCOL);
+    assert_eq!(GetDiagnostics {}.into_call().required_protocol(), None);
 }
 
 #[test]
