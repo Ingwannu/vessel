@@ -30,7 +30,9 @@ enum ProgramName {
     AlternatePendingWrap,
     RepeatedAlternate,
     SoftResetNegotiation,
+    #[serde(rename = "alternate-47")]
     Alternate47,
+    #[serde(rename = "alternate-1047")]
     Alternate1047,
 }
 #[derive(Deserialize)]
