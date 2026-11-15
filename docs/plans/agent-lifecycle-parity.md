@@ -318,6 +318,32 @@ No row of the crate table changes.
   for the shared call-plumbing batch remains staged until that batch; event
   availability still waits for the protocol owner's named shape.
 
+## Existing label request admission
+
+[Decision Log]
+- Purpose: close the temporary node-only admission boundary now that the shared
+  optional protocol accessor is integrated.
+- Existing assets: `Call::required_protocol`, its SDK-before-writer check and
+  RPC-before-dispatch check already carry typed unassigned refusals. The five
+  existing spec-bearing methods and three envelopes use those assets.
+- Alternatives: a second SDK check or fabricated numeric threshold would split
+  the protocol rule; neither is needed. No dependency is added.
+- Choice: modify the shared accessor's field requirement, keeping `since()`'s
+  signature and numeric compatibility calculation. Nonempty labels return
+  the optional assignment combined with the existing requirement; empty or
+  absent templates preserve it. Schedule session targets remain unchanged.
+- Effects: the SDK can now refuse before a frame is sent, while raw callers
+  are refused before dispatch. Starting import still checks stored labels
+  at the node, because that metadata is not part of its request.
+- Tests planned: each of the five direct requests, Forward/Relay/Deliver and
+  nested combinations at the named current protocol, a synthetic assignment
+  threshold, SDK no-frame admission and raw-server no-dispatch admission.
+  The existing node refusal reason remains a separate boundary assertion.
+- Paseo contract remains the labels record and optional update at
+  `messages.ts:915,989-996`, and reserved keys in `agent-labels.ts:2-6`.
+  This is the already stated temporary Vessel difference: labels await their
+  client consumers and protocol assignment instead of silently disappearing.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
@@ -354,9 +380,10 @@ No row of the crate table changes.
   budget; the authorized single exact confirmation passed. Both results
   were submitted separately, preserving the initial failure. Other steps
   passed; the correction changes no wire or page surface.
-- The shared `required_protocol()` accessor is owned by the protocol layer.
-  Until its integration, the node ingress guard supplies the typed refusal;
-  no new registered call or second client mechanism is introduced here.
+- The shared `required_protocol()` accessor is now integrated. Its existing
+  client/server checks will admit or refuse embedded labels using their
+  optional assignment; the admission follow-up is being implemented. No new
+  registered call or second client mechanism is introduced by that follow-up.
 - Separate refactor: the three legacy Profile/Via/Title text-column adapters
   use a consuming serde string deserializer. The validating types and typed
   column/source errors remain; the quote/backslash, title trimming and

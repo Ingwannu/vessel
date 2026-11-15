@@ -98,12 +98,17 @@ Unassigned fields are omitted for every peer, including the current version;
 after assignment, only peers at or above the assigned version receive them.
 Both current and creation maps remain in durable storage independently.
 
-The shared `required_protocol()` gate will refuse unassigned calls and fields
-before sending and at dispatch. Until that accessor is integrated, existing
-session/prompt/schedule inputs carrying labels receive a typed `unsupported`
-refusal at the node before work. A starting import has the same guard on its
-source metadata before export/placement. No new method is registered meanwhile.
-This explicit refusal avoids silently accepting data that no client can see.
+The shared `required_protocol()` gate refuses unassigned calls and fields
+before sending and at dispatch. Existing session creation, saved-prompt
+creation/update and schedule creation/update ask that accessor about their
+embedded spec's labels; forwarding envelopes propagate the same requirement.
+Empty labels retain the existing requirement. Once assigned, nonempty labels
+require the greater of the existing requirement and the assigned threshold.
+This extends the shared admission rule rather than inventing a second gate.
+The node's earlier ingress checks remain as defense before work. A starting
+import must still check its source metadata before export/placement, because
+the caller does not carry those labels. No new method is registered by this
+admission change. Refusal avoids accepting data that no client can see.
 
 ### Labels
 
