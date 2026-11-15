@@ -3,6 +3,7 @@
 mod cell;
 mod geometry;
 mod model;
+mod modes;
 mod presentation;
 mod projection;
 mod queries;
@@ -13,6 +14,7 @@ pub use cell::{
 };
 pub use geometry::{MAX_SCREEN_CELLS, MIN_COLUMNS, ScrollbackLines, Size};
 pub use model::{BytesTaken, FEED_BUDGET, Feed, Screen, Snapshot};
+pub use modes::{InputModes, KittyFlags, MAX_KEYBOARD_STACK, ModeState};
 pub use presentation::{
     MAX_CONTROL_TOKEN_BYTES, Multiplexer, Presentation, PresentationEvent, PresentationFeed,
     PresentationOffset,
@@ -43,6 +45,9 @@ pub enum ScreenError {
     /// A pending control token exceeded the presentation allocation ceiling.
     #[error("terminal presentation exceeds its token or allocation budget")]
     PresentationUnavailable,
+    /// Mode negotiation cannot fit its scalar or saved-stack bounds.
+    #[error("terminal input mode exceeds its scalar or stack budget")]
+    InputModeUnavailable,
 }
 
 #[cfg(test)]

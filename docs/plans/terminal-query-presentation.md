@@ -53,3 +53,29 @@ included; negotiated modes/frame/anchors are not implemented yet.
 
 Next: T audit, exact changed-package tests/strict checks, then modes and frames. No node activation,
 transport or renderer acceptance has occurred.
+
+## Negotiated mode contract
+
+Reference read: protocol terminal-input-mode.ts and its tests, server
+terminal/terminal.ts writeOutputToHeadless (modes commit in parsed-output
+callback) and disposeResources (tracker reset at disposal). The reference
+tracker itself was invoked for16 scenarios/239 whole-or-byte steps. Its source
+SHA and exact outputs are retained in the fixture; no reference code is copied
+into product source. This checks state, replies and modified-Enter admission;
+the fixture preamble is not a claim of a shipped CLI renderer.
+
+InputModes keeps independent Kitty/Win32/application-cursor/bracketed-paste
+state. Bare Kitty push defaults1, explicit0 stays0; setter second0 clears and
+other second values replace as the reference does. Pops restore saved flags
+with count at least1; over-pop reaches0. Mode stack is bounded at1024 and raw
+flags at u32; overflows refuse explicitly instead of silently clamping VTE's
+u16 normalized values. These are resource/type floors versus the unbounded
+reference tracker. Input negotiation is decoded from the same parser; CSI
+subparameter forms are not regex-matched negotiation. In-band RIS leaves the
+negotiation tracker intact, matching reference disposal-only tracker reset.
+Read-only snapshots carry modes from the same cut as cells/cursor.
+
+Verification: exact791ec973 presentation stage strict0 and18/0/0; its earlier
+metadata had presence-only scalars. New u32 metadata/mode changes and239-step
+fixture still owe exact checks. Node actor/output-ordering/input integration,
+frames/anchors, CLI/native consumers and activation remain unverified.

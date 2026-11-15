@@ -72,5 +72,6 @@ pub use screen::{
 
 // Decoder metadata is exposed only to the sole screen facade, never a second parser.
 pub use vte::{
-    DecoderBoundary, DecoderStep, Params as DecodedParams, PrefixEnd,
+    DecodedParameter, DecoderBoundary, DecoderStep, Params as DecodedParams,
+    PrefixEnd,
 };

@@ -151,3 +151,15 @@ Executed controls inside a pending query are retained using decoded callback
 positions, not byte pattern matching. Their publication waits for completion
 of the bounded token. A control token exceeding 64 KiB refuses explicitly;
 this resource bound is a stated difference from the reference.
+
+## Negotiated input modes
+
+Decoded CSI metadata retains omitted, explicit u32 and overflow scalar states,
+while original VTE numeric callbacks keep their unchanged u16 normalization.
+This prevents explicit0 or flags above65535 from acquiring guessed defaults.
+One bounded keyboard stack and typed independent switches accompany readonly
+cell snapshots. Flags beyond u32 or pushes beyond1024 refuse explicitly; these
+are stated type/resource floors versus the reference's unconstrained Number/
+array tracker. No runtime dependency or second scanner is introduced. The
+reference tracker resets only when disposed, so an in-band RIS does not reset
+this negotiated state; new authority construction does.

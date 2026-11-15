@@ -139,7 +139,7 @@ fn token_refusal_preserves_progress_and_never_publishes_the_partial_token() {
 }
 
 #[derive(Default)]
-struct Parameters(Vec<Vec<Option<u16>>>);
+struct Parameters(Vec<Vec<vt100::DecodedParameter>>);
 impl vt100::Callbacks for Parameters {
     fn decoded_csi(
         &mut self,
@@ -161,13 +161,14 @@ fn decoded_parameter_presence_distinguishes_bare_and_explicit_zero_without_a_sca
         Parameters::default(),
     );
     parser.process(b"\x1b[>u\x1b[>0u\x1b[=;0u\x1b[=0;u");
+    use vt100::DecodedParameter::{Explicit, Omitted};
     assert_eq!(
         parser.callbacks().0,
         vec![
-            vec![None],
-            vec![Some(0)],
-            vec![None, Some(0)],
-            vec![Some(0), None]
+            vec![Omitted],
+            vec![Explicit(0)],
+            vec![Omitted, Explicit(0)],
+            vec![Explicit(0), Omitted]
         ]
     );
 }

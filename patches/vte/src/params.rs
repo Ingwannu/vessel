@@ -6,12 +6,14 @@ pub(crate) const MAX_PARAMS: usize = 32;
 
 /// Whether a scalar was written, rather than supplied as the decoder's zero default.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ParameterPresence {
+pub enum DecodedParameter {
     /// No digit occurred before the parameter delimiter.
     #[default]
     Omitted,
     /// At least one digit occurred, including an explicit zero.
-    Explicit,
+    Explicit(u32),
+    /// More than a u32 scalar; normalized numeric callbacks remain unchanged.
+    Overflow,
 }
 
 #[derive(Default)]
@@ -27,7 +29,7 @@ pub struct Params {
 
     /// All parameters and subparameters.
     params: [u16; MAX_PARAMS],
-    presence: [ParameterPresence; MAX_PARAMS],
+    presence: [DecodedParameter; MAX_PARAMS],
 
     /// Number of suparameters in the current parameter.
     current_subparams: u8,
@@ -57,13 +59,8 @@ impl Params {
 
     /// Scalar values with omission preserved, in flattened parameter/subparameter order.
     /// This reuses the existing decode pass; consumers must not infer presence from zero.
-    pub fn explicit(&self) -> impl Iterator<Item = Option<u16>> + '_ {
-        self.params.iter().zip(self.presence.iter()).take(self.len).map(|(value, presence)| {
-            match presence {
-                ParameterPresence::Omitted => None,
-                ParameterPresence::Explicit => Some(*value),
-            }
-        })
+    pub fn explicit(&self) -> impl Iterator<Item = DecodedParameter> + '_ {
+        self.presence.iter().take(self.len).copied()
     }
 
     /// Returns `true` if there is no more space for additional parameters.
@@ -81,7 +78,7 @@ impl Params {
 
     /// Add an additional parameter.
     #[inline]
-    pub(crate) fn push(&mut self, item: u16, presence: ParameterPresence) {
+    pub(crate) fn push(&mut self, item: u16, presence: DecodedParameter) {
         self.subparams[self.len - self.current_subparams as usize] = self.current_subparams + 1;
         self.params[self.len] = item;
         self.presence[self.len] = presence;
@@ -91,7 +88,7 @@ impl Params {
 
     /// Add an additional subparameter to the current parameter.
     #[inline]
-    pub(crate) fn extend(&mut self, item: u16, presence: ParameterPresence) {
+    pub(crate) fn extend(&mut self, item: u16, presence: DecodedParameter) {
         self.subparams[self.len - self.current_subparams as usize] = self.current_subparams + 1;
         self.params[self.len] = item;
         self.presence[self.len] = presence;

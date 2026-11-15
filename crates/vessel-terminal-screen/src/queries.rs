@@ -37,6 +37,7 @@ pub(crate) enum EscapeEffect {
 
 pub(crate) struct Queries {
     duty: ReplyDuty,
+    pub(crate) modes: crate::modes::Modes,
     bytes: String,
     failure: Option<ScreenError>,
     budget: usize,
@@ -47,6 +48,7 @@ impl Queries {
     pub(crate) fn new(duty: ReplyDuty) -> Self {
         Self {
             duty,
+            modes: crate::modes::Modes::default(),
             bytes: String::new(),
             failure: None,
             budget: 0,
@@ -115,7 +117,23 @@ impl vt100::Callbacks for Queries {
         ignored: bool,
         final_byte: char,
     ) {
-        if self.duty == ReplyDuty::Silent || ignored || intermediates.len() > 1 {
+        if ignored {
+            if matches!(
+                (intermediates, final_byte),
+                ([b'>' | b'=' | b'<' | b'?'], 'u') | ([b'?'], 'h' | 'l')
+            ) {
+                self.failure = Some(ScreenError::InputModeUnavailable);
+            }
+            return;
+        }
+        match self.modes.csi(params, intermediates, final_byte) {
+            Ok(crate::modes::ModeAction::Query(flags)) if self.duty == ReplyDuty::NodeAuthority => {
+                let _bounded = write!(self, "\x1b[?{}u", flags.get());
+            }
+            Ok(crate::modes::ModeAction::None | crate::modes::ModeAction::Query(_)) => {}
+            Err(error) => self.failure = Some(error),
+        }
+        if self.duty == ReplyDuty::Silent || intermediates.len() > 1 {
             return;
         }
         let first = intermediates.first().copied();

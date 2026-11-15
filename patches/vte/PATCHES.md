@@ -14,7 +14,10 @@ LICENSE-MIT and LICENSE-APACHE remain byte-identical to that archive.
 
 1. Retain scalar parameter presence alongside the unchanged normalized values.
    Why: bare CSI > u and explicit CSI > 0 u have different Kitty defaults.
-   Existing Perform callbacks receive the same numeric values and grouping.
+   Raw scalar metadata retains u32 values plus explicit overflow, avoiding a
+   second pass and preventing the existing u16 saturation from silently changing
+   keyboard flags. Existing Perform callbacks retain their normalized u16
+   values/grouping unchanged.
 2. Expose completion and prior-prefix boundaries while using the original
    decoder transitions. Why: presentation must withhold partial UTF-8/control
    tokens and distinguish cancellation/OSC termination from the following ESC

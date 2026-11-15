@@ -95,6 +95,11 @@ impl Screen {
             replies: callbacks.take(),
         }
     }
+    /// Input negotiation committed by the same decoder as the current cells.
+    #[must_use]
+    pub fn input_modes(&self) -> crate::InputModes {
+        self.parser.callbacks().modes.state()
+    }
     /// Current visible geometry.
     #[must_use]
     pub const fn size(&self) -> Size {
@@ -164,6 +169,7 @@ impl Screen {
         Snapshot {
             state: Arc::new(self.parser.screen().clone()),
             size: self.size,
+            modes: self.input_modes(),
         }
     }
 }
@@ -172,8 +178,15 @@ impl Screen {
 pub struct Snapshot {
     state: Arc<vt100::Screen>,
     size: Size,
+    modes: crate::InputModes,
 }
 impl Snapshot {
+    /// Modes share the immutable cell/cursor snapshot cut, never a future feed.
+    #[must_use]
+    pub const fn input_modes(&self) -> crate::InputModes {
+        self.modes
+    }
+
     /// Retained geometry.
     #[must_use]
     pub const fn size(&self) -> Size {

@@ -39,7 +39,7 @@ mod params;
 
 #[cfg(feature = "ansi")]
 pub mod ansi;
-pub use params::{ParameterPresence, Params, ParamsIter};
+pub use params::{DecodedParameter, Params, ParamsIter};
 
 const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC_PARAMS: usize = 16;
@@ -84,7 +84,7 @@ pub struct Parser<const OSC_RAW_BUF_SIZE: usize = MAX_OSC_RAW> {
     intermediate_idx: usize,
     params: Params,
     param: u16,
-    param_presence: ParameterPresence,
+    param_presence: DecodedParameter,
     prefix_end: PrefixEnd,
     #[cfg(not(feature = "std"))]
     osc_raw: ArrayVec<u8, OSC_RAW_BUF_SIZE>,
@@ -546,7 +546,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         } else {
             self.params.extend(self.param, self.param_presence);
             self.param = 0;
-            self.param_presence = ParameterPresence::Omitted;
+            self.param_presence = DecodedParameter::Omitted;
         }
     }
 
@@ -558,7 +558,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         } else {
             self.params.push(self.param, self.param_presence);
             self.param = 0;
-            self.param_presence = ParameterPresence::Omitted;
+            self.param_presence = DecodedParameter::Omitted;
         }
     }
 
@@ -568,7 +568,18 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
-            self.param_presence = ParameterPresence::Explicit;
+            let raw = match self.param_presence {
+                DecodedParameter::Omitted => Some(0),
+                DecodedParameter::Explicit(value) => Some(value),
+                DecodedParameter::Overflow => None,
+            };
+            self.param_presence = match raw
+                .and_then(|value| value.checked_mul(10))
+                .and_then(|value| value.checked_add(u32::from(byte - b'0')))
+            {
+                Some(value) => DecodedParameter::Explicit(value),
+                None => DecodedParameter::Overflow,
+            };
             // Continue collecting bytes into param.
             self.param = self.param.saturating_mul(10);
             self.param = self.param.saturating_add((byte - b'0') as u16);
@@ -623,7 +634,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         self.intermediate_idx = 0;
         self.ignoring = false;
         self.param = 0;
-        self.param_presence = ParameterPresence::Omitted;
+        self.param_presence = DecodedParameter::Omitted;
 
         self.params.clear();
     }
