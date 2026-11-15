@@ -2,7 +2,7 @@
 use super::{MAX_SUGGESTION_QUERY_CHARS, SuggestionQuery};
 
 fn decoded(text: &str) -> Result<SuggestionQuery, serde_json::Error> {
-    serde_json::from_str(&serde_json::to_string(text).unwrap())
+    serde_json::from_str(&serde_json::to_string(text)?)
 }
 
 #[test]

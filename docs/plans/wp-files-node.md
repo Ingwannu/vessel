@@ -1,6 +1,6 @@
 # Workspace file operation implementation
 
-Status: core implementation in progress; requests are not registered.
+Status: implementation in progress; five canonical rows are registered pending protocol assignment.
 
 ## Existing assets and decision
 
@@ -82,3 +82,16 @@ proper changed-source narrow checks and V3 follow-up; no green claim is made.
 ## Admitted SDK reader prerequisite
 
 The existing transfer loop is reused through `fetch_workspace_file_with(root,path,reader,make_sink)`. The original `NodeClient` API delegates to it; no wire method, protocol number or filesystem authority is added. A native selected-connection reader can fence every original page without raw-client access or a second transfer implementation. Regressions pin first-page refusal before output construction and retirement between pages with the original root/path/expected revision retained and no replay. The sink still owns complete hash validation and atomic publication. New-source narrow evidence is owed; exact100da283's808/0/1 is prior-source evidence for the earlier security correction, not this extraction.
+
+
+### TS prerequisite check
+
+Exact17bcfc450 TS prerequisite Clippy reached compilation and stopped on two
+owned wiring issues: the web bridge exhaustive forwarding match lacked the
+five new unary variants, and a serde fixture used unwrap inside a Result helper.
+The bridge now explicitly forwards those existing typed methods, retaining the
+node protocol/scope checks; its original refused-method assertion is unchanged.
+A package regression pins all five as pending Unary. The fixture propagates
+serialization failure with `?`. Generation did not start in that run; no TS
+artifact or freshness result is claimed. The earlier808/0/1 remains bounded
+unit evidence, with current client reader extraction tests/strict checks owed.
