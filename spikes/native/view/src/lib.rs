@@ -35,6 +35,7 @@ pub mod matcher;
 pub mod models;
 pub mod notices;
 pub mod offers;
+pub mod onboarding;
 mod options;
 pub mod overview;
 pub mod pairing;

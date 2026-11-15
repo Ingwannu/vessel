@@ -41,6 +41,7 @@ mod host_agents;
 mod language;
 mod motion;
 mod nav;
+pub(crate) mod onboarding;
 mod overview;
 pub(crate) mod page;
 mod prefer;

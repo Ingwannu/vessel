@@ -75,3 +75,29 @@ Per-commit checks: format, size/boundary/token checks, changed-crate tests and
 clippy through the build slot. Package end: one native remote gate, inspected
 captures in both languages/themes at desktop/compact/minimum sizes, then review.
 Results and exact unsupported operations are recorded here before handover.
+
+## Package ownership refinement
+
+Desktop shell lifecycle, menus, OS navigation delivery, CLI installation, update
+presentation and changelog are implemented separately. This plan's implementation
+now owns the walkthrough, managed-node controller and finalization before quit or
+update. The shared typed navigation contract was split into its own commit so
+session navigation and the OS host consume one generator/parser.
+
+The historical proposed model in the earlier onboarding branch was inspected:
+it inserts Machine and decides without a connected setup host. It cannot be
+adopted unchanged because both contradict the current reference. Its completion
+and visit invariants are retained in the model here, with the reference's exact
+five-step order and compact Phone omission.
+
+The node lifecycle library contract is in `docs/plans/desktop-local-node.md` on
+the node line. The node integrator approved client/proto/store/proc edges, bounded
+readiness in `vessel-proto::local_launch`, and a consuming observation-only Proc
+Detached handle. The desktop package contains no service-file or arbitrary-PID
+control path. Published builds currently provide only their configured preview
+channel and no bundled daemon/CLI; managed startup remains unavailable when the
+corresponding verified package binary is absent.
+
+Validation so far: initial completion/step/visit/orchestration models, seven unit
+tests passed. The first build rejected missing translation context comments;
+those were added before the passing run. Native app/link clippy is queued.

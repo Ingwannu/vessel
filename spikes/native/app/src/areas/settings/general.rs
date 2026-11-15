@@ -41,7 +41,16 @@ pub(crate) fn render(
 ) -> AnyElement {
     let words = shell.t.lang.settings();
     let composer = &shell.prefs.settings.composer;
-    let general = settings::card(tokens).child(super::language::row(shell, tokens, compact, cx));
+    let general = settings::card(tokens)
+        .child(super::language::row(shell, tokens, compact, cx))
+        .when(
+            !cfg!(any(target_os = "android", target_os = "ios")),
+            |card| {
+                card.child(crate::areas::onboarding::setup_row(
+                    shell, tokens, compact, cx,
+                ))
+            },
+        );
     // Each row once the composer reads its value (`super::applied`). The
     // send shortcut only where keyboard shortcuts are (Paseo's
     // `useKeyboardShortcutsAvailable`: not on a compact layout).

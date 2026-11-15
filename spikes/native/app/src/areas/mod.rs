@@ -17,6 +17,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod onboarding;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
@@ -33,6 +34,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) onboarding: onboarding::Onboarding,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
@@ -57,6 +59,7 @@ pub(crate) struct Areas {
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
+            onboarding: onboarding::Onboarding::new(cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),

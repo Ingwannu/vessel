@@ -48,6 +48,9 @@ use crate::nodes::config_dir;
 /// The remembered choices.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Prefs {
+    /// Client-local completion; never included in node settings or shared profiles.
+    #[serde(default, deserialize_with = "completion_record")]
+    pub onboarding: Option<vessel_app_view::onboarding::CompletionRecord>,
     /// The machine of the last conversation started.
     #[serde(default)]
     pub machine: Option<String>,
@@ -78,6 +81,24 @@ pub struct Prefs {
     /// Where all of this is kept (not in the file: found when it is read).
     #[serde(skip)]
     pub kept: prefs::Kept,
+}
+
+/// Malformed completion is absent; malformed preferences as a whole still keep
+/// the no-overwrite policy. Untagged decoding keeps unknown record contents at
+/// this file edge without building a JSON value tree.
+fn completion_record<'de, D: serde::Deserializer<'de>>(
+    decoder: D,
+) -> Result<Option<vessel_app_view::onboarding::CompletionRecord>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Record {
+        Valid(vessel_app_view::onboarding::CompletionRecord),
+        Invalid(serde::de::IgnoredAny),
+    }
+    match Record::deserialize(decoder)? {
+        Record::Valid(record) => Ok(Some(record)),
+        Record::Invalid(_ignored) => Ok(None),
+    }
 }
 
 /// A build's notes, as its feed carried them.
@@ -330,6 +351,25 @@ pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn completion_is_client_local_and_malformed_record_does_not_discard_other_preferences() {
+        let prefs: Prefs = serde_json::from_str(
+            r#"{"machine":"test-node","onboarding":{"completed_at":"invalid"}}"#,
+        )
+        .unwrap();
+        assert_eq!(prefs.machine.as_deref(), Some("test-node"));
+        assert_eq!(prefs.onboarding, None);
+        let completed: Prefs =
+            serde_json::from_str(r#"{"onboarding":{"completed_at":"2026-01-01T00:00:00Z"}}"#)
+                .unwrap();
+        assert!(completed.onboarding.is_some());
+        assert_eq!(
+            serde_json::from_str::<Prefs>(&serde_json::to_string(&completed).unwrap()).unwrap(),
+            completed
+        );
+        assert_eq!(completed.settings, Preferences::default());
+    }
 
     fn scratch(name: &str) -> std::io::Result<PathBuf> {
         let dir =
