@@ -513,3 +513,13 @@ node-base9c150c6e -> cdc9c0f90, no voice/ORT ancestry, unchanged public API,
 existing waiter closure reused through pre-admission capacity/readiness waits.
 Its four fake regressions/full RPC suite are queued; V3/integrator landing is
 required before this package consumes it or enables real audio upload.
+
+
+The post-base50 named ts step generated the exact voice+new-base wire bytes,
+but failed the newer combined Web alias inventory: the3 TTS metadata aliases
+were classified before their DTOs enter the wire graph. Remove only those
+premature3 rows, preserving the standalone nullable/string TS assertions;
+classify them with the future NodeSettings integration. The generated artifact
+commit and all6 SHA pins were verified before applying exact proto.ts bytes.
+No declaration is handwritten and no standalone DTO is artificially added to
+the wire just to satisfy the inventory. Corrected-head named ts proof is owed.
