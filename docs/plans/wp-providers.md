@@ -103,3 +103,14 @@ crate-private path-taking operations without changing the settings methods or
 their test expectations. The added-agent file trust check becomes crate-visible
 for reuse by provider persistence; its checks are unchanged. This avoids a
 second implementation of owner-only backup naming and nested-field detection.
+
+## Provider persistence checkpoint
+
+The provider file reuses the settings backup/unknown-field operations and the
+added-agent file trust check. It bounds reads, refuses links and nonprivate
+files, preserves later and unreadable bytes before replacement, and writes via
+the existing owner-only atomic helper. Synthetic tests cover round trips,
+Unix ownership/modes, nested future fields, malformed/oversized input, symlinks
+and failed preservation leaving the original intact. These tests are pending
+execution. The final broad narrow compile still stopped on an option-variable
+similarity lint before node tests; the identifiers have now been separated.

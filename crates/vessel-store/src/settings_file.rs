@@ -47,7 +47,7 @@ const SETTINGS_FILE: &str = "settings.json";
 /// How many names [`DataDir::set_aside_settings`] tries for one moment
 /// before it gives up: one per earlier copy set aside in the same
 /// millisecond, which a node never makes more than once per start.
-const SET_ASIDE_TRIES: u32 = 16;
+pub(crate) const SET_ASIDE_TRIES: u32 = 16;
 
 /// Why a copy of `settings.json` is set aside ([`DataDir::set_aside_settings`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

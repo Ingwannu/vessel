@@ -59,9 +59,9 @@ pub fn catalogue_from_options(
             return Err(CatalogueOptionsError::Ambiguous);
         }
     }
-    let modes = mode_catalogue(definition, permission_selector)?;
+    let permission_modes = mode_catalogue(definition, permission_selector)?;
     let (thinking, default_thinking) = thinking_choices(thinking_selector)?;
-    let models = if let Some(option) = model_selector {
+    let available_models = if let Some(option) = model_selector {
         let (current, values) = selected(option)?;
         values
             .iter()
@@ -85,8 +85,8 @@ pub fn catalogue_from_options(
         Vec::new()
     };
     Ok(Catalogue {
-        models: Models::new(models)?,
-        modes,
+        models: Models::new(available_models)?,
+        modes: permission_modes,
     })
 }
 
