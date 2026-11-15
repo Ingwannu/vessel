@@ -10,6 +10,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_link::workspace::{ProjectChange, ProjectFailure};
 use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::actions::{
     ProjectAction, ProjectActionError, ProjectActionKey, ProjectChanged, ProjectReply,
     ProjectSettlement,
