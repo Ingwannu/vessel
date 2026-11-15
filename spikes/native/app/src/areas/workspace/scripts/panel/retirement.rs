@@ -104,7 +104,7 @@ pub(super) fn draw_retired(
         .as_ref()
         .is_some_and(|write| write.receipt().is_some());
     let mut reload = button_with_kind(
-        "scripts-reload-retired",
+        format!("scripts-reload-retired-{:?}", controls.surface),
         words.reload_retired(),
         ButtonKind::Secondary,
         if can_reload {

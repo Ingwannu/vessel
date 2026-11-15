@@ -71,7 +71,7 @@ fn opened(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -
     machine.connection_epoch = Some(context.epoch());
     shell.fleet.machines.push(machine);
     let target = Target::legacy_panel(context, surface.clone()).unwrap();
-    let mut controls = super::super::Controls::new(surface, window, cx);
+    let mut controls = Controls::new(surface, window, cx);
     controls.model.select(Some(target.clone()));
     let request = controls.model.begin_read().unwrap();
     assert!(controls.model.accept_read(
@@ -239,7 +239,7 @@ fn idle_retirement_removes_old_controls_and_new_surface_cannot_accept_old_read(
             instance,
         };
         assert_ne!(surface, target.surface);
-        let mut successor = super::super::Controls::new(surface, window, cx);
+        let mut successor = Controls::new(surface, window, cx);
         successor.model.select(Target::legacy_panel(
             target.context.clone(),
             successor.surface.clone(),
