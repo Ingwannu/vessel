@@ -688,3 +688,14 @@ EN/KO catalog labels. Git's redacted own output is retained verbatim; no string
 selects a failure policy. Whole-output fixtures cover Korean/spaced paths and
 ref-versus-commit mismatch. This source correction is not covered by the earlier
 queued0af check and has no inspected screen proof yet.
+
+## Replacement-admission late reply correction
+
+Source audit found the scoped app receiver retired its current entry when any
+reply context disagreed with the current machine, including an old A reply after
+a healthy B entry had replaced it. Delivery now first compares reply with owner: a
+different owner is ignored; only that owner's retired admission invalidates it,
+with an explicit redraw. Matching live context still requires the exact ticket.
+The pure production delivery function has same-alias/node new-epoch, absent-owner,
+absent-current and matching cases. This is a source-discovered bug/correction,
+not a reproduced UI failure or an executed regression pass.

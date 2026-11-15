@@ -25,6 +25,34 @@ pub struct PanelAddress {
     pub tab: TabId,
 }
 
+/// Delivery precedes ticket settlement: an old reply cannot retire a new owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AnswerAdmission {
+    /// Another owner/admission issued the reply; change nothing here.
+    Ignore,
+    /// This owner's original admission retired; invalidate it and redraw.
+    Retire,
+    /// Same live admission; the exact operation ticket must still match.
+    MatchTicket,
+}
+
+/// Compare the reply with its owner before checking current connection facts.
+/// Reversing this order lets an old A reply retire a healthy replacement B.
+#[must_use]
+pub fn answer_admission(
+    owner: Option<&ConnectionContext>,
+    current: Option<&ConnectionContext>,
+    reply: &ConnectionContext,
+) -> AnswerAdmission {
+    if owner != Some(reply) {
+        AnswerAdmission::Ignore
+    } else if current != Some(reply) {
+        AnswerAdmission::Retire
+    } else {
+        AnswerAdmission::MatchTicket
+    }
+}
+
 /// Root discovery retains the original connection, owner and monotonic request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocationTicket {

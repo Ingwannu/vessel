@@ -184,3 +184,36 @@ fn immutable_commit_identity_participates_in_every_comparison_and_scope() {
         Some(vessel_proto::workspace::DiffScope::Commit { id: first })
     );
 }
+
+#[test]
+fn an_old_answer_never_retires_the_new_admission_at_the_same_address() {
+    let mut epochs = ConnectionEpochs::default();
+    let first = epochs
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
+        .unwrap();
+    let newer = epochs.admit(first.machine().clone(), first.node()).unwrap();
+    assert_eq!(
+        answer_admission(Some(&newer), Some(&newer), &first),
+        AnswerAdmission::Ignore
+    );
+    assert_eq!(
+        answer_admission(Some(&newer), None, &first),
+        AnswerAdmission::Ignore
+    );
+    assert_eq!(
+        answer_admission(None, Some(&newer), &first),
+        AnswerAdmission::Ignore
+    );
+    assert_eq!(
+        answer_admission(Some(&first), Some(&newer), &first),
+        AnswerAdmission::Retire
+    );
+    assert_eq!(
+        answer_admission(Some(&first), None, &first),
+        AnswerAdmission::Retire
+    );
+    assert_eq!(
+        answer_admission(Some(&newer), Some(&newer), &newer),
+        AnswerAdmission::MatchTicket
+    );
+}

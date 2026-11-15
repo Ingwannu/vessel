@@ -6,8 +6,8 @@ use vessel_app_link::git_panel::{Answer, Ask, Outcome};
 use vessel_app_view::connection::{ConnectionContext, ConnectionTag};
 use vessel_app_view::layout::LayoutKey;
 use vessel_app_view::workspace::git::panel::{
-    Comparison, ComparisonMode, LocationRefusal, PanelAddress, PanelReads, PanelTarget,
-    ReadFailure, Whitespace,
+    AnswerAdmission, Comparison, ComparisonMode, LocationRefusal, PanelAddress, PanelReads,
+    PanelTarget, ReadFailure, Whitespace, answer_admission,
 };
 
 impl Shell {
@@ -56,11 +56,14 @@ impl Shell {
         let Some(entry) = self.areas.git.panels.entries.get_mut(&answer.address) else {
             return;
         };
-        if current.as_ref() != Some(&answer.context)
-            || entry.context.as_ref() != Some(&answer.context)
-        {
-            retire(entry);
-            return;
+        match answer_admission(entry.context.as_ref(), current.as_ref(), &answer.context) {
+            AnswerAdmission::Ignore => return,
+            AnswerAdmission::Retire => {
+                retire(entry);
+                cx.notify();
+                return;
+            }
+            AnswerAdmission::MatchTicket => {}
         }
         let located = match answer.outcome {
             Outcome::Located(ticket, result) => entry.binding.finish(&ticket, result),

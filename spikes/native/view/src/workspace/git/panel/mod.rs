@@ -20,7 +20,9 @@ mod requests;
 mod tree;
 mod words;
 
-pub use binding::{LocationRefusal, LocationTicket, PanelAddress, PanelBinding};
+pub use binding::{
+    AnswerAdmission, LocationRefusal, LocationTicket, PanelAddress, PanelBinding, answer_admission,
+};
 pub use comparison::{Comparison, ComparisonKind, ComparisonMode, RepositoryKey, Whitespace};
 pub use document::{
     BufferColumn, BufferColumns, BufferError, BufferKind, BufferLine, DiffCell, DiffDocument,
