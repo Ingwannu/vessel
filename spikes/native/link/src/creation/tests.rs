@@ -24,9 +24,9 @@ type TestResult<T = ()> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[derive(Clone, Copy)]
 enum Scenario {
     Accept,
-    RefusePrompt,
+    RefusePrompt(ErrorCode),
     DisconnectPrompt,
-    RefuseCreate,
+    RefuseCreate(ErrorCode),
     Retry(SessionId),
     WrongNode,
 }
@@ -69,8 +69,8 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
         target: match scenario {
             Scenario::Retry(session) => Target::Registered(session),
             Scenario::Accept
-            | Scenario::RefusePrompt
-            | Scenario::RefuseCreate
+            | Scenario::RefusePrompt(_)
+            | Scenario::RefuseCreate(_)
             | Scenario::DisconnectPrompt
             | Scenario::WrongNode => Target::New(spec),
         },
@@ -119,7 +119,10 @@ async fn registration_and_success_are_correlated_and_in_order() {
 async fn a_prompt_refusal_retains_the_registered_session_and_does_not_retry_create() {
     let answers = tokio::time::timeout(
         TEST_DEADLINE,
-        execute(Scenario::RefusePrompt, FirstInput::Text(Arc::from("hello"))),
+        execute(
+            Scenario::RefusePrompt(ErrorCode::Conflict),
+            FirstInput::Text(Arc::from("hello")),
+        ),
     )
     .await
     .unwrap()
@@ -162,7 +165,10 @@ async fn a_disconnected_prompt_is_uncertain_and_a_create_refusal_has_no_resource
     ));
     let answers = tokio::time::timeout(
         TEST_DEADLINE,
-        execute(Scenario::RefuseCreate, FirstInput::Deferred),
+        execute(
+            Scenario::RefuseCreate(ErrorCode::Forbidden),
+            FirstInput::Deferred,
+        ),
     )
     .await
     .unwrap()
@@ -227,4 +233,32 @@ async fn a_reused_book_name_cannot_retarget_a_captured_submission() {
             ..
         }]
     ));
+}
+
+#[tokio::test]
+async fn internal_errors_cannot_prove_that_create_or_first_input_had_no_effect() {
+    for (scenario, stage) in [
+        (Scenario::RefuseCreate(ErrorCode::Internal), Stage::Resource),
+        (
+            Scenario::RefusePrompt(ErrorCode::Internal),
+            Stage::InitialInput,
+        ),
+    ] {
+        let answers = tokio::time::timeout(
+            TEST_DEADLINE,
+            execute(scenario, FirstInput::Text(Arc::from("first input"))),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(matches!(answers.last(), Some(Answer::Failed {
+            stage: failed, failure: Failure::OutcomeUnknown, ..
+        }) if *failed == stage));
+        assert!(
+            !answers
+                .iter()
+                .any(|answer| matches!(answer, Answer::Complete(_, _)))
+        );
+        assert!(!format!("{answers:?}").contains("private diagnostics"));
+    }
 }
