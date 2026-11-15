@@ -9,6 +9,7 @@ use vessel_proto::{NodeId, WorkspaceId};
 
 fn connect(shell: &mut Shell, node: NodeId) -> DraftDestination {
     shell.fleet.machines.push(Machine {
+        connection_epoch: None,
         name: "fixture".to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
@@ -152,5 +153,42 @@ fn bounded_intake_refuses_new_drafts_without_evicting_existing_content(cx: &mut 
                 .text(cx),
             "retain"
         );
+    });
+}
+
+#[gpui::test]
+fn mode_comes_only_from_the_exact_drafts_retained_launch(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let node = NodeId::random();
+        let workspace = WorkspaceId::random();
+        let destination = connect(shell, node);
+        let key = LayoutKey::Workspace { node, workspace };
+        for (launch, expected) in [
+            (Launch::Chat, Mode::Chat),
+            (Launch::BlankTerminal, Mode::Terminal),
+            (
+                Launch::Profile(vessel_proto::terminal_profiles::Id::parse("configured").unwrap()),
+                Mode::Terminal,
+            ),
+        ] {
+            let draft = DraftId::random();
+            let mut input = seed(destination.clone(), workspace, "");
+            input.launch = launch;
+            shell.seed_draft(draft, input, window, cx).unwrap();
+            assert_eq!(shell.workspace_draft_mode(&key, draft), Some(expected));
+            assert_eq!(
+                shell.workspace_draft_mode(
+                    &LayoutKey::Workspace {
+                        node: NodeId::random(),
+                        workspace
+                    },
+                    draft
+                ),
+                None
+            );
+        }
+        assert_eq!(shell.workspace_draft_mode(&key, DraftId::random()), None);
     });
 }

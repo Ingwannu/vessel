@@ -220,3 +220,13 @@ exact committed source. This moves the existing functions verbatim and keeps
 the same four token exceptions under their new path, with no budget increase
 or launch/form behavior change. It allows the scoped editor owner to remain
 under the existing file limit while retaining the composer's current card.
+
+### Portable B2 mode accessor
+
+A getter-only leaf adds workspace_draft_mode on the retained editor owner,
+using the canonical B2 surface::Mode. It depends on the prior scoped editor
+producer and pure mode values, without W6's workspace card or file pipeline.
+Its single temporary dead-code expectation must be removed by B2's actual
+caller. This is staged presentation metadata, not a registry/config/root grant
+or a checked seed/create runtime. Tests cover all launch choices and absent
+node/draft identities; isolated Machine data explicitly has no admission epoch.

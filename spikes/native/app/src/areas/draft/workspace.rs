@@ -16,6 +16,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_view::composer::{context::ContextScope, drafts::Drafts};
+use vessel_app_view::composer_shell::surface::Mode;
 use vessel_app_view::creation::{DraftDestination, DraftSeed, Launch, SeedPlace, SeedProblem};
 use vessel_app_view::layout::{DraftId, LayoutKey, Target};
 
@@ -49,6 +50,29 @@ impl Editor {
     }
 }
 impl Shell {
+    /// Display policy follows this retained launch selection, never a global agent.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "B2 supplies the real scoped mode consumer in its union"
+        )
+    )]
+    pub(crate) fn workspace_draft_mode(
+        &self,
+        workspace: &LayoutKey,
+        draft: DraftId,
+    ) -> Option<Mode> {
+        self.areas
+            .draft
+            .workspace_drafts
+            .entries
+            .get(&(workspace.clone(), draft))
+            .map(|entry| match entry.launch {
+                Launch::Chat => Mode::Chat,
+                Launch::BlankTerminal | Launch::Profile(_) => Mode::Terminal,
+            })
+    }
     /// W6 resolves exactly this field; an absent draft is never the global New field.
     pub(crate) fn workspace_draft_field(
         &self,
