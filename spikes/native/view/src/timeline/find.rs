@@ -28,6 +28,9 @@ use vessel_proto::EventSeq;
 
 use super::entry::{Entry, EntryKind};
 
+mod cache;
+pub use cache::FindCache;
+
 /// One occurrence: the entry it is in and its index there.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Match {
