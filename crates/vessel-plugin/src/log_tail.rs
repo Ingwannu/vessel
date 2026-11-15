@@ -23,7 +23,7 @@ pub struct LogTail {
 
 impl LogTail {
     /// Bounded current tail, oldest first. Only authorized management code may
-    /// serialize the returned entries or call their LogText::as_str accessors.
+    /// serialize the returned entries or call their `LogText::as_str` accessors.
     #[must_use]
     pub fn snapshot(&self) -> Vec<LogEntry> {
         self.entries.iter().cloned().collect()

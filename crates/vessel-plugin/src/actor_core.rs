@@ -193,12 +193,12 @@ impl Core {
         {
             return Err(RuntimeError::CallTimeout);
         }
-        if let Some(mut pending) = self.pending.remove(&id) {
-            if pending.state == PendingState::Active && !pending.cancel.is_cancelled() {
-                if let Some(reply) = pending.reply.take() {
-                    drop(reply.send(result));
-                }
-            }
+        if let Some(mut pending) = self.pending.remove(&id)
+            && pending.state == PendingState::Active
+            && !pending.cancel.is_cancelled()
+            && let Some(reply) = pending.reply.take()
+        {
+            drop(reply.send(result));
         }
         // Already retired ids are harmless late/duplicate replies. No unbounded
         // tombstone set is needed because only this actor allocates increasing ids.

@@ -83,7 +83,7 @@ pub enum RuntimeError {
     /// No successful disable/remove acknowledgement may follow this refusal.
     #[error("plugin helper group cleanup did not complete")]
     CleanupTimeout,
-    /// A worker task failed; raw panic payloads remain sealed by TaskFailure.
+    /// A worker task failed; raw panic payloads remain sealed by `TaskFailure`.
     #[error("plugin helper worker failed")]
     Task(#[source] TaskFailure),
 }
