@@ -50,7 +50,7 @@ fn provider(id: &str, status: Option<ChildStatus>) -> ChildDescriptor {
     }
 }
 fn listed(track: &mut Track, rows: Vec<ChildDescriptor>) {
-    let read = track.refresh().unwrap();
+    let read = track.refresh(&mut Tickets::default()).unwrap();
     assert!(track.listed(
         &read,
         Ok(ProviderChildren {
@@ -149,14 +149,15 @@ fn provider_hide_never_archives_managed_children_or_invents_unknown_completion()
 fn stale_reads_failures_and_parent_changes_cannot_replace_good_rows() {
     let mut track = Track::new(target(NodeId::random()));
     listed(&mut track, vec![provider("one", None)]);
-    let old = track.refresh().unwrap();
-    let current = track.refresh().unwrap();
+    let mut tickets = Tickets::default();
+    let old = track.refresh(&mut tickets).unwrap();
+    let current = track.refresh(&mut tickets).unwrap();
     assert!(!track.listed(&old, Err(TrackProblem::Offline)));
     assert!(track.listed(&current, Err(TrackProblem::Timeout)));
     assert_eq!(track.counts().total, 1);
     assert_eq!(track.load(), TrackLoad::Failed(TrackProblem::Timeout));
     let mut another = Track::new(target(NodeId::random()));
-    let _next = another.refresh().unwrap();
+    let _next = another.refresh(&mut tickets).unwrap();
     assert!(!another.listed(&old, Err(TrackProblem::Offline)));
 }
 #[test]

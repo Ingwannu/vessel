@@ -111,7 +111,6 @@ pub struct TrackCounts {
 #[derive(Debug)]
 pub struct Track {
     target: Target,
-    tickets: Tickets,
     managed: Vec<ManagedChild>,
     providers: Vec<ChildDescriptor>,
     hidden: HashSet<ProviderChildId>,
@@ -124,7 +123,6 @@ impl Track {
     pub fn new(target: Target) -> Self {
         Self {
             target,
-            tickets: Tickets::default(),
             managed: Vec::new(),
             providers: Vec::new(),
             hidden: HashSet::new(),
@@ -192,12 +190,11 @@ impl Track {
     pub const fn coverage(&self) -> ChildHistory {
         self.coverage
     }
-    /// Reserve one correlated provider refresh.
+    /// Reserve a refresh from the owner's navigation-lifetime ticket source.
     /// # Errors
     /// Correlation counter exhausted.
-    pub fn refresh(&mut self) -> Result<TrackRead, TrackProblem> {
-        let ticket = self
-            .tickets
+    pub fn refresh(&mut self, tickets: &mut Tickets) -> Result<TrackRead, TrackProblem> {
+        let ticket = tickets
             .next_ticket()
             .map_err(|_error| TrackProblem::Exhausted)?;
         self.load = TrackLoad::Loading(ticket);

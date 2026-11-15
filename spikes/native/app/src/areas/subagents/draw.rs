@@ -280,6 +280,7 @@ struct DrawScope {
     target: Option<vessel_app_view::subagents::Target>,
     pane: Option<vessel_proto::subagents::ProviderChildRef>,
     choice: Option<vessel_app_view::subagents::DetachChoice>,
+    revision: Option<vessel_app_view::devices::Ticket>,
 }
 impl DrawScope {
     fn of(area: &super::SubagentArea) -> Self {
@@ -290,6 +291,10 @@ impl DrawScope {
                 .as_ref()
                 .map(vessel_app_view::subagents::ChildPane::identity),
             choice: area.confirm.clone(),
+            revision: area
+                .pane
+                .as_ref()
+                .and_then(|pane| pane.projection_revision()),
         }
     }
     fn current(&self, shell: &Shell, action: Action) -> bool {
@@ -300,7 +305,12 @@ impl DrawScope {
                     .pane
                     .as_ref()
                     .map(vessel_app_view::subagents::ChildPane::identity)
-                    == self.pane)
+                    == self.pane
+                    && area
+                        .pane
+                        .as_ref()
+                        .and_then(|pane| pane.projection_revision())
+                        == self.revision)
             && (!matches!(action, Action::Detach) || area.confirm == self.choice)
     }
 }

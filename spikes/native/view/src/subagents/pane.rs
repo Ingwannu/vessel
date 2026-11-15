@@ -33,11 +33,11 @@ pub struct ChildRead {
 #[derive(Debug)]
 pub struct ChildPane {
     query: ChildQuery,
-    tickets: Tickets,
     pending: Option<ChildRead>,
     records: BTreeMap<EventSeq, EventRecord>,
     timeline: Timeline,
     projection_ready: bool,
+    projection_revision: Option<Ticket>,
     next: EventSeq,
     history: ChildHistory,
     failure: Option<TrackProblem>,
@@ -48,11 +48,11 @@ impl ChildPane {
     pub fn new(query: ChildQuery) -> Self {
         Self {
             query,
-            tickets: Tickets::default(),
             pending: None,
             records: BTreeMap::new(),
             timeline: Timeline::default(),
             projection_ready: false,
+            projection_revision: None,
             next: EventSeq::ZERO,
             history: ChildHistory::Missing,
             failure: None,
@@ -90,6 +90,11 @@ impl ChildPane {
         self.projection_ready = false;
         Some(std::mem::take(&mut self.timeline))
     }
+    /// A rebuilt prepend changes row indices even when the child identity is unchanged.
+    #[must_use]
+    pub const fn projection_revision(&self) -> Option<Ticket> {
+        self.projection_revision
+    }
     /// Coverage is separate from an empty or populated pane.
     #[must_use]
     pub const fn history(&self) -> ChildHistory {
@@ -106,14 +111,18 @@ impl ChildPane {
         self.pending.is_some()
     }
     /// Read the retained tail, earlier page, or new parent continuation.
+    /// `tickets` must outlive navigation, including a same-child close/reopen.
     /// # Errors
     /// Another request is pending or the ticket counter is exhausted.
-    pub fn read(&mut self, cursor: Option<ChildCursor>) -> Result<ChildRead, TrackProblem> {
+    pub fn read(
+        &mut self,
+        cursor: Option<ChildCursor>,
+        tickets: &mut Tickets,
+    ) -> Result<ChildRead, TrackProblem> {
         if self.pending.is_some() {
             return Err(TrackProblem::Busy);
         }
-        let ticket = self
-            .tickets
+        let ticket = tickets
             .next_ticket()
             .map_err(|_error| TrackProblem::Exhausted)?;
         let read = ChildRead {
@@ -189,6 +198,7 @@ impl ChildPane {
         self.records = proposed;
         self.timeline = timeline;
         self.projection_ready = true;
+        self.projection_revision = Some(read.ticket);
         self.next = self.next.max(page.next);
         self.history = page.history;
         self.failure = None;

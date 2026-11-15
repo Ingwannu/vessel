@@ -20,7 +20,7 @@ async fn unassigned_relationship_protocol_refuses_before_any_rpc_is_sent() {
         },
     };
     let mut track = Track::new(target);
-    let read = track.refresh().unwrap();
+    let read = track.refresh(&mut Tickets::default()).unwrap();
     assert!(matches!(
         answer(&peer.client, Ask::Providers(read)).await,
         Reply::Providers {

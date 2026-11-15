@@ -99,12 +99,12 @@ impl Shell {
                 ticket,
             }));
         }
-        let read = self
-            .areas
-            .subagents
-            .track
-            .as_mut()
-            .and_then(|track| track.refresh().ok());
+        let read = {
+            let area = &mut self.areas.subagents;
+            area.track
+                .as_mut()
+                .and_then(|track| track.refresh(&mut area.tickets).ok())
+        };
         if let Some(read) = read {
             self.command(Command::Subagents(Ask::Providers(read)));
         }
@@ -160,7 +160,7 @@ impl Shell {
             target,
             child: child.clone(),
         });
-        let read = pane.read(None);
+        let read = pane.read(None, &mut self.areas.subagents.tickets);
         self.areas.subagents.pane = Some(pane);
         self.areas.subagents.readonly_source = None;
         self.areas.subagents.reproject(self.words);
@@ -193,7 +193,7 @@ impl Shell {
         let Some(before) = pane.before() else {
             return;
         };
-        if let Ok(read) = pane.read(Some(before)) {
+        if let Ok(read) = pane.read(Some(before), &mut self.areas.subagents.tickets) {
             self.command(Command::Subagents(Ask::Timeline(read)));
         }
     }
@@ -343,22 +343,22 @@ impl Shell {
                 && !pane.loading()
             {
                 let after = pane.after();
-                if let Ok(read) = pane.read(Some(after)) {
+                if let Ok(read) = pane.read(Some(after), &mut self.areas.subagents.tickets) {
                     self.command(Command::Subagents(Ask::Timeline(read)));
                 }
             }
-            let read = self
-                .areas
-                .subagents
-                .track
-                .as_mut()
-                .filter(|track| {
-                    !matches!(
-                        track.load(),
-                        vessel_app_view::subagents::TrackLoad::Loading(_)
-                    )
-                })
-                .and_then(|track| track.refresh().ok());
+            let read = {
+                let area = &mut self.areas.subagents;
+                area.track
+                    .as_mut()
+                    .filter(|track| {
+                        !matches!(
+                            track.load(),
+                            vessel_app_view::subagents::TrackLoad::Loading(_)
+                        )
+                    })
+                    .and_then(|track| track.refresh(&mut area.tickets).ok())
+            };
             if let Some(read) = read {
                 self.command(Command::Subagents(Ask::Providers(read)));
             }

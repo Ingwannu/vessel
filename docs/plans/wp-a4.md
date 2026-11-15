@@ -142,3 +142,13 @@ managed parent's track. An omitted ancestor stays an orphan root row with its re
 parent metadata preserved. No managed SessionId is fabricated. Row and breadcrumb
 callbacks capture the active full parent/child source before navigation/hide, so
 painted callbacks from another nested view refuse instead of mutating that view.
+
+## Navigation and projection generations
+
+Track refresh and child page reads draw tickets from the SubagentArea owner's
+navigation-lifetime counter, not a counter reset by each new Track/ChildPane.
+This prevents an A→B→A or same-child reopen from admitting the first old reply.
+An accepted rebuilt child projection exposes projection_revision (the accepted
+read ticket), so the keyed renderer can invalidate old index callbacks even after
+a same-query prepend. Query identity alone cannot prove an old numeric row index.
+Tests cover delayed same-child reopen and revision change on earlier-page rebuild.
