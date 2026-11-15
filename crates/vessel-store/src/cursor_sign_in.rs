@@ -1,4 +1,5 @@
 //! The one `SQLite` owner supplies Cursor's fixed read-only credential query to the source adapter.
+mod decode;
 use crate::StoreError;
 use rusqlite::{Connection, OpenFlags, OptionalExtension as _};
 use std::{io, path::Path};
@@ -63,8 +64,9 @@ pub fn read_cursor_usage_sign_in(path: &Path) -> Result<Option<Zeroizing<String>
     let Some(value) = row(&connection, path, "cursorAuthStatus")? else {
         return Ok(None);
     };
-    let mut legacy: Legacy = serde_json::from_slice(&value)
-        .map_err(|cause| StoreError::io(path)(io::Error::other(cause)))?;
+    let mut legacy: Legacy = serde_json::from_slice(&value).map_err(|cause| {
+        StoreError::io(path)(io::Error::other(decode::CursorDecodeFailure::new(cause)))
+    })?;
     Ok(legacy
         .access_token
         .take()
@@ -95,34 +97,4 @@ fn row(
     Ok(Some(bytes))
 }
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn fixed_query_is_read_only_handles_legacy_and_refuses_active_wal() {
-        let root = tempfile::tempdir().unwrap();
-        let path = root.path().join("state.vscdb");
-        let connection = Connection::open(&path).unwrap();
-        connection
-            .execute_batch("CREATE TABLE ItemTable(key TEXT PRIMARY KEY,value BLOB)")
-            .unwrap();
-        let _inserted = connection
-            .execute(
-                "INSERT INTO ItemTable VALUES (?1,?2)",
-                rusqlite::params!["cursorAuthStatus", r#"{"accessToken":"fixture-legacy"}"#],
-            )
-            .unwrap();
-        drop(connection);
-        let before = std::fs::read(&path).unwrap();
-        assert_eq!(
-            read_cursor_usage_sign_in(&path).unwrap().unwrap().as_str(),
-            "fixture-legacy"
-        );
-        assert_eq!(std::fs::read(&path).unwrap(), before);
-        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
-        std::fs::write(root.path().join("state.vscdb-wal"), b"active fixture WAL").unwrap();
-        assert!(read_cursor_usage_sign_in(&path).is_err());
-        let absent = root.path().join("absent.db");
-        assert!(read_cursor_usage_sign_in(&absent).is_err());
-        assert!(!absent.exists());
-    }
-}
+mod tests;

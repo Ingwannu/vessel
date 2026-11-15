@@ -1,7 +1,9 @@
 //! Typed additional vendor response boundaries; no credential or network I/O here.
 //! Existing Claude/Codex parsers remain the single owners of their schemas.
 mod common;
+mod decode;
 pub(crate) use common::Number;
+pub use decode::AccountUsageDecodeFailure;
 mod copilot;
 mod cursor;
 mod grok;
@@ -9,7 +11,6 @@ mod kimi;
 mod minimax;
 mod opencode_go;
 mod zai;
-use std::sync::Arc;
 use vessel_proto::{
     limits::InvalidLimitText,
     usage_reports::{
@@ -40,7 +41,7 @@ pub enum AccountUsageError {
     ChangedResponse,
     /// Source format changed; no raw JSON is placed in the display string.
     #[error("the account usage response could not be decoded")]
-    Decode(#[source] Arc<serde_json::Error>),
+    Decode(#[source] AccountUsageDecodeFailure),
     /// Metadata is refused as a whole rather than shortened into another identity.
     #[error("account usage metadata exceeds its supported shape")]
     Text(#[from] InvalidLimitText),

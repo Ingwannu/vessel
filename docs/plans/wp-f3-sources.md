@@ -418,3 +418,33 @@ TypeScript is temporarily the exact incoming base and must be regenerated throug
 the normal TS step before freshness or consumer readiness can be claimed. The two
 feature constants remain unassigned. Client/RPC all-target compilation and their
 transport tests are required alongside the current usage regression checks.
+
+### Public decoder diagnostic privacy
+
+[Decision Log]
+- Purpose: malformed vendor responses and legacy Cursor sign-in JSON must not
+  escape through ordinary public error logging, even outside the node adapters.
+- Constraint: serde errors may quote submitted string values. Fixed outer Display
+  text alone leaves derived Debug, source traversal and a public raw payload open.
+- Existing assets: the store's SettingsDecodeFailure and the completion decoder
+  already retain typed private causes with safe diagnostics and terminal sources.
+- Choice: use that sealed-cause design within each named decoding owner. All seven
+  vendors keep one common decoder; its public Decode variant carries a Clone safe
+  wrapper with a private Arc cause. Cursor wraps only its legacy serde error before
+  the existing io/StoreError layers. No shared settings or new dependency is added.
+- Alternatives: message rewriting can miss an encoding; discarding the cause loses
+  typed evidence; changing all StoreError diagnostics would exceed this boundary.
+- Impact: vendor Decode's Rust payload type changes from a raw serde Arc to the
+  safe wrapper. The variant, Clone, refusal classification and all JSON acceptance
+  rules remain. Only category/line/column can be printed; no raw accessor or source
+  reopens the cause. Wire/schema/protocol, SQL, byte budgets, direct-key precedence,
+  immutable reading and WAL refusal remain unchanged.
+
+Public vendor tests cover all seven root strings, a wrong known field, malformed
+and trailing JSON, full Display/Debug/alternate-Debug/source traversal and valid
+Copilot/Cursor controls. Private tests prove the actual original typed cause and
+shared Clone ownership remain. Disposable real SQLite TEXT/BLOB rows cover root,
+wrong-field, truncated and trailing credential JSON, public io get_ref diagnostics,
+unchanged bytes/mode/ownership/no side files, direct-key precedence and empty legacy
+values; existing success/WAL/absent-file controls remain. These are authored tests,
+not executed proof until the exact remote results are recorded.

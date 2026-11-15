@@ -108,6 +108,7 @@ pub use setup::{
 
 mod account_usage;
 pub use account_usage::{
-    AccountUsageError, AccountUsageOutcome, MAX_USAGE_VENDOR_BYTES, decode_account_usage,
+    AccountUsageDecodeFailure, AccountUsageError, AccountUsageOutcome, MAX_USAGE_VENDOR_BYTES,
+    decode_account_usage,
 };
 pub use system_prompt::{SystemPromptSupport, system_prompt_support};

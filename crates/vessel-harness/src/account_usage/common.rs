@@ -110,7 +110,7 @@ impl Text {
 }
 pub(super) fn decode<T: DeserializeOwned>(body: &[u8]) -> Result<T, AccountUsageError> {
     serde_json::from_slice(body)
-        .map_err(|source| AccountUsageError::Decode(std::sync::Arc::new(source)))
+        .map_err(|source| AccountUsageError::Decode(super::AccountUsageDecodeFailure::new(source)))
 }
 pub(super) fn name(text: &str) -> Result<LimitName, AccountUsageError> {
     text.parse().map_err(AccountUsageError::Text)
