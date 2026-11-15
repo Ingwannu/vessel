@@ -138,3 +138,12 @@ now performs ordinary target/Creator checks without wake or attachment reads, an
 the row changes from staged to pending with that owner implementation. Its sole
 feature stays None and its agent policy deny stays in place. This source is
 uncompiled/unexecuted until the next exact VM checks; it is not consumer-ready.
+
+Two further private-fake regressions now exercise missing observation with a
+nonexistent attachment before/after process handover, and an accepted fast turn's
+exact binding after another real fake turn. They read the original keyed
+TurnStarted record, never infer a next turn. All owned node timeline runtime cases
+now have one named 120-second testkit safety owner covering setup and cleanup;
+fake prebuild precedes that clock. These new cases and the safety-wrapper change
+are authored only until their exact changed-source VM run, not inherited from
+the older receipt/store or header results.
