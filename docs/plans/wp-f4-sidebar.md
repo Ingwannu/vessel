@@ -99,8 +99,9 @@ captures opened. Test order/visibility defaults, unavailable-key preservation,
 reordering boundaries, serde restart and switch behavior; filter pipeline and
 selected-row visibility; scroll end/footer invariance and owner action dispatch.
 
-Current: navigation preference model and regression tests are installed as
-the first skeleton step; narrow compilation remains pending. No complete
+Current: navigation preference model passed22 filtered tests at5e3d4a7e,
+including three sidebar form/space policy regressions. New controls, projection
+helpers and consumers still require their changed-head checks. No complete
 sidebar parity pass is claimed. The earlier height package has only bounded
 source/gate/inspected-height approval; theme and OS input evidence are separate.
 
@@ -117,8 +118,9 @@ the tight row height without changing the shared font inventory. Selection
 and hover share the reference sidebar fill; pressed surface2 wins. Persistent
 trailing content overrides the hover-only shortcut. Activation is supplied by
 one callback; optional focus tracking does not claim keyboard activation.
-Actual GPUI bounds/press and palette-token regressions are installed but not
-yet compiled while the preceding package's whole gate remains queued.
+Actual GPUI bounds/press and palette-token regressions are installed. The first
+kit strict check returned lint defects; corrected control execution remains
+pending, separate from the completed theme prerequisite.
 
 V1 reserved additional shared glyphs History, ArrowDown, Blocks, FolderPlus,
 CircleHelp for this package. Gauge remains its existing G2 producer; no local
@@ -173,8 +175,8 @@ An explicit tooltip opt-in opens compact explanations on press, top-start at
 offset8, using the existing engine and outside dismissal. Legacy touch
 suppression and centered composer tips are unchanged. Real GPUI regressions
 cover the expanded click target, compact open/outside dismissal, desktop hover,
-legacy touch suppression and section heading/card bounds. These tests remain
-uncompiled at this checkpoint. Real platform accessibility/OS back is not
+legacy touch suppression and section heading/card bounds. Execution of these
+corrected regressions remains pending. Real platform accessibility/OS back is not
 claimed by pointer tests on a virtual window.
 
 The theme/input prerequisite is now bounded source/final-native/inspected-visual
@@ -252,8 +254,8 @@ introduced in449fe38b, adopted as exact source/test blobs without the provider
 package's unrelated history. Its producer narrow check76557b9b passed all-target
 Clippy. The coordinator's approved Unicode-lowercase then original-scalar order
 is deterministic; it deliberately differs from locale/numeric tailored
-collation. Sidebar status/time/relevance precedence is preserved before this
-name tie. No second comparator or normalization layer is introduced.
+collation. Sidebar consumers must retain status/time/relevance precedence before this
+name tie; the workspace projection consumer is still pending. No second comparator or normalization layer is introduced.
 
 ### Manual ordering policy
 
@@ -296,10 +298,10 @@ The coordinator approved existing GPUI drag activation2 as an explicit interim
 difference from Paseo desktop6. The lead will add a per-element threshold with
 legacy default2; the sidebar switches to6 when that seam lands. No global
 threshold or custom controller changes here. Source native hold180/slop4 is
-not claimed by desktop pointer probes. Source drag scale1.02 remains unresolved
-in this first control checkpoint because GPUI exposes transforms for SVG but
-not a general Div transform; border/surface/shared shadow are present. This
-is not a final drag-visual or full F4 pass.
+not claimed by desktop pointer probes. The source1.02 scale is deliberately omitted by the coordinator's native
+mapping: GPUI has no general Div transform, so its native preview retains
+natural size with source border/surface/shared shadow. This is not a final
+inspected drag-visual or full F4 pass.
 
 The coordinator accepted natural-size GPUI drag preview as a deliberate
 native difference from `sidebar-workspace-row.tsx:499–506`: no1.02 Div scale,
@@ -312,3 +314,20 @@ are kept as subsequent commits; the failed run is not relabeled green. The
 returned snapshot predates the callout/workspace-row/order additions, whose
 own compilation and behavior remain unverified until the next changed-head
 checks. The gate package remains unfinished; no final review is submitted.
+
+## Resume point
+
+Done: base4 merge, corrected navigation model/policy22-test proof, shared
+header/info/callout/workspace-row source checkpoints, exact shared alphabetical
+helper adoption, pure filter/target/order and callout lifetime models.
+First kit strict return383e remains red; documentation, Debug and callback
+lints are corrected. Mechanical producer-owned view test-lint corrections are
+adopted without changing policy values. The package is not complete.
+
+Next: adopt the lead's gated shared button/menu/per-element drag line preserving
+all newer local controls/glyphs; run changed-head kit/view/app narrow checks on
+the authorized core lane, then wire settings/header/footer and canonical
+workspace projection. Concrete registry/pane/create/plugin/labels/usage action
+hooks remain their owners' dependencies. The staged pane1720 handoff is on
+HOLD until its self-contained successor; no pane or plugin framework is added.
+One final package gate and actual-fleet capture/review remain owed.
