@@ -257,7 +257,7 @@ fn draw_button(
     }
     let field = control_id.clone();
     let behavior = button.behavior.clone();
-    // Popovers stay explicitly unavailable until the shared owner lands;
+    // Popovers stay unavailable until the opening/context adapter is wired;
     // no modal substitute or area-owned popup renderer is introduced.
     let available = look.live
         && button.availability == Availability::Enabled

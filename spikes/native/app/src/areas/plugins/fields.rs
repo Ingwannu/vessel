@@ -1,6 +1,7 @@
 use gpui::{EventEmitter, Render};
 use vessel_app_kit::{
     TextField, Tokens,
+    field::FieldId,
     ui::{Context, IntoElement, ParentElement as _, Styled as _, Window, div, px},
 };
 use vessel_proto::plugins::{
@@ -12,10 +13,12 @@ use vessel_proto::plugins::{
 pub(super) enum Event {
     Edit {
         identity: ContributionId,
+        source: FieldId,
         value: Result<ContentText, InvalidPluginValue>,
     },
     Submit {
         identity: ContributionId,
+        source: FieldId,
         value: Result<ContentText, InvalidPluginValue>,
     },
 }
@@ -33,22 +36,30 @@ impl Field {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Self {
-        let editor = TextField::with_change(label.as_str(), Self::submit, Self::change, window, cx);
+        let editor = TextField::with_source(label.as_str(), Self::submit, Self::change, window, cx);
         Self {
             identity,
             label,
             editor,
         }
     }
-    fn submit(&mut self, text: String, _window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn submit(
+        &mut self,
+        source: FieldId,
+        text: String,
+        _window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         cx.emit(Event::Submit {
             identity: self.identity.clone(),
+            source,
             value: text.parse(),
         });
     }
-    fn change(&mut self, text: String, cx: &mut Context<'_, Self>) {
+    fn change(&mut self, source: FieldId, text: String, cx: &mut Context<'_, Self>) {
         cx.emit(Event::Edit {
             identity: self.identity.clone(),
+            source,
             value: text.parse(),
         });
     }

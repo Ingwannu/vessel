@@ -48,8 +48,8 @@ until its owner provides a reviewed hash. Do not copy those files.
 ## Current boundary
 
 The initial baseline 1d1f11df had no plugin RPC. The app tree now includes
-announced package base 8, 91407173, under A8, including shared field identity
-and menu input lease seams. The earlier dd13ce37 lock correction is retained.
+announced package base 2b806402 under A8, including shared field identity,
+menu input leases and the reviewed arbitrary-content popover seam. The earlier dd13ce37 lock correction is retained.
 The separate node tree includes announced 82ae7c91 and portable b37 cleanup,
 without W15's desktop/release ancestry. No feature is advertised
 as complete until its real path works. The package is not a whole-package
@@ -359,3 +359,32 @@ Until the integrator carries3a8fa24f and an announced app base includes it,
 none of the dependent F6 implementation is handed to either integrator or lead.
 Current root build/proto execution is pending; this exception is not shared-line
 or final package adoption.
+
+
+## Retained editor event ownership
+
+The renderer now uses the kit's existing TextField::with_source and real FieldId
+instead of adding a plugin counter or inferring identity from equal text. The
+parent matches every edit/submit to the current editor entity in that control's
+slot before changing a draft. Reusing a control id cannot admit an old editor's
+queued submission into its replacement, independently of the already checked
+contribution/node/document origin. The regression keeps the old actual entity
+and subscription alive, emits its queued submission through EventEmitter after
+replacement, then uses real Enter on the current field. It distinguishes typed
+event delivery from retained pointer-frame dispatch; execution is still owed.
+
+The shared content-popover seam is now on the announced 2b806402 base. Its UI
+lease does not replace the graph/context checks, and the F6 adapter remains
+unimplemented. Before mounting editable popover content, each opening must own
+and retire its field entities/subscriptions and captured input origin; an old
+opening cannot submit through newly mounted fields. The existing kit anchor
+probe supplies measured trigger bounds; placement and rendering stay with the
+shared popover. No Dialog substitute or area-owned popup geometry is introduced.
+The current fixed field-subscription collection is bounded by the declaration;
+a future opening adapter must not append subscriptions across unbounded reopen
+cycles. A lost or changed owner retires its body before deferred close/focus ACK.
+
+The base merge changes no root crates/Cargo files. Pending root Node/proto
+carrier checks on2fa4b832 therefore still cover the identical root source;
+new native consumers require their own current combined verification. The
+private-development-only handoff restriction remains in force.

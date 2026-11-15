@@ -99,10 +99,28 @@ impl SurfaceView {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let (identity, value, submit) = match event {
-            fields::Event::Edit { identity, value } => (identity, value, false),
-            fields::Event::Submit { identity, value } => (identity, value, true),
+        let (identity, source, value, submit) = match event {
+            fields::Event::Edit {
+                identity,
+                source,
+                value,
+            } => (identity, source, value, false),
+            fields::Event::Submit {
+                identity,
+                source,
+                value,
+            } => (identity, source, value, true),
         };
+        // Reusing a control id does not give a removed editor's queued event
+        // ownership of its successor. Kit supplies the real retained editor id.
+        if !self
+            .fields
+            .get(identity)
+            .is_some_and(|field| field.read(cx).editor.id() == *source)
+        {
+            cx.emit(SurfaceEvent::Rejected(Problem::Stale.into()));
+            return;
+        }
         let result = value
             .as_ref()
             .map_err(|_invalid| SurfaceProblem::Value)

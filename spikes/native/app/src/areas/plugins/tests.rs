@@ -275,3 +275,90 @@ fn real_native_field_captures_bounded_text_and_refuses_submit_after_owner_goes_o
             .any(|event| matches!(event, SurfaceEvent::Requested(_)))
     );
 }
+
+#[gpui::test]
+fn a_replaced_editor_cannot_submit_a_queued_event_to_the_same_control_identity(
+    cx: &mut TestAppContext,
+) {
+    cx.update(|cx| {
+        vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
+    });
+    let (registry, address) = fixture();
+    let owner = Rc::clone(&registry);
+    let captured = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&captured);
+    let (view, cx) = cx.add_window_view(move |window, cx| {
+        let view = SurfaceView::new(
+            &owner,
+            address,
+            Arc::new(|_, _, _| panic!("no browser in fixture")),
+            window,
+            cx,
+        )
+        .expect("surface");
+        cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
+            observed.borrow_mut().push(event.clone())
+        })
+        .detach();
+        view
+    });
+    let id: ContributionId = "field".parse().expect("control");
+    view.update_in(cx, |view, window, cx| {
+        let old = view.fields.get(&id).expect("old actual editor").clone();
+        let current = cx.new(|cx| {
+            fields::Field::new(id.clone(), "Input".parse().expect("caption"), window, cx)
+        });
+        view._subscriptions.push(cx.subscribe_in(
+            &current,
+            window,
+            |view, _field, event, window, cx| view.field_event(event, window, cx),
+        ));
+        let previous = view.fields.insert(id.clone(), current);
+        assert!(previous.is_some());
+        // Keep the real old entity/subscription alive and deliver its queued
+        // submission through EventEmitter after its map slot has been replaced.
+        old.update(cx, |field, cx| {
+            cx.emit(fields::Event::Submit {
+                identity: id.clone(),
+                source: field.editor.id(),
+                value: "old queued literal".parse(),
+            });
+        });
+        cx.notify();
+    });
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Stale))
+    )));
+    assert!(
+        !captured
+            .borrow()
+            .iter()
+            .any(|event| matches!(event, SurfaceEvent::Requested(_)))
+    );
+    view.read_with(cx, |view, _| {
+        let Some(FieldValue::Text(text)) = view.state.value(&id) else {
+            panic!("retained text");
+        };
+        assert_eq!(text.as_str(), "");
+    });
+    captured.borrow_mut().clear();
+    view.update_in(cx, |view, window, cx| {
+        view.fields
+            .get(&id)
+            .expect("current actual editor")
+            .clone()
+            .update(cx, |field, cx| {
+                field.editor.set_text("current literal", window, cx);
+                field.editor.focus(window, cx);
+            });
+    });
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Requested(request) if matches!(request.submission(),
+            Submission::Field { value: FieldValue::Text(text), .. } if text.as_str() == "current literal")
+    )));
+}
