@@ -1141,3 +1141,13 @@ connecting. Presence alone does not read/log a secret or grant an action; config
 paths explicitly await the restricted IPC SDK/producer. No listener, URL ingestion,
 normal node credential, TerminalInfo activity field or semantic-state inference is
 added. Its own changed-source check is still owed.
+
+### Public inventory import correction (2026-11-15 14:37 UTC)
+
+Exact85454788 run wp-cli-narrow-20261115T134749Z-85454788 completed14:35 UTC
+rc1. The earlier declaration-position lint is gone; compilation reached vessel-node
+and stopped on E0603: service/host_registry/shared.rs imported Method through the
+private rpc module. Use the existing public vessel_proto::Method re-export instead.
+The proto crate's own internal tests may still name crate::rpc. No wire/authority
+or data shape changes and no lint waiver. Retained public-host-cli-clippy2 spec/log/
+steps are source-red evidence, not an executed test or latest strict pass.

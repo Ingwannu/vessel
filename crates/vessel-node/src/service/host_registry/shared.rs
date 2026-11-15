@@ -1,7 +1,7 @@
 //! Direct local Read authority exposes only the actor's public inventory projection.
 use super::{Connection, NodeService, Principal, wire};
 use vessel_proto::host_registry::{ListSharedHostRegistrations, SharedHostDirectory};
-use vessel_proto::{ErrorCode, ListNodes, NodeId, WireError, rpc::Method};
+use vessel_proto::{ErrorCode, ListNodes, Method, NodeId, WireError};
 
 impl NodeService {
     pub(crate) async fn list_shared_host_registrations(
