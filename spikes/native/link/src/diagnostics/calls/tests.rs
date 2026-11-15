@@ -130,3 +130,71 @@ async fn a_reply_for_another_node_is_not_attributed_to_the_admitted_host() {
     assert_eq!(answer.facts, Err(Problem::InvalidReply));
     task.abort();
 }
+
+#[tokio::test]
+async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
+    use crate::diagnostics::Message;
+    use vessel_app_view::devices::{MachineKey, Tickets};
+    use vessel_app_view::diagnostics::collection::{Collection, Phase, Progress, ReportText};
+    const LIFECYCLE_ROOM: usize = 4;
+    let node_id = NodeId::random();
+    let (client, first_task) = peer(node_id, Outcome::Ok(Reply::NodeInfo(node(node_id)))).await;
+    let (replacement, second_task) =
+        peer(node_id, Outcome::Ok(Reply::NodeInfo(node(node_id)))).await;
+    let (events, mut receiving) = tokio::sync::mpsc::channel(LIFECYCLE_ROOM);
+    let state = crate::State {
+        label: "diagnostic-test".to_owned(),
+        events,
+        clients: std::collections::HashMap::new(),
+        follow: None,
+        follow_machine: None,
+        book_path: crate::machines::BookPath::File(std::path::PathBuf::from(
+            "unopened-fixture-book",
+        )),
+        workspace: crate::workspace::Hub::default(),
+        agents: crate::agents::Hub::default(),
+        device_calls: crate::devices::Hub::default(),
+        sync_calls: crate::sync::Hub::default(),
+        diagnostic_calls: crate::diagnostics::Hub::default(),
+        offers: Arc::default(),
+    };
+    let book_name = "laptop".parse::<vessel_client::book::NodeName>().unwrap();
+    let machine = MachineKey::from_book(book_name.as_str());
+    let mut tickets = Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
+    let mut collection = Collection::default();
+    collection.start(
+        ticket,
+        ReportText::new("Client").unwrap(),
+        [(machine.clone(), Ok(()))],
+    );
+    collection.running(ticket, &machine);
+    let first = collect(&client).await;
+    collection.answer(ticket, &machine, Ok(first.clone()));
+    assert_eq!(collection.phase(), &Phase::Ready);
+    let fleet = vessel_app_view::Fleet::default();
+    state.connection_ready(&book_name, &replacement).await;
+    state.emit(crate::Event::Fleet(fleet.clone())).await;
+    let crate::Event::Diagnostics(Message::Connected {
+        machine: observed,
+        node,
+    }) = receiving.recv().await.unwrap()
+    else {
+        panic!("the new connection must have its own lifecycle notice");
+    };
+    assert_eq!(observed, machine);
+    assert_eq!(node, node_id);
+    collection.connected(&observed, node);
+    let crate::Event::Fleet(observed) = receiving.recv().await.unwrap() else {
+        panic!("the unchanged fleet must follow the lifecycle notice");
+    };
+    assert_eq!(observed.machines, fleet.machines);
+    collection.answer(ticket, &machine, Ok(first));
+    assert!(matches!(
+        collection.rows().first().unwrap().progress,
+        Progress::Failed(Problem::ConnectionChanged)
+    ));
+    assert!(!collection.report().unwrap().as_str().contains("Protocol:"));
+    first_task.abort();
+    second_task.abort();
+}

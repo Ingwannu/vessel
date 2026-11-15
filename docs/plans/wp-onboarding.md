@@ -162,3 +162,20 @@ collection API; the copy call wraps the same fixture in ReportText. Existing
 settings framing now reads the accepted cached diagnostics catalog, while new
 collection framing remains diagnostic-flow. All unrelated merged head logic
 and tests remain unchanged.
+
+### Actual connection-ready producer
+
+Merged the isolated connection-ready producer 1af642c6 directly based on the
+announced app base. It changes only nodes/refresh plus its plan, and keeps
+kept-offer delivery before lifecycle notices. The diagnostics entry is the
+sole addition to its typed notice array; no second lifecycle hook or generation
+registry is introduced. Its author's dependency source precheck is pending;
+this package owns actual correlation tests and the combined native gate.
+
+The source-only producer dependency received V1's no-source-blocker precheck
+for provisional consumer reuse. The consumer regression now opens two real
+framed in-memory NodeClients with identical node identity, runs the actual
+connection_ready fanout, observes Connected before an equal Fleet, and checks
+that a delayed old response cannot restore its copyable facts. This does not
+claim the notice proves Read authority or a retained healthy connection; the
+actual read still owns refusal and timeout outcomes.
