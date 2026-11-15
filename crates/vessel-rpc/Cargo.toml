@@ -21,6 +21,8 @@ tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
 
 [dev-dependencies]
+# Shared test lifetime safety; no normal product dependency.
+vessel-testkit.workspace = true
 chrono.workspace = true
 criterion.workspace = true
 tokio = { workspace = true, features = ["io-util", "test-util"] }

@@ -164,3 +164,34 @@ closed by that narrow, with both logs. The original whole remains raw rc1; it
 is not rewritten as an uninterrupted green run. This documentation-only receipt
 leaf changes no gated code or generated TypeScript and needs no unchanged gate.
 V3, wire assignment and native feature acceptance remain separate.
+
+## Final review correction: bounded test lifetimes
+
+V3 row267 returned one test-lifetime finding on the frozen f7 source plus its
+5de documentation receipt. No additional product-security finding was asserted.
+The four owned client/protocol/store test files now use the existing testkit
+safety owner with a named 30-second outer deadline and named five-second phases.
+The cancellation fixture keeps its prior 30-second outer bound, and its real
+blocking release waits fail explicitly on safety expiry rather than holding a
+runtime worker forever. Tests still coordinate only through frames, channels,
+task completion and actual Store operations; no synchronizing sleep is added.
+
+The existing no-frame/control, epoch, retention, durable close/reopen, physical
+blocking-permit and measurement assertions remain. Measurement durations remain
+reported observations, with no performance acceptance threshold; finite safety
+only prevents a stalled fixture from hanging the worker. Client, RPC and Store
+add a dev-only dependency on the existing workspace testkit so all use that one
+outer safety owner. No normal product dependency, new external package, RPC,
+protocol assignment, product bound or base merge is introduced.
+
+The coordinator authorized changed-crate all-target strict checks and exactly
+the touched test files on the corrected head, ordinary lane, after the already
+queued App check ends. No new whole gate is requested: the earlier whole plus
+its named SSH runner closure remains evidence for unchanged code. Correction
+execution and the final row267 disposition are still pending.
+
+The three dev edges are coordinator-approved. The build-tool owner is preparing
+an offline, fixed root resolve-only recipe to return the original lock, patch
+and hashes while rejecting registry changes. Only that generated patch is to be
+committed; no lock is edited by hand and no Cargo command runs locally. The
+qualification head must include the generated lock before its strict/tests run.

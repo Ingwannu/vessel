@@ -1061,7 +1061,11 @@ In the crate table's order.
   with an injectable connection drop), the `Fake::path` locator (a nested
   `cargo build` once per test process; the first one of a run recompiles
   about 30 crates), and `within`, the test safety net whose clock starts
-  after that build. The fakes report the environment, arguments, MCP
+  after that build. Prompt-index regressions in client, RPC and Store use
+  this existing helper through dev-only dependencies, with named phase bounds
+  so transport, dequeue and close failures cannot hang a test worker. Those
+  test edges do not change the product crate map. The fakes report the
+  environment, arguments, MCP
   servers, loaded session id and working directory they got (`report
   <path>` writes them to a file). With the `relay` feature, a relay that
   drops, replays, reorders, corrupts or delays records on command.

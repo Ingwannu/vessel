@@ -40,6 +40,8 @@ zeroize.workspace = true
 rustix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
+# Shared test lifetime safety; no normal product dependency.
+vessel-testkit.workspace = true
 bytes.workspace = true
 criterion.workspace = true
 futures-util.workspace = true
