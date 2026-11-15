@@ -169,3 +169,46 @@ retry keeps that identity and SessionId; a new ticket receives another id.
 The legacy text transport still lacks submit_prompt activation, so retaining
 this id does not claim server-side prompt deduplication. Pending local byte
 acquisition/recovered uncertainty disables submission before preparation.
+
+The workspace form now has separate Chat/Blank terminal controls and a
+localized Create workspace action that also accepts an empty form without
+requiring an agent. Changing the launch target retains all text/context.
+Configured profile selection waits for the authoritative catalog; no local
+empty catalog is advertised as the server's settings. The shared composer
+renderer moved to draft/draw.rs to preserve the file budget; its existing
+four literal allowances moved with the unchanged drawing, without increases.
+Submission still reports unsupported while the registry driver is pending.
+
+Legacy creation Internal errors are outcome-unknown rather than a proven
+refusal. Existing node sessions::start launches/registers the process before
+store.create_session and can return a generic store error afterwards; cleanup
+cannot prove that the process had no external effect. The link retains the
+original draft and blocks replacement/replay in that case. Duplex-peer tests
+cover Internal at registration and at first-prompt delivery, with no success
+or automatic repeated create. Typed pre-effect refusals retain their existing
+retry behavior. Durable reconciliation still waits for the new receipt driver.
+
+Known first-input retry also verifies the originally admitted NodeId retained
+with the registered card. Reading a fresh Fleet identity cannot rebind an old
+SessionId after an alias is reused for another node. A regression preserves
+both original identities and the canonical message id after that refusal;
+retry on the original destination reads the same session rather than creating.
+
+### Scoped editor producer (staged, not consumer-ready)
+
+`draft/workspace.rs` owns bounded editor content under `(LayoutKey, DraftId)`;
+W12 owns presentation under `(LayoutKey, TabId)`. Its two exact read accessors
+return that draft's TextField and optional ContextScope, never the global New
+field. Scope stays absent until authoritative registry backing is available.
+Target::Draft registers only through W12's existing exhaustive renderer seam;
+a background panel makes its editor read-only rather than claiming input.
+Seed acceptance does not navigate/open layout, so a later open refusal retains
+the accepted editor. Existing identities refuse reseeding; capacity refuses
+without evicting another editor. Isolated shell tests cover these boundaries.
+
+The W6 keyed payload bridge is still pending: history-bearing workspace seeds
+currently refuse intake before mutation, and scoped submission reports
+unsupported without clearing text. Two narrowly documented dead-code
+expectations apply only to the staged cross-worker accessors/intake and must
+be removed with their actual consumers. This producer is not a working fork,
+attachment, persistence or creation flow and must not be advertised as ready.

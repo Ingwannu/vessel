@@ -47,6 +47,8 @@ mod probe;
 mod seed;
 mod status;
 mod submit;
+mod workspace;
+pub(crate) use workspace::render_panel as workspace_panel;
 
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
@@ -81,6 +83,7 @@ pub(crate) struct Lists {
 
 /// The draft: the composer, and what is chosen.
 pub(crate) struct Draft {
+    workspace_drafts: workspace::WorkspaceDrafts,
     /// Correlated progress retained while another route is shown.
     pub(crate) creation: create::CreationState,
     pub(crate) composer: TextField,
@@ -128,6 +131,7 @@ impl Draft {
         let nanos = chrono::Utc::now().timestamp_subsec_nanos();
         let suggestion = usize::try_from(nanos % 4).unwrap_or(0);
         Self {
+            workspace_drafts: workspace::WorkspaceDrafts::default(),
             creation: create::CreationState::default(),
             composer: TextField::composer(
                 "",
