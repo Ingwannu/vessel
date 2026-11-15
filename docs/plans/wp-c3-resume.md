@@ -216,3 +216,30 @@ scan and diffcheck0. Boundary was NOT rerun locally after discovering it invokes
 Cargo metadata; the workflow violation/correction is recorded above and disclosed.
 No uncommitted work, new local compiler, fake fleet, display or real node session
 was started. C3 remains skeleton; C4 has not started.
+
+
+## 15:09 UTC: latest source and execution boundaries
+
+- Node6e927990 selected workspace tests are now **67/0/0**, all4 prerequisites0,
+  actual changed Node compilation. Packet6e-root-tests-pass.json. No unchanged
+  rerun; af78 strict Clippy remains prior-source by one test-only correction.
+- Isolated Kit differs from the consumer in the UNOWNED split_button.rs baseline,
+  although all16 owned Kit/vendor blobs match. Whole-Kit equality was checked,
+  found false, and is NOT claimed. Therefore a separate exact isolated Kit
+  all-target Clippy was submitted ONCE after source/preflight inspection:
+  wp-git-kit-narrow-20261115T145912Z-08b1f5bb, queued, no priority. The App bdeed
+  Clippy and corrected public Kit08b1 tests are still queued. Current prepared
+  packet is control-producer-08b1, explicitly unverified, not sent to V1.
+- App now adopts ONLY W12's reviewed portable17094/6f1a/0396 leaves as
+  64a49402f/a84c36cc8/fedecf4ca, preserving own registry arms. Own5d46182ec adds
+  current target fences to open/answers/pruning/mode callback and captures the
+  discovery key as entry incarnation. Current-source test proves no-call after
+  actual retarget and old-owner removal; it is WRITTEN BUT UNEXECUTED. bdeed's
+  pending check predates these four App commits. Unobserved target ABA still
+  needs W12's synchronous retirement hook; the query alone is not that proof.
+- Only pure size/rustfmt/token/text scans were used locally after the disclosed
+  metadata mistake. No local boundary/metadata, compile, capture app, fake fleet,
+  real node or OS action was started. All own worktrees are committed/clean.
+- The15:00 UTC operator target was missed: C3 remains skeleton and C4 unstarted.
+  No package/whole gate/capture/review pass is claimed. Continue existing jobs,
+  inspect real errors, and finish the bounded control before another feature.
