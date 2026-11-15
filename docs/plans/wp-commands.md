@@ -777,3 +777,19 @@ and submit PID141432, canceled queued-only, and observed terminal cancelled143
 before replacement. It could not check the newly agreed View/App focus policy.
 Original logs remain. Latest View/App strict and App-only regression checks now
 cover those changes; unchanged successful Kit/View suites are not repeated.
+
+B2 clarified the remaining restore bound: weak opener liveness is not proof that
+a retained field is currently rendered/visible. Dead/missing opener and newer
+focus cases are covered by our tests; retained-but-hidden opener restoration
+remains explicitly unverified until the domain's admitted restore guard is wired.
+No blanket kit change, second visibility getter or metadata-as-permission is
+introduced. Existing ReturnFocus is not claimed as B2 Visible/Focused admission.
+
+W19 may add ONLY desktop_recording_started(window,cx) to its isolated older
+Record path immediately before capture start/blur. The helper must retire the
+existing desktop MenuState/cycle before recording so stale rows cannot restore
+focus ahead of the command-time guard. Current F4 tree has no E3 producer and is
+not edited to call an absent method. A concrete current-recorder/three-supported-
+actions refusal regression is prepared in package evidence; native admission
+assertion awaits the owner's normal production predicate, not a test-only hook.
+The test is unexecuted and does not imply E3 capture/persistence readiness.
