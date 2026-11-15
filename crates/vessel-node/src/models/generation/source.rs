@@ -18,7 +18,7 @@ pub(super) enum SourceError {
     #[error("the first title source is no longer cached")]
     History(#[from] vessel_session::FollowError),
     #[error("the first title source stream was lost")]
-    Stream(#[from] tokio::sync::broadcast::error::RecvError),
+    Stream(#[from] broadcast::error::RecvError),
     #[error("the title source was empty within its bound")]
     Empty,
     #[error("the session no longer owns its provisional title")]
