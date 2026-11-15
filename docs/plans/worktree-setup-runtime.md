@@ -204,3 +204,30 @@ The later authoritative bootstrap adapter must establish an approved current
 invocation and observe its empty-command completion before using that run as
 bootstrap scope. Neither old worktree setup history nor an absent observation
 can supply it. No automatic terminal hook is enabled by the planning fix.
+
+## Independent observation/cancel handoff
+
+The coordinator approved ADR 0093 observation and cancellation as a separate
+node handoff from D2/bootstrap. It builds on announced node `9c150c6e`; automatic
+terminals remain literally test-only. Each implemented call operates solely on
+the existing worktree resource and observed invocation, never on inferred
+Workspace bootstrap authority. Unknown remains distinct from NotRunning.
+The integrator alone assigns a capability/number after the final root gate and
+V3 review. The app consumes only a later announced package base.
+
+The reviewed head's reserved worktree-id/admission bookkeeping and every existing
+head test are retained in the merge. Generated TypeScript starts from that head's
+reviewed baseline and must be regenerated on the VM for the added runtime rows;
+restoring the baseline is not a freshness pass. The scalar carrier's evidence
+remains separate from decoder, runner, guard and runtime evidence.
+
+This observer retains Vessel's pre-existing SETUP_LIMIT and TEARDOWN_LIMIT.
+Paseo does not configure those command deadlines; retaining the existing bounded
+runner policy is an explicit difference, not a newly inferred source timeout.
+Per-worktree retained raw output derives from MAX_PROJECT_COMMANDS and the single
+MAX_SETUP_COMMAND_OUTPUT_BYTES owner. The existing MAX_WORKTREES also bounds
+retained observations; no smaller node-wide output-pool claim is made. Output
+buffer clones share their immutable bytes, while replacement buffers can overlap
+with responses still being serialized. The final review must assess these actual
+resource bounds rather than treating the DTO's per-snapshot check as a global
+memory budget.
