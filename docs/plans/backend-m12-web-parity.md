@@ -1319,3 +1319,21 @@ quota data in the browser. Same-binding success, refresh origin, explicit
 source disclosure and unsupported session associations must remain typed.
 Pure formatting/time preparation has not been installed into this tree and
 is not part of this package's gate or review.
+
+
+### Returned narrow-width correction
+
+Review of `dac496599` finds one remaining reference mismatch. Paseo's
+`components/toast-host.tsx:283–295` applies 16px container insets before
+its 92%/480px width boundary. The earlier viewport-relative width measured
+358.796875px at 390px; a new real-page counterfactual expects the literal
+329.36px and fails on that retained renderer. This is a porting error,
+not a deliberate difference. The narrow card now uses the inset-relative
+formula, with the literal measured assertion shared by its browser and
+capture cases. The declared existing 320px wide-layout choice is unchanged.
+
+The earlier whole result and inspected images remain evidence of their
+original source. Corrected-source checks and the affected narrow image
+states are owed before this return closes; they are not inferred from the
+old gate. The correction is isolated on the exact review candidate rather
+than the next feature's moving base.

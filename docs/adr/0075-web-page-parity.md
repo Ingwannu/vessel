@@ -164,8 +164,11 @@ not keyboard-owning menus and are not part of this guard.
 
 Paseo's `components/toast-host.tsx` places the app-shell viewport under the
 header, centred, including on narrow screens. Vessel uses its own safe
-inset/header/spacing tokens, retaining its 320px wide card and using the
-reference's responsive 92%/480px boundary on narrow screens. Positioning at
+inset/header/spacing tokens, retaining its 320px wide card. On narrow
+screens the reference first insets its host 16px at each side, then applies
+a 92% boundary capped at 480px. The card therefore measures
+`min(0.92 * (viewport width - 32px), 480px)`: 329.36px at a 390px
+viewport. Applying 92% directly to the viewport was an incorrect port. Positioning at
 the top across sizes avoids moving the same overlap to a wider composer.
 Existing success-four-seconds/error-until-dismissed and multi-toast semantics
 are deliberately retained here rather than changing unrelated notification

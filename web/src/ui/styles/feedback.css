@@ -62,7 +62,7 @@
 
 @media (max-width: 767px) {
   .toast-stack {
-    --toast-card-width: min(92vw, 480px);
+    --toast-card-width: min(calc((100vw - var(--s-4) * 2) * 0.92), 480px);
   }
 }
 
