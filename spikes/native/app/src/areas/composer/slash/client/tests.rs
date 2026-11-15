@@ -30,6 +30,19 @@ fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_life
                 binding: None,
             });
             shell
+                .layout_open_target(
+                    &vessel_app_view::layout::LayoutKey::Session {
+                        machine: "fixture".parse().unwrap(),
+                        session,
+                    },
+                    vessel_app_view::layout::Target::Agent(session),
+                    vessel_app_view::layout::OpenIntent::Reveal,
+                    vessel_app_view::layout::Placement::Focused,
+                    window,
+                    cx,
+                )
+                .unwrap();
+            shell
                 .areas
                 .session
                 .composer

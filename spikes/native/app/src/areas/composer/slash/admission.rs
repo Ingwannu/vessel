@@ -18,9 +18,10 @@ impl Shell {
         if self.composer_shell_field(target).is_none() {
             return false;
         }
-        let over = match target {
-            DraftKey::New => Over::Draft,
-            DraftKey::Session { .. } => Over::Session,
+        let Some(over) = Over::for_target(target) else {
+            // No authoritative draft command-config snapshot/RPC is available.
+            // A Workspace field must never borrow the global New catalog.
+            return false;
         };
         self.slash_menu(over, cx)
             .is_some_and(|menu| menu.takes_key(key))

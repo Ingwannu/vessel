@@ -36,7 +36,7 @@ mod catalog;
 mod client;
 mod input;
 mod presentation;
-pub(crate) use input::{draft_text, text};
+pub(crate) use input::{draft_text, text, workspace_text};
 pub(crate) use presentation::{draft_menu, menu};
 
 use std::cell::{Cell, RefCell};
@@ -93,6 +93,14 @@ enum Over {
 }
 
 impl Over {
+    fn for_target(target: DraftKey) -> Option<Self> {
+        match target {
+            DraftKey::New => Some(Self::Draft),
+            DraftKey::Session { .. } => Some(Self::Session),
+            DraftKey::Workspace { .. } => None,
+        }
+    }
+
     /// The list's element id (its animations are keyed by it).
     const fn id(self) -> &'static str {
         match self {
@@ -187,9 +195,10 @@ impl Shell {
                 session: self.areas.session.open.as_ref()?.session,
             },
         };
-        if self
-            .composer_surface(target, cx)
-            .is_none_or(|surface| !surface.autocomplete())
+        if self.composer_current_target() != Some(target)
+            || self
+                .composer_surface(target, cx)
+                .is_none_or(|surface| !surface.autocomplete())
         {
             return None;
         }

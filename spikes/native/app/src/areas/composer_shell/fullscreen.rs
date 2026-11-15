@@ -39,7 +39,7 @@ pub(crate) fn render(
     let size = window.viewport_size();
     let layout = ComposerLayout::fullscreen(
         px(f32::from(size.height).mul_add(1.0, -CHROME)),
-        shell.composer_font(target),
+        shell.composer_font(target)?,
     );
     let text = shell.composer_fullscreen_text(target, layout, tokens, cx)?;
     let enabled = shell.composer_may_submit(target, cx);
@@ -128,6 +128,9 @@ impl Shell {
         }
         let text = field.text(cx);
         match target {
+            // Field/mode access does not imply the creation owner's readiness.
+            // Root/config/driver admission and an exact-key submit wrapper are unavailable.
+            DraftKey::Workspace { .. } => false,
             DraftKey::Session { .. } => self.session_may_send(&text),
             DraftKey::New => {
                 (!text.trim().is_empty() || self.draft_has_files())
@@ -152,6 +155,7 @@ impl Shell {
         let text = field.text(cx);
         self.areas.composer_shell.collapse(target);
         match target {
+            DraftKey::Workspace { .. } => return,
             DraftKey::New => self.send_draft(text, window, cx),
             DraftKey::Session { .. } => self.submit_prompt(text, window, cx),
         }

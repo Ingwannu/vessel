@@ -24,6 +24,19 @@ fn menu_keys_are_scoped_and_querying_never_changes_input_or_selection(cx: &mut T
             archived_at: None,
             binding: None,
         });
+        shell
+            .layout_open_target(
+                &vessel_app_view::layout::LayoutKey::Session {
+                    machine: "fixture".parse().unwrap(),
+                    session,
+                },
+                vessel_app_view::layout::Target::Agent(session),
+                vessel_app_view::layout::OpenIntent::Reveal,
+                vessel_app_view::layout::Placement::Focused,
+                window,
+                cx,
+            )
+            .unwrap();
         let field = shell.areas.session.composer.clone();
         field.replace_all("/q", window, cx);
         let before = (field.text(cx), field.selection(cx));
