@@ -7,8 +7,18 @@ use std::time::Duration;
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
 /// UI correlation is distinct from a wire request id or a creation ticket.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Ticket(u64);
+impl Ticket {
+    /// Reserve a later lookup identity without wrapping into an old reply.
+    #[must_use]
+    pub const fn checked_next(self) -> Option<Self> {
+        match self.0.checked_add(1) {
+            Some(value) => Some(Self(value)),
+            None => None,
+        }
+    }
+}
 
 /// A query belongs to one composer on one already authorized node/root.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -274,7 +284,14 @@ impl Menu {
     pub fn phase(&self) -> &Phase {
         &self.phase
     }
+    /// The current captured token, needed when committing a selection.
+    #[must_use]
+    pub fn request(&self) -> Option<&Request> {
+        self.phase.request()
+    }
+
     /// Best-first results remain separate from the above-input draw order.
+    #[must_use]
     pub fn rows(&self) -> &[Suggestion] {
         self.phase.rows()
     }

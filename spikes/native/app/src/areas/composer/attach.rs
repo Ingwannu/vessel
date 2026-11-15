@@ -88,8 +88,9 @@ pub(crate) struct Waiting {
 /// A new chat started for its files, until its session exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Starting {
-    machine: String,
-    text: String,
+    pub(super) machine: String,
+    pub(super) text: String,
+    pub(super) ticket: Option<vessel_app_view::creation::Ticket>,
 }
 
 impl Shell {
@@ -287,6 +288,7 @@ impl Shell {
         *self.areas.composer.starting.borrow_mut() = Some(Starting {
             machine: machine.clone(),
             text: prompt,
+            ticket: None,
         });
         files_start(machine, harness, folder, options)
     }
@@ -301,13 +303,20 @@ impl Shell {
         self.composer_started(card, cx);
     }
 
-    fn composer_started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
+    pub(super) fn composer_started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
+        let matches = self
+            .areas
+            .composer
+            .starting
+            .borrow()
+            .as_ref()
+            .is_some_and(|starting| starting.machine == card.machine);
+        if !matches {
+            return;
+        }
         let Some(starting) = self.areas.composer.starting.borrow_mut().take() else {
             return;
         };
-        if starting.machine != card.machine {
-            return;
-        }
         let session = card.session;
         let composer = &mut self.areas.composer;
         composer

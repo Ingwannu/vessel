@@ -23,6 +23,10 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Resolve the existing session authority before path suggestions.
+    MentionRoot(crate::mentions::RootAsk),
+    /// Debounced path suggestions for one captured composer.
+    Mentions(vessel_app_view::composer::mentions::Request),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

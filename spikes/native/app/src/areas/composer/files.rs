@@ -40,7 +40,10 @@ pub(crate) fn session_card(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let menu = super::menu(shell, tokens, window, cx);
+    let menu = shell
+        .session_tray_key()
+        .and_then(|target| super::mentions::menu(shell, target, tokens, window, cx))
+        .or_else(|| super::menu(shell, tokens, window, cx));
     let files = shell
         .session_tray_key()
         .and_then(|key| tray(shell, key, tokens, touch, cx));
@@ -52,6 +55,11 @@ pub(crate) fn session_card(
         .children(menu)
         .children(attach)
         .children(files)
+        .children(
+            shell
+                .session_tray_key()
+                .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
+        )
         .child(super::text(shell, tokens, touch, cx))
 }
 
@@ -63,7 +71,8 @@ pub(crate) fn draft_card(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let menu = super::draft_menu(shell, tokens, window, cx);
+    let menu = super::mentions::menu(shell, DraftKey::New, tokens, window, cx)
+        .or_else(|| super::draft_menu(shell, tokens, window, cx));
     let files = tray(shell, DraftKey::New, tokens, touch, cx);
     let attach = (shell.areas.composer.attach_for == Some(true))
         .then(|| attach_menu(shell, tokens, touch, cx))
@@ -73,6 +82,13 @@ pub(crate) fn draft_card(
         .children(menu)
         .children(attach)
         .children(files)
+        .children(super::context::tray(
+            shell,
+            DraftKey::New,
+            tokens,
+            touch,
+            cx,
+        ))
         .child(super::draft_text(shell, tokens, touch, cx))
 }
 

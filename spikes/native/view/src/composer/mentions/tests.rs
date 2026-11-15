@@ -4,16 +4,16 @@ use crate::composer::slash::Step;
 use crate::machine_book::Name;
 use std::time::Duration;
 use vessel_proto::{
-    SessionId,
+    ProjectId,
     workspace::{RelPath, WorkspaceRoot},
 };
 fn scope() -> Scope {
     Scope {
         draft: DraftKey::New,
         machine: Name::parse("laptop").unwrap(),
-        root: WorkspaceRoot::Session {
-            session: "00000000-0000-4000-8000-000000000001"
-                .parse::<SessionId>()
+        root: WorkspaceRoot::Project {
+            project: "00000000-0000-4000-8000-000000000001"
+                .parse::<ProjectId>()
                 .unwrap(),
         },
     }

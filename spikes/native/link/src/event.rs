@@ -20,6 +20,10 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An existing session's registered file root.
+    MentionRoot(crate::mentions::RootAnswer),
+    /// File suggestions, correlated to their original composer and token.
+    Mentions(crate::mentions::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

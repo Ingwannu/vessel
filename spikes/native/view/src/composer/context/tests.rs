@@ -1,5 +1,5 @@
 use super::*;
-use vessel_proto::{SessionId, workspace::RelPath};
+use vessel_proto::{ProjectId, workspace::RelPath};
 
 fn snapshot(kind: ContextKind, id: &str, text: &str) -> ContextAttachment {
     ContextAttachment::Snapshot {
@@ -15,8 +15,8 @@ fn snapshot(kind: ContextKind, id: &str, text: &str) -> ContextAttachment {
 fn scope() -> ContextScope {
     ContextScope {
         machine: Name::parse("laptop").unwrap(),
-        root: WorkspaceRoot::Session {
-            session: SessionId::random(),
+        root: WorkspaceRoot::Project {
+            project: ProjectId::random(),
         },
     }
 }

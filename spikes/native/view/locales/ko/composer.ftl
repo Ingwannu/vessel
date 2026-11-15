@@ -77,3 +77,30 @@ composer-file-pick-failed = 파일 선택 창을 열지 못했습니다
 
 # Resume failed before upload; the composer retains its files and restores text.
 composer-file-wake-failed = 세션을 다시 시작하지 못했습니다. 첨부 파일은 그대로 보관됩니다.
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-loading = 파일을 불러오는 중…
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-empty = 일치하는 파일이 없습니다
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-failed = 파일을 불러오지 못했습니다. 멘션을 수정해 다시 시도하세요.
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-browser = 브라우저 요소
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-review = 검토 댓글
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-history = 대화 기록
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-pull = 풀 리퀘스트 문맥
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-issue = 이슈
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-plugin = 플러그인 리소스

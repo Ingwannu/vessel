@@ -12,6 +12,8 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Mentions(answer) => self.composer_mention_answer(answer, cx),
+            Event::MentionRoot(answer) => self.composer_mention_root(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),

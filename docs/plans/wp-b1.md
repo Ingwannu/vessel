@@ -144,3 +144,21 @@ latest source also adds a typed file-mention state skeleton which still
 owes its narrow tests. No full gate or runtime capture is claimed by this
 checkpoint. External receipt/create/directory/forge/plugin interfaces are
 being supplied by their owners; no duplicate protocol types are created.
+
+### First integrated mention boundary
+
+[Decision Log]
+- Purpose: ship the @ path selector against real existing operations while ADR0083 is staged.
+- Existing assets: `file.find`, `file.list`, `session.get`, typed `FindQuery`/`RelPath`, kit autocomplete, composer hooks and reveal.
+- Alternatives: fake a recursive directory RPC, start an agent, or replace the kit list. None matches authority/ownership.
+- Selected: reuse file.find for file ranking, file.list for directories in the requested parent, and session.get for authoritative registered workspace scope. New-chat lookup uses its existing selected project.
+- Why: captured draft/node/root/token correlation prevents a delayed result or caret movement from replacing the wrong text. Two query tasks and one root task are bounded and cancel superseded work.
+- Effects: until W13's ADR0083 is consumer-ready, directory matching is parent-local substring matching rather than recursive fuzzy matching. Outside registered project/worktree roots suggestions remain hidden. Typed failures remain distinct from an empty successful result. A query waits 180ms; its cache expires after 15s; at most 50 suggestions and 32 cached queries are retained per menu.
+
+### Creation and producer seams (first working skeleton)
+
+`creation::Ticket` is W3's value from reviewed narrow-green commit3823224d (cherry-picked30420800). The composer retains its own Starting record; `prepare_draft_files(ticket,machine,text)` returns an opaque Copy `PreparedSubmission` with only `ticket()`. `started_draft_files(ticket,card,cx)` and `rejected_draft_files(ticket,cx)` act only on the matching ticket; a machine mismatch preserves the record rather than consuming it. The old create adapter remains until W3's correlated create consumer is merged. This initial helper detects the byte tray; context preparation/receipt retention follows the canonical message contract.
+
+`composer_attach_context(target,scope,item,window,cx)` checks the destination's registered root and the file pointer's own scope before changing the draft, then focuses that composer. Producer-owned registries remain external: W13 owns file actions and root tracking; G1 owns forge identities and lookup; W16 owns plugin addresses/items/search. The context area renders the existing attachment pills and dialog, keeping focus for close. Forge/plugin safe HTTP(S) links open using the existing app mechanism; other context opens a local text preview. Browser uses the existing Monitor glyph until the shared owner publishes a browser glyph. Review-source reset callbacks and canonical producer adapters are still pending; a generic snapshot does not establish those integrations.
+
+Source status: the30420800 remote narrow app clippy run stopped at a missing must_use on the new view Menu::rows, now corrected. No runtime captures or whole native gate have run. The typed file source is tested through an in-memory fake with parent confinement, empty-vs-failure and result bounds; those new tests are not yet executed. The input key entry is exposed for W12b to delegate before slash; it must be consumed before claiming the @ input flow complete.

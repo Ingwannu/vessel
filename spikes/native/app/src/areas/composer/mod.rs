@@ -11,12 +11,15 @@
 //! the shell, the link and the toasts.
 
 mod attach;
+mod context;
 mod drafts;
 mod files;
 mod lightbox;
+mod mentions;
 pub(crate) mod modes;
 pub(crate) mod offers;
 mod pictures;
+mod prepared;
 pub(crate) mod running;
 mod sent;
 mod slash;
@@ -28,6 +31,7 @@ use std::time::Instant;
 pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
+pub(crate) use prepared::{PrepareProblem, PreparedSubmission};
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
 pub(crate) use slash::{draft_menu, draft_text, menu, text};
@@ -63,6 +67,10 @@ pub(crate) struct ComposerArea {
     pub(crate) recall: Recall,
     /// Each composer's attached files.
     pub(crate) trays: Trays,
+    /// Non-byte context follows the same bounded per-draft ownership.
+    pub(crate) contexts: vessel_app_view::composer::trays::DraftTrays<
+        vessel_app_view::composer::context::ContextTray,
+    >,
     /// Prompts waiting for their files, per session.
     pub(crate) sends: HashMap<SessionId, attach::Waiting>,
     /// A new chat started for its files, until its session exists (set
@@ -79,6 +87,12 @@ pub(crate) struct ComposerArea {
     /// (which reads the shell only), or kept from the composer.
     pub(crate) sent: RefCell<SentPictures>,
     lightbox: lightbox::Lightbox,
+    session_files: RefCell<mentions::FileMenu>,
+    draft_files: RefCell<mentions::FileMenu>,
+    mention_root: RefCell<mentions::Root>,
+    mention_root_token: RefCell<Option<vessel_app_view::composer::mentions::Mention>>,
+    mention_root_clock: std::cell::Cell<vessel_app_view::composer::mentions::Ticket>,
+    context_preview: context::Preview,
 }
 
 impl ComposerArea {
@@ -94,6 +108,7 @@ impl ComposerArea {
             saving: false,
             recall: Recall::default(),
             trays: Trays::default(),
+            contexts: vessel_app_view::composer::trays::DraftTrays::default(),
             sends: HashMap::new(),
             starting: RefCell::new(None),
             attach_menu: MenuState::new(cx),
@@ -101,6 +116,12 @@ impl ComposerArea {
             pictures: pictures::Pictures::default(),
             sent: RefCell::new(SentPictures::default()),
             lightbox: lightbox::Lightbox::new(cx),
+            session_files: RefCell::default(),
+            draft_files: RefCell::default(),
+            mention_root: RefCell::default(),
+            mention_root_token: RefCell::default(),
+            mention_root_clock: std::cell::Cell::default(),
+            context_preview: context::Preview::new(cx),
         }
     }
 

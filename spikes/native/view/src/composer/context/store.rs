@@ -144,12 +144,22 @@ impl ContextTray {
     /// # Errors
     /// Refuses invalid input or an unavailable transition with `ContextProblem`.
     pub fn reattach(&mut self, attachment: ContextAttachment) -> Result<(), ContextProblem> {
-        if let Some(index) = self.entries.iter().position(|entry| entry.attachment.same_key(&attachment)) {
+        if let Some(index) = self
+            .entries
+            .iter()
+            .position(|entry| entry.attachment.same_key(&attachment))
+        {
             let revision = self.next()?;
             let _previous = self.entries.remove(index);
-            self.entries.push(Entry { revision, attachment, visibility: ContextVisibility::Visible });
+            self.entries.push(Entry {
+                revision,
+                attachment,
+                visibility: ContextVisibility::Visible,
+            });
             Ok(())
-        } else { self.add(attachment) }
+        } else {
+            self.add(attachment)
+        }
     }
 
     /// Lock one immutable snapshot; another submit cannot replace it.

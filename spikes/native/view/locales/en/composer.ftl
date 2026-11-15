@@ -86,3 +86,30 @@ composer-file-pick-failed = The file picker couldn't be opened
 
 # Resume failed before upload; the composer retains its files and restores text.
 composer-file-wake-failed = The session couldn't resume. Your attachments are still here.
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-loading = Loading files…
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-empty = No files found
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-failed = Files could not be loaded. Try editing the mention to retry.
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-browser = Browser element
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-review = Review comments
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-history = Chat history
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-pull = Pull request context
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-issue = Issue
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-plugin = Plugin resource

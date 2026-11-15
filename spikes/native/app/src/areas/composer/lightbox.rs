@@ -13,6 +13,7 @@ pub(crate) fn overlay(
 ) -> vessel_app_kit::ui::Div {
     use vessel_app_kit::ui::ParentElement as _;
     vessel_app_kit::ui::div()
+        .children(super::context::preview(shell, tokens, window, cx))
         .children(draw::render(shell, tokens, window, cx))
         .child(vessel_app_kit::frame_log::drawn(started))
 }
