@@ -1,6 +1,7 @@
 //! Nested values keep validation, forward decoding and diagnostic privacy.
 
 use super::*;
+use crate::dictation::SampleRate;
 
 #[test]
 fn acknowledgements_use_absence_instead_of_a_negative_sequence() {

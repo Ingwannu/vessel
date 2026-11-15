@@ -130,8 +130,8 @@ pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, St
 /// Local lifecycle commands share the node's persistent lock rather than a PID file.
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 
-// The first speech consumer removes staging after its product wiring.
+// Speech consumers share conversion/framing without recording policy.
 mod speech_audio;
 
-// The first connection-owned resource wires this into the real context once.
+// Real connection setup owns one identity and close signal for all resources.
 mod connection_life;

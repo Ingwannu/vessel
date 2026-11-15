@@ -18,7 +18,7 @@ impl NodeService {
             self.settings
                 .current_dictation(self.dictation.reader())
                 .await
-                .map_err(refusal)
+                .map_err(|error| refusal(&error))
         } else {
             Ok(self.settings.current().await)
         }
@@ -36,11 +36,11 @@ impl NodeService {
         } else {
             self.settings.change(request).await
         }
-        .map_err(refusal)
+        .map_err(|error| refusal(&error))
     }
 }
-fn refusal(error: SettingsError) -> WireError {
-    let code = match &error {
+fn refusal(error: &SettingsError) -> WireError {
+    let code = match error {
         SettingsError::Unknown | SettingsError::UnknownDriver(_) | SettingsError::Dictation(_) => {
             ErrorCode::InvalidRequest
         }

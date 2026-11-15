@@ -103,6 +103,7 @@ impl SegmentBuffer {
 
     /// Refuse before retaining a chunk that would exceed the segment bound.
     pub(super) fn append(&mut self, chunk: &ResampledPcm<'_>) -> Result<(), AudioError> {
+        let chunk = chunk.as_pcm();
         if self.pcm.len().saturating_add(chunk.as_slice().len())
             > self.bytes_per_second.saturating_mul(MAX_SEGMENT_SECONDS)
         {

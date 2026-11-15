@@ -1,6 +1,9 @@
 //! Terminal selection is independent of output and provider backpressure.
 
-use super::*;
+use super::{
+    Arc, CommitPhase, Completion, Current, Data, Finishing, JobError, Life, Seal, Stream,
+    StreamError, StreamResult, Text, Waiter, Wake, mpsc,
+};
 use crate::dictation::{
     control::Retention, endpoint::ProviderError, input::InputError, provider_json::DecodeError,
     updates::End,

@@ -1,11 +1,22 @@
 //! One id's serial generations; real preparation and actor teardown retain quota.
-use super::*;
+use super::{Caller, Entry, Phase, RegistryError, Result, Snapshot, Start, State, remove_current};
+use crate::dictation::{
+    commands::Handle,
+    control::Control,
+    prepare::{Factory, PrepareError},
+    quota::Lease,
+    stream_error::StreamError,
+};
 use crate::dictation::{
     control::Retention,
     stream::{self, CloseSignals},
 };
+use std::sync::Arc;
 use std::sync::Weak;
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
+use vessel_proto::dictation::{DictationId, Pcm16Mono};
 
 pub(super) struct Launch {
     pub(super) id: DictationId,
@@ -81,7 +92,7 @@ impl Worker {
             || self.caller.closed.is_cancelled()
             || self.closed.is_cancelled()
     }
-    fn stop(&self, control: &Control<StreamError>, incoming: StreamError) -> Arc<StreamError> {
+    fn stop(control: &Control<StreamError>, incoming: StreamError) -> Arc<StreamError> {
         control.stop(Arc::new(incoming), Retention::Forget)
     }
     async fn run(mut self, mut command: Start, mut control: Control<StreamError>) {
@@ -102,7 +113,7 @@ impl Worker {
                             .send_replace(Phase::Live(active.handle.clone())),
                     );
                     if command.reply.send(Ok(())).is_err() {
-                        let _first = self.stop(&control, StreamError::Cancelled);
+                        let _first = Self::stop(&control, StreamError::Cancelled);
                     } else {
                         self.wait_live(&active.handle).await;
                     }
@@ -112,7 +123,7 @@ impl Worker {
                             .send_replace(Phase::Retiring(control.clone())),
                     );
                     if let Err(error) = active.retire().await {
-                        self.refuse_pending(error);
+                        self.refuse_pending(&error);
                         self.entry.stop.cancel();
                     }
                 }
@@ -132,14 +143,14 @@ impl Worker {
         control: &Control<StreamError>,
     ) -> Result<Active> {
         if self.closing() || reply.is_closed() {
-            return Err(Arc::new(RegistryError::Stream(
-                self.stop(control, StreamError::Cancelled),
-            )));
+            return Err(Arc::new(RegistryError::Stream(Self::stop(
+                control,
+                StreamError::Cancelled,
+            ))));
         }
         let lease = self
             .lease
-            .as_ref()
-            .cloned()
+            .clone()
             .ok_or_else(|| Arc::new(RegistryError::Gone))?;
         let factory = Arc::clone(&self.factory);
         let snapshot = self.snapshot.clone();
@@ -150,8 +161,7 @@ impl Worker {
         let source = self.await_preparation(reply, control, preparing).await?;
         let lease = self
             .lease
-            .as_ref()
-            .cloned()
+            .clone()
             .ok_or_else(|| Arc::new(RegistryError::Gone))?;
         let outbound = self.caller.outbound.clone();
         let (handle, task) = stream::spawn(
@@ -178,9 +188,7 @@ impl Worker {
         preparing: F,
     ) -> Result<crate::dictation::jobs::Source>
     where
-        F: std::future::Future<
-                Output = std::result::Result<crate::dictation::jobs::Source, PrepareError>,
-            >,
+        F: Future<Output = std::result::Result<crate::dictation::jobs::Source, PrepareError>>,
     {
         tokio::pin!(preparing);
         let source = loop {
@@ -192,7 +200,7 @@ impl Worker {
                 () = self.caller.outbound.closed() => { self.entry.stop.cancel(); break None; }
                 () = reply.closed() => break None,
                 () = self.entry.changed.notified() => {
-                    if !self.starts.is_empty() { let _first = self.stop(control, StreamError::Replaced); break None; }
+                    if !self.starts.is_empty() { let _first = Self::stop(control, StreamError::Replaced); break None; }
                 }
                 result = &mut preparing => break Some(result),
             }
@@ -200,7 +208,7 @@ impl Worker {
         let Some(source) = source else {
             let first = control
                 .chosen()
-                .unwrap_or_else(|| self.stop(control, StreamError::Cancelled));
+                .unwrap_or_else(|| Self::stop(control, StreamError::Cancelled));
             // A real blocking read/native-root load cannot be aborted. The id
             // and lease stay here until it ends, before any replacement reads.
             let _discarded = preparing.await;
@@ -210,9 +218,10 @@ impl Worker {
             return Err(Arc::new(RegistryError::Stream(first)));
         }
         if self.closing() || reply.is_closed() {
-            return Err(Arc::new(RegistryError::Stream(
-                self.stop(control, StreamError::Cancelled),
-            )));
+            return Err(Arc::new(RegistryError::Stream(Self::stop(
+                control,
+                StreamError::Cancelled,
+            ))));
         }
         let source = source.map_err(|source| Arc::new(RegistryError::Prepare(source)))?;
         Ok(source)
@@ -221,26 +230,26 @@ impl Worker {
         loop {
             tokio::select! {
                 biased;
-                () = self.entry.stop.cancelled() => { let _first = self.stop(&handle.control, StreamError::Cancelled); break; }
-                () = self.caller.closed.cancelled() => { let _first = self.stop(&handle.control, StreamError::Cancelled); break; }
-                () = self.closed.cancelled() => { let _first = self.stop(&handle.control, StreamError::Cancelled); break; }
-                () = self.caller.outbound.closed() => { self.entry.stop.cancel(); let _first = self.stop(&handle.control, StreamError::Cancelled); break; }
+                () = self.entry.stop.cancelled() => { let _first = Self::stop(&handle.control, StreamError::Cancelled); break; }
+                () = self.caller.closed.cancelled() => { let _first = Self::stop(&handle.control, StreamError::Cancelled); break; }
+                () = self.closed.cancelled() => { let _first = Self::stop(&handle.control, StreamError::Cancelled); break; }
+                () = self.caller.outbound.closed() => { self.entry.stop.cancel(); let _first = Self::stop(&handle.control, StreamError::Cancelled); break; }
                 () = self.entry.changed.notified() => {
-                    if !self.starts.is_empty() { let _first = self.stop(&handle.control, StreamError::Replaced); break; }
+                    if !self.starts.is_empty() { let _first = Self::stop(&handle.control, StreamError::Replaced); break; }
                 }
                 () = handle.closed.cancelled() => break,
             }
         }
     }
-    fn refuse_pending(&mut self, error: Arc<RegistryError>) {
+    fn refuse_pending(&mut self, error: &Arc<RegistryError>) {
         self.starts.close();
         while let Ok(command) = self.starts.try_recv() {
-            drop(command.reply.send(Err(Arc::clone(&error))));
+            drop(command.reply.send(Err(Arc::clone(error))));
         }
     }
     async fn next_or_remove(&mut self) -> Option<Start> {
         let Some(state) = self.state.upgrade() else {
-            self.refuse_pending(Arc::new(RegistryError::Gone));
+            self.refuse_pending(&Arc::new(RegistryError::Gone));
             drop(self.lease.take());
             self.entry.finished.cancel();
             return None;
@@ -251,7 +260,7 @@ impl Worker {
         {
             return Some(command);
         }
-        self.refuse_pending(Arc::new(RegistryError::Stream(Arc::new(
+        self.refuse_pending(&Arc::new(RegistryError::Stream(Arc::new(
             StreamError::Cancelled,
         ))));
         remove_current(&mut entries, &self.id, &self.entry);

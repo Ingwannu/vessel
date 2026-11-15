@@ -265,7 +265,10 @@ async fn stale_cleanup_cannot_remove_the_new_record_for_the_same_id() {
             .unwrap();
         let current = f.registry.entry(&link.caller, &key).await.unwrap();
         assert!(!Arc::ptr_eq(&old, &current));
-        remove_current(&mut f.registry.state.entries.lock().await, &key, &old);
+        {
+            let mut entries = f.registry.state.entries.lock().await;
+            remove_current(&mut entries, &key, &old);
+        }
         assert_eq!(
             f.registry
                 .chunk(&link.caller, &key, ChunkSeq::new(0), pcm())

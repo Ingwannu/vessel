@@ -3,7 +3,7 @@ use super::*;
 
 /// Registry and settings cases share the real owner with explicit temporary homes.
 pub(crate) fn open(data: DataDir) -> Arc<Settings> {
-    let runtime = Arc::new(vessel_session::SessionRuntime::new(
+    let runtime = Arc::new(SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
             harness_env: vessel_harness::HarnessEnv::new(data.root().to_owned()),

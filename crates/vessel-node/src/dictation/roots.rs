@@ -60,12 +60,11 @@ impl Factory {
         }
     }
 
-    fn initialize(&self) -> watch::Receiver<Option<Loaded>> {
+    fn initialize(
+        #[cfg(test)] gate: Option<Arc<Gate>>,
+        #[cfg(test)] refusal_probe: Option<Arc<std::sync::atomic::AtomicUsize>>,
+    ) -> watch::Receiver<Option<Loaded>> {
         let (sender, receiver) = watch::channel(None);
-        #[cfg(test)]
-        let gate = self.gate.clone();
-        #[cfg(test)]
-        let refusal_probe = self.refusal_probe.clone();
         drop(tokio::spawn(async move {
             #[cfg(test)]
             if let Some(gate) = gate {
@@ -101,7 +100,17 @@ impl Factory {
 
     /// Waiting is cancel-safe: the independent producer remains unique.
     pub(super) async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
-        let mut receiver = self.result.get_or_init(|| self.initialize()).clone();
+        let mut receiver = self
+            .result
+            .get_or_init(|| {
+                Self::initialize(
+                    #[cfg(test)]
+                    self.gate.clone(),
+                    #[cfg(test)]
+                    self.refusal_probe.clone(),
+                )
+            })
+            .clone();
         loop {
             let loaded = receiver.borrow().clone();
             if let Some(result) = loaded {

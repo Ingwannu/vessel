@@ -1,6 +1,9 @@
 //! Cooperative one-chunk advancement and detached commit ownership.
 
-use super::*;
+use super::{
+    Arc, Current, Duration, Input, Instant, Jobs, Life, Seal, Segment, Stream, StreamError,
+    StreamResult, WithinMs,
+};
 use crate::dictation::{budget, updates::End};
 
 impl Stream {

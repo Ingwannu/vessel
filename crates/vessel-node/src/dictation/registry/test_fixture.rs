@@ -161,6 +161,6 @@ pub(in crate::dictation) fn format() -> Pcm16Mono {
 pub(in crate::dictation) fn pcm() -> DictationPcm {
     DictationPcm::new(1000_i16.to_le_bytes().to_vec()).unwrap()
 }
-pub(in crate::dictation) async fn within(test: impl std::future::Future<Output = ()>) {
+pub(in crate::dictation) async fn within(test: impl Future<Output = ()>) {
     vessel_testkit::within(TEST_LIMIT, test).await.unwrap();
 }

@@ -1495,49 +1495,44 @@ options channel before a session probe and rechecks after it. An unknown or
 changed provider cannot attribute the saved OpenAI account to that session;
 the explicitly selected account scope remains available independently.
 
-## Dictation contract (ADR 0067, staged)
+## Dictation (ADR 0067, protocol pending)
 
-`vessel-proto::dictation` owns bounded audio values and their decoders, and
-provider metadata (`settings_values`, `local_model`). It does not perform
-I/O. The metadata retains a parsed endpoint URL, using the existing
-workspace `url` dependency, and a typed catalogue with future IDs retained
-on read. It loads or downloads no model. PCM and transcript diagnostics redact their contents.
-The stream actor and endpoint are subsequent implementation slices; no
-method, settings field or provider is available from these values alone.
-No crate edge changes: the node will reuse its existing HTTP and secret
-storage dependencies when the service lands.
+`vessel-proto::dictation` owns bounded audio values and their decoders, provider
+metadata and keep/set/reset settings. Endpoint metadata retains a parsed URL,
+using the existing workspace dependency; unknown catalogue ids stay readable but
+are refused on write. No model is downloaded and no credential is resolved there.
+PCM, transcripts and selected-reference diagnostics redact their contents.
 
-The unregistered settings values (`settings`, `patch`, `secret_ref`) distinguish
-keep, set and reset, validate provider options against the merged choice, and
-redact reference diagnostics. Their read view reports only key presence. They
-resolve no credential and provide no file codec or callable settings field.
+The node's dictation service owns the bounded stream registry, current-settings
+preparation, detached commit audio and endpoint client. The generated method
+table carries five pending Operate rows; the one feature constant remains None,
+so real client/dispatch admission refuses them until assignment. Product wiring
+uses the canonical connection life/transport signal and shared speech_audio
+codec. Recording quotas remain separate from connection identity; preparing,
+retiring and unread terminal records retain reservations.
 
-The staged dictation adapter owns bounded segments, silence and detached commit
-audio. Shared speech_audio owns provider-rate conversion and in-memory WAV;
-connection_life owns the canonical opaque connection identity. The duplicated
-private codec/owner implementations are removed. These modules remain test-only
-until product consumers remove staging; helper tests do not establish a live
-service or the transport-close path.
+The stream keeps accepted-input order separate from provider forwarding and text
+slot order separate from physical request completion. Bounded data/update queues
+leave control cancellation, transport/node close and an active finish deadline
+independent. Shared proto JavaScript whitespace trimming remains the single text
+policy. The file consumer drains next while uploading acknowledged chunks, and
+publishes only a Final whose finish was accepted.
 
-The planned endpoint layers keep a TLS-only root cache and fixed multipart
-encoding independent of the HTTP client. Their typed errors flow up to the
-client once; they do not depend on its destination or credential. The client
-owns redirect/proxy/time/attempt policies and response bounds; a bounded foreign JSON
-edge produces only typed transcript or fixed failures. Root configuration is
-shared per node, HTTP pools and credentials per stream. TLS client copies also
-receive independent resumption stores, so the root cache accumulates no past-host
-session state. None of these layers adds a second secret reader or an HTTP policy
-to http_tls. The staged reader caps response bytes before the JSON edge, and only
-fixed diagnostics leave the client; the actor and product wiring remain later.
+A service owns one TLS-only root cache. The endpoint owns its pool, sensitive
+header and credential redactor per stream. Redirects, environment proxies and
+retries are disabled; connect/request deadlines and response bounds apply before
+JSON decoding. TLS copies get independent resumption stores, so the root cache
+keeps no host session history. The multipart encoder builds a bounded WAV body
+in memory. A foreign JSON edge returns only typed text or fixed failures, and
+private causes pass through one fixed wire mapper. No HTTP policy or credential
+reader is duplicated in http_tls.
 
-The planned stream keeps accepted-input ordering separate from provider
-forwarding, and submission-order text separate from physical request completion.
-Its bounded data/update queues must leave cancellation, owner/transport close,
-node stop and an active finish deadline independent. Stream quotas include
-preparing, retiring and unread terminal records; blocking secret work owns its
-permit until completion. These are contract choices awaiting staged actor tests,
-not a registered service. The existing proto JavaScript trim policy and fleet
-secret reader remain the single owners of those rules.
+Strict wire patches and a lenient file view reuse the shared settings writer and
+recovery/backup policy. Supported reads return key presence only; hidden old or
+unassigned responses skip secret I/O. FleetFiles::resolved_secret remains the
+fresh secret source on a blocking worker, shared with start validation through a
+bounded read gate. Product tests and the package gate are required in addition
+to the historical staged helper evidence; real provider/OS behavior is separate.
 
 The node's `http_tls` module builds the operating-system root, explicit
 ring and ALPN configuration once per client constructor. `catalogue::fetch`
@@ -1645,13 +1640,13 @@ this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
 
-The staged dictation reservation and secret-read mechanisms (`quota`,
-`secret_read`) reuse owned semaphore permits and `FleetFiles::resolved_secret`.
+The dictation reservation and secret-read mechanisms (`quota`, `secret_read`)
+reuse owned semaphore permits and `FleetFiles::resolved_secret`.
 Read workers retain their gate permit and optional stream lease until actual
 completion, independent of async waiter cancellation. Presence shares the read
 gate without claiming a recording slot. The lease has no connection lifetime
-guard; fixed diagnostics keep store causes internal. These tests do not yet
-establish registry admission, settings integration or a callable speech service.
+guard; fixed diagnostics keep store causes internal. The registry and settings
+service share these mechanisms; helper tests alone are not product evidence.
 
 The CLI's dictation file edge validates and seeks through a bounded
 little-endian PCM16 mono WAV container before connecting, then owns one bounded

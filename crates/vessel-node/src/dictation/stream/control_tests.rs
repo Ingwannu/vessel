@@ -116,6 +116,8 @@ async fn transport_and_node_close_abort_pending_work_without_connection_guard_ow
             async move {
                 let _closed = transport.await;
             },
+            Control::new(&CancellationToken::new()),
+            crate::dictation::quota::tests::lease(),
         )
         .unwrap();
         closed.send(()).unwrap();

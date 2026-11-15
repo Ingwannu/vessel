@@ -848,3 +848,16 @@ The virtual-clock final/cleanup regression also has its own derived outer safety
 net after all file I/O finishes. Removing a product wait deadline therefore fails
 the test instead of leaving a pending scripted reply forever. Existing product
 budgets and the shared test safety net are unchanged.
+
+
+### First product strict check findings
+
+The first product-wiring strict run on its immutable checkpoint failed on a
+missing SampleRate test import, a stale actor-spawn test missing the real control
+and lease, and a test mutex-guard coercion. Product-only lint findings also exposed
+wildcard imports, redundant Future qualifications, unused self arguments and
+borrow/clone details hidden by staging. These are corrected without changing
+inputs, assertions or product limits. SegmentBuffer now consumes the codec's
+existing validated PCM view instead of leaving that product edge unused. The
+root initializer is associated; its synthetic arguments exist only under test.
+The failed run remains evidence of failure, not runtime or product success.

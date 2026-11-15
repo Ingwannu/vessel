@@ -1,6 +1,6 @@
 //! Dictation settings contract (ADR 0067), without node wiring, files or I/O.
-//! Defaults and patch validation are pure; only the existing secret owner can
-//! resolve the selected reference before the later persistence/service slice.
+//! Defaults and patch validation are pure; only the existing node secret owner
+//! resolves the selected reference during persistence and stream preparation.
 
 use serde::{Deserialize, Serialize};
 
