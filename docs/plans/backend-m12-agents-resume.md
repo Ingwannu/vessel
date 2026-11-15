@@ -12,11 +12,23 @@ stopped by verified UID/executable/arguments and PID.
 
 The next slice wires confirmed removal through the existing link. Its final
 local narrow checks passed (link Clippy, nine RPC cases, 41 view cases).
-Exact-commit remote verification and V1 source review are next; details in
+Implementation `7a2c7eb2` passed exact-commit A13 native verification:
+run `agents-20261115T032805Z-7a2c7eb2`, six steps zero, 1061 passes
+(1059 runtime plus two document tests), zero failures, one existing ignored
+private capture. V1 source review is pending; details in
 `backend-m12-agents-removal.md`. Do not draw a duplicate Remove trigger.
-The coordinator's fixture fix `d30804b2` is to be taken at the clean slice
-boundary. S2 separately proved its full fleet and shell guard with the same
-root binaries; the older capture fleet's red result remains red.
+The coordinator's one-file fixture fix `d30804b2` was cherry-picked at the
+clean boundary as `9037d62c`, with an identical source blob. The actual G3
+paired book and seven loopback/no-address/protected-port cases passed its
+guard without starting a node. S2 separately proved its full fleet with
+both the shared and its own root binaries. Those are S2's runs; G3 did not
+repeat the full fleet or relabel the older failed capture setup as green.
+
+Next: address V1's review, then consume only G2's reviewed integrated trigger
+and leading16 seam for the Remove UI. Registry/Add rules and screens still
+remain, as do the shared alphabetical comparator and Models screen. Named
+launch-profile CRUD needs the separately reported node contract. No local
+capture/build/fleet/display processes remain running.
 
 ## Start here
 

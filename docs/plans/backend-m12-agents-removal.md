@@ -81,8 +81,14 @@ Preparation failures remain red in their logs: incorrect fixture RPC variant
 names and unused results, overly wide test visibility and wildcard matches,
 then a new fixture that encoded an added harness as a builtin string instead
 of its documented object shape. They were corrected without relaxing an
-assertion, lint or deadline. The exact-commit remote whole native gate and
-source review are still owed at this checkpoint.
+assertion, lint or deadline. The exact-commit remote whole native gate passed
+on `7a2c7eb2`: `agents-20261115T032805Z-7a2c7eb2`, every native step zero
+with no skips, 1059 runtime passes plus two document passes, zero failures
+and the existing ignored private browser capture. All nine RPC, three
+uncertainty and one new alert cases passed. Changed crates actually compiled.
+Queue wait was 808 seconds; execution took 62 seconds, load 8.17 to 8.35.
+The preceding native all-target Clippy run also passed. V1 source review
+remains pending; the results documentation does not rerun an unchanged gate.
 
 These tests simulate typed authorization/conflict replies; they do not prove
 real node administration policy or persisted file mutation. No real agent,
