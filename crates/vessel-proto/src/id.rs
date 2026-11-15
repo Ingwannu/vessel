@@ -320,3 +320,41 @@ mod tests {
         assert_eq!(serde_json::to_string(&id).unwrap(), r#""toolu_01""#);
     }
 }
+
+#[cfg(test)]
+mod workspace_identity_tests {
+    use super::{SessionId, WorkspaceId, WorkspaceOperationId, WorktreeId};
+    #[test]
+    fn workspace_identity_round_trips_through_serde_and_text() {
+        let id = WorkspaceId::random();
+        assert_eq!(id.to_string().parse::<WorkspaceId>().unwrap(), id);
+        assert_eq!(
+            serde_json::from_str::<WorkspaceId>(&serde_json::to_string(&id).unwrap()).unwrap(),
+            id
+        );
+        assert!(serde_json::from_str::<WorkspaceId>("\"invalid\"").is_err());
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceId>(),
+            std::any::TypeId::of::<WorktreeId>()
+        );
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceId>(),
+            std::any::TypeId::of::<SessionId>()
+        );
+    }
+    #[test]
+    fn workspace_operation_identity_is_distinct_and_validated_at_decode() {
+        let id = WorkspaceOperationId::random();
+        assert_eq!(id.to_string().parse::<WorkspaceOperationId>().unwrap(), id);
+        assert_eq!(
+            serde_json::from_str::<WorkspaceOperationId>(&serde_json::to_string(&id).unwrap())
+                .unwrap(),
+            id
+        );
+        assert!(serde_json::from_str::<WorkspaceOperationId>("\"invalid\"").is_err());
+        assert_ne!(
+            std::any::TypeId::of::<WorkspaceOperationId>(),
+            std::any::TypeId::of::<WorkspaceId>()
+        );
+    }
+}
