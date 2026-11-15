@@ -229,3 +229,21 @@ attachment construction are moved intact into node/prepare.rs and
 node/attachment_setup.rs. This is a responsibility split with no initialization
 order, behaviour or assertion change. node.rs falls below the regular budget,
 so its shrinking-size allowance is removed rather than increased.
+
+## Initial-prompt output schema
+
+CLI run.ts:638-654 passes outputSchema through createAgent, while server
+create-agent/create.ts:252-258 places it in the initial prompt's AgentRunOptions.
+It is not durable launch/session state. Native Codex puts it on turn/start
+(codex-app-server-agent.ts:4288), and OpenCode on the prompt's format payload
+(opencode-agent.ts:4025-4029). W17 retains CLI semantic validation and retries.
+
+The bounded OutputSchema value reuses RawJson for opaque schema content,
+without a new dependency or a second schema AST. The node wire representation
+is JSON text (a string), distinct from the vendor's JSON object. The text bound
+is checked before native JSON parsing/retention, and root scalars/boolean schemas
+are refused because this creation contract takes an object. Debug/errors hide
+content; the native encoding accessor is only for a tested supporting adapter.
+No output-schema capability, creation field or prompt transport is enabled by
+this value alone. Existing CLI refusal remains in force until native preflight
+and transport are implemented and reviewed; no supplied schema is dropped.

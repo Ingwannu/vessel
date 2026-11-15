@@ -5,6 +5,7 @@ mod catalogue;
 mod config;
 mod create;
 mod launch;
+mod output_schema;
 mod snapshot;
 mod text;
 
@@ -21,6 +22,7 @@ pub use launch::{
     Arguments, CommandEdit, DisallowedTools, LaunchConfigError, LaunchSettings, MAX_LAUNCH_ITEMS,
     MAX_LAUNCH_TEXT, ProviderEnvironment, ToolPattern,
 };
+pub use output_schema::{MAX_OUTPUT_SCHEMA_BYTES, OutputSchema, OutputSchemaError};
 pub use snapshot::{
     CatalogueDirectory, CatalogueScope, DiagnosticRead, DiscoveryFailure, DiscoveryPhase,
     GetProviderDiagnostic, GetProviders, InvalidCatalogueDirectory, ProviderDiagnostic,
