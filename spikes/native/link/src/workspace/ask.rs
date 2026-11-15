@@ -92,14 +92,14 @@ pub enum FileAsk {
     /// Finite, root-confined saved-file observation (ADR0083, pending admission).
     Observe {
         /// Original wire request, including the last saved state.
-        ask: vessel_proto::workspace::ObserveFile,
+        ask: vessel_proto::workspace::panel_files::ObserveFile,
         /// Local observation identity, unchanged on refusals.
         ticket: FileTicket,
     },
     /// Rich directory snapshot for file sorting (pending ADR0083 admission).
     Inspect {
         /// Exact authorized root and requested directory.
-        ask: vessel_proto::workspace::InspectDirectory,
+        ask: vessel_proto::workspace::directory_metadata::InspectDirectory,
         /// The same local refresh correlation as a legacy listing.
         ticket: FileTicket,
     },

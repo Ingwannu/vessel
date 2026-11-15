@@ -21,7 +21,7 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 #[derive(Debug)]
 pub enum Event {
     /// Exact original C5 context and operation receipt.
-    FileOperation(crate::workspace::scoped::Reply),
+    FileOperation(workspace::scoped::Reply),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

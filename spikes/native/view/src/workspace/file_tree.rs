@@ -18,9 +18,10 @@
 //!   tab refreshes; a file an agent adds meanwhile shows on the refresh.
 
 use std::collections::{HashMap, HashSet};
+use vessel_proto::workspace::directory_metadata::FileModifiedMillis;
 
 use super::explorer::ExplorerOptions;
-use vessel_proto::workspace::{DirListing, EntryKind, FileModifiedMillis, RelPath};
+use vessel_proto::workspace::{DirListing, EntryKind, RelPath};
 
 /// What is known of one folder's entries.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,7 +121,7 @@ pub fn tree_rows_with_metadata<S: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath, FileModifiedMillis>,
+    modified: &HashMap<RelPath>,
 ) -> Vec<TreeRow> {
     let mut rows = Vec::new();
     rows_under(
@@ -141,7 +142,7 @@ fn rows_under<S: std::hash::BuildHasher>(
     dir: &RelPath,
     depth: usize,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath, FileModifiedMillis>,
+    modified: &HashMap<RelPath>,
     rows: &mut Vec<TreeRow>,
 ) {
     let listing = match listings.get(dir) {
@@ -256,10 +257,7 @@ mod tests {
             more: true,
         };
         let listings = HashMap::from([(RelPath::root(), Listing::Listed(listing))]);
-        let modified = HashMap::from([
-            (path("a"), FileModifiedMillis(1)),
-            (path("b"), FileModifiedMillis(2)),
-        ]);
+        let modified = HashMap::from([(path("a")(1)), (path("b")(2))]);
         let rows = tree_rows_with_metadata(
             &listings,
             &HashSet::new(),

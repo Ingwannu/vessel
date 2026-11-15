@@ -6,10 +6,11 @@ use vessel_app_link::workspace::FileAsk;
 use vessel_app_view::workspace::{
     file_scope::FileScope, file_ticket::FileTicket, problem::Problem,
 };
-use vessel_proto::workspace::{
-    DirEntry, DirListing, FILE_PANELS_PROTOCOL, FileModifiedMillis, IgnoreState, IgnoredEntries,
-    InspectDirectory, InspectedDirectory, ListDir, RelPath,
+use vessel_proto::workspace::directory_metadata::{
+    FileModifiedMillis, IgnoreState, IgnoredEntries, InspectDirectory, InspectedDirectory,
 };
+use vessel_proto::workspace::panel_files::FILE_PANELS_PROTOCOL;
+use vessel_proto::workspace::{DirEntry, DirListing, ListDir, RelPath};
 
 impl Shell {
     pub(super) fn file_panels_available(&self, scope: &FileScope) -> bool {

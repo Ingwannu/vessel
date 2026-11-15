@@ -628,6 +628,15 @@ mod tests {
 mod completion_tests {
     use super::*;
     use std::future::ready;
+    // No executor is needed: both fake boundaries are immediately ready.
+    fn now<F: Future>(future: F) -> F::Output {
+        let mut future = std::pin::pin!(future);
+        let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+        match future.as_mut().poll(&mut cx) {
+            std::task::Poll::Ready(value) => value,
+            std::task::Poll::Pending => panic!("ready fake"),
+        }
+    }
     #[test]
     fn refused_before_dispatch_is_distinct_from_an_unknown_completion() {
         let settle = |problem| async {
@@ -639,15 +648,6 @@ mod completion_tests {
             )
             .await
         };
-        // No executor is needed: both fake boundaries are immediately ready.
-        fn now<F: Future>(future: F) -> F::Output {
-            let mut future = std::pin::pin!(future);
-            let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
-            match future.as_mut().poll(&mut cx) {
-                std::task::Poll::Ready(value) => value,
-                std::task::Poll::Pending => panic!("ready fake"),
-            }
-        }
         assert!(matches!(
             now(settle(Problem::Unsent)),
             Saved::Failed(SaveFailure::Call(Problem::Unsent))

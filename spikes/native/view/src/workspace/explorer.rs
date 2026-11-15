@@ -2,9 +2,10 @@
 //! disk. Sorting keeps directories first and preserves listing indices.
 
 use std::cmp::Ordering;
+use vessel_proto::workspace::directory_metadata::FileModifiedMillis;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::workspace::{DirEntry, EntryKind, FileModifiedMillis, RelPath};
+use vessel_proto::workspace::{DirEntry, EntryKind, RelPath};
 
 /// Reference file ordering; modified order is enabled with node metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]

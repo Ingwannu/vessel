@@ -3,7 +3,9 @@ use super::*;
 use crate::areas::workspace::code::{io_tests, scope::Acquisition};
 use gpui::TestAppContext;
 use vessel_app_view::workspace::file_tree::Listing;
-use vessel_proto::workspace::{EntryKind, FileSize, InspectedEntry};
+use vessel_proto::workspace::EntryKind;
+use vessel_proto::workspace::directory_metadata::InspectedEntry;
+use vessel_proto::workspace::panel_files::FileSize;
 
 fn snapshot(path: &str, timestamp: Option<u64>) -> InspectedDirectory {
     InspectedDirectory {

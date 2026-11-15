@@ -9,7 +9,8 @@ use vessel_app_link::workspace::FileAsk;
 use vessel_app_view::workspace::{
     file_scope::FileScope, file_ticket::FileTicket, problem::Problem,
 };
-use vessel_proto::workspace::{ObserveFile, ObservedFile, ReadFile};
+use vessel_proto::workspace::ReadFile;
+use vessel_proto::workspace::panel_files::{ObserveFile, ObservedFile};
 const MIN_OBSERVATION_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Default)]

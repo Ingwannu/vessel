@@ -289,7 +289,9 @@ impl Shell {
             && let FileContent::Text { text, .. } = &read.content
             && !self.reserve_readonly_source(
                 key,
-                vessel_proto::workspace::FileSize(u64::try_from(text.len()).unwrap_or(u64::MAX)),
+                vessel_proto::workspace::panel_files::FileSize(
+                    u64::try_from(text.len()).unwrap_or(u64::MAX),
+                ),
             )
         {
             if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {

@@ -16,8 +16,8 @@ impl Client<'_> {
     // admission deadline. Headroom avoids cancelling its ordinary heartbeat.
     pub(super) async fn observe(
         &self,
-        request: vessel_proto::workspace::ObserveFile,
-    ) -> Result<vessel_proto::workspace::ObservedFile, Problem> {
+        request: vessel_proto::workspace::panel_files::ObserveFile,
+    ) -> Result<vessel_proto::workspace::panel_files::ObservedFile, Problem> {
         self.timed(request, OBSERVATION_CALL_DEADLINE).await
     }
     async fn timed<R: Unary>(

@@ -8,7 +8,7 @@ use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 use super::{CodePanel, Files, Shown, Slot, Viewer, actions};
 use crate::shell::Shell;
 use vessel_app_view::workspace::file_tree::{TreeRow, tree_rows_with_metadata};
-use vessel_proto::workspace::FileSize;
+use vessel_proto::workspace::panel_files::FileSize;
 
 /// All source owners share a finite retained-count ceiling.
 const MAX_RETAINED_FILES: usize = 32;

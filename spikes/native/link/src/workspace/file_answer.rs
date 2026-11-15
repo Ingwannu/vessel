@@ -23,20 +23,20 @@ pub enum FileAnswer {
     /// A finite saved-file observation; never evidence a write ended.
     Observed {
         /// Original root/path/anchor.
-        ask: vessel_proto::workspace::ObserveFile,
+        ask: vessel_proto::workspace::panel_files::ObserveFile,
         /// Original acquisition identity.
         ticket: FileTicket,
         /// Current saved state or a typed failure.
-        result: Result<vessel_proto::workspace::ObservedFile, Problem>,
+        result: Result<vessel_proto::workspace::panel_files::ObservedFile, Problem>,
     },
     /// Directory metadata, acquired together with its entries.
     Inspected {
         /// Original directory acquisition.
-        ask: vessel_proto::workspace::InspectDirectory,
+        ask: vessel_proto::workspace::directory_metadata::InspectDirectory,
         /// Original refresh identity.
         ticket: FileTicket,
         /// One bounded snapshot or a typed failure.
-        result: Result<vessel_proto::workspace::InspectedDirectory, Problem>,
+        result: Result<vessel_proto::workspace::directory_metadata::InspectedDirectory, Problem>,
     },
     /// A folder's entries.
     Listed {

@@ -508,3 +508,21 @@ The framed write-retirement regression uses a valid normal content guard, so
 its dispatch barrier still names the original write itself after explicit
 overwrite gained a pre-read. It additionally pins that exact transmitted guard;
 the original single-write/no-replay and retained original scope assertions stay.
+
+### Narrow17 corrections and initial Markdown loading
+
+Exacte49f40387 strict four-crate all-target run17 reached compilation and
+reported five missing observation type paths, one unnecessary event qualification
+and one test-helper item placement lint. C5 now imports its canonical public
+panel_files/directory_metadata modules rather than assuming root reexports;
+metadata/source types added since that older run follow the same canonical paths.
+The event uses its existing workspace import, and the ready-future test helper
+lives before test statements. No protocol export or allowance is invented.
+
+Initial Markdown rendering waits for a completed read instead of parsing the
+loading model's empty placeholder; an actually loaded empty document remains
+valid. A GPUI source regression distinguishes those two states. Name/timestamp
+ties currently use deterministic Unicode lowercase ordering rather than JS's
+locale-aware localeCompare: the existing Rust ordering avoids a new independent
+collation dependency; non-ASCII collation may differ and is not exact parity.
+Fast source checks pass; latest-source compiler/tests remain pending.

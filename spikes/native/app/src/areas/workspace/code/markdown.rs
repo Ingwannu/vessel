@@ -76,6 +76,7 @@ impl Preview {
 
 fn complete_source(viewer: &Viewer) -> Option<MarkdownSource> {
     let source = if let Some(editing) = &viewer.edit {
+        let _loaded = editing.model.version()?;
         Arc::<str>::from(editing.model.content())
     } else if let Shown::Text {
         source,
@@ -170,5 +171,25 @@ mod tests {
             Preview::for_path(&path, Some(FileLocation::line(std::num::NonZeroU32::MIN))).unwrap();
         assert!(preview.mode == Mode::Source);
         assert!(Preview::for_path(&"source.rs".parse().unwrap(), None).is_none());
+    }
+
+    #[gpui::test]
+    fn initial_markdown_waits_for_a_real_read_but_accepts_an_empty_loaded_document(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use super::super::io_tests;
+        crate::shell::language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update(cx, |shell, cx| {
+            let root = io_tests::root();
+            io_tests::target(shell, root);
+            shell.open_file_at("readme.md".parse().unwrap(), None, cx);
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            assert!(complete_source(shell.areas.workspace.code.viewer_at(&key).unwrap()).is_none());
+            let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+            let ask = super::super::editing::whole_read(root, key.path.clone());
+            shell.editor_read_answered_for(&key, ticket, &ask, Ok(io_tests::text("")), cx);
+            assert!(complete_source(shell.areas.workspace.code.viewer_at(&key).unwrap()).is_some());
+        });
     }
 }

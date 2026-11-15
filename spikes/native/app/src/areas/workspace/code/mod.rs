@@ -170,7 +170,7 @@ struct Files {
     options: vessel_app_view::workspace::explorer::ExplorerOptions,
     retained: HashMap<buffers::FileKey, Viewer>,
     listings: HashMap<RelPath, Listing>,
-    modified: HashMap<RelPath, vessel_proto::workspace::FileModifiedMillis>,
+    modified: HashMap<RelPath, vessel_proto::workspace::directory_metadata::FileModifiedMillis>,
     listing_tickets: HashMap<RelPath, vessel_app_view::workspace::file_ticket::FileTicket>,
     open: HashSet<RelPath>,
     rows: Vec<TreeRow>,

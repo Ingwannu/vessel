@@ -2,7 +2,7 @@
 //! Visible rows borrow lines; only the existing UI's visible text is copied.
 use super::MAX_SOURCE_BYTES;
 use std::sync::Arc;
-use vessel_proto::workspace::FileSize;
+use vessel_proto::workspace::panel_files::FileSize;
 
 /// A source that fits the native display limit; every offset is a UTF-8 edge.
 #[derive(Debug)]

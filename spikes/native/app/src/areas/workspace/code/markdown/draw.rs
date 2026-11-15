@@ -67,6 +67,17 @@ pub(in crate::areas::workspace::code) fn body(
     if preview.mode == Mode::Source {
         return None;
     }
+    let loading = viewer.edit.as_ref().map_or_else(
+        || matches!(viewer.text, Shown::Loading),
+        |editing| {
+            editing.model.status() == vessel_app_view::workspace::editor::EditorStatus::Loading
+        },
+    );
+    if loading {
+        return Some(
+            super::super::frame::note(shell.words().labels().loading, tokens).into_any_element(),
+        );
+    }
     if matches!(
         viewer.text,
         Shown::Failed(_) | Shown::Binary | Shown::TooLarge
