@@ -87,7 +87,10 @@ pub fn menu<V: 'static>(
 ) -> Option<AnyElement> {
     draw(
         Content::new(id, items),
-        (state, Anchor::TopLeft),
+        MenuPlacement {
+            state,
+            pointer_corner: Anchor::TopLeft,
+        },
         handlers,
         tokens,
         narrow,
@@ -110,7 +113,10 @@ pub fn menu_right<V: 'static>(
 ) -> Option<AnyElement> {
     draw(
         Content::new(id, items),
-        (state, Anchor::TopRight),
+        MenuPlacement {
+            state,
+            pointer_corner: Anchor::TopRight,
+        },
         handlers,
         tokens,
         narrow,
@@ -129,7 +135,10 @@ pub fn menu_with<V: 'static>(
 ) -> Option<AnyElement> {
     draw(
         content,
-        (state, Anchor::TopLeft),
+        MenuPlacement {
+            state,
+            pointer_corner: Anchor::TopLeft,
+        },
         handlers,
         tokens,
         narrow,
@@ -137,15 +146,25 @@ pub fn menu_with<V: 'static>(
     )
 }
 
+// Placement is one named decision, not an argument-count tuple. The existing
+// right-entry keeps its TopRight corner; measured end placement still comes
+// from MenuState's authoritative inner trigger bounds.
+struct MenuPlacement<'a> {
+    state: &'a MenuState,
+    pointer_corner: Anchor,
+}
 fn draw<V: 'static>(
     content: Content<'_>,
-    placement: (&MenuState, Anchor),
+    placement: MenuPlacement<'_>,
     handlers: &MenuHandlers<V>,
     tokens: &Tokens,
     narrow: bool,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
-    let (state, pointer_corner) = placement;
+    let MenuPlacement {
+        state,
+        pointer_corner,
+    } = placement;
     let (at, corner) = state.at?.geometry(pointer_corner);
     let Content { id, items, width } = content;
     let get = handlers.state;

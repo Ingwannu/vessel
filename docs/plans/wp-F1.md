@@ -220,3 +220,9 @@ New short preset-choice labels are in the schedules Fluent files; the saved-row
 cadence descriptions and existing errors remain in the accepted Rust table.
 These pure form rules are source checkpoints only, no editor screen or green
 narrow/final gate is claimed yet.
+
+The single menu renderer now groups state/pointer-corner in named MenuPlacement,
+following G1's returned API-shape condition. This replaces only the inherited
+private tuple, keeps menu_right TopRight and measured-end behavior, and adds no
+second renderer or offset policy. Existing placement/input tests remain intact;
+current narrow/runtime proof remains owed.
