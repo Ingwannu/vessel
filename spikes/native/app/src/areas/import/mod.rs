@@ -8,6 +8,7 @@ pub(crate) use draw::{entry, render};
 
 use crate::shell::Shell;
 use gpui::FocusHandle;
+use std::rc::Rc;
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, TextField, VirtualList};
@@ -68,9 +69,9 @@ impl ImportArea {
             dialog: DialogState::new(cx),
             picker: ComboboxState::new(window, cx),
             choosing: None,
-            machine_anchor: Default::default(),
-            agent_anchor: Default::default(),
-            account_anchor: Default::default(),
+            machine_anchor: Rc::default(),
+            agent_anchor: Rc::default(),
+            account_anchor: Rc::default(),
             profiles: Ok(Vec::new()),
             profile_request: None,
             tickets: Tickets::default(),
