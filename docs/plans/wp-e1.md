@@ -153,3 +153,14 @@ ADR 0097 proposes the one multi-route client-book format and mutation
 contract, including explicit identity conflicts and partial credential
 outcomes. Its status is proposed and V3 review is required before any
 persisted-format implementation. No callable upsert API is claimed.
+
+V3 returned the first ADR draft for two contract ambiguities: stronger
+stored secure trust must not be matched by an incoming welcome-only id,
+and redemption without a definitive reply must remain uncertain. The
+amendment adds the two-sided evidence/target matrix, a G4-owned retained
+RedemptionUncertain operation, concrete byte/count/worker/retention bounds,
+nonblocking safe-file requirements and cancellation barriers. Status stays
+proposed until the amendment is reviewed. The coordinator separately
+approved the add-only shared `BookRouteId(NonZeroU32)` name/value boundary;
+its code commit introduces no RPC, persisted-format or current consumer
+change. Exact integer persistence tests are prepared, not yet passed.
