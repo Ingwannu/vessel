@@ -1,4 +1,6 @@
 //! Confirmed lifecycle mutations settle before navigation or fresh-draft creation.
+#[cfg(test)]
+mod tests;
 use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,

@@ -1,0 +1,120 @@
+//! A mutation acknowledgement cannot bless a replacement node at the same alias.
+use super::*;
+use gpui::TestAppContext;
+use vessel_app_link::sessions::Binding;
+use vessel_app_view::{Card, Machine, Reach, sessions::SessionAddress};
+use vessel_proto::{HarnessKind, NodeId, SessionId, SessionMode, SessionSpec, SessionStatus};
+
+fn info() -> SessionInfo {
+    SessionInfo::new(
+        SessionId::random(),
+        SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        ),
+        chrono::DateTime::UNIX_EPOCH,
+    )
+}
+
+fn pending_exit(
+    shell: &mut Shell,
+) -> (
+    SessionInfo,
+    Name,
+    NodeId,
+    vessel_app_view::sessions::LifecycleTicket,
+) {
+    let info = info();
+    let card = Card::from_session("fixture", &info);
+    let admitted = NodeId::random();
+    let replacement = NodeId::random();
+    let host = Name::parse("fixture").unwrap();
+    let target = LifecycleTarget {
+        host: host.clone(),
+        session: info.id,
+        node: Some(admitted),
+    };
+    let mut open = crate::areas::session::Open::of(&card);
+    open.binding = Some(Binding {
+        host: host.clone(),
+        address: SessionAddress {
+            node: admitted,
+            session: info.id,
+        },
+    });
+    shell.route = Route::Session;
+    shell.areas.session.open = Some(open);
+    shell.areas.conversation.info = Some(Box::new(info.clone()));
+    shell.fleet.machines = vec![Machine {
+        name: "fixture".to_owned(),
+        node: Some(replacement),
+        reach: Reach::Online,
+        sessions: vec![card],
+        agents: Vec::new(),
+        protocol: Some(vessel_proto::PROTOCOL_VERSION),
+        version: None,
+    }];
+    let request = shell
+        .areas
+        .sessions
+        .lifecycle
+        .running
+        .begin(target.clone(), LifecycleAction::Exit)
+        .unwrap();
+    shell.areas.sessions.lifecycle.after = Some(Prepared {
+        target,
+        action: LifecycleAction::Exit,
+        seed: None,
+        choices: Vec::new(),
+    });
+    (info, host, admitted, request.ticket)
+}
+
+#[gpui::test]
+fn late_archive_ack_cannot_update_a_replacement_or_close_its_session(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let (info, host, admitted, ticket) = pending_exit(shell);
+        let mut archived = info.clone();
+        archived.status = SessionStatus::Exited { code: None };
+        archived.marks.archived_at = Some(chrono::DateTime::UNIX_EPOCH);
+        shell.sessions_lifecycle_answer(
+            Answer {
+                ticket,
+                result: Ok(Acted::Session(Box::new(archived))),
+            },
+            cx,
+        );
+        shell.settle_session_lifecycle(window, cx);
+        assert_eq!(shell.route, Route::Session);
+        assert!(shell.areas.sessions.lifecycle.ready.is_none());
+        assert!(matches!(
+            shell.areas.sessions.lifecycle.error,
+            Some((_, Problem::DestinationChanged))
+        ));
+        assert!(
+            shell.fleet.machines[0].sessions[0]
+                .detail
+                .marks
+                .archived_at
+                .is_none()
+        );
+        assert_eq!(shell.areas.conversation.info.as_deref(), Some(&info));
+        // The read-only bridge retains the admitted address; latest Fleet is
+        // never a way to bless a rename against the replacement node.
+        assert_eq!(
+            shell.opened_session_address(&host, info.id).unwrap().node,
+            admitted
+        );
+        assert!(
+            shell
+                .opened_session_address(&host, SessionId::random())
+                .is_none()
+        );
+    });
+}
