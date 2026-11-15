@@ -585,3 +585,16 @@ cannot clear uncertainty. New regression source exercises direct admission plus
 stale same-request projection and the retained question editor; VM execution is
 owed. Rich receipt classification and coordinated read-ticket ingress remain
 pending their checked producers; no snapshot or timeline event is fabricated.
+
+The staged Requests admission now additionally requires the original captured
+ConnectionContext as an argument and compares its NodeId to the canonical
+FollowBinding resident address before minting any operation. The same alias,
+session id and request id cannot bridge a node-book retarget. A regression uses
+the real context producer, checks OwnerConflict, retires the refused attempt and
+requires zero admitted operations before the correct source can admit once.
+Existing uncertainty also refuses this staged path before ticket allocation.
+This parameter is identification, not a lease capability: product cutover still
+requires the original same-lease DeliveryGuard and exact binding on data ingress,
+with the sole resident minter/carrier. No source node is inferred from Shown or
+the current alias, no second identity cache is added, and this remains test-only
+adapter source with execution owed.

@@ -3,6 +3,7 @@
 //! follow, retarget a reply, clone a resource bundle or send any node work.
 use super::ConversationArea;
 use crate::areas::layout::residents::SessionResidents;
+use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::residents::{
     FollowBinding, FollowRetirement, HoldReason, OperationKind, OperationTicket, OwnerReadiness,
     ResidentProblem,
@@ -35,6 +36,9 @@ impl RequestEffects {
 
 impl ConversationArea {
     fn request_admission(&self, request: Request) -> Result<(), ResidentProblem> {
+        if !self.response_failures.retryable(request) {
+            return Err(ResidentProblem::Held);
+        }
         if !self.response_waiting(request) {
             return Err(ResidentProblem::Missing);
         }
@@ -109,9 +113,15 @@ impl SessionResidents {
     /// refusal checks run before the sole registry mints an operation ticket.
     pub(crate) fn request_admit(
         &mut self,
+        original: &ConnectionContext,
         binding: FollowBinding,
         request: Request,
     ) -> Result<OperationTicket, ResidentProblem> {
+        // Context identifies the captured source; it is not a live lease. The
+        // coordinated caller must also carry its exact checked delivery guard.
+        if original.node() != binding.resident.address.node {
+            return Err(ResidentProblem::OwnerConflict);
+        }
         self.receive(binding, |resources| {
             if resources
                 .conversation

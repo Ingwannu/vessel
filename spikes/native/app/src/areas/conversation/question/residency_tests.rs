@@ -4,6 +4,8 @@ use crate::areas::layout::residents::SessionResources;
 use crate::areas::session::SessionView;
 use crate::shell::language_tests;
 use gpui::TestAppContext;
+use vessel_app_view::connection::{ConnectionContext, ConnectionEpochs};
+use vessel_app_view::devices::MachineKey;
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target,
 };
@@ -16,6 +18,7 @@ use vessel_proto::conversation::{FieldKind, QuestionField};
 use vessel_proto::{NodeId, SessionId, WorkspaceId};
 
 struct Fixture {
+    connection: ConnectionContext,
     token: ResidentToken,
     claim: PanelClaim,
     question: QuestionId,
@@ -108,6 +111,9 @@ fn fixture(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) 
         .present(token, &claim, PaneId::MAIN, Visibility::Visible)
         .unwrap();
     Fixture {
+        connection: ConnectionEpochs::default()
+            .admit(MachineKey::from_book("original"), node)
+            .unwrap(),
         token,
         claim,
         question: id,
@@ -137,7 +143,9 @@ fn retiring_an_original_request_retains_the_actual_form_and_blocks_resend(cx: &m
                 resources.conversation.requests_retired(notice)
             })
             .unwrap();
-        let ticket = residents.request_admit(old, request).unwrap();
+        let ticket = residents
+            .request_admit(&fixture.connection, old, request)
+            .unwrap();
         assert_eq!(
             residents
                 .resources(&context)
@@ -177,7 +185,7 @@ fn retiring_an_original_request_retains_the_actual_form_and_blocks_resend(cx: &m
             OwnerReadiness::Hold(HoldReason::UncertainEffect)
         );
         assert_eq!(
-            residents.request_admit(next, request),
+            residents.request_admit(&fixture.connection, next, request),
             Err(ResidentProblem::Held)
         );
         assert_eq!(
@@ -229,7 +237,9 @@ fn settlement_rejects_foreign_and_duplicate_tickets_before_owner_mutation(cx: &m
             .settle(binding, OperationKind::Request, foreign, |_| ())
             .unwrap();
         let request = Request::Question(fixture.question);
-        let ticket = residents.request_admit(binding, request).unwrap();
+        let ticket = residents
+            .request_admit(&fixture.connection, binding, request)
+            .unwrap();
         assert_eq!(
             residents
                 .request_settle(binding, ticket, |_, original| original)
@@ -295,5 +305,37 @@ fn a_resolved_log_request_does_not_hold_its_stale_snapshot_form_forever(cx: &mut
         );
         assert!(!area.response_waiting(Request::Question(fixture.question)));
         assert_eq!(area.requests_readiness(), OwnerReadiness::Ready);
+    });
+}
+
+#[gpui::test]
+fn a_retargeted_alias_cannot_admit_the_old_nodes_same_request(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let fixture = fixture(shell, window, cx);
+        let residents = &mut shell.areas.session_residents;
+        let binding = residents.begin_follow(fixture.token, |_, _| {}).unwrap();
+        let retargeted = ConnectionEpochs::default()
+            .admit(MachineKey::from_book("original"), NodeId::random())
+            .unwrap();
+        let request = Request::Question(fixture.question);
+        assert_eq!(
+            residents.request_admit(&retargeted, binding, request),
+            Err(ResidentProblem::OwnerConflict)
+        );
+        let mut retired_count = None;
+        residents
+            .retire_follow(binding, |_, notice| {
+                retired_count = Some(notice.operations().len());
+            })
+            .unwrap();
+        assert_eq!(retired_count, Some(0), "refusal minted no operation");
+        let fresh = residents.begin_follow(fixture.token, |_, _| {}).unwrap();
+        assert!(
+            residents
+                .request_admit(&fixture.connection, fresh, request)
+                .is_ok()
+        );
     });
 }
