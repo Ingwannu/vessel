@@ -737,10 +737,10 @@ node head. No current CLI/MCP/runtime PASS is implied by this design.
 
 ### C2 staged reply/feed integration plan (not an API handoff)
 
-C2's proposed pure core defaults to Silent. Under the later 13:00 coordinator
-ruling, capture integration initially keeps Silent to preserve raw attach; only
-after C2's shared-engine CLI renderer lands and passes may node glue activate
-NodeAuthority. Feed has a16KiB consumed-prefix budget and typed replies; actor
+C2's proposed pure core defaults to Silent. The superseding 13:38 coordinator
+ruling keeps capture integration Silent until C2's same-VTE presentation withholding /
+answered-query suppression lands and passes; only then may node glue activate
+NodeAuthority. CLI renderer completion is a separate D1 follow-up. Feed has a16KiB consumed-prefix budget and typed replies; actor
 glue must loop only the unconsumed suffix, check forward progress, and write
 reply bytes through its existing ordered PTY writer. Reply errors do not undo
 already consumed screen input: never re-feed that prefix. Final readonly
@@ -941,7 +941,8 @@ bracketed paste). W17 will explicitly map typed flags/mode enums into proto; it 
 not copy the reference regex tracker, inherit a source, or substitute guessed defaults.
 Resize admission/PTY writer ordering and frame publication must be proved together;
 current capture inbox ordering alone is not proof of a new D1 event cursor contract.
-Query replies remain Silent until C2's renderer passes under the coordinator ruling.
+Query replies remain Silent until the later approved same-parser presentation suppression
+lands and passes; the 13:00 renderer prerequisite was superseded at13:38.
 
 C2 accepted authoritative frames for D1 and added the stable viewport invariant:
 pinned history must preserve inspected text through growth/front trimming, using
@@ -1018,3 +1019,20 @@ uses a fresh private home without starting a node: help/version0, missing/unknow
 arguments1, typed provider dependency refusal1 with empty stdout and a decoded
 Unsupported stderr envelope. It also asserts the home stays empty. This is a drafted
 regression, not a claimed new runtime pass; the current dd33 strict run predates it.
+
+
+### Same-parser legacy presentation ruling (2026-11-15 13:38 UTC)
+
+The coordinator approved C2's compatibility route for new nodes with old raw clients.
+C2 owns a read-only token-boundary hook in the SAME VTE parser and pure-core presentation
+withholding/suppression, only for non-rendering query tokens the node answers. Preserve
+all other complete bytes; do not filter stdin (reply shapes overlap actual key encodings).
+W17 owns node glue: publish presentation bytes in actor order and preserve EventSeq even
+when a record's presentation bytes are empty. Replayed history must contain neither held
+query prefixes nor finals that could trigger late duplicate responses.
+
+This supersedes the 13:00 activation dependency: NodeAuthority now waits for this suppression
+landing+PASS, not for the CLI renderer. C2's frozen e792 core and current capture remain
+Silent and unchanged. Split query, held-history/old-raw replay, empty-record sequence and
+no-stdin-key-suppression regressions are required at the actual follow-up glue integration.
+No new scanner/parser, published filter, input suppression or authority switch exists now.
