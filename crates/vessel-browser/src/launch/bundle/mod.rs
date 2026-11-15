@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 const MAX_BUNDLE_ENTRIES: usize = 4096;
 const MAX_BUNDLE_DEPTH: usize = 16;
 const MAX_BUNDLE_BYTES: u64 = 1024 * 1024 * 1024;
-const UNSAFE_WRITE: u32 = 0o022;
+use super::identity::{ROOT_UID, WRITE_ACCESS};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Fingerprint([u8; 32]);
@@ -108,7 +108,7 @@ fn collect(
     }
     let path = root.join(relative);
     let before = fs::symlink_metadata(&path).map_err(LaunchError::Io)?;
-    if before.uid() != 0 || before.mode() & UNSAFE_WRITE != 0 {
+    if before.uid() != ROOT_UID || before.mode() & WRITE_ACCESS != 0 {
         return Err(LaunchError::Permissions);
     }
     if before.file_type().is_symlink() || (!before.is_dir() && !before.is_file()) {

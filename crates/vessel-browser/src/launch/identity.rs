@@ -11,8 +11,8 @@ const FILE_READ_BYTES: usize = 64 * 1024;
 /// Bound corrupted/replaced candidate files before streaming their contents.
 const MAX_EXECUTABLE_BYTES: u64 = 512 * 1024 * 1024;
 const EXECUTE_ACCESS: u32 = 0o001;
-const WRITE_ACCESS: u32 = 0o022;
-const ROOT_UID: u32 = 0;
+pub(super) const WRITE_ACCESS: u32 = 0o022;
+pub(super) const ROOT_UID: u32 = 0;
 // These identify only the diagnostic candidate. No complete qualification exists.
 const BROWSER_DIGEST: [u8; 32] = [
     45, 24, 219, 157, 134, 8, 176, 82, 182, 165, 82, 238, 0, 236, 30, 131, 15, 147, 105, 46, 146,
@@ -70,10 +70,12 @@ impl Candidate {
         // The debugger pipes must also belong to this same supervised child.
         let executable = format!("/proc/{}/exe", child.pid());
         verify(Path::new(&executable), &self.browser_digest)?;
-        let _observed = self
-            .bundle
-            .verify_unchanged(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)?;
+        let _observed = self.verify_bundle()?;
         Ok(())
+    }
+    pub(super) fn verify_bundle(&self) -> Result<super::bundle::Fingerprint, LaunchError> {
+        self.bundle
+            .verify_unchanged(Path::new(BROWSER).parent().ok_or(LaunchError::Identity)?)
     }
 }
 fn verify(path: &Path, expected: &[u8; 32]) -> Result<(), LaunchError> {

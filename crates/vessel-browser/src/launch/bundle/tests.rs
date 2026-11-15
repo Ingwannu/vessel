@@ -44,3 +44,25 @@ fn aggregate_hash_budget_counts_read_bytes_instead_of_only_initial_metadata() {
     ));
     assert_ne!(first, [0; 32]);
 }
+
+/// Explicit export-host fixture only; the build VM has no approved CFT provision.
+/// This reads/observes the fixed bundle and starts no browser or supported engine.
+#[tokio::test]
+#[ignore = "requires the approved root-owned CFT bundle and non-root service account"]
+async fn approved_candidate_bundle_is_readable_as_service_account() {
+    assert!(!nix::unistd::geteuid().is_root());
+    let scope =
+        crate::preparation::Preparation::for_profile(tokio_util::sync::CancellationToken::new());
+    let candidate = scope
+        .run(super::super::identity::Candidate::inspect)
+        .await
+        .unwrap()
+        .unwrap();
+    let fingerprint = scope
+        .run(move || candidate.verify_bundle())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(fingerprint.0, [0; 32]);
+    scope.finish().await;
+}

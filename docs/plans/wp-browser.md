@@ -789,3 +789,12 @@ remote ordinary tests remain intact, and source/runtime qualification is owed.
   actual runtime/Preview proofs remain separate. The actual fixed bundle currently
   has303 regular files/396335288bytes/depth3, root-owned/nonwritable to service.
   No files, installation, permissions or host policy are changed by inspection.
+
+Bundle byte admission counts actual streamed bytes through the shared digest
+owner, not merely the pre-read metadata length. Stable metadata is checked on the
+opened file, after hashing and again over all retained entries. One fixed read
+quantum may observe an over-budget chunk only to refuse it; no digest is accepted
+for that excess. Root ownership/write masks reuse the existing candidate policy.
+The staged explicit ignored fixture observes the approved CFT bundle as non-root
+through finite Preparation. It starts no browser and can prove only that component's
+real host read/identity checks; it cannot grant runtime/engine/network qualification.
