@@ -345,6 +345,9 @@ ADR 0038 records the reuse decision and cost. No Paseo behavior is claimed for
 this security floor. Narrow store/node tests and strict Clippy remain owed; no
 product dictation wiring or whole-package evidence is established by this fix.
 
-Resume: implement the safe parse diagnostic on the designated node head, retain
-all current file recovery and write behavior, and submit its marker/log tests
-for security review before merging it into the feature package.
+Resume: the safe parse diagnostic and four store tests plus one startup-log
+test are implemented on the designated node head. Local rustfmt, size and diff
+checks pass; compilation and test execution remain owed on the build machine.
+The lock change only adds the already locked path-tracker to the store dependency
+list. Submit the exact commit and narrow evidence for security review before
+merging it into the feature package.

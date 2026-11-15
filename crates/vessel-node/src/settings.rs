@@ -260,3 +260,6 @@ fn set_aside(data_dir: &DataDir, unusable: &vessel_store::SettingsFileError) -> 
 fn offered(kind: HarnessKind) -> bool {
     vessel_harness::direct(kind).is_some_and(|direct| direct.selectable)
 }
+
+#[cfg(test)]
+mod diagnostic_tests;
