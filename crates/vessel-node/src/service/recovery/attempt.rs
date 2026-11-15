@@ -183,7 +183,7 @@ impl NodeService {
             let grant = self
                 .stage(context, self.devices.recovery_grant(&creator))
                 .await??;
-            let admitted = attempt.admit(generation, &mut effect)?;
+            let admitted = attempt.admit_prompt(generation, handle, &mut effect)?;
             if let Some(answer) = admitted {
                 self.watch_session(handle, &grant.principal);
                 drop(grant);

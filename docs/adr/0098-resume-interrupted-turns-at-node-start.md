@@ -366,3 +366,17 @@ existing settings builder only completes its response literal with the disabled
 default. Its file format, save/apply engine and request types are unchanged.
 Raw legacy setter evidence with a nondefault saved policy belongs to R2's real
 staged engine; a synthetic reply test does not claim that product evidence.
+
+
+### A person kills an already admitted recovery turn
+
+Prompt enqueue records its exact session run under the same short attempt
+arbiter. An authenticated KillSession after that boundary may enter the
+existing durable suppression and kill path for that exact run while the
+recovery reply is unresolved. Keeping the ordinary operation lease and the
+original attempt alive preserves both pools; dropping the reply or releasing
+capacity early was rejected. A pre-enqueue kill still cancels preparation and
+waits for its actual ownership to settle before ordinary execution. A delayed
+post-enqueue kill carries the pinned handle, never a fresh id lookup that could
+select a later manual run. Off still only invalidates future admissions and
+does not kill the already admitted turn.

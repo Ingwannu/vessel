@@ -247,10 +247,17 @@ impl NodeService {
         connection: &Connection,
         request: KillSession,
     ) -> Result<Ack, WireError> {
+        let operation = connection.operation();
+        let target = operation
+            .as_ref()
+            .and_then(|operation| operation.kill_target());
         let sessions = std::sync::Arc::clone(&self.sessions);
         self.sessions
-            .hold(connection.operation(), async move {
-                sessions.kill(request.session).await
+            .hold(operation, async move {
+                match target {
+                    Some(handle) => sessions.kill_pinned(handle).await,
+                    None => sessions.kill(request.session).await,
+                }
             })
             .await
             .map(|()| Ack)

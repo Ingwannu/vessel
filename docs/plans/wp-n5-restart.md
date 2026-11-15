@@ -276,3 +276,31 @@ asks permission before reaching its response barrier. The fixture now uses
 the existing `plain` turn, which has neither the report shortcut nor a
 permission request. Both earlier fixture failures stay separate from any
 causal reproduction. Product admission and the safety deadlines are unchanged.
+
+
+## Held acknowledgement repair checkpoint
+
+The unchanged-admission forcing source `d6f5fb59` reached both real provider
+response and committed Arm acknowledgement barriers. Authenticated KillSession
+then failed at the unchanged WAIT deadline, specifically because it waited for
+the recovery delivery reply. The exact run failed one test in 21.39 seconds;
+it is the causal predecessor, separate from the two earlier fixture failures.
+The changed node crate actually compiled. A disclosed unused-result warning in
+the test is corrected by retaining the ended observation in the successor.
+
+The repair publishes the exact prompt run under the existing attempt arbiter
+at actual enqueue. A person's Kill can target that run without waiting for its
+reply. The original attempt, session claim, reply future and capacity remain
+owned until actual settlement; policy Off retains its prior semantics. The
+stop path receives the pinned handle rather than resolving the session id again,
+so a delayed stop cannot select a manual replacement. Added cases hold actual
+acknowledgements through Kill and Off, preserve suppression and no-retry checks,
+and exercise an old pinned target after takeover.
+
+These corrections are unverified until their changed-tree narrow checks and
+the joint package gate. The package remains returned for the other preparation
+ownership and settings privacy findings. The settings owner is the canonical
+opaque document and operation lane supplied by the settings implementation;
+this package's old parallel record and FIFO are to be removed at that joint
+join. The recovery hook is developed against the agreed shared-owner contract,
+with no second file writer, parser or admission quota.

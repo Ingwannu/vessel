@@ -29,6 +29,12 @@ impl Sessions {
             .map_err(ServiceError::Task)?
     }
 
+    /// Stop only the run admitted by the recovery arbiter, never a later lookup.
+    /// An ended handle uses the existing final-log CAS, not a replacement's row.
+    pub(crate) async fn kill_pinned(&self, handle: SessionHandle) -> Result<(), ServiceError> {
+        self.stop(&handle, vessel_session::SessionStop::Kill).await
+    }
+
     /// The same ordered barrier serves cancel, kill and archive. If the
     /// final status closed publication first, wait for its log and CAS the
     /// ended row, never a new manually resumed run.

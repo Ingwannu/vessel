@@ -165,7 +165,7 @@ impl Target for KillSession {
         Some(self.session)
     }
     fn intervention(&self) -> Intervention {
-        Intervention::Stop
+        Intervention::Kill
     }
 }
 impl Target for vessel_proto::conversation::MarkSession {

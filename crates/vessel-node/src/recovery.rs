@@ -34,11 +34,15 @@ struct State {
 struct Waiting {
     cancelled: CancellationToken,
     done: watch::Receiver<bool>,
+    /// Exact run whose prompt enqueue succeeded; its reply is still owned.
+    prompt: Option<vessel_session::SessionHandle>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Intervention {
     Wait,
     Stop,
+    /// A process kill can join an admitted prompt without awaiting its reply.
+    Kill,
 }
 #[derive(Debug)]
 pub(crate) enum Claim {
@@ -57,6 +61,7 @@ pub(crate) struct Operation {
     owner: Arc<Recovery>,
     session: SessionId,
     _slot: OwnedSemaphorePermit,
+    kill_run: Option<vessel_session::SessionHandle>,
 }
 impl Recovery {
     /// Concurrent unresolved boot attempts; the coordinator and arbiter share it.
@@ -96,6 +101,7 @@ impl Recovery {
             Waiting {
                 cancelled: cancelled.clone(),
                 done: waiting,
+                prompt: None,
             },
         );
         Claim::Owned(Attempt {
@@ -115,7 +121,7 @@ impl Recovery {
     ) -> Result<Arc<Operation>, WireError> {
         // A stop invalidates the attempt before any capacity refusal. No
         // new semaphore waiters are created by this admission component.
-        if intervention == Intervention::Stop
+        if matches!(intervention, Intervention::Stop | Intervention::Kill)
             && let Some(waiting) = self.lock().attempts.get(&session)
         {
             waiting.cancelled.cancel();
@@ -132,34 +138,61 @@ impl Recovery {
                 WireError::new(ErrorCode::Unavailable, message)
             })?;
         loop {
-            let waiting = {
-                let mut state = self.lock();
-                if let Some(waiting) = state.attempts.get(&session).cloned() {
-                    if intervention == Intervention::Stop {
-                        waiting.cancelled.cancel();
-                    }
-                    Some(waiting)
-                } else {
-                    // The fixed pool bounds this count; defend against
-                    // wrap even though the fixed operation pool bounds all leases.
-                    let count = state.operations.entry(session).or_default();
-                    *count = count.saturating_add(1);
-                    None
-                }
-            };
-            match waiting {
-                None => {
+            let admission = self.lock().before_operation(session, intervention);
+            match admission {
+                OperationGate::Admit(kill_run) => {
                     return Ok(Arc::new(Operation {
                         owner: Arc::clone(self),
                         session,
                         _slot: slot,
+                        kill_run,
                     }));
                 }
-                Some(mut waiting) => {
+                OperationGate::Wait(mut waiting) => {
                     let _settled = waiting.done.wait_for(|done| *done).await;
                 }
             }
         }
+    }
+}
+enum OperationGate {
+    Wait(Waiting),
+    Admit(Option<vessel_session::SessionHandle>),
+}
+impl State {
+    fn before_operation(
+        &mut self,
+        session: SessionId,
+        intervention: Intervention,
+    ) -> OperationGate {
+        let waiting = self.attempts.get(&session).cloned();
+        if matches!(intervention, Intervention::Stop | Intervention::Kill)
+            && let Some(waiting) = &waiting
+        {
+            waiting.cancelled.cancel();
+        }
+        let kill_run = if intervention == Intervention::Kill {
+            waiting.as_ref().and_then(|waiting| waiting.prompt.clone())
+        } else {
+            None
+        };
+        // Joining a person's kill retains the Attempt, its actual reply,
+        // session claim and pool occupancy. Only the operation is admitted.
+        if kill_run.is_none()
+            && let Some(waiting) = waiting
+        {
+            return OperationGate::Wait(waiting);
+        }
+        // The fixed operation pool bounds this count; never wrap a counter.
+        let count = self.operations.entry(session).or_default();
+        *count = count.saturating_add(1);
+        OperationGate::Admit(kill_run)
+    }
+}
+impl Operation {
+    /// A delayed admitted kill must never look up a replacement by session id.
+    pub(crate) fn kill_target(&self) -> Option<vessel_session::SessionHandle> {
+        self.kill_run.clone()
     }
 }
 impl Drop for Operation {
@@ -191,15 +224,45 @@ impl Attempt {
     where
         F: FnOnce(&vessel_proto::restart::RestartRecovery) -> Result<T, WireError>,
     {
+        self.admit_with(generation, None, effect)
+    }
+    /// Publish post-prompt ownership under the same arbiter as its enqueue.
+    pub(crate) fn admit_prompt<T, F>(
+        &self,
+        generation: policy::Generation,
+        handle: &vessel_session::SessionHandle,
+        effect: &mut Option<F>,
+    ) -> Result<Option<T>, WireError>
+    where
+        F: FnOnce(&vessel_proto::restart::RestartRecovery) -> Result<T, WireError>,
+    {
+        self.admit_with(generation, Some(handle), effect)
+    }
+    fn admit_with<T, F>(
+        &self,
+        generation: policy::Generation,
+        prompt: Option<&vessel_session::SessionHandle>,
+        effect: &mut Option<F>,
+    ) -> Result<Option<T>, WireError>
+    where
+        F: FnOnce(&vessel_proto::restart::RestartRecovery) -> Result<T, WireError>,
+    {
         #[cfg(test)]
         self.owner.before_admission();
-        let state = self.owner.lock();
+        let mut state = self.owner.lock();
         if !state.attempts.contains_key(&self.session) || self.cancelled.is_cancelled() {
             return Err(WireError::new(
                 ErrorCode::Conflict,
                 "a person stopped this startup recovery attempt",
             ));
         }
-        self.owner.policy.admit(generation, effect)
+        let admitted = self.owner.policy.admit(generation, effect)?;
+        if admitted.is_some()
+            && let Some(handle) = prompt
+            && let Some(waiting) = state.attempts.get_mut(&self.session)
+        {
+            waiting.prompt = Some(handle.clone());
+        }
+        Ok(admitted)
     }
 }
