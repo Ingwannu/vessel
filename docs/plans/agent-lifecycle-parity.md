@@ -1299,3 +1299,27 @@ One named tick defines the increment. Tests cover serde/value precision refusal,
 Unknown initialization, repeated/backwards time, a later sample and exhaustion.
 This value adds no store column, writer, Info field, clock setter or protocol
 assignment. It is not a producer attestation or a label coverage marker.
+
+
+### Durable clock writer implementation, before public projection
+
+The nullable column append now follows BACKGROUND_SCHEMA through one relative
+MUTATION_TIME_SCHEMA and the migration table's checked length. The runner is
+unchanged and legacy rows remain NULL. SQL lives with that append so the head's
+migration file stays within budget. The separate mutation_time module reads and
+advances only on the caller's existing connection, preserving typed range,
+precision and exhaustion errors. It samples the writer's own wall time.
+
+Creation, nonempty append batches, marks, exact inbox marks, reopen and first
+detach now invoke that helper inside their existing savepoints. Append-derived
+metadata is counted there once; a repeated receipt and failed/empty/read work
+add no tick. No public Info field, caller timestamp setter or protocol number
+is introduced in this step. Exact acknowledgement/live-info propagation remains
+next, so this is not yet an external producer handoff.
+
+New migration and real Store-writer tests cover legacy Unknown/idempotence,
+strict per-batch/mark time, independence from event/client time, inbox/reopen/
+detach and repeated receipts, failed operations and savepoint rollback on clock
+exhaustion. Existing approvals/devices/log/marks/title-origin rollback fixtures
+only gain DROP COLUMN updated_at immediately before their old SQL; existing
+assertions and deadlines stay unchanged. Compile and execution remain pending.

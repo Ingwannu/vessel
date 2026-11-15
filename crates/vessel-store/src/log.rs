@@ -67,6 +67,7 @@ pub(crate) fn create_session(
         return Err(StoreError::SessionExists(info.id));
     }
     crate::usage::initialize_cost(connection, info)?;
+    let _updated = crate::mutation_time::advance(connection, info.id)?;
     Ok(())
 }
 
@@ -201,6 +202,7 @@ pub(crate) fn append<'a>(
         .optional()?
         .ok_or(StoreError::UnknownSession(session))?;
     let mut expected = seq_from_sql(next)?;
+    let before = expected;
     let mut projection = Projection::default();
     let mut insert = connection.prepare_cached(
         "INSERT INTO events (session_id, seq, at, event) VALUES (?1, ?2, ?3, ?4)",
@@ -293,6 +295,9 @@ pub(crate) fn append<'a>(
                 .flatten(),
         ])?;
     crate::usage::prune(connection, Utc::now())?;
+    if expected != before {
+        let _updated = crate::mutation_time::advance(connection, session)?;
+    }
     Ok(Appended { ended })
 }
 

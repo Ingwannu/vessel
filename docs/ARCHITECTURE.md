@@ -1838,3 +1838,13 @@ The existing forwarding TaskTracker owns cleanup across caller cancellation;
 Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
+
+
+The session mutation clock (ADR 0063) is a nullable column in the canonical
+session row. The existing store writer advances it with append, mark and direct
+metadata changes inside their current savepoints. A helper takes that same
+connection so future transactional workspace selection can reuse the clock
+without a second read engine. Reads, retention and index maintenance do not
+advance it. It describes committed local mutation order; it is neither actor
+log coverage nor an execution authorization fact. Public snapshot propagation
+and protocol availability remain part of the unfinished lifecycle package.

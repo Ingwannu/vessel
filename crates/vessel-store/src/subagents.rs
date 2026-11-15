@@ -32,6 +32,7 @@ pub(crate) fn detach(
                 "UPDATE sessions SET detach_receipt=?2 WHERE id=?1",
                 params![session.to_string(), encode(&receipt)?],
             )?;
+            let _updated = crate::mutation_time::advance(connection, session)?;
             (receipt, DetachDisposition::Detached)
         }
     };

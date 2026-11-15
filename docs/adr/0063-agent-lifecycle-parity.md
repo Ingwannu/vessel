@@ -556,8 +556,9 @@ other list calls refuse rather than truncate.
 
 ### Proposed durable session mutation clock
 
-This extension is proposed; no timestamp producer or ordering guarantee is
-implemented by this text. It precedes label mutation wiring.
+This extension remains proposed. Storage implementation is in progress below;
+public Info/acknowledgement projection and its execution checks remain owed.
+It precedes label mutation wiring and claims no consumer availability.
 
 [Decision Log]
 - Purpose: finished-session selection needs one durable ordering fact that

@@ -474,7 +474,7 @@ pub(super) const BACKGROUND_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; BACKGROUND_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; super::mutation_time::MUTATION_TIME_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -496,4 +496,5 @@ pub(super) const MIGRATIONS: &[&str; BACKGROUND_SCHEMA] = &[
     SUBAGENT_RELATIONS,
     super::workspace_registry::SQL,
     super::listing::SQL,
+    super::mutation_time::SQL,
 ];

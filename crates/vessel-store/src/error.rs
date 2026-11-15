@@ -280,6 +280,15 @@ pub enum StoreError {
     /// A stored receipt contradicts immutable creator provenance.
     #[error("session {0} has corrupt parentage")]
     InvalidParentage(SessionId),
+    /// Stored mutation time is corrupt, or strict advancement is exhausted.
+    #[error("session {session} mutation time cannot be kept: {source}")]
+    MutationTime {
+        /// The row whose mutation must be refused atomically.
+        session: SessionId,
+        /// Preserve the typed precision/range/exhaustion reason, without data.
+        #[source]
+        source: vessel_proto::InvalidSessionUpdatedAt,
+    },
     /// The store was closed, or its writer thread is gone.
     #[error("the store is closed")]
     Closed,
@@ -333,6 +342,7 @@ impl StoreError {
             | Self::NewerSchema { .. }
             | Self::Sqlite(_)
             | Self::Commit(_)
+            | Self::MutationTime { .. }
             | Self::InvalidParentage(_)
             | Self::Corrupt { .. }
             | Self::CorruptPush { .. }
