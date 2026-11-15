@@ -4,7 +4,7 @@ use super::*;
 use crate::agents::AgentReservation;
 use vessel_proto::creation::{Advance, CreationError, Receipt, Resource, Stage};
 use vessel_proto::registry::WorkspaceResource;
-use vessel_store::{RegistryStartState, WorkspaceStartLease};
+use vessel_store::{RegistryStartState, StoreError, WorkspaceStartLease};
 
 impl Sessions {
     pub(crate) async fn create_receipted(
