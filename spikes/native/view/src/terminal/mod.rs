@@ -7,6 +7,7 @@
 mod duty;
 mod frame;
 pub mod grid;
+pub mod keyboard;
 mod model;
 pub mod paint;
 pub mod parse;
