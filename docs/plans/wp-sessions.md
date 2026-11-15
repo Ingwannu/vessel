@@ -174,3 +174,10 @@ link::TerminalOpening (not a fabricated view type), verifies its machine/session
 against the retained Binding, and preserves its opaque receipt on every refusal
 or log result. C2 owns propagation of retained node/connection authority at its
 terminal entry; a missing binding must not trigger alias fallback.
+
+
+The interim Creator-based close heuristic was removed: creator is provenance,
+not current attachment. Until reviewed W2 Parentage and W12 role/context adapters
+are connected, legacy Close reports unavailable and sends no archive or local
+hide. Explicit Archive and slash /exit retain their explicit user intent. This
+is unfinished close parity, not a claim that an older node proves a root.

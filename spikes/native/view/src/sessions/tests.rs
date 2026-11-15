@@ -1,18 +1,7 @@
 //! Regressions use session records, never a provider or network.
-use super::{ClosePolicy, DateBucket, HistoryPage, close_policy};
+use super::{DateBucket, HistoryPage};
 use chrono::{Days, NaiveDate};
-use vessel_proto::{Creator, NodeId, SessionId};
-#[test]
-fn child_close_preserves_child_and_parent() {
-    assert_eq!(close_policy(&Creator::Owner), ClosePolicy::Archive);
-    assert_eq!(
-        close_policy(&Creator::Agent {
-            node: NodeId::random(),
-            session: SessionId::random()
-        }),
-        ClosePolicy::LayoutOnly
-    );
-}
+use vessel_proto::{NodeId, SessionId};
 #[test]
 fn date_sections_use_calendar_days_and_reference_boundaries() {
     let today = NaiveDate::from_ymd_opt(2026, 11, 15).unwrap();

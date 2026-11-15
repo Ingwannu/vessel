@@ -60,3 +60,6 @@ sessions-existing-draft = New chat already has a draft. Open it before starting 
 sessions-profile-unavailable = This session’s profile cannot be carried to a fresh conversation here. The session was kept.
 # A late operation may have settled on the old node; never close a replacement destination.
 sessions-destination-changed = The session connection changed. Refresh to check the operation before continuing.
+
+# Closing an unknown child must not accidentally archive it.
+sessions-parentage-unavailable = Current session parent information is unavailable. Refresh before closing this tab.

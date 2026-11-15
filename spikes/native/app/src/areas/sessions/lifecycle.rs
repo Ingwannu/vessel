@@ -59,29 +59,16 @@ impl State {
     }
 }
 impl Shell {
-    /// A child closes in local layout; a root archives before closing.
+    /// Current parentage, rather than immutable creator provenance, authorizes close.
     pub(crate) fn request_session_close(
         &mut self,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        use vessel_app_view::sessions::{ClosePolicy, close_policy};
-        let policy = self
-            .areas
-            .conversation
-            .info
-            .as_deref()
-            .map(|info| close_policy(&info.created_by));
-        match policy {
-            Some(ClosePolicy::LayoutOnly) => self.go(Route::Draft, window, cx),
-            Some(ClosePolicy::Archive) => {
-                self.prepare_session_lifecycle(LifecycleAction::Exit, window, cx);
-            }
-            None => {
-                self.notice = Some(self.words.sessions().navigation_busy().to_owned());
-                cx.notify();
-            }
-        }
+        // The reviewed W2 parentage producer is not wired yet. Unknown must
+        // never become a root archive or a hidden detached root by guessing.
+        self.notice = Some(self.words.sessions().parentage_unavailable().to_owned());
+        cx.notify();
     }
 
     /// Composer built-ins delegate here so they cannot close before archive succeeds.

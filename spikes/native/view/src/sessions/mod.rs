@@ -3,7 +3,6 @@
 mod history;
 mod lifecycle;
 mod navigation;
-mod policy;
 #[cfg(test)]
 mod tests;
 pub use history::{DateBucket, HistoryPage, HostScope, history};
@@ -14,4 +13,3 @@ pub use lifecycle::{
 pub use navigation::{
     Navigation, NavigationPurpose, NavigationTarget, NavigationTicket, SessionAddress,
 };
-pub use policy::{ClosePolicy, close_policy};
