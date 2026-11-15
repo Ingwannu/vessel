@@ -113,3 +113,79 @@ fn replacing_conversation_residents_preserves_global_search_debounce_and_replies
         assert_eq!(shell.message_search_rows().len(), 2);
     });
 }
+
+#[gpui::test]
+fn message_search_failure_facts_reword_without_restarting_the_query(cx: &mut TestAppContext) {
+    use vessel_app_view::localization::{Locale, Translator};
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let mut commands = None;
+        let shell = cx.new(|cx| {
+            let (mut shell, inbox) = language_tests::with_commands(window, cx);
+            commands = Some(inbox);
+            shell.fleet.machines = vec![machine("one"), machine("two")];
+            shell.message_search_query("needle", cx);
+            shell
+        });
+        Probe {
+            shell,
+            commands: commands.unwrap(),
+        }
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_secs(1));
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let ticket = shell.areas.palette.messages_search.view.ticket();
+            for (machine, why) in [
+                ("one", Refusal::TimedOut),
+                (
+                    "two",
+                    Refusal::Failed {
+                        code: Some(vessel_proto::ErrorCode::Forbidden),
+                    },
+                ),
+            ] {
+                shell.message_searched(
+                    Searched {
+                        machine: machine.to_owned(),
+                        ticket,
+                        result: Err(why),
+                    },
+                    cx,
+                );
+            }
+            let notes = shell.areas.palette.messages_search.view.notes();
+            assert_eq!(
+                failure_text(shell, SearchFailure::TimedOut),
+                "Search timed out. Try again."
+            );
+            assert_eq!(
+                failure_text(shell, SearchFailure::Failed),
+                "This machine could not search its messages. Try again."
+            );
+            shell.apply_language(
+                Translator::get(Locale::from_tag("ko").unwrap()).unwrap(),
+                window,
+                cx,
+            );
+            assert_eq!(
+                failure_text(shell, SearchFailure::TimedOut),
+                "검색 제한 시간을 초과했습니다. 다시 시도해 주세요."
+            );
+            assert_eq!(
+                failure_text(shell, SearchFailure::Failed),
+                "이 머신의 메시지를 검색하지 못했습니다. 다시 시도해 주세요."
+            );
+            let view = &shell.areas.palette.messages_search.view;
+            assert_eq!(view.ticket(), ticket);
+            assert_eq!(view.query(), Some("needle"));
+            assert_eq!(
+                view.notes(),
+                notes,
+                "translate facts without resetting results"
+            );
+        });
+    });
+}

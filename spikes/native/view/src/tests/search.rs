@@ -9,7 +9,7 @@ use vessel_proto::search::{
 };
 
 use super::fixture::{at, id};
-use crate::search::{Answer, HitId, MachineState, MessageSearch, Note, PAGE, Row};
+use crate::search::{Answer, HitId, MachineState, MessageSearch, Note, PAGE, Row, SearchFailure};
 
 fn hit(session: &str, seq: u64, when: &str) -> SearchHit {
     SearchHit {
@@ -194,13 +194,13 @@ fn an_old_machine_and_a_refusal_are_said_and_no_match_is_said_once_all_answered(
     let _none = search.answered(ticket, "laptop", page(Vec::new()));
     let _none = search.answered(ticket, "old", Answer::Older);
     assert_eq!(search.notes().first(), Some(&Note::Searching));
-    let _none = search.answered(ticket, "locked", Answer::Failed("not allowed".to_owned()));
+    let _none = search.answered(ticket, "locked", Answer::Failed(SearchFailure::Failed));
     assert_eq!(
         search.notes(),
         [
             Note::Nothing,
             Note::Older(vec!["old".to_owned()]),
-            Note::Failed(vec![("locked".to_owned(), "not allowed".to_owned())]),
+            Note::Failed(vec![("locked".to_owned(), SearchFailure::Failed)]),
         ]
     );
     assert_eq!(

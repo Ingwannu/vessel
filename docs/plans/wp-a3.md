@@ -277,3 +277,9 @@ after replacing the active one and requires retained input/identity and no activ
 area mutation. A7 moves the original area in its one TimelineSnapshot; A3 creates
 no second snapshot, map, authority or follow manager. The registry must reject
 retired binding/operation tickets before dispatching any metadata answer.
+
+Search failures are retained as the pure `SearchFailure` enum rather than peer
+text or a translated string captured on arrival. Rendering resolves its current
+prepared message-search getter, so a language change preserves query/tickets and
+rewords the same failure fact. Existing generic view refusal coverage is adapted
+to the typed fact; its ordering/no-match behavior is unchanged.

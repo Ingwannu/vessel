@@ -44,7 +44,7 @@ use vessel_app_view::Card;
 use vessel_app_view::ago::Ago;
 use vessel_app_view::board::Reach;
 use vessel_app_view::connection::ConnectionContext;
-use vessel_app_view::search::{Answer, HitId, MessageSearch, Note, PageAsk, Row};
+use vessel_app_view::search::{Answer, HitId, MessageSearch, Note, PageAsk, Row, SearchFailure};
 use vessel_proto::EventSeq;
 use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
 
@@ -130,12 +130,8 @@ impl Shell {
             Ok(page) => Answer::Page(page),
             Err(Refusal::Older) => Answer::Older,
             Err(Refusal::NotConnected) => Answer::NotConnected,
-            Err(Refusal::TimedOut) => {
-                Answer::Failed(self.words.message_search().timeout().to_owned())
-            }
-            Err(Refusal::Failed { .. }) => {
-                Answer::Failed(self.words.message_search().failed().to_owned())
-            }
+            Err(Refusal::TimedOut) => Answer::Failed(SearchFailure::TimedOut),
+            Err(Refusal::Failed { .. }) => Answer::Failed(SearchFailure::Failed),
         };
         let asks =
             self.areas
@@ -394,7 +390,7 @@ pub(crate) fn message_search_note(shell: &Shell, tokens: &Tokens) -> Option<AnyE
         Note::Older(machines) => vec![words.search_older(&machines)],
         Note::Failed(failed) => failed
             .iter()
-            .map(|(machine, why)| words.search_failed(machine, why))
+            .map(|(machine, why)| words.search_failed(machine, failure_text(shell, *why)))
             .collect(),
     });
     Some(
@@ -409,4 +405,13 @@ pub(crate) fn message_search_note(shell: &Shell, tokens: &Tokens) -> Option<AnyE
             .children(lines.map(|line| div().child(line)))
             .into_any_element(),
     )
+}
+
+/// Render the fact in the current prepared language, never the arrival language.
+fn failure_text(shell: &Shell, failure: SearchFailure) -> &str {
+    let words = shell.words.message_search();
+    match failure {
+        SearchFailure::TimedOut => words.timeout(),
+        SearchFailure::Failed => words.failed(),
+    }
 }

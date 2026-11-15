@@ -58,6 +58,15 @@ pub enum Row {
     More,
 }
 
+/// Safe facts retained independently of the selected display language.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchFailure {
+    /// The bounded request did not complete.
+    TimedOut,
+    /// A peer or local command queue refused the search.
+    Failed,
+}
+
 /// Where one machine's search stands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MachineState {
@@ -75,8 +84,8 @@ pub enum MachineState {
     Done,
     /// The machine speaks a protocol before 12: it cannot search.
     Older,
-    /// The machine refused or could not answer: its words.
-    Failed(String),
+    /// The machine refused or could not answer: a safe, untranslated fact.
+    Failed(SearchFailure),
 }
 
 /// One machine's hits and state.
@@ -97,8 +106,8 @@ pub enum Answer {
     /// It is not connected: it is left out, said nowhere (the sidebar
     /// says it is offline).
     NotConnected,
-    /// It refused, or the connection failed: its words.
-    Failed(String),
+    /// It refused, or the connection failed: a safe, untranslated fact.
+    Failed(SearchFailure),
 }
 
 /// What the group says under its rows.
@@ -113,8 +122,8 @@ pub enum Note {
     Nothing,
     /// These machines are too old to search.
     Older(Vec<String>),
-    /// These machines could not search: each with its words.
-    Failed(Vec<(String, String)>),
+    /// These machines could not search: each with its safe failure kind.
+    Failed(Vec<(String, SearchFailure)>),
 }
 
 /// A page to ask a machine for.
@@ -303,11 +312,11 @@ impl MessageSearch {
         if !older.is_empty() {
             notes.push(Note::Older(older));
         }
-        let failed: Vec<(String, String)> = self
+        let failed: Vec<(String, SearchFailure)> = self
             .machines
             .iter()
             .filter_map(|machine| match &machine.state {
-                MachineState::Failed(why) => Some((machine.name.clone(), why.clone())),
+                MachineState::Failed(why) => Some((machine.name.clone(), *why)),
                 MachineState::Asking
                 | MachineState::More { .. }
                 | MachineState::Done
