@@ -892,3 +892,41 @@ proc through the store's restricted lock shim. Selected-file decoding,
 bounds, errors, duplicate handling, fallback and owner bytes are unchanged.
 The snapshot is still no signal authority. No force/restart caller, signal,
 wire change or new external dependency is included in this move.
+
+
+## Descriptor possession before process control (slice 2p2a)
+
+[Decision Log]
+- Purpose and intent: a kernel row's PID cannot identify a current holder
+  by itself. Require that candidate's descriptor to report the selected
+  locked file description before publishing the local snapshot.
+- Existing implementation and constraints: the moved decoder already selects
+  dev/inode before decoding a PID. The existing opaque snapshot grants no
+  signal authority. Linux can retain a dead creator's number with an
+  inherited flock, so mere PID existence is insufficient.
+- Alternatives considered: trust the owner record, accept any open descriptor
+  of the inode, or copy a second parser. None relates the candidate to the
+  exclusive lock. Descriptor possession still does not settle generation
+  or PID namespace; those checks remain a separate required phase.
+- Selected approach: pin a read-only candidate proc directory, resolve its
+  children through that retained descriptor and inspect only FD identities
+  matching the selected file. Decode only their lock blocks using the same
+  parser as the global table. Unrelated FD contents cannot poison the query.
+  Byte and entry caps have one named constant each, used in errors and tests.
+- Why this approach: inode equality alone does not prove that a descriptor
+  owns the lock. FDinfo relates the actual file description to its lock;
+  a retained proc directory does not reserve a numeric PID. An inaccessible,
+  missing or ambiguous observation refuses without changing a lock/record.
+- Advantages, costs and effects: no external dependency, wire field or signal.
+  The snapshot retains its proc-directory reference, not a copy of the node
+  lock. A live unrelated fake is refused while the test's original lock stays
+  held. Generation/namespace proof and pre-signal rechecks remain mandatory
+  before the later force entry point; this slice is not signal authority.
+
+Primary source: Linux `fs/proc/fd.c` 21–67 obtains the task's actual descriptor;
+`fs/locks.c` 2880–2913 checks its file description/owner before printing the
+same lock record. The kernel's proc documentation says old proc descriptors
+do not retarget a reused PID and do not reserve its number. The directory
+replacement fixture tests ordinary descriptor anchoring, not real PID reuse.
+No namespace/platform behavior is inferred from that fixture. Real non-Linux
+and alternative filesystem behavior remains unverified.

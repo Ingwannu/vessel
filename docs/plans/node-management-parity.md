@@ -8,10 +8,11 @@ slice order. The docs commit adds both and no command.
 
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
-- Source: 2p1 moves only the generic kernel query and opaque snapshots to
-  proc; the store facade, parser behavior and existing assertions remain.
-  Manifest, active map and name restriction land together. Focused checks
-  and the merged-tree whole gate are pending.
+- Done: 2p1's query move passed review and its whole gate (2,211 Rust
+  tests, no failures, 12 ignored; forge 4, web unit 442 and e2e 65).
+- Source: 2p2a adds candidate descriptor possession to the opaque snapshot.
+  Generation and namespace checks remain a separate required slice before
+  any signal caller. Focused and whole gates are pending.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -475,3 +476,16 @@ that use to `src/lock/`, in the same commit as the active map. Existing
 private PID assertions relocate to a real held-file fixture in proc;
 all data-directory and owner-byte assertions remain in store. No PID
 getter, external dependency, signal, new call or descriptor proof is added.
+
+
+### Slice 2p2a: descriptor possession
+
+Split the approved proof phase so the FD relation is reviewed separately
+from generation/namespace parsing. Reuse the one lock-line decoder and
+metadata identity; add only private raw-row, bounded record and descriptor
+proof types. The existing store facade returns the opaque snapshot only
+when this additional observation succeeds. No PID getter, wire, external
+edge, manager or signal. Test real held-lock capture, a live unrelated
+candidate without that descriptor, foreign malformed FD contents, missing/
+wrong/duplicate lock blocks, anchoring and named byte/count caps. Namespace
+and process-reuse semantics remain unverified until their following proof.

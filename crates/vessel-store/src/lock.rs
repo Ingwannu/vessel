@@ -119,7 +119,7 @@ impl NodeLock {
         }
     }
 
-    /// Query process authority without acquiring the lock or trusting its record.
+    /// Observe the selected lock without acquiring it or trusting its record.
     /// `NotVisible` does not mean free: the OS lock remains the availability proof.
     ///
     /// # Errors

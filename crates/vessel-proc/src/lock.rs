@@ -2,7 +2,11 @@
 //! A snapshot alone must never authorize a signal or process-tree cleanup.
 
 #[cfg(target_os = "linux")]
+mod descriptor;
+#[cfg(target_os = "linux")]
 mod kernel;
+#[cfg(target_os = "linux")]
+mod record;
 
 #[cfg(target_os = "linux")]
 pub use kernel::observe;
@@ -23,9 +27,20 @@ struct LockFileIdentity {
     inode: u64,
 }
 
+#[cfg(target_os = "linux")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct KernelWriter {
+    process: NodeProcess,
+    file: LockFileIdentity,
+}
+
 /// A kernel writer bound to a lock inode; it is never constructed from the record.
+/// Linux additionally observes descriptor possession. Generation and namespace
+/// checks are not established here; this snapshot never grants signal authority.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelLock {
     process: NodeProcess,
     file: LockFileIdentity,
+    #[cfg(target_os = "linux")]
+    descriptor: descriptor::Proof,
 }
