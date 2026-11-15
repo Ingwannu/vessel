@@ -46,7 +46,28 @@ measured totals are recorded in the handover, outside repository content.
 
 ## Resume point
 
-Merge resolved; checking the combined fake harness before committing the
-merge. Next: adapt exhaustive client errors and workspace approval data,
-then run both complete gates. The merged ScriptEntry currently has public
-kind and no port; the constructor/view change requires its upstream commit.
+The node merge is committed. Client/settings and terminal approval
+adaptations pass focused link/view clippy and library tests. Next: integrate
+the upstream declared-port constructor/view contract when its accepted
+commit is selected, then run both complete gates on the final head.
+
+### Client error and settings adaptation
+
+New `UnassignedProtocol` outcomes follow each consumer's existing local
+unsupported-call handling. The idle-release settings write leaves other
+settings absent via `SetNodeSettings::default()`; fixtures explicitly keep
+all drivers on ACP. No new call is registered or sent by these changes.
+
+### Workspace approval adaptation
+
+`Listed` exhaustively names terminal commands from the root contract.
+`ApprovalRefusal::Terminals` prevents the card from attaching an Approve
+button for a digest containing commands it cannot display; Cancel and the
+existing skip action remain available. English and Korean explain the
+refusal. Regression coverage checks the typed decision and both languages.
+The existing app-parent search tests remain intact.
+
+Reference checked: Paseo `packages/protocol/src/paseo-config-schema.ts`
+lines 38–56 admits script port and worktree terminals; Vessel's deliberate
+approval floor is ADR 0066. This integration retains that existing refusal
+rather than extending command execution.

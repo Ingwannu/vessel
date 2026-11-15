@@ -3,7 +3,7 @@
 //! sends, and that a late or foreign answer changes nothing.
 
 use vessel_proto::parking::{IdleMinutes, ParkAfter};
-use vessel_proto::settings::NodeSettings;
+use vessel_proto::settings::{AgentDriver, AgentDrivers, NodeSettings};
 use vessel_proto::{ErrorCode, ProtocolVersion};
 
 use crate::devices::{MachineKey, Tickets};
@@ -11,6 +11,11 @@ use crate::idle_release::{Card, Page, Problem, Switch};
 
 fn idle(minutes: u16) -> NodeSettings {
     NodeSettings {
+        drivers: AgentDrivers {
+            claude_code: AgentDriver::Acp,
+            codex: AgentDriver::Acp,
+            open_code: AgentDriver::Acp,
+        },
         park_after: ParkAfter::Idle {
             minutes: IdleMinutes::new(minutes).unwrap(),
         },
@@ -18,6 +23,11 @@ fn idle(minutes: u16) -> NodeSettings {
 }
 
 const NEVER: NodeSettings = NodeSettings {
+    drivers: AgentDrivers {
+        claude_code: AgentDriver::Acp,
+        codex: AgentDriver::Acp,
+        open_code: AgentDriver::Acp,
+    },
     park_after: ParkAfter::Never,
 };
 
@@ -127,6 +137,11 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
         &laptop,
         read,
         Ok(NodeSettings {
+            drivers: AgentDrivers {
+                claude_code: AgentDriver::Acp,
+                codex: AgentDriver::Acp,
+                open_code: AgentDriver::Acp
+            },
             park_after: ParkAfter::Unknown
         })
     ));
