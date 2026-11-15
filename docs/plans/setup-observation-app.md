@@ -35,3 +35,23 @@ backend support; Requested is not process death. Controller retirement and
 original pending-cancellation retention still belong to the later area adapter.
 The canonical scalar DTO by itself does not validate a complete observation;
 no network renderer or local DTO validation is claimed by these fake tests.
+
+
+The Setup renderer is now registered through the single panel registry. A
+canonical pane requires its exact WorkspaceId in the LayoutKey and Target.
+The installed area has no workspace-to-backing resolver and passes an unavailable
+model with no callbacks, so opening it creates no request, cancellation or start.
+The shared-kit structured projection is painted against isolated typed fixtures
+for command results, both languages and both schemes. Those tests supply no
+network adapter and cannot establish live setup or workspace authority.
+
+[Decision Log]
+- Purpose: build the screen against the existing canonical values and kit while
+  the runtime/registry admission contract is pending.
+- Constraint: historical WorktreeId observations cannot authorize a canonical
+  Workspace pane or cancel its process.
+- Alternative: infer a backing from selected session/cwd, or keep a second pane
+  manager. Both discard the canonical registry's ownership boundary.
+- Choice: one passive registered renderer and a typed unavailable product state.
+- Impact: structured rendering can be tested now; live reads, pending cancellation
+  retention, retirement and negotiated authorization remain the future controller.

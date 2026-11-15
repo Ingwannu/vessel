@@ -20,6 +20,7 @@ mod place_rows;
 mod projects;
 mod remove;
 mod scripts;
+mod setup;
 mod sidebar;
 mod start_card;
 mod start_header;
@@ -41,6 +42,7 @@ pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use scripts::render_panel as scripts_panel;
 pub(crate) use scripts::start;
+pub(crate) use setup::render_panel as setup_panel;
 pub(crate) use sidebar::projects as sidebar_projects;
 pub(crate) use start_card::render as start_card;
 
