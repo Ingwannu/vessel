@@ -83,8 +83,10 @@ the guard, write or runtime application. Shutdown closes admission and joins it.
 No separately acquired plugin lock becomes another writer or a deadlock cycle.
 
 Installation, source/registry edits, update apply, reload, disable and remove
-have dedicated human local-owner/paired Admin admission. An agent/delegated or
-plugin-broker principal cannot use a generic patch to reach these mutations.
+have dedicated human local-owner/paired Admin admission. The safe global toggle
+also requires human Admin admission, including when carried by the generic
+settings patch: its safe shape does not grant permission to activate code. An
+agent/delegated or plugin-broker principal cannot reach either route.
 Prepared mutations privately bind actual node owner, current configuration and
 installation revision, candidate identity and exact executable target. A stale
 proposal refuses before effects; a client assertion that it reviewed code is
@@ -103,8 +105,9 @@ A saved global enable value is intent, not proof that a helper is running.
 Startup revalidates configured packages and settles each helper into Running or
 a typed Failed state before the authoritative initial catalog. Failed start may
 retain saved On intent for an explicit retry. Turning Off first prevents new
-admission and withdraws contributions/revokes broker use, then cancels and joins
-owned helper cleanup. The result distinguishes persisted intent from failed or
+admission and withdraws contributions/revokes broker use during runtime apply,
+then cancels and joins owned helper cleanup. Existing write-before-apply ordering
+means a failed persistence operation does not revoke the old runtime early. The result distinguishes persisted intent from failed or
 uncertain cleanup; wait_checked proves leader reap plus accepted first cleanup
 request, not all-descendant death. No management acknowledgement may claim the
 latter from a saved flag or ProcessLifetime revocation.
