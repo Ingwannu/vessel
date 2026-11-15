@@ -282,7 +282,7 @@ pub fn compare_commands(before: &[ProjectCommand], after: &[ProjectCommand]) -> 
 
 /// Whether two entries of one name run the same thing in the same way.
 fn same_script(one: &ScriptEntry, two: &ScriptEntry) -> bool {
-    one.kind == two.kind && one.command == two.command && one.dir == two.dir
+    one.view() == two.view()
 }
 
 /// `after`'s scripts against `before`'s, by name, in name order.

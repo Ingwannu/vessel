@@ -18,6 +18,7 @@ use vessel_app_view::workspace::command_changes::{
     ApprovalRefusal, Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
 };
 use vessel_app_view::workspace::words::{Labels, Local, WorkspaceWords};
+use vessel_proto::scripts::ScriptEntryView;
 use vessel_proto::workspace::ProjectCommand;
 
 use super::widgets::{Tone, badge, banner};
@@ -324,15 +325,22 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
             .child(words.labels().scripts_and_services),
     );
     for entry in lines {
-        let script = entry.script();
+        // A new approved field must break this display until it is shown or refused.
+        let ScriptEntryView {
+            name,
+            kind,
+            command,
+            dir,
+            port,
+        } = entry.script().view();
         let (change, removed) = match entry {
             ScriptLine::Line { change, .. } => (Some(*change), *change == Change::Removed),
             ScriptLine::Changed { .. } => (None, false),
         };
-        let place = script
-            .dir
-            .as_ref()
-            .map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let place = dir.map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let declared = port.map_or_else(String::new, |port| {
+            format!(" \u{b7} {}", words.script_port(Some(port)))
+        });
         let mut text = div()
             .flex()
             .flex_col()
@@ -345,16 +353,16 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                         div()
                             .type_(Type::Label)
                             .text_color(tokens.neutral.foreground)
-                            .child(script.name.as_str().to_owned()),
+                            .child(name.as_str().to_owned()),
                     )
                     .child(
                         div()
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
-                            .child(format!("{}{place}", words.script_kind(script.kind))),
+                            .child(format!("{}{place}{declared}", words.script_kind(kind))),
                     ),
             )
-            .child(code(script.command.to_string(), removed, tokens));
+            .child(code(command.to_string(), removed, tokens));
         if let ScriptLine::Changed { script, was } = entry {
             text = text.child(
                 div()

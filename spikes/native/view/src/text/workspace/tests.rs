@@ -306,12 +306,14 @@ fn command(text: &str) -> ProjectCommand {
 }
 
 fn script(name: &str, kind: ScriptKind, command: &str) -> ScriptEntry {
-    ScriptEntry {
-        name: name.parse().unwrap(),
+    ScriptEntry::new(
+        name.parse().unwrap(),
         kind,
-        command: command.parse().unwrap(),
-        dir: None,
-    }
+        command.parse().unwrap(),
+        None,
+        None,
+    )
+    .unwrap()
 }
 
 fn dev() -> ScriptEntry {
@@ -357,16 +359,16 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
 
 #[test]
 fn says_what_a_script_s_change_was() {
-    let service = ScriptEntry {
-        kind: ScriptKind::Service,
-        ..lint()
-    };
+    let service = script("lint", ScriptKind::Service, "npm run lint");
     assert_eq!(En.script_change(&lint(), &service), "now a service");
-    let moved = ScriptEntry {
-        command: "pnpm dev".parse().unwrap(),
-        dir: Some("web".parse().unwrap()),
-        ..dev()
-    };
+    let moved = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Service,
+        "pnpm dev".parse().unwrap(),
+        Some("web".parse().unwrap()),
+        None,
+    )
+    .unwrap();
     assert_eq!(
         En.script_change(&dev(), &moved),
         "its command and its folder"
@@ -517,5 +519,90 @@ fn refuses_comparison_that_would_hide_removed_terminal_commands() {
     assert_eq!(
         Listed::of(&asked).unwrap().approval(),
         Err(ApprovalRefusal::Terminals)
+    );
+}
+
+#[test]
+fn compares_and_names_declared_port_additions_changes_and_removal() {
+    use vessel_proto::workspace::ServicePort;
+    let without = dev();
+    let declared = |port: u16| {
+        ScriptEntry::new(
+            without.name.clone(),
+            without.kind(),
+            without.command.clone(),
+            without.dir.clone(),
+            Some(ServicePort::try_from(port).unwrap()),
+        )
+        .unwrap()
+    };
+    let first = declared(3000);
+    let second = declared(3001);
+    for (before, after, english, korean) in [
+        (
+            &without,
+            &first,
+            "no declared port → port 3000",
+            "지정 포트 없음 → 포트 3000",
+        ),
+        (
+            &first,
+            &second,
+            "port 3000 → port 3001",
+            "포트 3000 → 포트 3001",
+        ),
+        (
+            &first,
+            &without,
+            "port 3000 → no declared port",
+            "포트 3000 → 지정 포트 없음",
+        ),
+    ] {
+        assert_eq!(
+            compare_scripts(std::slice::from_ref(before), std::slice::from_ref(after)),
+            vec![ScriptLine::Changed {
+                script: after.clone(),
+                was: before.clone()
+            }]
+        );
+        assert_eq!(En.script_change(before, after), english);
+        assert_eq!(Ko.script_change(before, after), korean);
+    }
+    assert_eq!(
+        compare_scripts(std::slice::from_ref(&first), std::slice::from_ref(&first)),
+        vec![ScriptLine::Line {
+            change: Change::Same,
+            script: first
+        }]
+    );
+}
+
+#[test]
+fn an_approved_declared_port_removal_is_still_a_change() {
+    let previous = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Service,
+        "npm run dev".parse().unwrap(),
+        None,
+        Some("3000".parse().unwrap()),
+    )
+    .unwrap();
+    let asked = listed(
+        &[],
+        false,
+        'b',
+        vec![dev()],
+        Some(approved_set(&[], vec![previous.clone()])),
+    );
+    let compared = compare_approved(&Listed::of(&asked).unwrap(), None);
+    let Compared::Changed { scripts, .. } = compared else {
+        panic!("expected an approved comparison")
+    };
+    assert_eq!(
+        scripts,
+        vec![ScriptLine::Changed {
+            script: dev(),
+            was: previous
+        }]
     );
 }

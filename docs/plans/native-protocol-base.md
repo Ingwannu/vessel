@@ -46,10 +46,10 @@ measured totals are recorded in the handover, outside repository content.
 
 ## Resume point
 
-The node merge is committed. Client/settings and terminal approval
-adaptations pass focused link/view clippy and library tests. Next: integrate
-the upstream declared-port constructor/view contract when its accepted
-commit is selected, then run both complete gates on the final head.
+The node and declared-port merges are committed. Client/settings and
+terminal approval adaptations pass focused link/view clippy and library
+tests. Declared-port consumers and regression cases are implemented. Next:
+complete focused checks and both whole gates on the final committed head.
 
 ### Client error and settings adaptation
 
@@ -71,3 +71,21 @@ Reference checked: Paseo `packages/protocol/src/paseo-config-schema.ts`
 lines 38–56 admits script port and worktree terminals; Vessel's deliberate
 approval floor is ADR 0066. This integration retains that existing refusal
 rather than extending command execution.
+
+### Declared service ports
+
+The declared-port boundary is merged separately because it was not yet on
+the selected node head. The native card destructures all `ScriptEntryView`
+fields without a rest pattern: name, kind, command, folder and declared
+port are drawn. Adding a field breaks this display until it is handled.
+Comparison uses the full borrowed view, while English and Korean name
+port addition, replacement and removal with both values. Constructors in
+fixtures enforce the same service/port invariant as decoded node data.
+Port removal from the last approved snapshot has regression coverage.
+No allocator is introduced; `PROJECT_FILE_KEYS` remains unassigned.
+
+The existing English/Korean files are at their shrinking file budgets.
+Script kind, port and change wording therefore delegates to one small
+`script_words` module, reusing the existing `Lang` enum. Both languages
+share the comparison, so a new approved field cannot be named in only one
+language; the existing English/Korean outputs remain pinned by tests.
