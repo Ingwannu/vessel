@@ -12,6 +12,9 @@ use std::{
 };
 use vessel_proto::providers::ProviderOverrides;
 
+mod failure;
+pub use failure::ProvidersFileFailure;
+
 const PROVIDERS_FILE: &str = "providers.json";
 /// A local decode bound independent from the node's transport frame budget.
 pub const MAX_PROVIDER_FILE_BYTES: u64 = 4 * 1024 * 1024;
@@ -48,10 +51,10 @@ struct Document {
 pub enum ProvidersFileError {
     /// A filesystem operation failed.
     #[error("provider configuration could not be read or written")]
-    Io(#[from] StoreError),
+    Io(#[source] ProvidersFileFailure),
     /// Malformed typed input. The source stays private to the decoder boundary.
     #[error("provider configuration could not be decoded")]
-    Decode(#[source] serde_json::Error),
+    Decode(#[source] ProvidersFileFailure),
     /// Permission or link safety failed before any file content was read.
     #[error(
         "provider configuration must be an owner-only regular file in a trusted data directory"
@@ -62,7 +65,13 @@ pub enum ProvidersFileError {
     TooLarge,
     /// Encoding failed before any replacement was attempted.
     #[error("provider configuration could not be encoded")]
-    Encode(#[source] serde_json::Error),
+    Encode(#[source] ProvidersFileFailure),
+}
+
+impl From<StoreError> for ProvidersFileError {
+    fn from(cause: StoreError) -> Self {
+        Self::Io(cause.into())
+    }
 }
 
 impl std::fmt::Debug for ProvidersFileError {
@@ -150,8 +159,8 @@ impl DataDir {
         if !u64::try_from(bytes.len()).is_ok_and(|length| length <= MAX_PROVIDER_FILE_BYTES) {
             return Err(ProvidersFileError::TooLarge);
         }
-        let document: Document =
-            serde_json::from_slice(&bytes).map_err(ProvidersFileError::Decode)?;
+        let document: Document = serde_json::from_slice(&bytes)
+            .map_err(|cause| ProvidersFileError::Decode(cause.into()))?;
         Ok(Some(document.providers))
     }
 
@@ -171,7 +180,8 @@ impl DataDir {
         let document = Document {
             providers: providers.clone(),
         };
-        let bytes = serde_json::to_vec_pretty(&document).map_err(ProvidersFileError::Encode)?;
+        let bytes = serde_json::to_vec_pretty(&document)
+            .map_err(|cause| ProvidersFileError::Encode(cause.into()))?;
         if !u64::try_from(bytes.len()).is_ok_and(|length| length <= MAX_PROVIDER_FILE_BYTES) {
             return Err(ProvidersFileError::TooLarge);
         }

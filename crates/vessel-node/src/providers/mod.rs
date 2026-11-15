@@ -4,6 +4,7 @@
 mod budget;
 mod cache;
 mod configuration;
+mod failure;
 mod lease;
 mod manager;
 mod owner;
@@ -11,6 +12,7 @@ mod producer;
 
 pub use cache::CacheError as ProviderCacheError;
 pub use configuration::ConfigurationFailure as ProviderConfigurationError;
+pub use failure::ProviderTaskFailure;
 pub(crate) use manager::{PreparedProviders, Providers};
 pub use owner::OwnerError as ProviderDiscoveryError;
 

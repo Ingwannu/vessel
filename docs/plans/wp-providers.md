@@ -648,3 +648,27 @@ guard and I/O futures. Child drop issues group termination and Tokio kill-on-dro
 that is not a checked descendant-death receipt. This preparation correction
 claims physical blocking-work drain only; no whole-group cleanup proof or new
 reaper/ProcessLifetime-as-death claim is introduced.
+
+## V3 row207 correction: sealed private error causes
+
+[Decision Log]
+- Purpose: fixed outer Display and manual Debug must not leak private typed-file
+  values or task panic payloads through a renderer walking Error::source.
+- Constraint: raw serde_json::Error and JoinError were still public sources; the
+  current RPC mapper already emitted fixed reader text but that was not enough
+  to establish the public file/configuration error contract.
+- Alternatives: flatten/drop causes, adopt the entire unrelated settings runtime,
+  or add a general diagnostic framework; all lose evidence or broaden scope.
+- Choice: reuse the checked settings diagnostic pattern (row187), with a narrow
+  provider file wrapper retaining concrete Store/serde causes privately and
+  exposing only storage code or JSON category/line/column. The task wrapper
+  retains JoinError privately and exposes Panicked/Cancelled/unfinished text.
+  Both terminate their public source chain. No new dependency is required.
+- Reason: this file decoder does not need settings' field-path machinery; keeping
+  causes in their existing format/owner boundary avoids duplicate parse logic
+  or importing an unrelated runtime. IO paths are sealed as well as serde values.
+- Effects: actual invalid-file decode, failing serializer, enclosing configuration/
+  NodeError chains, static/owned task panic and cancellation, and actual startup/
+  owner logging callsites have canary regression source. Original files remain
+  preserved on recovery. These tests are drafted, not executed; the process-wide
+  panic hook is explicitly outside this diagnostic boundary claim.

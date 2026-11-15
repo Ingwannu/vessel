@@ -96,20 +96,12 @@ impl PreparedProviders {
         });
         drop(tasks.spawn(async move {
             if let Err(error) = task.await {
-                tracing::error!(
-                    panicked = error.is_panic(),
-                    cancelled = error.is_cancelled(),
-                    "provider configuration owner ended unexpectedly"
-                );
+                super::failure::report_owner(&error.into());
             }
         }));
         drop(tasks.spawn(async move {
             if let Err(error) = catalogue_task.await {
-                tracing::error!(
-                    panicked = error.is_panic(),
-                    cancelled = error.is_cancelled(),
-                    "provider catalogue owner ended unexpectedly"
-                );
+                super::failure::report_owner(&error.into());
             }
         }));
         let closing = configuration.clone();

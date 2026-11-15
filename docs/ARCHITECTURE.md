@@ -1697,3 +1697,9 @@ plugin session execution and atomic creation integration remain separate work. E
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.
 Composer catalogs (ADR 0085) use `vessel-proto::composer_commands` for typed draft configuration, command kind and pending protocol projection. Provider-edge conversion belongs to `vessel-agent`; the existing workspace root and option validation remain the node's authority boundary. This adds no crate dependency.
+
+Provider private-file diagnostics retain concrete causes behind
+ProvidersFileFailure, exposing category/location or a storage code without
+raw serde strings or private paths. ProviderTaskFailure similarly seals task
+panic payloads; outer ConfigurationFailure/NodeError source chains remain safe
+through those wrappers. The global panic hook is a separate runtime boundary.

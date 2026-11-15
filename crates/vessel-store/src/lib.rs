@@ -94,6 +94,7 @@ pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use providers_file::{
     LoadedProviders, MAX_PROVIDER_FILE_BYTES, ProviderFileState, ProvidersFileError,
+    ProvidersFileFailure,
 };
 pub use push::{PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};

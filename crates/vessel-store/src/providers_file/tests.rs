@@ -186,3 +186,43 @@ fn unsafe_modes_and_symlinks_are_refused_without_mutating_the_original() {
     ));
     assert_eq!(fs::read(elsewhere).unwrap(), b"{}");
 }
+
+fn private_chain(error: &(dyn std::error::Error + 'static), marker: &str) -> String {
+    let mut current = Some(error);
+    let mut rendered = String::new();
+    while let Some(error) = current {
+        let entry = format!("{error}\n{error:?}\n");
+        assert!(!entry.contains(marker));
+        rendered.push_str(&entry);
+        current = error.source();
+    }
+    rendered
+}
+
+#[test]
+fn actual_file_decode_and_encode_causes_stay_private_through_the_public_chain() {
+    const MARKER: &str = "provider-private-canary-d5c714";
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    let bytes = format!(r#"{{"providers":{{"codex":{{"enabled":"{MARKER}"}}}}}}"#);
+    let raw = serde_json::from_slice::<Document>(bytes.as_bytes()).unwrap_err();
+    assert!(raw.to_string().contains(MARKER));
+    private_write(&data, bytes.as_bytes());
+    let error = data.read_provider_overrides().unwrap_err();
+    let rendered = private_chain(&error, MARKER);
+    assert!(rendered.contains("Data at line 1 column"));
+    assert_eq!(fs::read(data.providers_path()).unwrap(), bytes.as_bytes());
+
+    struct CannotEncode;
+    impl Serialize for CannotEncode {
+        fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+            Err(serde::ser::Error::custom(MARKER))
+        }
+    }
+    let raw = serde_json::to_vec(&CannotEncode).unwrap_err();
+    assert!(raw.to_string().contains(MARKER));
+    let error = ProvidersFileError::Encode(raw.into());
+    let _rendered = private_chain(&error, MARKER);
+    let io = StoreError::io(root.path().join(MARKER))(io::Error::other(MARKER));
+    let _rendered = private_chain(&ProvidersFileError::from(io), MARKER);
+}

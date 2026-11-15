@@ -31,7 +31,7 @@ pub enum ConfigurationFailure {
     Store(#[from] ProvidersFileError),
     /// A filesystem worker did not finish; its cause is retained internally.
     #[error("provider configuration task did not finish")]
-    Task(#[from] tokio::task::JoinError),
+    Task(#[from] super::failure::ProviderTaskFailure),
     /// The node or its configuration actor already stopped.
     #[error("provider configuration owner is stopped")]
     Stopped,
@@ -41,6 +41,12 @@ pub enum ConfigurationFailure {
     /// The catalogue owner ended; no further generation is admitted.
     #[error("provider catalogue owner is unavailable")]
     Owner(#[from] OwnerError),
+}
+
+impl From<tokio::task::JoinError> for ConfigurationFailure {
+    fn from(cause: tokio::task::JoinError) -> Self {
+        Self::Task(cause.into())
+    }
 }
 
 #[derive(Debug)]
