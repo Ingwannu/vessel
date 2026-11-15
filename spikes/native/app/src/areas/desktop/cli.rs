@@ -112,9 +112,10 @@ pub(crate) fn set_installed(
     operation: Operation,
     cx: &gpui::App,
 ) -> gpui::Task<Result<Snapshot, DesktopError>> {
+    let broadcast = crate::desktop::environment_broadcast(cx);
     cx.background_executor().spawn(async move {
         let (installation, path) = prepare()?;
-        perform(&installation, &path, operation)
+        perform(&installation, &path, operation, broadcast)
     })
 }
 
@@ -122,6 +123,7 @@ fn perform(
     installation: &Installation,
     path: &PathSetup,
     operation: Operation,
+    broadcast: Option<crate::desktop::EnvironmentBroadcast>,
 ) -> Result<Snapshot, DesktopError> {
     let status = match operation {
         Operation::Install => {
@@ -139,7 +141,14 @@ fn perform(
             path_status(path)
         }
     };
-    facts(installation, status)
+    let snapshot = facts(installation, status)?;
+    if let Some(broadcast) = broadcast
+        && let Err(error) = broadcast()
+    {
+        // The registry edit succeeded; do not misreport it as rolled back.
+        tracing::warn!(%error,"CLI PATH changed; environment notification needs a fresh login");
+    }
+    Ok(snapshot)
 }
 
 fn failed(error: &DesktopError) -> State {
@@ -190,9 +199,10 @@ impl Shell {
         };
         panel.state = State::Working(operation);
         cx.notify();
+        let broadcast = crate::desktop::environment_broadcast(cx);
         let work = cx
             .background_executor()
-            .spawn(async move { perform(&installation, &path, operation) });
+            .spawn(async move { perform(&installation, &path, operation, broadcast) });
         cx.spawn(async move |this, cx| {
             let result = work.await;
             let _closed = this.update(cx, |shell, cx| {
@@ -308,4 +318,52 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         tokens,
     ));
     settings::section(words.cli().to_owned(), card, tokens)
+}
+
+#[cfg(all(test, unix))]
+mod broadcast_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static NOTIFICATIONS: AtomicUsize = AtomicUsize::new(0);
+
+    fn timed_out_notification() -> Result<(), std::io::Error> {
+        let _previous = NOTIFICATIONS.fetch_add(1, Ordering::SeqCst);
+        Err(std::io::ErrorKind::TimedOut.into())
+    }
+
+    #[test]
+    fn failed_notification_never_misreports_an_install_as_rolled_back() {
+        NOTIFICATIONS.store(0, Ordering::SeqCst);
+        let home = std::env::temp_dir().join(format!(
+            "vessel-cli-broadcast-{}",
+            vessel_proto::SessionId::random()
+        ));
+        std::fs::create_dir_all(&home).unwrap();
+        let source = home.join("bundled-cli");
+        let installation =
+            Installation::new(source.clone(), home.join(".local/bin/vessel")).unwrap();
+        let path = PathSetup::new(&home, None, Platform::Unix, std::ffi::OsString::new()).unwrap();
+        assert!(matches!(
+            perform(
+                &installation,
+                &path,
+                Operation::Install,
+                Some(timed_out_notification)
+            ),
+            Err(DesktopError::MissingCli)
+        ));
+        assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 0);
+        std::fs::write(source, b"nonexecuted CLI fixture").unwrap();
+        let result = perform(
+            &installation,
+            &path,
+            Operation::Install,
+            Some(timed_out_notification),
+        )
+        .unwrap();
+        assert_eq!(result.status, Status::Installed);
+        assert_eq!(installation.status().unwrap(), Status::Installed);
+        assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 1);
+        std::fs::remove_dir_all(home).unwrap();
+    }
 }

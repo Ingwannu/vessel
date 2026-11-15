@@ -26,6 +26,7 @@ fn test_desktop() -> Desktop {
         latest: WindowState::default(),
         writer: None,
         environment: vessel_app_link::desktop::environment::ShellEnvironment::inherited(),
+        environment_broadcast: None,
         quit: Some(retain_while_finalizing),
         window_close: None,
         session: None,

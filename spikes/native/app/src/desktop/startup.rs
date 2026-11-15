@@ -17,8 +17,12 @@ use vessel_app_link::desktop::{
 
 const OS_LAUNCH_CAPACITY: usize = 32;
 
-pub(crate) fn run(choice: SchemeChoice, application: fn() -> gpui::Application) -> ExitCode {
-    match start(choice, application) {
+pub(crate) fn run(
+    choice: SchemeChoice,
+    application: fn() -> gpui::Application,
+    environment_broadcast: Option<super::EnvironmentBroadcast>,
+) -> ExitCode {
+    match start(choice, application, environment_broadcast) {
         Ok(code) => code,
         Err(error) => {
             let kind = if matches!(&error, DesktopError::RestartDeadline) {
@@ -36,6 +40,7 @@ pub(crate) fn run(choice: SchemeChoice, application: fn() -> gpui::Application) 
 fn start(
     choice: SchemeChoice,
     application: fn() -> gpui::Application,
+    environment_broadcast: Option<super::EnvironmentBroadcast>,
 ) -> Result<ExitCode, DesktopError> {
     let mode = if std::env::var_os("VESSEL_DESKTOP_CLI").is_some_and(|value| value == "1") {
         Mode::Cli
@@ -98,7 +103,7 @@ fn start(
     application.run(move |cx| {
         if let Err(error)=vessel_app_kit::init(cx,choice) {tracing::error!(%error,"the kit could not start");cx.quit();return;}
         crate::motion::follow(cx);
-        if let Err(error)=super::install(store,environment,cx) {tracing::error!(%error,"desktop state could not start");cx.quit();return;}
+        if let Err(error)=super::install(store,environment,environment_broadcast,cx) {tracing::error!(%error,"desktop state could not start");cx.quit();return;}
         super::windows::open_primary(Some(launch),cx);
         if cx.windows().is_empty() {
             cx.quit();

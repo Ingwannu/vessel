@@ -29,6 +29,8 @@ enum WindowClose {
     Checking,
 }
 
+pub(crate) type EnvironmentBroadcast = fn() -> Result<(), std::io::Error>;
+
 type WindowCloseHandler = fn(&mut Shell, &mut gpui::Context<'_, Shell>) -> bool;
 
 pub(crate) struct Desktop {
@@ -37,6 +39,7 @@ pub(crate) struct Desktop {
     latest: WindowState,
     writer: Option<WindowWriter>,
     environment: ShellEnvironment,
+    environment_broadcast: Option<EnvironmentBroadcast>,
     quit: Option<fn(&mut App)>,
     window_close: Option<WindowCloseHandler>,
     session: Option<SessionHandler>,
@@ -49,6 +52,7 @@ impl Desktop {
     fn new(
         store: Store,
         environment: ShellEnvironment,
+        environment_broadcast: Option<EnvironmentBroadcast>,
     ) -> Result<Self, vessel_app_link::desktop::DesktopError> {
         let preferences = Coordinator::start(vessel_app_link::Prefs::load())?;
         let (saved, writable) = match store.load_window() {
@@ -75,6 +79,7 @@ impl Desktop {
             latest: saved.unwrap_or_default(),
             writer,
             environment,
+            environment_broadcast,
             quit: None,
             window_close: None,
             session: None,
@@ -173,12 +178,19 @@ pub(crate) fn environment(cx: &App) -> ShellEnvironment {
         })
 }
 
+/// Capture a thread-safe platform callback before explicit background PATH work.
+pub(crate) fn environment_broadcast(cx: &App) -> Option<EnvironmentBroadcast> {
+    cx.try_global::<Desktop>()
+        .and_then(|desktop| desktop.environment_broadcast)
+}
+
 fn install(
     store: Store,
     environment: ShellEnvironment,
+    environment_broadcast: Option<EnvironmentBroadcast>,
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
-    cx.set_global(Desktop::new(store, environment)?);
+    cx.set_global(Desktop::new(store, environment, environment_broadcast)?);
     set_session_handler(Shell::open_session_address, cx);
     crate::update::install(
         !cx.global::<Desktop>().preferences.current().manual_updates,

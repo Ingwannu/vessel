@@ -41,6 +41,7 @@ this table, with its reason in the same commit.
 | --- | --- | --- |
 | `gpui-pre` | only `vessel-app-kit`, `vessel-app` | Nothing of GPUI's reaches `view` or `link` (ADRs 0035, 0036). |
 | `gpui-pre-platform` | only `vessel-app` | The platform layer is chosen where the app starts. |
+| `gpui-pre-windows` | only `vessel-app` | Windows entry captures the fork’s safe environment-change function for background PATH operations. |
 | `gpui-component` | only `vessel-app-kit` | The component layer (text field, Markdown) is reached through the kit. |
 | `gpui-base` | only `vessel-app-kit` | The kit's field draws on its editing engine. |
 | `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
@@ -52,6 +53,7 @@ this table, with its reason in the same commit.
 
 | Names | Crate | Where | Why |
 | --- | --- | --- | --- |
+| `gpui_windows` | `vessel-app` | only `src/main.rs` | The binary captures the Windows host callback; screens never select a platform. |
 | `gpui_platform` | `vessel-app` | only `src/main.rs`, `src/web.rs` | The desktop's and the browser's entry points pick the platform; screens draw through GPUI and the kit. |
 | `std::fs`, `std::net`, `std::process`, `std::env`, `std::thread`, `tokio` | `vessel-app-view` | only `build.rs`, `build_support/` | What a screen means is computed, not fetched; the build script reads the catalogs at compile time. |
 

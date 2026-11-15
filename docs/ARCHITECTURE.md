@@ -1666,3 +1666,10 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+The Windows entry additionally captures the GPUI fork's safe environment-change
+broadcast into a typed fn()->io::Result callback. Native app alone directly
+names gpui-pre-windows, and only main.rs chooses that platform edge. Background
+CLI mutation invokes the callback after a successful user PATH write; a failed
+notification preserves installation and manual fresh-login guidance. Link gains
+no GPUI dependency and native crates gain no unsafe.

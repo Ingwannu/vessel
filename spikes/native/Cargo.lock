@@ -7517,6 +7517,7 @@ dependencies = [
  "futures-lite",
  "gpui-pre",
  "gpui-pre-platform",
+ "gpui-pre-windows",
  "sys-locale",
  "tokio",
  "tracing",

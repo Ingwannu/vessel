@@ -57,3 +57,6 @@ sys-locale = { version = "0.3", features = ["js"] }
 gpui = { workspace = true, features = ["test-support"] }
 # `Link::detached`: the tests that fill the link's queue (`unsent.rs`).
 vessel-app-link = { workspace = true, features = ["testing"] }
+
+[target.'cfg(windows)'.dependencies]
+gpui-windows.workspace = true

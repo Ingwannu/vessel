@@ -29,8 +29,8 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is the package line 9e18cf0db (base 5 + shared pane producer),
-merged in a3dc5c099. No node head was merged directly into this application tree.
+latest application base is package line 18eedad4 (base 6, connection preflight
+and the safe Windows environment broadcast), merged in 129b06b9b. No node head was merged directly into this application tree.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
 
@@ -160,9 +160,12 @@ installer spelling; 8.3 alias equivalence is not resolved. A trailing separator 
 reused. Pure tests never touch the real registry. Disabled transactions have a
 specific translated refusal. The release installer owns corresponding cleanup.
 
-The coordinator assigned bounded WM_SETTINGCHANGE to the existing GPUI Windows
-platform owner. Until that safe producer lands, Configured honestly asks for a
-new terminal or sign out/in, without claiming Explorer acknowledged the change.
+The safe GPUI Windows WM_SETTINGCHANGE producer is now on base 6. Only the
+Windows binary entry names its platform crate; a typed host callback runs after
+successful PATH mutation on background work, never in the UI callback. Its
+named5s timeout is per nonresponding receiver. Failure preserves the completed
+installation and Configured fresh-terminal/login guidance rather than pretending
+the registry write rolled back. No native unsafe or script bypass is added.
 Real Windows execution remains unverified; Wine packaging checks are separate.
 
 ## Canonical preferences and feature caches
@@ -236,9 +239,15 @@ stopped at a missing translator-context comment before tests, now fixed.
 
 One queued run ended 143 during the approved build-VM resize before compilation;
 its logs remain infrastructure interruption evidence. Only one replacement was
-submitted. Current immutable unit 13 targets all four native library test suites;
-its result is pending. Local source-size checks passed 694 files/14 existing
-exceptions; no size allowance was increased.
+submitted. Immutable unit13 at be31d4d65 completed: kit166/0, link110/0,
+view955/1. The one failure was About's dependency inventory missing winreg; the
+inventory is now updated for winreg and the Windows host crate. All pure Windows
+UTF-16 policy, login-shell process, primary bootstrap, canonical preference and
+receipt tests in that source passed. Because --lib selects library targets,
+the binary-only app tests were not run: no menu-field or window-guard GPUI result
+is claimed. The next app check must select --bin vessel-app or --bins. The newer
+base6 broadcast and project-delivery acknowledgment also need their union checks.
+Source-size checks passed694 files/14 existing exceptions; no allowance increased.
 
 All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
 prescribed remote gate tool. No local compilation or metadata-Cargo invocation is

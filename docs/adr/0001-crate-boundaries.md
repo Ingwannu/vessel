@@ -352,3 +352,10 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+Native app owns the Windows-only gpui-pre-windows dependency for the existing
+fork's safe WM_SETTINGCHANGE operation. This already-transitive crate replaces
+the temporary no-broadcast fallback, without adding a renderer or unsafe to
+native. Only the binary entry names the crate and captures a plain typed host
+callback; background CLI work consumes that callback after registry mutation.
+Windows failures keep their typed timeout or original OS source in io::Error.

@@ -51,7 +51,19 @@ pub(crate) const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> std::process::ExitCode {
     let _log = vessel_app_log::init(LABEL);
-    desktop::run(scheme_choice(), gpui_platform::application)
+    #[cfg(windows)]
+    let broadcast: Option<desktop::EnvironmentBroadcast> = Some(notify_environment);
+    #[cfg(not(windows))]
+    let broadcast = None;
+    desktop::run(scheme_choice(), gpui_platform::application, broadcast)
+}
+
+#[cfg(windows)]
+fn notify_environment() -> Result<(), std::io::Error> {
+    gpui_windows::broadcast_environment_changed().map_err(|error| match error {
+        gpui_windows::EnvironmentBroadcastError::TimedOut => std::io::ErrorKind::TimedOut.into(),
+        gpui_windows::EnvironmentBroadcastError::Failed(error) => std::io::Error::other(error),
+    })
 }
 
 #[cfg(not(target_arch = "wasm32"))]
