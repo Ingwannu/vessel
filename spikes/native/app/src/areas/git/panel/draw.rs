@@ -28,7 +28,7 @@ pub(crate) fn render_panel(
         cx.defer_in(window, move |shell, window, cx| {
             shell.git_panel_open(address, target, window, cx)
         });
-        return loading(shell, tokens);
+        return loading(Some(shell.words.git_panel().checking()), tokens);
     }
     let retry_address = address.clone();
     let retry_target = target;
@@ -42,14 +42,16 @@ pub(crate) fn render_panel(
         shell.git_panel_open(retry_address.clone(), retry_target.clone(), window, cx);
     }));
     let body = entry.map_or_else(
-        || loading(shell, tokens),
+        || loading(Some(shell.words.git_panel().checking()), tokens),
         |entry| {
             if let Some(why) = &entry.problem {
                 return failure(shell, why, tokens, window, cx);
             }
             match &entry.binding {
                 PanelBinding::Failed(why) => failure(shell, why, tokens, window, cx),
-                PanelBinding::Idle | PanelBinding::Locating(_) => loading(shell, tokens),
+                PanelBinding::Idle | PanelBinding::Locating(_) => {
+                    loading(Some(shell.words.git_panel().checking()), tokens)
+                }
                 PanelBinding::Ready { .. } => summary(shell, &address, tokens, window, cx),
             }
         },
@@ -81,20 +83,20 @@ fn summary(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let Some(entry) = shell.areas.git.panels.entries.get(address) else {
-        return loading(shell, tokens);
+        return loading(Some(shell.words.git_panel().checking()), tokens);
     };
     let Some(reads) = &entry.reads else {
-        return loading(shell, tokens);
+        return loading(Some(shell.words.git_panel().checking()), tokens);
     };
     if let ReadState::Failed(why) = reads.status() {
         return failure(shell, why, tokens, window, cx);
     }
     if reads.status().shown().is_none() {
-        return loading(shell, tokens);
+        return loading(Some(shell.words.git_panel().checking()), tokens);
     }
     match reads.summary() {
         ReadState::Failed(why) => failure(shell, why, tokens, window, cx),
-        ReadState::Empty | ReadState::Loading { previous: None, .. } => loading(shell, tokens),
+        ReadState::Empty | ReadState::Loading { previous: None, .. } => loading(None, tokens),
         ReadState::Ready(data)
         | ReadState::Loading {
             previous: Some(data),
@@ -102,7 +104,15 @@ fn summary(
         } => {
             if data.files.is_empty() && !data.more {
                 return div()
-                    .p(px(spacing::S4))
+                    .size_full()
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .pt(px(spacing::S16))
+                    .gap(px(spacing::S2))
+                    .type_(Type::Body)
+                    .text_color(tokens.neutral.foreground_muted)
                     .child(shell.words.git_panel().empty().to_owned())
                     .into_any_element();
             }
@@ -173,20 +183,28 @@ fn file_row(
         .into_any_element()
 }
 
-fn loading(shell: &Shell, tokens: &Tokens) -> AnyElement {
+fn loading(label: Option<&str>, tokens: &Tokens) -> AnyElement {
+    // DiffBodyContent's repository phase includes its label; the subsequent
+    // diff phase has only the same large ActivityIndicator. Neither is an alert.
     div()
+        .size_full()
         .flex()
+        .flex_col()
         .items_center()
-        .gap(px(spacing::S2))
-        .p(px(spacing::S4))
+        .justify_center()
+        .pt(px(spacing::S16))
+        .gap(px(spacing::S4))
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground_muted)
         .child(vessel_app_kit::loading::activity_indicator(
             "git-panel-reading",
-            vessel_app_kit::loading::Size::Small,
+            vessel_app_kit::loading::Size::Large,
             tokens.neutral.foreground_muted,
         ))
-        .child(shell.words.git_panel().checking().to_owned())
+        .children(label.map(|text| div().child(text.to_owned())))
         .into_any_element()
 }
+
 fn failure(
     shell: &Shell,
     why: &vessel_app_view::workspace::git::panel::ReadFailure,

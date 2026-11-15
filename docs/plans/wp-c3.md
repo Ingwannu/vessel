@@ -604,3 +604,13 @@ entries through W12's existing read-only layout_tab_exists query. The original
 key issuer stays above entries, and no cache of tab authority or selected-session
 fallback is introduced. This bounds accumulation across repeated open/close;
 actual retained memory and full body-cache byte budgeting remain unverified.
+
+## Loading and empty body geometry
+
+The C3 body now follows diff-pane.tsx1077–1139 and2053–2086 for loading/empty
+placement: flex center column,64-point top inset,16-point loading gap, neutral
+body text and the shared ActivityIndicator Large36. The repository phase has
+Checking repository; the later diff phase has only its spinner. Empty uses the
+same center/inset with8-point gap. This does not change the old toolbar spinner
+or claim a redraw/capture/whole-screen pass; the provisional header, failure
+surface and final complete body still need their reference/capture pass.
