@@ -430,3 +430,20 @@ answer, so the intended exact-second-question offline result would never occur.
 The test retains the real session boundary instead of bypassing it to manufacture
 an expected error. This correction has source/static evidence only until the
 queued native suite can execute.
+
+
+Producer-consumption notes from the pinned Paseo source: PermissionActionButton
+uses `variant === "primary"` solely for foreground vs muted styling
+(agent-stream/view.tsx:1480-1511,1673). Secondary and danger do not add a red
+button, and visual primary must not choose CLI grant/denial policy. The existing
+CardLook::{Primary,Muted} therefore covers these provider variants without a
+second renderer or a new shared kit option. Icon/response direction follows
+explicit action behavior; identity remains the offered option id.
+
+Question previews are visible for every option before selection, wrap as prose,
+and are nonselectable (question-form-card.tsx:163-180). They must not be implemented
+as selected-only output or reuse the current horizontally scrolling output box,
+whose copy region, horizontal layout and fixed line virtualization have different
+semantics. Consume the existing wrapped-text engine through the kit when the
+reviewed ChoiceOption.preview producer becomes available; description selection
+continues to claim its pointer event independently of the option label.
