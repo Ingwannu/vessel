@@ -99,8 +99,11 @@ shared-file size ceilings. No kit renderer or dependency was added.
 
 Fast checks: native size, boundaries and token ratchets pass. The first local
 view test could not compile because the new Fluent keys lacked per-key
-translator context comments; comments were added. New view tests and app
-clippy are pending. No successful compile is claimed yet.
+translator context comments; comments were added. Remote narrow view test run on `befc083a` passed 10 tests, 0 failed
+(run `wp-labels-narrow-20261115T062329Z-befc083a`). The manager surface is
+not yet compile-verified; local app clippy is still building dependencies.
+The follow-up preserves behavior while typing private catalog identities
+and splitting list drawing out of the manager phase renderer.
 
 Next: obtain narrow compile/test results, then consume the announced app base
 and reviewed registry/session-label contracts. ADR 0086 owns the node catalog

@@ -2,11 +2,12 @@
 
 use std::collections::BTreeMap;
 
+use super::values::Key;
 use super::{Failure, HostKey, Label, Name};
 
 /// Cached authoritative definitions for one host, indexed by normalized name.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Catalog(BTreeMap<String, Label>);
+pub struct Catalog(BTreeMap<Key, Label>);
 
 impl Catalog {
     /// A complete snapshot replaces removed definitions as well as new ones.

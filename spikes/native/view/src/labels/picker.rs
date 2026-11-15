@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use super::values::Key;
 use super::{Assignment, Catalog, Failure, HostState, Label, Name, Ticket};
 
 /// One host catalog row joined with this workspace's assigned names.
@@ -18,7 +19,7 @@ pub struct PickerRow {
 /// Pending names are independent: one double tap cannot send opposite writes.
 #[derive(Debug, Default)]
 pub struct Picker {
-    pending: BTreeMap<String, Ticket>,
+    pending: BTreeMap<Key, Ticket>,
     error: Option<Failure>,
 }
 

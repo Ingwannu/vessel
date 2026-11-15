@@ -39,8 +39,18 @@ impl Name {
         self.key() == other.key()
     }
 
-    pub(super) fn key(&self) -> String {
-        self.0.to_lowercase()
+    pub(super) fn key(&self) -> Key {
+        Key(self.0.to_lowercase())
+    }
+}
+
+/// Folded identity stays typed even between private feature modules.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct Key(String);
+
+impl Key {
+    pub(super) fn contains(&self, query: &str) -> bool {
+        self.0.contains(query)
     }
 }
 

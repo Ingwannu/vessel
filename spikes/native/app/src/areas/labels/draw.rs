@@ -57,43 +57,7 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         body = body.child(notice(failure_text(failure, shell), tokens));
     }
     match state.manager.state() {
-        ManagerState::Listing => {
-            body = body.child(state.search.element(tokens, false, cx));
-            let query = state.manager.query().trim().to_lowercase();
-            let labels: Vec<_> = host
-                .catalog
-                .labels()
-                .filter(|label| label.name.as_str().to_lowercase().contains(&query))
-                .collect();
-            if labels.is_empty() && host.state == HostState::Online {
-                body = body.child(if query.is_empty() {
-                    words.empty()
-                } else {
-                    words.no_matches()
-                });
-            }
-            for label in labels {
-                let label = label.clone();
-                body = body.child(
-                    button_with_kind(
-                        label.name.as_str().to_owned(),
-                        label.name.as_str().to_owned(),
-                        ButtonKind::Ghost,
-                        ButtonState::Enabled,
-                        tokens,
-                    )
-                    .on_click(cx.listener(move |shell, _, window, cx| {
-                        let state = &mut shell.areas.labels;
-                        match state.manager.edit(label.clone()) {
-                            Ok(()) => state.name.set_text(label.name.as_str(), window, cx),
-                            Err(failure) => state.error = Some(failure),
-                        }
-                        cx.notify();
-                    })),
-                );
-            }
-            body
-        }
+        ManagerState::Listing => body.child(list(shell, host, tokens, cx)),
         ManagerState::Editing(_) => body
             .child(state.name.element(tokens, false, cx))
             .child(button_with_kind(
@@ -116,6 +80,55 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
             .child(words.confirm())
             .child(div().child(words.affected()).child(count.0.to_string())),
     }
+}
+
+fn list(
+    shell: &Shell,
+    host: &vessel_app_view::labels::Host,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let state = &shell.areas.labels;
+    let words = shell.words.labels();
+    let mut body = div()
+        .flex()
+        .flex_col()
+        .gap(px(S3))
+        .child(state.search.element(tokens, false, cx));
+    let query = state.manager.query().trim().to_lowercase();
+    let labels: Vec<_> = host
+        .catalog
+        .labels()
+        .filter(|label| label.name.as_str().to_lowercase().contains(&query))
+        .collect();
+    if labels.is_empty() && host.state == HostState::Online {
+        body = body.child(if query.is_empty() {
+            words.empty()
+        } else {
+            words.no_matches()
+        });
+    }
+    for label in labels {
+        let label = label.clone();
+        body = body.child(
+            button_with_kind(
+                label.name.as_str().to_owned(),
+                label.name.as_str().to_owned(),
+                ButtonKind::Ghost,
+                ButtonState::Enabled,
+                tokens,
+            )
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                let state = &mut shell.areas.labels;
+                match state.manager.edit(label.clone()) {
+                    Ok(()) => state.name.set_text(label.name.as_str(), window, cx),
+                    Err(failure) => state.error = Some(failure),
+                }
+                cx.notify();
+            })),
+        );
+    }
+    body
 }
 
 use vessel_app_kit::ui::InteractiveElement as _;
