@@ -2,7 +2,7 @@
 //! path too, and a place resolved into its folder), send, kill, read the
 //! log, subscribe. Routing only, as the rest of the service.
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{

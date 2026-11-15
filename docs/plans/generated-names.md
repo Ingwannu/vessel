@@ -794,3 +794,12 @@ unassigned, so this build cannot send a metadata patch or automatically spend.
 Runtime/file/protocol tests are authored; narrow compile and execution are
 pending. Generated TypeScript freshness and the final package gate are owed.
 No real provider or credential has been used.
+
+
+Wiring compile checkpoint: the first immutable narrow run reached the new
+product and test modules, then stopped at a missing Arc import in creation
+routing and a similar test variable name. Both are corrected. Validation
+now returns an opaque typed wrapper around private preparation causes;
+request exchange is separated from routing/style preparation to keep each
+function focused. Already-cancelled node tasks return before observing input.
+The first run remains recorded; runtime tests and TS regeneration are next.

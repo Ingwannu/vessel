@@ -18,6 +18,9 @@ pub(super) struct Task {
 }
 impl Task {
     pub(super) async fn run(&self, client: &Client) {
+        if self.stop.is_cancelled() {
+            return;
+        }
         tokio::select! {
             () = self.stop.cancelled() => {},
             () = self.work(client) => {},

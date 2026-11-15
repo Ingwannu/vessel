@@ -13,7 +13,7 @@ use super::{
 };
 use std::path::PathBuf;
 use vessel_llm::client::{Endpoint, Redactor};
-use vessel_proto::settings::MetadataSettings;
+use vessel_proto::{GeneratedTitle, settings::MetadataSettings};
 use vessel_session::{SessionHandle, TitleUpdate};
 use vessel_workspace::{Git, project_file::metadata::ProjectStyles};
 
@@ -70,12 +70,30 @@ pub(super) async fn generate(
         base_url: provider.base_url.clone(),
         key: models.key(provider).await?,
     };
-    let redactor = Redactor::new(endpoint.key.as_ref());
     if !handle.accepts_generated_title(&seed.expected) {
         return Ok(Outcome::Kept);
     }
-    let attempt = Attempt::new(handle, &selected);
-    let answer = match client.complete(&endpoint, request).await {
+    let Some(title) = exchange(handle, client, &selected, request, &endpoint).await? else {
+        return Ok(Outcome::Blank);
+    };
+    Ok(
+        match handle.apply_generated_title(seed.expected, title).await? {
+            TitleUpdate::Applied => Outcome::Applied,
+            TitleUpdate::Kept => Outcome::Kept,
+        },
+    )
+}
+
+async fn exchange(
+    handle: &SessionHandle,
+    client: &Client,
+    selected: &metadata::Selection<'_>,
+    request: prepare::Prepared,
+    endpoint: &Endpoint,
+) -> Result<Option<GeneratedTitle>, GenerateError> {
+    let redactor = Redactor::new(endpoint.key.as_ref());
+    let attempt = Attempt::new(handle, selected);
+    let answer = match client.complete(endpoint, request).await {
         Ok(answer) => answer,
         Err(error) => {
             attempt.failed(&error);
@@ -94,15 +112,7 @@ pub(super) async fn generate(
             .err()
             .map(|_unusable| attempt::unusable()),
     );
-    let Some(title) = candidate?.into_title() else {
-        return Ok(Outcome::Blank);
-    };
-    Ok(
-        match handle.apply_generated_title(seed.expected, title).await? {
-            TitleUpdate::Applied => Outcome::Applied,
-            TitleUpdate::Kept => Outcome::Kept,
-        },
-    )
+    Ok(candidate?.into_title())
 }
 
 async fn styles(cwd: PathBuf, git: Option<Git>) -> ProjectStyles {

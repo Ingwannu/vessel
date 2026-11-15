@@ -10,7 +10,6 @@ mod task;
 mod text;
 
 use super::Models;
-pub(crate) use prepare::PrepareError;
 use std::{path::PathBuf, sync::Arc};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::{SessionMode, settings::MetadataSettings};
@@ -24,6 +23,11 @@ enum InitError {
     #[error("metadata HTTP policy was refused")]
     Policy(#[from] client::ClientError),
 }
+
+/// Keep preparation causes typed without exposing private routing internals to settings.
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub(crate) struct ValidationError(#[source] prepare::PrepareError);
 
 /// One pool per `Models` owner, reusing its already initialized TLS trust.
 #[derive(Debug)]
@@ -48,8 +52,8 @@ impl Models {
     pub(crate) fn validate_metadata(
         &self,
         settings: &MetadataSettings,
-    ) -> Result<(), PrepareError> {
-        prepare::validate(&self.snapshot(), settings)
+    ) -> Result<(), ValidationError> {
+        prepare::validate(&self.snapshot(), settings).map_err(ValidationError)
     }
 
     /// Arming never waits for input or a provider, and is disabled until protocol assignment.

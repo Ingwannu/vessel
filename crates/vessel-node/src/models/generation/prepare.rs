@@ -44,7 +44,7 @@ impl fmt::Debug for Prepared {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum PrepareError {
+pub(super) enum PrepareError {
     #[error("{0}")]
     Candidate(#[from] SelectError),
     #[error("{0}")]

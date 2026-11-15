@@ -82,9 +82,9 @@ async fn cached_first_input_runs_one_bounded_call_and_records_the_applied_title(
         .unwrap();
         assert_eq!(result, driver::Outcome::Applied);
         assert_eq!(handle.info().title_origin, TitleOrigin::Generated);
-        let seen = fixture.upstream.seen();
-        assert_eq!(seen.len(), 1);
-        let body: serde_json::Value = serde_json::from_slice(&seen[0].body).unwrap();
+        let requests = fixture.upstream.seen();
+        assert_eq!(requests.len(), 1);
+        let body: serde_json::Value = serde_json::from_slice(&requests[0].body).unwrap();
         assert_eq!(body["stream"], false);
         assert_eq!(body["max_tokens"], prepare::TITLE_OUTPUT_TOKENS);
         recorded(&handle).await;
