@@ -79,3 +79,10 @@ No notice source/destination crosses this host boundary. Dispatcher/reexport and
 factory storage are product callers; only set_factory remains cfg(test) until
 E3 installs its startup factory. W7 receiving-union checks remain independent of
 the producer's V1 row273 selected1490/0/2 evidence.
+
+
+The first W7 receiving strict run36d5caa4 reached all four native crates but
+stopped on the factory setter's unused product import of init. The setter stays
+cfg(test); its call now uses super::init instead of importing that name for the
+whole dispatcher. This is an import-scope correction with no routing or factory
+behavior change. The failed strict record remains red; current strict is owed.

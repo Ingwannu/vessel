@@ -1,6 +1,6 @@
 //! Host UI routing uses the same registry and rechecks the original root at use.
 
-use super::{Registry, Shell, WindowRecord, init};
+use super::{Registry, Shell, WindowRecord};
 use gpui::{App, Context, Window};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,7 +16,7 @@ pub(super) type Factory = fn(&mut App) -> Delivery;
 /// never recursively calls this module's `open_additional` entry.
 #[cfg(test)]
 pub(crate) fn set_factory(factory: Factory, cx: &mut App) {
-    init(cx);
+    super::init(cx);
     cx.global_mut::<Registry>().factory = Some(factory);
 }
 
