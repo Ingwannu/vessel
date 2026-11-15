@@ -74,6 +74,10 @@ impl<E> Clone for Stop<E> {
         }
     }
 }
+struct Response<E: std::error::Error + Send + Sync + 'static> {
+    answer: oneshot::Sender<Result<(), InputError<E>>>,
+    consumed: oneshot::Receiver<()>,
+}
 struct Shared<D: Driver> {
     driver: D,
     capacity: Arc<Semaphore>,
@@ -133,6 +137,11 @@ impl<D: Driver> InputLane<D> {
             .try_acquire_owned()
             .map_err(|_full| InputError::Busy)?;
         let (answer, result) = oneshot::channel();
+        let (consumed, receipt) = oneshot::channel();
+        let response = Response {
+            answer,
+            consumed: receipt,
+        };
         let delivered = Arc::new(Attempt::new());
         let caller = Caller::new(Arc::clone(&delivered));
         {
@@ -146,10 +155,10 @@ impl<D: Driver> InputLane<D> {
             let sent = Arc::clone(&delivered);
             let _task = self.0.tasks.spawn(async move {
                 let _permit = permit;
-                worker(shared, target, command, answer, sent).await;
+                worker(shared, target, command, response, sent).await;
             });
         }
-        tokio::time::timeout(budget, result)
+        let outcome = tokio::time::timeout(budget, result)
             .await
             .map_err(|cause| InputError::TimedOut {
                 effect: caller.cancel(),
@@ -157,7 +166,13 @@ impl<D: Driver> InputLane<D> {
             })?
             .map_err(|_gone| InputError::Disconnected {
                 effect: caller.cancel(),
-            })?
+            })?;
+        if outcome.is_ok() {
+            // Sending into a oneshot is not proof that its receiver consumed it.
+            // Retain the worker/serial slot until this caller accepts the result.
+            let _worker_gone = consumed.send(());
+        }
+        outcome
     }
     /// Caller cancellation drops only this waiter. Real stop work is separately
     /// registered and keeps its driver/resources until completion or quarantine.
@@ -203,9 +218,13 @@ async fn worker<D: Driver>(
     shared: Arc<Shared<D>>,
     target: D::Target,
     command: D::Command,
-    mut answer: oneshot::Sender<Result<(), InputError<D::Error>>>,
+    response: Response<D::Error>,
     delivered: Arc<Attempt>,
 ) {
+    let Response {
+        mut answer,
+        consumed,
+    } = response;
     // The Tokio guard covers activation and the whole input transaction: a
     // different target must not become active between a key down and key up.
     let _serial = tokio::select! {
@@ -230,7 +249,14 @@ async fn worker<D: Driver>(
     match result {
         Some(Ok(())) => {
             if answer.send(Ok(())).is_ok() {
-                return;
+                let received = tokio::select! {
+                    biased;
+                    ()=shared.closing.cancelled()=>false,
+                    receipt=consumed=>receipt.is_ok(),
+                };
+                if received {
+                    return;
+                }
             }
             schedule_stop(&shared);
             let _retained_stop = stopped(&shared).await;

@@ -256,3 +256,44 @@ async fn cancelled_shutdown_waiter_cannot_cancel_or_repeat_actual_stop() {
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn completed_backend_without_caller_receipt_still_holds_slot_and_stops_on_abandonment() {
+    tokio::time::timeout(FIXTURE_DEADLINE, async {
+        let mut f = fixture(1);
+        let (answer, result) = oneshot::channel();
+        let (consume, consumed) = oneshot::channel();
+        let permit = Arc::clone(&f.lane.0.capacity).try_acquire_owned().unwrap();
+        let shared = Arc::clone(&f.lane.0);
+        let _worker = f.lane.0.tasks.spawn(async move {
+            let _permit = permit;
+            worker(
+                shared,
+                Target::A,
+                Command::Apply,
+                Response { answer, consumed },
+                Arc::new(Attempt::new()),
+            )
+            .await;
+        });
+        assert_eq!(f.events.recv().await, Some(Event::Activated(Target::A)));
+        f.apply.add_permits(1);
+        assert_eq!(f.events.recv().await, Some(Event::Applied(Target::A)));
+        result.await.unwrap().unwrap();
+        // The real backend completed, but the caller's handoff is deliberately held.
+        assert_eq!(f.lane.0.capacity.available_permits(), 0);
+        assert!(matches!(
+            f.lane.run(Target::B, Command::Apply).await,
+            Err(InputError::Busy)
+        ));
+        drop(consume);
+        assert_eq!(f.events.recv().await, Some(Event::StopStarted));
+        assert_eq!(f.lane.0.capacity.available_permits(), 0);
+        f.stop.add_permits(1);
+        f.lane.shutdown().await.unwrap();
+        assert_eq!(f.events.recv().await, Some(Event::Stopped));
+        assert_eq!(f.lane.0.capacity.available_permits(), 1);
+    })
+    .await
+    .unwrap();
+}

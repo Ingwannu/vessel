@@ -996,3 +996,13 @@ ownership instead of the withdrawn duplicate W18 assignment. They remain
 skeleton, with the unimplemented annotation/attachment row marked missing.
 Each row names the actual NoEngine/dependency boundary; no row is built/passed
 from source review, a bounded component test or another package's gate.
+
+
+Input result handoff also has an explicit bounded receipt. An answer successfully
+sent into a oneshot does not prove the caller consumed it: it may time out/drop
+immediately afterwards. The worker retains its serial slot/permit through that
+handoff. Only the run caller's consumed-result receipt completes it; abandonment
+or profile close triggers the same retained stop/drain. One controlled fixture
+holds that exact receipt after backend success, confirms Busy/capacity retention,
+then abandons it and confirms cleanup before capacity returns. This source is
+unexecuted until the required announced-head union permits changed-source tests.
