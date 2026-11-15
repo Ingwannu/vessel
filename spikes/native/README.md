@@ -1369,3 +1369,12 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+The shared menu trigger also has ProviderRow presentation: existing horizontal
+More14, visual32/r8/hit48 in both layouts, hover/open surface2+foreground,
+pressed surface3 background only. trigger_presented takes typed Closed/Open
+with ButtonState; existing entries keep Closed Schedule/Git defaults. All
+profiles use one visual/hit/anchor frame. trigger_visual_size and trigger_space
+reserve only the visual footprint (Git26/32), never an invisible active trigger.
+The passive Div has no id/anchor/event/opacity. Exact first-use evidence and
+consumer integration remain their final package responsibility.

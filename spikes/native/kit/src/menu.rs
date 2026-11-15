@@ -41,7 +41,10 @@ mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
 pub use draw::{Content, Width, menu, menu_right, menu_with};
 pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
-pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
+pub use trigger::{
+    TriggerPresentation, TriggerProfile, TriggerSizing, trigger, trigger_presented, trigger_space,
+    trigger_visual_size, trigger_with,
+};
 
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
 use std::rc::Rc;
