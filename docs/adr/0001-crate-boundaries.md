@@ -366,3 +366,11 @@ cleanup request, not observed death of every descendant or account process.
 ProcessLifetime revocation and durable PID identity do not mint it. No crate
 edge, dependency, wire field or management caller is added by this mechanism.
 The source/validation record is docs/plans/checked-process-cleanup.md.
+
+
+The pure plugin resource LocaleTag decoder reuses unic-langid0.9.6 in proto,
+hoisted from the existing native decoder (ADR0079 locale contract). Its exact
+native pin, empty/default-off features and MIT OR Apache-2.0 licence are retained.
+There is no new internal crate edge, runtime, locale selection, key loader or
+translation engine in proto. Native view delegates to this one decoder; core's
+embedded Locale and Translator remain their existing owner's policy.

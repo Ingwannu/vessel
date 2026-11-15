@@ -247,6 +247,9 @@ ts-rs = { version = "12", default-features = false, features = ["serde-compat", 
 # (vessel-fleet): names differing only in case or Unicode normalisation are
 # one file there. The unicode-rs crate (`idna` used it for years); its
 # tables and `tinyvec` are all it brings.
+# Canonical plugin resource-language tags, hoisted from native's existing
+# decoder (ADR 0079). Exact native pin/features; pure values, no core locale IO.
+unic-langid = { version = "=0.9.6", default-features = false }
 unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 # LSP file URIs, including platform drive letters and percent encoding (ADR 0016).

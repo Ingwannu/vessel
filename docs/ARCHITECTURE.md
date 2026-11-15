@@ -97,6 +97,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | `clap` | only `vessel-cli`, `vessel-node` | Arguments are parsed by the binaries (`vessel`, `vesseld`); libraries take typed configuration. |
 | `tracing-subscriber` | only `vessel-cli`, `vessel-node` | A library emits events; a binary decides where they go. |
 | `ts-rs` | only `vessel-proto`, `vessel-web` | The page's TypeScript is generated from the wire and the bridge's frames. |
+| `unic-langid` | only `vessel-proto` | Root workspace: one bounded plugin resource-language decoder; embedded core locales and native Fluent formatting remain separate. |
 | `tokio` | never `vessel-proto` | The wire contract has no runtime: the native app's `view` uses it and compiles to WebAssembly. |
 
 ### Names only some files may use

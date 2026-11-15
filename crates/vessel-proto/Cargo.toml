@@ -25,6 +25,9 @@ ts-rs = { workspace = true, optional = true }
 # before settings or provider work (ADR 0067), and push service endpoints
 # (ADR 0041).
 url.workspace = true
+# One bounded resource-language decoder shared with native view (ADR 0079).
+# MIT OR Apache-2.0, existing native pin/features, offline cache verified.
+unic-langid.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]

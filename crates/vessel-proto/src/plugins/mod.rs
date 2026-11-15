@@ -6,6 +6,7 @@
 mod address;
 mod attachment;
 mod identity;
+mod locale;
 mod theme;
 
 pub use address::{
@@ -20,6 +21,7 @@ pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, InvalidPluginValue, PluginId, RpcName,
     ThemeName,
 };
+pub use locale::{InvalidLocaleTag, LocaleTag, MAX_LOCALE_TAG_BYTES};
 pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 
 /// The integrator assigns this only after management, lifecycle and native
