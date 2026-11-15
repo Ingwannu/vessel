@@ -1634,3 +1634,25 @@ or worker. The real connection setup will own one instance and acting-as context
 will clone it; resources retain only its identity/close observer and observe
 transport closure as well. Dictation, spoken conversation and later resources
 consume that connection accessor rather than creating another ownership key.
+
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This carrier introduces no dependency
+edge or wire type.
+
+## Transient system-context launch boundary
+
+`vessel-agent::setup` owns AgentSetup separately from the ACP handshake state
+machine and re-exports preserve the existing public path. Its optional
+SystemPromptOverride is a bounded non-serializable instruction value.
+`vessel-harness::system_prompt` owns the transport capability beside launch
+policy; no transport currently advertises support. AgentProcess refuses an
+unsupported override before process spawn, with a typed Unsupported mapping.
+The field does not enter SessionSpec, user messages, argv or environment.
+Reload orchestration and actual native override/restore transports are separate
+work; see docs/plans/provider-transient-context.md. No dependency edge changes.
