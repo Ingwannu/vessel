@@ -27,8 +27,8 @@ Status: skeleton in progress. Source specification: Paseo 0.15.4,
 
 - `git/working-diff-comparison/state.ts`: default All, workspace identity key,
   non-persisted override. Uncommitted = HEAD vs worktree; Committed = merge-base
-  vs HEAD; All = merge-base vs worktree. Legacy Vessel Base is All, never
-  silently substituted for Committed.
+  vs HEAD; All = merge-base vs worktree. Legacy Vessel Base includes working changes but misses the restored-untracked
+  All edge; it is substituted for neither All nor Committed.
 - `panels/changes/state.ts`, `hooks/use-changes-preferences/storage.ts`:
   unified, no wrap, show whitespace, tree hidden, separate diff, commits closed.
   Presentation uses desktop capabilities for GPUI desktop, rather than Paseo's
