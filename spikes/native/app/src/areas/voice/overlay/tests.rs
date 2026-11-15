@@ -108,7 +108,7 @@ fn actual_overlay_keeps_footer_touch_targets_and_meter_space_at_phone_and_deskto
                     assert_eq!(mute.center().y, stop.center().y);
                     // Finite fixture extents are at most1280px; this affine
                     // offset stays finite without unchecked Pixels arithmetic.
-                    let expected_left = px(mute.right().0.mul_add(1.0, 8.0));
+                    let expected_left = px(f32::from(mute.right()).mul_add(1.0, 8.0));
                     assert_eq!(stop.left(), expected_left);
                     assert!(frame.contains(&mute.origin) && frame.contains(&stop.bottom_right()));
                     assert!(meter.right() <= mute.left());
