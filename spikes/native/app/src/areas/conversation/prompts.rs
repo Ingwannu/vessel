@@ -123,8 +123,7 @@ impl Shell {
             .find(|machine| machine.name == shown.machine);
         let target = IndexTarget {
             machine: MachineKey::from_book(&shown.machine),
-            node: machine.and_then(|machine| machine.node),
-            protocol: machine.and_then(|machine| machine.protocol),
+            connection: machine.and_then(vessel_app_view::Machine::connection_context),
             session: shown.session,
         };
         let latest = area.prompts.last_edit;
@@ -202,7 +201,7 @@ impl Shell {
         self.prompt_index_refresh();
     }
 
-    /// A replaced welcome id invalidates pages even if book name/session UUID match.
+    /// Readmission invalidates pages even if the book name/session UUID match.
     pub(crate) fn prompt_index_fleet_changed(&mut self) {
         if self.route == crate::routes::Route::Session
             && self

@@ -1,12 +1,12 @@
 //! Metadata navigation owns paging and correlation, never transcript bodies or I/O.
 //! A full Follow remains the compatibility fallback for peers without this call.
 
-use crate::devices::MachineKey;
+use crate::connection::{ConnectionContext, MachineKey};
 use vessel_proto::prompt_index::{
     INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexLimit, PromptIndexPage,
     PromptLocation,
 };
-use vessel_proto::{ErrorCode, EventSeq, NodeId, ProtocolVersion, SessionId};
+use vessel_proto::{ErrorCode, EventSeq, SessionId};
 
 mod rows;
 pub use rows::{PromptRow, PromptRows};
@@ -16,10 +16,8 @@ pub use rows::{PromptRow, PromptRows};
 pub struct IndexTarget {
     /// Already admitted node-book key.
     pub machine: MachineKey,
-    /// Welcome identity from the shared fleet projection, when connected.
-    pub node: Option<NodeId>,
-    /// Negotiated capabilities can change while the durable node id stays the same.
-    pub protocol: Option<ProtocolVersion>,
+    /// The shared immutable admission captured from the machine snapshot.
+    pub connection: Option<ConnectionContext>,
     /// The retained log to navigate.
     pub session: SessionId,
 }
@@ -126,11 +124,16 @@ impl PromptIndex {
             .is_some_and(|old| old.target == source.target);
         let same_history = self.source.as_ref().is_some_and(|old| {
             old.target.machine == source.target.machine
-                && old.target.node == source.target.node
+                && old.target.connection.as_ref().map(ConnectionContext::node)
+                    == source
+                        .target
+                        .connection
+                        .as_ref()
+                        .map(ConnectionContext::node)
                 && old.target.session == source.target.session
         });
         self.source = Some(source);
-        // Negotiated capabilities change requests, never the known history floor.
+        // A fresh shared admission changes requests, never the known history floor.
         if !same_history {
             self.rewound = None;
         }

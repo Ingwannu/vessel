@@ -113,7 +113,11 @@ fn prompt_navigation_rejects_stale_painted_identity_and_bounds_an_unloaded_jump(
     update(&probe, cx, |shell, _, cx| {
         let (target, epoch) = seed(shell, cx);
         let mut replaced = target.clone();
-        replaced.node = Some(vessel_proto::NodeId::random());
+        replaced.connection = Some(
+            vessel_app_view::connection::ConnectionEpochs::default()
+                .admit(target.machine.clone(), vessel_proto::NodeId::random())
+                .unwrap(),
+        );
         shell.prompt_selected(&replaced, EventSeq::new(10), Some(epoch), cx);
         assert_eq!(shell.areas.conversation.reveal, None);
         let old_epoch = PromptIndexEpoch::new(EventSeq::new(1), None).unwrap();
@@ -223,26 +227,28 @@ fn prompt_navigation_refreshes_metadata_when_another_chunk_extends_the_same_prom
 }
 
 #[gpui::test]
-fn prompt_navigation_retries_after_the_same_node_negotiates_new_capabilities(
-    cx: &mut TestAppContext,
-) {
+fn prompt_navigation_retries_after_the_same_node_is_readmitted(cx: &mut TestAppContext) {
+    use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
     use vessel_app_view::prompt_index::{IndexPhase, IndexProblem};
     use vessel_app_view::{Machine, Reach};
-    use vessel_proto::{NodeId, PROTOCOL_VERSION, ProtocolVersion};
+    use vessel_proto::{NodeId, PROTOCOL_VERSION};
 
     let (probe, cx) = harness(cx);
     update(&probe, cx, |shell, _, cx| {
         shell.route = crate::routes::Route::Session;
+        let node = NodeId::random();
+        let mut admissions = ConnectionEpochs::default();
+        let original = admissions
+            .admit(MachineKey::from_book("machine"), node)
+            .unwrap();
         shell.fleet.machines = vec![Machine {
             name: "machine".to_owned(),
             reach: Reach::Online,
             sessions: Vec::new(),
             agents: Vec::new(),
-            node: Some(NodeId::random()),
-            connection_epoch: None,
-            protocol: Some(ProtocolVersion::new(
-                PROTOCOL_VERSION.get().checked_sub(1).unwrap(),
-            )),
+            node: Some(node),
+            connection_epoch: Some(original.epoch()),
+            protocol: Some(PROTOCOL_VERSION),
             version: None,
         }];
         shell.prompt_index_refresh();
@@ -258,7 +264,10 @@ fn prompt_navigation_retries_after_the_same_node_negotiates_new_capabilities(
             shell.areas.conversation.prompts.index.phase(),
             IndexPhase::Failed(IndexProblem::Unsupported)
         );
-        shell.fleet.machines[0].protocol = Some(PROTOCOL_VERSION);
+        let reconnected = admissions
+            .admit(MachineKey::from_book("machine"), node)
+            .unwrap();
+        shell.fleet.machines[0].connection_epoch = Some(reconnected.epoch());
         shell.prompt_index_fleet_changed();
         assert!(matches!(
             shell.areas.conversation.prompts.index.phase(),

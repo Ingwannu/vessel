@@ -233,11 +233,15 @@ The authoritative metadata index coalesces such internal records. A7 owns the
 canonical timeline projection and has been given the exact fold/log boundary;
 A3 does not duplicate or change that renderer's folding rules.
 
-Prompt targets also carry the shared negotiated protocol. A node upgrade keeps
-its durable NodeId, so identity alone could leave an Unsupported set cached after
-the peer gained the call. A protocol change now starts a new request identity;
-the link rejects a stale/unknown negotiated snapshot before sending. A real-shell
-regression upgrades the same node and requires a fresh metadata read.
+Prompt targets carry the existing shared `ConnectionContext`, captured from the
+fleet snapshot, rather than issuing another per-area epoch or resolving by alias
+alone. A readmission of the same durable NodeId starts a new request identity,
+so an Unsupported set can recover after an upgrade. The actor selects that exact
+immutable admitted connection once; its common `SelectedConnection` guard fences
+retirement before first poll and after the reply. Unknown or stale admissions and
+a machine/context mismatch send no frame. The real-shell regression readmits the
+same node and requires a fresh read. This preserves the known rewind floor across
+readmission; an old admission cannot publish an obsolete metadata page.
 
 Pane selection calls `Shell::conversation_deactivated(window,cx)` against the old
 resident before swapping active resource getters, even when both routes are

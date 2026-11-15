@@ -25,9 +25,11 @@ pub const fn rejected(why: crate::Rejected) -> IndexProblem {
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
     use super::{IndexAnswer, IndexAsk, IndexProblem};
+    use crate::connections::{RequestFailure, SelectedConnection};
     use std::{sync::Arc, time::Duration};
     use tokio::sync::{Semaphore, mpsc};
-    use vessel_client::{CallError, NodeClient};
+    use vessel_app_view::connection::Refusal;
+    use vessel_client::CallError;
     use vessel_proto::ErrorCode;
 
     /// Covers the store's two admitted scans and the blocked event send too.
@@ -47,11 +49,11 @@ mod native {
     impl Hub {
         pub(crate) async fn ask(
             &self,
-            client: Option<NodeClient>,
+            client: Result<SelectedConnection, Refusal>,
             ask: IndexAsk,
             events: mpsc::Sender<crate::Event>,
         ) {
-            let Some(client) = client else {
+            let Ok(client) = client else {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
                         ask,
@@ -60,17 +62,6 @@ mod native {
                     .await;
                 return;
             };
-            if ask.target.node != Some(client.node().id)
-                || ask.target.protocol != Some(client.protocol())
-            {
-                let _closed = events
-                    .send(crate::Event::PromptIndex(IndexAnswer {
-                        ask,
-                        result: Err(IndexProblem::Connection),
-                    }))
-                    .await;
-                return;
-            }
             let Ok(permit) = Arc::clone(&self.0).try_acquire_owned() else {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
@@ -96,17 +87,27 @@ mod native {
 
     impl crate::State {
         pub(crate) async fn prompt_index(&self, ask: IndexAsk) {
-            let client = self
-                .clients
-                .get(ask.target.machine.as_str())
-                .map(|connected| connected.client.clone());
+            let client = ask
+                .target
+                .connection
+                .as_ref()
+                .filter(|context| context.machine() == &ask.target.machine)
+                .ok_or(Refusal::Changed)
+                .and_then(|context| self.selected_connection(context));
             self.prompt_calls
                 .ask(client, ask, self.events.clone())
                 .await;
         }
     }
 
-    fn problem(error: &CallError) -> IndexProblem {
+    fn problem(error: &RequestFailure) -> IndexProblem {
+        match error {
+            RequestFailure::Refused(Refusal::Changed | Refusal::Closed) => IndexProblem::Connection,
+            RequestFailure::Call(error) => call_problem(error),
+        }
+    }
+
+    fn call_problem(error: &CallError) -> IndexProblem {
         if matches!(
             error,
             CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. }

@@ -17,8 +17,7 @@ fn ask() -> IndexAsk {
         .refresh(
             IndexTarget {
                 machine: MachineKey::from_book("fixture"),
-                node: None,
-                protocol: None,
+                connection: None,
                 session: SessionId::random(),
             },
             None,
@@ -30,7 +29,12 @@ fn ask() -> IndexAsk {
 async fn disconnected_and_full_queues_settle_through_the_typed_failure_boundary() {
     let hub = Hub::default();
     let (events, mut answers) = mpsc::channel(1);
-    hub.ask(None, ask(), events).await;
+    hub.ask(
+        Err(vessel_app_view::connection::Refusal::Changed),
+        ask(),
+        events,
+    )
+    .await;
     let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
         panic!("wrong reply");
     };
@@ -90,41 +94,62 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
     )
     .await
     .unwrap();
+    let home = crate::testing::Home::new();
+    std::fs::write(
+        home.book(),
+        "[nodes.fixture]\nurl = \"ws://127.0.0.1:0/rpc\"\n",
+    )
+    .unwrap();
+    let (mut state, mut answers) = crate::testing::state(&home);
+    let key = MachineKey::from_book("fixture");
+    let node = client.node().id;
+    let context = state.admissions.admit(key.clone(), node).unwrap();
+    let binding = crate::machines::edits::entries(&home.book())
+        .unwrap()
+        .into_iter()
+        .find(|(name, _)| name.as_str() == "fixture")
+        .unwrap()
+        .1;
+    assert!(
+        state
+            .clients
+            .insert(
+                "fixture".to_owned(),
+                crate::Connected::new(client, Vec::new(), binding, context.clone())
+            )
+            .is_none()
+    );
     let mut request = ask();
-    request.target.node = Some(client.node().id);
-    request.target.protocol = Some(client.protocol());
-    let (events, mut answers) = mpsc::channel(1);
-    let hub = Hub::default();
-    for node in [None, Some(NodeId::random())] {
+    request.target.connection = Some(context.clone());
+    let other_node = state
+        .admissions
+        .admit(key.clone(), NodeId::random())
+        .unwrap();
+    let stale_epoch = state.admissions.admit(key, node).unwrap();
+    for connection in [None, Some(other_node), Some(stale_epoch)] {
         let mut wrong = request.clone();
-        wrong.target.node = node;
-        hub.ask(Some(client.clone()), wrong, events.clone()).await;
+        wrong.target.connection = connection;
+        state.prompt_index(wrong).await;
         let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
             panic!("wrong reply");
         };
         assert_eq!(answer.result, Err(IndexProblem::Connection));
     }
-    for protocol in [
-        None,
-        Some(ProtocolVersion::new(
-            negotiated.get().checked_sub(1).unwrap(),
-        )),
-    ] {
-        let mut stale = request.clone();
-        stale.target.protocol = protocol;
-        hub.ask(Some(client.clone()), stale, events.clone()).await;
-        let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
-            panic!("wrong reply");
-        };
-        assert_eq!(answer.result, Err(IndexProblem::Connection));
-    }
-    hub.ask(Some(client), request.clone(), events).await;
+    let mut wrong_alias = request.clone();
+    wrong_alias.target.machine = MachineKey::from_book("another-alias");
+    state.prompt_index(wrong_alias).await;
+    let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
+        panic!("wrong reply");
+    };
+    assert_eq!(answer.result, Err(IndexProblem::Connection));
+    state.prompt_index(request.clone()).await;
     let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
         panic!("wrong reply");
     };
     assert_eq!(answer.ask.ticket, request.ticket);
     assert_eq!(answer.ask.target, request.target);
     assert_eq!(answer.result, Err(IndexProblem::Unsupported));
+    drop(state);
     assert_eq!(
         peer.await.unwrap().unwrap_err().kind(),
         std::io::ErrorKind::UnexpectedEof

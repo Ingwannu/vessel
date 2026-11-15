@@ -1,12 +1,13 @@
 //! A typed in-memory node supplies pages; no transcript or real agent is needed.
 use super::*;
+use crate::connection::ConnectionEpochs;
+use vessel_proto::NodeId;
 use vessel_proto::prompt_index::PromptPreview;
 
 fn target(name: &str) -> IndexTarget {
     IndexTarget {
         machine: MachineKey::from_book(name),
-        node: None,
-        protocol: None,
+        connection: None,
         session: SessionId::random(),
     }
 }
@@ -216,9 +217,18 @@ fn a_rewind_seen_during_a_read_rejects_the_old_reply_and_old_epoch() {
 fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session() {
     let mut index = PromptIndex::default();
     let mut selected = target("one");
-    selected.node = Some(NodeId::random());
+    let mut admissions = ConnectionEpochs::default();
+    selected.connection = Some(
+        admissions
+            .admit(selected.machine.clone(), NodeId::random())
+            .unwrap(),
+    );
     let first = index.refresh(selected.clone(), None).unwrap();
-    selected.node = Some(NodeId::random());
+    selected.connection = Some(
+        admissions
+            .admit(selected.machine.clone(), NodeId::random())
+            .unwrap(),
+    );
     let second = index.refresh(selected.clone(), None).unwrap();
     assert!(
         index
@@ -236,13 +246,12 @@ fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session(
 }
 
 #[test]
-fn negotiated_capabilities_do_not_forget_a_rewind_already_seen_on_follow() {
+fn readmission_does_not_forget_a_rewind_already_seen_on_follow() {
     let mut index = PromptIndex::default();
     let mut selected = target("one");
-    selected.node = Some(NodeId::random());
-    selected.protocol = Some(ProtocolVersion::new(
-        vessel_proto::PROTOCOL_VERSION.get().checked_sub(1).unwrap(),
-    ));
+    let mut admissions = ConnectionEpochs::default();
+    let node = NodeId::random();
+    selected.connection = Some(admissions.admit(selected.machine.clone(), node).unwrap());
     let _initial = index.refresh(selected.clone(), None).unwrap();
     let after_rewind = index.history_changed(EventSeq::new(5)).unwrap();
     let current_epoch = PromptIndexEpoch::new(EventSeq::ZERO, Some(EventSeq::new(5))).unwrap();
@@ -254,7 +263,7 @@ fn negotiated_capabilities_do_not_forget_a_rewind_already_seen_on_follow() {
             )
             .is_none()
     );
-    selected.protocol = Some(vessel_proto::PROTOCOL_VERSION);
+    selected.connection = Some(admissions.admit(selected.machine.clone(), node).unwrap());
     let upgraded = index.refresh(selected, None).unwrap();
     assert!(
         index
