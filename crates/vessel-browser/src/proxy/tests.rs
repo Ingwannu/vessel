@@ -142,3 +142,12 @@ async fn cancelled_drain_wait_keeps_the_actual_preparation_and_can_resume() {
         replacement.finish().await;
     }).await.unwrap();
 }
+
+#[tokio::test]
+async fn failed_actual_drain_never_becomes_success_on_a_second_wait() {
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let actor = tokio::spawn(async { Err(ProxyError::Unconfirmed) });
+    let mut closing = ClosingProxy::new(Some(actor), cancel);
+    assert!(matches!(closing.wait().await, Err(ProxyError::Unconfirmed)));
+    assert!(matches!(closing.wait().await, Err(ProxyError::Unconfirmed)));
+}

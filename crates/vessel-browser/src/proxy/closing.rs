@@ -41,10 +41,10 @@ impl ClosingProxy {
         let result = match &mut self.state {
             State::Stopped => return Ok(ProxyStopped(())),
             State::Unconfirmed => return Err(ProxyError::Unconfirmed),
-            State::Waiting(actor) => actor
-                .await
-                .map_err(ProxyError::Task)
-                .and_then(|result| result),
+            State::Waiting(actor) => match actor.await {
+                Ok(result) => result,
+                Err(error) => Err(ProxyError::Task(error)),
+            },
         };
         match result {
             Ok(()) => {
