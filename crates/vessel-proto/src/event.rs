@@ -203,7 +203,7 @@ impl SessionEvent {
             Self::Agent { event } => event
                 .for_protocol(protocol)
                 .map(|event| Self::Agent { event }),
-            Self::ProfileChanged { from, to } => log(profile_line(from, to)),
+            Self::ProfileChanged { from, to } => log(profile_line(from.as_ref(), to.as_ref())),
             Self::ModelCall(call) => log(model_line(call)),
             Self::OptionsChanged { options } => log(format!(
                 "vessel: options: {}",
@@ -345,11 +345,9 @@ fn first_line(content: &[ContentBlock]) -> Option<&str> {
     })
 }
 
-fn profile_line(from: &Option<ProfileName>, to: &Option<ProfileName>) -> String {
-    let name = |profile: &Option<ProfileName>| {
-        profile
-            .as_ref()
-            .map_or_else(|| "default".to_owned(), ToString::to_string)
+fn profile_line(from: Option<&ProfileName>, to: Option<&ProfileName>) -> String {
+    let name = |profile: Option<&ProfileName>| {
+        profile.map_or_else(|| "default".to_owned(), ToString::to_string)
     };
     format!(
         "vessel: profile changed from {} to {}",
