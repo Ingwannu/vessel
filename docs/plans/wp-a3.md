@@ -367,3 +367,12 @@ private machine-edit module. The test now uses State::saved_entries, the same
 book-read boundary as tick/retry, without widening module visibility. The type
 spelling fixes do not alter behavior. The original red receipt is retained; a
 changed-source narrow must pass before claiming this wider A3 integration checked.
+
+The second wider strict check (5607ab44d) reached the link test target and found
+an overlong combined handshake/admission fixture and three unwraps in helpers
+whose module used a combined `cfg(all(test, ...))` condition. The handshake now
+has its own fixture function. The search test module uses explicit `cfg(test)`
+and a separate native-target condition, matching the existing prompt-index test
+registration and allowing Clippy to recognize these helpers as test code. No lint
+expectation, production behavior or assertion is weakened. Both red receipts
+remain evidence; the corrected source still requires its changed-source check.

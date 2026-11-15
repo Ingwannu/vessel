@@ -43,8 +43,9 @@ async fn disconnected_and_full_queues_settle_through_the_typed_failure_boundary(
     assert_eq!(rejected(crate::Rejected::Closed), IndexProblem::Connection);
 }
 
-#[tokio::test]
-async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_ticket() {
+// The framing handshake is fixture setup; the test below owns admission and
+// the assertion that no method frame crossed that admitted boundary.
+async fn unadmitted_peer() -> (NodeClient, tokio::task::JoinHandle<std::io::Result<u32>>) {
     let (local, mut remote) = tokio::io::duplex(65_536);
     let negotiated = vessel_proto::prompt_index::PROMPT_INDEX_PROTOCOL
         .map_or(vessel_proto::PROTOCOL_VERSION, |version| {
@@ -94,6 +95,12 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
     )
     .await
     .unwrap();
+    (client, peer)
+}
+
+#[tokio::test]
+async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_ticket() {
+    let (client, peer) = unadmitted_peer().await;
     let home = crate::testing::Home::new();
     std::fs::write(
         home.book(),
