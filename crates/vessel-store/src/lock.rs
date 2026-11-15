@@ -119,11 +119,12 @@ impl NodeLock {
         }
     }
 
-    /// Query process authority without acquiring the lock or trusting its record.
+    /// Observe the selected lock without acquiring it or trusting its record.
     /// `NotVisible` does not mean free: the OS lock remains the availability proof.
     ///
     /// # Errors
-    /// Lock metadata or the bounded kernel lock table cannot be read or decoded.
+    /// Lock metadata or bounded kernel/process observations cannot be read,
+    /// decoded or confirmed for the same candidate.
     #[cfg(target_os = "linux")]
     pub fn kernel_holder(dir: &DataDir) -> Result<KernelProbe, StoreError> {
         let path = dir.lock_path();

@@ -197,3 +197,6 @@ async fn terminal_mode_sequences_pass_through_untouched() {
     })
     .await;
 }
+
+#[path = "pty/lifetime.rs"]
+mod lifetime;
