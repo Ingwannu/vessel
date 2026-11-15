@@ -575,3 +575,30 @@ therefore Content (plain string); no assertion, inventory guard or branding rule
 is weakened. Exact34bb's failed generator and empty artifact remain preserved.
 One changed-source TS generation on this current announced-base union is needed;
 never hand-edit a declaration or call an empty patch a successful regeneration.
+
+## Pending C5 file-mutation physical-lifetime join
+
+Source audit only, not a reproduced runtime failure: the lower file helper
+awaits spawn_blocking disk work. Dropping its async caller cannot stop that
+work. A borrowed comparison Mutation guard around a directly cancelled RPC
+future could therefore invalidate before the physical operation finishes;
+its late edit could follow a cache refill. Do not claim a two-line guard alone
+establishes cancellation-safe invalidation.
+
+W13's frozena2 C5 source has an existing bounded retained run_file_work owner
+for new file-panel calls, including DuplicateFileEntry. The four legacy file
+mutation service wrappers still call Workspaces directly. W13 authorizes the
+smallest successor after its announced integrator head: those four wrappers
+reuse run_file_work (only pub(super)), with comparison before/after guards
+inside their actual Workspaces operation futures, plus duplicate_file_entry.
+The same task and permit survive waiter loss through physical completion and
+partial errors. No second file controller, observer, pool or nested comparison
+Jobs queue. The first external Reader::owned draft is superseded/uninstalled.
+
+Required regressions: detached waiter while actual tracked file work remains,
+root replacement while queued before physical access, and error/partial-error
+cache invalidation. Separate tracked-work/component proof from real service
+wire proof; existing C5 slot tests are prior producer evidence only. No C5
+runtime branch has been merged here, no file wrapper changed, no test pass or
+ready join claimed. This Node tree stays on announced1c with its own TS run
+4be queued; batch16 is not an announced usable head yet.
