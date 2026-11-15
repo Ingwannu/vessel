@@ -25,7 +25,7 @@ pub fn fill_headers(
         if matching.next().is_some() {
             return Err(FillError::AmbiguousHeader(header.clone()));
         }
-        let (name, value) = value(field, vessel_proto::trim_ecmascript(text))?;
+        let (name, value) = value(field, text)?;
         if values.insert(name.clone(), value).is_some() {
             return Err(FillError::Repeated(name));
         }
@@ -62,6 +62,14 @@ fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), 
         options, multiple, ..
     } = &field.kind
     {
+        if *multiple
+            && text.contains(", ")
+            && options
+                .iter()
+                .any(|option| option.title.contains(", ") || option.value.contains(", "))
+        {
+            return Err(unreadable());
+        }
         match choice(options, text) {
             ChoiceMatch::Ambiguous => return Err(unreadable()),
             ChoiceMatch::Unique(selected) => {
@@ -75,19 +83,22 @@ fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), 
             ChoiceMatch::Missing => {}
         }
         if *multiple && text.contains(", ") {
-            if options
-                .iter()
-                .any(|option| option.title.contains(", ") || option.value.contains(", "))
-            {
-                return Err(unreadable());
-            }
             let mut selected = Vec::new();
             let mut missing = false;
             for part in text.split(", ") {
                 match choice(options, part) {
                     ChoiceMatch::Ambiguous => return Err(unreadable()),
                     ChoiceMatch::Unique(value) => selected.push(value.to_owned()),
-                    ChoiceMatch::Missing => missing = true,
+                    ChoiceMatch::Missing => {
+                        let trimmed = vessel_proto::trim_ecmascript(part);
+                        if options.iter().any(|option| {
+                            vessel_proto::trim_ecmascript(&option.title) == trimmed
+                                || vessel_proto::trim_ecmascript(&option.value) == trimmed
+                        }) {
+                            return Err(unreadable());
+                        }
+                        missing = true;
+                    }
                 }
             }
             if !missing {
@@ -102,10 +113,19 @@ fn value(field: &QuestionField, text: &str) -> Result<(FieldName, AnswerValue), 
             .as_ref()
             .and_then(|shown| shown.custom_answer.as_ref())
         {
-            return Ok((companion.clone(), AnswerValue::Text(text.to_owned())));
+            return Ok((
+                companion.clone(),
+                AnswerValue::Text(vessel_proto::trim_ecmascript(text).to_owned()),
+            ));
         }
+        let value = if *multiple {
+            AnswerValue::Choices(vec![text.to_owned()])
+        } else {
+            AnswerValue::Choice(text.to_owned())
+        };
+        return Ok((field.name.clone(), value));
     }
-    let value = match read(field, text)? {
+    let value = match read(field, vessel_proto::trim_ecmascript(text))? {
         Given::One(value) => value,
         Given::Several(value) => AnswerValue::Choices(vec![value]),
     };
@@ -169,8 +189,8 @@ mod tests {
             panic!("accept")
         };
         assert_eq!(
-            values[&"route".parse::<FieldName>().unwrap()],
-            AnswerValue::Choice("opaque-left".into())
+            values[&"custom".parse::<FieldName>().unwrap()],
+            AnswerValue::Text("Left".into())
         );
         let answer = fill_headers(
             &question,
@@ -262,5 +282,88 @@ mod tests {
             ),
             Err(FillError::Unreadable { .. })
         ));
+    }
+    #[test]
+    fn exact_offered_whitespace_is_data_before_any_custom_text_trimming() {
+        let mut question = form();
+        let FieldKind::Choice { options, .. } = &mut question.fields[0].kind else {
+            panic!("choice")
+        };
+        options[0].title = " A ".into();
+        options.push(ChoiceOption {
+            value: "other".into(),
+            title: "A".into(),
+            description: None,
+            preview: None,
+        });
+        for (raw, expected) in [(" A ", "opaque-left"), ("A", "other")] {
+            let QuestionAnswer::Accept { values } =
+                fill_headers(&question, &BTreeMap::from([("Route".into(), raw.into())])).unwrap()
+            else {
+                panic!("accept")
+            };
+            assert_eq!(
+                values[&"route".parse::<FieldName>().unwrap()],
+                AnswerValue::Choice(expected.into())
+            );
+        }
+        let FieldKind::Choice { options, .. } = &mut question.fields[0].kind else {
+            panic!("choice")
+        };
+        options[0].value = " value ".into();
+        let QuestionAnswer::Accept { values } = fill_headers(
+            &question,
+            &BTreeMap::from([("Route".into(), " value ".into())]),
+        )
+        .unwrap() else {
+            panic!("accept")
+        };
+        assert_eq!(
+            values[&"route".parse::<FieldName>().unwrap()],
+            AnswerValue::Choice(" value ".into())
+        );
+    }
+    #[test]
+    fn multi_select_preserves_raw_edges_and_refuses_normalized_guesses() {
+        let mut question = form();
+        let FieldKind::Choice {
+            options, multiple, ..
+        } = &mut question.fields[0].kind
+        else {
+            panic!("choice")
+        };
+        *multiple = true;
+        options[0].title = " A ".into();
+        options.push(ChoiceOption {
+            value: "other".into(),
+            title: "B ".into(),
+            description: None,
+            preview: None,
+        });
+        let QuestionAnswer::Accept { values } = fill_headers(
+            &question,
+            &BTreeMap::from([("Route".into(), " A , B ".into())]),
+        )
+        .unwrap() else {
+            panic!("accept")
+        };
+        assert_eq!(
+            values[&"route".parse::<FieldName>().unwrap()],
+            AnswerValue::Choices(vec!["opaque-left".into(), "other".into()])
+        );
+        assert!(
+            fill_headers(
+                &question,
+                &BTreeMap::from([("Route".into(), "A, B".into())])
+            )
+            .is_err()
+        );
+        let canonical = QuestionAnswer::Accept {
+            values: BTreeMap::from([(
+                "route".parse().unwrap(),
+                AnswerValue::Choices(vec!["opaque-left".into(), "other".into()]),
+            )]),
+        };
+        assert!(question.check(&canonical).is_ok());
     }
 }
