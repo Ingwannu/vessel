@@ -156,6 +156,22 @@ impl ReviewPills {
             unresolved: reviews.unresolved,
         }
     }
+
+    /// Keep a distinct forge verdict, but do not repeat a fact already
+    /// named by an activity pill. The node may send differing summary
+    /// and review states, so hiding every verdict would lose information.
+    #[must_use]
+    pub const fn remaining_verdict(self, decision: ReviewDecision) -> Verdict {
+        match Verdict::of(decision) {
+            Verdict::Approved if self.approved => Verdict::None,
+            Verdict::ChangesRequested if self.changes_requested => Verdict::None,
+            verdict @ (Verdict::Approved
+            | Verdict::ChangesRequested
+            | Verdict::ReviewRequired
+            | Verdict::None
+            | Verdict::Unknown) => verdict,
+        }
+    }
 }
 
 /// Whether it can merge now, as a person reads it.
@@ -176,6 +192,19 @@ pub enum Merge {
 }
 
 impl Merge {
+    /// Readiness describes a non-draft open request only. State, draft
+    /// and mergeability are independent wire facts: a draft cannot claim
+    /// readiness even if the forge reports a mergeable or unstable head.
+    /// Closed and merged requests may retain historical mergeability.
+    #[must_use]
+    pub const fn for_open(summary: &PullSummary) -> Option<Self> {
+        match (summary.state, summary.draft) {
+            (PullState::Open, false) => Some(Self::of(summary.mergeable)),
+            (PullState::Open, true)
+            | (PullState::Merged | PullState::Closed | PullState::Unknown, _) => None,
+        }
+    }
+
     /// The forge's mergeability.
     #[must_use]
     pub const fn of(mergeable: Mergeable) -> Self {

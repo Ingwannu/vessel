@@ -82,9 +82,11 @@ impl Shell {
         self.prompt_jump(seq, cx);
     }
 
-    pub(super) fn prompt_index_opened(&mut self) {
+    pub(super) fn prompt_index_opened(&mut self, open: &crate::areas::session::Open) {
         self.areas.conversation.prompts.clear();
-        self.prompt_index_refresh();
+        if open.structured {
+            self.prompt_index_refresh();
+        }
     }
 
     pub(super) fn prompt_index_refresh(&mut self) {
@@ -142,7 +144,14 @@ impl Shell {
     }
 
     pub(super) fn prompt_index_records(&mut self, records: &[EventRecord]) {
-        if self.route != crate::routes::Route::Session {
+        if self.route != crate::routes::Route::Session
+            || self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .is_some_and(|open| !open.structured)
+        {
             return;
         }
         if self.areas.conversation.prompts.jump.is_some()
@@ -168,7 +177,14 @@ impl Shell {
 
     /// A replaced welcome id invalidates pages even if book name/session UUID match.
     pub(crate) fn prompt_index_fleet_changed(&mut self) {
-        if self.route == crate::routes::Route::Session {
+        if self.route == crate::routes::Route::Session
+            && self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .is_some_and(|open| open.structured)
+        {
             self.prompt_index_refresh();
         }
     }

@@ -17,11 +17,9 @@
 //! - Not shown, nothing behind them yet: Paseo's colour and sidebar-badge
 //!   rows (the app keeps no machine appearance), "Restart daemon" and
 //!   "Update daemon" (no such call; the node-control track brings them).
-//! - Stand-ins until the shared controls land (G2): the pencil is a plain
-//!   glyph button here, not `host_rename_button`; Remove has no Trash2
-//!   leading glyph (the kit's button has no leading content yet). The
-//!   field is focused when the dialog opens but its text is not selected
-//!   (the kit's field has no select-all yet).
+//! - The name action uses the kit's shared `host_rename_button` unchanged.
+//!   The editor remains here. Its text is focused but not selected on open;
+//!   select-all waits on the kit field module's split.
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
@@ -31,10 +29,13 @@ use vessel_app_kit::badge::{self, badge};
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, dot, glyph, outline_button, settings};
+use vessel_app_kit::{
+    ButtonState, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
+    outline_button_with_glyph, settings,
+};
 use vessel_app_link::Command;
 use vessel_app_link::machines::{self, Answer};
 use vessel_app_view::machine_book::{Edit, Name};
@@ -46,10 +47,6 @@ use crate::shell::Shell;
 
 mod dialogs;
 pub(crate) use dialogs::dialogs;
-
-/// The pencil's hover corner: six points, between the kit's `R1` and
-/// `R2`; the kit has no radius of this size yet.
-const PENCIL_RADIUS: f32 = 6.0;
 
 /// The page's state.
 pub(crate) struct State {
@@ -195,7 +192,7 @@ pub(crate) fn render(
         .children(unreachable(machine, shell, tokens))
         .child(settings::section(
             words.appearance,
-            settings::card(tokens).child(name_row(machine, shell, tokens, compact, cx)),
+            settings::card(tokens).child(name_row(machine, shell, tokens, cx)),
             tokens,
         ))
         .child(settings::section(
@@ -277,34 +274,24 @@ fn reach_words(shell: &Shell, transport: Transport) -> &'static str {
 
 /// "Name": the machine's name, muted, and the pencil that renames it (a
 /// name the book cannot take has no pencil).
-fn name_row(
-    machine: &Machine,
-    shell: &Shell,
-    tokens: &Tokens,
-    compact: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+fn name_row(machine: &Machine, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.overview();
     let neutral = tokens.neutral;
     let pencil = Name::parse(&machine.name).ok().map(|name| {
-        div()
-            .id("settings-overview-rename")
-            .p(px(spacing::S1))
-            .rounded(px(PENCIL_RADIUS))
-            .cursor_pointer()
-            .hover(move |style| style.bg(neutral.surface2))
-            .child(glyph(Glyph::Pencil, 14.0, neutral.foreground_muted))
-            .on_click(cx.listener(move |shell, _event, window, cx| {
+        host_rename_button("settings-overview-rename", ButtonState::Enabled, tokens).on_click(
+            cx.listener(move |shell, _event, window, cx| {
                 shell.overview_open_rename(name.clone(), window, cx);
-            }))
+            }),
+        )
     });
     let value = div()
         .flex()
         .flex_row()
         .items_center()
+        .justify_end()
         .gap(px(spacing::S2))
         .min_w_0()
-        .flex_shrink(1.0)
+        .flex_1()
         .child(
             div()
                 .min_w_0()
@@ -316,13 +303,18 @@ fn name_row(
                 .child(machine.name.clone()),
         )
         .children(pencil);
-    settings::row_at(
-        words.name,
-        None,
-        None,
+    let title = div()
+        .flex_none()
+        .whitespace_nowrap()
+        .type_(Type::Body)
+        .text_color(neutral.foreground)
+        .child(words.name);
+    // This reference row stays beside its value on both layouts.
+    settings::row_with_content(
+        title.into_any_element(),
         Some(value.into_any_element()),
         true,
-        compact,
+        false,
         tokens,
     )
 }
@@ -337,13 +329,16 @@ fn remove_row(
 ) -> Div {
     let words = shell.t.lang.overview();
     let name = Name::parse(&machine.name).ok();
-    let button = outline_button(
+    // Paseo's outline Remove with its Trash2 before the words, both in
+    // the destructive colour.
+    let button = outline_button_with_glyph(
         "settings-overview-remove",
+        Glyph::Trash2,
         words.remove,
+        tokens.neutral.destructive,
         name.is_some(),
         tokens,
     )
-    .text_color(tokens.neutral.destructive)
     .when_some(name, |button, name| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
             let state = &mut shell.areas.settings.overview;

@@ -36,7 +36,6 @@ pub struct PaletteWords {
     pub open: &'static str,
     pub close: &'static str,
     groups: [&'static str; 5],
-    themes: [&'static str; 3],
 }
 
 impl PaletteWords {
@@ -59,10 +58,9 @@ impl PaletteWords {
         }
     }
 
-    /// "Theme: dark", for the choice at `at` (system, light, dark).
+    /// The choice's name comes from its registry, shared with Appearance.
     #[must_use]
-    pub fn theme(&self, at: usize) -> String {
-        let name = self.themes.get(at).copied().unwrap_or_default();
+    pub fn theme(&self, name: &str) -> String {
         match self.lang {
             Lang::En => format!("Theme: {name}"),
             Lang::Ko => format!("테마: {name}"),
@@ -83,7 +81,6 @@ const EN: PaletteWords = PaletteWords {
     open: "open",
     close: "close",
     groups: ["Actions", "Go to", "Machines", "Sessions", "Theme"],
-    themes: ["system", "light", "dark"],
 };
 
 const KO: PaletteWords = PaletteWords {
@@ -99,5 +96,4 @@ const KO: PaletteWords = PaletteWords {
     open: "열기",
     close: "닫기",
     groups: ["동작", "이동", "머신", "세션", "테마"],
-    themes: ["시스템", "라이트", "다크"],
 };

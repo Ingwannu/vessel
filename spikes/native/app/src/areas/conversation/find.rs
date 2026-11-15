@@ -164,6 +164,12 @@ impl Shell {
             || self.areas.conversation.confirm.is_some()
             || self.areas.conversation.rename.is_some()
             || TextField::focused_composing(window, cx)
+            || self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .is_some_and(|open| !open.structured)
             || self.areas.conversation.shown.is_none()
         {
             return;
