@@ -734,7 +734,9 @@ node head. No current CLI/MCP/runtime PASS is implied by this design.
 
 ### C2 staged reply/feed integration plan (not an API handoff)
 
-C2's proposed pure core defaults to Silent; the node PTY actor alone will use
+C2's proposed pure core defaults to Silent. Under the later 13:00 coordinator
+ruling, capture integration initially keeps Silent to preserve raw attach; only
+after C2's shared-engine CLI renderer lands and passes may node glue activate
 NodeAuthority. Feed has a16KiB consumed-prefix budget and typed replies; actor
 glue must loop only the unconsumed suffix, check forward progress, and write
 reply bytes through its existing ordered PTY writer. Reply errors do not undo
@@ -856,3 +858,15 @@ C2 before activation; no second parser/filter or new protocol was invented. The
 Windows PTY startup query is already answered and removed by pty/startup.rs, so
 that startup case is distinct. Actor glue still waits for the reviewed core/API
 and a single reply-authority policy for this legacy raw consumer.
+
+
+### Reply authority ruling settled (2026-11-15 13:00 UTC)
+
+C2 confirmed the raw TerminalId attach path and obtained the coordinator ruling:
+W17's capture consumer uses Screen::new Silent after the reviewed core handoff.
+C2 owns the separate CLI attach renderer and typed mode/restore consumer on that
+same engine in Silent posture; it must avoid query-bearing raw stdout and must
+not feed emitted ANSI back into the interpreter. NodeAuthority activates only
+after that renderer lands and passes. Existing raw attach is not refused here.
+No additional parser/regex/filter is introduced by W17. Thus query policy does
+not block pure capture adoption once C2's core source/gate/review is ready.
