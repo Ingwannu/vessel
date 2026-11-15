@@ -206,7 +206,7 @@ impl Shell {
             return;
         };
         let changing_step = answering.step != index;
-        if changing_step && answering.field.composing(window, cx) {
+        if answering.field.composing(window, cx) {
             return;
         }
         let transfer_focus = changing_step && answering.field.focus_handle(cx).is_focused(window);
@@ -229,7 +229,9 @@ impl Shell {
             Some(Draft::Picked(_) | Draft::Boolean(_)) | None => String::new(),
         };
         answering.field.set_placeholder(placeholder, window, cx);
-        answering.field.set_text(&text, window, cx);
+        if answering.field.text(cx) != text {
+            answering.field.set_text(&text, window, cx);
+        }
         if transfer_focus {
             answering.field.focus(window, cx);
         }

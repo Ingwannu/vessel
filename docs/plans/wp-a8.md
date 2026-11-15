@@ -642,3 +642,8 @@ Cursor also includes the actual FieldId alongside request and step. Returning
 from step A to B to A must not reactivate clicks captured by A's previous render;
 the reopened input supplies a new source identity without a parallel visit counter.
 The same regression verifies that the old cursor remains stale after return.
+
+Reselecting the active step also avoids programmatic text replacement while
+composing, and unchanged text is not reapplied. A page refresh must not reset
+selection or marked text merely because the same draft is already displayed.
+This uses the same kit text/composition boundary; no new editor hooks are added.
