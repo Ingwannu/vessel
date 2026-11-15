@@ -108,7 +108,7 @@ impl State {
             let client = self.client(wake.machine.as_str())?.clone();
             tokio::time::timeout(WAKE_FILES_DEADLINE, client.resume_session(wake.session))
                 .await
-                .map_err(|_| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
+                .map_err(|_elapsed| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
                 .map_err(LinkError::AttachmentCall)
         }
         .await;

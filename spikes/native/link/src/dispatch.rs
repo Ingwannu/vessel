@@ -17,20 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
-            Command::MentionRoot(ask) => {
-                let client = self
-                    .clients
-                    .get(ask.machine.as_str())
-                    .map(|connected| connected.client.clone());
-                self.mentions.root(client, ask, self.events.clone());
-            }
-            Command::Mentions(request) => {
-                let client = self
-                    .clients
-                    .get(request.scope.machine.as_str())
-                    .map(|connected| connected.client.clone());
-                self.mentions.ask(client, request, self.events.clone());
-            }
+            Command::Mentions(ask) => self.mention(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,

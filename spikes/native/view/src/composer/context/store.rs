@@ -182,7 +182,7 @@ impl ContextTray {
         let total = entries.iter().try_fold(0usize, |total, entry| {
             total.checked_add(entry.attachment.text().len())
         });
-        if !total.is_some_and(|total| total <= super::ContextText::MAX_BYTES) {
+        if total.is_none_or(|total| total > super::ContextText::MAX_BYTES) {
             return Err(ContextProblem::Text);
         }
         let token = self.next()?;

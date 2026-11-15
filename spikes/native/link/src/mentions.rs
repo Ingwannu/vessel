@@ -36,3 +36,12 @@ pub struct RootAnswer {
     /// The existing session.get projection or a safe refusal.
     pub result: Result<Option<vessel_proto::workspace::WorkspaceRoot>, Failure>,
 }
+
+/// One feature command keeps the shared transport dispatcher small.
+#[derive(Debug)]
+pub enum Ask {
+    /// Resolve an existing session's registered root.
+    Root(RootAsk),
+    /// Read suggestions after the exact token's debounce.
+    Suggestions(Request),
+}
