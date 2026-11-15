@@ -10,7 +10,7 @@ preferences store. Every shown row must change the behavior it names.
 | Surface | Owner/integration contract |
 |---|---|
 | Settings frame and remaining pages | E2; no duplicate frame or store |
-| Themes, fonts and their rendering | K; canonical Theme list/names and sole preference-to-palette adapter |
+| Appearance: themes, fonts, sizes, width/reset, syntax and preview | K; canonical Theme list/names and sole preference-to-palette adapter |
 | English/Korean words | L; FTL and typed generated getters, call-expression seams agreed before edits |
 | Usage | W5; one page registered through the frame |
 | Diagnostics and onboarding | W20 app + N1 node; reuse existing local report until a real node call exists |
