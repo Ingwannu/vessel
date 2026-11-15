@@ -1,8 +1,9 @@
 # C3 readonly mapped editor producer
 
 Current status: exact4133964f69ff87edcc6e6af37d3cb47f35ea3019 has V1 bounded
-SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. Adoption is held
-only for the already registered ordinary syntax regression selection163829.
+SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. The requested
+ordinary syntax selection163829 has now passed1/0/0; V1 final adoption receipt
+is pending on that same review row.
 The19 passing tests comprise11 GPUI window tests and8 ordinary unit tests;
 they are not19 real-window tests or a full Kit/package gate. No consumer/UI/OS
 acceptance is claimed. Earlier unchecked/red sections below retain their
@@ -237,14 +238,16 @@ original unnamed15/1 loop. The old red result stays red. Complete source/ref/log
 SHA manifests are in the track's external control-producer-413 packet.
 
 The ordinary existing code_editor::syntax::tests case was not included in the19
-filter. Its separate exact413 selection163829 is queued; no already executed
-fixture is rerun and no whole gate is added. Until its result, do not claim all
+filter. Its separate exact413 selection163829 passed1/0/0,198 filtered, with
+actual Base/gpui-component/Kit compilation, both stages0/no skips. The test is
+colours_runs_across_lines_and_reuses_what_an_edit_did_not_reach. No already
+executed fixture was rerun and no whole gate was added; this does not cover all
 legacy editor regressions. The isolated source still has no C3 View/Link/app or
 node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
 semicolon/collapsible-if issues, so this is not App integration acceptance.
 
 V1 has cleared the exact bounded source and requested Clippy/diff19 selection;
-adoption remains held for the existing ordinary syntax result. No new run is
-requested by that review. Real header alignment/selection path
+the same-row final adoption receipt is pending after the ordinary result. No
+new run is requested by that review. Real header alignment/selection path
 visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
 audit example is unbuilt/unrun and the split full-width-header/copy gap remains.

@@ -352,8 +352,9 @@ at the top and `Vessel patch` at the change.
   horizontal-dominant inner scrolling and ordinaryNone/mapped vertical-overflow
   routing pass too. Exact pre-fix25951 diagnostic identifies Scroll,x=-0.5,
   inner(-0.5,0) and unchanged outer(0,0), not a guessed cause. The ordinary Kit
-  syntax test outside the diff filter has a separate pending selection; the19
-  result must not be described as every ordinary editor test. No vendor private
+  syntax test outside the diff filter separately passed1/0/0 on exact413 with
+  Base/gpui-component/Kit compilation (selection163829); neither result is every
+  ordinary editor test or the full Kit gate. No vendor private
   test, real Linux/OS input or consumer capture pass is claimed.
 
 - Capture handoff (not yet built/run): kit example `mapped_diff_audit` is a
