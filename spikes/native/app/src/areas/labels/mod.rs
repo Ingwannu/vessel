@@ -55,16 +55,7 @@ impl Labels {
             route: None,
             pending: None,
             confirmation: None,
-            search: TextField::with_change(
-                "",
-                |_shell: &mut Shell, _text, _window, _cx| {},
-                |shell, query, cx| {
-                    shell.areas.labels.manager.search(&query);
-                    cx.notify();
-                },
-                window,
-                cx,
-            ),
+            search: fields::search("", window, cx),
             name: fields::manager("", window, cx),
             dialog: DialogState::new(cx),
             error: None,
@@ -126,6 +117,10 @@ impl Shell {
                 return;
             }
         };
+        // Each reopening owns its search input; a retained old event cannot
+        // restore a cleared query after close. Busy drafts keep their query.
+        state.search = fields::search(self.words.labels().search(), window, cx);
+        state.search.set_text(state.manager.query(), window, cx);
         if state.manager.state().busy() {
             state.opening = Some(opening);
             state.dialog.focus(window, cx);

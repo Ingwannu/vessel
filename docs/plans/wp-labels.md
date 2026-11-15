@@ -432,3 +432,23 @@ request, the still-queued standalone strict run
 a slot (terminal 143); the lead's whole gate supersedes that check. Cancellation
 is neither a compiler failure nor a PASS. A6 retains only its one Labels arm
 on that shared dispatch. Registry activation still awaits announced base 9.
+
+Merged announced base 8c `2b806402` cleanly; the previous immutable four-crate
+strict run remains queued and proves only its own source when it finishes.
+Base 9 now follows node gate 50. The shared extraction's lead gate was replaced
+by `spike-20261115T153236Z-6ebdf8e8` (same extraction plus G2 picker admission);
+the earlier whole run on `92a0ecfc` was cancelled, not passed.
+
+The manager search field now uses the same kit FieldId callback as name editing.
+Each fresh opening replaces only that input engine; hidden or non-listing input
+cannot change the query. Reopening an accepted pending write retains its query,
+while an idle reopen still resets it. A new actual-Shell regression queues the
+old callback, closes, attempts hidden input and reopens before delivery, then
+checks the fresh field still edits normally. The shared field renderer and
+language refresh stay unchanged. This new regression awaits remote execution.
+
+A separate unapplied native edge draft prepares safe error projection for the
+future RPC consumer. It requires both broad code and typed reason for precise
+label failures and never parses or retains peer diagnostics. Its three draft
+tests remain uncompiled; no production transport or shared delivery hook is
+enabled by that preparation.
