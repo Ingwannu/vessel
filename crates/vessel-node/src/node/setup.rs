@@ -108,7 +108,7 @@ pub(super) async fn host_registry(
     stop: tokio_util::sync::CancellationToken,
     tasks: &tokio_util::task::TaskTracker,
 ) -> Option<crate::host_registry::HostRegistry> {
-    vessel_proto::host_registry::CLI_PARITY_PROTOCOL?;
+    let _assigned_version = vessel_proto::host_registry::CLI_PARITY_PROTOCOL?;
     match crate::host_registry::HostRegistry::start(config.data_dir.clone(), stop, tasks).await {
         Ok(registry) => Some(registry),
         Err(_failure) => {
