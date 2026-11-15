@@ -130,7 +130,12 @@ pub(crate) fn render_file_panel(
         .flex()
         .flex_col()
         .child(super::viewer::viewer_element(
-            shell, viewer, tokens, window, cx,
+            shell,
+            viewer,
+            super::viewer::ViewerSurface::Pane,
+            tokens,
+            window,
+            cx,
         ))
         .children(close_view::dialog(
             shell,
@@ -209,3 +214,6 @@ mod tests;
 
 #[cfg(test)]
 mod close_tests;
+
+#[cfg(test)]
+mod presentation_tests;

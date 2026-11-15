@@ -918,3 +918,15 @@ now actually constructs the requested root's FileKey: its previous closure
 ignored its root argument and could not distinguish the two intended roots.
 All assertions remain. Further corrected checks use the ordinary short lane;
 the node whole retry remains frozen and tests6 stays on its recorded source.
+
+
+### One editor across Explorer and file panes
+
+The existing viewer receives only a typed host-chrome choice. Main file panes
+use layout navigation; the legacy Explorer keeps its Back control. A binding
+reference makes the Explorer render its existing tree/search rather than paint
+the same CodeEditor entity a second time. The body, editor, find and markdown
+renderers remain shared. A synthetic GPUI composition fixture paints both paths,
+checks tree controls and absence of legacy Back, then types through the actual
+editor and checks the same retained model. This source is later than strict24;
+no executed result, capture or typed Explorer mount is inferred from it.

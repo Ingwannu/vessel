@@ -16,11 +16,19 @@ use super::frame::note;
 use super::{Shown, Viewer, buffers::FileKey};
 use crate::shell::Shell;
 
+/// One renderer retains the editor; only its host chrome differs.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ViewerSurface {
+    Explorer,
+    Pane,
+}
+
 /// The file shown: Back and its path, then its lines, or the editor when
 /// it is edited in place.
 pub(super) fn viewer_element(
     shell: &Shell,
     viewer: &Viewer,
+    surface: ViewerSurface,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -38,6 +46,40 @@ pub(super) fn viewer_element(
             shell.editor_frame_for(&key, window, cx)
         });
     }
+    let head = header(shell, viewer, &key, surface, tokens, cx);
+    let body: AnyElement =
+        if let Some(preview) = super::markdown::body(shell, viewer, tokens, window, cx) {
+            preview
+        } else if let Some(editing) = &viewer.edit {
+            super::editing_view::body(shell, editing, &key, tokens, cx)
+        } else {
+            read_only_body(shell, viewer, tokens, cx)
+        };
+    let narrow = vessel_app_kit::breakpoint::phone(window);
+    div()
+        .flex_1()
+        .min_h(px(0.0))
+        .flex()
+        .flex_col()
+        .child(head)
+        .children(super::intelligence_view::panel(shell, viewer, tokens, cx))
+        .child(div().flex_1().min_h(px(0.0)).child(body))
+        .children(super::editing_view::reload_dialog(
+            shell, &key, tokens, window, narrow, cx,
+        ))
+        .into_any_element()
+}
+
+// A main file tab has its own layout close/navigation controls. The legacy
+// Explorer alone retains Back; the same body/editor is never cloned.
+fn header(
+    shell: &Shell,
+    viewer: &Viewer,
+    key: &FileKey,
+    surface: ViewerSurface,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let neutral = tokens.neutral;
     let labels = shell.words().labels();
     let hover = neutral.surface2;
@@ -50,7 +92,7 @@ pub(super) fn viewer_element(
         .px(px(8.0))
         .border_b_1()
         .border_color(neutral.border)
-        .child(
+        .children((surface == ViewerSurface::Explorer).then(|| {
             div()
                 .id("code-back")
                 .flex()
@@ -69,8 +111,8 @@ pub(super) fn viewer_element(
                 .on_click({
                     let key = key.clone();
                     cx.listener(move |this, _event, _window, cx| this.leave_file_for(&key, cx))
-                }),
-        )
+                })
+        }))
         .child(
             div()
                 .flex_1()
@@ -98,28 +140,7 @@ pub(super) fn viewer_element(
                 this.add_lines_to_chat(window, cx);
             }))
         }));
-    let head = head.children(super::markdown::toolbar(shell, viewer, tokens, cx));
-    let body: AnyElement =
-        if let Some(preview) = super::markdown::body(shell, viewer, tokens, window, cx) {
-            preview
-        } else if let Some(editing) = &viewer.edit {
-            super::editing_view::body(shell, editing, &key, tokens, cx)
-        } else {
-            read_only_body(shell, viewer, tokens, cx)
-        };
-    let narrow = vessel_app_kit::breakpoint::phone(window);
-    div()
-        .flex_1()
-        .min_h(px(0.0))
-        .flex()
-        .flex_col()
-        .child(head)
-        .children(super::intelligence_view::panel(shell, viewer, tokens, cx))
-        .child(div().flex_1().min_h(px(0.0)).child(body))
-        .children(super::editing_view::reload_dialog(
-            shell, &key, tokens, window, narrow, cx,
-        ))
-        .into_any_element()
+    head.children(super::markdown::toolbar(shell, viewer, tokens, cx))
 }
 
 /// The lines of a file shown read-only (a phone's width, a binary, more

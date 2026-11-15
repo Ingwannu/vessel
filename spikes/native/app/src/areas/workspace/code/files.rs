@@ -408,8 +408,25 @@ pub(super) fn render(
 ) -> AnyElement {
     let files = &shell.areas.workspace.code.files;
     files.narrow.set(vessel_app_kit::breakpoint::phone(window));
-    if let Some(viewer) = &files.viewer {
-        return super::viewer::viewer_element(shell, viewer, tokens, window, cx);
+    if let Some(viewer) = &files.viewer
+        && !shell
+            .areas
+            .workspace
+            .code
+            .file_tabs
+            .contains(&super::buffers::FileKey::new(
+                &viewer.scope,
+                viewer.path.clone(),
+            ))
+    {
+        return super::viewer::viewer_element(
+            shell,
+            viewer,
+            super::viewer::ViewerSurface::Explorer,
+            tokens,
+            window,
+            cx,
+        );
     }
     let body = super::found::results(shell, tokens, cx).unwrap_or_else(|| {
         files

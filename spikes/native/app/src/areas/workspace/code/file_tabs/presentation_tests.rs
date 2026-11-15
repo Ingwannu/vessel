@@ -1,0 +1,156 @@
+//! The actual Explorer and file-pane render paths share one live editor.
+use super::*;
+use crate::areas::layout::registry::PanelFocus;
+use crate::areas::workspace::code::{editing, files, io_tests};
+use gpui::{AppContext as _, TestAppContext};
+use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, Render, Styled as _, div, px};
+use vessel_app_view::layout::{PaneId, Placement};
+
+struct Probe {
+    shell: Entity<Shell>,
+    workspace: LayoutKey,
+    tab: TabId,
+}
+impl Probe {
+    fn new(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+        let mut address = None;
+        let shell = cx.new(|cx| {
+            let mut shell = Shell::without_io(window, cx);
+            let root = io_tests::root();
+            let (origin, workspace) = tests::opening(&mut shell, root);
+            let tab = shell
+                .open_workspace_file(
+                    &origin,
+                    "a.txt".parse().unwrap(),
+                    None,
+                    Placement::Focused,
+                    window,
+                    cx,
+                )
+                .unwrap();
+            let file = shell.areas.workspace.code.file_key().unwrap();
+            let ticket = shell.editing_for(&file).unwrap().reading.unwrap().0;
+            shell.editor_read_answered_for(
+                &file,
+                ticket,
+                &editing::whole_read(root, file.path.clone()),
+                Ok(io_tests::text("baseline")),
+                cx,
+            );
+            shell.editor_frame_for(&file, window, cx);
+            address = Some((workspace, tab));
+            shell
+        });
+        let (workspace, tab) = address.unwrap();
+        Self {
+            shell,
+            workspace,
+            tab,
+        }
+    }
+}
+impl Render for Probe {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        self.shell.update(cx, |shell, cx| {
+            let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+            let file = &shell
+                .areas
+                .workspace
+                .code
+                .file_tabs
+                .bindings
+                .get(&(self.workspace.clone(), self.tab))
+                .unwrap()
+                .file;
+            let target = Target::File {
+                root: file.root,
+                path: file.path.clone(),
+            };
+            let panel = PanelContext {
+                workspace: &self.workspace,
+                pane: PaneId::MAIN,
+                tab: self.tab,
+                target: &target,
+                focus: PanelFocus::Focused,
+            };
+            let explorer = files::render(shell, &tokens, window, cx);
+            let pane = render_file_panel(shell, &panel, &tokens, window, cx);
+            div()
+                .size_full()
+                .flex()
+                .child(
+                    div()
+                        .w(px(400.0))
+                        .h_full()
+                        .flex()
+                        .flex_col()
+                        .child(explorer),
+                )
+                .child(div().flex_1().h_full().flex().flex_col().child(pane))
+        })
+    }
+}
+
+#[gpui::test]
+fn explorer_keeps_the_tree_while_bound_file_paints_the_existing_editor(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
+    assert!(
+        cx.debug_bounds("code-search-name").is_some(),
+        "Explorer must remain the tree"
+    );
+    assert!(
+        cx.debug_bounds("code-back").is_none(),
+        "pane uses layout navigation"
+    );
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let file = shell.areas.workspace.code.file_key().unwrap();
+            shell
+                .editing_for(&file)
+                .unwrap()
+                .editor
+                .as_ref()
+                .unwrap()
+                .focus(window, cx);
+        });
+    });
+    cx.simulate_input("accepted");
+    probe.read_with(cx, |probe, cx| {
+        let shell = probe.shell.read(cx);
+        let file = &shell
+            .areas
+            .workspace
+            .code
+            .file_tabs
+            .bindings
+            .get(&(probe.workspace.clone(), probe.tab))
+            .unwrap()
+            .file;
+        let editing = shell
+            .areas
+            .workspace
+            .code
+            .viewer_at(file)
+            .unwrap()
+            .edit
+            .as_ref()
+            .unwrap();
+        assert!(
+            editing
+                .editor
+                .as_ref()
+                .unwrap()
+                .text(cx)
+                .contains("accepted")
+        );
+        assert_eq!(
+            editing.model.content(),
+            editing.editor.as_ref().unwrap().text(cx)
+        );
+        assert!(editing.model.modified());
+    });
+}
