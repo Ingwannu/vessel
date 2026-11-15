@@ -1691,3 +1691,10 @@ selection boundary; only find, prompt navigation and hover state are resident.
 The standalone search-residency prerequisite and its actual GPUI regression are
 recorded in `docs/plans/wp-a3-search-residency.md`; the integrated A3 controller
 also invalidates old query tickets immediately before scheduling node work.
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
