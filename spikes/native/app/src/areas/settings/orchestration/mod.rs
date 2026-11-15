@@ -286,18 +286,20 @@ impl Shell {
                 None
             }
             Intent::All => {
-                if !page.skills.pending() && page.confirmation.is_none() {
-                    if let Some(picker) = &mut page.picker {
-                        picker.toggle_all();
-                    }
+                if !page.skills.pending()
+                    && page.confirmation.is_none()
+                    && let Some(picker) = &mut page.picker
+                {
+                    picker.toggle_all();
                 }
                 None
             }
             Intent::Toggle(name) => {
-                if !page.skills.pending() && page.confirmation.is_none() {
-                    if let Some(picker) = &mut page.picker {
-                        picker.toggle(&name);
-                    }
+                if !page.skills.pending()
+                    && page.confirmation.is_none()
+                    && let Some(picker) = &mut page.picker
+                {
+                    picker.toggle(&name);
                 }
                 None
             }

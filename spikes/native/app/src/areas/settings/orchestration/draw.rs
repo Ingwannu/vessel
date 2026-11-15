@@ -15,7 +15,7 @@ use vessel_app_view::orchestration::{Page, Problem, has_selection};
 use vessel_proto::mcp::Injection;
 use vessel_proto::skills::{SkillOperation, SkillsState};
 
-const DOCS: &str = "https://github.com/Team-WICKED/vessel#agent-tools";
+const DOCS: &str = "https://github.com/Ingwannu/vessel#agent-tools";
 
 pub(crate) fn render(
     shell: &Shell,
@@ -66,22 +66,23 @@ pub(crate) fn render(
     .on_click(cx.listener(|_shell, _event, _window, cx| cx.open_url(DOCS)))
     .into_any_element();
     let mut actions = div().flex().flex_wrap().items_center().gap(px(spacing::S2));
-    if let Some(page) = &state.page {
-        if (page.tools.problem().is_some() || page.skills.problem().is_some()) && !state.exhausted {
-            actions = actions.child(
-                button_with_kind_at(
-                    "orchestration-status-refresh",
-                    words.refresh(),
-                    ButtonKind::Ghost,
-                    enabled(!page.tools.pending() && !page.skills.pending()),
-                    ControlSizing::from_compact(compact),
-                    tokens,
-                )
-                .when(!page.tools.pending() && !page.skills.pending(), |button| {
-                    button.on_click(intent_handler(page.scope(), Intent::Refresh, cx))
-                }),
-            );
-        }
+    if let Some(page) = &state.page
+        && (page.tools.problem().is_some() || page.skills.problem().is_some())
+        && !state.exhausted
+    {
+        actions = actions.child(
+            button_with_kind_at(
+                "orchestration-status-refresh",
+                words.refresh(),
+                ButtonKind::Ghost,
+                enabled(!page.tools.pending() && !page.skills.pending()),
+                ControlSizing::from_compact(compact),
+                tokens,
+            )
+            .when(!page.tools.pending() && !page.skills.pending(), |button| {
+                button.on_click(intent_handler(page.scope(), Intent::Refresh, cx))
+            }),
+        );
     }
     let actions = actions.child(docs).into_any_element();
     body.child(settings::section_with_trailing(

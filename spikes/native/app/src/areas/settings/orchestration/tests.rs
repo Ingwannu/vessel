@@ -43,6 +43,31 @@ fn seed(shell: &mut Shell) -> Scope {
     state.page = Some(page);
     scope
 }
+#[cfg(test)]
+fn assert_picker_closed(shell: &Shell) {
+    assert!(
+        shell
+            .areas
+            .settings
+            .orchestration
+            .page
+            .as_ref()
+            .unwrap()
+            .picker
+            .is_none()
+    );
+}
+#[cfg(test)]
+fn assert_composer_focused(shell: &Shell, window: &Window, cx: &Context<'_, Shell>) {
+    assert!(
+        shell
+            .areas
+            .session
+            .composer
+            .focus_handle(cx)
+            .is_focused(window)
+    );
+}
 struct Probe {
     shell: Entity<Shell>,
     _changed: gpui::Subscription,
@@ -103,25 +128,8 @@ fn escape_waits_for_save_ack_then_returns_focus_to_the_original_opener(cx: &mut 
     cx.run_until_parked();
     let pending = probe.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
-            assert!(
-                shell
-                    .areas
-                    .settings
-                    .orchestration
-                    .page
-                    .as_ref()
-                    .unwrap()
-                    .picker
-                    .is_none()
-            );
-            assert!(
-                shell
-                    .areas
-                    .session
-                    .composer
-                    .focus_handle(cx)
-                    .is_focused(window)
-            );
+            assert_picker_closed(shell);
+            assert_composer_focused(shell, window, cx);
             let scope = shell
                 .areas
                 .settings
@@ -161,25 +169,8 @@ fn escape_waits_for_save_ack_then_returns_focus_to_the_original_opener(cx: &mut 
                     .is_none()
             );
             shell.areas.settings.orchestration.settle_focus(window, cx);
-            assert!(
-                shell
-                    .areas
-                    .settings
-                    .orchestration
-                    .page
-                    .as_ref()
-                    .unwrap()
-                    .picker
-                    .is_none()
-            );
-            assert!(
-                shell
-                    .areas
-                    .session
-                    .composer
-                    .focus_handle(cx)
-                    .is_focused(window)
-            );
+            assert_picker_closed(shell);
+            assert_composer_focused(shell, window, cx);
         });
     });
 }

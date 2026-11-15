@@ -198,3 +198,12 @@ entity, with no borrowed Context, lifetime extension or new allocation. Existing
 scope/dialog fences and weak-owner dismissal behavior are unchanged. The failed
 log is preserved; the corrected callbacks and retained-input change still need
 exact-source strict and actual UI execution.
+
+
+The exact9d24 strict run compiled the callback correction and returned only
+four style issues plus the long Escape/ack regression. Collapsible conditions
+and the unit callback now use the required syntax. Two read-only test assertion
+helpers preserve every picker/focus assertion while keeping the existing test
+below its function budget. No lint allowance or test expectation changed. The
+skill documentation action now targets the coordinator's published repository
+and the existing Agent tools heading. No opener is invoked by this correction.

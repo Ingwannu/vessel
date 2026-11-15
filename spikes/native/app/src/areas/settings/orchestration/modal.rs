@@ -52,7 +52,7 @@ pub(crate) fn dialog(
         crate::areas::draft::compact(window),
         {
             move |shell: &mut Shell, window, cx| {
-                shell.orchestration_dialog_intent(&captured, Intent::Cancel, window, cx)
+                shell.orchestration_dialog_intent(&captured, Intent::Cancel, window, cx);
             }
         },
         cx,
