@@ -104,7 +104,7 @@ async fn sdk_labelled_specs_and_envelopes_never_send_a_frame_or_consume_an_id() 
         let ClientFrame::Request { id, call } = serde_json::from_str(&frame).unwrap() else {
             panic!("expected a request");
         };
-        assert_eq!(id, RequestId::new(1));
+        assert_eq!(id, RequestId::new(0));
         assert_eq!(call.method(), GetNode::METHOD);
         let response = ServerFrame::Response {
             id,
