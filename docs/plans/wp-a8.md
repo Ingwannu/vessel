@@ -396,3 +396,22 @@ remain live until their exact request no longer waits. The pending source still
 needs W23's exclusive projection watermark before omission may retire log-backed
 cards. A real two-editor keyboard/Enter test and independent plan/failure tests
 cover sibling isolation; execution/strict proof is still pending.
+
+
+## Canonical unary connection adoption
+
+Merged package base6 through the app line, including G4's checked sole selected
+connection producer. Response targets now carry its immutable ConnectionContext
+from the selected Machine snapshot. Link calls only State::selected_connection
+and SelectedConnection::call with the typed SendInput; it has no raw-client
+lookup/retry/alias search. Original context travels with the request/ticket and
+late contexts cannot be installed by the UI. Single-flight identity is the node,
+session and typed request even if another alias/reconnect is selected.
+
+These remain legacy call acknowledgements plus authoritative reread until W23's
+reviewed rich receipts arrive. The real framed tests now admit through the
+shared actor producer and add before-poll/after-send retirement cases. This
+unary edge is not a live stream or full SessionResources adoption claim. W12
+is adding the mandatory original-ticket retirement hook (Sending to Uncertain,
+fields retained before replacement attach); that checked resource cutover is
+still required before a consumer-ready A8 handoff.

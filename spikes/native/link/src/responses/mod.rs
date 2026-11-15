@@ -60,7 +60,7 @@ impl Ask {
     /// The selected connection key, validated at the book edge.
     #[must_use]
     pub fn machine(&self) -> &str {
-        self.pending.target.machine.as_str()
+        self.pending.target.connection.machine().as_str()
     }
 
     /// Local or preflight refusal retains the exact pending identity.
@@ -85,10 +85,7 @@ pub struct Answer {
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn respond(&self, ask: Ask) {
-        let client = self
-            .clients
-            .get(ask.machine())
-            .map(|connected| connected.client.clone());
-        self.responses.ask(client, ask, self.events.clone()).await;
+        let selected = self.selected_connection(&ask.pending.target.connection);
+        self.responses.ask(selected, ask, self.events.clone()).await;
     }
 }

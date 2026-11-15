@@ -2,6 +2,7 @@
 use super::*;
 use crate::shell::language_tests;
 use vessel_app_view::timeline::Live;
+use vessel_app_view::{connection::ConnectionEpochs, devices::MachineKey};
 use vessel_proto::{
     PermissionId, PermissionOption, PermissionOptionId, PermissionOptionKind, PermissionRequest,
     SessionId, ToolCallId,
@@ -19,10 +20,14 @@ fn permission() -> PermissionRequest {
     }
 }
 fn begin(shell: &mut Shell) -> Pending {
+    let node = vessel_proto::NodeId::random();
+    let connection = ConnectionEpochs::default()
+        .admit(MachineKey::from_book("scratch"), node)
+        .unwrap();
     shell.fleet.machines = vec![vessel_app_view::Machine {
         name: "scratch".into(),
-        node: Some(vessel_proto::NodeId::random()),
-        connection_epoch: None,
+        node: Some(node),
+        connection_epoch: Some(connection.epoch()),
         reach: vessel_app_view::Reach::Online,
         sessions: Vec::new(),
         agents: Vec::new(),
@@ -52,7 +57,7 @@ fn begin(shell: &mut Shell) -> Pending {
     Pending {
         ticket,
         target: Target {
-            machine: MachineKey::from_book("scratch"),
+            connection,
             session,
         },
         request,

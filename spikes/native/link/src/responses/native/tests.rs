@@ -3,6 +3,7 @@ use super::*;
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream};
 use vessel_app_view::{
+    connection::{ConnectionContext, ConnectionEpochs},
     devices::MachineKey,
     responses::{Registry, Target},
 };
@@ -72,7 +73,35 @@ async fn peer() -> (NodeClient, DuplexStream) {
     .await;
     (connecting.await.unwrap(), remote)
 }
-fn ask() -> Ask {
+fn admitted(
+    client: NodeClient,
+) -> (
+    crate::testing::Home,
+    crate::State,
+    SelectedConnection,
+    ConnectionContext,
+) {
+    let home = crate::testing::Home::new();
+    let (mut state, _events) = crate::testing::state(&home);
+    let context = state
+        .admissions
+        .admit(MachineKey::from_book("scratch"), client.node().id)
+        .unwrap();
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    let _previous = state.clients.insert(
+        "scratch".into(),
+        crate::Connected::new(client, Vec::new(), binding, context.clone()),
+    );
+    let selected = state.selected_connection(&context).unwrap();
+    (home, state, selected, context)
+}
+
+fn ask(connection: ConnectionContext) -> Ask {
     let response = Response::Permission {
         id: PermissionId::random(),
         option: PermissionOptionId::new("implement_resume"),
@@ -80,7 +109,7 @@ fn ask() -> Ask {
     let pending = Registry::default()
         .begin(
             Target {
-                machine: MachineKey::from_book("scratch"),
+                connection,
                 session: SessionId::random(),
             },
             response.request(),
@@ -93,9 +122,10 @@ fn ask() -> Ask {
 async fn only_an_acknowledged_exact_option_succeeds_and_diagnostics_stay_private() {
     for success in [true, false] {
         let (client, mut remote) = peer().await;
-        let ask = ask();
+        let (_home, _state, connection, context) = admitted(client);
+        let ask = ask(context);
         let pending = ask.pending.clone();
-        let task = tokio::spawn(async move { run(&client, ask).await });
+        let task = tokio::spawn(async move { run(&connection, ask).await });
         let ClientFrame::Request {
             id,
             call: Call::SendInput(input),
@@ -134,9 +164,10 @@ async fn only_an_acknowledged_exact_option_succeeds_and_diagnostics_stay_private
 #[tokio::test(start_paused = true)]
 async fn deadline_is_uncertain_and_never_sends_a_second_input_or_denial() {
     let (client, mut remote) = peer().await;
-    let ask = ask();
+    let (_home, _state, connection, context) = admitted(client);
+    let ask = ask(context);
     let pending = ask.pending.clone();
-    let task = tokio::spawn(async move { run(&client, ask).await });
+    let task = tokio::spawn(async move { run(&connection, ask).await });
     let ClientFrame::Request {
         id: original,
         call: Call::SendInput(_),
@@ -165,9 +196,12 @@ async fn deadline_is_uncertain_and_never_sends_a_second_input_or_denial() {
 async fn missing_connection_and_capacity_refuse_the_same_ticket() {
     let hub = Hub::default();
     let (events, mut answers) = mpsc::channel(1);
-    let ask = ask();
+    let context = ConnectionEpochs::default()
+        .admit(MachineKey::from_book("scratch"), NodeId::random())
+        .unwrap();
+    let ask = ask(context.clone());
     let pending = ask.pending.clone();
-    hub.ask(None, ask, events.clone()).await;
+    hub.ask(Err(Refusal::Changed), ask, events.clone()).await;
     let crate::Event::Responded(answer) = answers.recv().await.unwrap() else {
         panic!("response")
     };
@@ -177,13 +211,51 @@ async fn missing_connection_and_capacity_refuse_the_same_ticket() {
         .acquire_many_owned(u32::try_from(MAX_PENDING).unwrap())
         .await
         .unwrap();
-    let ask = self::ask();
+    let ask = self::ask(context);
     let pending = ask.pending.clone();
-    hub.ask(None, ask, events).await;
+    hub.ask(Err(Refusal::Changed), ask, events).await;
     let crate::Event::Responded(answer) = answers.recv().await.unwrap() else {
         panic!("response")
     };
     assert_eq!(answer.pending, pending);
     assert_eq!(answer.result, Err(Problem::Busy));
     drop(permit);
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_retired_selected_connection_sends_no_answer_before_poll() {
+    let (client, mut remote) = peer().await;
+    let (_home, state, selected, context) = admitted(client);
+    state.clients.get("scratch").unwrap().retire();
+    let answer = run(&selected, ask(context)).await;
+    assert_eq!(answer.result, Err(Problem::Unconfirmed));
+    assert!(
+        tokio::time::timeout(NO_RETRY_PROBE, read_frame(&mut remote))
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn retirement_after_send_cannot_be_installed_as_a_successful_answer() {
+    let (client, mut remote) = peer().await;
+    let (_home, state, selected, context) = admitted(client);
+    let task = tokio::spawn(async move { run(&selected, ask(context)).await });
+    let ClientFrame::Request {
+        id,
+        call: Call::SendInput(_),
+    } = read(&mut remote).await
+    else {
+        panic!("typed input");
+    };
+    state.clients.get("scratch").unwrap().retire();
+    write(
+        &mut remote,
+        ServerFrame::Response {
+            id,
+            outcome: Outcome::Ok(Reply::SendInput(Ack {})),
+        },
+    )
+    .await;
+    assert_eq!(task.await.unwrap().result, Err(Problem::Unconfirmed));
 }

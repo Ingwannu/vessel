@@ -18,10 +18,7 @@ use vessel_app_link::{
     Act, Command,
     responses::{Answer as Reply, Ask, Response},
 };
-use vessel_app_view::{
-    devices::MachineKey,
-    responses::{Pending, Problem, Registry, Request, Target},
-};
+use vessel_app_view::responses::{Pending, Problem, Registry, Request, Target};
 use vessel_proto::RequestId;
 
 /// Shared admission, with seat routes bounded by the same registry.
@@ -52,8 +49,18 @@ impl Shell {
             self.response_refused(seat, request, Problem::Offline);
             return;
         }
+        let Some(connection) = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == shown.machine)
+            .and_then(vessel_app_view::Machine::connection_context)
+        else {
+            self.response_refused(seat, request, Problem::Offline);
+            return;
+        };
         let target = Target {
-            machine: MachineKey::from_book(&shown.machine),
+            connection,
             session: shown.session,
         };
         let pending = match self.areas.responses.registry.begin(target, request) {
@@ -105,9 +112,17 @@ impl Shell {
     fn response_current(&self, seat: Seat, pending: &Pending) -> bool {
         (seat.get)(self).is_some_and(|area| {
             area.shown.as_ref().is_some_and(|shown| {
-                shown.machine == pending.target.machine.as_str()
+                shown.machine == pending.target.connection.machine().as_str()
                     && shown.session == pending.target.session
-            }) && area.response_waiting(pending.request)
+            }) && self
+                .fleet
+                .machines
+                .iter()
+                .find(|machine| machine.name == pending.target.connection.machine().as_str())
+                .and_then(vessel_app_view::Machine::connection_context)
+                .as_ref()
+                == Some(&pending.target.connection)
+                && area.response_waiting(pending.request)
                 && match pending.request {
                     Request::Permission(id) => area.permit_sending.contains_key(&id),
                     Request::Question(id) => area.answering.is_sending(id),

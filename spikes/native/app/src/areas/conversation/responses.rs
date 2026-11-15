@@ -9,7 +9,9 @@ impl ConversationArea {
         self.lost.is_none()
             && self.shown.as_ref().is_some_and(|shown| {
                 fleet.machines.iter().any(|machine| {
-                    machine.name == shown.machine && machine.reach == vessel_app_view::Reach::Online
+                    machine.name == shown.machine
+                        && machine.reach == vessel_app_view::Reach::Online
+                        && machine.connection_context().is_some()
                 })
             })
     }

@@ -1,7 +1,7 @@
 //! Request-scoped answer admission. Navigation or a new request cannot reuse an
 //! outstanding ticket, and the same request cannot be answered by two local seats.
 
-use crate::devices::MachineKey;
+use crate::connection::ConnectionContext;
 use vessel_proto::{ErrorCode, PermissionId, QuestionId, RequestId, SessionId};
 
 /// The app's pending responses are bounded independently of the network queue.
@@ -26,11 +26,11 @@ pub enum ResponseScope {
     One(Request),
 }
 
-/// A request identity is local to a session on one selected node-book entry.
+/// One response carries its exact original connection and owning session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
-    /// Already parsed at the node book boundary.
-    pub machine: MachineKey,
+    /// Original authenticated admission, from the selected canonical Machine snapshot.
+    pub connection: ConnectionContext,
     /// The request's owning session.
     pub session: SessionId,
 }
@@ -97,10 +97,11 @@ impl Registry {
     /// Already pending, full or exhausted request identities refuse admission.
     pub fn begin(&mut self, target: Target, request: Request) -> Result<Pending, Problem> {
         if self.pending.len() >= MAX_PENDING
-            || self
-                .pending
-                .iter()
-                .any(|known| known.target == target && known.request == request)
+            || self.pending.iter().any(|known| {
+                known.target.connection.node() == target.connection.node()
+                    && known.target.session == target.session
+                    && known.request == request
+            })
         {
             return Err(Problem::Busy);
         }

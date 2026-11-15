@@ -1,9 +1,11 @@
 //! One bounded response deadline: uncertainty never means an automatic denial.
 use super::{Answer, Ask, Response};
+use crate::connections::{RequestFailure, SelectedConnection};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{Semaphore, mpsc};
+use vessel_app_view::connection::Refusal;
 use vessel_app_view::responses::{MAX_PENDING, Problem};
-use vessel_client::{CallError, NodeClient};
+use vessel_client::CallError;
 use vessel_proto::{PermissionOutcome, SessionInput};
 
 /// Paseo's response acknowledgement wait, not a human-answer expiry.
@@ -20,7 +22,7 @@ impl Default for Hub {
 impl Hub {
     pub(super) async fn ask(
         &self,
-        client: Option<NodeClient>,
+        connection: Result<SelectedConnection, Refusal>,
         ask: Ask,
         events: mpsc::Sender<crate::Event>,
     ) {
@@ -33,9 +35,9 @@ impl Hub {
             return;
         };
         drop(tokio::spawn(async move {
-            let answer = match client {
-                Some(client) => run(&client, ask).await,
-                None => ask.refused(Problem::Offline),
+            let answer = match connection {
+                Ok(connection) => run(&connection, ask).await,
+                Err(_changed) => ask.refused(Problem::Offline),
             };
             let _closing = events.send(crate::Event::Responded(answer)).await;
             drop(permit);
@@ -43,7 +45,7 @@ impl Hub {
     }
 }
 
-async fn run(client: &NodeClient, ask: Ask) -> Answer {
+async fn run(connection: &SelectedConnection, ask: Ask) -> Answer {
     let input = match ask.response {
         Response::Permission { id, option } => SessionInput::AnswerPermission {
             id,
@@ -53,11 +55,17 @@ async fn run(client: &NodeClient, ask: Ask) -> Answer {
     };
     let result = match tokio::time::timeout(
         RESPONSE_DEADLINE,
-        client.send(ask.pending.target.session, input),
+        connection.call(vessel_proto::SendInput {
+            session: ask.pending.target.session,
+            input,
+        }),
     )
     .await
     {
-        Ok(result) => result.map_err(problem),
+        Ok(result) => result.map(|_ack| ()).map_err(|failure| match failure {
+            RequestFailure::Refused(Refusal::Changed | Refusal::Closed) => Problem::Unconfirmed,
+            RequestFailure::Call(error) => problem(error),
+        }),
         Err(_unconfirmed) => Err(Problem::Unconfirmed),
     };
     Answer {

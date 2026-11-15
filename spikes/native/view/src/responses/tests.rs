@@ -1,9 +1,13 @@
 //! Request and target correlation survive multiple simultaneous card kinds.
 use super::*;
+use crate::{connection::ConnectionEpochs, devices::MachineKey};
+use vessel_proto::NodeId;
 
 fn target() -> Target {
     Target {
-        machine: MachineKey::from_book("scratch"),
+        connection: ConnectionEpochs::default()
+            .admit(MachineKey::from_book("scratch"), NodeId::random())
+            .unwrap(),
         session: SessionId::random(),
     }
 }
@@ -16,7 +20,9 @@ fn one_request_is_single_flight_across_all_local_seats() {
     let first = registry.begin(target.clone(), request).unwrap();
     assert_eq!(registry.begin(target.clone(), request), Err(Problem::Busy));
     let mut wrong = first.clone();
-    wrong.target.machine = MachineKey::from_book("other");
+    wrong.target.connection = ConnectionEpochs::default()
+        .admit(MachineKey::from_book("other"), target.connection.node())
+        .unwrap();
     assert!(!registry.settle(&wrong));
     assert_eq!(registry.begin(target.clone(), request), Err(Problem::Busy));
     assert!(registry.settle(&first));
@@ -69,4 +75,22 @@ fn capacity_and_exhaustion_do_not_reuse_or_release_other_tickets() {
         Err(Problem::Exhausted)
     );
     assert_eq!(registry.pending.len(), MAX_PENDING.saturating_sub(1));
+}
+
+#[test]
+fn reconnects_and_aliases_cannot_double_submit_the_same_node_request() {
+    let mut registry = Registry::default();
+    let first = target();
+    let request = Request::Permission(PermissionId::random());
+    let _pending = registry.begin(first.clone(), request).unwrap();
+    let changed = Target {
+        connection: ConnectionEpochs::default()
+            .admit(
+                MachineKey::from_book("other-alias"),
+                first.connection.node(),
+            )
+            .unwrap(),
+        session: first.session,
+    };
+    assert_eq!(registry.begin(changed, request), Err(Problem::Busy));
 }
