@@ -224,7 +224,8 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     let repo = summary.repo.path.as_str().to_owned();
     let mut title = summary.title.as_str().to_owned();
     let start = title.len();
-    title.push_str(&format!(" #{}", summary.number.get()));
+    title.push_str(" #");
+    title.push_str(&summary.number.get().to_string());
     let number = vec![(
         start..title.len(),
         HighlightStyle {
