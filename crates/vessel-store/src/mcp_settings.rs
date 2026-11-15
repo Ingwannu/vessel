@@ -98,7 +98,7 @@ mod tests {
                 let _identity = data.load_or_create_node_id().unwrap();
             }
             let original =
-                br#"{"mcp":{"policy":[{"harness":"claude","enabled":false,"disabled":[]}]}}"#;
+                br#"{"mcp":{"policy":[{"harness":"claude-code","enabled":false,"disabled":[]}]}}"#;
             std::fs::write(data.settings_path(), original).unwrap();
             let before = data.read_settings().unwrap().unwrap().mcp.unwrap().policy;
             data.initialize_tool_settings().unwrap();

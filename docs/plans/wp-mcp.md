@@ -365,3 +365,10 @@ permit/shutdown tracking remain held. After releasing the writer it checks
 both persisted choice and launch watch state. It creates no session or agent
 process. The selection rollback mode fixture explicitly sets its source mode
 before asserting restoration; execution is still pending.
+
+
+Exact a694cda2 protocol tests pass 289/0/0. Store tests pass 84 and fail
+one new migration fixture because it used the human alias `claude` instead
+of the canonical settings-wire value `claude-code`. The fixture now uses the
+wire value; policy retention/default/identity assertions are unchanged. A
+store rerun is required; the earlier failed evidence remains intact.
