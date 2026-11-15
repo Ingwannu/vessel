@@ -183,6 +183,14 @@ pub enum Glyph {
     Split,
     /// Pinned.
     Pin,
+    /// A vertical kebab, for a row's actions (horizontal More stays unchanged).
+    MoreVertical,
+    /// Pause a recurring action.
+    Pause,
+    /// Resume an action.
+    Play,
+    /// Run again now: one clockwise rotation arrow.
+    RotateCw,
     /// Original combined activity asset, retained for compatibility. Use the
     /// loading control to apply track alpha after monochrome mask correction.
     ActivityIndicator,
@@ -224,7 +232,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 88] = [
+const ALL: [Glyph; 92] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -296,6 +304,10 @@ const ALL: [Glyph; 88] = [
     Glyph::Undo2,
     Glyph::Split,
     Glyph::Pin,
+    Glyph::MoreVertical,
+    Glyph::Pause,
+    Glyph::Play,
+    Glyph::RotateCw,
     Glyph::ActivityIndicator,
     Glyph::ActivityTrack,
     Glyph::ActivityArc,
@@ -396,6 +408,10 @@ impl Glyph {
             Self::Undo2 => "kit/undo-2.svg",
             Self::Split => "kit/split.svg",
             Self::Pin => "kit/pin.svg",
+            Self::MoreVertical => "kit/more-vertical.svg",
+            Self::Pause => "kit/pause.svg",
+            Self::Play => "kit/play.svg",
+            Self::RotateCw => "kit/rotate-cw.svg",
             Self::ActivityIndicator => "kit/activity-indicator.svg",
             Self::ActivityTrack => "kit/activity-track.svg",
             Self::ActivityArc => "kit/activity-arc.svg",

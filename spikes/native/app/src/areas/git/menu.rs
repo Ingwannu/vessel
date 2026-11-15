@@ -69,10 +69,10 @@ pub(super) fn item(shell: &Shell, entry: &MenuEntry, status: &GitStatus) -> Menu
                 Some(_) | None => shell.t.lang.git_action_label(row.action, status),
             };
             MenuItem {
-                label: label.into(),
                 tone: vessel_app_kit::menu::Tone::Plain,
                 disabled: row.unavailable == Some(Unavailable::Writing),
                 starts_group: row.starts_group,
+                ..MenuItem::new(label)
             }
         }
         MenuEntry::Pull(pull) => pull_item(shell, pull),
@@ -99,10 +99,10 @@ fn merge_item(shell: &Shell, method: MergeMethod) -> MenuItem {
         Some(_) | None => merge_label(method, shell.words),
     };
     MenuItem {
-        label: label.into(),
         tone: vessel_app_kit::menu::Tone::Plain,
         disabled: shell.areas.git.writing.busy() || merging.is_some(),
         starts_group: false,
+        ..MenuItem::new(label)
     }
 }
 
@@ -125,10 +125,10 @@ fn pull_item(shell: &Shell, entry: &PullEntry) -> MenuItem {
         PullEntry::Create | PullEntry::Unavailable(_) | PullEntry::Hidden => words.create(),
     };
     MenuItem {
-        label: label.into(),
         tone: vessel_app_kit::menu::Tone::Plain,
         disabled: shell.areas.git.writing.busy() || sending,
         starts_group: true,
+        ..MenuItem::new(label)
     }
 }
 
