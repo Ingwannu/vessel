@@ -58,9 +58,11 @@ Registration commits a new agent: first-prompt failure retains that agent and
 does not go back to creating another one. Completed receipts are rechecked
 against the registry/resource before being returned as reusable success.
 
-Workspace provision delegates to ADR 0082's idempotent provision API using the
-receipt's reserved WorkspaceId. Backing reservations belong to the registry;
-this package does not create a second workspace table or filesystem workflow.
+Workspace provision uses the receipt's reserved WorkspaceId and ADR 0082's
+registry/backing reservation API. Under the recorded ownership transfer, A1
+owns the actual filesystem adapter while the registry, project admission and
+fixed-id worktree primitives remain their existing owners. This package does
+not create a second workspace table or bypass those admission boundaries.
 All project approvals and setup blockers remain explicit, never auto-approved.
 
 Terminal profiles are a bounded ordered set of validated ids, display names,
@@ -195,9 +197,11 @@ the method table registers both as pending unary calls, never a dummy version.
 Contract source accepted by V3 row154; implementation security review remains owed.
 
 This amendment extends agent creation for MCP without opening a person's
-workspace/terminal creation or operation history to agents. It is a contract
-proposal only: the current handler still refuses agents, and no namespace or
-agent receipt behavior is implemented until V3 accepts this amendment.
+workspace/terminal creation or operation history to agents. V3 has accepted
+the contract. Principal-bound storage and own-agent observation are staged
+implementations awaiting source acceptance; the actual agent creation driver
+and MCP acknowledgement remain unavailable. Contract acceptance alone does
+not approve those implementations or authorize runtime effects.
 
 ### Authority and identity
 
