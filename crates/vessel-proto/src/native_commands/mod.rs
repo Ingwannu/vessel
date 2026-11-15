@@ -127,7 +127,7 @@ mod tests;
 
 /// Bound the original command echo as well as the normalized goal objective.
 /// A small fixed prefix/whitespace allowance never silently truncates submitted text.
-pub const MAX_NATIVE_COMMAND_ORIGINAL_BYTES: usize = MAX_GOAL_OBJECTIVE_BYTES + 256;
+pub const MAX_NATIVE_COMMAND_ORIGINAL_BYTES: usize = MAX_GOAL_OBJECTIVE_BYTES.saturating_add(256);
 
 impl NativeCommandIntent {
     /// Native commands use exactly one original text block, never attachments,
