@@ -168,6 +168,7 @@ fn script_row(
             div()
                 .flex_1()
                 .min_w_0()
+                .truncate()
                 .type_(Type::Body)
                 .text_color(tokens.neutral.foreground)
                 .child(name.to_string()),
