@@ -363,3 +363,8 @@ revision ordering. A headless app test exercises delayed old-node list/progress
 and readiness; a framed in-memory link test checks refusal before sending to a
 rebound peer. These changes have not compiled or run. They do not provide the
 registry snapshot, workspace activation, status join or full C1 acceptance.
+
+Readiness additionally requires a verified project-cache peer binding; a current
+fleet welcome cannot authenticate a previously unbound cached list by itself.
+The existing readiness fixture now enters its list through the same correlated
+hydration path, rather than assigning unscoped display state directly.

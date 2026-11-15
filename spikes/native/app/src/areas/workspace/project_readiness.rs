@@ -21,7 +21,9 @@ impl Shell {
         if self.project_node(host.as_str()) != Some(node) {
             return ProjectSetupReadiness::Failed;
         }
-        if self.areas.workspace.project_reads.pending(host, node) {
+        if self.areas.workspace.project_reads.node(host.as_str()) != Some(node)
+            || self.areas.workspace.project_reads.pending(host, node)
+        {
             return ProjectSetupReadiness::Pending;
         }
         let page = &self.areas.workspace.page;
@@ -103,9 +105,21 @@ mod tests {
                 created_at: "1970-01-01T00:00:00Z".parse().unwrap(),
                 revision: 0,
             };
-            let _previous = shell.areas.workspace.projects.insert(
-                host.to_string(),
-                ProjectsView::Ready(ProjectList {
+            let read = shell
+                .areas
+                .workspace
+                .project_reads
+                .begin(
+                    vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
+                        host.clone(),
+                        node,
+                    ),
+                )
+                .unwrap();
+            shell.projects_read(
+                host.as_str(),
+                &read,
+                Ok(ProjectList {
                     git: GitSupport::Missing,
                     projects: vec![project.clone()],
                     more: false,
