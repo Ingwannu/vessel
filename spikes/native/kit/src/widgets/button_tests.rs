@@ -1,5 +1,5 @@
 //! Exact values from Paseo button.tsx and its light/default-dark theme.
-//! Kept as one419-line literal matrix so palette, legacy compatibility, content
+//! Kept as one literal matrix so palette, legacy compatibility, content
 //! and size cases remain readable together; actual input has its own module.
 use super::*;
 use crate::Scheme;
@@ -89,7 +89,7 @@ fn destructive_text_does_not_inherit_a_future_accents_foreground() {
 }
 
 #[test]
-fn medium_button_geometry_and_legacy_sizing_alias_are_exact() {
+fn medium_button_geometry_and_canonical_touch_target_are_exact() {
     assert_eq!(
         button_geometry(ControlSizing::Pointer),
         ButtonGeometry {
@@ -106,10 +106,6 @@ fn medium_button_geometry_and_legacy_sizing_alias_are_exact() {
     );
     assert_eq!(
         crate::control_sizing::TOUCH_TARGET.to_bits(),
-        crate::breakpoint::TOUCH_TARGET.to_bits()
-    );
-    assert_eq!(
-        crate::popup::TOUCH_TARGET.to_bits(),
         crate::breakpoint::TOUCH_TARGET.to_bits()
     );
     for scheme in [Scheme::Light, Scheme::Dark] {

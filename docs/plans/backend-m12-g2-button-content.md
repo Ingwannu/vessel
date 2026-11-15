@@ -81,3 +81,12 @@ producer alias assertion is excluded here. Step2 reuses exact434933b3 loader,
 asset and legacy spinner blobs; the base size record only lowers719 to711.
 No old Link size entry is revived. Only the final range head is to be narrowed;
 no independent stage1/stage2 gate or UI approval is claimed from that result.
+
+
+Producer scope correction:6036 has no public popup::TOUCH_TARGET alias either.
+Remove that out-of-scope alias assertion from this isolated producer along with
+its menu alias assertion; retain the actual ControlSizing-to-breakpoint44 check.
+Both old aliases remain tested in the full F1 branch where they really exist.
+No production code or actual supported-button assertion changes. The immutable
+b094 queued run predates this discovery, stays unchanged, and its actual outcome
+must be retained; it cannot prove this correction. No new known-red run is sent.
