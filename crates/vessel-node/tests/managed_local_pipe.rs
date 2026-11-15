@@ -1,5 +1,6 @@
 //! Real Windows API probes; wine execution is only an approximation of Windows.
 
+#![cfg(test)]
 #![cfg(windows)]
 
 use futures_util::SinkExt as _;

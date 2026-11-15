@@ -1,5 +1,6 @@
 //! A real same-home replacement must never inherit an old child's RPC authority.
 
+#![cfg(test)]
 #![cfg(all(target_os = "linux", feature = "local-node-fixture"))]
 
 #[path = "../src/bin/local_node_fixture/control.rs"]

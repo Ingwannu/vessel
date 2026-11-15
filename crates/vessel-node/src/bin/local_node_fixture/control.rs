@@ -38,10 +38,10 @@ mod pid {
     use serde::{Deserialize as _, Deserializer, Serializer};
 
     pub(super) fn serialize<S: Serializer>(
-        value: &ProcessId,
+        value: impl std::borrow::Borrow<ProcessId>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u32(value.get())
+        serializer.serialize_u32(value.borrow().get())
     }
 
     pub(super) fn deserialize<'de, D: Deserializer<'de>>(
