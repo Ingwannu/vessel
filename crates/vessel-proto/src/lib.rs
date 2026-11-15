@@ -56,7 +56,6 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
-pub mod subagents;
 mod terminal;
 pub mod terminals;
 mod title;
@@ -221,3 +220,6 @@ mod tests {
         assert_eq!(serde_json::from_str::<EventRecord>(&json).unwrap(), record);
     }
 }
+
+/// Managed current parentage and read-only provider source values (ADR 0090).
+pub mod subagents;
