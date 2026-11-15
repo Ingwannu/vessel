@@ -67,6 +67,68 @@ pub(super) struct Started {
     pub(super) catalogue_task: JoinHandle<()>,
 }
 
+/// A complete generation prepared before node runtime tasks are started.
+#[derive(Debug)]
+pub(super) struct Prepared {
+    directory: DataDir,
+    overrides: ProviderOverrides,
+    plugins: Vec<PluginDefinition>,
+    registry: ProviderRegistry,
+}
+
+impl Prepared {
+    pub(super) fn read(
+        directory: DataDir,
+        plugins: Vec<PluginDefinition>,
+    ) -> Result<Self, ConfigurationFailure> {
+        let loaded = directory.load_provider_overrides(chrono::Utc::now())?;
+        if loaded.state == vessel_store::ProviderFileState::Recovered {
+            tracing::warn!(
+                "unreadable provider configuration preserved; manifest defaults selected"
+            );
+        }
+        let overrides = loaded.overrides;
+        let registry =
+            ProviderRegistry::build(&overrides, &plugins).map_err(ConfigurationFailure::Invalid)?;
+        Ok(Self {
+            directory,
+            overrides,
+            plugins,
+            registry,
+        })
+    }
+
+    pub(super) fn start<P, F>(self, producer: P) -> Started
+    where
+        P: Fn(super::cache::Work, CancellationToken) -> F + Send + Sync + 'static,
+        F: Future<Output = Observation> + Send + 'static,
+    {
+        let Self {
+            directory,
+            overrides,
+            plugins,
+            registry,
+        } = self;
+        let (cache, catalogue_task) = Owner::start(registry.clone(), producer);
+        let (edits, receiver) = mpsc::channel(EDIT_CAPACITY);
+        let configuration = Configuration { edits };
+        let task = tokio::spawn(run(
+            directory,
+            overrides,
+            plugins,
+            registry,
+            cache.clone(),
+            receiver,
+        ));
+        Started {
+            configuration,
+            cache,
+            task,
+            catalogue_task,
+        }
+    }
+}
+
 impl Configuration {
     pub(super) async fn open<P, F>(
         directory: DataDir,
@@ -77,30 +139,9 @@ impl Configuration {
         P: Fn(super::cache::Work, CancellationToken) -> F + Send + Sync + 'static,
         F: Future<Output = Observation> + Send + 'static,
     {
-        let reader = directory.clone();
-        let loaded =
-            tokio::task::spawn_blocking(move || reader.load_provider_overrides(chrono::Utc::now()))
-                .await??;
-        let overrides = loaded.overrides;
-        let registry =
-            ProviderRegistry::build(&overrides, &plugins).map_err(ConfigurationFailure::Invalid)?;
-        let (cache, catalogue_task) = Owner::start(registry.clone(), producer);
-        let (edits, receiver) = mpsc::channel(EDIT_CAPACITY);
-        let configuration = Self { edits };
-        let task = tokio::spawn(run(
-            directory,
-            overrides,
-            plugins,
-            registry,
-            cache.clone(),
-            receiver,
-        ));
-        Ok(Started {
-            configuration,
-            cache,
-            task,
-            catalogue_task,
-        })
+        let prepared =
+            tokio::task::spawn_blocking(move || Prepared::read(directory, plugins)).await??;
+        Ok(prepared.start(producer))
     }
 
     pub(super) async fn replace(
