@@ -111,14 +111,19 @@ Do not start a second theme type in the app.
   preserves the fixed menu colour and passes the full native gate:
   1,181 passed, zero failed, one existing ignored capture. Its normal
   local app build also passed. V1 passed consumer source/native; its UI disposition is pending.
-- Half-done: private-display runtime captures now cover the existing
-  Appearance chooser; the four-scale/language/window matrix, each stored
-  choice restored in a new process, and System's live appearance path are
-  still being checked. Initial calibration frames are excluded.
-- Next: inspect the final captures and submit their exact source/binary
-  manifest to V1. S2's separate shortcut registration is gated/reviewed
-  separately; it is not in this consumer binary. Do not repaint Light or
-  Dark, add an absent token, or treat source tests as live UI evidence.
+- Done: the consumer's final private-display package has 332 assigned
+  original images: the eight choices in both languages/four window sizes/
+  four scales, actual saved-byte restart checks, live System portal events,
+  actual palette input/catalogue and the existing marks example. The
+  changed regions and original-derived inspection sheets were inspected;
+  representative full originals and all mark/catalogue originals were opened.
+- Half-done: V1's final visual/package disposition is pending. The separate
+  shortcut registration has an input-boundary correction pending with its
+  owner; it is not in this consumer binary. ADR 0070 remains proposed.
+- Next: submit the single final feature package under the current review
+  policy, then resolve any actual defect returned. No source changed after
+  the native pass, so no unchanged whole gate is repeated. Do not repaint
+  Light or Dark, add an absent token, or claim untested OS/GPU/IME behaviour.
 
 ### Resumption, 2026-11-15
 
@@ -351,3 +356,72 @@ System events, same-dark visual changes, palette input, fractional marks,
 real OS/GPU behaviour and general accessibility approval. The shortcut
 registration is a separate source range, not part of this binary.
 The final runtime package and its inspected evidence are still pending.
+
+
+### Final consumer runtime package, 2026-11-15
+
+The runtime source and both local binaries remain pinned to `fb711444`.
+Later commits change this plan only. There is one combined image/source/
+gate assignment in the scratch evidence root, `theme-final-manifest.json`,
+with a companion SHA-256 file, exact physical dimensions, scale, language,
+UID and SHA-256 for every assigned original. Its evidence references pin
+the source inputs, twelve matching font/licence inputs, native gate,
+inspection records and process cleanup. No screenshot or credential file
+is committed.
+
+| Assigned evidence | Original images | What it verifies |
+| --- | ---: | --- |
+| Appearance choices | 256 | Every choice selected, stored enum and actual background RGB; English/Korean, 1280×800/390×800/800×600/1024×700, scales 1/1.25/1.5/2 |
+| Fresh-process restores | 24 | All eight choices saved through the UI, exact preference bytes unchanged after reopening, nonblank paint and fake bridge loaded; selected tile captured without clicking it again |
+| Private System portal | 20 | At all four scales, System light→dark through the real GPUI portal event, fixed Midnight across the opposite event, then System light again |
+| Command palette input | 22 | Five new themes searched and chosen with Enter in English at 1280 and Korean at 390; real saved enum, painted colour and selected tile |
+| Command palette catalogue | 2 | All eight localized entries visible, System first and Pure black last, current choice checked |
+| Existing mark example | 8 | Five existing official assets at 14/16/20 points on off-grid origins, both schemes and all four scales |
+
+The complete Appearance matrix was already produced before the review
+policy changed. The final input/catalogue checks use the two relevant
+language/window cases; they do not add another matrix for the unchanged
+popup layout. Inspection used all 32 eight-state theme-grid sheets, the
+restart/System/input sheets, representative full originals, and every
+mark and catalogue original. No overlapping new tile label or clipped
+chosen outline was found in those regions. Lower sections retain the
+existing vertical scroll; this is not a claim that every section fits in
+one viewport.
+
+Excluded attempts remain separate. Eight original mark shots were black
+first frames. The earlier restart set also included a black Pure black
+startup frame: its expected background alone cannot prove the UI has
+painted. Final restart checks require nonblank UI and the fake bridge,
+and compare the actual saved file bytes across processes. An initial
+palette set had stale empty-query frames even though its subsequent
+selection actions succeeded; final query images wait for a changed,
+stable frame and were read directly. Diagnostic OCR mistakes `Zinc` for
+`Zine` and the Korean prefix for Latin letters, so it is not an automatic
+semantic pass. The Korean Pure black search uses the one-character
+prefix 순, with the full localized command label visible; no IME
+composition test is claimed. An OCR timeout in the catalogue harness is
+retained as a failed harness attempt, not a product or native-gate result.
+
+Limits: the System test uses an isolated desktop-portal fixture and
+software rendering, not an installed desktop or hardware GPU. No Mac,
+general accessibility, 12-point mark or complete app-surface certification
+is claimed. The four legacy constructor bodies are byte-identical to the
+baselines; an entire baseline-screen pixel comparison was not performed.
+The existing Body14 tile label versus Paseo's small12, Korean Light/Dark
+names and Pure black brand-accent substitution remain the stated ADR
+differences. No new vendor artwork is introduced.
+
+The separate shortcut registration is not merged into this source. Its
+owner is correcting the host's CharacterInput/AltGr boundary before the
+matcher; the current terminal-context seam remains the lead's named false
+stub until an actual terminal API exists. Neither the candidate's gate
+nor these screenshots certify that input route. Its integration and the
+complete parity/ADR verdict remain external review obligations.
+
+All runtime work ran as UID 1000. Preferences and display authority files
+were private; no production ownership or permission changed. The two
+fake-node roots and their recorded descendants (22 processes total) were
+stopped only after matching PID, start time, UID and executable. All 206
+recorded capture/private-bus identities were checked; no owned survivor
+remained. No real agent, preview node, push or release was used. Final
+source/native pass and final visual approval remain distinct.
