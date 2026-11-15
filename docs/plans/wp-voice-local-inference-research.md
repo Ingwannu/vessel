@@ -88,3 +88,53 @@ Silero boundary is not an inference engine. A minimal VAD/runtime amendment must
 precede that activation too. Until then endpoint mechanisms can be tested with
 typed detector fakes, but neither endpoint success nor those fakes advertise
 working conversation voice.
+
+## Minimal VAD metadata comparison (2026-11-15 11:58 UTC)
+
+No new model/native-runtime artifact was downloaded for this comparison. Hashing
+Paseo's already-present reference asset (pinned app source1c00b365) yields643854B
+and SHA2569e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6.
+The official k2-fsa asr-models release API advertises exactly the same size/digest
+for silero_vad.onnx. Its [VAD documentation](https://k2-fsa.github.io/sherpa/onnx/vad/silero-vad.html)
+and [PR2372](https://github.com/k2-fsa/sherpa-onnx/pull/2372) identify this629KiB
+file as k2-fsa's16k-only v4 export, not the newer2.22MiB v5/v6 model. Switching
+to current upstream Silero bytes would change the reference model. No asset
+was copied into Vessel, parsed with a model runtime or loaded for inference.
+The exact converted-model attribution still belongs in the reviewed amendment.
+
+A smaller-scope alternative to the full Sherpa runtime is the safe Rust ort
+wrapper plus CPU ONNX Runtime, retaining the reference model and implementing
+Sherpa's internal100ms speech/200ms silence decisions as a separately tested
+adapter before the existing800ms/1000ms outer boundary. Direct probability
+thresholding alone does not establish parity. This alternative is unselected.
+
+Official release/crate metadata, not binary-content attestations:
+
+| Candidate | Declared archive bytes | Published SHA256 |
+|---|---:|---|
+| onnxruntime-linux-x64-1.28.2.tgz |9128991|d7209b8751b27b862b0c76332c2e20e203396edb5dab700ecf4bb485cf147415|
+| onnxruntime-win-x64-1.28.2.zip |78620837|c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35|
+| ort2.0.0-rc.15 crate |168000|37c87aa7a90b7ff3e0fe36cccd475df8d67f15f07f4d6c370c4b38464232813c|
+| ort-sys2.0.0-rc.15 crate |59054|8d22b0417f1838db5a3ac0b3f98dfe39f6fb73624aa0a27c6bbb5040b9c7db2b|
+
+[Microsoft release metadata](https://api.github.com/repos/microsoft/onnxruntime/releases/tags/v1.28.2)
+pins source33ca9628233dc8f002435e868d4c2e9f82766ca1. The
+[ort](https://crates.io/api/v1/crates/ort/2.0.0-rc.15) and
+[ort-sys](https://crates.io/api/v1/crates/ort-sys/2.0.0-rc.15) records declare
+MIT OR Apache-2.0 and Rust1.92. Their default feature set is unsuitable: it
+includes automatic binary download, TLS, copy-dylibs and a newer API floor.
+A proposal would explicitly disable defaults and select only std/load-dynamic
+and the pinned runtime API floor, with an exact installer-owned library path,
+no environment/system-library fallback, explicit CPU execution and no model
+fetch feature. Transitive selection/licence inventory, loader failure behavior,
+exact archive file lists/notices and linked/loaded size remain unproved.
+
+The [runtime privacy document](https://github.com/microsoft/onnxruntime/blob/33ca9628233dc8f002435e868d4c2e9f82766ca1/docs/Privacy.md)
+says official Windows builds enable platform telemetry by default; the
+[wrapper builder](https://docs.rs/ort/2.0.0-rc.15/ort/environment/struct.EnvironmentBuilder.html)
+exposes explicit telemetry disabling and a logger hook. Any proposal must turn
+telemetry off before session creation and suppress foreign model/runtime log
+payloads, then prove absence of unintended egress rather than assume CPU means
+offline. The runtime's top-level MIT licence does not replace its full
+ThirdPartyNotices.txt. This comparison is not the required V3 amendment or
+permission to download, ship, load or add either runtime dependency.
