@@ -12,7 +12,7 @@ impl DataDir {
     /// Identity presence, preservation of earlier settings or persistence failed.
     pub fn initialize_tool_settings(&self) -> Result<(), StoreError> {
         use crate::SetAside;
-        use vessel_proto::mcp::{Injection, McpSettingsPatch};
+        use vessel_proto::mcp::Injection;
         let existing = match std::fs::symlink_metadata(self.root().join(NODE_ID_FILE)) {
             Ok(_entry) => true,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
@@ -36,19 +36,18 @@ impl DataDir {
                 vessel_proto::settings::SetNodeSettings::default()
             }
         };
-        if saved.mcp.is_some() {
+        if saved.mcp.as_ref().is_some_and(|mcp| mcp.inject.is_some()) {
             return Ok(());
         }
         if self.settings_hold_more_than(&saved)? {
             let _aside = self.set_aside_settings(chrono::Utc::now(), SetAside::Later)?;
         }
-        saved.mcp = Some(McpSettingsPatch {
-            inject: Some(if existing {
-                Injection::On
-            } else {
-                Injection::Off
-            }),
-            policy: None,
+        // A provider policy is not an injection choice. Fill only the missing
+        // switch so an upgrade does not silently disable an existing policy.
+        saved.mcp.get_or_insert_default().inject = Some(if existing {
+            Injection::On
+        } else {
+            Injection::Off
         });
         self.write_settings(&saved)
     }
@@ -88,6 +87,33 @@ mod tests {
         let _identity = data.load_or_create_node_id().unwrap();
         data.initialize_tool_settings().unwrap();
         assert_eq!(injection(&data), Injection::On);
+    }
+
+    #[test]
+    fn a_policy_without_a_switch_keeps_its_policy_and_gets_the_identity_default() {
+        for existing in [false, true] {
+            let home = tempfile::tempdir().unwrap();
+            let data = DataDir::new(home.path());
+            if existing {
+                let _identity = data.load_or_create_node_id().unwrap();
+            }
+            let original =
+                br#"{"mcp":{"policy":[{"harness":"claude","enabled":false,"disabled":[]}]}}"#;
+            std::fs::write(data.settings_path(), original).unwrap();
+            let before = data.read_settings().unwrap().unwrap().mcp.unwrap().policy;
+            data.initialize_tool_settings().unwrap();
+            let after = data.read_settings().unwrap().unwrap().mcp.unwrap();
+            assert_eq!(after.policy, before);
+            assert_eq!(
+                after.inject,
+                Some(if existing {
+                    Injection::On
+                } else {
+                    Injection::Off
+                })
+            );
+            assert_eq!(data.read_node_id().unwrap().is_some(), existing);
+        }
     }
 
     #[test]

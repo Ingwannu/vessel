@@ -350,3 +350,10 @@ than inheriting 11. The failure logs are retained. A new synthetic-home
 interruption test recovers applied patches against the unchanged durable
 choice; persistence-failure coverage also pins Unix permission restoration.
 These changes do not constitute a successful rerun yet.
+
+
+Migration now treats only an explicit `mcp.inject` value as the migration
+marker. A partial provider-policy object does not silently turn tools off on
+an existing identity: the missing switch receives the fresh/upgrade default
+while the exact stored policy remains. Synthetic fresh/existing cases pin
+both policy retention and absence of accidental identity creation.
