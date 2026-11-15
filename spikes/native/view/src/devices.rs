@@ -11,9 +11,13 @@
 //!   [`vessel_proto::PairingLink`], whose `Debug` never prints it, so it
 //!   reaches no log, no capture's name and no test's failure message.
 
+mod answers;
 mod details;
 mod inspection;
 pub use inspection::{DeviceMetadata, SelectionError};
+mod identity;
+pub use crate::connection::{ConnectionContext, ConnectionEpoch, ConnectionEpochs, MachineKey};
+pub use identity::{DeviceIdentity, IdentityChange, StaleContext};
 mod row;
 pub use row::{Access, DeviceBadge};
 mod invitation;
@@ -24,8 +28,8 @@ pub mod time;
 
 pub use details::{DeviceState, details, exact};
 pub use invitation::{DisplayLimit, Pairing, invitation_route};
-pub use page::{Inviting, Listing, Problem, Revoking, Ticket, Tickets};
-pub use target::{MachineKey, Page, Target};
+pub use page::{Confirmation, Inviting, Listing, Problem, Revoking, Ticket, Tickets};
+pub use target::{Page, RevokeIntent, Target};
 
 use chrono::{DateTime, Duration, Utc};
 use vessel_proto::DeviceInfo;
