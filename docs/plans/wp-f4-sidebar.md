@@ -404,3 +404,26 @@ preference change. E2 authorized precisely one exhaustive read-next-frame arm
 in `settings/prefer.rs`; no field/frame/application behavior was copied there.
 W19's canonical multiwindow preference delta merger must include this band
 when its checked producer lands; no alternative save path is introduced.
+
+### Native callout registration seam
+
+`areas/sidebar/callouts.rs` joins the pure admission store, the shared kit strip
+and the existing preference setter. Providers register a compile-time UI
+`SourceId`, priority, optional durable key, current-theme/current-language drawing
+callback, dismissal permission and optional callback. Domain targets are captured
+by the provider; the registry never resolves a current machine alias to authorize
+an old action. The returned token is required for cleanup, so an old owner cannot
+unregister its replacement. A default-empty slot sits above the fixed footer.
+No notice appears until an owner registers actual facts and working actions.
+
+Native preferences are already loaded before Shell exists, so the first
+registration loads the typed dismissal band synchronously, without a second
+AsyncStorage read. Dismissal removes the admitted entry, persists a changed
+durable band with `Shell::prefer`, then calls the provider's callback. Ephemeral
+removal does not save an unchanged band. Pointer/retained-key/cleanup regressions
+use a real GPUI strip around an isolated shell with no link or updater. They
+prove in-memory preference dispatch, not disk-write or multiwindow completion.
+W19's future canonical preference-delta consumer must synchronize this band;
+no second save or event mechanism is added here. Setup, Rosetta and update
+admission remain with W11/W8/W19. This default-empty viewport is not evidence
+that those providers or unsupported platform facts are implemented.

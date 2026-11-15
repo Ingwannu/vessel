@@ -37,6 +37,7 @@ use crate::routes::Route;
 use crate::shell::Shell;
 
 mod actions;
+pub(crate) mod callouts;
 mod display;
 mod foot;
 mod layout;
@@ -56,6 +57,7 @@ const HEADING_BACK: f32 = -4.0;
 /// The sidebar's own state: its tooltips, and where each unreachable
 /// machine's line is drawn (by machine name).
 pub(crate) struct SidebarState {
+    callouts: callouts::Callouts,
     layout: layout::Layout,
     tips: Tooltips,
     places: RefCell<HashMap<String, vessel_app_kit::tooltip::Place>>,
@@ -73,6 +75,7 @@ pub(crate) struct SidebarState {
 impl SidebarState {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            callouts: callouts::Callouts::default(),
             layout: layout::Layout::new(cx),
             tips: Tooltips::new(),
             places: RefCell::new(HashMap::new()),
@@ -203,6 +206,7 @@ pub(crate) fn render(
                 .flatten()
                 .map(|status| div().flex_none().px(px(INSET)).child(status)),
         )
+        .children(callouts::render(shell, tokens, cx).map(|strip| strip.flex_none()))
         .child(foot::foot(shell, tokens, cx).flex_none())
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))
