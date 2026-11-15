@@ -330,6 +330,7 @@ impl Shell {
     }
 
     pub(crate) fn toggle_code(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.side_close();
         if self.areas.session.open.is_none() {
             return;
         }

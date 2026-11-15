@@ -124,7 +124,6 @@ impl Shell {
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
     }
-
     /// Send `command`; one the link does not take settles on the next
     /// update, after the caller's own code, through the handler its
     /// answer would reach (`crate::unsent`: callers that set what waits
@@ -142,7 +141,6 @@ impl Shell {
             let _closing = self.unsent.send(unsent);
         }
     }
-
     /// A command the link did not take: what waits on it settles in the
     /// app's words. Without a link at all, the foot keeps saying why the
     /// link did not start.
@@ -163,7 +161,6 @@ impl Shell {
         }
         cx.notify();
     }
-
     /// Checked device dispatch keeps a refused queue from leaving its page pending.
     pub(crate) fn devices_send(
         &self,
@@ -176,7 +173,6 @@ impl Shell {
             .ok_or(vessel_app_view::devices::Problem::Offline)?
             .request_devices(machine, ticket, ask)
     }
-
     /// Checked read-only dispatch settles a full or closed command queue.
     pub(crate) fn sync_send(
         &self,
@@ -192,12 +188,14 @@ impl Shell {
     /// Show `route` from where no window is at hand; what arriving does
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
+        self.side_route_changed(route);
         self.route = route;
         self.arrive_pending = true;
     }
 
     /// Show `route`.
     pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.side_route_changed(route);
         self.route = route;
         routes::arrive(route, self, window, cx);
         cx.notify();
@@ -205,6 +203,7 @@ impl Shell {
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::SideQuestion(event) => self.side_event(event, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -259,6 +258,7 @@ impl Shell {
                 if let Some(answer) = self
                     .board_acted(answer, cx)
                     .and_then(|answer| self.option_acted(answer, cx))
+                    .and_then(|answer| self.side_acted(answer, cx))
                 {
                     self.acted(answer, cx);
                 }

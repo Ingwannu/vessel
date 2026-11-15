@@ -23,6 +23,7 @@ pub(crate) mod pulls;
 pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
+pub(crate) mod side_question;
 pub(crate) mod sidebar;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
@@ -36,6 +37,7 @@ pub(crate) struct Areas {
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
+    pub(crate) side_question: side_question::SideQuestion,
     pub(crate) pair: pair::Pairing,
     pub(crate) conversation: conversation::ConversationArea,
     pub(crate) settings: settings::SettingsState,
@@ -60,6 +62,7 @@ impl Areas {
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
+            side_question: side_question::SideQuestion::new(window, cx),
             pair: pair::Pairing::new(window, cx),
             conversation: conversation::ConversationArea::new(cx),
             settings: settings::SettingsState::new(window, cx),

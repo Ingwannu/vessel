@@ -110,6 +110,14 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 ),
             ))),
+            Command::SideQuestion(crate::side_question::Command::Run(ask)) => {
+                self.emit(Event::SideQuestion(crate::side_question::Event::Answer(
+                    ask.refused(vessel_app_view::side_question::Problem::Unsupported),
+                )))
+            }
+            Command::SideQuestion(
+                crate::side_question::Command::Watch(_) | crate::side_question::Command::Close,
+            ) => {}
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

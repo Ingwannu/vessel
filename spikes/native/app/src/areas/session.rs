@@ -42,7 +42,6 @@ pub(crate) struct Open {
     /// without a composer).
     pub(crate) live: bool,
 }
-
 impl Open {
     pub(crate) fn of(card: &Card) -> Self {
         Self {
@@ -55,7 +54,6 @@ impl Open {
         }
     }
 }
-
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
 pub(crate) struct Pending {
@@ -99,7 +97,6 @@ impl SessionView {
         }
     }
 }
-
 impl Shell {
     /// Open a session from a card or a row, the composer focused.
     pub(crate) fn open_session(
@@ -127,9 +124,9 @@ impl Shell {
             self.areas.session.composer.focus(window, cx);
         }
     }
-
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.side_parent_changed(&open.machine, open.session);
         self.conversation_opened(&open.machine, open.session, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
@@ -144,7 +141,6 @@ impl Shell {
         self.route = Route::Session;
         cx.notify();
     }
-
     /// The draft was sent: show its prompt while the session starts.
     /// The machine `from` is called `to` now (Settings › Machines, track
     /// E2, after the book was written): the session open and a session
@@ -154,6 +150,7 @@ impl Shell {
         reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
     )]
     pub(crate) fn session_machine_renamed(&mut self, from: &str, to: &str) {
+        self.side_book_changed(from);
         let view = &mut self.areas.session;
         if let Some(open) = &mut view.open
             && open.machine == from
@@ -175,6 +172,7 @@ impl Shell {
         reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
     )]
     pub(crate) fn session_machine_forgotten(&mut self, name: &str) {
+        self.side_book_changed(name);
         let view = &mut self.areas.session;
         if view
             .pending
@@ -201,6 +199,7 @@ impl Shell {
         prompt: String,
         cx: &mut Context<'_, Self>,
     ) {
+        self.side_close();
         let view = &mut self.areas.session;
         view.open = None;
         view.conversation = Conversation::default();
@@ -486,6 +485,7 @@ pub(crate) fn render(
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
     // Track F's slot: the screen, with the code panel beside it when out.
+    let screen = crate::areas::side_question::beside(shell, screen, tokens, window, cx);
     crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }
 

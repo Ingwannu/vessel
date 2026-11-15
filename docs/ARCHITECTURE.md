@@ -1,5 +1,14 @@
 # Architecture
 
+Native WP-A5a adds an independent side-question seat using the existing
+conversation renderer and request cards. Its pure lifecycle is
+`spikes/native/view/src/side_question`, its typed node boundary and separate
+subscription are in `link/src/side_question`, and its composer/panel are in
+`app/src/areas/side_question`. This adds no crate dependency edge. Main and
+side records travel in different link events; only a matching parent,
+machine, side and request generation may update the side seat. The node
+calls await the central Step 0 integration; no new wire contract is defined.
+
 The backend as built through milestone 4 (2026-11-06). What each crate
 holds now is in "State" below; each milestone's plan is in `docs/plans/`,
 and the reasons are in `docs/adr/`.

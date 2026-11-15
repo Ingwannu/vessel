@@ -78,7 +78,7 @@ pub(crate) mod timeline;
 mod tool;
 
 pub(crate) use actions::{AgentLog, Confirm, MenuAction};
-pub(crate) use area::ConversationArea;
+pub(crate) use area::{ConversationArea, Followup};
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
 pub(crate) use meter::meter;

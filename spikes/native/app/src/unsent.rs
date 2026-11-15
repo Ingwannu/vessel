@@ -59,6 +59,15 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::SideQuestion(vessel_app_link::side_question::Command::Run(ask)) => {
+            Event::SideQuestion(vessel_app_link::side_question::Event::Answer(
+                ask.refused(vessel_app_view::side_question::Problem::Unsent),
+            ))
+        }
+        Command::SideQuestion(
+            vessel_app_link::side_question::Command::Watch(_)
+            | vessel_app_link::side_question::Command::Close,
+        ) => return Settle::Say,
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {

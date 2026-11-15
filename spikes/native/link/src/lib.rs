@@ -52,6 +52,7 @@ mod demo;
 pub mod devices;
 pub mod node_settings;
 pub mod search;
+pub mod side_question;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -201,6 +202,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Independent side-panel work; no main-timeline effects.
+    SideQuestion(side_question::Command),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -210,7 +213,6 @@ pub enum Command {
         /// The operation.
         ask: agents::Ask,
     },
-
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
@@ -358,10 +360,11 @@ pub enum Command {
     /// [`Event::Searched`].
     Search(search::Ask),
 }
-
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An answer or records for the independent side seat.
+    SideQuestion(side_question::Event),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -371,7 +374,6 @@ pub enum Event {
         /// Facts or typed failure.
         answer: Result<agents::Answer, agents::AgentsError>,
     },
-
     /// A saved-machine operation completed.
     Machines(machines::Answer),
     /// The machines and their sessions, read again.
@@ -474,7 +476,6 @@ pub enum Event {
     /// A machine answered a search ([`Command::Search`]).
     Searched(search::Answer),
 }
-
 /// What an agent on a machine said last time, kept on this device
 /// ([`Event::OptionsKept`]): either half may be unknown.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -486,7 +487,6 @@ pub struct KeptLists {
     /// Its `/` commands, when a session of it reported them.
     pub commands: Option<Vec<AgentCommand>>,
 }
-
 #[cfg(not(target_arch = "wasm32"))]
 /// The link: a tokio runtime and the two channels.
 #[derive(Debug)]
@@ -494,7 +494,6 @@ pub struct Link {
     commands: mpsc::Sender<Command>,
     _runtime: tokio::runtime::Runtime,
 }
-
 #[cfg(not(target_arch = "wasm32"))]
 impl Link {
     /// Start the link; `label` is the build's label, sent as this client's
@@ -519,9 +518,9 @@ impl Link {
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             agents: agents::Hub::default(),
-
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            side_stream: side_question::Stream::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -533,7 +532,6 @@ impl Link {
             outbox,
         ))
     }
-
     /// Ask for something and say whether the link took it; returns at
     /// once. A caller that waits on the answer settles what it set
     /// pending when the command comes back.
@@ -586,6 +584,7 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    side_stream: side_question::Stream,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
@@ -631,6 +630,7 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::SideQuestion(command) => self.side_question(command).await,
             Command::Agents {
                 machine,
                 request,

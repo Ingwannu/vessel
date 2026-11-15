@@ -92,6 +92,7 @@ pub(crate) fn bar(
         .children(refused)
         // Track F's slot: the code panel's toggle.
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
+        .children(crate::areas::side_question::toggle(shell, tokens, window, cx))
         .child(actions)
         .into_any_element()
 }

@@ -71,10 +71,21 @@ refresh and refuses slash commands. No new wire calls or versions.
    opens/finds the current side because reset may already have deleted it.
 3. Side prompt slash commands are refused as the node requires; they must
    not route through the parent's composer command processing.
-4. Narrow windows show the panel over the conversation using the kit's
-   existing sheet/layout conventions; desktop shows it alongside.
+4. The existing node side-question ingress does not queue or steer
+   (`crates/vessel-session/src/side_questions.rs:20-23` on `242076b5`); the
+   side composer offers Stop during a running turn and waits before sending
+   another question, rather than pretending to have GOAT's normal queue.
+5. This first panel has no "open as a full thread" action: the ordinary
+   session route uses generic prompt ingress, which the node refuses for a
+   side. Its composer also has no independent model picker; change the main
+   session's choices and reset to inherit them, matching the node contract.
+6. Narrow windows show the panel over the conversation using the existing code-panel layout convention; desktop shows it alongside.
 
 ## Validation and completion
+
+Side sessions must be filtered from the main Fleet projection once the
+node metadata exists, as GOAT hides side threads from ordinary lists.
+The existing main Open/Prompt commands are never used for this panel.
 
 Narrow view/link/app checks per commit through cargo-slot short lane.
 One whole native remote gate at package end, then V4 review. Own fake fleet,

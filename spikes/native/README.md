@@ -79,6 +79,16 @@ from the start and sends its records, which the shell folds in batches
 into `view::Conversation`; the areas draw the result. Everything a person
 does that reaches a node is a `link::Command`.
 
+The side-question panel (`areas/side_question`, WP-A5a) owns another
+`ConversationArea`, reached through its own `Seat`/`Place`, and reuses the
+normal timeline and request cards. `view::side_question` owns correlation,
+validated input and reset recovery; `link::side_question` owns a separate
+subscription so closing it cannot replace the main follow. Its questions
+never use the ordinary Prompt command or optimistic main-timeline writes.
+The node-call boundary is staged until the central Step 0 node integration;
+it currently returns an explicit Unsupported result rather than inventing
+wire methods. See `docs/plans/wp-a5a.md` for the contract and differences.
+
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
