@@ -114,7 +114,14 @@ impl NodeService {
     ) -> Result<ExternalLookup, WireError> {
         let result = self.limits.policy(request.policy).await;
         self.usage_reports.forget_cancelled().await;
-        result
+        let sources = if request.policy == ExternalLookup::Off {
+            self.limits.sources.clear().await
+        } else {
+            Ok(())
+        };
+        let policy = result?;
+        sources?;
+        Ok(policy)
     }
 }
 fn associated(association: LimitAssociation) -> Result<LimitBinding, LimitFailure> {

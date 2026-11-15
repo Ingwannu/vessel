@@ -18,13 +18,12 @@ use vessel_proto::{
 impl NodeService {
     pub(crate) async fn set_usage_source_lookup(
         &self,
-        _connection: &Connection,
-        _request: vessel_proto::usage_reports::SetUsageSourceLookup,
+        connection: &Connection,
+        request: vessel_proto::usage_reports::SetUsageSourceLookup,
     ) -> Result<vessel_proto::usage_reports::UsageSourceDescriptor, WireError> {
-        Err(WireError::new(
-            ErrorCode::Unsupported,
-            "source-specific consent is not available before its real adapter",
-        ))
+        connection.principal().permit(Method::SetUsageLookup)?;
+        let global = self.limits.observation().await?;
+        self.limits.sources.set(request, &global).await
     }
 
     pub(crate) async fn list_usage_reports(
@@ -35,9 +34,44 @@ impl NodeService {
         self.report_permission(connection, &request.scope, request.refresh)?;
         let policy = self.limits.observation().await?;
         let visibility = visibility(connection);
-        if policy.policy == ExternalLookup::Off {
-            return complete(Vec::new(), ExternalLookup::Off, visibility);
+        let machine = matches!(&request.scope, UsageReportScope::Machine);
+        let refresh = request.refresh;
+        let (reports, mut failures) = if policy.policy == ExternalLookup::Off {
+            (Vec::new(), Vec::new())
+        } else {
+            self.saved_reports(connection, request, &policy).await?
+        };
+        if machine && refresh == LimitRefresh::Refresh && policy.policy == ExternalLookup::On {
+            for failure in self.limits.sources.refresh_all(&policy).await {
+                upsert_failure(&mut failures, failure);
+            }
         }
+        let mut additional = self.limits.sources.snapshot(&policy).await?;
+        if !machine {
+            additional.reports.clear();
+            additional.failures.clear();
+        }
+        for failure in failures {
+            upsert_failure(&mut additional.failures, failure);
+        }
+        if !policy.still_current() || !additional.still_current() {
+            return Err(changed());
+        }
+        complete(reports, policy.policy, visibility, additional)
+    }
+    async fn saved_reports(
+        &self,
+        connection: &Connection,
+        request: ListUsageReports,
+        policy: &Observation,
+    ) -> Result<
+        (
+            Vec<SourceReportEntry>,
+            Vec<vessel_proto::usage_reports::UsageSourceFailure>,
+        ),
+        WireError,
+    > {
+        let machine = matches!(&request.scope, UsageReportScope::Machine);
         let scopes = match request.scope {
             UsageReportScope::Session { session } => vec![LimitsScope::Session { session }],
             UsageReportScope::Machine => self
@@ -54,22 +88,59 @@ impl NodeService {
                 .collect(),
         };
         if scopes.len() > MAX_USAGE_REPORTS {
-            return Err(WireError::new(
-                ErrorCode::Unavailable,
-                "there are too many configured usage accounts; none were omitted",
-            ));
+            return Err(too_large());
         }
         let mut reports = Vec::with_capacity(scopes.len());
+        let mut failures = Vec::new();
         for scope in scopes {
-            reports.push(
-                self.saved_report(connection, scope, request.refresh, &policy)
-                    .await?,
-            );
+            let source = match &scope {
+                LimitsScope::Account { account } => usage_reports::source(&account.harness)
+                    .map(|source| source.id())
+                    .transpose()
+                    .map_err(|_invalid| changed())?,
+                LimitsScope::Session { .. } => None,
+            };
+            match self
+                .saved_report(connection, scope, request.refresh, policy)
+                .await
+            {
+                Ok(report) => reports.push(report),
+                Err(error) if !machine => return Err(error),
+                Err(error) => {
+                    if let Some(source) = source {
+                        let reason = match error.code {
+                            ErrorCode::Unavailable => {
+                                vessel_proto::usage_reports::UsageFetchFailure::Busy
+                            }
+                            ErrorCode::Unsupported => {
+                                vessel_proto::usage_reports::UsageFetchFailure::SourceRemoved
+                            }
+                            ErrorCode::InvalidRequest
+                            | ErrorCode::Unauthorized
+                            | ErrorCode::Forbidden
+                            | ErrorCode::NotFound
+                            | ErrorCode::Conflict
+                            | ErrorCode::ProtocolMismatch
+                            | ErrorCode::HarnessNotInstalled
+                            | ErrorCode::SpawnFailed
+                            | ErrorCode::Internal => {
+                                vessel_proto::usage_reports::UsageFetchFailure::ChangedResponse
+                            }
+                        };
+                        upsert_failure(
+                            &mut failures,
+                            vessel_proto::usage_reports::UsageSourceFailure {
+                                source,
+                                failure: vessel_proto::usage_reports::UsageAttemptFailure::Error {
+                                    reason,
+                                },
+                            },
+                        );
+                    }
+                }
+            }
         }
-        if !policy.still_current() {
-            return Err(changed());
-        }
-        complete(reports, policy.policy, visibility)
+        Ok((reports, failures))
     }
     pub(crate) async fn inspect_usage_report(
         &self,
@@ -91,7 +162,24 @@ impl NodeService {
             return Ok(UsageReportLookup::Off);
         }
         let Some(binding) = self.usage_reports.resolve(&request.id).await else {
-            return Ok(UsageReportLookup::NotFound { id: request.id });
+            let report = self
+                .limits
+                .sources
+                .inspect(&request.id, &policy, request.refresh)
+                .await?;
+            if !policy.still_current() {
+                return Err(changed());
+            }
+            let found = match report {
+                Some(report) => UsageReportLookup::Found {
+                    report: Box::new(report),
+                    cost_visibility: visibility(connection),
+                },
+                None => UsageReportLookup::NotFound { id: request.id },
+            }
+            .for_visibility(visibility(connection));
+            let _encoded = found.validate_budget().map_err(|_budget| too_large())?;
+            return Ok(found);
         };
         let (current, _) = self.report_binding(binding.scope.clone()).await?;
         if current != binding {
@@ -214,18 +302,21 @@ fn visibility(connection: &Connection) -> CostVisibility {
     }
 }
 fn complete(
-    reports: Vec<SourceReportEntry>,
+    mut reports: Vec<SourceReportEntry>,
     policy: ExternalLookup,
     visibility: CostVisibility,
+    additional: crate::usage_reports::Snapshot,
 ) -> Result<UsageReports, WireError> {
+    reports.extend(additional.reports);
     let reports = ReportEntries::try_from(reports).map_err(|_collection| too_large())?;
     let result = UsageReports {
         at: chrono::Utc::now(),
         policy,
         cost_visibility: visibility,
         reports,
-        sources: vessel_proto::usage_reports::ReportSourceDescriptors::default(),
-        source_failures: ReportSourceFailures::default(),
+        sources: additional.sources,
+        source_failures: ReportSourceFailures::try_from(additional.failures)
+            .map_err(|_bound| too_large())?,
     }
     .for_visibility(visibility);
     let _encoded = result.validate_budget().map_err(|_budget| too_large())?;
@@ -260,5 +351,19 @@ impl pipeline::Bindings for Access<'_> {
     }
     fn visibility(&self) -> CostVisibility {
         visibility(self.connection)
+    }
+}
+
+fn upsert_failure(
+    failures: &mut Vec<vessel_proto::usage_reports::UsageSourceFailure>,
+    failure: vessel_proto::usage_reports::UsageSourceFailure,
+) {
+    if let Some(previous) = failures
+        .iter_mut()
+        .find(|previous| previous.source == failure.source)
+    {
+        *previous = failure;
+    } else {
+        failures.push(failure);
     }
 }

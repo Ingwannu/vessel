@@ -1,5 +1,7 @@
 //! List and inspect selectors make report-id/session combinations unrepresentable.
-use super::{ReportEntries, ReportSourceFailures, UsageFetchFailure, UsageReportId, UsageSourceId};
+use super::{
+    ReportEntries, ReportSourceFailures, UsageAttemptFailure, UsageReportId, UsageSourceId,
+};
 use crate::{
     SessionId,
     limits::{ExternalLookup, LimitRefresh},
@@ -51,7 +53,7 @@ pub struct UsageSourceFailure {
     /// Registered source whose previous accounts may be retained.
     pub source: UsageSourceId,
     /// Safe failure category, never helper input or raw stderr.
-    pub reason: UsageFetchFailure,
+    pub failure: UsageAttemptFailure,
 }
 
 /// A complete cached/fetched observation; no billing-completeness claim.

@@ -7,3 +7,6 @@ mod source;
 pub(crate) use project::entry;
 pub(crate) use registry::{Binding, Registry};
 pub(crate) use source::source;
+
+mod sources;
+pub(crate) use sources::{Snapshot, Sources};

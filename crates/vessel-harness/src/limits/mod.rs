@@ -115,6 +115,16 @@ pub enum LimitProbe {
     },
 }
 impl LimitProbe {
+    /// Whether this explicitly selected backend can perform a saved-login probe.
+    #[must_use]
+    pub fn supported(&self) -> bool {
+        match self {
+            Self::Disabled => false,
+            Self::Local => !cfg!(feature = "fakes"),
+            Self::Recorded { .. } => true,
+        }
+    }
+
     /// Probe one resolved login. The context is shared by all this node's
     /// callers; both it and the actor retain admission through local work.
     pub async fn read(

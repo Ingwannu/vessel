@@ -50,4 +50,43 @@ mod tests {
         assert!(!before.still_current());
         assert!(after.still_current());
     }
+    #[tokio::test]
+    async fn both_off_and_on_have_fresh_observations_and_revoke_the_previous_generation() {
+        let root = tempfile::tempdir().unwrap();
+        let stop = CancellationToken::new();
+        let tasks = tokio_util::task::TaskTracker::new();
+        let limits = Limits::start(
+            vessel_store::DataDir::new(root.path()),
+            vessel_harness::LimitProbe::Disabled,
+            stop.clone(),
+            &tasks,
+        )
+        .await;
+        let initial = limits.observation().await.unwrap();
+        assert_eq!(initial.policy, ExternalLookup::Off);
+        assert!(initial.still_current());
+        assert_eq!(
+            limits.policy(ExternalLookup::On).await.unwrap(),
+            ExternalLookup::On
+        );
+        assert!(!initial.still_current());
+        let on = limits.observation().await.unwrap();
+        assert!(on.still_current());
+        assert_eq!(
+            limits.policy(ExternalLookup::Off).await.unwrap(),
+            ExternalLookup::Off
+        );
+        assert!(!on.still_current());
+        let off = limits.observation().await.unwrap();
+        assert_eq!(off.policy, ExternalLookup::Off);
+        assert!(off.still_current());
+        assert_eq!(
+            limits.policy(ExternalLookup::On).await.unwrap(),
+            ExternalLookup::On
+        );
+        assert!(!off.still_current());
+        stop.cancel();
+        let _closed = tasks.close();
+        tasks.wait().await;
+    }
 }

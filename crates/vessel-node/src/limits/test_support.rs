@@ -78,7 +78,10 @@ impl Cached {
         };
         drop(tasks.spawn(owner.run(receiver, stop.clone())));
         Self {
-            limits: Limits { commands },
+            limits: Limits {
+                commands,
+                sources: crate::usage_reports::Sources::default(),
+            },
             a,
             b,
             stop,

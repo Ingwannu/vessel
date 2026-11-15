@@ -175,3 +175,38 @@ consent or launch association. Those remain required and unverified.
   Cursor SQLite is owned by vessel-store and reads immutably; an active WAL is
   refused, with the separately disclosed headless fallback remaining available.
   No actual login/provider/production data was used for tests.
+
+### Executable additional-source owner
+
+One node actor now owns the seven fixed source adapters, explicit consent grants,
+account observations and public id resolution. It uses two actual jobs, a bounded
+32-command queue and at most 32 coalesced waiters per active source. Twenty-second
+source cancellation and a separate bounded response wait never release admission
+before a blocking local read settles. Off/disclosure changes cancel publication,
+forget snapshots/ids and persist before acknowledgment; dropping an RPC does not
+abandon its actor-owned mutation.
+
+A source/region/private-login equality proof reuses an opaque random account id
+across same-binding refreshes; a changed login gets a new id and cannot retain
+another login's success. Source discovery failure is now a typed unavailable or
+fetch-error attempt, so a missing login before any account is known does not
+fabricate an account or become an unrelated transport diagnosis. Same-binding
+failed refresh preserves original successful time and values. No current success
+is invented from an attempt time.
+
+Cached/descriptor/unknown-id reads never call a source capability. Global lookup
+Off and source-specific Off are separate; only the three existing projections
+inherit the old global consent. Source consent has an independent publishing
+generation carried by copied snapshots and checked after awaits. Global policy
+also has a fresh observable Off generation: Off cancels the old On generation,
+then establishes the current Off fact; Off→On cancels that Off generation too.
+This fixes permanently-cancelled Off observations without allowing any Off probe.
+
+Machine list refresh aggregates independent source outcomes; inspect resolves only
+known ids and refuses a new login under an old id. Session scope continues to use
+its captured legacy association; additional source session association is still
+Unsupported until actual launch provenance is available. F6 remains unsupported
+until its real registered/disclosed runtime adapter. Unary complete snapshots and
+strictly cache-only passive reads remain the documented transport/auth difference;
+there is no background credential discovery at a cache TTL. Package gates, UI/CLI/
+web integration and real-source acceptance are still owed.

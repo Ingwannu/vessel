@@ -173,5 +173,12 @@ fn actor(
         context: LimitContext::new(),
     };
     drop(tasks.spawn(owner.run(receiver, stop)));
-    (Limits { commands }, generation, binding)
+    (
+        Limits {
+            commands,
+            sources: crate::usage_reports::Sources::default(),
+        },
+        generation,
+        binding,
+    )
 }
