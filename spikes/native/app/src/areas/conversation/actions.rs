@@ -27,6 +27,8 @@ pub(crate) enum MenuAction {
     Mark(MarkAction),
     /// Copy the session's id.
     CopyId,
+    /// Copy a credential-free link through the shared desktop route format.
+    CopyLink,
     /// Close using the root/child lifecycle policy.
     Close,
     /// Kill a live session.
@@ -116,6 +118,10 @@ impl Shell {
                 self.areas.conversation.agent_log = AgentLog::Shown;
                 self.areas.conversation.dialog.focus(window, cx);
                 cx.notify();
+                None
+            }
+            MenuAction::CopyLink => {
+                self.copy_session_link(cx);
                 None
             }
             MenuAction::Close => {

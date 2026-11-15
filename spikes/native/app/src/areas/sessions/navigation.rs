@@ -26,6 +26,25 @@ impl Shell {
             cx,
         );
     }
+    /// Resolve the current saved host before generating a credential-free link.
+    pub(crate) fn copy_session_link(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(open) = &self.areas.session.open else {
+            return;
+        };
+        let Ok(host) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
+            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+            cx.notify();
+            return;
+        };
+        self.navigate_session(
+            NavigationTarget::Host {
+                host,
+                session: open.session,
+            },
+            NavigationPurpose::CopyLink,
+            cx,
+        );
+    }
     fn navigate_session(
         &mut self,
         target: NavigationTarget,
@@ -52,8 +71,13 @@ impl Shell {
             Ok(located) => match purpose {
                 NavigationPurpose::Open => self.areas.sessions.pending_open = Some(located),
                 NavigationPurpose::CopyLink => {
-                    // The shared desktop generator is registered with its reviewed producer.
-                    self.notice = Some(self.words.sessions().navigation_busy().to_owned());
+                    let link = vessel_app_view::desktop::NavigationTarget::Session {
+                        node: located.address.node,
+                        session: located.address.session,
+                    }
+                    .to_url();
+                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(link));
+                    self.notice = Some(self.words.sessions().link_copied().to_owned());
                 }
             },
             Err(failure) => {

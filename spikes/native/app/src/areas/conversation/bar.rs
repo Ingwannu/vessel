@@ -268,6 +268,7 @@ pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
                     MenuItem::danger(words.mark_action(MarkAction::Delete))
                 }
                 MenuAction::Mark(mark) => MenuItem::new(words.mark_action(*mark)),
+                MenuAction::CopyLink => MenuItem::new(shell.words.sessions().copy_link()),
                 MenuAction::Close => MenuItem::new(shell.words.sessions().close()),
                 MenuAction::CopyId => MenuItem::new(words.copy_session_id()).grouped(),
                 MenuAction::Kill => MenuItem::danger(words.kill()),
@@ -320,6 +321,7 @@ impl Shell {
             })
             .unwrap_or_default();
         rows.push(MenuAction::CopyId);
+        rows.push(MenuAction::CopyLink);
         if area.info.is_some() {
             rows.push(MenuAction::Close);
         }
