@@ -144,9 +144,9 @@ shortcuts-capture = Press shortcut…
 shortcuts-in-use = Shortcut already in use
 # Shortcut help or Settings control text. Keep short.
 shortcuts-reassign = Reassign
-# Shortcut help or Settings control text. Keep short.
+# Separator between physical shortcut chord steps; not navigation or prose.
 shortcuts-then = then
-# Shortcut help or Settings control text. Keep short.
+# Separator between alternative bindings of one action; not chord steps.
 shortcuts-or = or
 # Shortcut help or Settings control text. Keep short.
 shortcuts-editing = That shortcut is reserved for standard editing commands.
@@ -177,19 +177,19 @@ shortcuts-command-unavailable = This command is no longer available.
 # Command center control that returns to the parent choice page.
 shortcuts-back = Back
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal with no variables. Use macOS modifier names.
 shortcuts-modifier-mac = Use Control, Option or Command with another key.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal with no variables. Use non-macOS modifier names.
 shortcuts-modifier-other = Use Ctrl or Alt with another key.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal. $key is the displayed physical shortcut caps.
 shortcuts-already-assigned = { $key } is already a key of this action.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy conflict sentence. $key is shortcut caps; $action is a whole translated action label.
 shortcuts-fixed-key = { $key } is used by { $action }.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy reassignment sentence. $key is shortcut caps; $from/$to are whole action labels.
 shortcuts-move-key = { $key } is assigned to { $from }. Reassign it to { $to }?
 
 # A bounded preference transaction or protected preference document refused a shortcut change.

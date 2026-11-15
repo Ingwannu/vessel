@@ -144,9 +144,9 @@ shortcuts-capture = 단축키를 누르세요…
 shortcuts-in-use = 이미 쓰이는 단축키
 # Shortcut help or Settings control text. Keep short.
 shortcuts-reassign = 다시 지정
-# Shortcut help or Settings control text. Keep short.
+# Separator between physical shortcut chord steps; not navigation or prose.
 shortcuts-then = 다음
-# Shortcut help or Settings control text. Keep short.
+# Separator between alternative bindings of one action; not chord steps.
 shortcuts-or = 또는
 # Shortcut help or Settings control text. Keep short.
 shortcuts-editing = 기본 편집 명령에 쓰이는 단축키입니다.
@@ -177,19 +177,19 @@ shortcuts-command-unavailable = 더 이상 사용할 수 없는 명령입니다.
 # Command center control that returns to the parent choice page.
 shortcuts-back = 뒤로
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal with no variables. Use macOS modifier names.
 shortcuts-modifier-mac = Control, Option 또는 Command를 다른 키와 함께 누르세요.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal with no variables. Use non-macOS modifier names.
 shortcuts-modifier-other = Ctrl 또는 Alt를 다른 키와 함께 누르세요.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy capture refusal. $key is the displayed physical shortcut caps.
 shortcuts-already-assigned = { $key } 키는 이미 이 동작의 키입니다.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy conflict sentence. $key is shortcut caps; $action is a whole translated action label.
 shortcuts-fixed-key = { $key } 키는 ‘{ $action }’에 쓰입니다.
 
-# Compatibility capture helper sentence; key is displayed caps and action/from/to are translated labels.
+# Legacy reassignment sentence. $key is shortcut caps; $from/$to are whole action labels.
 shortcuts-move-key = { $key } 키는 ‘{ $from }’에 지정되어 있습니다. ‘{ $to }’에 다시 지정할까요?
 
 # A bounded preference transaction or protected preference document refused a shortcut change.

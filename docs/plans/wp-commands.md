@@ -530,3 +530,14 @@ without setting disabled. Activation rereads that same owner-provided item and
 then delegates run_git_command; no availability policy or RPC is copied. This
 is UI admission only, not physical connection before-poll/post-await fencing;
 G1's checked isolated connection-admission correction remains pending.
+
+
+L reviewed exact8b4bd738: WORD/KEY/CONTEXT ACCEPT for all4 catalog/helper blobs
+and93 EN/KO keys, including57 action labels. Packet:
+/tmp/work/m12-i18n/ko-review-w22-shortcuts-8b4bd738-20261115/result.json.
+This is source wording evidence only. Applied L's nonblocking comment-only
+clarifications for physical chord-step vs alternative separators and exact legacy
+sentence variables; Fluent values, keys and interpolation contracts are byte
+unchanged apart from comments. No second wording gate was requested. Dispatch,
+transaction/capture retention, App/Kit execution and package acceptance remain
+separate. Existing whole bidi goldens retain FSI/PDI.
