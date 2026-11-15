@@ -116,7 +116,7 @@ The feature commit's short message omitted the A8 literal inventory; history
 has not been rewritten. Mechanical None additions are audited here: test setup
 constructors in agent/tests/{agent,codex,conversation,options,questions}.rs;
 agent/src/drivers.rs::tests::setup, claude/launch/tests.rs and
-claude/session/tests.rs::setup, codex/session.rs::tests::setup; session/again.rs,
+claude/session/tests.rs::setup, codex/session.rs's unit-test launch setup; session/again.rs,
 session/runtime/agent.rs (probe and start), and session/runtime/launch.rs. No
 existing test assertion changed. The field-bearing commit includes those
 completions, and source review can verify the one-line-only head-test diffs.
