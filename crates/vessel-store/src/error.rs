@@ -145,6 +145,12 @@ pub enum StoreError {
     /// A lifecycle or membership CAS failed; no partial mutation was committed.
     #[error("workspace registry revision changed or the workspace is not active")]
     RegistryConflict,
+    /// Retained ownership/identity capacity is reserved before any new side effect.
+    #[error("workspace registry retained capacity is full")]
+    RegistryFull,
+    /// Per-record logical bytes exceed their pre-reserved worst-case allowance.
+    #[error("workspace registry record exceeds its retained byte allowance")]
+    RegistryRecordTooLarge,
     /// A registry counter must never wrap or silently lose ordering.
     #[error("workspace registry revision is exhausted")]
     RegistryRevisionExhausted,
@@ -283,7 +289,9 @@ impl StoreError {
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::RegistryConflict
+            Self::RegistryFull
+            | Self::RegistryRecordTooLarge
+            | Self::RegistryConflict
             | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)

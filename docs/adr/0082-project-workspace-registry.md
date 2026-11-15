@@ -103,3 +103,43 @@ and root replacement, directory rollback, concurrent lifecycle actions,
 shared-backing last-reference rules and recovery reinspection. Fake harnesses
 only. No protocol/schema number, runtime call, gate, capture or parity completion
 is claimed by this decision document.
+
+## Registry dependency and actor admission
+
+The value-only identity dependency is intentionally independent of these runtime
+contracts. Registry/store is a separate dependency package; project UI, config,
+editor targets and automatic archive remain later feature work. Create receipts,
+resource launch and lifecycle orchestration use this one store and are not
+implemented by this dependency's getters/presentation mutations.
+
+Before spawn, the owner claims a preallocated SessionId/TerminalId on an Active
+workspace at its expected revision. The writer returns an opaque start lease.
+Only after process registration may the owner complete it; a proven no-spawn
+failure may mark it failed for an explicit retry. Claims remain permanently tied
+to their original workspace. A retry gets a new lease revision, so stale callbacks
+cannot settle it. Archive first claims Archiving with CAS, then drains exact
+pending leases and resources; it cannot publish Archived while a pending or
+uncertain start remains. Already-admitted starts may complete during Archiving.
+Restart marks interrupted starts Uncertain rather than rerunning them. This
+requires the lifecycle consumer to stop resources only after all starts settle.
+A generic metadata CAS is not evidence that resource teardown happened.
+
+The lifetime budget is explicit: at most 256 workspace/backing identities and
+4096 resource ownership claims, including archived, failed, interrupted and ended
+records. Each workspace atomically reserves 8 KiB descriptor, 256 KiB recovery,
+16 KiB intent and 1 KiB bookkeeping capacity before backing effects. Resource
+claims reserve 256 bytes each before spawn. The total logical payload allowance
+is the named MAX_RETAINED_BYTES formula in the store capacity module. Fixed slot
+reservations cover later growth without borrowing a create receipt's independent
+budget. Oversized records fail without publishing partial state. New identities
+return RegistryFull at capacity; exact existing identities can still reconcile
+and settle, with no eviction or ownership/key release. Physical SQLite indexes,
+page allocation and WAL remain subject to the existing store management; this
+logical payload bound is not a disk quota. A complete public snapshot is bounded
+by descriptor and membership limits and fits the existing 16 MiB frame ceiling.
+
+Coalesced watches emit only after a successful writer commit. Consumers re-read
+a complete descriptor/membership snapshot on wake; no polling interval, cwd
+inference, resource payload or project config text is put into notifications.
+Blocked cross-repository source/trust release fields are intentionally not yet in
+this subset; absence must not be interpreted as released approval.

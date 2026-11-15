@@ -1,6 +1,9 @@
 //! Durable independent workspaces; SQL runs only on store writer/read threads.
 //! No filesystem deletion, agent shutdown, or provider launch belongs here.
 
+mod capacity;
+mod lease_read;
+mod leases;
 mod read;
 #[cfg(test)]
 mod tests;
@@ -16,6 +19,12 @@ use vessel_proto::workspace::WorktreeInfo;
 use vessel_proto::{ProjectId, SessionTitle};
 use vessel_proto::{WorkspaceId, WorktreeId};
 
+pub use capacity::{
+    MAX_DESCRIPTOR_BYTES, MAX_INTENT_BYTES, MAX_RECOVERY_BYTES, MAX_RESOURCES, MAX_RETAINED_BYTES,
+    MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
+};
+
+pub(crate) use lease_read::pending as pending_starts;
 pub(crate) use read::{load, reservation, resource_owner, workspace};
 pub(crate) use write::apply;
 
@@ -100,6 +109,15 @@ pub struct RegistryReservation {
 /// One writer transaction applies a mutation and bumps the snapshot version.
 #[derive(Debug)]
 pub(crate) enum RegistryWrite {
+    Claim {
+        workspace: WorkspaceId,
+        resource: WorkspaceResource,
+        expected: RegistryRevision,
+    },
+    Settle {
+        lease: WorkspaceStartLease,
+        settled: RegistryStartSettlement,
+    },
     RecoverCreating,
     Completed(Box<RegistryRecord>),
     Workspace {
@@ -128,4 +146,65 @@ fn resource_key(resource: WorkspaceResource) -> (&'static str, String) {
         WorkspaceResource::Session { session } => ("session", session.to_string()),
         WorkspaceResource::Terminal { terminal } => ("terminal", terminal.to_string()),
     }
+}
+
+/// A pre-spawn admission token, allocated by the registry writer rather than from cwd.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkspaceStartLease {
+    workspace: WorkspaceId,
+    resource: WorkspaceResource,
+    revision: RegistryRevision,
+}
+impl WorkspaceStartLease {
+    pub(crate) const fn new(
+        workspace: WorkspaceId,
+        resource: WorkspaceResource,
+        revision: RegistryRevision,
+    ) -> Self {
+        Self {
+            workspace,
+            resource,
+            revision,
+        }
+    }
+    /// Exact owner whose lifecycle admitted this start.
+    #[must_use]
+    pub const fn workspace(&self) -> WorkspaceId {
+        self.workspace
+    }
+    /// Preallocated actor identity held by this lease.
+    #[must_use]
+    pub const fn resource(&self) -> WorkspaceResource {
+        self.resource
+    }
+    /// Stale completions cannot settle a newer lease for the same resource.
+    #[must_use]
+    pub const fn revision(&self) -> RegistryRevision {
+        self.revision
+    }
+}
+
+/// Unsettled starts must finish or be reconciled before archiving can remove backing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegistryStartState {
+    /// The node admitted a start but actor registration has not settled it.
+    Pending,
+    /// A previous node process stopped after admission; do not replay blindly.
+    Uncertain,
+}
+
+/// Lifecycle drain receives exact lease tokens, not just an inferred resource count.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PendingRegistryStart {
+    /// Used only after authoritative process/session reconciliation.
+    pub lease: WorkspaceStartLease,
+    /// Recovery distinguishes a live admitted operation from an interrupted one.
+    pub state: RegistryStartState,
+}
+
+/// Completion is allowed during Archiving for starts admitted while Active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RegistryStartSettlement {
+    Ready,
+    Failed,
 }

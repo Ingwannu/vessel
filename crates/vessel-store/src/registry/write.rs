@@ -31,7 +31,7 @@ pub(crate) fn require_active(connection: &Connection, id: WorkspaceId) -> Result
     }
 }
 
-fn revision(value: RegistryRevision) -> Result<i64, StoreError> {
+pub(super) fn revision(value: RegistryRevision) -> Result<i64, StoreError> {
     i64::try_from(value.get()).map_err(StoreError::RegistryRevisionRange)
 }
 
@@ -40,9 +40,21 @@ pub(crate) fn apply(
     mutation: &RegistryWrite,
 ) -> Result<RegistryChange, StoreError> {
     match mutation {
+        RegistryWrite::Claim {
+            workspace,
+            resource,
+            expected,
+        } => super::leases::claim(connection, *workspace, *resource, *expected)?,
+        RegistryWrite::Settle { lease, settled } => {
+            super::leases::settle(connection, lease, *settled)?
+        }
         RegistryWrite::RecoverCreating => {
             let changed = connection.execute("UPDATE workspace_registry_reservations SET stage='uncertain' WHERE stage='creating'",[])?;
-            if changed == 0 {
+            let starts = connection.execute(
+                "UPDATE workspace_registry_resources SET stage='uncertain' WHERE stage='pending'",
+                [],
+            )?;
+            if changed == 0 && starts == 0 {
                 return Ok(RegistryChange::Unchanged);
             }
         }
@@ -72,12 +84,19 @@ pub(crate) fn apply(
     Ok(RegistryChange::Changed)
 }
 
-fn put(
+pub(super) fn put(
     connection: &Connection,
     record: &RegistryRecord,
     expected: Option<RegistryRevision>,
 ) -> Result<(), StoreError> {
     let descriptor = &record.descriptor;
+    super::capacity::workspace(connection, descriptor.id)?;
+    if matches!(descriptor.lifecycle, WorkspaceLifecycle::Archived { .. }) {
+        let unsettled:bool=connection.query_row("SELECT EXISTS(SELECT 1 FROM workspace_registry_resources WHERE workspace=?1 AND stage IN ('pending','uncertain'))",[descriptor.id.to_string()],|row|row.get(0))?;
+        if unsettled {
+            return Err(StoreError::RegistryConflict);
+        }
+    }
     let next = match expected {
         None => RegistryRevision::ZERO,
         Some(previous) => previous
@@ -100,7 +119,11 @@ fn put(
         }
     }
     let encoded = encode(descriptor)?;
+    super::capacity::bytes(&encoded, super::MAX_DESCRIPTOR_BYTES)?;
     let recovery = record.recovery.as_ref().map(encode).transpose()?;
+    if let Some(text) = &recovery {
+        super::capacity::bytes(text, super::MAX_RECOVERY_BYTES)?;
+    }
     let changed=match expected {
         None=>connection.execute("INSERT INTO workspace_registry(id,project,created_at,revision,descriptor,recovery) VALUES (?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO NOTHING",params![descriptor.id.to_string(),descriptor.project.to_string(),time_to_sql(descriptor.created_at)?,revision(next)?,encoded,recovery])?,
         Some(previous)=>connection.execute("UPDATE workspace_registry SET revision=?2,descriptor=?3,recovery=?4 WHERE id=?1 AND revision=?5",params![descriptor.id.to_string(),revision(next)?,encoded,recovery,revision(previous)?])?,
@@ -122,6 +145,7 @@ fn membership(
     if record.descriptor.revision != expected {
         return Err(StoreError::RegistryConflict);
     }
+    super::capacity::resource(connection, resource)?;
     let (kind, id) = super::resource_key(resource);
     let _inserted = connection.execute("INSERT INTO workspace_registry_resources(kind,resource,workspace) VALUES (?1,?2,?3) ON CONFLICT(kind,resource) DO NOTHING",params![kind,id,workspace.to_string()])?;
     let owner: String = connection.query_row(
@@ -140,7 +164,10 @@ fn membership(
 }
 
 fn reserve(connection: &Connection, reservation: &RegistryReservation) -> Result<(), StoreError> {
-    let _inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),encode(&reservation.intent)?,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
+    super::capacity::workspace(connection, reservation.workspace)?;
+    let intent = encode(&reservation.intent)?;
+    super::capacity::bytes(&intent, super::MAX_INTENT_BYTES)?;
+    let _inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),intent,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
     let found = read::reservation(connection, reservation.workspace)?
         .ok_or(StoreError::RegistryConflict)?;
     if found.intent != reservation.intent || found.worktree != reservation.worktree {

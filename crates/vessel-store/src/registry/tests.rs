@@ -22,6 +22,7 @@ fn record(id: WorkspaceId) -> RegistryRecord {
             project: ProjectId::random(),
             path: "/work/project".into(),
             title: None,
+            pin: Default::default(),
             backing: WorkspaceBacking::Local,
             lifecycle: WorkspaceLifecycle::Active,
             visibility: WorkspaceVisibility::Foreground,
@@ -374,3 +375,126 @@ fn resource_owner_lookup_does_not_match_a_shared_directory() {
         Some(second.descriptor.id)
     );
 }
+
+#[test]
+fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
+    let mut db = db();
+    let record = record(WorkspaceId::random());
+    let id = record.descriptor.id;
+    let resource = WorkspaceResource::Session {
+        session: SessionId::random(),
+    };
+    put(&mut db, record, None).unwrap();
+    apply(
+        &mut db,
+        &RegistryWrite::Claim {
+            workspace: id,
+            resource,
+            expected: RegistryRevision::ZERO,
+        },
+    )
+    .unwrap();
+    let lease = WorkspaceStartLease::new(id, resource, RegistryRevision::ZERO.next().unwrap());
+    let mut archiving = workspace(&db, id).unwrap().unwrap();
+    let expected = archiving.descriptor.revision;
+    archiving.descriptor.revision = expected.next().unwrap();
+    archiving.descriptor.lifecycle = WorkspaceLifecycle::Archiving {
+        at: DateTime::UNIX_EPOCH,
+    };
+    put(&mut db, archiving, Some(expected)).unwrap();
+    let mut archived = workspace(&db, id).unwrap().unwrap();
+    let expected = archived.descriptor.revision;
+    archived.descriptor.revision = expected.next().unwrap();
+    archived.descriptor.lifecycle = WorkspaceLifecycle::Archived {
+        at: DateTime::UNIX_EPOCH,
+    };
+    assert!(matches!(
+        put(&mut db, archived, Some(expected)),
+        Err(StoreError::RegistryConflict)
+    ));
+    assert_eq!(super::pending_starts(&db, id).unwrap().len(), 1);
+    apply(
+        &mut db,
+        &RegistryWrite::Settle {
+            lease,
+            settled: RegistryStartSettlement::Ready,
+        },
+    )
+    .unwrap();
+    assert!(super::pending_starts(&db, id).unwrap().is_empty());
+    let mut archived = workspace(&db, id).unwrap().unwrap();
+    let expected = archived.descriptor.revision;
+    archived.descriptor.revision = expected.next().unwrap();
+    archived.descriptor.lifecycle = WorkspaceLifecycle::Archived {
+        at: DateTime::UNIX_EPOCH,
+    };
+    put(&mut db, archived, Some(expected)).unwrap();
+}
+
+#[test]
+fn stale_start_completion_cannot_settle_a_newer_retry_for_the_same_actor_id() {
+    let mut db = db();
+    let record = record(WorkspaceId::random());
+    let id = record.descriptor.id;
+    let resource = WorkspaceResource::Session {
+        session: SessionId::random(),
+    };
+    put(&mut db, record, None).unwrap();
+    apply(
+        &mut db,
+        &RegistryWrite::Claim {
+            workspace: id,
+            resource,
+            expected: RegistryRevision::ZERO,
+        },
+    )
+    .unwrap();
+    let first = WorkspaceStartLease::new(id, resource, RegistryRevision::ZERO.next().unwrap());
+    apply(
+        &mut db,
+        &RegistryWrite::Settle {
+            lease: first.clone(),
+            settled: RegistryStartSettlement::Failed,
+        },
+    )
+    .unwrap();
+    let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
+    apply(
+        &mut db,
+        &RegistryWrite::Claim {
+            workspace: id,
+            resource,
+            expected,
+        },
+    )
+    .unwrap();
+    let second = WorkspaceStartLease::new(id, resource, expected.next().unwrap());
+    assert!(matches!(
+        apply(
+            &mut db,
+            &RegistryWrite::Settle {
+                lease: first,
+                settled: RegistryStartSettlement::Ready
+            }
+        ),
+        Err(StoreError::RegistryConflict)
+    ));
+    let pending = super::pending_starts(&db, id).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].lease, second);
+    apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
+    assert_eq!(
+        super::pending_starts(&db, id).unwrap()[0].state,
+        RegistryStartState::Uncertain
+    );
+    apply(
+        &mut db,
+        &RegistryWrite::Settle {
+            lease: second,
+            settled: RegistryStartSettlement::Ready,
+        },
+    )
+    .unwrap();
+}
+
+mod capacity;

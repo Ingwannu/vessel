@@ -161,3 +161,23 @@ uses a coalesced watch emitted only after a successful writer commit; consumers
 re-read authoritative lifecycle/ownership, with no polling or cwd guess. New
 watcher/owner regressions are added and await checks. This is not a runtime port
 allocator or lifecycle drain implementation.
+
+## Dependency split and pending registry calls
+
+The identity-only dependency has its own value-types plan. Registry/store remains
+separate and unreviewed until its whole root gate and source review pass. Quality B
+pending rows now cover workspace.registry/list/get/rename/pin under the single
+unassigned feature constant; no protocol number is selected here. A finite
+long-poll uses the existing waiter shares and the store's committed watch. Empty
+and archived records remain authoritative, with stable NodeId in the snapshot.
+The root Request/UnexpectedReply definitions moved to rpc/request.rs without
+changing their public re-export, to keep the single method table below its budget.
+
+Actor admission uses an opaque pre-spawn lease, exact ownership and an archive
+fence. Restart marks unfinished admissions uncertain; never replay automatically.
+Named lifetime count and worst-case byte reservations are in registry/capacity.rs.
+Tests cover lease/archive interleaving, stale completion after retry, capacity
+reconciliation without eviction, and oversized record rollback. These tests and
+new pending handlers still require current narrow and full-package validation.
+Project metadata/config/settings/editor and trust-release runtime work remains
+incomplete. No native integration/capture/parity completion is implied.

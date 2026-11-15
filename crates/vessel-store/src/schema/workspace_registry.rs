@@ -15,6 +15,8 @@ CREATE TABLE workspace_registry_resources (
     kind TEXT NOT NULL CHECK (kind IN ('session', 'terminal')),
     resource TEXT NOT NULL,
     workspace TEXT NOT NULL REFERENCES workspace_registry(id) ON DELETE CASCADE,
+    stage TEXT NOT NULL DEFAULT 'ready' CHECK (stage IN ('pending','ready','failed','uncertain')),
+    lease_revision INTEGER NOT NULL DEFAULT 0 CHECK (lease_revision >= 0),
     PRIMARY KEY (kind, resource)
 ) STRICT, WITHOUT ROWID;
 CREATE INDEX workspace_registry_resource_owner ON workspace_registry_resources(workspace);

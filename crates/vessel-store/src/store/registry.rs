@@ -10,6 +10,71 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
 
 impl Store {
+    /// Admit a preallocated actor id before spawn, with an archive fence in the same transaction.
+    ///
+    /// # Errors
+    /// Non-Active/stale workspace, another owner/lease, exhausted revision, database failure.
+    pub async fn claim_registry_start(
+        &self,
+        workspace: WorkspaceId,
+        resource: WorkspaceResource,
+        expected: RegistryRevision,
+    ) -> Result<crate::WorkspaceStartLease, StoreError> {
+        let revision = expected
+            .next()
+            .ok_or(StoreError::RegistryRevisionExhausted)?;
+        self.registry_write(RegistryWrite::Claim {
+            workspace,
+            resource,
+            expected,
+        })
+        .await?;
+        Ok(crate::WorkspaceStartLease::new(
+            workspace, resource, revision,
+        ))
+    }
+    /// Settle only after actor registration; a prior admission may settle during Archiving.
+    ///
+    /// # Errors
+    /// Stale/missing lease, exhausted revision or database failure.
+    pub async fn complete_registry_start(
+        &self,
+        lease: crate::WorkspaceStartLease,
+    ) -> Result<(), StoreError> {
+        self.registry_write(RegistryWrite::Settle {
+            lease,
+            settled: registry::RegistryStartSettlement::Ready,
+        })
+        .await
+    }
+    /// Only a proven failed/not-spawned start may be failed and made retryable.
+    ///
+    /// # Errors
+    /// Stale/missing lease, exhausted revision or database failure.
+    pub async fn fail_registry_start(
+        &self,
+        lease: crate::WorkspaceStartLease,
+    ) -> Result<(), StoreError> {
+        self.registry_write(RegistryWrite::Settle {
+            lease,
+            settled: registry::RegistryStartSettlement::Failed,
+        })
+        .await
+    }
+    /// Archive waits for these exact admissions after claiming Archiving, before stopping resources.
+    ///
+    /// # Errors
+    /// Invalid stored state or database failure.
+    pub async fn pending_registry_starts(
+        &self,
+        workspace: WorkspaceId,
+    ) -> Result<Vec<crate::PendingRegistryStart>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| registry::pending_starts(connection, workspace))
+        })
+        .await
+    }
+
     /// Coalesced wake-up after committed registry writes; re-read authoritative state.
     /// Does not poll and never contains paths, payloads or secrets.
     #[must_use]

@@ -56,3 +56,11 @@ impl RegistrySnapshot {
             .map(|member| member.workspace)
     }
 }
+
+/// Long-poll one complete registry revision, with a finite server wait.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct GetRegistry {
+    /// None reads immediately; an unchanged revision may wait within caller shares.
+    pub changed_from: Option<RegistryRevision>,
+}

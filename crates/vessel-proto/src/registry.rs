@@ -16,12 +16,12 @@ pub use project::{
 };
 pub use workspace::{
     ArchiveWorkspace, ArchiveWorkspaces, CreateWorkspace, GetWorkspace, ListWorkspaces,
-    RegistryRevision, RenameWorkspace, RestoreWorkspace, WorkspaceBacking, WorkspaceDescriptor,
-    WorkspaceIsolation, WorkspaceLifecycle, WorkspaceList, WorkspaceVisibility,
-    WorkspaceVisibilityFilter,
+    PinWorkspace, RegistryRevision, RenameWorkspace, RestoreWorkspace, WorkspaceBacking,
+    WorkspaceDescriptor, WorkspaceIsolation, WorkspaceLifecycle, WorkspaceList, WorkspacePin,
+    WorkspaceVisibility, WorkspaceVisibilityFilter,
 };
 
-pub use snapshot::{RegistrySnapshot, WorkspaceMembership, WorkspaceResource};
+pub use snapshot::{GetRegistry, RegistrySnapshot, WorkspaceMembership, WorkspaceResource};
 
 use crate::ProtocolVersion;
 

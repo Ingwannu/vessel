@@ -61,6 +61,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetFleetStatus
         | Method::GetPublished
         | Method::ExportMemory
+        | Method::GetRegistry
+        | Method::ListWorkspaces
         | Method::ListProjects
         | Method::ListWorktrees
         | Method::ForgeStatus
@@ -124,6 +126,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::WriteUpload => json!({"upload":id,"offset":0,"data":"eA=="}),
         Method::FinishUpload => json!({"upload":id}),
         Method::ReadAttachment => json!({"session":id,"attachment":id,"offset":0}),
+        Method::GetWorkspace | Method::RenameWorkspace => json!({"workspace":id}),
+        Method::PinWorkspace => json!({"workspace":id,"pin":"unpinned"}),
         Method::GetProject
         | Method::RemoveProject
         | Method::ProjectCommands

@@ -199,6 +199,7 @@ impl Workspaces {
                 project: reservation.intent.project,
                 path,
                 title: reservation.intent.title.clone(),
+                pin: Default::default(),
                 backing,
                 lifecycle: WorkspaceLifecycle::Active,
                 visibility: reservation.intent.visibility,

@@ -61,6 +61,18 @@ pub enum WorkspaceVisibilityFilter {
     All,
 }
 
+/// Pin is durable registry presentation, not a device-local sidebar ordering key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspacePin {
+    /// Ordinary project ordering.
+    #[default]
+    Unpinned,
+    /// A person explicitly pinned this workspace.
+    Pinned,
+}
+
 /// A create choice is a plan; authoritative backing is returned after success.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -122,6 +134,9 @@ pub struct WorkspaceDescriptor {
     pub path: PathBuf,
     /// User title or absence; automatic names never replace a manual rename.
     pub title: Option<SessionTitle>,
+    /// Pin survives clients and reconnects; no second sidebar preference store.
+    #[serde(default)]
+    pub pin: WorkspacePin,
     /// Backing ownership used by archive/recovery, never guessed from path shape.
     pub backing: WorkspaceBacking,
     /// Active or archived as persisted by the node.
@@ -251,4 +266,14 @@ mod tests {
         assert_eq!(list.lifecycle, WorkspaceList::Active);
         assert_eq!(list.visibility, WorkspaceVisibilityFilter::Foreground);
     }
+}
+
+/// Explicit pin mutation cannot accidentally target all workspaces sharing a cwd.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct PinWorkspace {
+    /// Exact host-local identity.
+    pub workspace: WorkspaceId,
+    /// Explicit desired state, including unpin.
+    pub pin: WorkspacePin,
 }

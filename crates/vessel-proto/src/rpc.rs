@@ -92,6 +92,16 @@ macro_rules! method_table {
             NodeInfo / node_info / "node.info" [Read, 2, unary]: $crate::GetNode => $crate::NodeInfo;
             /// List installed harnesses.
             ListHarnesses / list_harnesses / "harness.list" [Read, 2, unary]: $crate::ListHarnesses => Vec<$crate::Harness>;
+            /// Read an atomic independent-workspace registry snapshot.
+            GetRegistry / get_registry / "workspace.registry" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetRegistry => $crate::registry::RegistrySnapshot;
+            /// List active/archived workspace descriptors independently of sessions.
+            ListWorkspaces / list_workspaces / "workspace.list" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ListWorkspaces => Vec<$crate::registry::WorkspaceDescriptor>;
+            /// Inspect one workspace including its archived lifecycle.
+            GetWorkspace / get_workspace / "workspace.get" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Rename one active workspace without changing its filesystem placement.
+            RenameWorkspace / rename_workspace / "workspace.rename" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::RenameWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Persist one workspace pin without changing client-local ordering.
+            PinWorkspace / pin_workspace / "workspace.pin" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::PinWorkspace => $crate::registry::WorkspaceDescriptor;
             /// List sessions.
             ListSessions / list_sessions / "session.list" [Read, 2, unary]: $crate::ListSessions => Vec<$crate::SessionInfo>;
             /// Get one session.
