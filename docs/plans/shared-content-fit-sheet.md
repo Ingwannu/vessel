@@ -93,3 +93,10 @@ Retained-frame fixture queues the new owner render explicitly via notify,
 while asserting dispatch still uses A before that redraw. Only after A's
 input is checked does the fixture park and exercise freshly rendered B. This
 avoids relying on unrelated mouse events to schedule B's new native frame.
+
+Strengthen retained-input proof beyond the owner's dismissal guard: retain A's
+actual motion Rc, dispatch its old native press/move before redraw, assert no
+native pointer capture before mouse-up, and require even A's retained motion
+to stay at its old open position. Thus replacing only the closed callback guard
+cannot make the geometry-admission fixture pass. New B remains uninitialized
+until its own redraw and must still work afterward. No product test hook added.

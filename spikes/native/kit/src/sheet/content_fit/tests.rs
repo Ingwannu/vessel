@@ -174,12 +174,33 @@ fn fitted_retained_frame_requires_the_host_admission_before_pointer_scroll_or_cl
     let (view, cx) = setup(cx, 300.0);
     cx.update(|window, cx| {
         let before = view.read(cx).renders.get();
+        let old_motion = Rc::clone(&view.read(cx).fit.motion);
         view.update(cx, |this, cx| {
             this.generation.set(1);
             this.fit.reset();
             cx.notify();
         });
-        drag(window, cx);
+        down(window, cx, point(px(100.0), px(305.0)));
+        motion(window, cx, point(px(100.0), px(590.0)));
+        assert!(
+            window.captured_hitbox().is_none(),
+            "stale A cannot capture the pointer"
+        );
+        up(window, cx, point(px(100.0), px(590.0)));
+        match old_motion
+            .borrow_mut()
+            .frame(px(600.0), std::time::Instant::now(), true)
+        {
+            snap::Frame::Visible(frame) => {
+                assert!(
+                    frame.top.as_f32().mul_add(-1.0, 300.0).abs() < 0.001,
+                    "stale A cannot mutate even its retained motion"
+                );
+            }
+            snap::Frame::PendingLayout | snap::Frame::Closed => {
+                panic!("A must remain at its open stop")
+            }
+        }
         let this = view.read(cx);
         assert_eq!(
             this.renders.get(),
