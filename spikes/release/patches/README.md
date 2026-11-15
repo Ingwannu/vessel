@@ -292,8 +292,11 @@ at the top and `Vessel patch` at the change.
   direct IME queries, boundary rows and unchanged None coordinates), and
   `code_editor::diff::document::tests` (owner keyboard reveal and real wheel
   packets). These are unexecuted source until their exact remote native test.
-  Mapped label right-alignment and private layout-array ordering remain source
-  checks; no inaccessible private value is asserted as runtime evidence.
+  Mapped label right-alignment, private folded layout-array ordering, visible
+  selection-path z-order and touch-handle paint remain source/consumer-capture
+  obligations: the public scene API exposes quads, not selection paths/handles.
+  The kit profile disables folding. No inaccessible private value is asserted
+  as runtime evidence.
 
 - Document viewport hunk (same change7): mapped **readonly** editors intersect
   their full bounds with the parent mask when choosing shape/paint rows only.

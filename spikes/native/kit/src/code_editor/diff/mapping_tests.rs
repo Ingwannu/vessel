@@ -172,7 +172,7 @@ fn none_retains_gutter_and_mapped_sample_changes_actual_text_origin(cx: &mut Tes
     );
 }
 #[gpui::test]
-fn mapped_tint_stays_inside_the_editor_and_above_selection_copy(cx: &mut TestAppContext) {
+fn mapped_tint_keeps_bounds_wrap_height_and_readonly_selection_copy(cx: &mut TestAppContext) {
     cx.update(gpui_base::init);
     let mapping = Mapping::new("99999");
     let text = format!("{}\n새 줄\nlast", "wide ".repeat(80));
@@ -195,6 +195,17 @@ fn mapped_tint_stays_inside_the_editor_and_above_selection_copy(cx: &mut TestApp
         assert!(
             tints.len() >= 2,
             "body and fixed gutter both receive the mapping"
+        );
+        let line_height = view
+            .read(cx)
+            .state
+            .read(cx)
+            .line_height()
+            .unwrap()
+            .scale(window.scale_factor());
+        assert!(
+            tints.iter().any(|q| q.bounds.size.height > line_height),
+            "the source-row tint covers its wrapped continuation rows"
         );
         let viewport = window.viewport_size().width.scale(window.scale_factor());
         assert!(

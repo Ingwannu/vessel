@@ -699,3 +699,9 @@ with an explicit redraw. Matching live context still requires the exact ticket.
 The pure production delivery function has same-alias/node new-epoch, absent-owner,
 absent-current and matching cases. This is a source-discovered bug/correction,
 not a reproduced UI failure or an executed regression pass.
+
+The public tint fixture checks actual wrapped background height and horizontal
+bounds alongside readonly selection/copy; its name does not claim selection-path
+z-order. Exact mapped-label right alignment, private folded-array order and
+selection/touch-handle paint remain source or first-use capture obligations. The
+readonly profile explicitly disables folding; no new test-access API was added.
