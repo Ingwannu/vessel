@@ -136,3 +136,7 @@ mod speech_audio;
 // The first connection-owned resource wires this into the real context once.
 #[cfg(test)]
 mod connection_life;
+
+// Plugin package admission remains staged until the install/lifecycle caller.
+#[cfg(test)]
+mod plugins;
