@@ -92,6 +92,12 @@ slice order. The docs commit adds both and no command.
 
 ### Configuration work since this base
 
+- The strict check then reached shared exhaustive admission samples and two
+  owner tests. Add only the two new method samples after the head's cases, and
+  assert both formerly-unused change replies against actual settings. Existing
+  cases/assertions remain. The common writer now has its separate final scoped
+  source/runtime/negative approval; config adoption and its own tests remain.
+
 - A later strict check compiled the client tests and found their missing
   CallError import, and refused the wire-mapping helper's unnecessary owned
   error argument. Add the import and borrow the error at that boundary;

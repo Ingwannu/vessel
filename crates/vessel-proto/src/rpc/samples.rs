@@ -210,6 +210,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
             json!({"scope":{"kind":"session","session":id},"refresh":"cached"})
         }
         Method::SetUsageLookup => json!({"policy":"off"}),
+        Method::UnsetNodeSettings => json!({"keys":["park_after"]}),
+        Method::ReloadNodeSettings => json!({}),
     };
     serde_json::from_value(json!({"method":method,"params":params}))
 }

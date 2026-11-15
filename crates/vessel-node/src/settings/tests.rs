@@ -24,13 +24,14 @@ async fn reset_persists_override_removal_and_reapplies_the_launch_value() {
     let launch = ParkAfter::Never;
     let saved = ParkAfter::DEFAULT;
     let settings = settings(root.path(), launch);
-    settings
+    let changed = settings
         .change(SetNodeSettings {
             park_after: Some(saved),
             ..SetNodeSettings::default()
         })
         .await
         .unwrap();
+    assert_eq!(changed.park_after, saved);
     assert_eq!(settings.runtime.park_after(), saved.duration());
     let keys = SettingKeys::new(vec![NodeSettingKey::ParkAfter]).unwrap();
     let current = settings.unset(&keys).await.unwrap();
@@ -101,13 +102,15 @@ async fn invalid_reload_and_failed_reset_publish_nothing() {
         assert_eq!(std::fs::read(&path).unwrap(), bytes);
     }
     std::fs::remove_file(&path).unwrap();
-    settings
+    let changed = settings
         .change(SetNodeSettings {
             park_after: Some(ParkAfter::Never),
             ..SetNodeSettings::default()
         })
         .await
         .unwrap();
+    assert_eq!(changed.park_after, ParkAfter::Never);
+    assert_eq!(settings.current().await, changed);
     std::fs::remove_file(&path).unwrap();
     std::fs::create_dir(&path).unwrap();
     let keys = SettingKeys::new(vec![NodeSettingKey::ParkAfter]).unwrap();
