@@ -1,3 +1,44 @@
+## Older fork/rewind visual appendix: author inspected, review pending
+
+This appendix uses the retained exact `0ca69ede` app and its already accepted
+native/source gate; it changes no product source and does not repeat that gate.
+The author directly opened and hash/dimension checked 52 originals: 36 rewind
+trigger/tooltip and rewind/fork menu frames, 12 existing-fork origin captions,
+and four frames around actual normal-app actions. The menu/caption coverage is
+English, Korean and the checking pseudo-language, both themes, at 1280×800 and
+390×844, scale one on the software renderer. Phone triggers intentionally have
+no pointer tooltip. Whole menu words and source-title captions fit the inspected
+frames; neighboring unmigrated tables stay plain in pseudo mode and agent text
+and session titles remain data. No before/after geometry parity is claimed.
+
+A normal app fork created a separate fake-agent session from the source's turn
+end 54. A later normal app rewind returned the source to that same point: the
+latest turn disappeared and `plain` returned to the composer. Separate CLI
+queries read both the fork's origin/point and the source's persisted rewind
+record. The first readback script incorrectly read only stdout, whereas the
+CLI deliberately sends these status records to stderr; a merged-descriptor
+read confirmed both events without replaying either action. A fixture index
+also omitted eight existing long-title sessions, so an initial assumption of
+one unindexed session was rejected rather than used to identify the fork.
+Both failed setup checks remain in the evidence. The source was reopened after
+its next fake prompt to refresh released-session metadata before the menu check.
+
+Limits: these are isolated fake agents, not real coding agents or updater
+install/restart I/O. Typed failure, unreadable-origin and empty-fork sentences
+remain covered by the earlier whole-sentence/native regressions; this appendix
+adds no screen captures for those states. Extra display scales, persisted
+language preference I/O, parent late-answer routing, current combined head,
+wasm/browser/Windows/real-GPU/accessibility and an independent licence audit
+remain outside this proof. Independent visual review of this appendix is still
+pending; the earlier About and Settings verdicts keep their own scopes.
+
+All capture work ran under the ordinary development UID/GID with private
+home/config/runtime directories, an owner-only display authority and retained
+owner-executable binaries. The two fake nodes, 16 fake-agent descendants and
+authenticated display were stopped only after PID/executable/ownership checks;
+per-case capture apps had already exited. No production permissions or shared
+build artifacts changed. Appearance remains held for the other owners and B0.
+
 ## Settings package: bounded independent source, gate and visual pass
 
 Diagnostics `205f1e01` and Chat `b3ef8338` form this vocabulary package over
@@ -43,13 +84,14 @@ This is no approval of the latest combined application or the excluded flows
 above. No unchanged gate or additional capture matrix was requested.
 
 Resume point: coordinator acceptance and lead merge remain separate from that
-bounded reviewer pass. The next requested area is Appearance,
-awaiting the lead's ownership ruling; no Appearance source is changed. Other
+bounded reviewer pass. The lead has held Appearance while the terminal and
+theme owners change the same files; no Appearance source is changed. After
+the announced app-base B0 lands, merge that head and coordinate the next area. Other
 Settings sections, Sidebar/Palette, Agents and Overview retain their owners.
-The authenticated display and isolated current fleet remain available for the
-older live fork/rewind proof; inspect the private process inventory and stop
-only verified owned PIDs when that work ends. No compiler or gate remains
-running for this package.
+The older fork/rewind appendix below now has actual fake-node readback and
+author-inspected frames. Its display, capture apps, both isolated nodes and
+all 16 fake-agent descendants were stopped by verified PID and executable.
+No compiler, capture process or gate remains running for this package.
 
 ## Capture documentation correction
 
