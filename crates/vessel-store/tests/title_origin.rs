@@ -116,7 +116,13 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         .pragma_update(
             None,
             "user_version",
-            i64::try_from(migrations::TITLE_ORIGIN_SCHEMA.saturating_sub(1)).unwrap(),
+            i64::try_from(
+                migrations::MIGRATIONS
+                    .iter()
+                    .take(migrations::TITLE_ORIGIN_SCHEMA.saturating_sub(1))
+                    .count(),
+            )
+            .unwrap(),
         )
         .unwrap();
     drop(connection);

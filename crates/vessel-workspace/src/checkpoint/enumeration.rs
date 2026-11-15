@@ -36,7 +36,7 @@ pub(super) async fn paths(git: &Git, root: &Path) -> Result<Vec<CheckpointPath>,
     {
         let text = std::str::from_utf8(raw).map_err(|_invalid| CheckpointError::InvalidPath)?;
         let relative = text
-            .parse()
+            .parse::<vessel_proto::workspace::RelPath>()
             .map_err(|_invalid| CheckpointError::InvalidPath)?;
         let _new = unique.insert(CheckpointPath::try_from(relative)?);
         let _count = PathCount::new(unique.len())?;

@@ -463,10 +463,10 @@ const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
 /// Checkpoint schema follows this base's newest migration. Integration re-points
 /// this one assignment in merge order; no slot is reserved or skipped.
-pub(super) const CHECKPOINTS_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+pub(crate) const CHECKPOINTS_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
 
 /// Every checkpoint table in one additive migration (ADR 0077).
-pub(super) const CHECKPOINTS: &str = include_str!("../checkpoint/schema.sql");
+pub(crate) const CHECKPOINTS: &str = include_str!("../checkpoint/schema.sql");
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.

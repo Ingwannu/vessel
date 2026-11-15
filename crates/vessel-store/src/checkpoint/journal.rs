@@ -5,9 +5,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
     DeviceId,
-    checkpoint::{
-        CaptureKey, CheckpointError, FileImage, RestoreId, RestoreOutcome, RestorePlanId,
-    },
+    checkpoint::{CaptureKey, CheckpointError, FileImage, RestoreId, RestoreOutcome},
 };
 
 fn encode<T: serde::Serialize>(value: &T) -> Result<String, Error> {
