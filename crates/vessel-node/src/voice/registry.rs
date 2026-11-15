@@ -149,13 +149,18 @@ impl Registry {
             .values()
             .filter(|entry| &entry.owner == owner)
             .count()
-            + self
-                .cancelled_starts
-                .keys()
-                .filter(|(key, _id)| key == owner)
-                .count();
+            .saturating_add(
+                self.cancelled_starts
+                    .keys()
+                    .filter(|(key, _id)| key == owner)
+                    .count(),
+            );
         if owned >= ATTEMPTS_PER_CONNECTION
-            || self.entries.len() + self.cancelled_starts.len() >= ATTEMPTS_PER_NODE
+            || self
+                .entries
+                .len()
+                .saturating_add(self.cancelled_starts.len())
+                >= ATTEMPTS_PER_NODE
         {
             return Err(Refusal::Capacity);
         }
