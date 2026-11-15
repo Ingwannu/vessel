@@ -140,3 +140,11 @@ markers; the reference disposes only removed-history markers at that operation.
 This stronger reset is the explicit frame/anchor invalidation contract.
 Exact marker tests/strict checks remain owed; modes6e remains25/0 plus strict0.
 No transport/view-slot ownership or renderer is implemented by this pure API.
+
+Marker headd47 executes30/0/0, including11 exact reference marker checkpoints
+and all31 original cell checkpoints through bulk/Mux/old-raw-client paths.
+Strict stopped at two discarded integer-conversion sources and one missing
+field doc. Corrections preserve the original TryFromIntError in the library
+error and document the explicit clamp; new strict compilation remains owed.
+The prerequisite final docs/consumer-gate condition are merged without any
+product delta from that prerequisite. No full-package approval is inferred.

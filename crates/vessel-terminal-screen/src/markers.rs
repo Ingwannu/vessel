@@ -95,7 +95,10 @@ pub enum AnchorState {
     /// Current physical row, adjusted by the same row edits as the grid.
     Retained(LineIndex),
     /// Row genuinely removed; replacing at this oldest row is an explicit clamp.
-    Evicted { oldest: LineIndex },
+    Evicted {
+        /// Oldest retained physical row; the caller explicitly adopts a new marker there.
+        oldest: LineIndex,
+    },
     /// Authority allocation or buffer reset changed; never revive another opening's row.
     Reset,
     /// Its caller already released or replaced this local handle.
@@ -225,7 +228,7 @@ fn resolve(
     } else {
         match state.resolve_marker(buffer(anchor.buffer), anchor.marker) {
             vt100::MarkerPosition::Retained(row) => AnchorState::Retained(LineIndex(
-                u32::try_from(row).map_err(|_| ScreenError::MarkerIdentity)?,
+                u32::try_from(row).map_err(ScreenError::MarkerIndex)?,
             )),
             vt100::MarkerPosition::Evicted => AnchorState::Evicted {
                 oldest: LineIndex(0),
@@ -239,7 +242,7 @@ fn resolve(
     })
 }
 fn index(row: LineIndex) -> Result<usize, ScreenError> {
-    usize::try_from(row.0).map_err(|_| ScreenError::MarkerRow)
+    usize::try_from(row.0).map_err(ScreenError::MarkerIndex)
 }
 fn buffer(kind: BufferKind) -> vt100::Buffer {
     match kind {

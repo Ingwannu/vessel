@@ -62,6 +62,9 @@ pub enum ScreenError {
     /// A non-reused marker or reset identity cannot be allocated or projected.
     #[error("terminal viewport marker identity is unavailable")]
     MarkerIdentity,
+    /// Physical-row narrowing preserves its original conversion error.
+    #[error("terminal viewport marker row cannot be represented")]
+    MarkerIndex(#[source] std::num::TryFromIntError),
     /// Another authority or reset epoch owns this handle.
     #[error("terminal viewport marker was reset")]
     MarkerReset,
