@@ -82,3 +82,44 @@ fn named_term_arguments_are_local_not_extra_caller_variables() {
             .is_empty()
     );
 }
+
+#[test]
+fn unsupported_number_operands_are_rejected_before_callback_error_can_be_silent() {
+    for source in [
+        "label = { NUMBER(\"text\") }",
+        "other = 2\nlabel = { NUMBER(other) }",
+        "label = { NUMBER(DATETIME($date)) }",
+        "label = { NUMBER(PARTICLE($name, \"object\")) }",
+    ] {
+        assert!(matches!(shapes(source), Err(ContractError::NumberArgument)));
+    }
+    for source in [
+        "label = { NUMBER(2) }",
+        "label = { NUMBER(NUMBER($count)) }",
+    ] {
+        let graph = shapes(source).unwrap();
+        assert!(expanded(&Key::parse("label").unwrap(), |key| graph.get(key)).is_ok());
+    }
+}
+
+#[test]
+fn term_literals_must_match_the_referenced_typed_parameter() {
+    for source in [
+        "-term = { NUMBER($count) }\nlabel = { -term(count: \"text\") }",
+        "-term = { DATETIME($date) }\nlabel = { -term(date: \"text\") }",
+        "-term = { DATETIME($date) }\nlabel = { -term(date: 2) }",
+    ] {
+        let graph = shapes(source).unwrap();
+        assert!(matches!(
+            expanded(&Key::parse("label").unwrap(), |key| graph.get(key)),
+            Err(ContractError::BindingType { .. })
+        ));
+    }
+    let graph = shapes("-term = { NUMBER($count) }\nlabel = { -term(count: 2) }").unwrap();
+    assert!(
+        expanded(&Key::parse("label").unwrap(), |key| graph.get(key))
+            .unwrap()
+            .variables()
+            .is_empty()
+    );
+}

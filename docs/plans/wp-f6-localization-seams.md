@@ -85,3 +85,30 @@ Neither this pure seam nor its tests prove those plugin lifecycle flows.
 
 Pure seam state: installed source; its narrow target/host checks and generated
 API byte comparison are owed. The bundle-only checks above do not cover it.
+
+## Operand and local-binding gate correction
+
+A retained existing checker accepted three deliberately invalid candidates:
+`NUMBER("text")`, a string bound to a NUMBER term parameter, and a string bound
+to a DATETIME term parameter (all returned zero on explicit copied roots).
+Source inspection of fluent-bundle's `resolver/inline_expression.rs` shows that
+custom callback Error writes a function placeholder without adding a resolver
+diagnostic. Thus an empty runtime diagnostics vector cannot validate operands.
+This is not an observed shipped-language defect; shipped EN/KO uses supported
+operands. It is a gate gap that matters when admitting installation resources.
+
+The shared AST gate now requires a NUMBER operand capable of remaining numeric
+(a typed variable, bounded numeric literal or nested NUMBER result), including
+correct inference through inline placeables. Named term arguments retain their
+literal kind: a numeric parameter needs a numeric literal; a Date parameter
+cannot be supplied by resource literals. Dates stay typed caller values, so
+translations never depend on their private Fluent-boundary encoding. Standard
+function names/configuration stay unchanged; no parser or dependency is added.
+Negative and positive cases run through both the target contract and host gate.
+These corrections strengthen admission checks; they do not turn runtime
+placeholder text into UI recovery or replace the plugin owner's failure path.
+
+Package base 3 (`6c782cb6`) was merged as `a6c9d0c4`. Incoming node Quality B
+and race corrections are preserved unchanged; this track adds no root/protocol
+work. Current state: coherent source, formatting and static quality checked;
+Clippy, target/host tests, generated API parity and consumer integration owed.

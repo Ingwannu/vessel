@@ -1,7 +1,10 @@
 //! Expand reference contracts with cycle/depth checks and memoized DAG traversal.
 //! Memo entries retain subtree height: a cached shallow visit must not let the
 //! same subtree bypass the limit when reached through a deeper path later.
-use super::{Contract, ContractError, Key, Shape, types::Conflicts};
+use super::{
+    Contract, ContractError, Key, Shape,
+    types::{BindingRequirement, Conflicts, LocalLiteral},
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_REFERENCE_DEPTH: usize = 64;
@@ -80,7 +83,9 @@ fn expand_references<'a>(
         height = height.max(referenced.height.saturating_add(1));
         shape.conflicts.extend(referenced.shape.conflicts);
         for (name, kind) in referenced.shape.variables {
-            if !reference.bound.contains(&name) {
+            if let Some(literal) = reference.bound.get(&name) {
+                check_binding(&reference.key, &name, &kind, *literal)?;
+            } else {
                 match &reference.key {
                     Key::Term(_) => {
                         return Err(ContractError::UnboundTerm {
@@ -94,6 +99,30 @@ fn expand_references<'a>(
         }
     }
     Ok(Expanded { shape, height })
+}
+
+fn check_binding(
+    key: &Key,
+    name: &super::Name,
+    kind: &super::Kind,
+    literal: LocalLiteral,
+) -> Result<(), ContractError> {
+    let required = match (kind, literal) {
+        (super::Kind::Date, LocalLiteral::Text | LocalLiteral::Number) => {
+            Some(BindingRequirement::CallerDate)
+        }
+        (super::Kind::Number, LocalLiteral::Text) => Some(BindingRequirement::Number),
+        (super::Kind::Text | super::Kind::Choice(_), LocalLiteral::Text | LocalLiteral::Number)
+        | (super::Kind::Number, LocalLiteral::Number) => None,
+    };
+    if let Some(required) = required {
+        return Err(ContractError::BindingType {
+            key: key.clone(),
+            name: name.clone(),
+            required,
+        });
+    }
+    Ok(())
 }
 
 #[cfg(test)]

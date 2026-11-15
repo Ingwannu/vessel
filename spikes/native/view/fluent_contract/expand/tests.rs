@@ -1,10 +1,7 @@
 //! Adversarial reference graphs protect runtime consumers of the host contract.
 use super::super::{ContractError, Key, Kind, Name, Reference, Shape};
 use super::{MAX_REFERENCE_DEPTH, expanded};
-use std::{
-    cell::Cell,
-    collections::{BTreeMap, BTreeSet},
-};
+use std::{cell::Cell, collections::BTreeMap};
 
 type Graph = BTreeMap<Key, Shape>;
 fn key(name: &str) -> Key {
@@ -13,7 +10,7 @@ fn key(name: &str) -> Key {
 fn reference(name: &str) -> Reference {
     Reference {
         key: key(name),
-        bound: BTreeSet::new(),
+        bound: BTreeMap::new(),
     }
 }
 fn graph_chain(length: usize) -> Graph {

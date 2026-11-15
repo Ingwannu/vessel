@@ -1,13 +1,16 @@
 //! Walk Fluent's maintained AST to discover variables, never its source text.
 //! References are expanded by the catalog validator before API generation.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use fluent_syntax::ast::{
     CallArguments, Expression, InlineExpression, Pattern, PatternElement, VariantKey,
 };
 
-use super::{ContractError, Key, Kind, Name, Reference, Shape, types::CallArity};
+use super::{
+    ContractError, Key, Kind, Name, Reference, Shape,
+    types::{CallArity, LocalLiteral},
+};
 
 const MAX_FORMAT_DIGITS: usize = 9;
 
@@ -107,7 +110,7 @@ fn inline_shape(
             }
             shape.references.push(Reference {
                 key: Key::Message(Name::parse(id.name)?),
-                bound: BTreeSet::new(),
+                bound: BTreeMap::new(),
             });
         }
         InlineExpression::TermReference {
@@ -148,7 +151,14 @@ fn term_shape(
             .map(|a| {
                 a.named
                     .iter()
-                    .map(|n| Name::parse(n.name.name))
+                    .map(|n| {
+                        let kind = match &n.value {
+                            InlineExpression::StringLiteral { .. } => LocalLiteral::Text,
+                            InlineExpression::NumberLiteral { .. } => LocalLiteral::Number,
+                            _ => return Err(ContractError::TermArgument),
+                        };
+                        Ok((Name::parse(n.name.name)?, kind))
+                    })
                     .collect::<Result<_, _>>()
             })
             .transpose()?
@@ -169,8 +179,8 @@ fn function_shape(
     }
     match name {
         "NUMBER" => {
-            if let Some(InlineExpression::VariableReference { id }) = args.positional.first() {
-                shape.merge(Name::parse(id.name)?, Kind::Number);
+            if let Some(operand) = args.positional.first() {
+                number_operand(operand, shape)?;
             }
         }
         "DATETIME" => {
@@ -182,6 +192,24 @@ fn function_shape(
         name => return Err(ContractError::UnknownFunction(Name::parse(name)?)),
     }
     arguments(args, shape, role)?;
+    Ok(())
+}
+
+// Fluent writes callback Error as FUNCTION() without a diagnostic. Reject a
+// source operand that cannot become a number before admitting the resource.
+fn number_operand(value: &InlineExpression<&str>, shape: &mut Shape) -> Result<(), ContractError> {
+    match value {
+        InlineExpression::VariableReference { id } => {
+            shape.merge(Name::parse(id.name)?, Kind::Number)
+        }
+        InlineExpression::NumberLiteral { value } => numeric_literal(value)?,
+        InlineExpression::FunctionReference { id, .. } if id.name == "NUMBER" => {}
+        InlineExpression::Placeable { expression } => match expression.as_ref() {
+            Expression::Inline(value) => number_operand(value, shape)?,
+            Expression::Select { .. } => return Err(ContractError::NumberArgument),
+        },
+        _ => return Err(ContractError::NumberArgument),
+    }
     Ok(())
 }
 

@@ -72,10 +72,22 @@ pub(crate) enum Kind {
     Date,
     Choice(BTreeSet<Name>),
 }
+/// Fluent named arguments are source literals; they cannot supply a typed Date.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LocalLiteral {
+    Text,
+    Number,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BindingRequirement {
+    Number,
+    CallerDate,
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Reference {
     pub(super) key: Key,
-    pub(super) bound: BTreeSet<Name>,
+    pub(super) bound: BTreeMap<Name, LocalLiteral>,
 }
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Shape {
@@ -165,6 +177,16 @@ pub(crate) enum ContractError {
     NumberParse(#[source] std::num::ParseFloatError),
     #[error("numeric literals require u32 magnitude and at most nine decimal places")]
     NumberRange,
+    #[error("NUMBER requires a numeric literal, typed number variable, or NUMBER result")]
+    NumberArgument,
+    #[error("term arguments must be string or numeric literals")]
+    TermArgument,
+    #[error("{key} has an incompatible local value for ${name}: {required:?}")]
+    BindingType {
+        key: Key,
+        name: Name,
+        required: BindingRequirement,
+    },
     #[error("cyclic or excessively deep reference at {0}")]
     ReferenceDepth(Key),
     #[error("cyclic or excessively deep reference at {0}")]

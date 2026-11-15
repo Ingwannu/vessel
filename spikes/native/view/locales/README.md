@@ -151,3 +151,10 @@ The core's shipped English/Korean completeness gate stays mandatory. A plugin's
 English source is mandatory and its other translations may be partial, with
 per-message English fallback. Its owner refreshes prepared text on language or
 contribution changes and disposes installation caches/subscriptions together.
+
+`NUMBER` needs a typed number variable, bounded numeric literal or another
+`NUMBER` result; numeric strings are not parsed. A term parameter used as a
+number must be bound to a numeric literal. `DATETIME` always receives a typed
+caller date; a resource literal cannot supply a term's Date parameter or encode
+the runtime's private Date representation. Invalid operands/bindings fail the
+same AST gate used by generation and installation resources.
