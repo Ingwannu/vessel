@@ -309,6 +309,7 @@ impl Method {
             | Self::ListSecrets
             | Self::ListModels
             | Self::HarnessOptions
+            | Self::GetDraftCommands
             | Self::SessionOptions
             | Self::SetSessionOption
             | Self::RenameSession
