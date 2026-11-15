@@ -109,7 +109,22 @@ fn the_shared_clear_target_clears_the_real_engine_and_keeps_input_focus(cx: &mut
         view.update_in(cx, |this, window, cx| {
             assert_eq!(this.field.text(cx), "");
             assert!(this.field.editor.focus_handle(cx).is_focused(window));
-            assert_eq!(this.changes, ["한글 query", ""]);
+            // simulate_input types each grapheme through the real engine;
+            // X must append one empty Change after those ordinary edits.
+            assert_eq!(
+                this.changes,
+                [
+                    "한",
+                    "한글",
+                    "한글 ",
+                    "한글 q",
+                    "한글 qu",
+                    "한글 que",
+                    "한글 quer",
+                    "한글 query",
+                    "",
+                ]
+            );
         });
         assert!(cx.debug_bounds("search-field-clear").is_none());
         view.update_in(cx, |this, window, cx| {
