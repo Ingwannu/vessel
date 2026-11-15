@@ -329,3 +329,10 @@ before publishing probe failures as well as successful catalogues. The
 real startup-barrier reload fixture covers both default choices and a fake
 agent's actual rejected locked mode; both must return configuration-changed
 and a fresh probe must recover. Existing phase/outer deadlines are retained.
+
+The migration acknowledgement check requires both the exact proposed list
+and the CAS predecessor's single checked revision increment. Matching
+content with an unchanged or ahead revision cannot produce a completion
+receipt or trigger an automatic retry. Driven fake-host fixtures retain
+the wrong-content case and add both contradictory revision cases. Runtime
+execution of these new assertions remains outstanding.

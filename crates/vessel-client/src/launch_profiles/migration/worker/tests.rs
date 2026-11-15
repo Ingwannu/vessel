@@ -27,6 +27,8 @@ enum WriteMode {
     UnknownApplied,
     UnknownAbsent,
     WrongAck,
+    WrongRevision,
+    AheadRevision,
 }
 struct Host {
     current: LaunchProfilesSnapshot,
@@ -83,6 +85,11 @@ fn write(
         ))),
         WriteMode::UnknownAbsent => Err(CallError::Disconnected),
         WriteMode::WrongAck => Ok(host.current.clone()),
+        WriteMode::WrongRevision => Ok(LaunchProfilesSnapshot::new(expected, profiles)),
+        WriteMode::AheadRevision => Ok(LaunchProfilesSnapshot::new(
+            expected.next().unwrap().next().unwrap(),
+            profiles,
+        )),
         WriteMode::Save | WriteMode::UnknownApplied => {
             assert_eq!(host.current.revision(), expected);
             host.current = LaunchProfilesSnapshot::new(expected.next().unwrap(), profiles);
@@ -181,12 +188,18 @@ async fn failed_write_remains_retryable_and_wrong_ack_is_not_completion() {
                 run(&failed).await.unwrap().completion(),
                 LegacyMigrationCompletion::Saved { .. }
             ));
-            let wrong = host(WriteMode::WrongAck);
-            assert!(matches!(
-                run(&wrong).await,
-                Err(LaunchProfileClientError::LegacyWriteNotConfirmed)
-            ));
-            assert_eq!(wrong.lock().unwrap().writes, 1);
+            for mode in [
+                WriteMode::WrongAck,
+                WriteMode::WrongRevision,
+                WriteMode::AheadRevision,
+            ] {
+                let wrong = host(mode);
+                assert!(matches!(
+                    run(&wrong).await,
+                    Err(LaunchProfileClientError::LegacyWriteNotConfirmed)
+                ));
+                assert_eq!(wrong.lock().unwrap().writes, 1);
+            }
             let forged = CallError::Remote(WireError {
                 code: ErrorCode::Forbidden,
                 message: "denied".to_owned(),

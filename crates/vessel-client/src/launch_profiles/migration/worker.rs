@@ -146,7 +146,11 @@ where
         }
         match write(plan.expected(), plan.profiles().clone()).await {
             Ok(saved) => {
-                if saved.profiles() != plan.profiles() {
+                // Added records require this exact CAS increment. Matching
+                // content with a stale/ahead revision is not its write ack.
+                if plan.expected().next() != Some(saved.revision())
+                    || saved.profiles() != plan.profiles()
+                {
                     return Err(LaunchProfileClientError::LegacyWriteNotConfirmed);
                 }
                 return Ok(LegacyMigrationReceipt {
