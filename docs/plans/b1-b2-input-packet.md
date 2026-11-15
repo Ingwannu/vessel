@@ -38,3 +38,9 @@ A separate real defect found during source integration is fenced in both the fro
 This receiving union still has no fresh exact compile/execution or canonical root-adoption receipt. All changes remain source preparation until the announced prerequisites and combined owner check.
 
 The legacy ingress regression explicitly asserts/consumes the layout opener's one SavePrefs setup command before checking each submit. Otherwise legitimate tab persistence would be mistaken for an unauthorized prompt; submission guards and no-send assertions are unchanged.
+
+## Official App root reconciliation
+
+The official App base a7aab9d6 closes the canonical identity/profile route. The old pinned consumer also inherited development Node/proto changes; these are archived externally and are not merged into the product root. This receiving tree uses the official base's exact crates, root Cargo manifests/lock, web, root scripts and normative protocol/architecture documents. Native inputs and their own plans remain. Any API absent from that official root must become an explicit dependency finding, not an invented wire fallback or a copied private method row.
+
+Native conflict resolution preserves the new PreparedGeneral constructor input while retaining with_drafts test isolation and production-only local-byte recovery. The field keeps the one existing B2 factory/rows/press state and adds the official SearchField child export once, without restoring duplicate module declarations or another event listener. The subsequent combined check is the first proof of this exact receiving assembly; no earlier branch's pass is borrowed.

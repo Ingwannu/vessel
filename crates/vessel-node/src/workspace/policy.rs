@@ -63,6 +63,8 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     ) {
         "a repository's scripts run where a person approved them and a person asked; an agent \
          runs commands with its own tools"
+    } else if matches!(method, Method::DetachSession) {
+        "only a person may make a managed child independent"
     } else if matches!(method, Method::GetAgentHistory) {
         "an agent's own history holds a person's conversations outside Vessel; an agent works \
          with the node's sessions"
@@ -98,7 +100,8 @@ const fn refused(method: Method) -> bool {
     match method {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
-        Method::AddProject
+        Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
+        | Method::AddProject
         | Method::CloneProject
         | Method::InitProject
         | Method::RemoveProject
@@ -109,6 +112,8 @@ const fn refused(method: Method) -> bool {
         | Method::DropSnapshot
         | Method::GitStatus
         | Method::GitChanges
+        | Method::GitCompare
+        | Method::GitCompareFile
         | Method::GitDiff
         | Method::GitShow
         | Method::GitBranches
@@ -151,7 +156,7 @@ const fn refused(method: Method) -> bool {
         // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
         | Method::GetAgentHistory
-        | Method::GetDraftCommands => true,
+        | Method::DetachSession => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -293,6 +298,7 @@ const fn refused(method: Method) -> bool {
         | Method::ListInbox
         | Method::GetInboxEntry
         | Method::MarkInbox
+        | Method::Diagnostics
         | Method::GetPushKey
         | Method::SubscribePush
         | Method::UnsubscribePush
@@ -407,6 +413,29 @@ mod tests {
             assert!(!error.message.contains("  "), "{}", error.message);
         }
         assert!(refuse_agents(&Principal::Owner, Method::ApproveCommands).is_ok());
+    }
+
+    #[test]
+    fn registry_visibility_and_mutation_remain_person_only() {
+        let agent = Principal::Agent {
+            node: NodeId::random(),
+            session: SessionId::random(),
+            scopes: vec![Scope::Read, Scope::Operate],
+        };
+        for method in [
+            Method::ReleaseWorkspaceAutomation,
+            Method::GetRegistry,
+            Method::ListWorkspaces,
+            Method::GetWorkspace,
+            Method::RenameWorkspace,
+            Method::PinWorkspace,
+        ] {
+            assert_eq!(
+                refuse_agents(&agent, method).unwrap_err().code,
+                ErrorCode::Forbidden
+            );
+            assert!(refuse_agents(&Principal::Owner, method).is_ok());
+        }
     }
 
     #[test]

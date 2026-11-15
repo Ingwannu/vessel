@@ -2,7 +2,7 @@
 //!
 //! Each type names the definition it follows in `schema/app-server.json`,
 //! the subset of `codex app-server generate-json-schema --experimental`
-//! (refreshed with Codex 0.169.0) the driver uses; `contract` checks that every field
+//! (Codex 0.166.0) the driver uses; `contract` checks that every field
 //! read or written here is in that file, and that the file still matches
 //! an installed Codex.
 //!
@@ -147,8 +147,6 @@ pub(super) enum UserInput {
     Text { text: String },
     /// A file or folder named in the prompt.
     Mention { name: String, path: String },
-    /// An explicitly selected provider skill and its provider-reported path.
-    Skill { name: String, path: String },
 }
 
 /// `TurnStartParams`.

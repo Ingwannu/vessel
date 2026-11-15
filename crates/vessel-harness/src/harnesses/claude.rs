@@ -45,8 +45,6 @@ use crate::memory::{MemoryFilesError, RebaseError};
 use crate::routing::{ModelProxy, Routed, Routing};
 use crate::sessions::{SessionFiles, SessionFilesError, entry};
 
-mod commands;
-
 pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     binary: "claude",
     profile: "claude",
@@ -82,7 +80,6 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         render: model_proxy,
         overriding: off_route,
     }),
-    command_kind: Some(commands::kind),
 };
 
 /// A routed session (ADR 0015): Claude Code's documented gateway

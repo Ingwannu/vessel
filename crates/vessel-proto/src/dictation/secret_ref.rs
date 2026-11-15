@@ -22,7 +22,7 @@ impl From<SecretName> for SecretReference {
 }
 impl SecretReference {
     /// Keep actual lookup in the existing secret owner.
-    pub(super) fn selected_name(&self) -> &SecretName {
+    pub(crate) fn selected_name(&self) -> &SecretName {
         &self.0
     }
 }

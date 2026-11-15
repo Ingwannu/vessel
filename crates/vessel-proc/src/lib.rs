@@ -47,6 +47,7 @@
 compile_error!("vessel-proc supports Unix process groups and Windows job objects only");
 
 mod account;
+mod checked;
 mod child;
 mod error;
 #[cfg(unix)]
@@ -55,11 +56,13 @@ mod lifetime;
 pub mod listening;
 pub mod lock;
 mod process_id;
+pub mod self_process;
 mod session;
 mod signal;
 mod spec;
 
 pub use account::account_shell;
+pub use checked::{CheckedWaitError, OwnedGroupExit};
 pub use child::{Child, Spawned, spawn};
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]

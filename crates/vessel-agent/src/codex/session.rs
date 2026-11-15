@@ -35,9 +35,6 @@
 //! - Other threads' notifications (Codex's sub-agents run threads of their
 //!   own) are not this session's and are ignored here.
 
-mod catalog;
-mod handshake;
-
 use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
@@ -45,8 +42,8 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::agents::AgentVersion;
 use vessel_proto::{
-    AgentEvent, ContentBlock, ContextUsage, PermissionOutcome, QuestionOutcome, ToolCallUpdate,
-    ToolKind,
+    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, PermissionOutcome,
+    QuestionOutcome, ToolCallUpdate, ToolKind,
 };
 
 use super::asks::{self, Approvals, Asking, Questions, Settled};
@@ -54,14 +51,16 @@ use super::mapper;
 use super::mode::Mode;
 use super::protocol::{
     ClientInfo, CommandApproval, DeltaNotification, ErrorNotification, FileChangeApproval,
-    InitializeCapabilities, InitializeParams, ItemNotification, PermissionsApproval,
-    PlanNotification, RequestResolved, TokenUsageBreakdown, TurnInterruptParams, TurnNotification,
-    TurnStartParams, TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
+    InitializeCapabilities, InitializeParams, InitializeResponse, ItemNotification,
+    PermissionsApproval, PlanNotification, RequestResolved, ThreadOpened, ThreadResumeParams,
+    ThreadStartParams, TokenUsageBreakdown, TurnInterruptParams, TurnNotification, TurnStartParams,
+    TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
 };
 use super::wire::{self, Ended, Incoming, Outgoing, RpcError};
 use crate::error::{Disconnect, InputError};
-use crate::handshake::AgentSetup;
+use crate::handshake::{AgentSetup, ForkRefusal};
 use crate::input::{Command, Reply, SteerOutcome, SteerReply};
+use crate::introduction::Introduction;
 use crate::output::AgentOutput;
 
 /// Lines read ahead of the loop.
@@ -85,7 +84,6 @@ const CLIENT: ClientInfo = ClientInfo {
 enum Pending {
     Initialize,
     Thread,
-    Catalog,
     TurnStart,
     Interrupt,
     Steer {
@@ -124,7 +122,6 @@ pub(super) async fn run(
 }
 
 struct Session {
-    catalog: super::commands::Catalog,
     out: Outgoing,
     outputs: mpsc::Sender<AgentOutput>,
     setup: AgentSetup,
@@ -157,7 +154,6 @@ struct Session {
 impl Session {
     fn new(out: Outgoing, outputs: mpsc::Sender<AgentOutput>, setup: AgentSetup) -> Self {
         Self {
-            catalog: super::commands::Catalog::default(),
             out,
             outputs,
             setup,
@@ -293,7 +289,6 @@ impl Session {
         match pending {
             Pending::Initialize => return self.initialized(answer).await,
             Pending::Thread => return self.opened(answer).await,
-            Pending::Catalog => self.catalog_answered(answer).await,
             Pending::TurnStart => self.turn_started(answer).await,
             Pending::Interrupt => {
                 if let Err(error) = answer {
@@ -312,6 +307,108 @@ impl Session {
                 };
                 let _gone = reply.send(outcome);
             }
+        }
+        None
+    }
+
+    /// `initialize` answered: say who the agent is, then open the thread.
+    async fn initialized(&mut self, answer: Result<Value, RpcError>) -> Option<Disconnect> {
+        let response: InitializeResponse = match answer.map(serde_json::from_value) {
+            Ok(Ok(response)) => response,
+            Ok(Err(error)) => return Some(handshake_failed(format!("initialize: {error}"))),
+            Err(error) => return Some(handshake_failed(format!("initialize: {}", error.message))),
+        };
+        let introduction = Introduction {
+            version: response.user_agent.as_deref().and_then(version_of),
+            methods: Vec::new(),
+        };
+        self.output(AgentOutput::Introduced(Box::new(introduction)))
+            .await;
+        if !self.out.notify("initialized", &serde_json::json!({})).await {
+            return Some(Disconnect::Closed);
+        }
+        // The mode is the one option until the options slice: another
+        // choice fails the handshake, as an ACP agent's unknown option
+        // does, rather than run without it unannounced.
+        for choice in &self.setup.options {
+            match Mode::chosen(choice) {
+                Ok(mode) => self.mode = mode,
+                Err(error) => return Some(handshake_failed(error.to_string())),
+            }
+        }
+        if self.setup.fork.is_some() {
+            // Forking a thread is the history slice's (`thread/fork`).
+            return Some(Disconnect::Handshake {
+                message: "this driver does not fork Codex threads yet".to_owned(),
+                refused: None,
+                fork_refused: Some(ForkRefusal::CannotFork),
+            });
+        }
+        let cwd = self.setup.cwd.display().to_string();
+        let model = self.setup.model.as_ref().map(ToString::to_string);
+        let sent = if let Some(thread) = &self.setup.resume {
+            let params = ThreadResumeParams {
+                thread_id: thread.to_string(),
+                cwd,
+                model,
+                approval_policy: self.mode.approval(),
+                approvals_reviewer: self.mode.reviewer(),
+                sandbox: self.mode.sandbox(),
+                exclude_turns: true,
+            };
+            self.request("thread/resume", &params, Pending::Thread)
+                .await
+        } else {
+            let params = ThreadStartParams {
+                cwd,
+                model,
+                approval_policy: self.mode.approval(),
+                approvals_reviewer: self.mode.reviewer(),
+                sandbox: self.mode.sandbox(),
+            };
+            self.request("thread/start", &params, Pending::Thread).await
+        };
+        (!sent).then_some(Disconnect::Closed)
+    }
+
+    /// The thread is open: the session is ready.
+    async fn opened(&mut self, answer: Result<Value, RpcError>) -> Option<Disconnect> {
+        let opened: ThreadOpened = match answer.map(serde_json::from_value) {
+            Ok(Ok(opened)) => opened,
+            Ok(Err(error)) => return Some(handshake_failed(format!("the thread: {error}"))),
+            Err(error) => return Some(handshake_failed(error.message)),
+        };
+        let abilities = AgentAbilities {
+            steer: true,
+            resume: true,
+            image: false,
+            audio: false,
+            fork: false,
+        };
+        self.thread = Some(opened.thread.id.clone());
+        // The mode alone until slice 3 (`model/list`).
+        self.output(AgentOutput::Options(vec![self.mode.option()]))
+            .await;
+        self.emit(AgentEvent::Ready {
+            harness_session: HarnessSessionId::new(opened.thread.id),
+            abilities: Some(abilities),
+        })
+        .await;
+        // Nor tool servers (the thread's `config`, slice 3): said, so a
+        // session never lacks them unannounced.
+        if !self.setup.mcp_servers.is_empty() {
+            let names: Vec<String> = self
+                .setup
+                .mcp_servers
+                .keys()
+                .map(ToString::to_string)
+                .collect();
+            let line = format!(
+                "vessel: Codex's own protocol does not pass tool servers yet; this session runs \
+                 without {}",
+                names.join(", ")
+            );
+            self.emit(AgentEvent::HarnessLog { line }).await;
         }
         None
     }
@@ -774,7 +871,7 @@ impl Session {
             answer(reply, Err(InputError::Closed));
             return;
         };
-        let input = match self.catalog.input(&content) {
+        let input = match mapper::user_input(&content) {
             Ok(input) => input,
             Err(error) => {
                 answer(reply, Err(error));
@@ -850,7 +947,7 @@ impl Session {
             }
             (Some(thread), TurnState::Running { id }) => (thread.clone(), id.clone()),
         };
-        let input = match self.catalog.input(&content) {
+        let input = match mapper::user_input(&content) {
             Ok(input) => input,
             Err(error) => {
                 let _gone = reply.send(Err(error));

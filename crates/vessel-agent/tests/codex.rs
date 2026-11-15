@@ -787,50 +787,6 @@ async fn a_probe_reads_the_introduction() {
     .await;
 }
 
-/// Catalog discovery waits past Ready without a prompt; invocation uses a native skill block.
-#[tokio::test]
-async fn commands_are_discovered_without_a_turn_and_a_selected_skill_is_native_input() {
-    within(async {
-        let probed =
-            vessel_agent::probe_catalog_with(Driver::CodexAppServer, &command(), setup(None))
-                .await
-                .unwrap();
-        let commands = probed.commands.unwrap();
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0].name.as_str(), "review");
-        assert_eq!(
-            commands[0].kind,
-            Some(vessel_proto::composer_commands::CommandKind::Skill)
-        );
-
-        let (_agent, input, mut outputs) = spawn(setup(None));
-        let _handshake = ready(&mut outputs).await;
-        let catalog = until(&mut outputs, |output| {
-            matches!(output, AgentOutput::Commands(_))
-        })
-        .await;
-        assert!(
-            catalog.iter().all(|output| !matches!(
-                output,
-                AgentOutput::Event(AgentEvent::TurnStarted { .. })
-            ))
-        );
-        input.prompt(text("/review changes")).await.unwrap();
-        let result = turn(&mut outputs).await;
-        assert_eq!(
-            said(&result),
-            "native skill review /fake/skills/review/SKILL.md $review changes"
-        );
-        assert_eq!(
-            result[0],
-            AgentEvent::TurnStarted {
-                content: text("/review changes")
-            }
-        );
-    })
-    .await;
-}
-
 /// Codex's completions are matched to the running turn: another turn of the
 /// thread does not end it, and one that does not read ends it failed
 /// rather than leave the session busy.

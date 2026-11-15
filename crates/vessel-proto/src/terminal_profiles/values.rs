@@ -62,6 +62,13 @@ impl Profile {
 
     /// The person's label rather than a program-derived guess.
     #[must_use]
+    #[cfg_attr(
+        feature = "ts",
+        expect(
+            clippy::same_name_method,
+            reason = "`ts_rs::TS::name` is the type's TypeScript name, an associated function; callers of this method have a value"
+        )
+    )]
     pub const fn name(&self) -> &Name {
         &self.name
     }

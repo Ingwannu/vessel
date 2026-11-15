@@ -24,7 +24,6 @@
 //!   own process, so a listing shapes its own command there).
 
 mod asks;
-mod commands;
 mod mapper;
 mod mode;
 mod protocol;

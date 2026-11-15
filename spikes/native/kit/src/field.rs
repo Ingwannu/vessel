@@ -39,7 +39,9 @@ pub use identity::FieldId;
 mod frame;
 mod presentation;
 mod rename;
+mod search;
 mod selection;
+pub use search::SearchField;
 mod styles;
 
 pub(crate) use frame::settings_frame;

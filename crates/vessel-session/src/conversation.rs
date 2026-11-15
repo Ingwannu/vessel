@@ -285,7 +285,6 @@ mod tests {
                 name: "compact".parse().unwrap(),
                 description: String::new(),
                 hint: None,
-                kind: None,
             }],
         });
         seen.observe(&SessionEvent::Status {
