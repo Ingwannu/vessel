@@ -230,3 +230,11 @@ The scoped constructor scenario now uses named setup/first-submit/release helper
 
 
 Actual App binary execution on exactccfb692e6931eacddc842b01f165fbb2a154bfce passed125/0/2ignored in run `wp-composer-shell-markdown-tests-20261115T163804Z-ccfb692e` (76 seconds, completed17:06:26 UTC). This includes the manually presented scoped constructor, ticket/uncertain/snapshot, top-sheet fullscreen, unavailable context and original-address tests on the announced82ca union. The new_scoped method body/API is byte-identical in the minimal26d2 constructor producer. That producer's independent strict and direct FieldId assertion execution remain pending, while the full B2 test's later helper-only correction preserves all assertions. No live minter factory, presentation synchronization, guarded network delivery, Workspace input union or UI approval is inferred.
+
+
+### Readonly history fallback
+
+- Purpose: a recalled draft must remain unchanged while its editor is readonly or covered by audio, and terminal input must not recall agent prompts.
+- Existing path and constraint: the shared engine registers Enter/edit handlers only for editable inputs, but history recall uses programmatic replace_all. The command-menu policy already suppresses these surfaces; the no-menu fallback previously delegated to recall anyway.
+- Choice: the B2 slash fallback rechecks the same current surface's autocomplete policy before invoking the existing W6 recall implementation. Rejected arrows pass to ordinary cursor/selection handling. No second history state, engine change or new listener is added.
+- Validation: an actual Shell/field regression seeds the existing public Recall state, verifies blocked Down preserves text/selection/recall under readonly/voice/terminal conditions, then verifies normal Down clears after restoration. The source correction still awaits its exact VM test and strict result.
