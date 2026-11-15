@@ -63,7 +63,7 @@ pub(crate) struct DecodedByte {
     pub(crate) escape: Option<EscapeEffect>,
     pub(crate) replies: Result<Replies, ScreenError>,
 }
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Overlap {
     #[default]
     None,
@@ -76,6 +76,7 @@ enum Token {
 }
 
 /// One node authority; bulk raw feed cannot bypass its presentation boundary.
+#[derive(Debug)]
 pub struct Multiplexer {
     screen: Screen,
     pending: Vec<u8>,
