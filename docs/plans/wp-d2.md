@@ -299,3 +299,11 @@ therefore supply no suggested host; a person explicitly chooses the host their
 system browser can reach. A future suggestion requires E2's coordinated
 authority-binding projection. No connection internals or extra route resolver
 are added by this feature.
+
+The legacy node still reserves scripts by (root path, ScriptName), as
+service/scripts.rs154-174 and terminals/registry.rs define. Two explicit legacy
+sessions sharing that root may therefore receive AlreadyRunning rather than two
+independent processes. The session card filters foreign TerminalPlace owners and
+never adopts that refused TerminalId or reinterprets root equality as canonical
+workspace ownership. Exact WorkspaceId service lifetimes remain unsupported
+until the new runtime contract replaces that legacy reservation boundary.
