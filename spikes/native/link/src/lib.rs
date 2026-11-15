@@ -53,10 +53,10 @@ pub mod devices;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
+pub mod usage;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
-
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]

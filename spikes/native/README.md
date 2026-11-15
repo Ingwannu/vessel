@@ -175,6 +175,14 @@ The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
 
+Usage request lifetimes live in `view::usage`: one active read and the
+latest queued selection, with non-reused tickets across close/reopen and
+A-to-B-to-A navigation. Retained observations keep their original timestamp
+and a separate loading/failure state. Token fields preserve unknown values
+and full integer precision; account inventory uses `profile.list`, which
+already includes implicit defaults. `link::usage` is the typed boundary;
+newer accounting/limits calls await the shared node baseline integration.
+
 Settings lists Paseo's sections in Paseo's two groups and order
 (`view::settings`: App, then the chosen machine's, Paseo's Host, headed by
 the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
