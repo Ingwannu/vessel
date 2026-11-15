@@ -815,3 +815,13 @@ registry/subscription or constructor family is retained. field.rs falls below500
 and its size exception is removed; picker remains capped828. Test-only resident
 and delivery staging remains test-only. New union strict/tests are required;
 previous source checks do not establish this merge.
+
+Receipt integration inventory (pending W19 checked producer): edit/clear/reset
+share shortcut_edits; ResetAll currently calls prefer directly and must join the
+same owner receipt wrapper. The wrapper replaces that one call, never adds a
+second SavePrefs. UI completion must match the current local edit/visit, pass
+canonical snapshots through the owner acknowledge path, and distinguish Saved
+from launch-only/refused/failed. Canonical rebase invalidates shortcut caches
+without discarding a newer recorder. Existing actor/queue failure notices remain
+central; local validation wording is not a disk acknowledgement. No speculative
+receipt writer/state machine was introduced before the checked owner handoff.
