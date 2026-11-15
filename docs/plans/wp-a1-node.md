@@ -92,3 +92,14 @@ results and the lifecycle owner's archive path, preserve its authority and
 settle the listener before prompt dispatch. A cwd or legacy session listing
 cannot select workspace archive. No automatic archive or flag is exposed by
 this staged receipt/profile slice.
+
+V3 clarified Accepted-before-Begin restart on 2026-11-15: unstarted Accepted
+may continue under its original reserved ids after authoritative recovery,
+current authority/Active checks, a single shared driver, and proof that no
+resource or restored count entry already exists. In-flight remains Unknown.
+The earlier blanket reviewer-summary prohibition on every restarted key was
+too broad; ADR0091 now records the precise conditions before driver wiring.
+Agents::reserve now refuses a duplicate id atomically before minting instead
+of replacing its entry. Regressions preserve credential/grant/connections and
+exercise concurrent exact-id admission at the last child slot. This hardening
+reuses the existing count owner and does not implement the missing driver.

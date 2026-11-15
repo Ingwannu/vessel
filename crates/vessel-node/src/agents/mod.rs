@@ -123,6 +123,13 @@ impl Agents {
         principal: &Principal,
         with_credential: bool,
     ) -> Result<Option<AgentSecret>, ServiceError> {
+        let mut sessions = self.lock();
+        // Receipt continuation reuses an id; it must never replace a restored
+        // entry, its credential or its counted owner. Check before minting and
+        // keep the same lock through count admission and insertion.
+        if sessions.contains_key(&id) {
+            return Err(ServiceError::AgentReserved(id));
+        }
         let (secret, credentials) = if with_credential {
             let secret = mint()?;
             let hash = CredentialHash::of_agent(&secret);
@@ -130,7 +137,6 @@ impl Agents {
         } else {
             (None, Vec::new())
         };
-        let mut sessions = self.lock();
         let (scopes, depth, parent) = match principal {
             Principal::Owner => (AGENT_SCOPES.to_vec(), 0, None),
             Principal::Agent {
@@ -169,7 +175,7 @@ impl Agents {
                 (within_agent_scopes(scopes), 0, None)
             }
         };
-        let previous = sessions.insert(
+        let _previous = sessions.insert(
             id,
             Entry {
                 credentials,
@@ -180,9 +186,6 @@ impl Agents {
                 session: None,
             },
         );
-        if previous.is_some() {
-            tracing::error!(session = %id, "an agent place was reserved twice");
-        }
         Ok(secret)
     }
 

@@ -308,3 +308,38 @@ program/argv templates are absent. Admin get/set return the full configuration
 and stay node-local administration. All three calls refuse agents, including
 delegated agents, and remain pending under the sole creation protocol constant.
 The configuration does not itself launch a process or approve repository setup.
+
+### Accepted-before-Begin restart continuation
+
+V3's 2026-11-15 contract clarification distinguishes a provably unstarted
+Accepted operation from an orphan committed in-flight marker. A same-key
+Operate request may continue the former using the original reserved child;
+Read/observation cannot start it. Existing key/intent/namespace lookup and
+permanent accounting precede the bounded gate and all count admission.
+
+This continuation requires authoritative startup recovery with no old driver
+or blocking task able to commit a late marker/effect. Every external effect
+must follow the durable Begin commit acknowledgement; a lost acknowledgement
+is resolved through actual stored state, never inferred from cancellation.
+If ownership/generation fencing cannot establish that proof, refuse as
+uncertain. Attach to a current driver rather than creating a second one.
+Recheck current effective Operate, parent/depth/grants/count and workspace
+Active/start lease. The exact child must have no registered, live, stored or
+restored count entry before re-acquisition. Inconsistency is reconciliation
+or typed refusal, never overwrite, another UUID or reminted credentials.
+Rollback releases only the lease acquired by this attempt.
+
+A committed marker without authoritative completion remains Unknown even if
+the process crashed before calling the effect. Unknown, registered and
+completed operations never return to child creation. Known pre-effect refusal
+may retry the same ids after current checks; first-message retry stays on its
+existing child and canonical message id. Required regressions include idle
+Accepted restart and read-only observation; same-id/count continuation under
+last-slot concurrent retries; commit-before-effect crash; lost Begin ack and
+stale actor; changed parent/workspace authority; restored count/resource
+non-overwrite; and all existing deleted/completed/Unknown retention cases.
+
+The existing Agents count owner now refuses duplicate ids while holding its
+one lock, before credential minting. This is a prerequisite for a future
+adapter, not proof that the unimplemented creation driver supplies the
+remaining persistence, ownership and startup fencing requirements.

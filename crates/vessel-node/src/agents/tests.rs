@@ -153,3 +153,77 @@ fn a_move_keeps_the_credential_of_the_agent_that_runs() {
     agents.end_move(id, true);
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
 }
+
+#[test]
+fn duplicate_reservation_preserves_the_original_credential_grant_and_registration() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let closing = CancellationToken::new();
+    let id = SessionId::random();
+    let secret = agents
+        .reserve(id, &Principal::Owner, true)
+        .unwrap()
+        .unwrap();
+    let (original, registration) = agents.admit(&auth(id, &secret), &closing).unwrap();
+    let narrowed = Principal::Device {
+        id: DeviceId::random(),
+        scopes: vec![Scope::Operate],
+    };
+    let refused = agents.reserve(id, &narrowed, true).unwrap_err();
+    assert!(matches!(refused, ServiceError::AgentReserved(same) if same == id));
+    assert_eq!(refused.to_wire().code, vessel_proto::ErrorCode::Conflict);
+    let (retained, _second_connection) = agents.admit(&auth(id, &secret), &closing).unwrap();
+    assert_eq!(retained, original);
+    assert_eq!(agents.depth(id), Some(0));
+    assert!(!registration.closing().is_cancelled());
+    agents.retire(id);
+    assert!(registration.closing().is_cancelled());
+}
+
+#[test]
+fn concurrent_exact_id_admission_at_the_last_child_slot_has_one_count_and_credential() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let parent = SessionId::random();
+    let _parent = agents.reserve(parent, &Principal::Owner, false).unwrap();
+    let principal = agent_of(&agents, parent, vec![Scope::Read, Scope::Operate]);
+    for _ in 0..MAX_OWNED.saturating_sub(1) {
+        let _child = agents
+            .reserve(SessionId::random(), &principal, false)
+            .unwrap();
+    }
+    let child = SessionId::random();
+    let barrier = std::sync::Barrier::new(2);
+    let results = std::thread::scope(|scope| {
+        let run = || {
+            let _arrival = barrier.wait();
+            agents.reserve(child, &principal, true)
+        };
+        let one = scope.spawn(run);
+        let two = scope.spawn(run);
+        [one.join().unwrap(), two.join().unwrap()]
+    });
+    let mut secret = None;
+    let mut refused: usize = 0;
+    for result in results {
+        match result {
+            Ok(credential) => {
+                assert!(secret.is_none());
+                secret = credential;
+            }
+            Err(ServiceError::AgentReserved(same)) => {
+                assert_eq!(same, child);
+                refused = refused.saturating_add(1);
+            }
+            Err(other) => panic!("wrong admission result: {other:?}"),
+        }
+    }
+    assert_eq!(refused, 1);
+    assert!(
+        agents
+            .admit(&auth(child, &secret.unwrap()), &CancellationToken::new())
+            .is_some()
+    );
+    assert!(matches!(
+        agents.reserve(SessionId::random(), &principal, false),
+        Err(ServiceError::AgentLimit { .. })
+    ));
+}
