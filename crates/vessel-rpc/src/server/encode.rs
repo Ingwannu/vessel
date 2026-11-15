@@ -105,3 +105,36 @@ mod tests {
         assert_eq!(borrowed, owned);
     }
 }
+
+#[cfg(test)]
+mod scoped_tests {
+    use super::*;
+    use vessel_proto::{AgentEvent, EventSeq, SessionEvent, ToolCall};
+    #[test]
+    fn borrowed_live_scoped_tool_uses_the_exact_owned_peer_mask() {
+        let call: ToolCall = serde_json::from_str(r#"{"id":"same","scope":{"kind":"provider_turn","thread":"thread","turn":"turn"},"title":"run","kind":"execute","status":"in_progress"}"#).unwrap();
+        let record = EventRecord {
+            seq: EventSeq::new(9),
+            at: chrono::DateTime::UNIX_EPOCH,
+            event: SessionEvent::Agent {
+                event: AgentEvent::ToolCall(call),
+            },
+        };
+        let subscription = SubscriptionId::new(4);
+        let borrowed = Frame::Event {
+            subscription,
+            record: Arc::new(record.clone()),
+        }
+        .encode(vessel_proto::PROTOCOL_VERSION)
+        .unwrap();
+        let owned = ServerFrame::Event {
+            subscription,
+            record,
+        };
+        let expected = owned.for_protocol(vessel_proto::PROTOCOL_VERSION).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ServerFrame>(&borrowed).unwrap(),
+            expected
+        );
+    }
+}

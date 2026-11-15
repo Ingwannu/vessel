@@ -347,7 +347,20 @@ fn scoped_legacy_identity_is_identical_on_direct_page_and_nested_outgoing_paths(
         at: chrono::DateTime::UNIX_EPOCH,
         event: SessionEvent::Agent { event },
     };
+    let live = crate::ServerFrame::Event {
+        subscription: crate::SubscriptionId::new(3),
+        record: record.clone(),
+    };
+    let crate::ServerFrame::Event {
+        subscription,
+        record: live_record,
+    } = live.for_protocol(protocol).unwrap()
+    else {
+        panic!("live frame")
+    };
+    assert_eq!(subscription, crate::SubscriptionId::new(3));
     let masked_record = record.for_protocol(protocol).unwrap();
+    assert_eq!(live_record, masked_record);
     assert_eq!(masked_record.seq, record.seq);
     let SessionEvent::Agent { event: from_record } = &masked_record.event else {
         panic!("agent")
