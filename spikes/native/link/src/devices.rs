@@ -165,13 +165,27 @@ const CALL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 /// Calls are bounded even while a person switches machines repeatedly.
 /// A stalled node cannot accumulate one background task per navigation.
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Default for Hub {
     fn default() -> Self {
         Self(std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CALLS)))
+    }
+}
+
+// Explicit fixtures wait for the existing permits after closing their event
+// receiver. No second task registry or counter is invented for tests.
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "testing")))]
+impl Hub {
+    pub(crate) async fn drained(&self) -> Result<(), tokio::sync::AcquireError> {
+        let mut held = Vec::with_capacity(MAX_CALLS);
+        for _ in 0..MAX_CALLS {
+            held.push(self.0.acquire().await?);
+        }
+        drop(held);
+        Ok(())
     }
 }
 

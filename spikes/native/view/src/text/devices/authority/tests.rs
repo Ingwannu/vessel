@@ -111,7 +111,7 @@ fn local_failures_and_loading_controls_have_complete_copy_in_both_languages() {
 #[test]
 fn interrupted_writes_do_not_claim_a_definite_failure_in_either_language() {
     use crate::devices::Unconfirmed;
-    for (tag, lang, title, invitation, revocation, both) in [
+    for (tag, _lang, title, invitation, revocation, both) in [
         (
             "en",
             Lang::En,
@@ -136,7 +136,7 @@ fn interrupted_writes_do_not_claim_a_definite_failure_in_either_language() {
             (Unconfirmed::Revocation, revocation),
             (Unconfirmed::Both, both),
         ] {
-            assert_eq!(lang.devices().unconfirmed(operation, t), expected);
+            assert_eq!(t.device_unconfirmed(operation), expected);
             assert_eq!(operation.notice(), crate::alert::Variant::Warning);
         }
     }

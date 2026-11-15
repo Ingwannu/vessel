@@ -200,13 +200,22 @@ impl Driver {
     }
     async fn cleanup(&mut self) -> Result<(), FixtureError> {
         drop(self.pending.take());
+        let device_calls = self.state.as_ref().map(|state| state.device_calls.clone());
         drop(self.state.take());
         // Closing the receiver releases bounded reply workers before joining
         // the peer; queued credentials are dropped, never serialized or logged.
         self.channels.events.close();
         while let Ok(_event) = self.channels.events.try_recv() {}
-        self.peer.close().await?;
-        self.home.remove()
+        let peer = self.peer.close().await;
+        let workers = if let Some(hub) = device_calls {
+            failure::phase(Phase::Workers, hub.drained())
+                .await
+                .and_then(|drained| drained.map_err(|_closed| FixtureError::Worker))
+        } else {
+            Ok(())
+        };
+        let home = self.home.remove();
+        peer.and(workers).and(home)
     }
 }
 

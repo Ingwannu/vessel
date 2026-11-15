@@ -16,6 +16,8 @@ pub enum Phase {
     Control,
     /// Cancel and join the owned peer.
     Close,
+    /// Reap the bounded device workers after dropping admission and egress.
+    Workers,
     /// Create or remove the isolated book directory.
     Home,
 }
@@ -28,6 +30,7 @@ impl fmt::Display for Phase {
             Self::Dispatch => "dispatch",
             Self::Control => "control",
             Self::Close => "close",
+            Self::Workers => "device workers",
             Self::Home => "isolated directory",
         })
     }

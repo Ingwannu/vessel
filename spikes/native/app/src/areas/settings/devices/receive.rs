@@ -105,7 +105,7 @@ pub(super) fn unconfirmed(
                     title: Some(shell.words.device_authority().uncertain_title().into()),
                     description: Some(
                         div()
-                            .child(shell.t.lang.devices().unconfirmed(operation, shell.words))
+                            .child(shell.words.device_unconfirmed(operation))
                             .into_any_element(),
                     ),
                     action: None,

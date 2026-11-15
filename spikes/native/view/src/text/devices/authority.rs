@@ -2,22 +2,19 @@
 use super::{DevicesWords, Lang};
 use crate::{devices::Problem, localization::Translator};
 use vessel_proto::ErrorCode;
-impl DevicesWords {
-    /// One whole recovery sentence for an interrupted sent operation.
+impl Translator {
+    /// One whole recovery sentence for an interrupted sent device operation.
     #[must_use]
-    pub fn unconfirmed<'a>(
-        &self,
-        operation: crate::devices::Unconfirmed,
-        t: &'a Translator,
-    ) -> &'a str {
-        let words = t.device_authority();
+    pub fn device_unconfirmed(&self, operation: crate::devices::Unconfirmed) -> &str {
+        let words = self.device_authority();
         match operation {
             crate::devices::Unconfirmed::Invitation => words.uncertain_invitation(),
             crate::devices::Unconfirmed::Revocation => words.uncertain_revocation(),
             crate::devices::Unconfirmed::Both => words.uncertain_both(),
         }
     }
-
+}
+impl DevicesWords {
     /// A failed self query remains unknown, including a semantic refusal.
     #[must_use]
     pub fn authority_problem<'a>(&self, why: Problem, t: &'a Translator) -> &'a str {

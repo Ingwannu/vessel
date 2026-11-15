@@ -403,3 +403,45 @@ fn a_held_invitation_is_dropped_before_any_link_or_qr_can_reach_the_page(cx: &mu
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn normal_fixture_close_drains_an_inflight_write_while_app_keeps_only_weak_proof(
+    cx: &mut TestAppContext,
+) {
+    initialize(cx);
+    let (link, mut scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
+    let context = scene.context();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, &context, window);
+        let id = DeviceId::random();
+        report(&mut scene, shell, id, vec![Scope::Admin], cx);
+        listed(&mut scene, shell, id, cx);
+        shell.devices_choose_revoke(&context, id, window, cx);
+        let page = &mut shell.areas.settings.devices.page;
+        let ticket = page.tickets.next_ticket().unwrap();
+        let intent = page.revoke_intent().unwrap();
+        let selected = page.confirm_revoke(&context, intent, ticket).unwrap();
+        shell
+            .devices_send(context.clone(), ticket, Ask::Revoke { device: selected })
+            .unwrap();
+        assert!(matches!(
+            scene.request(shell.fixture_link()).unwrap(),
+            Call::RevokeDevice(_)
+        ));
+        // No reply: normal close must retire admission, close egress and
+        // release every existing worker permit before its actual ACK.
+        scene.close(shell.fixture_link()).unwrap();
+        assert!(!shell.devices_press(&context, window));
+        assert_eq!(
+            shell
+                .areas
+                .settings
+                .devices
+                .page
+                .unconfirmed(&shell.fleet.machines[0]),
+            Some(vessel_app_view::devices::Unconfirmed::Revocation)
+        );
+        assert!(!shell.areas.settings.devices.page.authority().may_manage());
+    });
+}

@@ -255,3 +255,18 @@ all four new uncertainty entries need their own translator-context comment;
 one preceding group comment is insufficient. The next correction gives each
 message its place and semantics, without changing copy or generated APIs.
 No current-source Link/App check or runtime result is inferred from this red.
+
+
+The8fa strict run next reached View and returned unused_self for the new
+whole-message helper. It is now a Translator method, selecting that catalog
+instead of taking an unused legacy DevicesWords receiver; no dummy self read
+or lint suppression is added. This failed run executed no runtime tests.
+
+Explicit normal Scenario close also drains the SAME bounded device-call hub
+permits after dropping State/admission, closing egress and joining the peer.
+It does not claim workers are gone from an abort request or an ignored handle.
+The feature-only drain has a named Workers phase; cleanup attempts peer,
+worker and Home completion even if an earlier cleanup result failed. No new
+registry, counter, raw client or guard constructor is exposed. The new actual
+App source case closes with a request still in flight while keeping the App's
+weak proof, then checks before-frame refusal and its unconfirmed write notice.
