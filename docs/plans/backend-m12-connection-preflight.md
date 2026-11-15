@@ -96,7 +96,9 @@ checks are separate evidence. This document grants no permission, UI,
 physical-device, stream-product or final-package approval. Logs and exact
 source fingerprints are retained under `/tmp/work/m12-g4/resumed-20261115`.
 No production account, file permission, service or network configuration is
-changed; compilation runs as the existing ubuntu UID/GID 1000.
+changed. Local source preparation used verified ubuntu UID/GID1000;
+the approved remote runner used its configured builder account. Its numeric
+UID/GID was not separately collected in these retained run logs.
 
 
 The first immutable remote candidate `93aa3fb3a` failed Clippy compilation:
@@ -190,5 +192,7 @@ The guard's synthetic ready-result EOF/error tests are not real server EOF
 or error-frame coverage. Device effective-scope/self UI, pairing, relay
 consent, physical devices, captures and final E2 gate remain unverified.
 No live node, fake fleet or application was started for this checkpoint; no
-real invitation/QR was generated. Synthetic peers only. Builds/tests ran as
-existing ubuntu UID/GID1000; no production service or permission changed.
+real invitation/QR was generated. Synthetic peers only. Local preparation ran as verified ubuntu UID/GID1000; the remote runner
+account was configured by the approved tool, without separate numeric UID/GID
+attestation retained here. No live service-account flow was exercised and
+no production service or permission changed.
