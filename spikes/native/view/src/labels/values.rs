@@ -39,6 +39,9 @@ pub enum Failure {
     /// The host is not connected.
     #[error("host is offline")]
     Offline,
+    /// The selected alias or admission has been replaced.
+    #[error("selected label connection changed")]
+    Changed,
     /// The node has no assigned contract for this operation.
     #[error("host does not support workspace labels")]
     Unsupported,

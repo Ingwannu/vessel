@@ -7,7 +7,7 @@ use vessel_proto::{ProtocolVersion, workspace_labels::WORKSPACE_LABELS};
 /// A fresh projection retains offline caches without attributing them to a new peer.
 #[derive(Debug, Default)]
 pub struct Bindings {
-    /// Deduplicated answered identities, including their retained offline colors.
+    /// Explicit book routes, sharing cached colors by answered node identity.
     pub hosts: Vec<Host>,
     /// Book aliases that have never answered with a known identity.
     pub unresolved: Vec<Name>,
@@ -29,33 +29,31 @@ pub fn bind_hosts(previous: &[Host], fleet: &Fleet) -> Bindings {
         };
         match machine.node {
             Some(key) => {
-                let previous = previous.iter().find(|host| host.key == key);
-                let availability =
-                    availability(machine, previous.map(|host| host.state), WORKSPACE_LABELS);
-                if let Some(known) = result.hosts.iter_mut().find(|host| host.key == key) {
-                    if known.state == HostState::Offline {
-                        known.state = availability;
-                        known.route = route;
-                    }
-                    continue;
-                }
-                let catalog = previous.map_or_else(Catalog::default, |host| host.catalog.clone());
+                let connection = machine.connection_context();
+                let cached = previous.iter().find(|host| host.key == key);
+                let same_admission = previous.iter().find(|host| {
+                    host.key == key && connection.is_some() && host.connection == connection
+                });
+                let state = availability(
+                    machine,
+                    same_admission.map(|host| host.state),
+                    WORKSPACE_LABELS,
+                );
+                let catalog = cached.map_or_else(Catalog::default, |host| host.catalog.clone());
                 result.hosts.push(Host {
                     key,
                     route,
-                    state: availability,
+                    connection,
+                    state,
                     catalog,
                 });
             }
             None => {
                 if let Some(cached) = previous.iter().find(|host| host.route == route) {
-                    // An unresolved route must not duplicate or demote an
-                    // already answered alias for this same node.
-                    if !result.hosts.iter().any(|host| host.key == cached.key) {
-                        let mut cached = cached.clone();
-                        cached.state = HostState::Offline;
-                        result.hosts.push(cached);
-                    }
+                    let mut cached = cached.clone();
+                    cached.connection = None;
+                    cached.state = HostState::Offline;
+                    result.hosts.push(cached);
                 } else {
                     result.unresolved.push(route);
                 }
@@ -70,7 +68,7 @@ fn availability(
     previous: Option<HostState>,
     since: Option<ProtocolVersion>,
 ) -> HostState {
-    if matches!(machine.reach, Reach::Unreachable(_)) {
+    if matches!(machine.reach, Reach::Unreachable(_)) || machine.connection_context().is_none() {
         return HostState::Offline;
     }
     if since.is_none_or(|since| machine.protocol.is_none_or(|peer| peer < since)) {

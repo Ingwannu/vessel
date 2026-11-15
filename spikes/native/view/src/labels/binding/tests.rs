@@ -10,6 +10,7 @@ fn previous(key: HostKey) -> Host {
     Host {
         key,
         route: Name::parse("old-alias").unwrap(),
+        connection: None,
         state: HostState::Online,
         catalog: Catalog::snapshot([Label {
             name: "Ready".parse().unwrap(),
@@ -21,6 +22,12 @@ fn machine(name: &str, node: Option<HostKey>, reach: Reach) -> Machine {
     Machine {
         name: name.to_owned(),
         node,
+        connection_epoch: node.map(|node| {
+            crate::connection::ConnectionEpochs::default()
+                .admit(crate::connection::MachineKey::from_book(name), node)
+                .unwrap()
+                .epoch()
+        }),
         reach,
         sessions: Vec::new(),
         agents: Vec::new(),
@@ -74,7 +81,7 @@ fn disconnected_known_alias_retains_colors_and_an_unknown_alias_stays_unresolved
 }
 
 #[test]
-fn two_routes_to_one_node_share_one_catalog_and_prefer_the_answered_route() {
+fn two_routes_to_one_node_share_colors_but_retain_separate_choices() {
     let key = HostKey::random();
     for machines in [
         vec![
@@ -87,9 +94,22 @@ fn two_routes_to_one_node_share_one_catalog_and_prefer_the_answered_route() {
         ],
     ] {
         let bound = bind_hosts(&[previous(key)], &fleet(machines));
-        assert_eq!(bound.hosts.len(), 1);
-        assert_eq!(bound.hosts.first().unwrap().route.as_str(), "online");
-        assert_eq!(bound.hosts.first().unwrap().catalog.labels().count(), 1);
+        assert_eq!(bound.hosts.len(), 2);
+        assert!(
+            bound
+                .hosts
+                .iter()
+                .all(|host| host.catalog.labels().count() == 1)
+        );
+        let online = bound
+            .hosts
+            .iter()
+            .find(|host| host.route.as_str() == "online")
+            .unwrap();
+        assert_eq!(
+            online.connection.as_ref().unwrap().machine().as_str(),
+            "online"
+        );
     }
 }
 
@@ -108,7 +128,7 @@ fn malformed_legacy_alias_is_reported_without_inventing_catalog_ownership() {
 }
 
 #[test]
-fn unresolved_alias_never_duplicates_an_answered_route_in_either_order() {
+fn unresolved_alias_keeps_its_own_choice_without_borrowing_answered_authority() {
     let key = HostKey::random();
     for machines in [
         vec![
@@ -121,9 +141,20 @@ fn unresolved_alias_never_duplicates_an_answered_route_in_either_order() {
         ],
     ] {
         let bound = bind_hosts(&[previous(key)], &fleet(machines));
-        assert_eq!(bound.hosts.len(), 1);
-        assert_eq!(bound.hosts.first().unwrap().route.as_str(), "new-alias");
-        assert_eq!(bound.hosts.first().unwrap().catalog.labels().count(), 1);
+        assert_eq!(bound.hosts.len(), 2);
+        let unresolved = bound
+            .hosts
+            .iter()
+            .find(|host| host.route.as_str() == "old-alias")
+            .unwrap();
+        assert_eq!(unresolved.state, HostState::Offline);
+        assert_eq!(unresolved.connection, None);
+        assert!(
+            bound
+                .hosts
+                .iter()
+                .all(|host| host.catalog.labels().count() == 1)
+        );
     }
 }
 
@@ -154,6 +185,18 @@ fn capability_gate_preserves_loaded_authority_only_for_a_capable_connected_peer(
         HostState::Unsupported
     );
     peer.reach = Reach::Unreachable("offline".into());
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), Some(version)),
+        HostState::Offline
+    );
+}
+
+#[test]
+fn missing_admission_never_reuses_cached_authority() {
+    let version = ProtocolVersion::new(23);
+    let mut peer = machine("peer", Some(HostKey::random()), Reach::Online);
+    peer.protocol = Some(version);
+    peer.connection_epoch = None;
     assert_eq!(
         availability(&peer, Some(HostState::Online), Some(version)),
         HostState::Offline

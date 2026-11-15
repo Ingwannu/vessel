@@ -48,7 +48,15 @@ pub(super) fn editor(
             .when(!state.manager.state().busy(), |button| {
                 let target = target.clone();
                 button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    if !target.matches(shell.areas.labels.opening, &shell.areas.labels.manager) {
+                    if !target.matches(
+                        shell.areas.labels.opening,
+                        &shell.areas.labels.manager,
+                        shell
+                            .areas
+                            .labels
+                            .selected_host()
+                            .and_then(|host| host.connection.as_ref()),
+                    ) {
                         return;
                     }
                     if let Err(failure) = shell.areas.labels.manager.back() {
@@ -75,7 +83,12 @@ fn actions(
         ManagerState::Listing => row,
         ManagerState::Editing(draft) => {
             let current = host.catalog.get(&draft.original().name);
-            let online = host.state.connected();
+            let online = host.state.connected()
+                && target.matches(
+                    shell.areas.labels.opening,
+                    &shell.areas.labels.manager,
+                    host.connection.as_ref(),
+                );
             let can_save =
                 online && current.is_some_and(|label| draft.replacement(label).is_some());
             let can_delete = online && current.is_some();
@@ -128,6 +141,12 @@ fn confirmation(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.words.labels();
+    let enabled_connection = host.state.connected()
+        && target.matches(
+            shell.areas.labels.opening,
+            &shell.areas.labels.manager,
+            host.connection.as_ref(),
+        );
     let cancel = super::surface::Dismiss::Confirmation {
         opening: target.opening(),
         inspection,
@@ -159,10 +178,10 @@ fn confirmation(
                 "labels-delete-confirm",
                 words.delete(),
                 ButtonKind::Destructive,
-                enabled(host.state.connected()),
+                enabled(enabled_connection),
                 tokens,
             )
-            .when(host.state.connected(), |button| {
+            .when(enabled_connection, |button| {
                 let action = Action::Delete { target, inspection };
                 button.on_click(cx.listener(move |shell, _, _window, cx| {
                     shell.label_action(&action, cx);

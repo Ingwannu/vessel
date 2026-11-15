@@ -99,24 +99,28 @@ fn projections_choose_target_then_host_order_and_retain_connected_failed_caches(
         Host {
             key: key("b"),
             route: crate::machine_book::Name::parse("b").unwrap(),
+            connection: None,
             state: HostState::Online,
             catalog: Catalog::snapshot([label("ready", Color::Sky)]),
         },
         Host {
             key: key("a"),
             route: crate::machine_book::Name::parse("a").unwrap(),
+            connection: None,
             state: HostState::Online,
             catalog: Catalog::snapshot([label("Ready", Color::Pink), label("alpha", Color::Blue)]),
         },
         Host {
             key: key("offline"),
             route: crate::machine_book::Name::parse("offline").unwrap(),
+            connection: None,
             state: HostState::Offline,
             catalog: Catalog::snapshot([label("hidden", Color::Red)]),
         },
         Host {
             key: key("failed"),
             route: crate::machine_book::Name::parse("failed").unwrap(),
+            connection: None,
             state: HostState::Failed(Failure::Load),
             catalog: Catalog::snapshot([label("failed", Color::Red)]),
         },
@@ -388,6 +392,7 @@ fn removed_host_does_not_retarget_a_pending_write_and_idle_sync_preserves_search
     let host = |raw| Host {
         key: key(raw),
         route: crate::machine_book::Name::parse(raw).unwrap(),
+        connection: None,
         state: HostState::Online,
         catalog: ready_catalog(),
     };

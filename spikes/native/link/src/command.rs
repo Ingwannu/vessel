@@ -25,8 +25,8 @@ use vessel_proto::{
 pub enum Command {
     /// Host-local workspace catalog operation; identity survives alias changes.
     Labels {
-        /// Answered node identity.
-        host: vessel_app_view::labels::HostKey,
+        /// Exact selected authenticated admission; never resolved by node id.
+        context: vessel_app_view::connection::ConnectionContext,
         /// Window operation identity.
         ticket: vessel_app_view::labels::Ticket,
         /// Validated operation.

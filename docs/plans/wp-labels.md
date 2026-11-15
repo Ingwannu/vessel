@@ -232,3 +232,26 @@ picker and manager no longer use independent Rust trim/search expressions.
 The added regression distinguishes empty search from no matches at those
 Unicode edges. No name grammar, dependency, protocol number or wire field
 is duplicated or changed.
+
+[Decision Log] Exact connection ownership after the shared G4 seam
+- Purpose: preserve the person's selected alias, credentials and admitted epoch
+  through queue delay, reconnect and asynchronous settlement.
+- Existing constraint: NodeId owns catalog colors, but it cannot authorize an RPC
+  or distinguish two authenticated aliases. The published line 2e95b7d31 supplies
+  the canonical ConnectionContext and selected_connection preflight.
+- Alternatives: keep the first alias by NodeId, introduce another resolver, or
+  carry the shared immutable admission. Only the last preserves caller intent.
+- Choice: render explicit book routes, reuse cached colors by NodeId, and retain
+  the selected route independently of the pure catalog manager. A missing epoch
+  cannot authorize operations. Transport commands and results carry the original
+  ConnectionContext; no actor lookup by NodeId, fallback alias or write replay.
+- Captured callbacks compare their original context before allocating tickets.
+  A confirmation remains pinned to the admission that supplied its inspection.
+  Pending results settle by original context plus ticket even after retirement,
+  so a refused old request cannot leave the retained form permanently busy.
+- Tradeoff: multiple aliases to one node are separate choices; colors remain
+  shared node metadata. Reconnect invalidates loaded authority and requires a new
+  authoritative load. The staged link still refuses Unsupported for a valid
+  selected admission until reviewed registry/RPC production wiring lands.
+- Verification: added same-node reconnect/other-alias callback regression and
+  missing-epoch authority regression; remote execution and strict lint pending.

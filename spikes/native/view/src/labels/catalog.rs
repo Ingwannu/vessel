@@ -87,6 +87,8 @@ pub struct Host {
     pub key: HostKey,
     /// Existing validated book alias is display/routing metadata only.
     pub route: crate::machine_book::Name,
+    /// Exact authenticated admission for requests; cached colors grant no authority.
+    pub connection: Option<crate::connection::ConnectionContext>,
     /// Reachability and authority.
     pub state: HostState,
     /// Last successfully loaded definitions.

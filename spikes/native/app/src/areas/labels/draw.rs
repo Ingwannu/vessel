@@ -60,10 +60,7 @@ fn body(
     let state = &shell.areas.labels;
     let words = shell.words.labels();
     let mut body = div().flex().flex_col().gap(px(S3)).type_(Type::Body);
-    let host = state
-        .manager
-        .selected()
-        .and_then(|key| state.hosts.iter().find(|host| &host.key == key));
+    let host = state.selected_host();
     body = body.child(hosts(shell, tokens, cx));
     let Some(host) = host else {
         return body.child(if state.unresolved.is_empty() {
@@ -85,8 +82,21 @@ fn body(
         | ManagerState::Inspecting { draft, .. }
         | ManagerState::Confirming { draft, .. }
         | ManagerState::Deleting { draft, .. } => {
-            let target =
-                super::actions::Target::new(opening, host.key, draft.original().name.clone());
+            let connection = match state.manager.state() {
+                ManagerState::Confirming { .. } | ManagerState::Deleting { .. } => {
+                    state.confirmation.clone()
+                }
+                ManagerState::Listing
+                | ManagerState::Editing(_)
+                | ManagerState::Saving { .. }
+                | ManagerState::Inspecting { .. } => host.connection.clone(),
+            };
+            let target = super::actions::Target::new(
+                opening,
+                host.key,
+                connection,
+                draft.original().name.clone(),
+            );
             body.child(super::form::editor(shell, host, draft, &target, tokens, cx))
         }
     }
@@ -115,6 +125,8 @@ fn list(
     }
     for label in labels {
         let label = label.clone();
+        let route = host.route.clone();
+        let connection = host.connection.clone();
         body = body.child(
             button_with_kind(
                 label.name.as_str().to_owned(),
@@ -126,6 +138,12 @@ fn list(
             .child(super::colors::mark(label.color, tokens))
             .on_click(cx.listener(move |shell, _, window, cx| {
                 let state = &mut shell.areas.labels;
+                if !state
+                    .selected_host()
+                    .is_some_and(|host| host.route == route && host.connection == connection)
+                {
+                    return;
+                }
                 match state.manager.edit(label.clone()) {
                     Ok(()) => {
                         state.name.set_text(label.name.as_str(), window, cx);
@@ -147,12 +165,13 @@ fn hosts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let state = &shell.areas.labels;
     let mut row = div().flex().flex_wrap().gap(px(S2));
     for host in &state.hosts {
-        let key = host.key;
+        let route = host.route.clone();
+        let connection = host.connection.clone();
         row = row.child(
             button_with_kind(
-                key.to_string(),
                 host.route.as_str().to_owned(),
-                if state.manager.selected() == Some(&key) {
+                host.route.as_str().to_owned(),
+                if state.route.as_ref() == Some(&route) {
                     ButtonKind::Primary
                 } else {
                     ButtonKind::Secondary
@@ -166,7 +185,16 @@ fn hosts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
             )
             .when(!state.manager.state().busy(), |button| {
                 button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    if let Err(failure) = shell.areas.labels.manager.select(key) {
+                    if !shell
+                        .areas
+                        .labels
+                        .hosts
+                        .iter()
+                        .any(|host| host.route == route && host.connection == connection)
+                    {
+                        return;
+                    }
+                    if let Err(failure) = shell.areas.labels.select_route(&route) {
                         shell.areas.labels.error = Some(failure);
                     }
                     cx.notify();
@@ -201,6 +229,7 @@ fn failure_text(failure: Failure, shell: &Shell) -> &'static str {
     let words = shell.words.labels();
     match failure {
         Failure::Offline => words.offline(),
+        Failure::Changed => words.changed(),
         Failure::Unsupported => words.unsupported(),
         Failure::Pending => words.pending(),
         Failure::NameTaken => words.taken(),

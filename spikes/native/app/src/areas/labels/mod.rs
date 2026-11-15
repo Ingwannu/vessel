@@ -18,6 +18,12 @@ pub(crate) struct Labels {
     opening: Option<surface::Opening>,
     manager: Manager,
     hosts: Vec<Host>,
+    route: Option<vessel_app_view::machine_book::Name>,
+    confirmation: Option<vessel_app_view::connection::ConnectionContext>,
+    pending: Option<(
+        vessel_app_view::connection::ConnectionContext,
+        vessel_app_view::labels::Ticket,
+    )>,
     search: TextField,
     name: TextField,
     dialog: DialogState,
@@ -34,6 +40,9 @@ impl Labels {
             opening: None,
             manager: Manager::default(),
             hosts: Vec::new(),
+            route: None,
+            pending: None,
+            confirmation: None,
             search: TextField::with_change(
                 "",
                 |_shell: &mut Shell, _text, _window, _cx| {},
@@ -124,7 +133,6 @@ impl Shell {
         }
         state.error = None;
         hosts::bind(state, &self.fleet);
-        state.manager.sync_hosts(&state.hosts);
         state.search.clear(window, cx);
         state
             .search
@@ -173,10 +181,7 @@ impl Shell {
         if state.opening.is_none() {
             return;
         }
-        let host = state
-            .manager
-            .selected()
-            .and_then(|key| state.hosts.iter().find(|host| &host.key == key));
+        let host = state.selected_host();
         let access = state
             .manager
             .edit_access(host.map_or(HostState::Offline, |host| host.state));
@@ -196,7 +201,6 @@ impl Shell {
     pub(crate) fn labels_fleet(&mut self, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
         hosts::bind(state, &self.fleet);
-        state.manager.sync_hosts(&state.hosts);
         self.settle_labels(cx);
     }
 }

@@ -3,6 +3,7 @@
 
 use vessel_app_kit::ui::Context;
 use vessel_app_link::labels::{Answer, Command, Event};
+use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::labels::{Failure, HostKey, Manager, ManagerState, Name, Ticket};
 
 use super::Labels;
@@ -12,14 +13,21 @@ use crate::shell::Shell;
 pub(super) struct Target {
     opening: super::surface::Opening,
     host: HostKey,
+    connection: Option<ConnectionContext>,
     name: Name,
 }
 
 impl Target {
-    pub(super) const fn new(opening: super::surface::Opening, host: HostKey, name: Name) -> Self {
+    pub(super) const fn new(
+        opening: super::surface::Opening,
+        host: HostKey,
+        connection: Option<ConnectionContext>,
+        name: Name,
+    ) -> Self {
         Self {
             opening,
             host,
+            connection,
             name,
         }
     }
@@ -30,8 +38,10 @@ impl Target {
         &self,
         opening: Option<super::surface::Opening>,
         manager: &Manager,
+        connection: Option<&ConnectionContext>,
     ) -> bool {
         opening == Some(self.opening)
+            && self.connection.as_ref() == connection
             && manager.selected() == Some(&self.host)
             && manager
                 .state()
@@ -48,11 +58,16 @@ pub(super) enum Action {
 }
 
 impl Action {
-    fn is_current(&self, opening: Option<super::surface::Opening>, manager: &Manager) -> bool {
+    fn is_current(
+        &self,
+        opening: Option<super::surface::Opening>,
+        manager: &Manager,
+        connection: Option<&ConnectionContext>,
+    ) -> bool {
         let target = match self {
             Self::Save(target) | Self::Inspect(target) | Self::Delete { target, .. } => target,
         };
-        target.matches(opening, manager)
+        target.matches(opening, manager, connection)
             && match self {
                 Self::Save(_) | Self::Inspect(_) => {
                     matches!(manager.state(), ManagerState::Editing(_))
@@ -65,13 +80,15 @@ impl Action {
 }
 
 impl Labels {
-    fn prepare(&mut self, action: &Action) -> Result<(HostKey, Ticket, Command), Failure> {
-        let host = self
-            .manager
-            .selected()
-            .and_then(|key| self.hosts.iter().find(|host| &host.key == key))
-            .ok_or(Failure::Offline)?;
-        host.state.writable()?;
+    fn prepare(
+        &mut self,
+        action: &Action,
+    ) -> Result<(ConnectionContext, Ticket, Command), Failure> {
+        let host = self.selected_host().ok_or(Failure::Offline)?;
+        let context = host.connection.clone().ok_or(Failure::Changed)?;
+        let state = host.state;
+        let catalog = host.catalog.clone();
+        state.writable()?;
         let ticket = self.tickets.issue()?;
         let ask = match action {
             Action::Save(_) => {
@@ -83,30 +100,42 @@ impl Labels {
                     .original()
                     .name
                     .clone();
-                let replacement = self.manager.save(host.state, &host.catalog, ticket)?;
+                let replacement = self.manager.save(state, &catalog, ticket)?;
                 Command::Update {
                     original,
                     replacement,
                 }
             }
             Action::Inspect(_) => {
-                Command::InspectDelete(self.manager.inspect(host.state, &host.catalog, ticket)?)
+                Command::InspectDelete(self.manager.inspect(state, &catalog, ticket)?)
             }
-            Action::Delete { .. } => Command::Delete(self.manager.delete(host.state, ticket)?),
+            Action::Delete { .. } => Command::Delete(self.manager.delete(state, ticket)?),
         };
         self.error = None;
-        Ok((host.key, ticket, ask))
+        self.pending = Some((context.clone(), ticket));
+        Ok((context, ticket, ask))
     }
 }
 
 impl Shell {
     pub(super) fn label_action(&mut self, action: &Action, cx: &mut Context<'_, Self>) {
-        if !action.is_current(self.areas.labels.opening, &self.areas.labels.manager) {
+        let state = &self.areas.labels;
+        if !action.is_current(
+            state.opening,
+            &state.manager,
+            state
+                .selected_host()
+                .and_then(|host| host.connection.as_ref()),
+        ) {
             return;
         }
         match self.areas.labels.prepare(action) {
-            Ok((host, ticket, ask)) => {
-                self.command(vessel_app_link::Command::Labels { host, ticket, ask });
+            Ok((context, ticket, ask)) => {
+                self.command(vessel_app_link::Command::Labels {
+                    context,
+                    ticket,
+                    ask,
+                });
             }
             Err(failure) => self.areas.labels.error = Some(failure),
         }
@@ -116,29 +145,26 @@ impl Shell {
 
     pub(crate) fn labels_answer(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
-        if state.manager.selected() != Some(&event.host) {
+        if state.pending.as_ref() != Some(&(event.context.clone(), event.ticket)) {
             return;
         }
-        match event.answer {
-            // Catalog observation owns its own request/cursor lifetime; this
-            // editor must never grant authority from an uncorrelated list.
-            Answer::Listed(_) => {}
-            Answer::Inspected(result) => {
-                let _accepted = state.manager.inspected(event.ticket, result);
-            }
+        let inspection = matches!(&event.answer, Answer::Inspected(Ok(_)));
+        let accepted = match event.answer {
+            Answer::Listed(_) => false,
+            Answer::Inspected(result) => state.manager.inspected(event.ticket, result),
             Answer::Updated(result) => {
-                if !matches!(state.manager.state(), ManagerState::Saving { .. }) {
-                    return;
-                }
-                // The owned observation orders catalog changes. A unary reply
-                // has no cursor and must not race a list into that replica.
-                let _accepted = state.manager.completed(event.ticket, result.map(|_| ()));
+                matches!(state.manager.state(), ManagerState::Saving { .. })
+                    && state.manager.completed(event.ticket, result.map(|_| ()))
             }
             Answer::Deleted(result) => {
-                if !matches!(state.manager.state(), ManagerState::Deleting { .. }) {
-                    return;
-                }
-                let _accepted = state.manager.completed(event.ticket, result.map(|_| ()));
+                matches!(state.manager.state(), ManagerState::Deleting { .. })
+                    && state.manager.completed(event.ticket, result.map(|_| ()))
+            }
+        };
+        if accepted {
+            state.pending = None;
+            if inspection {
+                state.confirmation = Some(event.context);
             }
         }
         self.settle_labels(cx);
@@ -166,14 +192,14 @@ mod tests {
         let mut manager = Manager::default();
         manager.select(host).unwrap();
         manager.edit(label("Ready")).unwrap();
-        let action = Action::Save(Target::new(opening, host, "Ready".parse().unwrap()));
-        assert!(action.is_current(Some(opening), &manager));
-        assert!(!action.is_current(Some(Opening::new(tickets.issue().unwrap())), &manager));
+        let action = Action::Save(Target::new(opening, host, None, "Ready".parse().unwrap()));
+        assert!(action.is_current(Some(opening), &manager, None));
+        assert!(!action.is_current(Some(Opening::new(tickets.issue().unwrap())), &manager, None));
         manager.edit(label("Other")).unwrap();
-        assert!(!action.is_current(Some(opening), &manager));
+        assert!(!action.is_current(Some(opening), &manager, None));
         manager.select(HostKey::random()).unwrap();
         manager.edit(label("Ready")).unwrap();
-        assert!(!action.is_current(Some(opening), &manager));
+        assert!(!action.is_current(Some(opening), &manager, None));
     }
 
     #[test]
@@ -184,30 +210,63 @@ mod tests {
         let mut manager = Manager::default();
         manager.select(host).unwrap();
         manager.edit(label("Ready")).unwrap();
-        let target = Target::new(opening, host, "Ready".parse().unwrap());
+        let target = Target::new(opening, host, None, "Ready".parse().unwrap());
         let inspect_action = Action::Inspect(target.clone());
         let catalog = Catalog::snapshot([label("Ready")]);
         let first = tickets.issue().unwrap();
         let _target = manager.inspect(HostState::Online, &catalog, first).unwrap();
-        assert!(!inspect_action.is_current(Some(opening), &manager));
+        assert!(!inspect_action.is_current(Some(opening), &manager, None));
         assert!(manager.inspected(first, Ok(Count::new(1))));
         let old = Action::Delete {
             target: target.clone(),
             inspection: first,
         };
-        assert!(old.is_current(Some(opening), &manager));
+        assert!(old.is_current(Some(opening), &manager, None));
         assert!(manager.cancel_delete());
-        assert!(!old.is_current(Some(opening), &manager));
+        assert!(!old.is_current(Some(opening), &manager, None));
         let next = tickets.issue().unwrap();
         let _target = manager.inspect(HostState::Online, &catalog, next).unwrap();
         assert!(manager.inspected(next, Ok(Count::new(2))));
-        assert!(!old.is_current(Some(opening), &manager));
+        assert!(!old.is_current(Some(opening), &manager, None));
         assert!(
             Action::Delete {
                 target,
                 inspection: next
             }
-            .is_current(Some(opening), &manager)
+            .is_current(Some(opening), &manager, None)
         );
+    }
+}
+
+#[cfg(test)]
+mod admission_tests {
+    use super::*;
+    use vessel_app_view::{
+        connection::{ConnectionEpochs, MachineKey},
+        labels::{Color, Label, Tickets},
+    };
+
+    #[test]
+    fn labels_callback_rejects_reconnect_or_another_alias_even_for_the_same_node() {
+        let mut epochs = ConnectionEpochs::default();
+        let node = HostKey::random();
+        let original = epochs.admit(MachineKey::from_book("first"), node).unwrap();
+        let reconnect = epochs.admit(MachineKey::from_book("first"), node).unwrap();
+        let other = epochs.admit(MachineKey::from_book("other"), node).unwrap();
+        let opening = super::super::surface::Opening::new(Tickets::default().issue().unwrap());
+        let name: Name = "Ready".parse().unwrap();
+        let mut manager = Manager::default();
+        manager.select(node).unwrap();
+        manager
+            .edit(Label {
+                name: name.clone(),
+                color: Color::Violet,
+            })
+            .unwrap();
+        let action = Action::Save(Target::new(opening, node, Some(original.clone()), name));
+        assert!(action.is_current(Some(opening), &manager, Some(&original)));
+        assert!(!action.is_current(Some(opening), &manager, Some(&reconnect)));
+        assert!(!action.is_current(Some(opening), &manager, Some(&other)));
+        assert!(!action.is_current(Some(opening), &manager, None));
     }
 }

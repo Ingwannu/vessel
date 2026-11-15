@@ -73,7 +73,13 @@ pub(super) fn choices(
                         return;
                     }
                     let state = &mut shell.areas.labels;
-                    if !target.matches(state.opening, &state.manager) {
+                    if !target.matches(
+                        state.opening,
+                        &state.manager,
+                        state
+                            .selected_host()
+                            .and_then(|host| host.connection.as_ref()),
+                    ) {
                         return;
                     }
                     if let Some(draft) = state.manager.draft_mut()
@@ -101,10 +107,7 @@ pub(super) fn choices(
 
 fn access(shell: &Shell) -> EditAccess {
     let state = &shell.areas.labels;
-    let host = state
-        .manager
-        .selected()
-        .and_then(|key| state.hosts.iter().find(|host| &host.key == key));
+    let host = state.selected_host();
     state
         .manager
         .edit_access(host.map_or(HostState::Offline, |host| host.state))

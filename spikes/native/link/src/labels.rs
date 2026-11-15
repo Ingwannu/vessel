@@ -1,7 +1,7 @@
 //! Typed catalog UI seam. No RPC is invented before ADR 0086 is integrated.
 //! Workspace assignment is added only with ADR 0082's reviewed `WorkspaceId`.
 
-use vessel_app_view::labels::{Catalog, Count, Failure, HostKey, Label, Name, Ticket};
+use vessel_app_view::labels::{Catalog, Count, Failure, Label, Name, Ticket};
 
 /// Intent issued by the catalog manager, with validated names.
 #[derive(Debug, Clone)]
@@ -25,7 +25,7 @@ pub enum Command {
 #[derive(Debug, Clone)]
 pub struct Event {
     /// The owning host.
-    pub host: HostKey,
+    pub context: vessel_app_view::connection::ConnectionContext,
     /// The owning request.
     pub ticket: Ticket,
     /// Only semantic results cross into the UI.
@@ -60,11 +60,22 @@ impl Command {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    pub(super) async fn labels(&self, host: HostKey, ticket: Ticket, ask: Command) {
+    pub(super) async fn labels(
+        &self,
+        context: vessel_app_view::connection::ConnectionContext,
+        ticket: Ticket,
+        ask: Command,
+    ) {
+        // Even the pending-contract refusal retains exact admission semantics.
+        let failure = match self.selected_connection(&context) {
+            Ok(_original_connection) => Failure::Unsupported,
+            Err(vessel_app_view::connection::Refusal::Changed) => Failure::Changed,
+            Err(vessel_app_view::connection::Refusal::Closed) => Failure::Offline,
+        };
         self.emit(crate::Event::Labels(Event {
-            host,
+            context,
             ticket,
-            answer: ask.refused(Failure::Unsupported),
+            answer: ask.refused(failure),
         }))
         .await;
     }

@@ -75,3 +75,6 @@ labels-color-red = 빨강
 labels-color-amber = 호박
 # Name of the blue swatch in the label editor; keep short.
 labels-color-blue = 파랑
+
+# Exact selected connection retired; never replay the old request on another admission.
+labels-changed = 선택한 연결이 변경되었습니다. 다시 시도하세요.

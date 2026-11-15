@@ -78,3 +78,6 @@ labels-color-red = Red
 labels-color-amber = Amber
 # Name of the blue swatch in the label editor; keep short.
 labels-color-blue = Blue
+
+# Exact selected connection retired; never replay the old request on another admission.
+labels-changed = The selected connection changed. Try again.
