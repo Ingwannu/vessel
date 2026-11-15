@@ -11,4 +11,4 @@ pub use launch::{KeptNode, Launch, LaunchError, ProcessExit};
 mod logs;
 pub use logs::{LogError, LogReader, LogText};
 mod controller;
-pub use controller::{Error, LocalNode, LocalStatus, Operation, QuitPolicy, StopPolicy};
+pub use controller::{LocalNode, LocalNodeError, LocalStatus, Operation, QuitPolicy, StopPolicy};

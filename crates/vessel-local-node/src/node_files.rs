@@ -1,4 +1,4 @@
-//! The sole Store facade consumer; never opens SQLite or trusts an owner PID.
+//! The sole Store facade consumer; never opens `SQLite` or trusts an owner PID.
 
 use std::path::{Path, PathBuf};
 use vessel_client::{BearerToken, LocalCredential};

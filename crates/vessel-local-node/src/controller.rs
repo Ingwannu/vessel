@@ -53,7 +53,7 @@ pub enum LocalStatus {
 
 /// Every refusal keeps the original cause; no readiness/log payload is printed.
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum LocalNodeError {
     /// Private node files or start admission failed.
     #[error(transparent)]
     Files(#[from] FilesError),
@@ -101,9 +101,15 @@ pub enum Error {
 }
 
 enum Lease {
-    Owned { client: NodeClient, child: Owned },
+    Owned {
+        client: NodeClient,
+        child: Box<Owned>,
+    },
     Attached(NodeClient),
-    Kept { node: NodeId, observer: KeptNode },
+    Kept {
+        node: NodeId,
+        observer: KeptNode,
+    },
     Exited(ProcessExit),
     AttachedDisconnected(NodeId),
 }
@@ -128,10 +134,10 @@ impl LocalNode {
     ///
     /// # Errors
     /// Admission, files, readiness, identity, authentication or startup deadline.
-    pub async fn start(launch: Launch) -> Result<Self, Error> {
+    pub async fn start(launch: Launch) -> Result<Self, LocalNodeError> {
         let (lease, logs) = tokio::time::timeout(START_DEADLINE, open(&launch))
             .await
-            .map_err(|source| Error::Deadline {
+            .map_err(|source| LocalNodeError::Deadline {
                 operation: Operation::Start,
                 source,
             })??;
@@ -174,10 +180,10 @@ impl LocalNode {
     ///
     /// # Errors
     /// Not owned, unconfirmed active sessions, RPC/wait failure or deadline.
-    pub async fn stop(&mut self, policy: StopPolicy) -> Result<ProcessExit, Error> {
+    pub async fn stop(&mut self, policy: StopPolicy) -> Result<ProcessExit, LocalNodeError> {
         let exit = tokio::time::timeout(STOP_DEADLINE, stop(&mut self.lease, policy))
             .await
-            .map_err(|source| Error::Deadline {
+            .map_err(|source| LocalNodeError::Deadline {
                 operation: Operation::Stop,
                 source,
             })??;
@@ -190,7 +196,7 @@ impl LocalNode {
     ///
     /// # Errors
     /// Any stop, start, authentication or readiness failure.
-    pub async fn restart(&mut self, policy: StopPolicy) -> Result<LocalStatus, Error> {
+    pub async fn restart(&mut self, policy: StopPolicy) -> Result<LocalStatus, LocalNodeError> {
         let _exit = self.stop(policy).await?;
         let replacement = Self::start(self.launch.clone()).await?;
         *self = replacement;
@@ -201,7 +207,7 @@ impl LocalNode {
     ///
     /// # Errors
     /// Owned stop/release failed; a timed-out stop keeps its owned handle alive.
-    pub async fn quit(&mut self, policy: QuitPolicy) -> Result<LocalStatus, Error> {
+    pub async fn quit(&mut self, policy: QuitPolicy) -> Result<LocalStatus, LocalNodeError> {
         if !matches!(self.lease, Lease::Owned { .. }) {
             return Ok(self.status());
         }
@@ -210,13 +216,13 @@ impl LocalNode {
                 let _exit = self.stop(policy).await?;
             }
             QuitPolicy::KeepRunning => {
-                let node = self.client().ok_or(Error::NotOwned)?.node().id;
+                let node = self.client().ok_or(LocalNodeError::NotOwned)?.node().id;
                 // Lease is temporarily replaced only inside this synchronous
                 // consume; no caller observes a false exit or another owner.
                 let lease = std::mem::replace(&mut self.lease, Lease::AttachedDisconnected(node));
                 if let Lease::Owned { client, child } = lease {
                     drop(client);
-                    let observer = child.keep()?;
+                    let observer = (*child).keep()?;
                     self.lease = Lease::Kept { node, observer };
                 }
             }
@@ -229,7 +235,7 @@ impl LocalNode {
     ///
     /// # Errors
     /// Waiting on the exact owned/released child failed.
-    pub async fn wait_exit(&mut self) -> Result<LocalStatus, Error> {
+    pub async fn wait_exit(&mut self) -> Result<LocalStatus, LocalNodeError> {
         let next = match &mut self.lease {
             Lease::Owned { child, .. } => Lease::Exited(child.wait().await?),
             Lease::Kept { observer, .. } => Lease::Exited(observer.wait().await?),
@@ -247,16 +253,16 @@ impl LocalNode {
 async fn connect(
     launch: &Launch,
     identity: &crate::node_files::Identity,
-) -> Result<NodeClient, Error> {
+) -> Result<NodeClient, LocalNodeError> {
     let client = NodeClient::connect_local(
         identity.endpoint.path(),
         &identity.credential,
         launch.client().clone(),
     )
     .await
-    .map_err(Error::Connect)?;
+    .map_err(LocalNodeError::Connect)?;
     if client.node().id != identity.node {
-        return Err(Error::Identity {
+        return Err(LocalNodeError::Identity {
             expected: identity.node,
             found: client.node().id,
         });
@@ -264,21 +270,21 @@ async fn connect(
     Ok(client)
 }
 
-async fn serving(client: &NodeClient) -> Result<(), Error> {
-    let info = client.node_info().await.map_err(Error::Call)?;
+async fn serving(client: &NodeClient) -> Result<(), LocalNodeError> {
+    let info = client.node_info().await.map_err(LocalNodeError::Call)?;
     if info.id != client.node().id {
-        return Err(Error::Identity {
+        return Err(LocalNodeError::Identity {
             expected: client.node().id,
             found: info.id,
         });
     }
     match info.state {
         NodeState::Serving => Ok(()),
-        NodeState::Draining => Err(Error::Draining),
+        NodeState::Draining => Err(LocalNodeError::Draining),
     }
 }
 
-async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), Error> {
+async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), LocalNodeError> {
     let _permit = launch.home().start_permit().await?;
     if let Some(identity) = launch.home().identity().await? {
         match connect(launch, &identity).await {
@@ -286,11 +292,13 @@ async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), Error> {
                 serving(&client).await?;
                 return Ok((Lease::Attached(client), None));
             }
-            Err(Error::Connect(LocalConnectError::Unreachable { source, .. }))
-                if matches!(
-                    source.kind(),
-                    ErrorKind::NotFound | ErrorKind::ConnectionRefused
-                ) => {}
+            Err(LocalNodeError::Connect(LocalConnectLocalNodeError::Unreachable {
+                source,
+                ..
+            })) if matches!(
+                source.kind(),
+                ErrorKind::NotFound | ErrorKind::ConnectionRefused
+            ) => {}
             Err(error) => return Err(error),
         }
     }
@@ -299,28 +307,34 @@ async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), Error> {
         .home()
         .identity()
         .await?
-        .ok_or(Error::MissingIdentity)?;
+        .ok_or(LocalNodeError::MissingIdentity)?;
     if identity.node != ready.node() {
-        return Err(Error::Identity {
+        return Err(LocalNodeError::Identity {
             expected: identity.node,
             found: ready.node(),
         });
     }
     let client = connect(launch, &identity).await?;
     tokio::select! {
-        exit = child.wait() => return Err(Error::StartupExit(exit?)),
+        exit = child.wait() => return Err(LocalNodeError::StartupExit(exit?)),
         result = serving(&client) => result?,
     }
     let logs = Some(child.logs());
-    Ok((Lease::Owned { client, child }, logs))
+    Ok((
+        Lease::Owned {
+            client,
+            child: Box::new(child),
+        },
+        logs,
+    ))
 }
 
-async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, Error> {
+async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, LocalNodeError> {
     let (client, child) = match lease {
         Lease::Owned { client, child } => (client, child),
         Lease::Exited(exit) => return Ok(*exit),
         Lease::Attached(_) | Lease::Kept { .. } | Lease::AttachedDisconnected(_) => {
-            return Err(Error::NotOwned);
+            return Err(LocalNodeError::NotOwned);
         }
     };
     let when = match policy {
@@ -328,13 +342,13 @@ async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, Erro
             let live: Vec<_> = client
                 .sessions()
                 .await
-                .map_err(Error::Call)?
+                .map_err(LocalNodeError::Call)?
                 .into_iter()
                 .filter(|session| session.status.is_live())
                 .map(|session| session.id)
                 .collect();
             if !live.is_empty() {
-                return Err(Error::ActiveSessions(live));
+                return Err(LocalNodeError::ActiveSessions(live));
             }
             StopWhen::WhenIdle
         }
@@ -342,8 +356,8 @@ async fn stop(lease: &mut Lease, policy: StopPolicy) -> Result<ProcessExit, Erro
         StopPolicy::InterruptConfirmed => StopWhen::Now,
     };
     match client.stop_node(when).await {
-        Ok(()) | Err(CallError::Disconnected) => {}
-        Err(error) => return Err(Error::Call(error)),
+        Ok(()) | Err(CallLocalNodeError::Disconnected) => {}
+        Err(error) => return Err(LocalNodeError::Call(error)),
     }
     Ok(child.wait().await?)
 }
