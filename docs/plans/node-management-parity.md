@@ -6,6 +6,16 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Config get/set uses the existing RPCs and a shared exhaustive key adapter.
+  Strict JSON, a named input cap and safe category/location diagnostics are
+  recorded before its code commit. New unset/reload calls remain unregistered.
+  No compile, runtime or package-gate result is claimed for this draft yet.
+
+- Work in progress: the config/reload package is drafted on the designated
+  Quality B node head, now merged with the designated head 40. Reuse existing settings and persistence; new methods
+  stay pending until the integrator assigns their one named protocol
+  constant. No gate or implementation completion is claimed here.
+
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
 - Source: 2p1 moves only the generic kernel query and opaque snapshots to
@@ -475,3 +485,20 @@ that use to `src/lock/`, in the same commit as the active map. Existing
 private PID assertions relocate to a real held-file fixture in proc;
 all data-directory and owner-byte assertions remain in store. No PID
 getter, external dependency, signal, new call or descriptor proof is added.
+
+
+## Config implementation preflight
+
+`[modify]`: use existing `SetNodeSettings`, `NodeSettings`, settings service,
+owner-only atomic file helpers, client calls and the shared pending method
+rows. A key enum owns text parsing and serialization; exhaustive settings
+structure patterns force a newly added field to receive its owning ADR's
+mapping. The CLI has no second complete key list. Standard serde and Rust
+iterators suffice; no reflection dependency or shared-struct macro rewrite.
+Paseo daemon/config.ts reads/edits local saved configuration and calls reload;
+Vessel's approved contract instead reads and changes authenticated live
+settings over RPC, permitting remote administration and preserving node-owned
+write-before-apply behavior. Offline local edits are deliberately not added.
+Paseo daemon/reload.ts and daemon-config-store.ts return applied, restart and
+launch-override paths; this implementation retains those three typed lists.
+The existing contract records whole fields instead of dotted key paths.

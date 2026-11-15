@@ -913,3 +913,38 @@ wire change or new external dependency is included in this move.
 - Advantages, costs and effects: no dependency, new error, wire change or
   test expectation change. The original lock span, no-op return, preservation,
   write and runtime effects remain in their original order.
+
+
+## Strict whole-field config input
+
+[Decision Log]
+- Purpose and intent: add typed config get/set commands through the existing
+  settings RPCs, with validation before connection or mutation.
+- Existing implementation and constraints: the shared settings type tolerates
+  future file fields for downgrade recovery. A CLI mutation must not silently
+  discard those fields. Serde errors may quote the complete submitted value.
+- Alternatives considered: a second CLI key list, dotted-path JSON mutation,
+  permissive decoding, or retaining serde's original diagnostic source. These
+  respectively drift, bypass the typed patch, lose data, or expose input.
+- Selected approach: one shared key declaration projects typed values and
+  constructs typed patches, with exhaustive settings patterns. Read admission
+  reuses the corresponding patch's existing field-version rule. At the JSON
+  edge a temporary tree is compared with the canonical typed serialization;
+  unknown choices, extra/ignored fields and explicit ignored nulls refuse.
+- Why this approach: existing node authorization, saved-value precedence and
+  write-before-apply remain the mutation rule. Inputs are capped by the single
+  SetNodeSettings::MAX_JSON_BYTES bound before JSON parsing. Error causes retain
+  only category/location, following the RPC privacy boundary, rather than
+  preserving serde's caller-chosen text. An unknown name is therefore never
+  echoed in this new input error; this refines the earlier error-name wording.
+- Advantages, costs and effects: no dependency or new wire call in get/set.
+  Typed complete JSON is required; there is no permissive string switch or
+  offline file edit. The cap and refusal of ignored nulls are conservative
+  differences from Paseo's generic local config editing. Startup's existing
+  downgrade-tolerant settings reader is unchanged; this does not establish a
+  universal file-read limit. Unset/reload registration remains a later step.
+
+The tests owe strict byte boundaries, unknown/nested/null input, safe Display/
+Debug/source chains, per-key version admission, live CLI output and persisted
+mutation. Existing settings cases remain unchanged. Real agents, remote service
+accounts and loaded service managers are outside these config fixtures.

@@ -86,6 +86,14 @@ the service manager's working directory. Existing relative-path units stay
 unchanged; remove and recreate one to adopt that behavior. Paths and PATH
 must be Unicode without control characters to be stored in a unit.
 
+`vessel node config get` prints the selected node's live settings as JSON;
+append a whole field such as `park_after` to print only that value.
+`vessel node config set park_after '{"kind":"never"}'` validates the complete
+JSON value, then saves it through the existing Admin settings call. Unknown
+fields, dotted keys and ignored nulls are refused. This uses the authenticated
+node rather than editing a local config file. Launch settings still require
+their flags on the next start.
+
 `vessel node stop` requests graceful shutdown through the node's Admin
 permission. With live sessions it lists them and refuses; `--when-idle`
 returns after starting a drain, and `--now --yes` interrupts them. Without
