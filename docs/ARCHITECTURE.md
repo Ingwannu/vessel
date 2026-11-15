@@ -1788,3 +1788,10 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+The private finish-notice vocabulary is also a standalone proto value producer:
+timeline/notice owns the closed NoticeKey/checkpoint, the existing UUID macro owns
+FinishIntentId, and timeline/admission owns logical retained-state ceilings.
+No public method accepts these keys. A decoded key does not supply execution,
+parentage or grant authority. The current watcher/store/actor are unchanged;
+their real atomic admission fence and persistence remain separate work.
