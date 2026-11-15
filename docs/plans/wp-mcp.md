@@ -372,3 +372,10 @@ one new migration fixture because it used the human alias `claude` instead
 of the canonical settings-wire value `claude-code`. The fixture now uses the
 wire value; policy retention/default/identity assertions are unchanged. A
 store rerun is required; the earlier failed evidence remains intact.
+
+
+Status also compares the current owned-file manifest with the compiled asset
+set. A release that only removes an asset must still produce an update even
+if SKILL.md and every remaining asset are unchanged. The regression preserves
+an edited obsolete file while removing the unchanged copy in the other home.
+Future manifest versions refuse before declaring an install current.

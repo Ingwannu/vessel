@@ -307,3 +307,35 @@ fn recreated_live_directories_keep_both_versions_on_rollback() {
     assert_eq!(originals.len(), 1);
     assert!(originals[0].path().join("SKILL.md").exists());
 }
+
+#[test]
+fn removing_only_an_asset_triggers_update_without_changing_the_declaration() {
+    use vessel_proto::skills::{SkillSelection, SkillsState};
+    let home = tempfile::tempdir().unwrap();
+    let mut initial = service(
+        home.path(),
+        catalogue("unchanged", Some(("obsolete.md", b"old asset"))),
+    );
+    let _installed = initial.reconcile(&SkillSelection::All).unwrap();
+    let modified = home.path().join("agents/skills/vessel/obsolete.md");
+    std::fs::write(&modified, b"user's modified obsolete file").unwrap();
+    let mut updated = service(home.path(), catalogue("unchanged", None));
+    assert_eq!(
+        updated.status(&SkillSelection::All).unwrap().state,
+        SkillsState::Drift
+    );
+    assert_eq!(
+        updated.maintain(&SkillSelection::All).unwrap().state,
+        SkillsState::UpToDate
+    );
+    assert_eq!(
+        std::fs::read(&modified).unwrap(),
+        b"user's modified obsolete file"
+    );
+    assert!(
+        !home
+            .path()
+            .join("claude/skills/vessel/obsolete.md")
+            .exists()
+    );
+}

@@ -103,6 +103,16 @@ fn inspect(
         Entry::File | Entry::Symlink | Entry::Other => return Err(SkillError::Blocked),
     }
     let dir = root.open_dir(name.as_str())?;
+    let recorded = manifest::read(&dir)?;
+    let expected = bundle
+        .files()
+        .map(|asset| (asset.path().clone(), filesystem::hash(asset.bytes())))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    // Comparing only present bundle bytes misses a release that solely removes
+    // an asset, leaving an unchanged obsolete owned file installed forever.
+    if recorded.as_ref() != Some(&expected) {
+        return Ok(Presence::Drift);
+    }
     for asset in bundle.files() {
         if filesystem::read(&dir, asset.path())?.as_deref() != Some(asset.bytes()) {
             return Ok(Presence::Drift);
