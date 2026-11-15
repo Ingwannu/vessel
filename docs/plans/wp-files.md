@@ -815,3 +815,12 @@ The queued workspace run on the same known-red source was cancelled while
 still queued under the standing supersession rule; its143 record is retained.
 The next exact source batch must include these corrections and newer owner
 foundation tests. Strict19 remains failed, not partial package success.
+
+
+The root-opening current check explicitly compares scope, original session and
+receipt lifetimes. Tab readiness is published both before the next editor
+effect and after its synchronous local outcome, since queue refusal can settle
+inside submission. The acknowledgement still coalesces unchanged writes; it is
+not proof of source readiness. The next test batch selects native packages
+without a lib-only filter so the application's binary unit tests actually run,
+along with the changed shared field/IME kit tests.

@@ -29,13 +29,16 @@ impl Shell {
         match step {
             Step::None => {}
             Step::Write { .. } | Step::Read { .. } => self.send_step_for(&key, step),
-            Step::Autosave => self.set_autosave_for(key, cx),
+            Step::Autosave => self.set_autosave_for(key.clone(), cx),
             Step::StopAutosave => {
                 if let Some(editing) = self.editing_for(&key) {
                     editing.autosave = editing.autosave.wrapping_add(1);
                 }
             }
         }
+        // Queue refusal can settle synchronously inside an effect. Publish
+        // that original outcome too; identical acknowledgements are coalesced.
+        self.publish_file_tabs(&key, cx);
         cx.notify();
     }
 

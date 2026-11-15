@@ -35,7 +35,11 @@ impl Shell {
     /// Session and metadata lifetime are separate from `NodeId`/root/path buffer
     /// identity. A refreshed receipt cannot reinterpret an old activation.
     pub(super) fn file_open_context_is_current(&self, origin: &FileOpenContext) -> bool {
-        self.file_open_context().as_ref() == Some(origin)
+        self.file_open_context().is_some_and(|current| {
+            current.scope == origin.scope
+                && current.session == origin.session
+                && current.receipt == origin.receipt
+        })
     }
 }
 
