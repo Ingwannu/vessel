@@ -46,8 +46,8 @@ pub(super) fn reserve(db: &Connection, reserved: Reservation) -> Result<(), Stor
         if owner(db, claim)?.is_some() {
             return Err(CreationError::ResourceClaimed.into());
         }
-        if let Claim::Agent(session) = claim {
-            if db
+        if let Claim::Agent(session) = claim
+            && db
                 .query_row(
                     "SELECT 1 FROM sessions WHERE id=?1",
                     [session.to_string()],
@@ -55,9 +55,8 @@ pub(super) fn reserve(db: &Connection, reserved: Reservation) -> Result<(), Stor
                 )
                 .optional()?
                 .is_some()
-            {
-                return Err(CreationError::ResourceClaimed.into());
-            }
+        {
+            return Err(CreationError::ResourceClaimed.into());
         }
         let (kind, resource) = claim.parts();
         let _changed = db.execute(
