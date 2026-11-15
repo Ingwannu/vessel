@@ -66,6 +66,10 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         .id(ElementId::Name(
             format!("history-row-{}", entry.id.as_str()).into(),
         ))
+        .debug_selector({
+            let id = entry.id.clone();
+            move || format!("history-row-{}", id.as_str())
+        })
         .flex()
         .items_start()
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
