@@ -62,6 +62,9 @@ pub(super) fn open_context(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    if !shell.desktop_commands_admitted() {
+        return;
+    }
     let area = &mut shell.areas.desktop;
     area.menu.close_and_restore(window, cx);
     area.menu_cycle = Rc::new(());
@@ -105,12 +108,19 @@ pub(crate) fn trigger(
                             ("desktop-menu", index),
                             label.to_owned(),
                             ButtonKind::Ghost,
-                            ButtonState::Enabled,
+                            if shell.desktop_commands_admitted() {
+                                ButtonState::Enabled
+                            } else {
+                                ButtonState::Disabled
+                            },
                             tokens,
                         )
                         .occlude()
                         .on_click(cx.listener(
                             move |shell, event: &gpui::ClickEvent, window, cx| {
+                                if !shell.desktop_commands_admitted() {
+                                    return;
+                                }
                                 let area = &mut shell.areas.desktop;
                                 area.menu.close_and_restore(window, cx);
                                 area.menu_cycle = Rc::new(());
@@ -169,6 +179,9 @@ pub(super) fn invoke(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    if !shell.desktop_commands_admitted() {
+        return;
+    }
     match item {
         Item::Desktop(action) => {
             let _handled = shell.run_desktop_shortcut(action, window, cx);

@@ -18,7 +18,7 @@ impl Row {
 }
 
 pub(in crate::areas::desktop) fn rows(shell: &Shell, group: Group) -> Vec<Row> {
-    match group {
+    let mut rows = match group {
         Group::All => [
             Group::File,
             Group::Edit,
@@ -48,7 +48,13 @@ pub(in crate::areas::desktop) fn rows(shell: &Shell, group: Group) -> Vec<Row> {
             ]
         }
         Group::Context => context(shell),
+    };
+    if !shell.desktop_commands_admitted() {
+        for row in &mut rows {
+            row.view.disabled = true;
+        }
     }
+    rows
 }
 
 fn file(shell: &Shell) -> Vec<Row> {

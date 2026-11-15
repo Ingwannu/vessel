@@ -5,6 +5,23 @@ use gpui::{Context, Window};
 use vessel_app_view::shortcuts::desktop::DesktopAction;
 
 impl Shell {
+    /// Native clicks and menus respect the sole shortcut recorder's admission.
+    #[must_use]
+    pub(crate) fn desktop_commands_admitted(&self) -> bool {
+        !self.areas.shortcuts.page.recording()
+    }
+
+    /// Called by the recorder before capture/blur, not from rendering. Retire
+    /// the old shared-menu lease before it can restore focus from a stale frame.
+    pub(crate) fn desktop_recording_started(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.desktop.menu.close_and_restore(window, cx);
+        self.areas.desktop.menu_cycle = std::rc::Rc::new(());
+    }
+
     /// GPUI has no production whole-viewport zoom seam yet; never advertise a test helper.
     #[must_use]
     pub(crate) fn desktop_shortcut_supported(action: DesktopAction) -> bool {
@@ -23,7 +40,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        if !Self::desktop_shortcut_supported(action) {
+        if !self.desktop_commands_admitted() || !Self::desktop_shortcut_supported(action) {
             return false;
         }
         match action {

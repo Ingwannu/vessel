@@ -19,6 +19,10 @@ use vessel_app_link::{Command, Event, Link, Prefs};
 use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
 
+use crate::areas::{self, Areas};
+use crate::chrome;
+use crate::routes::{self, Route};
+
 /// The window's state.
 pub(crate) struct Shell {
     link: Option<Link>,

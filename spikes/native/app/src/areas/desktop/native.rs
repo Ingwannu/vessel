@@ -41,7 +41,7 @@ impl gpui::Global for Registered {}
 fn identity(shell: &crate::shell::Shell) -> MenuIdentity {
     MenuIdentity {
         locale: shell.words.locale(),
-        capture: if shell.areas.shortcuts.page.recording() {
+        capture: if !shell.desktop_commands_admitted() {
             Capture::Recording
         } else {
             Capture::Idle
@@ -62,11 +62,12 @@ pub(super) fn refresh(shell: &crate::shell::Shell, window: &gpui::Window, cx: &m
 pub(super) fn register(shell: &crate::shell::Shell, cx: &mut App) {
     let words = shell.words;
     let w = words.desktop_shell();
+    let recording = !shell.desktop_commands_admitted();
     let mut groups = vec![Menu::new("Vessel").items([
-        MenuItem::action(w.about().to_owned(), About),
-        MenuItem::action(w.whats_new().to_owned(), Changelog),
+        MenuItem::action(w.about().to_owned(), About).disabled(recording),
+        MenuItem::action(w.whats_new().to_owned(), Changelog).disabled(recording),
         MenuItem::separator(),
-        MenuItem::action(w.quit().to_owned(), Quit),
+        MenuItem::action(w.quit().to_owned(), Quit).disabled(recording),
     ])];
     for group in [
         menus::Group::File,
@@ -137,13 +138,13 @@ fn action(item: Item) -> Box<dyn gpui::Action> {
 }
 
 pub(super) fn listen(cx: &mut App) {
-    let _registered = cx.on_action(|_: &NewWindow, cx| crate::desktop::open_additional(cx));
-    let _registered = cx.on_action(|_: &Quit, cx| crate::desktop::request_quit(cx));
     macro_rules! route {
         ($action:ident,$item:expr) => {
             let _registered = cx.on_action(|_: &$action, cx| invoke($item, cx));
         };
     }
+    route!(NewWindow, Item::Desktop(DesktopAction::NewWindow));
+    route!(Quit, Item::Quit);
     route!(CloseWindow, Item::Desktop(DesktopAction::CloseWindow));
     route!(ZoomIn, Item::Desktop(DesktopAction::ZoomIn));
     route!(ZoomOut, Item::Desktop(DesktopAction::ZoomOut));
@@ -168,6 +169,18 @@ pub(super) fn listen(cx: &mut App) {
 }
 
 fn invoke(item: Item, cx: &mut App) {
+    // macOS keeps its application menu after the last window closes; there is
+    // then no recorder or Shell to admit these two process-level commands.
+    if cx.windows().is_empty() {
+        if matches!(item, Item::Desktop(DesktopAction::NewWindow)) {
+            crate::desktop::open_additional(cx);
+            return;
+        }
+        if matches!(item, Item::Quit) {
+            crate::desktop::request_quit(cx);
+            return;
+        }
+    }
     crate::desktop::with_focused_shell(cx, move |shell, window, cx| {
         menus::invoke(shell, item, window, cx);
     });

@@ -375,9 +375,33 @@ The source repair still needs same-head compile/test execution.
 The isolated shared dialog/popover producer now has independent green evidence:
 wp-desktop-popover-narrow-20261115T143258Z-7730d570, exact7730d570a on base8,
 native fmt/quality/all-target Clippy0 and tests1444/0/2 (Kit193/0/0,13 control
-regressions). V1 source/requested-narrow row233 is pending. This contains no E3
+regressions). V1 row233 passed bounded source/requested narrow on exact773,
+docs-only6c70, and the lead merged the selected producer as8c359d0f; the combined
+line gate remains pending. UI lease is not host/context/ticket/transport authority:
+consumers separately retire domain intents/body actions before deferred close.
+This contains no E3
 App/Link policy, native-build, capture or OS approval and cannot validate this
 larger tree's canonical preferences, quit lifecycle or session-owner union.
+Unit18 reached App compilation but stopped before all test execution: three
+missing base Shell imports caused most of81 diagnostics to cascade through owner
+modules, and one old layout fixture lacked Open.archived_at/binding. Restore the
+exact base imports and supply None/None only in that authority-free fixture;
+do not rewrite unrelated workspace/terminal error cascades. Execution is owed.
+
+Menu source audit also found that native NewWindow/Quit bypassed the shared menu
+invoke path and rows/invoke did not consult the existing recorder state. Current
+source disables rows and rejects commands at invocation using that same recorder;
+macOS process-level NewWindow/Quit still work with no remaining Shell/window.
+Recorder-start retirement now invalidates an already open desktop menu before
+capture/blur, using the shared menu actual-close/focus path rather than another
+listener. The shortcut owner authorized exactly one host-guarded caller in the
+older Record branch; its current editing module will preserve that call on union.
+The one production predicate is Shell::desktop_commands_admitted. A retained
+actual-menu pointer regression checks that retirement preserves recorder blur
+and clipboard before redraw; the shortcut owner stages its real Capture test
+against the same predicate and adapter. No new shortcut table, recorder, capture
+visibility or test-only product hook is introduced. Changed-source checks remain
+pending and the staged owner regression has not been executed here.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

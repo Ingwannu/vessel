@@ -146,6 +146,8 @@ impl Shell {
             RowAct::Record => {
                 // Recording another row drops the first (Paseo's one
                 // `capturingBindingId`).
+                #[cfg(not(target_arch = "wasm32"))]
+                self.desktop_recording_started(window, cx);
                 self.areas.shortcuts.page.capture = Capture::start(action);
                 window.blur(cx);
             }

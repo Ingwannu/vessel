@@ -88,6 +88,9 @@ pub(crate) fn open_edit_context(
 ) -> bool {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        if !shell.desktop_commands_admitted() {
+            return false;
+        }
         menus::open_context(shell, position, edit, window, cx);
         true
     }
