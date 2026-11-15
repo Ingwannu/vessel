@@ -202,3 +202,30 @@ API. Its migration, serializers, exact transition checks and adversarial tests
 remain to be implemented and reviewed before real restore or D2 cache/effect
 wiring. The minimal dependency has no public backing replacement/restore route;
 its immutable logical placement must not be described as physical continuity.
+
+registry_resource_run exposes retained admission metadata for supervisor recovery.
+Ready means the last run was registered; it attests neither current liveness nor
+successful wait/join. The node supervisor must reconcile the actual resource and
+run generation before using the opaque predecessor token. The store does not
+infer process state from cwd, PID shape or an elapsed time. Failed initial starts
+remain separate and retryable only after proof that no actor was spawned.
+
+## Dependency boundary: provisioning stays in the continuation
+
+The registry/store dependency excludes the cfg(test) filesystem provisioner and
+its node-only tests. Under A10, an unwired node service stays on its continuation
+branch until its real caller removes staging in a wiring commit. Its source is
+retained in the separate project-management continuation; it has no consumer-
+ready or shipped provisioning API claim. This dependency contains the live
+registry read/mutation handlers, durable metadata/reservations/membership and
+start-admission seams. Creation receipts, actual backing provisioning and actor
+launch remain separate work. No default workspace is synthesized.
+
+## One project-file byte budget (V3 row213 correction)
+
+The proto MAX_CONFIG_BYTES is the canonical lower-layer64KiB budget for both
+ConfigText and the authoritative vessel.toml reader/parser. The parser retains
+its public project_file::MAX_BYTES name as a re-export, with the workspace owner's
+agreement (message24bb3bd8). Existing parser/editor checks, errors and tests derive
+from that one definition. No limit or MAX_COMMANDS ownership changes. This avoids
+future editor/parser divergence without introducing a new dependency edge.
