@@ -47,7 +47,6 @@ mod profile;
 mod proxy;
 pub mod push;
 mod raw;
-pub mod registry;
 mod relay;
 pub mod restart;
 mod rpc;
