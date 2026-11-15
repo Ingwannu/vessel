@@ -44,7 +44,7 @@ impl std::fmt::Debug for Snapshot {
     }
 }
 impl Snapshot {
-    /// Capture bounded existing trays without I/O, upload ids or fabricated refs.
+    /// Capture existing admitted trays without I/O, upload ids or fabricated refs.
     #[must_use]
     pub fn capture(files: Option<&Tray>, context: Option<&ContextTray>) -> Self {
         Self {

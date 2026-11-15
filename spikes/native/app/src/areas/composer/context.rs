@@ -225,6 +225,15 @@ impl Shell {
         if matches!(item, ContextAttachment::WorkspaceFile(_)) {
             return;
         }
+        self.open_context_snapshot(item, window, cx);
+    }
+
+    pub(super) fn open_context_snapshot(
+        &mut self,
+        item: ContextAttachment,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         if let ContextAttachment::Snapshot {
             kind:
                 ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest | ContextKind::PluginResource,
