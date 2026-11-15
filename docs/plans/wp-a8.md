@@ -415,3 +415,11 @@ unary edge is not a live stream or full SessionResources adoption claim. W12
 is adding the mandatory original-ticket retirement hook (Sending to Uncertain,
 fields retained before replacement attach); that checked resource cutover is
 still required before a consumer-ready A8 handoff.
+
+
+Simultaneous permission cards must also isolate GPUI element state, not just
+response maps. Both ordinary and plan outer scroll roots now use their exact
+PermissionId instead of the inherited shared `permit-card` id. Descendant
+button/detail ids remain scoped beneath that root. This reuses GPUI's normal
+identity tree; there is no new UI state registry. A distinct/stable root identity
+regression accompanies the fix; actual remote execution is still owed.

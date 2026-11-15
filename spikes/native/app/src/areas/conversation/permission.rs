@@ -108,10 +108,7 @@ impl Shell {
     }
 }
 
-/// The card for the first request waiting in the conversation at `P`,
-/// when one waits: the log's, else one the node says waits whose record
-/// the log no longer holds (drawn from the node's word, with no entry
-/// made for it).
+/// All pending permissions, including exact live requests with pruned records.
 pub(crate) fn card<P: Place>(
     shell: &Shell,
     tokens: &Tokens,
@@ -234,7 +231,7 @@ pub(crate) fn card_at<P: Place>(
         );
         return Some(
             div()
-                .id("permit-card")
+                .id(card_id(id))
                 .max_h(px(if narrow { CARD_PHONE } else { CARD }))
                 .overflow_y_scroll()
                 .child(plan)
@@ -243,7 +240,7 @@ pub(crate) fn card_at<P: Place>(
     }
     let head = head(title, card.count, *words, tokens);
     let body = body((shell, seat), &card, tool, head, tokens, window, cx);
-    Some(frame(body, footer, narrow, tokens))
+    Some(frame(id, body, footer, narrow, tokens))
 }
 
 /// Under the body: the question, the answers, and a refused answer's
@@ -271,10 +268,16 @@ fn footer(answers: Div, refused: Option<String>, words: ConversationWords, token
 
 /// The card around the body and the footer: scrolling inside past its
 /// height (lower on a phone).
-fn frame(body: AnyElement, footer: Div, narrow: bool, tokens: &Tokens) -> AnyElement {
+fn frame(
+    id: PermissionId,
+    body: AnyElement,
+    footer: Div,
+    narrow: bool,
+    tokens: &Tokens,
+) -> AnyElement {
     let neutral = tokens.neutral;
     div()
-        .id("permit-card")
+        .id(card_id(id))
         .max_h(px(if narrow { CARD_PHONE } else { CARD }))
         .overflow_y_scroll()
         .flex()
@@ -291,6 +294,12 @@ fn frame(body: AnyElement, footer: Div, narrow: bool, tokens: &Tokens) -> AnyEle
         .child(body)
         .child(footer)
         .into_any_element()
+}
+
+// These cards are siblings in one pending stack. Their stateful descendants
+// (scroll areas, buttons and detail boxes) must live below distinct identities.
+fn card_id(id: PermissionId) -> ElementId {
+    ElementId::Name(format!("permit-card-{id}").into())
 }
 
 /// The title (14 on 22, the foreground) and GOAT's count at its right.

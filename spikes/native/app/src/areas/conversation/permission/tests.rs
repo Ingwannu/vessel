@@ -59,3 +59,11 @@ fn simultaneous_plans_have_independent_disclosure(cx: &mut gpui::TestAppContext)
         assert!(!shell.areas.conversation.plan_folded.contains(&second.id));
     });
 }
+
+#[test]
+fn simultaneous_request_roots_keep_distinct_stable_element_state() {
+    let first = PermissionId::random();
+    let second = PermissionId::random();
+    assert_ne!(card_id(first), card_id(second));
+    assert_eq!(card_id(first), card_id(first));
+}
