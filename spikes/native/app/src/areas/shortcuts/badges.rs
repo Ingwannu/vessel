@@ -124,13 +124,12 @@ impl Shell {
                     cx.background_executor().timer(delay).await;
                     let _gone = this.update(cx, |shell, cx| {
                         let listener = &mut shell.areas.shortcuts;
-                        if listener
-                            .badge_reveal
-                            .reveal(deadline, listener.since.elapsed())
-                        {
+                        // Completion of this cancellable timer supplies the
+                        // deadline; do not mix the GPUI test clock with std Instant.
+                        if listener.badge_reveal.reveal(deadline, deadline) {
+                            listener.badge_task = None;
                             cx.notify();
                         }
-                        listener.badge_task = None;
                     });
                 }));
             }
