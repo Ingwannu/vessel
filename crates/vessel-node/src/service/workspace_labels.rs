@@ -64,3 +64,6 @@ impl NodeService {
         self.workspace_labels.delete(request).await.map_err(wire)
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -161,3 +161,11 @@ savepoint rollback, unchanged snapshot and silent watch, then restores the fixtu
 revision and proves a later write still succeeds. This complements the planner
 collision test and scripted actor failure; it remains unexecuted with the new
 adapter checks.
+
+Two additional isolated-node tests directly invoke the generated guarded handler
+without advertising the pending methods on a transport. They test read-only
+write refusal, person-only agent refusal, actual owner Store results and final
+assignment/catalog removal. The second uses a paused clock to prove delegated
+and exhausted-share Observe calls return without advancing through the long-poll
+wait. These are source-authored handler-policy tests, not public RPC availability
+or execution PASS. Lookup is empty and the user/data directories are isolated.
