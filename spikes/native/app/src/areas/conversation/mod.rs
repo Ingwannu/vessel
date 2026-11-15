@@ -36,9 +36,11 @@
 //! - Choice: the state stays one type, [`ConversationArea`]; another area
 //!   keeps one of its own, opens it ([`ConversationArea::open`]), feeds it
 //!   its session's records ([`ConversationArea::take`]) and draws it with
-//!   [`timeline::rows`]. A [`Seat`] says where the state is: two plain functions
-//!   from the shell to it, so the rows' toggles reach the same state
-//!   they were drawn from. The session area's is [`Seat::SESSION`].
+//!   [`timeline::rows`]. One Clone [`Seat`] captures the owner for each row and
+//!   reusable toggle. Legacy surfaces retain their explicit function pointers;
+//!   a derived origin retains that same parent instead of selecting a global.
+//!   Admitted resolution remains staged over W12's sole registry until its one
+//!   product cutover. Current product main still uses [`Seat::SESSION`].
 //! - Cost: an embedded conversation carries the frame's parts it does not
 //!   use (the menu, the confirm, find), which stay empty.
 
