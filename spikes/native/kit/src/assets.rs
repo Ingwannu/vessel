@@ -63,6 +63,8 @@ pub enum Glyph {
     Search,
     /// Send.
     ArrowUp,
+    /// Outward link arrow, consumed at12 by `ExternalLink`.
+    ArrowUpRight,
     /// Stop.
     Stop,
     /// The permissions mode.
@@ -229,6 +231,10 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// A usage dial, on the shared24-unit line grid.
+    Gauge,
+    /// A catalog package with its add action.
+    PackagePlus,
     /// A tool's generic activity (Lucide's `Wrench`).
     Wrench,
     /// Reading a file (Lucide's `Eye`).
@@ -240,7 +246,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 96] = [
+const ALL: [Glyph; 99] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -255,6 +261,7 @@ const ALL: [Glyph; 96] = [
     Glyph::Check,
     Glyph::Search,
     Glyph::ArrowUp,
+    Glyph::ArrowUpRight,
     Glyph::Stop,
     Glyph::Shield,
     Glyph::ShieldPlus,
@@ -333,6 +340,8 @@ const ALL: [Glyph; 96] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::Gauge,
+    Glyph::PackagePlus,
     Glyph::Wrench,
     Glyph::Eye,
     Glyph::MicVocal,
@@ -358,6 +367,7 @@ impl Glyph {
             Self::Check => "kit/check.svg",
             Self::Search => "kit/search.svg",
             Self::ArrowUp => "kit/arrow-up.svg",
+            Self::ArrowUpRight => "kit/arrow-up-right.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
             Self::ShieldPlus => "kit/shield-plus.svg",
@@ -436,6 +446,9 @@ impl Glyph {
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
+            Self::Gauge => "kit/gauge.svg",
+            Self::PackagePlus => "kit/package-plus.svg",
+
             Self::Wrench => "kit/wrench.svg",
             Self::Eye => "kit/eye.svg",
             Self::MicVocal => "kit/mic-vocal.svg",
@@ -809,3 +822,6 @@ mod activity_indicator_asset_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod added_navigation_tests;

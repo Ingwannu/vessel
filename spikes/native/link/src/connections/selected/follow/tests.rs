@@ -86,7 +86,7 @@ async fn buffered_record_and_metadata_are_refused_after_retirement() {
         )
         .await
         .unwrap();
-        assert_eq!(follow.context(), &selected.context);
+        assert_eq!(follow.context(), &selected.lease.context);
         assert!(follow.info().is_ok());
         peer.push(ServerFrame::Event {
             subscription: SubscriptionId::new(1),
@@ -157,7 +157,7 @@ async fn preflight_never_searches_another_alias_or_accepts_a_different_actual_no
         let connected = state.clients.remove("fixture").unwrap();
         let _other = state.clients.insert("other".into(), connected.clone());
         assert!(matches!(
-            state.selected_connection(&selected.context),
+            state.selected_connection(&selected.lease.context),
             Err(Refusal::Changed)
         ));
         let mut replacement = peer::connect("different-node").await;
@@ -165,11 +165,11 @@ async fn preflight_never_searches_another_alias_or_accepts_a_different_actual_no
             replacement.client.take().unwrap(),
             Vec::new(),
             connected.binding.clone(),
-            selected.context.clone(),
+            selected.lease.context.clone(),
         );
         let _other = state.clients.insert("fixture".into(), wrong);
         assert!(matches!(
-            state.selected_connection(&selected.context),
+            state.selected_connection(&selected.lease.context),
             Err(Refusal::Changed)
         ));
         assert!(replacement.calls.lock().unwrap().is_empty());
@@ -186,7 +186,7 @@ async fn closed_reports_return_to_the_actor_and_never_retire_a_new_admission() {
         peer.task.take().unwrap().abort();
         phase(
             "observe original transport closure",
-            selected.client.closed(),
+            selected.lease.client.closed(),
         )
         .await;
         assert!(matches!(
@@ -200,7 +200,7 @@ async fn closed_reports_return_to_the_actor_and_never_retire_a_new_admission() {
         let crate::Command::RetireConnection(tag) = receiving.try_recv().unwrap() else {
             panic!("closure must be ordered by the actor");
         };
-        assert_eq!(tag, selected.context.tag());
+        assert_eq!(tag, selected.lease.context.tag());
         let mut replacement = peer::connect("new-admission").await;
         let context = state
             .admissions
