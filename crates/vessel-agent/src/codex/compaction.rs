@@ -174,7 +174,7 @@ impl Compactions {
     pub(super) fn finish(&mut self, turn: &str) -> Vec<AgentEvent> {
         let mut completed = vec![];
         for bucket in &mut self.buckets {
-            if bucket.turn.as_ref().is_none_or(|id| id.as_str() != turn) {
+            if bucket.turn.as_ref().is_some_and(|id| id.as_str() != turn) {
                 continue;
             }
             for item in &mut bucket.items {

@@ -69,3 +69,15 @@ fn full_retained_state_still_completes_existing_without_eviction_or_new_loading(
     assert!(item(&mut state, true, "turn", "overflow").is_empty());
     assert!(item(&mut state, false, "turn", "0").is_empty());
 }
+
+#[test]
+fn old_notification_without_turn_id_closes_one_pending_root_item() {
+    let mut state = Compactions::default();
+    let _started = item(&mut state, true, "turn", "a");
+    let events = state
+        .observe("root", "thread/compacted", &json!({"threadId":"root"}))
+        .unwrap();
+    assert_eq!(events, [event(CompactionStatus::Completed)]);
+    assert!(item(&mut state, false, "turn", "a").is_empty());
+    assert!(state.finish("turn").is_empty());
+}
