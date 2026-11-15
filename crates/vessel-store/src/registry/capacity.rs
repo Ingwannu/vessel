@@ -33,11 +33,11 @@ pub(super) fn workspace(connection: &Connection, id: WorkspaceId) -> Result<(), 
         [id.to_string()], |row| row.get(0),
     )?;
     if !exists {
-        let count: usize = connection.query_row(
+        let count: i64 = connection.query_row(
             "SELECT COUNT(*) FROM (SELECT id FROM workspace_registry UNION SELECT id FROM workspace_registry_reservations)",
             [], |row| row.get(0),
         )?;
-        if count >= MAX_WORKSPACES {
+        if count >= i64::try_from(MAX_WORKSPACES).map_err(StoreError::RegistryRevisionRange)? {
             return Err(StoreError::RegistryFull);
         }
     }
@@ -55,12 +55,12 @@ pub(super) fn resource(
         |row| row.get(0),
     )?;
     if !exists {
-        let count: usize = connection.query_row(
+        let count: i64 = connection.query_row(
             "SELECT COUNT(*) FROM workspace_registry_resources",
             [],
             |row| row.get(0),
         )?;
-        if count >= MAX_RESOURCES {
+        if count >= i64::try_from(MAX_RESOURCES).map_err(StoreError::RegistryRevisionRange)? {
             return Err(StoreError::RegistryFull);
         }
     }
