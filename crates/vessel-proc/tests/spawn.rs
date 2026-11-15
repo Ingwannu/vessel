@@ -12,7 +12,89 @@
 //! child and the sleeper its grandchild, and EOF proves all three are gone.
 
 use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader};
-use vessel_proc::{CommandSpec, Signal, Spawned, spawn};
+use vessel_proc::{CommandSpec, Signal, Spawned, spawn, spawn_releasable};
+
+#[tokio::test]
+async fn bound_child_refuses_detach_without_losing_cleanup_authority() {
+    within(async {
+        let Spawned {
+            child,
+            stdin: _stdin,
+            stdout,
+            ..
+        } = spawn(&fake_tui()).unwrap();
+        let mut lines = BufReader::new(stdout).lines();
+        let _ready = read_until(&mut lines, "ready").await;
+        let authority = child.lifetime();
+        let refused = child.detach().unwrap_err();
+        assert!(
+            authority.is_live(),
+            "bound refusal revoked the retained owner"
+        );
+        drop(refused.into_child());
+        authority.ended().await;
+        let _eof = drain(lines).await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn detached_wait_is_repeatable_and_keeps_the_same_launch_identity() {
+    within(async {
+        let Spawned { child, stdout, .. } = spawn_releasable(&fake_tui().arg("--version")).unwrap();
+        let mut detached = child.detach().unwrap();
+        let other = detached.clone();
+        assert!(detached.same_launch(&other));
+        let _eof = drain(BufReader::new(stdout).lines()).await;
+        assert_eq!(detached.wait().await.unwrap(), Some(0));
+        assert_eq!(detached.wait().await.unwrap(), Some(0));
+    })
+    .await;
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn dropping_last_detached_observer_preserves_the_live_group() {
+    within(async {
+        let Spawned {
+            child,
+            mut stdin,
+            stdout,
+            ..
+        } = spawn_releasable(&fake_tui()).unwrap();
+        // This is the group of the exact fake child this fixture just spawned.
+        // It is retained solely to clean up the deliberately detached test tree.
+        let cleanup = vessel_proc::ProcessGroup::of_leader(child.pid()).unwrap();
+        let mut lines = BufReader::new(stdout).lines();
+        let _ready = read_until(&mut lines, "ready").await;
+        let authority = child.lifetime();
+        drop(child.detach().unwrap());
+        authority.ended().await;
+        assert!(!authority.is_live());
+        stdin.write_all(b"still-alive\n").await.unwrap();
+        let _echo = read_until(&mut lines, "echo: still-alive").await;
+        cleanup.signal(Signal::Kill).unwrap();
+        let _eof = drain(lines).await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn releasable_launch_is_still_owned_until_detach() {
+    within(async {
+        let Spawned {
+            child,
+            stdin: _stdin,
+            stdout,
+            ..
+        } = spawn_releasable(&fake_tui()).unwrap();
+        let mut lines = BufReader::new(stdout).lines();
+        let _ready = read_until(&mut lines, "ready").await;
+        drop(child);
+        let _eof = drain(lines).await;
+    })
+    .await;
+}
 
 #[cfg(target_os = "macos")]
 use support::exited_unreaped;

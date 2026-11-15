@@ -285,6 +285,7 @@ gate passed; native full-view integration remains owed. Next implement and
 narrow-check one direct invocation with the path/cleanup/decoder cases in
 the ADR, then the plan owner and health. Auto terminals, archive and editor
 targets remain unimplemented. No new protocol number is assigned.
+
 ## Independent process lifetime carrier
 
 A standalone change on the assigned node head adds Proc's process-id and

@@ -89,6 +89,7 @@ vessel-forge = { path = "crates/vessel-forge" }
 vessel-harness = { path = "crates/vessel-harness" }
 vessel-llm = { path = "crates/vessel-llm" }
 vessel-lsp = { path = "crates/vessel-lsp" }
+vessel-local-node = { path = "crates/vessel-local-node" }
 vessel-mcp = { path = "crates/vessel-mcp" }
 vessel-node = { path = "crates/vessel-node" }
 vessel-proc = { path = "crates/vessel-proc" }
