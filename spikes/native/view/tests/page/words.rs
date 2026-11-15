@@ -4,7 +4,7 @@
 
 use serde_json::json;
 use vessel_app_view::timeline::{
-    Entry, EntryKind, Fullness, Settled, answers_of, meter_of, settled,
+    Entry, EntryKind, Fullness, PlanActivity, Settled, answers_of, meter_of, settled,
 };
 use vessel_app_view::{meter_tokens, short_tokens};
 use vessel_proto::{ContextUsage, PermissionOption, PermissionOutcome, TurnUsage};
@@ -39,22 +39,32 @@ fn usage(total: u64, input: u64, output: u64) -> TurnUsage {
 
 #[test]
 fn an_entry_as_a_line_says_what_the_row_shows_without_its_markup() {
-    assert_eq!(EN.spoken(&message(1, "**Done**")), "**Done**");
+    assert_eq!(
+        EN.spoken(&message(1, "**Done**"), catalog("en")),
+        "**Done**"
+    );
     let mut running = tool(2, vessel_proto::ToolKind::Read);
     if let EntryKind::Tool(view) = &mut running.kind {
         view.title = "Read status.rs".to_owned();
         view.status = vessel_proto::ToolCallStatus::InProgress;
     }
-    assert_eq!(EN.spoken(&running), "Read status.rs · in progress");
+    assert_eq!(
+        EN.spoken(&running, catalog("en")),
+        "Read status.rs · in progress"
+    );
     let ended = |usage| {
         with_kind(EntryKind::TurnEnded {
             reason: vessel_proto::StopReason::EndTurn,
             usage,
+            point: false,
         })
     };
-    assert_eq!(EN.spoken(&ended(None)), "Turn ended · end turn");
     assert_eq!(
-        EN.spoken(&ended(Some(usage(30, 20, 10)))),
+        EN.spoken(&ended(None), catalog("en")),
+        "Turn ended · end turn"
+    );
+    assert_eq!(
+        EN.spoken(&ended(Some(usage(30, 20, 10))), catalog("en")),
         "Turn ended · end turn · 30 tokens · 20 in · 10 out"
     );
     let plan = with_kind(EntryKind::Plan {
@@ -63,13 +73,34 @@ fn an_entry_as_a_line_says_what_the_row_shows_without_its_markup() {
             { "content": "b", "priority": "low", "status": "pending" }
         ]))
         .unwrap(),
+        activity: PlanActivity::Created { count: 2 },
     });
-    assert_eq!(EN.spoken(&plan), "Plan · 1 of 2 done");
-    // The same entries in Korean.
-    assert_eq!(KO.spoken(&running), "Read status.rs · 진행 중");
-    assert_eq!(KO.spoken(&plan), "계획 · 2개 중 1개 완료");
+    assert_eq!(EN.spoken(&plan, catalog("en")), "Plan · 1 of 2 done");
+    // A plan row's words, Paseo's.
     assert_eq!(
-        KO.spoken(&ended(Some(usage(1234, 1000, 234)))),
+        EN.plan_activity(&PlanActivity::Created { count: 4 }),
+        "Created 4 tasks"
+    );
+    assert_eq!(
+        EN.plan_activity(&PlanActivity::Created { count: 1 }),
+        "Created 1 task"
+    );
+    assert_eq!(
+        KO.plan_activity(&PlanActivity::Created { count: 4 }),
+        "작업 4개 생성"
+    );
+    assert_eq!(
+        KO.plan_activity(&PlanActivity::Completed("a".to_owned())),
+        "완료됨"
+    );
+    // The same entries in Korean.
+    assert_eq!(
+        KO.spoken(&running, catalog("ko")),
+        "Read status.rs · 진행 중"
+    );
+    assert_eq!(KO.spoken(&plan, catalog("ko")), "계획 · 2개 중 1개 완료");
+    assert_eq!(
+        KO.spoken(&ended(Some(usage(1234, 1000, 234))), catalog("ko")),
         "턴 종료 · 정상 종료 · 토큰 1,234 · 입력 1,000 · 출력 234"
     );
 }
@@ -244,4 +275,9 @@ fn json_as_the_card_shows_it() {
         json_text(&raw(r#"{"path":"a.rs"}"#)),
         "{\n  \"path\": \"a.rs\"\n}"
     );
+}
+
+fn catalog(tag: &str) -> &'static vessel_app_view::localization::Translator {
+    use vessel_app_view::localization::{Locale, Translator};
+    Translator::get(Locale::from_tag(tag).unwrap()).unwrap()
 }

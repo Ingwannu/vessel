@@ -115,6 +115,8 @@ vessel-app-updater = { path = "../release/updater" }
 vessel-app-log = { path = "../release/applog" }
 
 vessel-client = { path = "../../crates/vessel-client" }
+# Test-only direct access to the already linked RPC framing, for actor regressions.
+vessel-rpc = { path = "../../crates/vessel-rpc" }
 vessel-proto = { path = "../../crates/vessel-proto" }
 
 # `gpui` is the name every GPUI crate uses; the snapshot is published under
@@ -149,6 +151,13 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # NFD for find's folding of accents (MIT or Apache-2.0).
 unicode-normalization = "0.1"
+# VT parser only (ADR 0073), Apache-2.0 OR MIT. Without default features:
+# the `std` build keeps an OSC string in a Vec with no bound; without it
+# the parser's own buffer is capped (`terminal::parse::OSC_LIMIT`).
+vte = { version = "0.15.0", default-features = false }
+# A scalar's width in cells for the terminal grid (ADR 0073), MIT OR
+# Apache-2.0; already in the lock through gpui-component.
+unicode-width = "0.2.3"
 qrcode = { version = "0.14", default-features = false }
 
 [profile.release]
@@ -173,6 +182,9 @@ debug = "line-tables-only"
 # GPUI's Linux platform with one XIM input context per window, focused and
 # unfocused with it (Hangul stays on across a switch of windows; the same
 # README). Only Linux and FreeBSD builds compile it.
+# gpui-kit's input base with a steady caret while motion is held (the same
+# README, "gpui-base").
 [patch.crates-io]
 gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
 gpui-pre-linux = { path = "../release/patches/gpui-pre-linux" }
+gpui-base = { path = "../release/patches/gpui-base" }

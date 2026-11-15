@@ -2,7 +2,8 @@
 //! section 6.15: the prompt in the interface face, as the page draws it,
 //! monospace being for code and the terminal only; the agent's reply as
 //! Markdown body text; thoughts quieter, tool calls as rows with their
-//! state; the composer a surface at the foot; a permission above it).
+//! state; the composer a surface at the foot; over it, the conversation's slot:
+//! a permission, a question, the queue).
 //!
 //! The conversation is a list that draws only what is in view (GPUI's
 //! `list`, measured rows), so its cost does not grow with its length.
@@ -15,15 +16,15 @@
 use std::cell::Cell;
 
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, IntoElement, ListAlignment, ListState, ParentElement as _,
+    AnyElement, Context, Div, IntoElement, ListAlignment, ListState, ParentElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, button};
+use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
-use vessel_app_view::prefs::TurnDelivery;
-use vessel_app_view::{Asked, Card, Conversation};
-use vessel_proto::{Delivery, EventRecord, PermissionId, PermissionOptionId, SessionId};
+use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
+use vessel_app_view::{Card, Conversation};
+use vessel_proto::{Delivery, EventRecord, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -107,6 +108,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // Track P: the session composer swaps the draft it holds.
+        self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
         let takes_prompts = open.structured;
         self.areas.session.pending = None;
@@ -143,6 +146,54 @@ impl Shell {
     }
 
     /// The draft was sent: show its prompt while the session starts.
+    /// The machine `from` is called `to` now (Settings › Machines, track
+    /// E2, after the book was written): the session open and a session
+    /// being started follow the new name.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_renamed(&mut self, from: &str, to: &str) {
+        let view = &mut self.areas.session;
+        if let Some(open) = &mut view.open
+            && open.machine == from
+        {
+            to.clone_into(&mut open.machine);
+        }
+        if let Some(pending) = &mut view.pending
+            && pending.machine == from
+        {
+            to.clone_into(&mut pending.machine);
+        }
+    }
+
+    /// The machine `name` is forgotten (track E2, after the book was
+    /// written): a session of it open or being started is let go, and the
+    /// session screen, if it showed one, goes back to the new chat.
+    #[expect(
+        dead_code,
+        reason = "track E2's Settings › Machines calls it after a book edit (remove on its merge)"
+    )]
+    pub(crate) fn session_machine_forgotten(&mut self, name: &str) {
+        let view = &mut self.areas.session;
+        if view
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.machine == name)
+        {
+            view.pending = None;
+        }
+        if view.open.as_ref().is_some_and(|open| open.machine == name) {
+            view.open = None;
+            view.resuming = None;
+            view.resume_error = None;
+            *view.restore.borrow_mut() = None;
+            if self.route == Route::Session {
+                self.route_to(Route::Draft);
+            }
+        }
+    }
+
     pub(crate) fn begin_pending(
         &mut self,
         machine: String,
@@ -241,11 +292,26 @@ impl Shell {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        if text.trim().is_empty() || self.areas.session.resuming.is_some() {
+        if !self.session_may_send(&text)
+            || self.areas.session.resuming.is_some()
+            || self.conversation_cannot_resume()
+        {
             return;
         }
         if open.live {
             let delivery = self.delivery();
+            // A send shows in the conversation at once (Paseo's pending
+            // message; track C's tail), unless it waits in the queue,
+            // whose rows show it.
+            if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
+                self.conversation_sending(&text, cx);
+            }
+            if self.session_sends_files(&text, delivery, window, cx) {
+                return;
+            }
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Prompt {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -255,6 +321,12 @@ impl Shell {
         } else {
             // Ended or interrupted: start it again with its conversation,
             // then send (Paseo and GOAT continue a session the same way).
+            // The message shows in the conversation at once, the agent's
+            // working footer under it, while the session starts.
+            self.conversation_sending(&text, cx);
+            let Some(open) = &self.areas.session.open else {
+                return;
+            };
             self.command(Command::Resume {
                 machine: open.machine.clone(),
                 session: open.session,
@@ -263,24 +335,22 @@ impl Shell {
             self.areas.session.resuming = Some(text);
             self.areas.session.resume_error = None;
         }
-        self.areas.session.composer.clear(window, cx);
+        self.session_composer_sent(window, cx);
         cx.notify();
     }
 
-    /// What a plain send does: with no turn running, start one (or wait
-    /// behind prompts already queued); while one runs, what Settings'
-    /// default send says (wait in the queue, join the turn, or stop it and
-    /// start), joining only for an agent that takes it (`abilities.steer`;
-    /// otherwise the queue).
+    /// What a plain send does: Settings' default send by Paseo's rules
+    /// (`view::session::send_delivery`), given whether a turn runs, whether
+    /// the agent takes a message into it, and whether a permission waits.
     fn delivery(&self) -> Delivery {
-        if !self.areas.session.conversation.turn_running() {
-            return Delivery::Queue;
-        }
-        match self.prefs.settings.composer.delivery {
-            TurnDelivery::Steer if self.steers() => Delivery::Steer,
-            TurnDelivery::Queue | TurnDelivery::Steer => Delivery::Queue,
-            TurnDelivery::Interrupt => Delivery::Interrupt,
-        }
+        send_delivery(
+            self.prefs.settings.composer.delivery,
+            SendFacts {
+                turn_running: self.areas.session.conversation.turn_running(),
+                steers: self.steers(),
+                permission_waits: self.areas.conversation.permission_waits(),
+            },
+        )
     }
 
     /// Whether the open session's agent takes a message into a running
@@ -320,6 +390,22 @@ impl Shell {
         }
         *view.restore.borrow_mut() = view.resuming.take();
         view.resume_error = Some(why);
+        self.conversation_send_failed();
+    }
+
+    /// A prompt the link did not take: its text back in the composer of
+    /// the session it was typed in (the composer emptied when it was
+    /// sent).
+    pub(crate) fn prompt_unsent(&mut self, session: SessionId, text: String) {
+        let view = &mut self.areas.session;
+        if view
+            .open
+            .as_ref()
+            .is_some_and(|open| open.session == session)
+        {
+            *view.restore.borrow_mut() = Some(text);
+            self.conversation_send_failed();
+        }
     }
 
     /// Stop the open session's running turn.
@@ -328,23 +414,6 @@ impl Shell {
             self.command(Command::Stop {
                 machine: open.machine.clone(),
                 session: open.session,
-            });
-            cx.notify();
-        }
-    }
-
-    pub(crate) fn answer(
-        &mut self,
-        id: PermissionId,
-        option: PermissionOptionId,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if let Some(open) = &self.areas.session.open {
-            self.command(Command::Answer {
-                machine: open.machine.clone(),
-                session: open.session,
-                id,
-                option,
             });
             cx.notify();
         }
@@ -369,7 +438,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        super::conversation::timeline(shell, tokens, window, cx)
+        crate::region::timeline(shell, tokens, window, cx)
     } else {
         div()
             .flex_1()
@@ -393,58 +462,50 @@ pub(crate) fn render(
             cx,
         ))
         .child(body)
-        .children(
-            view.conversation
-                .asked()
-                .first()
-                .map(|asked| permission(asked, shell, tokens, cx)),
-        )
         .children(resume_note(shell, open, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
             let dock = super::conversation::dock(shell, tokens, window, cx);
+            // An ended session its agent cannot pick up again has no
+            // composer: the banner in the dock says so (Paseo's archived
+            // agent shows only its callout); a send would only try to
+            // start it again.
+            let ended_for_good = shell.conversation_cannot_resume();
+            // The draft's pills on the session's own options (Paseo's
+            // AgentControls on a running agent).
+            let touch = crate::areas::draft::compact(window);
+            let (controls, over) =
+                crate::areas::draft::running_controls(shell, touch, tokens, window, cx).unzip();
             frame
                 .children(dock.map(column))
-                .child(composer(shell, tokens, working, window, cx))
+                .when(!ended_for_good, |frame| {
+                    frame.child(composer(shell, tokens, working, controls, window, cx))
+                })
+                .children(over.into_iter().flatten())
         })
         .children(super::conversation::overlays(shell, tokens, window, cx));
-    // Track F's slot beside the conversation column: the code panel.
-    match crate::areas::workspace::code_panel(shell, tokens, window, cx) {
-        Some(panel) => div()
-            .size_full()
-            .relative()
-            .flex()
-            .flex_row()
-            .child(screen.flex_1().min_w(px(0.0)))
-            .child(panel),
-        None => screen,
-    }
+    // Track F's slot: the screen, with the code panel beside it when out.
+    crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }
 
-/// Under an ended session's conversation: that sending starts it again;
-/// while it starts, the prompt and that it is starting; why it could not.
+/// Under an ended session's conversation: why it could not be started
+/// again (Paseo's send error, its words back in the composer). While it
+/// starts, the message is in the conversation with the agent's working
+/// footer under it (track C's tail, slice M): nothing is said here.
 fn resume_note(shell: &Shell, open: &Open, tokens: &Tokens) -> Option<Div> {
     if !open.structured || open.live {
         return None;
     }
-    let t = shell.t;
-    let view = &shell.areas.session;
-    let neutral = tokens.neutral;
-    let (text, color) = if let Some(why) = &view.resume_error {
-        (t.resume_failed(why), neutral.destructive)
-    } else if view.resuming.is_some() {
-        (t.resuming.to_owned(), tokens.st_building)
-    } else {
-        (t.ended.to_owned(), neutral.foreground_muted)
-    };
-    let mut note = div().w_full().flex().flex_col().gap(px(8.0)).py(px(8.0));
-    if let Some(prompt) = &view.resuming {
-        note = note.child(bubble(prompt, tokens));
-    }
-    Some(column(note.child(
-        div().type_(Type::Meta).text_color(color).child(text),
-    )))
+    let why = shell.areas.session.resume_error.as_ref()?;
+    Some(column(
+        div().w_full().py(px(8.0)).child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.destructive)
+                .child(shell.t.resume_failed(why)),
+        ),
+    ))
 }
 
 /// The first prompt, shown while the session starts; in a new worktree,
@@ -503,6 +564,7 @@ fn composer(
     shell: &Shell,
     tokens: &Tokens,
     working: bool,
+    controls: Option<Div>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -513,7 +575,7 @@ fn composer(
         // A failed resume's text, back in the composer (once).
         field.set_text(&text, window, cx);
     }
-    let typed = !field.text(cx).trim().is_empty();
+    let typed = !field.text(cx).trim().is_empty() || shell.session_has_files();
     let stop = working && !typed;
     let button = vessel_app_kit::send_button(
         "session-send",
@@ -522,7 +584,7 @@ fn composer(
         } else {
             vessel_app_kit::SendKind::Send
         },
-        stop || typed,
+        stop || shell.session_may_send(&field.text(cx)),
         touch,
         tokens,
     )
@@ -534,53 +596,35 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
+    // Track P: the card with its `/` menu, its files and its text.
     column(
-        vessel_app_kit::composer_card(tokens, touch)
-            .child(field.element(tokens, touch, cx))
-            .child(div().flex().flex_row().justify_end().child(button)),
+        crate::areas::composer::session_card(shell, tokens, touch, window, cx).child(
+            // The draft's row: the agent's controls on the left (Paseo's
+            // button row bleeds 6 past the card's padding), the meter
+            // and send/stop on the right.
+            div()
+                .mx(px(-6.0))
+                .flex()
+                .flex_row()
+                .items_center()
+                .justify_between()
+                .gap(px(8.0))
+                .child(crate::areas::composer::attach_button(
+                    false, touch, tokens, cx,
+                ))
+                .child(div().flex_1().min_w_0().children(controls))
+                .child(
+                    div()
+                        .flex()
+                        .flex_row()
+                        .items_center()
+                        .gap(px(8.0))
+                        .children(super::conversation::meter(shell, tokens, window, cx))
+                        .child(button),
+                ),
+        ),
     )
     .pb(px(12.0))
-}
-
-/// The oldest permission waiting: what it is for, and a button per answer
-/// (the allowing ones primary).
-fn permission(asked: &Asked, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
-    // Wrapped: four long answers do not fit a phone's width.
-    let mut answers = div().flex().flex_row().flex_wrap().gap(px(8.0));
-    let buttons = asked.buttons(shell.t.lang.conversation());
-    for (index, (option, words, allows)) in buttons.into_iter().enumerate() {
-        let id = asked.id;
-        answers = answers.child(
-            button(
-                ElementId::Name(format!("answer-{index}").into()),
-                words,
-                allows,
-                tokens,
-            )
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.answer(id, option.clone(), cx);
-            })),
-        );
-    }
-    // In the chat column (`column`), so its edges are the composer's.
-    let card = div()
-        .w_full()
-        .p(px(12.0))
-        .flex()
-        .flex_col()
-        .gap(px(8.0))
-        .bg(tokens.bg_surface)
-        .border_1()
-        .border_color(tokens.st_needs_you)
-        .rounded(px(vessel_app_kit::theme::radius::R4))
-        .child(
-            div()
-                .type_(Type::Label)
-                .text_color(tokens.text_primary)
-                .child(shell.t.asks_to_run(asked.what.as_deref())),
-        )
-        .child(answers);
-    column(card).mb(px(8.0))
 }
 
 /// The first line of a prompt, at most 80 characters (the node's rule
@@ -628,9 +672,12 @@ thread_local! {
 
 /// The chat column grows to `width` (the next frame draws it).
 pub(crate) fn set_content_width(width: ContentWidth) {
-    let points = match width {
-        ContentWidth::Comfortable => Some(COLUMN_WIDTH),
-        ContentWidth::Wide | ContentWidth::Full => width.points().map(f32::from),
+    // The native default follows Paseo's 820-point column. Every explicit
+    // width uses its validated points, including future custom widths.
+    let points = if width == ContentWidth::Comfortable {
+        Some(COLUMN_WIDTH)
+    } else {
+        width.points().map(f32::from)
     };
     CONTENT_WIDTH.set(points);
 }

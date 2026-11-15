@@ -26,6 +26,32 @@ pub struct Appearance {
     /// How a conversation shows tool calls.
     #[serde(deserialize_with = "lenient")]
     pub conversation: ConversationDisplay,
+    /// Whether the app moves (Settings › Appearance › Animations).
+    #[serde(deserialize_with = "lenient")]
+    pub animations: Animations,
+}
+
+/// Whether the app's changes move (the owner's word 39: every change a
+/// person causes has a short transition, and a setting turns them off so
+/// every change is instant). Kept with the app's preferences only: the
+/// page has no such setting yet (its motion follows the system's), and
+/// the page's document ignores a field it does not know.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Animations {
+    /// Transitions play (the default).
+    #[default]
+    On,
+    /// Every change shows its end at once.
+    Off,
+}
+
+impl Animations {
+    /// Whether transitions play.
+    #[must_use]
+    pub const fn on(self) -> bool {
+        matches!(self, Self::On)
+    }
 }
 
 /// The app's colours.

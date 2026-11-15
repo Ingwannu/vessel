@@ -1,46 +1,153 @@
-//! The page's `data/settings.test.ts` and `settings-place.test.ts`.
+//! Settings' sections: Paseo's table (`screens/settings-screen.tsx`) and
+//! the page's `settings-place.test.ts`.
 
 use std::collections::BTreeSet;
 
 use crate::Lang;
-use crate::settings::{Group, Place, Section};
+use crate::settings::{Group, Place, Section, Surface};
+
+const SURFACES: [Surface; 3] = [Surface::Desktop, Surface::Browser, Surface::Phone];
 
 #[test]
 fn reads_a_section_from_an_address_and_nothing_else() {
-    assert_eq!(Section::of("machines"), Some(Section::Machines));
-    assert_eq!(Section::of("Machines"), None);
+    assert_eq!(Section::of("host"), Some(Section::Overview));
+    assert_eq!(Section::of("pair-device"), Some(Section::Devices));
+    assert_eq!(Section::of("Providers"), None);
     assert_eq!(Section::of(""), None);
     assert_eq!(Section::of("fleet"), None);
 }
 
 #[test]
-fn puts_every_section_under_exactly_one_heading_in_the_lists_order() {
-    let grouped: Vec<Section> = Group::ALL.into_iter().flat_map(Group::sections).collect();
-    assert_eq!(grouped, Section::ALL);
-    for section in Section::ALL {
-        assert!(section.group().sections().contains(&section));
+fn lists_paseos_sections_in_paseos_order_on_the_desktop() {
+    let slugs = |group: Group| -> Vec<&str> {
+        group
+            .sections(Surface::Desktop)
+            .into_iter()
+            .map(Section::slug)
+            .collect()
+    };
+    // `SIDEBAR_SECTION_ITEMS`; Editor too, as Paseo's desktop app is a web
+    // page.
+    assert_eq!(
+        slugs(Group::App),
+        [
+            "general",
+            "appearance",
+            "sidebar",
+            "chat",
+            "terminal",
+            "browser",
+            "editor",
+            "files",
+            "shortcuts",
+            "integrations",
+            "notifications",
+            "permissions",
+            "diagnostics",
+            "about",
+        ]
+    );
+    // `HOST_SECTION_ITEMS`, then Vessel's own Models (Sync is held back).
+    assert_eq!(
+        slugs(Group::Machine),
+        [
+            "host",
+            "projects",
+            "connections",
+            "pair-device",
+            "agents",
+            "metadata",
+            "voice",
+            "workspaces",
+            "providers",
+            "usage",
+            "terminals",
+            "plugins",
+            "models",
+        ]
+    );
+}
+
+#[test]
+fn lists_the_desktop_only_sections_on_the_desktop_only() {
+    let phone = Group::App.sections(Surface::Phone);
+    let browser = Group::App.sections(Surface::Browser);
+    for section in [
+        Section::Browser,
+        Section::Shortcuts,
+        Section::Integrations,
+        Section::Notifications,
+        Section::Permissions,
+    ] {
+        assert!(!phone.contains(&section), "{section:?} on a phone");
+        assert!(!browser.contains(&section), "{section:?} in a browser");
+    }
+    assert!(browser.contains(&Section::Editor));
+    assert!(!phone.contains(&Section::Editor));
+    // Every machine section is everywhere.
+    for surface in SURFACES {
+        assert_eq!(Group::Machine.sections(surface).len(), 13);
     }
 }
 
 #[test]
-fn names_every_section_each_differently() {
+fn puts_every_section_under_exactly_one_heading_in_the_lists_order() {
+    let grouped: Vec<Section> = Group::ALL
+        .into_iter()
+        .flat_map(|group| group.sections(Surface::Desktop))
+        .collect();
+    let shown: Vec<Section> = Section::ALL
+        .into_iter()
+        .filter(|section| section.shown())
+        .collect();
+    assert_eq!(grouped, shown);
+    for section in shown {
+        assert!(
+            section
+                .group()
+                .sections(Surface::Desktop)
+                .contains(&section)
+        );
+        assert_eq!(section.per_machine(), section.group() == Group::Machine);
+    }
+    // Sync is held back until its page is right on every kind of node.
+    assert!(!Section::Sync.shown());
+    assert!(!grouped.contains(&Section::Sync));
+    assert_eq!(Section::of("sync"), None);
+}
+
+#[test]
+fn names_every_section_of_a_group_each_differently() {
     for lang in [Lang::En, Lang::Ko] {
-        let labels: BTreeSet<&str> = Section::ALL
+        for group in Group::ALL {
+            let sections: Vec<Section> = Section::ALL
+                .into_iter()
+                .filter(|section| section.group() == group)
+                .collect();
+            let labels: BTreeSet<&str> = sections
+                .iter()
+                .map(|section| lang.settings().section(*section))
+                .collect();
+            assert_eq!(labels.len(), sections.len(), "{lang:?} {group:?}");
+        }
+        let groups: BTreeSet<&str> = Group::ALL
             .into_iter()
-            .map(|section| lang.settings().section(section))
+            .map(|group| lang.settings().group(group))
             .collect();
-        assert_eq!(labels.len(), Section::ALL.len());
+        assert_eq!(groups.len(), Group::ALL.len());
     }
     assert!(Section::ALL.contains(&Section::DEFAULT));
     assert_eq!(Lang::En.settings().section(Section::DEFAULT), "General");
+    assert_eq!(Lang::En.settings().section(Section::Devices), "Pair device");
+    assert_eq!(Lang::Ko.settings().section(Section::Overview), "개요");
 }
 
 #[test]
 fn names_a_section_a_machine_and_an_agent() {
     assert_eq!(
-        Place::of(&["settings", "agents"], Some("gpu-box"), Some("codex")),
+        Place::of(&["settings", "providers"], Some("gpu-box"), Some("codex")),
         Some(Place {
-            section: Section::Agents,
+            section: Section::Providers,
             exact: true,
             machine: Some("gpu-box".to_owned()),
             agent: Some("codex".to_owned()),
@@ -56,7 +163,7 @@ fn is_the_default_section_when_it_names_none_or_an_unknown_one() {
         assert!(!place.exact);
     }
     assert!(
-        !Place::of(&["settings", "machines", "extra"], None, None)
+        !Place::of(&["settings", "host", "extra"], None, None)
             .unwrap()
             .exact
     );
