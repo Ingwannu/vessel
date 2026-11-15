@@ -1316,3 +1316,9 @@ Tooltips only when the source consumer needs a hint. `None` is arrow-only.
 It has no button fill or private target override. Native Type::Meta supplies
 12/16 regular metrics where Paseo leaves line height platform-defined;
 accessibility/keyboard semantics remain the existing kit-wide gap.
+The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
+surface2+foreground, pressed surface3 background only) through one frame.
+trigger_presented takes typed Closed/Open with ButtonState. Existing entries
+keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
+visual footprint; passive size has no identity, input, glyph or anchor.
+See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
