@@ -124,6 +124,14 @@ async fn owned_restart_waits_for_old_exit_and_keep_on_quit_releases_control() {
         assert!(root.path().join("node/logs/vesseld.log").is_file());
         assert_eq!(cleanup.node_info().await.unwrap().state, NodeState::Serving);
         assert!(matches!(local.stop(StopPolicy::InterruptConfirmed).await, Err(Error::NotOwned)));
+        // A failed app save after Keep may leave its UI open. Explicit reuse
+        // authenticates the existing process without recovering child authority.
+        let mut reattached = LocalNode::start(launch(root.path(), Path::new(env!("CARGO_BIN_EXE_vesseld")))).await.unwrap();
+        assert_eq!(reattached.status(), LocalStatus::Attached(node));
+        assert!(matches!(reattached.stop(StopPolicy::Protect).await, Err(Error::NotOwned)));
+        assert!(matches!(reattached.restart(StopPolicy::Protect).await, Err(Error::NotOwned)));
+        assert_eq!(reattached.quit(QuitPolicy::Stop(StopPolicy::Protect)).await.unwrap(), LocalStatus::Attached(node));
+        assert_eq!(cleanup.node_info().await.unwrap().state, NodeState::Serving);
         cleanup.stop_node(StopWhen::WhenIdle).await.unwrap();
         assert!(matches!(local.wait_exit().await.unwrap(), LocalStatus::Exited(exit) if exit.code() == Some(0)));
         let retained = NodeHome::new(root.path().join("node")).unwrap().log_tail().await.unwrap();
