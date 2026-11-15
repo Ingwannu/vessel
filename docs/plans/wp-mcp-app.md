@@ -102,3 +102,11 @@ comments cover only the next message). Each EN/KO message now has its own
 screen/action/recovery context. No compiler or runtime success is inferred
 from that failed batch; it never reached the app controller check. Logs are
 retained in /tmp/work/wp-mcp/app-strict-9ad3.
+
+Dialog callbacks also capture a non-reused ticket within a visit. Closing and
+reopening a picker or receiving a fresh removal plan invalidates older modal
+callbacks; a host Visit alone would not distinguish those decisions. The one
+retained Tickets source supplies both identities without wrapping. Modal
+content changes retain the original focus-return cycle; actual dismissal
+alone restores it. Host-row callbacks cannot act behind an open dialog. A
+controller regression rejects a prior dialog's close and save in one visit.

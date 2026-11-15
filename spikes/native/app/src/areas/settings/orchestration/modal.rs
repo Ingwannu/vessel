@@ -1,8 +1,8 @@
 //! One adaptive dialog preserves focus while picker becomes a fresh-plan confirm.
 use super::{
-    Intent,
+    DialogScope, Intent,
     draw::{enabled, problem},
-    on as intent_handler,
+    on_dialog as intent_handler,
 };
 use crate::shell::Shell;
 use vessel_app_kit::dialog::{DialogContent, DialogSize};
@@ -26,10 +26,14 @@ pub(crate) fn dialog(
 ) -> Option<AnyElement> {
     let state = &shell.areas.settings.orchestration;
     let page = state.page.as_ref()?;
+    let captured = DialogScope {
+        scope: page.scope().clone(),
+        ticket: state.dialog_ticket?,
+    };
     let content = if let Some(confirm) = &page.confirmation {
         confirmation(
             shell,
-            page.scope(),
+            &captured,
             confirm,
             tokens,
             crate::areas::draft::compact(window),
@@ -47,9 +51,8 @@ pub(crate) fn dialog(
         window,
         crate::areas::draft::compact(window),
         {
-            let scope = page.scope().clone();
             move |shell: &mut Shell, window, cx| {
-                shell.orchestration_intent(&scope, Intent::Cancel, window, cx)
+                shell.orchestration_dialog_intent(&captured, Intent::Cancel, window, cx)
             }
         },
         cx,
@@ -62,13 +65,17 @@ fn picker(
     cx: &mut Context<'_, Shell>,
 ) -> Option<DialogContent> {
     let page = shell.areas.settings.orchestration.page.as_ref()?;
+    let captured = DialogScope {
+        scope: page.scope().clone(),
+        ticket: shell.areas.settings.orchestration.dialog_ticket?,
+    };
     let picker = page.picker.as_ref()?;
     let words = shell.words.orchestration();
     let working = page.skills.pending();
     let all = matches!(picker.draft, SkillSelection::All);
     let switch = settings::switch("orchestration-all", all, !working, compact, 0, tokens)
         .when(!working, |switch| {
-            switch.on_click(intent_handler(page.scope(), Intent::All, cx))
+            switch.on_click(intent_handler(&captured, Intent::All, cx))
         });
     let mut body =
         div()
@@ -99,11 +106,7 @@ fn picker(
             tokens,
         )
         .when(on, |switch| {
-            switch.on_click(intent_handler(
-                page.scope(),
-                Intent::Toggle(name.clone()),
-                cx,
-            ))
+            switch.on_click(intent_handler(&captured, Intent::Toggle(name.clone()), cx))
         });
         list = list.child(settings::row_at(
             label,
@@ -132,7 +135,7 @@ fn picker(
             "orchestration-picker-refresh",
             words.refresh(),
             config(ButtonKind::Secondary, !working, compact),
-            page.scope(),
+            &captured,
             Intent::Refresh,
             tokens,
             cx,
@@ -146,7 +149,7 @@ fn picker(
                 "orchestration-picker-cancel",
                 words.cancel(),
                 config(ButtonKind::Secondary, !working, compact),
-                page.scope(),
+                &captured,
                 Intent::Cancel,
                 tokens,
                 cx,
@@ -168,7 +171,7 @@ fn picker(
                         compact,
                     )
                 },
-                page.scope(),
+                &captured,
                 Intent::Save,
                 tokens,
                 cx,
@@ -179,7 +182,7 @@ fn picker(
 }
 fn confirmation(
     shell: &Shell,
-    scope: &vessel_app_view::orchestration::Scope,
+    captured: &DialogScope,
     confirm: &Confirmation,
     tokens: &Tokens,
     compact: bool,
@@ -237,7 +240,7 @@ fn confirmation(
                 "orchestration-confirm-cancel",
                 words.cancel(),
                 config(ButtonKind::Secondary, true, compact),
-                scope,
+                captured,
                 Intent::Cancel,
                 tokens,
                 cx,
@@ -254,7 +257,7 @@ fn confirmation(
                     !shell.areas.settings.orchestration.exhausted,
                     compact,
                 ),
-                scope,
+                captured,
                 Intent::Confirm,
                 tokens,
                 cx,
@@ -284,7 +287,7 @@ fn action(
     id: &'static str,
     label: &str,
     config: ButtonConfig,
-    scope: &vessel_app_view::orchestration::Scope,
+    captured: &DialogScope,
     intent: Intent,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -295,6 +298,6 @@ fn action(
         config,
         tokens,
     )
-    .on_click(intent_handler(scope, intent, cx))
+    .on_click(intent_handler(captured, intent, cx))
     .into_any_element()
 }

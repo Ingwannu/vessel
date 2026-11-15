@@ -20,6 +20,7 @@ pub(crate) struct State {
     pub(super) page: Option<Page>,
     pub(super) exhausted: bool,
     pub(super) dialog: DialogState,
+    dialog_ticket: Option<Ticket>,
     tickets: Tickets,
     closed: bool,
     retired: Option<vessel_app_view::connection::ConnectionTag>,
@@ -32,6 +33,7 @@ impl State {
             page: None,
             exhausted: false,
             dialog: DialogState::new(cx),
+            dialog_ticket: None,
             tickets: Tickets::default(),
             closed: false,
             retired: None,
@@ -52,6 +54,15 @@ impl State {
         self.page
             .as_ref()
             .is_some_and(|page| page.picker.is_some() || page.confirmation.is_some())
+    }
+    fn renew_dialog(&mut self) {
+        if self.open() {
+            if let Some(ticket) = self.ticket() {
+                self.dialog_ticket = Some(ticket);
+            }
+        } else {
+            self.dialog_ticket = None;
+        }
     }
     fn settle_focus(&mut self, window: &mut Window, cx: &mut Context<'_, Shell>) {
         if self.closed {
@@ -182,8 +193,12 @@ impl Shell {
             Consumer::Settings => {
                 let state = &mut self.areas.settings.orchestration;
                 let opened = state.open();
-                if let Some(page) = &mut state.page {
-                    let _accepted = page.answered(answer);
+                let accepted = state
+                    .page
+                    .as_mut()
+                    .is_some_and(|page| page.answered(answer));
+                if accepted {
+                    state.renew_dialog();
                 }
                 state.closed |= opened && !state.open();
                 None
@@ -218,7 +233,7 @@ impl Shell {
             intent,
             Intent::Tools | Intent::Skills | Intent::Save | Intent::Confirm
         );
-        if state.exhausted && needs_ticket {
+        if state.exhausted && !matches!(intent, Intent::Cancel) {
             return;
         }
         let before = state.open();
@@ -268,6 +283,7 @@ impl Shell {
             }
         };
         let after = state.open();
+        state.renew_dialog();
         if !before && after {
             state.dialog.focus(window, cx);
         }
@@ -289,6 +305,38 @@ pub(super) fn on(
 ) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static + use<> {
     let scope = scope.clone();
     cx.listener(move |shell, _event, window, cx| {
-        shell.orchestration_intent(&scope, intent.clone(), window, cx)
+        if !shell.areas.settings.orchestration.open() {
+            shell.orchestration_intent(&scope, intent.clone(), window, cx);
+        }
+    })
+}
+
+/// Distinguish closing/reopening or replacing decisions within the same visit.
+#[derive(Clone)]
+pub(super) struct DialogScope {
+    scope: Scope,
+    ticket: Ticket,
+}
+impl Shell {
+    fn orchestration_dialog_intent(
+        &mut self,
+        captured: &DialogScope,
+        intent: Intent,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.areas.settings.orchestration.dialog_ticket == Some(captured.ticket) {
+            self.orchestration_intent(&captured.scope, intent, window, cx);
+        }
+    }
+}
+pub(super) fn on_dialog(
+    captured: &DialogScope,
+    intent: Intent,
+    cx: &Context<'_, Shell>,
+) -> impl Fn(&ClickEvent, &mut Window, &mut App) + 'static + use<> {
+    let captured = captured.clone();
+    cx.listener(move |shell, _event, window, cx| {
+        shell.orchestration_dialog_intent(&captured, intent.clone(), window, cx);
     })
 }

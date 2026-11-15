@@ -299,3 +299,56 @@ fn a_retired_snapshot_cannot_reopen_the_page_but_a_new_admission_can(cx: &mut Te
         });
     });
 }
+
+#[gpui::test]
+fn reopening_in_one_visit_rejects_the_previous_dialogs_close_and_save(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let shell = cx.new(|cx| Shell::without_io(window, cx));
+        let changed = cx.observe(&shell, |_probe, _shell, cx| cx.notify());
+        Probe {
+            shell,
+            _changed: changed,
+        }
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let scope = seed(shell);
+            shell.orchestration_intent(&scope, Intent::Choose, window, cx);
+            let old = DialogScope {
+                scope: scope.clone(),
+                ticket: shell.areas.settings.orchestration.dialog_ticket.unwrap(),
+            };
+            shell.orchestration_dialog_intent(&old, Intent::Cancel, window, cx);
+            shell.orchestration_intent(&scope, Intent::Choose, window, cx);
+            let current = shell.areas.settings.orchestration.dialog_ticket.unwrap();
+            assert_ne!(old.ticket, current);
+            shell.orchestration_dialog_intent(&old, Intent::Cancel, window, cx);
+            shell.orchestration_dialog_intent(&old, Intent::Save, window, cx);
+            let page = shell.areas.settings.orchestration.page.as_ref().unwrap();
+            assert!(page.picker.is_some());
+            assert!(!page.skills.pending());
+            assert!(page.skills.problem().is_none());
+            shell.orchestration_dialog_intent(
+                &DialogScope {
+                    scope,
+                    ticket: current,
+                },
+                Intent::Cancel,
+                window,
+                cx,
+            );
+            assert!(
+                shell
+                    .areas
+                    .settings
+                    .orchestration
+                    .page
+                    .as_ref()
+                    .unwrap()
+                    .picker
+                    .is_none()
+            );
+        });
+    });
+}
