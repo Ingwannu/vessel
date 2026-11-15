@@ -1674,7 +1674,12 @@ its existing JSON-RPC codec, without creating a thread or turn; ACP reuses the
 existing finite probe. Only a compatible existing driver can be used.
 
 The node provider module owns cache admission and bounded asynchronous
-refresh, scoped invalidations and passive snapshots. A passive diagnostic never
+refresh, scoped invalidations and passive snapshots. Its budget boundary counts
+encoded JSON without retaining a frame: shared thinking arrays can expand on
+the wire even when retained storage is compact. Oversized whole observations
+fail before Ready publication; oversized aggregates return a typed refusal.
+Synchronous frontend/service/teardown handle assembly lives in node/frontends.rs
+so node start keeps async ordering separate from those shared ownership handles. A passive diagnostic never
 starts a process; a late old generation cannot publish after replacement.
 The configuration owner serializes validation, durable writes and registry
 publication independently of a caller's cancellation. vessel-store's provider

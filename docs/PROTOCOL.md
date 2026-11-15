@@ -1897,3 +1897,22 @@ it can display them completely. No allocator or process runs in this stage.
 ## Pending composer command catalogs (ADR 0085)
 
 `agent.draft_commands` is an Operate-scoped unary method gated by `composer_commands::COMPOSER_COMMANDS` (unassigned). It accepts registered workspace identity, a validated relative directory, provider/profile and selected model/options, and returns an ordered command catalog without a prompt. Agents are refused. Optional command kind is hidden on older/unassigned peer projections; absent/unknown kind cannot enable inline completion. The client must show Unsupported while the protocol remains unassigned and must not fall back to an unkeyed provider launch.
+
+
+## Pending provider metadata (ADR 0081)
+
+`providers::PROVIDERS` remains None;24 is reserved only. The3runtime rows
+provider.list/provider.diagnostic/provider.set_enabled stay pending in the
+one method table. No client or server admits them before integrator assignment.
+Cached reads are passive Read; Discover/Refresh additionally require Operate
+and a local person. Participation mutation is Admin/local-person/nonforwardable.
+The reader projection excludes launch env/command/private causes and carries no
+legacy account/profile attestation.
+
+Reader projections count actual encoded JSON before publication/response, with
+a half-frame budget derived from the canonical RPC frame bound. An oversized
+individual catalogue becomes whole InvalidCatalogue; no partial Ready is emitted.
+An oversized aggregate returns Unavailable and callers may request individual
+diagnostics. This differs from paging and does not silently omit providers.
+The integrator adds Version24 and regenerates TS only at the reviewed wiring
+merge after the package whole gate; MIN remains2 and no SQLite schema changes.

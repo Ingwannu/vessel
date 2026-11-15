@@ -46,16 +46,32 @@ catalogue and parent configuration, before any process is launched.
 - Real agent execution, sign-in, vendor network, installed CLI compatibility,
   native provider history and approval enforcement are not verified here.
 
-## Resume point
+## Current scope and resume point
 
-Done: inspected the reference and existing harness/probe boundaries; mapped
-provider behaviour above; requested the missing node-call allocation once.
-Skeleton: provider identity, bounded mode catalogue, built-in manifest and
-create-config policy are implemented with reference decision tests. Narrow
-compile/tests are pending. Next: launch/registry/catalogue owner and fake checks.
-Wiring waits for the shared method-table head. The integrator approved a
-separate owner-only provider configuration file without a SQLite migration; it
-must reuse the settings file preservation and atomic-write rules.
+The metadata core now has the registry, private-file owner, bounded catalogue
+producer/cache, node startup/shutdown wiring,3pending typed methods and client
+wrappers. Protocol24 is reserved by the integrator, not assigned: PROVIDERS
+remains None and MIN2/current23 are unchanged. No pending traffic is sent.
+G3 keeps modern provider metadata apart from legacy installation/account rows;
+no profile, sign-in, defaults or removal identity is inferred from a provider ID.
+
+Prior immutable selections passed provider70, agent139(with2externalSDKtests
+ignored), and RPC53; these do not prove the latest combined source. Actual
+strict failures and the coordinator-approved queued cancellations are retained
+below. Current node46g union, encoded reply budget and strict corrections await
+merged-head strict and provider regression execution before the final whole
+and V3 core PASS. All new Rust work runs on the build VM through the approved
+remote gate. Detailed current run IDs are in the review packet; no green gate
+or callable24 head is claimed here.
+
+The pure create resolver is not an authoritative create RPC. Native mode
+capability, actor-attested binding, actual applied provider/env/sign-in proof,
+transient native prompt override/restore, missing native drivers, plugin session
+adapter and durable helper ledger remain separate increments. Prepared values
+and isolated positive tests are not full A9 parity or runtime authority.
+
+The following chronological checkpoints preserve what each earlier snapshot
+actually implemented or checked; their pending statements are historical.
 
 ## Implementation checkpoint
 
