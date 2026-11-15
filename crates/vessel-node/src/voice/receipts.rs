@@ -71,18 +71,7 @@ impl Receipts {
         if self.pending.len() >= MAX_PENDING {
             return Err(ReceiptError::Capacity);
         }
-        let samples = u64::try_from(playback.pcm.as_slice().len().div_euclid(SAMPLES_PER_PCM16))
-            .map_err(|_private| ReceiptError::Capacity)?;
-        let nanos = samples
-            .checked_mul(NANOS_PER_SECOND)
-            .ok_or(ReceiptError::Capacity)?
-            .div_ceil(u64::from(playback.format.rate().get()));
-        let wait = Duration::from_nanos(nanos)
-            .checked_add(PLAYBACK_GRACE)
-            .ok_or(ReceiptError::Capacity)?;
-        if wait > MAX_RECEIPT_WAIT {
-            return Err(ReceiptError::Capacity);
-        }
+        let wait = wait_duration(playback)?;
         let deadline = now.checked_add(wait).ok_or(ReceiptError::Capacity)?;
         let _previous = self.pending.insert(playback.id, deadline);
         Ok(())
@@ -159,6 +148,23 @@ impl Receipts {
             let _expired = self.closed.pop_front();
         }
     }
+}
+
+/// The pipeline and the receipt book use the same bounded PCM-duration rule.
+pub(super) fn wait_duration(playback: &Playback) -> Result<Duration, ReceiptError> {
+    let samples = u64::try_from(playback.pcm.as_slice().len().div_euclid(SAMPLES_PER_PCM16))
+        .map_err(|_private| ReceiptError::Capacity)?;
+    let nanos = samples
+        .checked_mul(NANOS_PER_SECOND)
+        .ok_or(ReceiptError::Capacity)?
+        .div_ceil(u64::from(playback.format.rate().get()));
+    let wait = Duration::from_nanos(nanos)
+        .checked_add(PLAYBACK_GRACE)
+        .ok_or(ReceiptError::Capacity)?;
+    if wait > MAX_RECEIPT_WAIT {
+        return Err(ReceiptError::Capacity);
+    }
+    Ok(wait)
 }
 
 #[cfg(test)]

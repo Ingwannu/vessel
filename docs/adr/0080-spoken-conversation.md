@@ -240,7 +240,7 @@ are deliberate resource floors, never silent truncation:
 | STT response | 512 KiB before decoding; text at most 64 KiB UTF-8 |
 | Speech input | 64 KiB UTF-8; split at sentences/clauses/words, 260 UTF-16 units |
 | Composite transient prompt | existing 16 KiB AutomationText transport cap, including base and policy; refuse before reload |
-| TTS prefetch | 2 segments, matching Paseo; 8 MiB decoded PCM per segment |
+| TTS prefetch | 2 ahead plus the current segment, matching Paseo replacement scheduling; 8 MiB each, at most24MiB retained decoded PCM per generation before transport buffers |
 | Playback receipt | PCM duration + 30 s, bounded by 210 s; timeout fails speak |
 | Closed receipts | 10 s TTL, 256 ids maximum; unknown/foreign id refused |
 | Outbound queue | 2 audio segments plus 16 control events; pressure fails lease |

@@ -303,3 +303,30 @@ system-policy cap does not apply to ordinary user messages. This is not a user
 prompt fallback for unsupported system-policy transport or explicit MCP context.
 The actor still must recheck exact lease/generation before dispatch, and this
 module sends nothing. No text or system content enters its Debug/errors.
+
+### Speech pipeline pre-code decision
+
+[Decision Log]
+- Purpose: preserve ordered per-segment playback while preparing the next two segments and keeping cancellation/deadlines finite.
+- Existing assets: voice::segments, the endpoint TTS client, the receipt-duration rule and the existing futures-util dependency cover these roles; no new executor/dependency is needed.
+- Alternatives: sequential synthesis wastes the reference's prefetch; detached Tokio tasks require a second task/cleanup owner; waiting only on a playback receipt leaves lazy synthesis futures unpolled.
+- Choice: reuse FuturesOrdered with at most two ahead-of-playback futures/results and select it alongside the one current playback receipt. Polling remains in the owned speak future. Cancellation drops the futures and cancels their shared child token; per-provider and receipt deadlines remain finite.
+- Effect: at most two prefetched segments plus the current segment (the reference schedules the replacement before waiting for current playback). The caller must first authorize the authenticated own-session lease and reserve its single speech-job capacity. The actual actor/MCP producer and canonical outbound/receipt adapter remain separate unfinished wiring; typed fake adapters do not advertise readiness.
+
+The staged synthesis runner now polls its two ordered prefetch futures/results
+alongside the current playback wait, without spawning detached tasks. Each
+segment receives its own group/receipt id as in tts-manager.ts350–410. The next
+packet is emitted only after current Played; Failed/Interrupted ends the job
+without claiming full audible success. Shared receipt-duration calculation
+remains owned by receipts.rs and gives the same PCM duration+30s/210s ceiling
+to the runner and receipt book. Provider preparation has its own60s deadline.
+Cancellation and deadlines are selected before other ready work; the child
+cancellation guard covers every exit while preserving the parent generation.
+
+The two prefetched segments plus current segment can retain up to24MiB decoded
+PCM per voice generation, excluding transport/serialization buffers; this is
+not a claim of at most two total PCM packets. Tests hold/reorder synthesis and
+hold a playback receipt to check real prefetch progress, stable output ordering,
+failed playback, cancellation cleanup and independent deadlines. All are new
+and unexecuted. Actual exact-session authorization/single-speech admission,
+canonical outbound receipt adapter and product speak registration remain owed.

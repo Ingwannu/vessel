@@ -19,6 +19,7 @@ mod segments;
 mod spoken_input;
 mod stt_endpoint;
 mod stt_form;
+mod synthesis;
 mod transcript;
 mod tts_endpoint;
 mod updates;
