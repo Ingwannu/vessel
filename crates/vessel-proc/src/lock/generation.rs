@@ -44,6 +44,9 @@ impl Generation {
             .rposition(|byte| *byte == b')')
             .ok_or(Error::Stat)?;
         let fields = rest.get(close.saturating_add(1)..).ok_or(Error::Stat)?;
+        if !fields.first().is_some_and(u8::is_ascii_whitespace) {
+            return Err(Error::Stat);
+        }
         let ticks = fields
             .split(|byte| byte.is_ascii_whitespace())
             .filter(|field| !field.is_empty())
@@ -256,7 +259,7 @@ mod tests {
             Err(Error::Number(_))
         ));
         assert!(matches!(
-            Generation::decode(b"1 missing-parentheses"),
+            Generation::decode(format!("{} missing-parentheses", NodeProcess::MINIMUM).as_bytes()),
             Err(Error::Stat)
         ));
         assert!(matches!(
@@ -272,6 +275,20 @@ mod tests {
                 .contains(&NodeProcess::MINIMUM.to_string())
         );
         assert!(!error.to_string().contains("private-command"));
+    }
+
+    #[test]
+    fn the_recorded_stat_layout_pins_the_start_tick_field_independently() {
+        let bytes = b"77 (command ) with spaces) S 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 7654321 909 910\n";
+        assert_eq!(
+            Generation::decode(bytes).unwrap(),
+            Generation {
+                process: NodeProcess(77),
+                started: StartTicks(7654321)
+            }
+        );
+        let malformed = b"77 (command)S 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 7654321";
+        assert!(matches!(Generation::decode(malformed), Err(Error::Stat)));
     }
 
     #[test]
