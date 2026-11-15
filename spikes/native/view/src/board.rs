@@ -144,6 +144,10 @@ pub enum Via {
 /// A machine in the sidebar.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Machine {
+    /// Non-reused admission paired with node in this same snapshot.
+    /// Absent on legacy/demo/offline snapshots; it is not a permission grant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_epoch: Option<crate::connection::ConnectionEpoch>,
     /// Its name in the node book.
     pub name: String,
     /// Whether it answered.
@@ -168,11 +172,18 @@ pub struct Machine {
 }
 
 impl Machine {
+    /// The exact selected physical admission, with no alias fallback.
+    #[must_use]
+    pub fn connection_context(&self) -> Option<crate::connection::ConnectionContext> {
+        crate::connection::ConnectionContext::of_machine(self)
+    }
+
     /// A machine that did not answer, and why.
     #[must_use]
     pub fn unreachable(name: String, why: &str) -> Self {
         Self {
             node: None,
+            connection_epoch: None,
             name,
             reach: Reach::Unreachable(why.to_owned()),
             sessions: Vec::new(),

@@ -5,10 +5,12 @@
 //! are in `streams`, the threads in `threads`, the command translation in
 //! `command`.
 
+use std::num::NonZeroU32;
+
 use bytes::Bytes;
 use portable_pty::native_pty_system;
 use tokio::sync::{mpsc, oneshot};
-use vessel_proc::{CommandSpec, Signal, SignalError};
+use vessel_proc::{CommandSpec, ProcessLifetime, ProcessLifetimeGuard, Signal, SignalError};
 
 use crate::command::command_builder;
 use crate::error::{PtyClosed, PtyError};
@@ -26,6 +28,7 @@ use crate::threads::{self, Control};
 #[derive(Debug)]
 pub struct PtyProcess {
     pid: u32,
+    lifetime: ProcessLifetimeGuard,
     killer: Killer,
     /// The only strong sender; dropping it ends the control thread, which
     /// closes the PTY. `None` once the program has exited.
@@ -71,10 +74,12 @@ impl PtyProcess {
         // end: the PTY stays open while any process has it.
         drop(pair.slave);
 
-        let Some(pid) = child.process_id() else {
+        let Some(pid) = child.process_id().and_then(NonZeroU32::new) else {
             stop_and_reap(child);
             return Err(PtyError::NoPid { program: program() });
         };
+        let lifetime = ProcessLifetimeGuard::begin(pid.into());
+        let pid = pid.get();
         let mut killer = match Killer::new(&*child, pid) {
             Ok(killer) => killer,
             Err(source) => {
@@ -87,13 +92,19 @@ impl PtyProcess {
         };
 
         // From here on, a failure must stop the program before returning.
-        let started = threads::start(pair.master, child, killer.reaper(pid));
+        let started = threads::start(
+            pair.master,
+            child,
+            killer.reaper(pid),
+            lifetime.end_on_drop(),
+        );
         match started {
             Ok(threads) => {
                 tracing::debug!(pid, program = %spec.program.display(), "pty spawned");
                 Ok((
                     Self {
                         pid,
+                        lifetime,
                         killer,
                         input: threads.control.downgrade(),
                         control: Some(threads.control),
@@ -116,6 +127,12 @@ impl PtyProcess {
     #[must_use]
     pub const fn pid(&self) -> u32 {
         self.pid
+    }
+
+    /// Observe this run; the waiter revokes it independently of polling `wait`.
+    #[must_use]
+    pub fn lifetime(&self) -> ProcessLifetime {
+        self.lifetime.observer()
     }
 
     /// A cloneable handle for writing input and resizing.
@@ -149,6 +166,7 @@ impl PtyProcess {
     /// # Errors
     /// Fails if the OS refuses to deliver the signal.
     pub fn signal(&mut self, signal: Signal) -> Result<(), SignalError> {
+        self.lifetime.revoke();
         match self.state {
             State::Exited(_) => Ok(()),
             State::Running => self.killer.signal(signal),
@@ -181,6 +199,7 @@ impl PtyProcess {
                 None
             }
         };
+        self.lifetime.revoke();
         self.state = State::Exited(code);
         // Ends the control thread, which drops the PTY master: on Windows
         // this closes the pseudo console and so ends the output stream.
@@ -191,6 +210,7 @@ impl PtyProcess {
 
 impl Drop for PtyProcess {
     fn drop(&mut self) {
+        self.lifetime.revoke();
         if self.state == State::Running
             && let Err(error) = self.killer.signal(Signal::Kill)
         {

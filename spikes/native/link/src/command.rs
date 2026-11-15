@@ -37,10 +37,13 @@ pub enum Command {
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
     Reload,
+    /// Reconcile a known closed admission on the same actor as Fleet snapshots.
+    /// An obsolete tag cannot retire a replacement, and carries no `NodeId` map.
+    RetireConnection(vessel_app_view::connection::ConnectionTag),
     /// Ask about a machine's paired devices.
     Devices {
-        /// Its name in the book.
-        machine: vessel_app_view::devices::MachineKey,
+        /// The authenticated admission that supplied the page’s facts.
+        context: vessel_app_view::devices::ConnectionContext,
         /// The page request identity.
         ticket: vessel_app_view::devices::Ticket,
         /// The device operation.

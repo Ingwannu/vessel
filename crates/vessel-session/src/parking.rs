@@ -240,7 +240,7 @@ impl StructuredActor {
             // agent got the stop, and the loop ends the session.
             return Err(SessionError::Ended);
         }
-        self.life.out.running(0);
+        self.life.out.running(None);
         self.enter_parked(reason).await;
         tracing::debug!("parked the session's agent");
         Ok(())
