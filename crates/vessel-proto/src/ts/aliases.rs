@@ -166,7 +166,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("LaunchIconKey", Alias::Named),
     ("LaunchId", Alias::Handle),
     ("LaunchProfileId", Alias::Handle),
-    ("LaunchProfileName", Alias::Content),
+    ("LaunchProfileName", Alias::Named),
     ("LaunchProfileNotes", Alias::Content),
     ("LaunchProfileRevision", Alias::Quantity),
     ("LimitKey", Alias::Named),
