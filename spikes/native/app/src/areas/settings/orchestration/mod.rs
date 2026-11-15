@@ -1,6 +1,8 @@
 //! Host orchestration UI uses one pure owner model and existing kit controls.
 mod draw;
 mod modal;
+#[cfg(test)]
+mod tests;
 pub(crate) use draw::render;
 pub(crate) use modal::dialog;
 

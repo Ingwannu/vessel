@@ -64,3 +64,12 @@ The shared owner Event is registered in shell dispatch. W15 must attach its
 onboarding consumer to the unclaimed Consumer::Onboarding answer; no active
 onboarding caller is imported or claimed wired in this tree. Existing idle
 settings stay on their prior path; no copied settings storage is added.
+
+Controller regression fixtures use Shell::without_io, the actual adaptive
+selection dialog and real Escape dispatch. They exercise cancellation while
+save acknowledgement is outstanding, original opener focus restoration after
+accepted dismissal, stale visit dismissal/acknowledgement, and retained custom
+selection across real language dispatch and input caret changes. A typed fake
+answer is used without any node, home directory, or browser opener. These are
+new source fixtures awaiting their exact remote test result; the earlier 9/0
+view/link result does not cover the UI controller.
