@@ -637,3 +637,7 @@ name the actual kit test results, not the removed private fixture inventory.
 The exact per-label right alignment and private folded-array ordering have no
 public query; these remain inspected source obligations, not executed proof.
 All new tests are unexecuted until their immutable remote run completes.
+
+The ported clipboard fixtures use actual Copy shortcut input after focus/select,
+not the vendor's private copy method. This source correction was found before
+its queued test executed; that older immutable run remains prior-source only.

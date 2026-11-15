@@ -206,14 +206,18 @@ fn mapped_tint_stays_inside_the_editor_and_above_selection_copy(cx: &mut TestApp
             view.state.update(cx, |state, cx| {
                 assert!(state.display_map().wrap_row_count() > 3);
                 assert_eq!(state.selected_text().to_string(), text);
-                state.copy(&gpui_base::input::Copy, window, cx);
-                assert_eq!(
-                    cx.read_from_clipboard().and_then(|v| v.text()),
-                    Some(text.clone())
-                );
                 state.replace_text_in_range(None, "blocked", window, cx);
                 assert_eq!(state.value(), text);
             })
         });
+    });
+    cx.simulate_keystrokes(if cfg!(target_os = "macos") {
+        "cmd-c"
+    } else {
+        "ctrl-c"
+    });
+    cx.run_until_parked();
+    cx.update(|_, cx| {
+        assert_eq!(cx.read_from_clipboard().and_then(|v| v.text()), Some(text));
     });
 }

@@ -105,14 +105,23 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
                         .bounds_for_range(next..next, bounds, window, cx)
                         .unwrap();
                     assert_eq!(b.top() - a.top(), state.line_height().unwrap());
+                    state.focus(window, cx);
                     state.select_all(window, cx);
-                    state.copy(&gpui_base::input::Copy, window, cx);
-                    assert_eq!(
-                        cx.read_from_clipboard().and_then(|v| v.text()),
-                        Some(text.clone())
-                    );
                 })
-            })
+            });
+            window.activate_window();
+        });
+        cx.simulate_keystrokes(if cfg!(target_os = "macos") {
+            "cmd-c"
+        } else {
+            "ctrl-c"
+        });
+        cx.run_until_parked();
+        cx.update(|_, cx| {
+            assert_eq!(
+                cx.read_from_clipboard().and_then(|v| v.text()),
+                Some(text.clone())
+            );
         });
     }
 }
