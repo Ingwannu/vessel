@@ -129,8 +129,9 @@ assigned or enabled by this adaptation.
 The selected node commit is `29eebb8b`, the latest green head announced
 when this integration began; the package parent is `8d5513e4`. Their
 histories are retained by a merge commit. The node's exported table and
-Option-valued admission decision are documented in `rpc.rs` and
-`rpc/since.rs`; no new Paseo behaviour is introduced by this integration.
+Option-valued admission decision are documented in `rpc/table.rs`,
+`rpc/contract.rs` and `rpc/since.rs`; no new Paseo behaviour is introduced
+by this integration.
 
 ### Updated package seams
 
@@ -156,3 +157,61 @@ the verified tab-session receipt before the existing storage assertions and
 add a controlled slow-welcome regression. They do not change production web
 or native code. Both `6036eeb8` and this reviewed fix are ancestors of the
 combined package base; later integrator work is outside this validation.
+
+### Unified native line and the next node contract
+
+The unified native package line `bb2ce38e` includes the accepted
+Diagnostics and Chat vocabulary package, preferred languages, and the
+shared settings, sidebar, devices, Git and terminal updates. The combined
+base retains that complete history so consumers use its prepared
+`Chat::display_choice` adapter instead of restoring retired settings
+fields or inventing a second translation boundary.
+
+The selected node head is `ba45a6e3`, announced after its whole gate. Its
+single RPC table is now `rpc/table.rs`, the request contract is in
+`rpc/contract.rs`, and validated workspace identities are shared protocol
+types. Integration introduces no new method or pending row and keeps
+client admission and decode privacy at their existing root boundaries.
+
+This selected head defines metadata value types but has not added a
+`metadata` field to `NodeSettings`. Its native idle-release fixtures
+therefore retain their complete existing literals. The link's partial
+settings write already uses `SetNodeSettings::default()`, preserving
+unrelated settings. Any future optional reply field must be adapted only
+when that field reaches the selected contract, rather than pre-emptively
+naming a nonexistent field. No additional native behavior or dependency
+is introduced. Narrow consumer checks precede the final root and native
+gates on the same combined head.
+
+### Plugin value contracts
+
+The reviewed values-only plugins head `e46cd57b` is merged separately so
+shared panel and appearance consumers can reuse validated plugin
+identities, lifetime addresses, retained attachment ownership and theme
+values from `vessel-proto::plugins`. ADR 0079 owns this contract.
+`PLUGINS` stays unassigned; this merge registers no RPC, settings key or
+runtime and adds no native plugin execution. Reusing the shared value
+types avoids independent identifiers or opaque payloads at those seams.
+
+Because these additional values change root protocol sources, the earlier
+root validation is historical evidence for its original candidate. Both
+whole root and native gates validate the final combined candidate after
+the allocation refusal adapter and its lint-only correction are included.
+No newer package-line changes are consumed by this integration.
+
+### Follow-up node prerequisites
+
+After the preceding frozen candidate's two whole gates completed, the
+announced node head `d432ef0f` is retained as a separate merge parent. It
+brings the runner-issued process lifetime carrier, the shared connection
+call preflight, read-only lock observation prerequisites and transient
+agent setup context. These remain owned by their root crates; the native
+link continues to use its typed client rather than duplicate admission,
+process observation or provider setup logic.
+
+Native sources have no `AgentSetup` construction and remain identical to
+the preceding validated native candidate. The node's internal setup
+literals carry its new system-prompt field. `NodeSettings` still has no
+metadata field, so the conditional metadata fixture patch remains
+inapplicable. Both workspaces must validate the new combined committed
+head; earlier gate outcomes remain identified with their original SHAs.
