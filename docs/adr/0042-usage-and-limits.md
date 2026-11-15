@@ -312,3 +312,94 @@ named usage protocol boundary in `vessel-proto::usage`. The final number is
 given at merge. The method table accepts constant expressions so changing
 that one boundary cannot accidentally leave replay provenance behind. This
 changes no wire shape or supported behavior at the current boundary.
+
+## Addendum: source account reports for all usage surfaces
+
+Status: proposed. Existing protocol-21 accounting and protocol-23 saved-login
+limits remain authoritative and unchanged. The new report family has no assigned
+protocol number and must not be advertised or called before its consumers and
+method-table row are reviewed.
+
+### Purpose and intent
+
+A profile's saved-login quota is not the full report model used by Paseo's
+Usage cards, sidebar pins, host-filtered modal, per-agent details and CLI.
+Those surfaces need stable source/account report identities, independent
+windows, balances, details, source tone and successful-observation provenance.
+
+### Existing implementation and constraints
+
+`usage.query` is the retained reported ledger; `usage.limits` reads one bound
+saved account with immutable launch association. `usage.lookup` controls saved
+sign-in use. Do not reconstruct a generic report by treating ledger totals as
+quota, identifying an account by its label, or discarding failed refresh state.
+The current built-in probes support Claude and OpenAI saved sign-ins through
+Claude Code, Codex and OpenCode. The plugin helper contract (ADR 0079) is an
+open extension point, not permission to introduce a second report schema.
+
+### Alternatives considered
+
+1. Extend `UsageLimits` into an unbounded source/plugin payload: would conflate
+   its saved-profile association with source-account discovery and break clients.
+2. Fetch vendors from each UI: would move credentials off the owning machine,
+   duplicate policy/cache semantics and exclude the CLI.
+3. Add a typed report family, reuse the reviewed limits engine where applicable,
+   and supply one open source registry shared with the plugin helper adapter.
+
+### Choice and reasons
+
+Choose the third. Define one `usage_reports` contract with validated source,
+account and report identifiers; a report id is opaque to clients and can be
+resolved by the same discovery path used for listing. Typed scope distinguishes
+all/report-id selection from a session's launch association, so combining a
+session selector with report ids is unrepresentable.
+
+A report entry carries source/account metadata and an exhaustive attempt state:
+not requested, refreshing, available, unavailable, or failed. Only successful
+observations own values and their timestamp. Failed or pending attempts may
+retain a same-binding success, visibly marked retained. Windows preserve used
+and remaining percentages separately, source-provided tone, default-summary
+metadata, reset instant, optional run-out forecast and shortfall. Balances keep
+reported units and values; no prices or estimates. Details declare visibility.
+All lists and identifiers are bounded at decoding and construction edges; an
+oversized or duplicate identity refuses the response instead of silently losing
+an account. Bounds and serialization tests live beside the types.
+
+The registry owns discovery, cache identity, five-minute freshness, per-source
+admission, identical-fetch coalescing, immutable generation and successful
+history. Source adapters own provider schemas, fixed network destinations and
+local login reading; the registry never inspects opaque plugin-owned inputs.
+A source-local opaque login reference keeps those inputs in its adapter. Plugin
+Ready/discover/fetch uses these same report types, with the plugin generation
+fence and cancellation from ADR 0079. No helper is claimed available before
+its actual adapter is wired.
+
+### Credential use and authorization
+
+Preserve the existing floor: lookup defaults off; Admin changes it; Read is
+cache-only and cannot read a credential, invoke discovery that reads a login,
+or reach a vendor. Explicit Refresh additionally requires Operate and may
+perform bounded source discovery/fetch on the owning machine. A cached miss is
+not an invitation to perform I/O. The session scope uses the reviewed immutable
+launch binding and current provider proof before and after awaiting work.
+Read-only callers receive no monetary balances or Operate-only details.
+Off cancels admitted discovery/fetch, invalidates its publishing generation,
+forgets snapshots, and acknowledges only after the persisted policy applies.
+
+Built-in HTTP calls keep fixed vendor origins, no redirects, no proxy/header
+inheritance, bounded bodies and existing deadlines. Adapters never refresh or
+write the agent's saved login. Safe typed failures replace raw HTTP/credential
+messages. No credential, fingerprint, opaque helper input or private path is
+serialized in the public report, logged or written to diagnostics. Test sources
+and recorded logins are test-only or under the existing fakes isolation; they
+cannot supply a production report.
+
+### Advantages, costs and effects
+
+One report/cache model serves the native UI, page, CLI and plugin source
+adapter, while the existing accounting/limit calls remain compatible. Source
+identity is distinct from account and from presentation. Added costs are a new
+bounded report family, source adapters and lifecycle tests. Streaming individual
+updates requires the reviewed method-table/observation contract; it must not be
+improvised as a second protocol table. Any initially unsupported source or
+transport path stays explicit in the package tracker and cannot count as parity.
