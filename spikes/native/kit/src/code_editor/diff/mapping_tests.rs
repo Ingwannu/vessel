@@ -106,7 +106,7 @@ struct Probe {
     state: Entity<EditorState>,
 }
 impl Render for Probe {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         div().size_full().child(Editor::new(&self.state))
     }
 }
@@ -114,7 +114,7 @@ fn input(
     text: &str,
     style: InputEditorStyle,
     window: &mut Window,
-    cx: &mut Context<Probe>,
+    cx: &mut Context<'_, Probe>,
 ) -> Probe {
     Probe {
         state: cx.new(|cx| {

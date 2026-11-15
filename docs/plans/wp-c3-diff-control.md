@@ -110,3 +110,14 @@ projection and the four actual hit-testing source-copy fixtures. No such
 renderer/virtual-row/copy seam is implemented or approved by this ruling.
 The current bounded control packet may proceed with this explicit exclusion;
 this does not make full C3/split/copy parity passed.
+
+## Actual b011 compilation return
+
+The b011 four-crate consumer Clippy returned cargo101: two new View fixtures
+omitted the existing status(Vec<StatusEntry>) argument; the identical Kit test
+blobs had three elided Context lifetimes and passed an IntoElement Editor to
+the window draw helper, which requires Element. The Kit correction names
+Context lifetimes and converts Editor to AnyElement at that test boundary.
+No production mapping, geometry, assertion or lint policy changes. The running
+27194 test retains its old source and is not cancelled or assumed passed.
+The next meaningful checked union must carry these public API corrections.

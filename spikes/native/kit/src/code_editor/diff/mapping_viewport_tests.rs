@@ -9,7 +9,7 @@ struct Document {
     cached: bool,
 }
 impl Render for Document {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         let state = self.state.clone();
         let height = self.height;
         let cached = self.cached;
@@ -135,7 +135,7 @@ fn empty_parent_mask_projects_no_rows_and_refuses_direct_ime_bounds(cx: &mut Tes
     let _ = cx.draw(
         point(px(2000.), px(0.)),
         size(px(240.), px(5000.)),
-        |_, _| Editor::new(&state),
+        |_, _| Editor::new(&state).into_any_element(),
     );
     assert!(mapping.rows.lock().unwrap().is_empty());
     cx.update(|window, cx| {
