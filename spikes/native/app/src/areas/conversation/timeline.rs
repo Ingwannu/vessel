@@ -8,7 +8,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::session::is_live;
-use vessel_app_view::timeline::{Entry, EntryKind};
+use vessel_app_view::timeline::{Entry, EntryKind, presented_prompt};
 
 use super::entries::{self, Paint, id};
 use super::look::{Look, WORK_LINE, WORK_SIZE};
@@ -254,9 +254,9 @@ fn entry_element(
         cx,
     );
     let said = if let EntryKind::Prompt(prompt) = &entry.kind {
-        Some(prompt.text.as_str())
+        Some(presented_prompt(&prompt.text))
     } else if let EntryKind::Steer { text, .. } = &entry.kind {
-        Some(text.as_str())
+        Some(presented_prompt(text))
     } else {
         None
     };

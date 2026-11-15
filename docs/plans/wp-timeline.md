@@ -1358,7 +1358,10 @@ scoped host/root/image authority and final UI acceptance remain separate.
   ownership and cost to a small anchored display rule.
 - Choice: presented_prompt borrows the displayed slice with standard string
   operations and the existing whitespace predicate. Bubble and local Prompt/Steer
-  search use this one helper; Entry text/key/revision/attachments stay intact.
+  search use this one helper; the existing trailing copy/rewind text also receives
+  this slice, as `message.tsx:533-541` supplies its presented message to both
+  controls. Entry text/key/revision/attachments stay intact; rewind's protocol
+  boundary and owner state are unchanged.
 - Why: find marks index the exact words actually shown, including trimmed Unicode
   boundaries. Closing tags embedded in examples require a valid whole suffix
   before recognition, matching the source's anchored lazy capture.
