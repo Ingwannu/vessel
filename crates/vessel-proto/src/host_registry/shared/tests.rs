@@ -1,6 +1,17 @@
 use super::*;
 use crate::rpc::{Method, Request};
 
+// Decode the actual output into an independent closed schema. Extra fields must fail.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Allowed {
+    registration_id: HostRegistrationId,
+    destination: HostDestination,
+    destination_name: Option<HostLabel>,
+    label: Option<HostLabel>,
+    annotations: HostMetadata,
+}
+
 fn row() -> SharedHostRegistration {
     SharedHostRegistration {
         registration_id: HostRegistrationId::random(),
@@ -17,16 +28,6 @@ fn row() -> SharedHostRegistration {
 fn public_inventory_has_only_the_approved_serialized_fields() {
     let row = row();
     let encoded = serde_json::to_string(&row).unwrap();
-    // Decode the actual output into an independent closed schema. Extra fields must fail.
-    #[derive(Deserialize)]
-    #[serde(deny_unknown_fields)]
-    struct Allowed {
-        registration_id: HostRegistrationId,
-        destination: HostDestination,
-        destination_name: Option<HostLabel>,
-        label: Option<HostLabel>,
-        annotations: HostMetadata,
-    }
     let allowed: Allowed = serde_json::from_str(&encoded).unwrap();
     assert_eq!(allowed.registration_id, row.registration_id);
     assert_eq!(allowed.destination, row.destination);

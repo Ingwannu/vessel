@@ -1057,3 +1057,14 @@ A deterministic actual-CLI regression kills a fake structured session, waits for
 recorded ended status, verifies no-force archive returns1/Unsupported without marking,
 then proves that exact identity can reopen unarchived. It fails under the former ended
 fallback and has not executed at the current source. Whole/changed-source tests remain owed.
+
+### Public inventory strict return (2026-11-15 13:46 UTC)
+
+Exact dd33c5d7af964ada7168944c6b0e26212774f2d2 run
+wp-cli-narrow-20261115T125525Z-dd33c5d7 completed13:44 UTC rc1. Strict Clippy
+stopped at one items_after_statements diagnostic in proto host_registry/shared/tests.rs:
+its independent Allowed response schema was declared after fixture statements.
+Moved that test-only type to module scope; no lint suppression, wire change or
+allowlist weakening. No test execution or strict pass is claimed. Retained
+/tmp/work/wp-cli/public-host-cli-clippy contains exact spec, cargo.log and steps.tsv.
+Later base/CLI receipt/no-force changes also need the changed-source check.
