@@ -142,7 +142,7 @@ merges and Chat controls. The controls at `a6a6dfe48` passed fonts but failed
 strict Clippy on a test fixture's get/unwrap idiom in run
 `wp-timeline-narrow-20261115T084001Z-a6a6dfe4`; the fixture is corrected without
 changing product behavior. L separately passed the exact Chat EN/KO wording and
-data shape at `a6a6dfe48` (`/tmp/work/m12-i18n/ko-review-a7-a6a6dfe48/result.json`);
+data shape at `a6a6dfe48` (retained wording-review result.json);
 this is not timeline behavior or package approval. No whole package gate, captures
 or V4 review yet. Real providers and new
 wire activation remain unverified; no real agent was run.
@@ -152,7 +152,7 @@ in `wp-timeline-narrow-20261115T084410Z-e4ff4212`. Subsequent standalone-group
 state and source-bound changes need their own execution evidence. The local
 conversation-state run failed because base4 added three embedded Mono faces;
 the existing pinned `fonts.sh` regenerated those assets in this worktree's
-private `/data` cache, and a fresh state run is queued. No font source was copied
+private artifact cache, and a fresh state run is queued. No font source was copied
 from another worker and no production file permissions changed.
 
 Next: finish source-green narrow/model checks; consume the shared Chat, canonical
@@ -354,7 +354,7 @@ external running state has not caught up with the completion record.
 
 Local glyph tests initially found an ambiguous SharedString assertion and
 missing generated fonts; the assertion now names SharedString, and the exact
-pinned font packages are prepared under `/tmp/work/wp-timeline/` through the
+pinned font packages are prepared in the private artifact cache through the
 existing font script. The native ignore rule also covers a generated-font
 symlink, preserving the workspace's HDD artifact policy without shipping it.
 
@@ -881,7 +881,7 @@ Actual 94d80 app/kit all-target run wp-timeline-state-tests-20261115T113834Z-94d
 failed compilation before tests at 12:34 UTC: two Option::filter callbacks passed
 &&ToolView into generic plan_text(&impl ToolDetailSource). Both A7 callbacks now
 explicitly dereference the filter borrow. No test counts or GPUI pass are claimed
-from that failed run; /tmp/work/wp-timeline/literal-and-projection-tests-2 retains
+from that failed run; its retained literal-and-projection-tests-2 evidence retains
 the exact compiler log. The corrected current-head run also covers the staged
 resident/Seat regression source omitted by that earlier snapshot.
 
@@ -1024,7 +1024,7 @@ This is a source amendment, not a checked W1 scoped finder implementation.
 Executed exact189652504 view all-target tests completed 13:31 UTC:
 1153 passed, 0 failed, 0 ignored; run
 wp-timeline-models-20261115T124844Z-18965250, evidence
-/tmp/work/wp-timeline/provenance-plan-models/native-cargo.log. This includes the
+the retained provenance-plan-models/native-cargo.log. This includes the
 Plan/provenance additions after fcdd. App/kit/owner-body successors remain queued;
 this is neither the later app API source nor a whole/native/capture/V4 pass.
 
@@ -1079,7 +1079,7 @@ Executed exact3a10a0ecc app/kit all-target tests completed 14:02 UTC:
 271 passed, 0 failed, 2 existing ignored. App101 and Kit170 include the actual
 populated scoped hidden/stale/duplicate/Seat cases, moved snapshot/origin Hold,
 borrowed-detail identity and literal HTML-engine selection/copy regression.
-Evidence: /tmp/work/wp-timeline/owner-body-tests-2/native-cargo.log. It excludes
+Evidence: retained owner-body-tests-2/native-cargo.log. It excludes
 later readonly-navigation amendment, intraline implementation and base8.
 
 Its separate strict run failed only a 164-line test function and an ignored bool
@@ -1127,3 +1127,30 @@ detail DTO describing proposed material and content Ready. It creates neither a
 ToolView nor any log Entry/session identity and performs an actual draw. This
 new fixture is source only, not executed evidence yet. The ordinary timeline
 wrappers retain their previous callback context and call the same function.
+
+### Base8 bounded execution and shared path table
+
+Exact cfa857548 app/kit all-target tests completed 14:46 UTC, run
+wp-timeline-state-tests-20261115T140823Z-cfa85754: App102 + Kit185 =287 passed,
+0 failed, 2 existing ignored. This includes the navigation Hold, bounded output
+emphasis/cache regression and base8 union. It predates the shared kernel
+extraction and proposed-material draw fixture, so it does not validate those.
+Exact9ec010f3 view all-target tests: 1157 passed, 0 failed, 0 ignored, run
+wp-timeline-models-20261115T134356Z-9ec010f3; the independent annotation-row cap
+regression added later is not covered by that earlier run.
+
+The cfa strict run failed Glyph::path at101/100 after additive shared glyphs and
+new test idioms (get-first/single-range literal). Assertions now use first() and
+slice::from_ref without reducing coverage. Path data moves to a declarative
+exhaustive table generating the same constant function: every previous path,
+geometry and inventory order stays unchanged, with no lint suppression. A7 is
+the sole author of this shared seam. The lead requires a separate path-only
+commit on the next green announced line, plus exact strict/kit tests, before
+shared adoption; the four A7 glyph additions then remain separate table rows.
+The current A7 preparation is not that shared-line approved packet.
+
+Native-only borrowed-body source is separately isolated on official base8 as
+717f4f58c, without crates changes. Both modules remain literal cfg(test) until
+an actual A8 caller and legacy computed-diff delegation land together. W23's
+minimal d596 body-values prerequisite is source-passed but still awaits exact
+checks and integrator adoption; no field/event/RPC/runtime activation follows.

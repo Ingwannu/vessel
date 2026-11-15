@@ -27,10 +27,11 @@ use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::Lang;
 use vessel_app_view::fork::Headers;
 use vessel_app_view::localization::{ENGLISH, Translator};
-use vessel_proto::timeline::{ShellDetail, ToolCallDetail};
+use vessel_proto::timeline::{ShellDetail, ToolCallDetail, UnknownToolDetail};
 
 struct ProposedBody {
     detail: ToolCallDetail,
+    state: tool_detail::DetailContentState,
     headers: Headers,
     painted: Rc<Cell<usize>>,
 }
@@ -58,9 +59,9 @@ impl Render for ProposedBody {
         let body = tool_detail::borrowed_body(
             &paint,
             &vessel_app_kit::ui::ElementId::NamedInteger("proposed-body".into(), 1),
-            super::BorrowedDetail {
+            tool_detail::BorrowedDetail {
                 detail: &self.detail,
-                state: super::DetailContentState::Ready,
+                state: self.state,
                 failure: None,
             },
             window,
@@ -78,13 +79,14 @@ fn proposed_material_draws_through_the_borrowed_api_without_tool_or_log_objects(
     crate::shell::language_tests::init(cx);
     let painted = Rc::new(Cell::new(0));
     let observed = Rc::clone(&painted);
-    let (_, cx) = cx.add_window_view(move |_, _| ProposedBody {
+    let (view, cx) = cx.add_window_view(move |_, _| ProposedBody {
         detail: ToolCallDetail::Shell(ShellDetail {
             command: "echo proposed".to_owned(),
             cwd: None,
             output: None,
             exit_code: None,
         }),
+        state: tool_detail::DetailContentState::Ready,
         headers: Headers::default(),
         painted,
     });
@@ -92,5 +94,18 @@ fn proposed_material_draws_through_the_borrowed_api_without_tool_or_log_objects(
         window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
-    assert!(observed.get() > 0);
+    let ready_paints = observed.get();
+    assert!(ready_paints > 0);
+    view.update_in(cx, |probe, _, cx| {
+        probe.detail = ToolCallDetail::Unknown(UnknownToolDetail {
+            input: None,
+            output: None,
+        });
+        probe.state = tool_detail::DetailContentState::Loading;
+        cx.notify();
+    });
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    assert!(observed.get() > ready_paints);
 }

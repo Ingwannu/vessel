@@ -3,8 +3,8 @@
 //! a line, a square, two offset squares, a cross).
 //!
 //! Embedded as text, not files: the kit needs no separate asset bundle.
-//! The inventory (the enum, its list and its paths) is here and the
-//! drawings are in `drawing.rs`, one arm per glyph: the two stayed in one
+//! The inventory (the enum and its list) is here, constant path data is in
+//! `paths.rs`, and drawings are in `drawing.rs`, one arm per glyph: the two stayed in one
 //! file until the git row's glyphs took it past its listed size
 //! (docs/QUALITY.md M3). A registration still cannot miss its vector: the
 //! drawing's match has no catch-all.
@@ -15,6 +15,7 @@ use gpui::{AssetSource, SharedString};
 
 mod drawing;
 mod icon;
+mod paths;
 
 #[cfg(test)]
 use icon::view_box;
@@ -347,115 +348,6 @@ const ALL: [Glyph; 99] = [
     Glyph::MicVocal,
     Glyph::Scissors,
 ];
-
-impl Glyph {
-    /// Its asset path.
-    #[must_use]
-    pub const fn path(self) -> &'static str {
-        match self {
-            Self::Mark => "kit/mark.svg",
-            Self::Minimize => "kit/minimize.svg",
-            Self::Maximize => "kit/maximize.svg",
-            Self::Restore => "kit/restore.svg",
-            Self::Close => "kit/close.svg",
-            Self::Update => "kit/update.svg",
-            Self::Menu => "kit/menu.svg",
-            Self::ChevronDown => "kit/chevron-down.svg",
-            Self::ChevronUp => "kit/chevron-up.svg",
-            Self::ChevronRight => "kit/chevron-right.svg",
-            Self::ChevronLeft => "kit/chevron-left.svg",
-            Self::Check => "kit/check.svg",
-            Self::Search => "kit/search.svg",
-            Self::ArrowUp => "kit/arrow-up.svg",
-            Self::ArrowUpRight => "kit/arrow-up-right.svg",
-            Self::Stop => "kit/stop.svg",
-            Self::Shield => "kit/shield.svg",
-            Self::ShieldPlus => "kit/shield-plus.svg",
-            Self::ShieldCheck => "kit/shield-check.svg",
-            Self::ShieldOff => "kit/shield-off.svg",
-            Self::ShieldEllipsis => "kit/shield-ellipsis.svg",
-            Self::ShieldAlert => "kit/shield-alert.svg",
-            Self::Brain => "kit/brain.svg",
-            Self::Bot => "kit/bot.svg",
-            Self::Alert => "kit/alert.svg",
-            Self::CircleCheck => "kit/circle-check.svg",
-            Self::CircleX => "kit/circle-x.svg",
-            Self::Circle => "kit/circle.svg",
-            Self::CircleDot => "kit/circle-dot.svg",
-            Self::SquareCheck => "kit/square-check.svg",
-            Self::CalendarClock => "kit/calendar-clock.svg",
-            Self::Folder => "kit/folder.svg",
-            Self::FolderGit => "kit/folder-git.svg",
-            Self::Boxes => "kit/boxes.svg",
-            Self::Machine => "kit/machine.svg",
-            Self::More => "kit/more.svg",
-            Self::Sliders => "kit/sliders.svg",
-            Self::Gear => "kit/gear.svg",
-            Self::Copy => "kit/copy.svg",
-            Self::Palette => "kit/palette.svg",
-            Self::Stethoscope => "kit/stethoscope.svg",
-            Self::Keyboard => "kit/keyboard.svg",
-            Self::Bell => "kit/bell.svg",
-            Self::Sparkles => "kit/sparkles.svg",
-            Self::Server => "kit/server.svg",
-            Self::Smartphone => "kit/smartphone.svg",
-            Self::Refresh => "kit/refresh.svg",
-            Self::Info => "kit/info.svg",
-            Self::ArrowLeft => "kit/arrow-left.svg",
-            Self::Plus => "kit/plus.svg",
-            Self::Branch => "kit/branch.svg",
-            Self::File => "kit/file.svg",
-            Self::FileText => "kit/file-text.svg",
-            Self::PanelRight => "kit/panel-right.svg",
-            Self::PanelLeft => "kit/panel-left.svg",
-            Self::MenuCompact => "kit/menu-compact.svg",
-            Self::PullRequest => "kit/pull-request.svg",
-            Self::PullRequestDraft => "kit/pull-request-draft.svg",
-            Self::PullRequestClosed => "kit/pull-request-closed.svg",
-            Self::GitMerge => "kit/git-merge.svg",
-            Self::Lightning => "kit/lightning.svg",
-            Self::LightningFilled => "kit/lightning-filled.svg",
-            Self::Reset => "kit/reset.svg",
-            Self::Terminal => "kit/terminal.svg",
-            Self::Message => "kit/message.svg",
-            Self::Archive => "kit/archive.svg",
-            Self::Trash => "kit/trash.svg",
-            Self::Trash2 => "kit/trash-2.svg",
-            Self::ArchiveRestore => "kit/archive-restore.svg",
-            Self::Minus => "kit/minus.svg",
-            Self::GitBranchPlus => "kit/git-branch-plus.svg",
-            Self::Commit => "kit/commit.svg",
-            Self::Upload => "kit/upload.svg",
-            Self::Download => "kit/download.svg",
-            Self::Undo2 => "kit/undo-2.svg",
-            Self::Split => "kit/split.svg",
-            Self::Pin => "kit/pin.svg",
-            Self::MoreVertical => "kit/more-vertical.svg",
-            Self::Pause => "kit/pause.svg",
-            Self::Play => "kit/play.svg",
-            Self::RotateCw => "kit/rotate-cw.svg",
-            Self::ActivityIndicator => "kit/activity-indicator.svg",
-            Self::ActivityTrack => "kit/activity-track.svg",
-            Self::ActivityArc => "kit/activity-arc.svg",
-            Self::Spinner => "kit/spinner.svg",
-            Self::Board => "kit/board.svg",
-            Self::Sun => "kit/sun.svg",
-            Self::Moon => "kit/moon.svg",
-            Self::Monitor => "kit/monitor.svg",
-            Self::Pencil => "kit/pencil.svg",
-            Self::Steer => "kit/steer.svg",
-            Self::Grip => "kit/grip.svg",
-            Self::Remove => "kit/remove.svg",
-            Self::Gauge => "kit/gauge.svg",
-            Self::PackagePlus => "kit/package-plus.svg",
-
-            Self::Wrench => "kit/wrench.svg",
-            Self::Eye => "kit/eye.svg",
-            Self::MicVocal => "kit/mic-vocal.svg",
-            Self::Scissors => "kit/scissors.svg",
-        }
-    }
-}
 
 /// The kit's assets, for `Application::with_assets`.
 #[derive(Debug, Clone, Copy, Default)]

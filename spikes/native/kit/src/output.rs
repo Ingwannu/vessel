@@ -416,12 +416,18 @@ mod tests {
                 emphasis: vec![vec![1..3, 0..3, 0..99], vec![0..2, 1..4]],
             },
         );
-        assert_eq!(kept.emphasis.get(0).unwrap(), &[0..3]);
-        assert_eq!(kept.emphasis.get(1).unwrap(), &[0..4]);
-        assert_eq!(kept.lines.get(0).unwrap().text.as_ref(), "보드");
+        assert_eq!(
+            kept.emphasis.first().unwrap().as_slice(),
+            std::slice::from_ref(&(0..3))
+        );
+        assert_eq!(
+            kept.emphasis.get(1).unwrap().as_slice(),
+            std::slice::from_ref(&(0..4))
+        );
+        assert_eq!(kept.lines.first().unwrap().text.as_ref(), "보드");
         assert_eq!(kept.copy.as_deref(), Some("보드\nplain"));
         kept.take(2, Lines::text("바뀜").into());
-        assert!(kept.emphasis.get(0).unwrap().is_empty());
+        assert!(kept.emphasis.first().unwrap().is_empty());
         assert_eq!(kept.copy.as_deref(), Some("바뀜"));
     }
 
