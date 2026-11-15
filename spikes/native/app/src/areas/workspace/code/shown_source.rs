@@ -21,7 +21,7 @@ pub(super) struct RootReceipt {
     pub guard: Option<DeliveryGuard>,
 }
 impl RootReceipt {
-    pub fn current(&self) -> bool {
+    pub(super) fn current(&self) -> bool {
         self.guard
             .as_ref()
             .is_some_and(|guard| guard.validate(&self.context).is_ok())
@@ -86,7 +86,7 @@ pub(super) struct DiffSource {
     pub ready: Option<ShownDiffContext>,
 }
 impl Sources {
-    pub fn invalidate(&mut self) {
+    pub(super) fn invalidate(&mut self) {
         self.requested = None;
         self.ready = None;
         self.diffs.clear();
@@ -202,7 +202,7 @@ impl Shell {
     /// A diff carries the same parent source and the last original page ticket.
     #[cfg(test)]
     pub(crate) fn shown_diff_context(&self, path: &RelPath) -> Option<ShownDiffContext> {
-        self.shown_changes_context()?;
+        let _summary = self.shown_changes_context()?;
         self.areas.workspace.code.diff_source(path).cloned()
     }
     #[cfg(test)]

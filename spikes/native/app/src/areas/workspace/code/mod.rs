@@ -41,7 +41,8 @@ mod shown_source;
 mod source_acquisition;
 mod source_answer;
 mod source_follow;
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod source_tests;
 mod tree;
 mod viewer;

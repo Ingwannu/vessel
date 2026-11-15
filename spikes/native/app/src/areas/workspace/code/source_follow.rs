@@ -1,5 +1,5 @@
 //! Existing root-follow behavior, with original acquisition correlation.
-use super::*;
+use super::{Ask, Place, Problem, SessionId, Shell, Stale, Summary, Target};
 use vessel_app_view::workspace::root::session_root;
 use vessel_proto::SessionInfo;
 impl Shell {

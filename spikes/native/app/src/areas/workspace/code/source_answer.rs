@@ -21,7 +21,7 @@ impl Shell {
         match body {
             Body::Root(result) => self.source_root_answer(&request, guard, &checked(result, live)),
             Body::Summary(result) => {
-                self.source_summary_answer(request, guard, checked(result, live))
+                self.source_summary_answer(request, guard, checked(result, live));
             }
             Body::Diff(result) => self.source_diff_answer(&request, guard, checked(result, live)),
         }

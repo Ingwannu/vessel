@@ -141,3 +141,13 @@ where HostAlias exposes parse. The correction restores only the existing
 caller visibility and uses canonical enum/construction APIs; every correlation
 assertion remains. This failed run is retained. The newer base10 union and
 correction still require compilation and actual framed regression execution.
+
+The next actual strict run reached App and returned ordinary lint findings:
+explicit imports, unit-arm semicolon, two private-owner visibility bounds and
+a consumed getter result. The test module used a combined cfg(all(test,...))
+that the strict test-context lint does not recognize for helper assertions.
+It now uses the same separate cfg(test) and native-target attributes as the
+shared actor fixture. No production lint allowance, assertion removal or
+transport-policy change is introduced. Actual fixture assertions remain test
+code; the normal product build still excludes them. This correction is on
+the announced base11 union; exact new checks remain pending.
