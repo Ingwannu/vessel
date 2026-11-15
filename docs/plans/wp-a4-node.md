@@ -117,3 +117,11 @@ extractions for combined development checks. They are cherry-picked here as
 client723 entry and removes only the two divided Codex files. The child hook is
 isolated in session/notifications.rs. These are staged prerequisites, not claimed
 checked/reviewed consumer-ready. The source owner retains canonical mapper edits.
+
+### Identity bridge merge correction
+
+The first combined5718 strict run found the isolated identity bridge's module
+registration had been appended in addition to the existing A4 module registration.
+Only that duplicate registration is removed; the single canonical identity.rs
+export and full subagents module remain. The exact isolated bridge0560 itself
+passed strict proto Clippy. No runtime or wire behavior is changed by the repair.
