@@ -1263,3 +1263,20 @@ must be explicit. W9's gate source7fd1a637f is not green/reviewed/adoptable; no
 RootLease API is invented or imported here. W11 workspace identity stays metadata,
 never a substitute physical-root authority. No request/row/number is added; no
 producer or consumer-ready head exists. W9 keeps production restore Busy.
+
+### Coordinator D1 ownership and order ruling
+
+W17 is the sole node adapter owner for BOTH standalone terminals (shell/script/log,
+TerminalId) and the distinct session::terminal::TerminalActor (TUI SessionId). C2
+owns only the pure engine/rules and CLI/native renderers. Build one common node
+screen/frame/query helper, using a typed address Session(SessionId) or
+Standalone(TerminalId), without converting identifiers or adding another parser.
+CLI terminal capture stays standalone TerminalId-only, matching the reference.
+
+The coordinator's explicit order is the queued unit check, then the common helper
+and agreed D1 rows, then W9's quiescence producer. Current standalone Silent capture
+does not close the session-TUI pruned-ring recovery gap. C2's frame/mode/marker
+candidate9ed11a34 has author-reported narrow35/0 plus strict0, but no review/whole/
+consumer handoff; it remains excluded. No D1 request/row is registered until the
+exact pure types are agreed and its handoff is authorized. Full base-core consumer
+qualification still requires the enclosing whole on announced gate49.
