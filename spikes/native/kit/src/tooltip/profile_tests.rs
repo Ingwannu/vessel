@@ -50,6 +50,12 @@ struct Probe {
     profile: Profile,
     sizing: ControlSizing,
     visible: Visibility,
+    words: Words,
+}
+#[derive(Clone, Copy)]
+enum Words {
+    Initial,
+    Updated,
 }
 #[derive(Clone, Copy)]
 enum Visibility {
@@ -62,13 +68,22 @@ impl Probe {
             .id(id)
             .size(px(20.0))
             .debug_selector(move || id.to_owned());
+        let text = match self.words {
+            Words::Initial => id.to_owned(),
+            Words::Updated => format!("updated {id}"),
+        };
+        let configuration = match self.words {
+            Words::Initial => Configuration::toolbar(),
+            Words::Updated => updated_configuration(),
+        };
         match self.profile {
-            Profile::Legacy => self
-                .tips
-                .on(button, place, id, self.sizing == ControlSizing::Touch),
+            Profile::Legacy => {
+                self.tips
+                    .on(button, place, text, self.sizing == ControlSizing::Touch)
+            }
             Profile::Toolbar => {
                 self.tips
-                    .on_configured(button, place, id, Configuration::toolbar(), self.sizing)
+                    .on_configured(button, place, text, configuration, self.sizing)
             }
         }
     }
@@ -113,6 +128,7 @@ fn setup(
         profile,
         sizing,
         visible: Visibility::Shown,
+        words: Words::Initial,
     })
 }
 fn hover(cx: &mut gpui::VisualTestContext, id: &str) {
@@ -125,7 +141,7 @@ fn existing_legacy_hover_is_immediate_and_toolbar_waits_exactly_its_delay(cx: &m
     let (view, cx) = setup(cx, Profile::Legacy, ControlSizing::Pointer);
     hover(cx, "A");
     view.read_with(cx, |probe, _| {
-        assert_eq!(probe.shown().as_deref(), Some("A"))
+        assert_eq!(probe.shown().as_deref(), Some("A"));
     });
     view.update(cx, |probe, cx| {
         probe.profile = Profile::Toolbar;
@@ -138,7 +154,7 @@ fn existing_legacy_hover_is_immediate_and_toolbar_waits_exactly_its_delay(cx: &m
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
     cx.advance_clock(Duration::from_millis(1));
     view.read_with(cx, |probe, _| {
-        assert_eq!(probe.shown().as_deref(), Some("B"))
+        assert_eq!(probe.shown().as_deref(), Some("B"));
     });
 }
 #[gpui::test]
@@ -153,7 +169,7 @@ fn pending_hover_aba_and_press_cannot_publish_old_or_cancelled_tips(cx: &mut Tes
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
     cx.advance_clock(Duration::from_millis(1));
     view.read_with(cx, |probe, _| {
-        assert_eq!(probe.shown().as_deref(), Some("A"))
+        assert_eq!(probe.shown().as_deref(), Some("A"));
     });
     let position = cx.debug_bounds("A").unwrap().center();
     cx.simulate_mouse_down(position, MouseButton::Left, Modifiers::none());
@@ -188,4 +204,72 @@ fn compact_touch_profile_installs_no_tooltip_or_timer(cx: &mut TestAppContext) {
     hover(cx, "A");
     cx.advance_clock(Duration::from_millis(300));
     view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
+}
+
+fn updated_configuration() -> Configuration {
+    Configuration::new(
+        Side::Top,
+        Offset::EIGHT,
+        Delay::new(Duration::from_millis(1000)),
+    )
+}
+#[gpui::test]
+fn stationary_pending_hover_updates_words_and_side_without_restarting_original_timer(
+    cx: &mut TestAppContext,
+) {
+    let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Pointer);
+    hover(cx, "A");
+    cx.advance_clock(Duration::from_millis(100));
+    view.update(cx, |probe, cx| {
+        probe.words = Words::Updated;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    cx.advance_clock(Duration::from_millis(199));
+    view.read_with(cx, |probe, _| assert!(probe.shown().is_none()));
+    cx.advance_clock(Duration::from_millis(1));
+    view.read_with(cx, |probe, _| {
+        assert_eq!(probe.shown().as_deref(), Some("updated A"));
+        assert_eq!(
+            probe
+                .tips
+                .state
+                .borrow()
+                .shown
+                .as_ref()
+                .unwrap()
+                .configuration,
+            updated_configuration()
+        );
+    });
+}
+#[gpui::test]
+fn stationary_shown_hover_updates_current_words_and_side_in_the_same_render(
+    cx: &mut TestAppContext,
+) {
+    let (view, cx) = setup(cx, Profile::Toolbar, ControlSizing::Pointer);
+    hover(cx, "A");
+    cx.advance_clock(Duration::from_millis(300));
+    view.read_with(cx, |probe, _| {
+        assert_eq!(probe.shown().as_deref(), Some("A"));
+    });
+    view.update(cx, |probe, cx| {
+        probe.words = Words::Updated;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    view.read_with(cx, |probe, _| {
+        assert_eq!(probe.shown().as_deref(), Some("updated A"));
+        assert_eq!(
+            probe
+                .tips
+                .state
+                .borrow()
+                .shown
+                .as_ref()
+                .unwrap()
+                .configuration,
+            updated_configuration()
+        );
+    });
 }
