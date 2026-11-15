@@ -1,9 +1,11 @@
 # C3 git runtime
 
 Status: unadmitted runtime implementation. No new method has an assigned protocol
-number. ADR 0087 defines the contract; the announced node head ede20014 is
-merged as7594368f after the own queued-root correction. Existing remote runs keep
-their original earlier commits; the new combined tree is not yet gated.
+number. ADR0087 defines the contract. Announced82ae7c91 is merged as e103946f;
+latest owned source af78f4aed includes the shared-project cache correction and
+queued-root test lint fixes. Its changed-source Clippy is queued. Earlier860
+library proof stays on860, e103 Clippy is red on the corrected test lints, and
+no final whole package gate/review has passed.
 
 ## Structure and decisions
 
@@ -445,3 +447,8 @@ returned three queued-root fixture lints (two semicolons and an open error
 wildcard). The fixture now asserts the exact expected direct/shared error by
 its closed Reader kind. No lint is suppressed. The new sibling-cache scope is
 included in the next meaningful Node Clippy source; e103 itself is not green.
+
+C5 connection: W13 confirmed it has no competing comparison-cache mutation hook
+or git watcher join. A before/after guard around file writes/create/rename/delete,
+including partial-error invalidation, is one pending post-C3 integration join.
+No C5 file was changed, no moving runtime adopted, and no shared watch is claimed.
