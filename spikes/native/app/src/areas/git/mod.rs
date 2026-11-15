@@ -35,6 +35,7 @@ mod commit_scope;
 mod head;
 mod menu;
 mod name;
+mod origin;
 pub(crate) mod panel;
 mod stashes;
 
@@ -287,28 +288,6 @@ impl Shell {
         };
         git.stashes.start(key);
         self.ask(&target.machine, Ask::Git(GitAsk::Stashes(target.root)));
-    }
-
-    /// Send `write`, shown pending as `intent`. Refused (and said why)
-    /// while another write is out.
-    fn git_write(&mut self, write: GitWrite, intent: WriteIntent, cx: &mut Context<'_, Self>) {
-        let Some(target) = self.areas.git.target.clone() else {
-            return;
-        };
-        let git = &mut self.areas.git;
-        let Ok(key) = git.keys.issue() else {
-            git.issue = Some(Issue::Keys);
-            return;
-        };
-        if !git.writing.begin_action(key, intent) {
-            let words = self.t.lang.git_labels().busy;
-            self.toast(words, ToastTone::Info, cx);
-            return;
-        }
-        git.issue = None;
-        git.pending = Some((key, write.clone()));
-        self.ask(&target.machine, Ask::Git(GitAsk::Write(write)));
-        cx.notify();
     }
 
     /// Do what choosing `step` means (the menu, the primary half).

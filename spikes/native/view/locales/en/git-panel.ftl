@@ -133,3 +133,6 @@ git-panel-problem-no-base = No base branch is available. Choose a base branch be
 
 # Complete recovery when the canonical comparison exceeds its output limit, not an empty successful result.
 git-panel-problem-too-large = This comparison is too large to preview. Narrow the comparison and try again.
+
+# Advisory toast when the drawn legacy repository has no original authenticated read receipt; no write was attempted.
+git-panel-unverified-view = The repository shown here cannot be verified. Reopen the workspace before changing it.

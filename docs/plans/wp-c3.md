@@ -886,3 +886,34 @@ raw counter. Remove two unused AppContext imports and a redundant qualified
 ConnectionContext, add the requested unit callback semicolon, and collapse the
 identical summary let/finish condition. No gate, assertion, caller admission
 or target/data semantics is weakened. This successor still needs checking.
+
+## Unstamped legacy write path is closed pending the real C5 producer
+
+[Decision Log]
+- Source fact: code_git_context exposes alias/root, not the original physical
+  context of drawn summary/diff. W13 confirmed its current root receipt alone
+  cannot upgrade already drawn data. The coordinator assigned that producer to
+  W13, joined through W12 typed Explorer, and requires failclosed writes.
+- Reuse: the existing one Changes controller, G4 selected typed call and Info
+  toast host. No guessed DTO, alias resolver, current-Machine stamp, content/count
+  authority, duplicate controller or fake Ready source is added here.
+- Choice: the old GitWrite path has no place to carry that proof, so it no
+  longer sends any alias-only write. It emits whole EN/KO Info guidance before
+  allocating a key/reserving pending or sending. Future genuine scoped callers
+  replace this path after the checked producer; do not re-enable this old send.
+- Existing pending payload/intention is retained on a refused new request. This
+  is a local state test, not physically sent-task/ABA/uncertain receipt proof.
+  Legacy target-follow lifecycle is still not the full new owner lifecycle.
+- The stash-and-switch confirmation is kept rather than consumed into a fake
+  pending stash/follow-up. Legacy toolbar PR/create/merge callback entries also
+  show Info without invoking forge operations or closing that menu. Standalone
+  C4 facts/actions and its full physical-context cutover remain separate work.
+- Tests: real isolated Shell + bounded detached Link, matching current alias
+  context does not authorize a request; no command/key/pending starts; a prior
+  payload/intention survives refusal. Whole FTL words tested in both languages.
+  They are written/unexecuted until this successor's exact batch.
+
+This intentionally suspends legacy writes; it is not functional C3 write parity
+or a merge candidate. Reading old data stays readonly. Known-unavailable menu
+presentation and eventual scoped write activation remain part of the final C3
+consumer; no authority is inferred from a successful read or stamp alone.

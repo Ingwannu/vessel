@@ -19,7 +19,7 @@ use vessel_app_kit::{
 use vessel_app_link::workspace::GitWrite;
 use vessel_app_view::workspace::git::{
     BranchChoice, BranchChoices, BranchMode, BranchRequest, BranchSelection, Issue, WriteIntent,
-    branch_choices, branch_request, branch_selection, can_branch, stash_for,
+    branch_choices, branch_request, branch_selection, can_branch,
 };
 
 use super::{Open, menu::issue_alert, name};
@@ -333,13 +333,11 @@ pub(super) fn dialog(
 impl Shell {
     /// "Stash & Switch" was confirmed: save, then switch once it is saved.
     fn git_stash_and_switch(&mut self, cx: &mut Context<'_, Self>) {
-        let git = &mut self.areas.git;
-        let Some(switch) = git.confirm_switch.take() else {
-            return;
-        };
-        let (stash, intent) = stash_for(&switch);
-        git.then_switch = Some(switch);
-        self.git_write(GitWrite::Stash(stash), intent, cx);
+        if self.areas.git.confirm_switch.is_some() {
+            // No original acquisition means no stash and no queued follow-up.
+            // Keep the inspected confirmation; never pretend a save is pending.
+            self.git_unverified_view(cx);
+        }
     }
 }
 

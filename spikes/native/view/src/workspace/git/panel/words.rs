@@ -446,3 +446,27 @@ mod tests {
         assert_eq!(ReadFailure::Call(Problem::Unsent).detail(ko), None);
     }
 }
+
+#[cfg(test)]
+mod original_view_words {
+    use crate::localization::{ENGLISH, LanguagePreference, Translator, resolve_language};
+
+    #[test]
+    fn an_unverified_view_explains_why_no_write_was_attempted_in_both_languages() {
+        let en = Translator::get(ENGLISH).unwrap();
+        let ko = Translator::get(resolve_language(
+            LanguagePreference::System,
+            Some("ko"),
+            None,
+        ))
+        .unwrap();
+        assert_eq!(
+            en.git_panel().unverified_view(),
+            "The repository shown here cannot be verified. Reopen the workspace before changing it."
+        );
+        assert_eq!(
+            ko.git_panel().unverified_view(),
+            "여기에 표시된 저장소를 확인할 수 없습니다. 변경하기 전에 워크스페이스를 다시 여세요."
+        );
+    }
+}

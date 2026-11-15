@@ -348,3 +348,27 @@ runs are terminal RED: tests15/1/0, Clippy unused size import only.
   ratchet pass. No local metadata/Cargo, new whole gate or new UI capture.
 - W8 owns common97 retirement promotion and Scripts startup; do not race its
   cfg attributes. Git init/retire consumer waits for that checked promoted union.
+
+## Current checked control versus unverified App safety successor
+
+- Exact isolated413 Kit Clippy0 and public diff windows19/0/0 are complete;
+  docs-only412730b68 records them. Same-row bounded V1 submission packet is
+  control-producer-413; ordinary existing syntax case163829 still queued. No
+  captures/example/OS/full C3/authority pass. App15a Clippy is separately RED:
+  missing gpui::size import, missing serde_json test dependency, two unused
+  AppContext imports, redundant context qualification, semicolon and collapsible
+  summary if. a91a62d3f fixes these via the canonical layout test allocator,
+  not a new dependency, raw counter, changed assertion or suppression.
+- Coordinator/W13 source ruling makes unstamped legacy writes unavailable.
+  Current successor removes the alias-only GitWrite send and toolbar forge
+  write dispatch, uses EN/KO Info guidance, and retains old pending receipts.
+  No current-Machine stamp or producer placeholder is accepted. Actual checked
+  ShownChangesContext/ShownDiffContext producer remains W13's; W8 hook promotion
+  is also still unverified after its FTL context-comment return.
+- Node34bb9f843 merges announced9c150 only in NODE tree. Its sole TS run
+  wp-git-node-narrow-20261115T162346Z-34bb9f84 is queued ordinary; receipt returned
+  after2min, no retry. T says mux channel refusal is an observation, not a proven
+  MaxSessions cause or source failure; no shared/master/socket change made.
+- Node merge diff-check flags ONLY generated proto.ts trailing spaces inherited
+  BYTE-EXACT from9c150 (blob77e50dfd2). It was not hand-normalized; non-generated
+  merge source diff-check passes. Own history TS regeneration remains owed.

@@ -132,3 +132,6 @@ git-panel-problem-no-base = 비교할 기준 브랜치가 없습니다. 기준 �
 
 # Complete recovery when the canonical comparison exceeds its output limit, not an empty successful result.
 git-panel-problem-too-large = 비교 결과가 너무 커서 미리 볼 수 없습니다. 비교 범위를 줄인 뒤 다시 시도하세요.
+
+# Advisory toast when the drawn legacy repository has no original authenticated read receipt; no write was attempted.
+git-panel-unverified-view = 여기에 표시된 저장소를 확인할 수 없습니다. 변경하기 전에 워크스페이스를 다시 여세요.
