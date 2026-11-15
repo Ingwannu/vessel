@@ -1,5 +1,31 @@
 # A4 first product packet: own-history import and actual queued delivery
 
+## Current bounded validation
+
+Exact031f60215331f168e85ce12bfd6024f7e2ec2b5d passed both requested remote
+short-lane checks, without priority:
+
+- wp-transfer-import-strict-20261115T171522Z-031f6021: App/View/Link all-target
+  Clippy with warnings denied, rc0. Changed Kit/App sources actually checked;
+  unchanged artifacts reused normally.
+- wp-transfer-import-app-20261115T171522Z-031f6021: actual vessel-app binary
+  areas::import::tests selection2 passed/0 failed/0 ignored. The retained callback
+  case executes all eight reopen/scope-ABA row/import/glyph/Escape boundaries,
+  verifies no stale RPC/focus/selection effects, then current selection, actual
+  Import command and current dismissal. Receipt preservation separately proves
+  no deferred alias navigation or active composer/draft clearing.
+- Focused Link history execution at495667ba passed25/0, including actual
+  malformed-create receipt/owned peer completion, publication beyond both old
+  dropping deadlines, and failed-Welcome cleanup. Link source is unchanged here.
+
+V1 R223 source findings are addressed at this source. Its requested result
+confirmation, current-line adaptation/lead slot and receiving whole native gate
+remain separate obligations. Popup first-use and automatic open remain parked;
+no full A4, provider runtime, resident authority, OS UI or capture acceptance is
+inferred. Earlier RED and queued-cancel143 records remain intact. This result
+entry is documentation only; the checked Rust source remains byte-identical.
+
+
 Base: lead line e1b73c9e. This is a straight native-only extraction; root crates,
 web and both root Cargo files are unchanged. Native history resumes through the
 existing agent.history/session.create and existing-session get/resume calls.
