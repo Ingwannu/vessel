@@ -65,7 +65,7 @@ impl ResidentComposer {
         });
         true
     }
-    /// Call only inside SessionResidents::settle, after ticket consumption.
+    /// Call only inside `SessionResidents::settle`, after ticket consumption.
     /// Unknown and retired effects preserve all draft/payload state.
     pub(crate) fn settled(
         &mut self,
