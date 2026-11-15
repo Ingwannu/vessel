@@ -77,6 +77,36 @@ pub struct DisplayPreferences {
     pub commits: Fold,
 }
 
+impl DisplayPreferences {
+    /// Independent split editors cannot align unequal wrapped row heights.
+    /// Keep the shared display map unchanged: wrapping selects unified, and
+    /// choosing split explicitly restores horizontal scrolling on both sides.
+    /// This bounded departure from Paseo also normalizes restored preferences.
+    #[must_use]
+    pub const fn effective_layout(&self, form: FormFactor) -> Layout {
+        match self.wrap {
+            Wrap::Wrap => Layout::Unified,
+            Wrap::NoWrap => self.layout.effective(form),
+        }
+    }
+
+    /// A selected split layout is always horizontally scrolling.
+    pub fn select_layout(&mut self, layout: Layout) {
+        self.layout = layout;
+        if layout == Layout::Split {
+            self.wrap = Wrap::NoWrap;
+        }
+    }
+
+    /// Wrapping never leaves two independently reflowing split columns.
+    pub fn select_wrap(&mut self, wrap: Wrap) {
+        self.wrap = wrap;
+        if wrap == Wrap::Wrap {
+            self.layout = Layout::Unified;
+        }
+    }
+}
+
 /// State owned by one pane. Its key is supplied by the shared layout owner.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -150,5 +180,49 @@ impl Layout {
             FormFactor::Desktop => self,
             FormFactor::Compact => Self::Unified,
         }
+    }
+}
+
+#[cfg(test)]
+mod wrapping_tests {
+    use super::*;
+
+    #[test]
+    fn restored_split_wrap_is_unified_and_compact_never_has_two_columns() {
+        for (layout, wrap, desktop) in [
+            (Layout::Unified, Wrap::NoWrap, Layout::Unified),
+            (Layout::Unified, Wrap::Wrap, Layout::Unified),
+            (Layout::Split, Wrap::NoWrap, Layout::Split),
+            (Layout::Split, Wrap::Wrap, Layout::Unified),
+        ] {
+            let preferences = DisplayPreferences {
+                layout,
+                wrap,
+                ..Default::default()
+            };
+            assert_eq!(preferences.effective_layout(FormFactor::Desktop), desktop);
+            assert_eq!(
+                preferences.effective_layout(FormFactor::Compact),
+                Layout::Unified
+            );
+        }
+    }
+
+    #[test]
+    fn selection_updates_the_stored_control_value_as_well_as_the_renderer() {
+        let mut preferences = DisplayPreferences::default();
+        preferences.select_wrap(Wrap::Wrap);
+        preferences.select_layout(Layout::Split);
+        assert_eq!(
+            (preferences.layout, preferences.wrap),
+            (Layout::Split, Wrap::NoWrap)
+        );
+        preferences.select_wrap(Wrap::Wrap);
+        assert_eq!(
+            (preferences.layout, preferences.wrap),
+            (Layout::Unified, Wrap::Wrap)
+        );
+        preferences.select_wrap(Wrap::NoWrap);
+        assert_eq!(preferences.layout, Layout::Unified);
     }
 }

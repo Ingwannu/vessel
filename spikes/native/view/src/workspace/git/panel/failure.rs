@@ -14,6 +14,21 @@ pub type PanelRead<T> = ReadState<T, ReadFailure>;
 /// A recovery is chosen from the typed failure, never a diagnostic substring.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ReadFailure {
+    /// No authoritative root has been provided for this workspace.
+    #[error("workspace repository information is unavailable")]
+    WorkspaceUnavailable,
+    /// Lifetime request identities must never wrap or be reused.
+    #[error("panel request identities exhausted")]
+    KeysExhausted,
+    /// The original physical connection closed; no alias fallback is attempted.
+    #[error("the selected connection closed")]
+    DestinationClosed,
+    /// App-side bounded admission is full, before a request is polled.
+    #[error("too many panel reads are active")]
+    Capacity,
+    /// The bounded call deadline elapsed, without proving transport closure.
+    #[error("the panel read did not finish in time")]
+    TimedOut,
     /// Preserve the node/transport problem and its diagnostic intact.
     #[error("the machine could not answer the git read")]
     Call(Problem),

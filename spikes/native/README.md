@@ -1265,3 +1265,11 @@ Only the diff opts into optional vendor patch7; ordinary CodeEditor keeps its
 existing syntax/style path. Details and pending actual-window checks are in
 spikes/release/patches/README.md change7. Selection/copy/wrap/input proof and
 actual Git first-use/reference geometry remain unverified until those checks.
+
+
+C3 pane registration: `app/areas/git/panel` owns typed WorkingDiff/CommitDiff
+state keyed by the shared LayoutKey/TabId. `link/git_panel` echoes the original
+selected G4 admission and request ticket for every result and local rejection;
+its eight-read/15-second limits keep slow/disconnected peers bounded. The shared
+pane and connection owners remain the only registries. This is a skeleton;
+see `docs/plans/wp-c3.md` for missing consumers and exact verification limits.

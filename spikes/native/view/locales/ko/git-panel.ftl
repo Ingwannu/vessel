@@ -101,3 +101,16 @@ git-panel-pull-success = 가져옴
 
 # Brief fetch acknowledgement inside the same git menu row; exact facts remain in the success notice.
 git-panel-fetch-success = 원격 변경 가져옴
+
+# 앱의 동시 읽기 한도에 도달해 노드 요청 전 거절됐을 때의 완전한 복구 문장.
+git-panel-problem-capacity = 한 번에 너무 많은 변경을 읽고 있습니다. 다시 시도하세요.
+# 읽기 제한 시간이 지났을 때의 완전한 복구 문장. 연결이 끊겼다고 단정하지 않습니다.
+git-panel-problem-timeout = 읽기를 제시간에 마치지 못했습니다. 다시 시도하세요.
+
+# Complete guidance when the canonical workspace root has not been admitted; do not infer non-Git.
+git-panel-problem-workspace = 워크스페이스의 저장소 정보를 사용할 수 없습니다. 등록된 워크스페이스를 열고 다시 시도하세요.
+# Complete recovery when lifetime correlation identities are exhausted; retry alone cannot help.
+git-panel-problem-keys = 요청을 안전하게 구분할 수 없습니다. Vessel을 다시 시작하고 시도하세요.
+
+# Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
+git-panel-partial = 목록에 없는 변경 파일이 있습니다. 새로고침하거나 비교 범위를 줄이세요.

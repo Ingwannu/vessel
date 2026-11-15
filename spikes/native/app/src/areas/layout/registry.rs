@@ -48,6 +48,22 @@ pub(super) fn render(
         {
             agent.take().unwrap_or_else(div).into_any_element()
         }
+        Target::WorkingDiff => crate::areas::git::panel::render_panel(
+            shell,
+            panel,
+            vessel_app_view::workspace::git::panel::PanelTarget::WorkingDiff,
+            tokens,
+            window,
+            cx,
+        ),
+        Target::CommitDiff(id) => crate::areas::git::panel::render_panel(
+            shell,
+            panel,
+            vessel_app_view::workspace::git::panel::PanelTarget::CommitDiff(id.clone()),
+            tokens,
+            window,
+            cx,
+        ),
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
         Target::Agent(_)
         | Target::Draft(_)
@@ -59,10 +75,8 @@ pub(super) fn render(
         | Target::Scripts
         | Target::PullRequest
         | Target::File { .. }
-        | Target::WorkingDiff
         | Target::Plugin { .. }
-        | Target::Setup(_)
-        | Target::CommitDiff(_) => div()
+        | Target::Setup(_) => div()
             .p(px(spacing::S4))
             .child(shell.words.layout().panel_unavailable().to_owned())
             .into_any_element(),

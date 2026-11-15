@@ -441,3 +441,39 @@ turning wrapping on selects unified. A later separate immutable display-height
 proposal may restore split wrapping only with selection/copy invariance proof.
 This is not implemented or visually verified yet; no hidden split-wrap alignment
 or filler-newline copy workaround is claimed.
+
+
+## Scoped pane reader skeleton (2026-11-15)
+
+The main registry now registers WorkingDiff and immutable CommitDiff through
+`areas/git/panel`. Its address is LayoutKey + TabId, and each discovery keeps
+the exact original G4 ConnectionContext and legacy SessionId. The link uses
+only `selected_connection().call`, with eight outstanding reads including event
+backpressure and a 15-second read deadline. Full/closed sends settle through
+the shell's existing Unsent router. Device retirement is processed before the
+devices area's no-redraw early return; newer fleet snapshots retire pane facts.
+
+This is the C3 skeleton, not final pane parity. It currently mounts a bounded
+file-summary list and localized loading/retry/failure/partial states. Mapped
+editable-engine diff bodies, tree controls, mode/options/history integration,
+actual Explorer registration, registry Workspace root admission, observation
+and the final capture matrix are still incomplete. Workspace keys do not use
+selected-session or cwd fallbacks. The legacy All/Base RPC remains a temporary
+compatibility path; committed-only returns explicit unavailable instead of All.
+The values-only compare producer awaits its conditional node macro prerequisite
+and V3 review; no whole node head was imported into this app tree.
+
+Added source regressions exercise exact alias/node/generation refusal before a
+real framed RPC, retirement after the status frame, semaphore refusal with zero
+frames, and actual bounded Link::submit rejection settling PanelReads. They are
+not executed yet. English/Korean failures use complete language-table sentences;
+node diagnostics remain separate code detail. Changed crates need an exact new
+remote narrow check; the queued df4 check proves only the earlier control tree.
+No whole package/source/UI pass is claimed.
+
+The display policy now makes wrapping select unified and selecting split clear
+wrapping. Restored split+wrap data also projects unified. This deliberate Paseo
+departure preserves the one engine's selection/display map while independent
+split editors lack an equal-height wrapped-row adapter; a later display-only
+height design needs separate review. The setters and restored-state table are
+new unexecuted source tests.

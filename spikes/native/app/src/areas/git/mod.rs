@@ -35,6 +35,7 @@ mod commit_scope;
 mod head;
 mod menu;
 mod name;
+pub(crate) mod panel;
 mod stashes;
 
 use vessel_app_kit::ui::{Context, Window};
@@ -74,6 +75,7 @@ pub(crate) enum Open {
 pub(crate) struct GitArea {
     pub(crate) target: Option<Target>,
     keys: RequestKeys,
+    panels: panel::Panels,
     commands_generation: Option<RequestKey>,
     pub(crate) status: Reading<GitStatus>,
     pub(crate) branches: Reading<BranchList>,
@@ -123,6 +125,7 @@ impl GitArea {
         Self {
             target: None,
             keys: RequestKeys::default(),
+            panels: panel::Panels::default(),
             commands_generation: None,
             status: Reading::Empty,
             branches: Reading::Empty,

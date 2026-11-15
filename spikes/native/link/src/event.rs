@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Keyed result retaining original workspace, tab, admission and query.
+    GitPanel(crate::git_panel::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

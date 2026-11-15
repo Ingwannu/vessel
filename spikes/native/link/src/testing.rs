@@ -46,6 +46,7 @@ pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             agents: crate::agents::Hub::default(),
             admissions: vessel_app_view::connection::ConnectionEpochs::default(),
             device_calls: crate::devices::Hub::default(),
+            git_panel_calls: crate::git_panel::Hub::default(),
             sync_calls: crate::sync::Hub::default(),
             offers: std::sync::Arc::default(),
         },

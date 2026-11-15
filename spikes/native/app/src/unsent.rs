@@ -74,6 +74,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 Rejected::Closed => AgentsError::Disconnected,
             }),
         },
+        Command::GitPanel(ask) => Event::GitPanel(ask.refused(
+            vessel_app_view::workspace::git::panel::ReadFailure::Call(Problem::Unsent),
+        )),
         Command::Machines(ask) => Event::Machines(ask.refused(Failure::Unsent)),
         Command::Sync { ticket, .. } => Event::Sync(vessel_app_link::sync::Answer {
             ticket,

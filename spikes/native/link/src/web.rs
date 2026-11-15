@@ -84,6 +84,9 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::GitPanel(ask) => self.emit(Event::GitPanel(ask.refused(
+                vessel_app_view::workspace::git::panel::ReadFailure::ComparisonUnavailable,
+            ))),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

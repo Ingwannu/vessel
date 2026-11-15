@@ -102,3 +102,16 @@ git-panel-pull-success = Pulled
 
 # Brief fetch acknowledgement inside the same git menu row; exact facts remain in the success notice.
 git-panel-fetch-success = Fetched
+
+# Complete recovery when the app's bounded concurrent read admission is full; no node request began.
+git-panel-problem-capacity = Too many changes are being read at once. Try again.
+# Complete recovery after this read's deadline; this does not claim the connection is lost.
+git-panel-problem-timeout = This read did not finish in time. Try again.
+
+# Complete guidance when the canonical workspace root has not been admitted; do not infer non-Git.
+git-panel-problem-workspace = Workspace repository information is unavailable. Open a registered workspace and try again.
+# Complete recovery when lifetime correlation identities are exhausted; retry alone cannot help.
+git-panel-problem-keys = No more requests can be identified safely. Restart Vessel and try again.
+
+# Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
+git-panel-partial = Some changed files are not listed. Refresh or narrow the comparison.

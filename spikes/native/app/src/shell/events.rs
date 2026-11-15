@@ -12,8 +12,10 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::GitPanel(answer) => self.git_panel_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
+                self.git_panels_retired(&context);
                 if !self.devices_retired(&context) {
                     return;
                 }
@@ -33,6 +35,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.git_panels_fleet();
                 self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {

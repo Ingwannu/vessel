@@ -66,6 +66,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod git_panel;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -199,6 +200,7 @@ impl Link {
 
             admissions: ConnectionEpochs::default(),
             device_calls: devices::Hub::default(),
+            git_panel_calls: git_panel::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -266,6 +268,7 @@ struct State {
 
     admissions: ConnectionEpochs,
     device_calls: devices::Hub,
+    git_panel_calls: git_panel::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

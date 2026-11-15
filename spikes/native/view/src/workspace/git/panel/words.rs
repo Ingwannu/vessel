@@ -11,10 +11,18 @@ use crate::workspace::git_quick::GitAction;
 /// Honest recovery after a failed read, independent of diagnostic language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadIssue {
+    /// Root admission must come from the canonical workspace registry.
+    Workspace,
+    /// Restart before the lifetime request issuer can safely allocate again.
+    Keys,
     /// No command reached the node, so retry cannot duplicate a write.
     Unsent,
     /// Reconnect before asking again.
     Connection,
+    /// The app's read admission is full, not a node refusal.
+    Capacity,
+    /// A deadline does not prove the physical connection closed.
+    TimedOut,
     /// The device's read grant needs attention.
     Access,
     /// An unassigned/newer call cannot be approximated by a different scope.
@@ -62,6 +70,8 @@ impl ReadIssue {
     #[must_use]
     pub fn for_failure(failure: &ReadFailure) -> Self {
         match failure {
+            ReadFailure::WorkspaceUnavailable => Self::Workspace,
+            ReadFailure::KeysExhausted => Self::Keys,
             ReadFailure::Call(problem) => Self::of(problem),
             ReadFailure::ComparisonUnavailable => Self::Version,
             ReadFailure::DestinationChanged | ReadFailure::UnexpectedNode { .. } => {
@@ -69,7 +79,30 @@ impl ReadIssue {
             }
             ReadFailure::UnexpectedFile { .. } => Self::UnexpectedFile,
             ReadFailure::UnexpectedSession { .. } => Self::Failed,
+            ReadFailure::DestinationClosed => Self::Connection,
+            ReadFailure::Capacity => Self::Capacity,
+            ReadFailure::TimedOut => Self::TimedOut,
             ReadFailure::BaseMismatch { .. } => Self::BaseMismatch,
+        }
+    }
+
+    /// Pending capabilities are information; failed reads retain an error signal.
+    #[must_use]
+    pub const fn variant(self) -> crate::alert::Variant {
+        match self {
+            Self::Workspace | Self::Version | Self::Unsupported => crate::alert::Variant::Info,
+            Self::Keys
+            | Self::Unsent
+            | Self::Connection
+            | Self::Capacity
+            | Self::TimedOut
+            | Self::Access
+            | Self::Missing
+            | Self::Unavailable
+            | Self::DestinationChanged
+            | Self::UnexpectedFile
+            | Self::BaseMismatch
+            | Self::Failed => crate::alert::Variant::Error,
         }
     }
 
@@ -78,8 +111,12 @@ impl ReadIssue {
     pub fn words(self, catalog: &Translator) -> &str {
         let words = catalog.git_panel();
         match self {
+            Self::Workspace => words.problem_workspace(),
+            Self::Keys => words.problem_keys(),
             Self::Unsent => words.problem_unsent(),
             Self::Connection => words.problem_connection(),
+            Self::Capacity => words.problem_capacity(),
+            Self::TimedOut => words.problem_timeout(),
             Self::Access => words.problem_access(),
             Self::Version => words.problem_version(),
             Self::Unsupported => words.problem_unsupported(),
@@ -140,6 +177,26 @@ mod tests {
         ))
         .unwrap();
         for (issue, english, korean) in [
+            (
+                ReadIssue::Workspace,
+                "Workspace repository information is unavailable. Open a registered workspace and try again.",
+                "워크스페이스의 저장소 정보를 사용할 수 없습니다. 등록된 워크스페이스를 열고 다시 시도하세요.",
+            ),
+            (
+                ReadIssue::Keys,
+                "No more requests can be identified safely. Restart Vessel and try again.",
+                "요청을 안전하게 구분할 수 없습니다. Vessel을 다시 시작하고 시도하세요.",
+            ),
+            (
+                ReadIssue::Capacity,
+                "Too many changes are being read at once. Try again.",
+                "한 번에 너무 많은 변경을 읽고 있습니다. 다시 시도하세요.",
+            ),
+            (
+                ReadIssue::TimedOut,
+                "This read did not finish in time. Try again.",
+                "읽기를 제시간에 마치지 못했습니다. 다시 시도하세요.",
+            ),
             (
                 ReadIssue::Unsent,
                 "Could not send. Try again.",

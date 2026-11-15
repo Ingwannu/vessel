@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Keyed readonly git-pane request on one selected physical admission.
+    GitPanel(crate::git_panel::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
