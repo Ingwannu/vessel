@@ -68,3 +68,15 @@ whole node branch into the app is not authorized. Until that prerequisite and
 this reviewed leaf are present, existing app scopes stay Unsupported. Earlier
 2fc Clippy passes and failed nested-vesseld tests keep their original source;
 the following changed-source checks must prove this join before V3 recheck.
+
+## Exact staged leaf check result
+
+Exact19460b8c4a4702f4c30de88a8250bac9c2676de6 passed changed-source remote
+Proto/Client/Node all-target strict Clippy0 (run
+wp-git-values-narrow-20261115T131237Z-19460b8c). Its independent library run
+wp-git-values-tests-20261115T131237Z-19460b8c passed web-ci/fakes/vesseld/cargo,
+all0/no skips: Client80+Proto322=402 passed,0 failed,0 ignored. Proto/Client
+actually compiled in the library step, and Node compiled in its prerequisite.
+No runtime, admission number, TS generation, native or whole-package pass is
+inferred. V3 same-row correction review is requested, disposition not assumed.
+This result addition changes only this Markdown plan; no unchanged gate rerun.
