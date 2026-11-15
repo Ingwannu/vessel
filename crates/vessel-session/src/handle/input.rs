@@ -144,6 +144,16 @@ impl SessionHandle {
             .await?)
     }
 
+    /// Read actual current-run native offers; persisted command lists are not authority.
+    /// # Errors
+    /// A terminal, parked, moving, ended or retired input cannot offer a capability.
+    pub async fn native_command_offers(
+        &self,
+    ) -> Result<vessel_agent::NativeCommandOffers, SessionError> {
+        let route = self.structured("native command capabilities")?;
+        Ok(current(route)?.native_command_offers().await?)
+    }
+
     /// Pure provider-owned content validation before durable replay admission.
     ///
     /// # Errors

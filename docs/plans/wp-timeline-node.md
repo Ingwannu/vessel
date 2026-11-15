@@ -407,3 +407,9 @@ provider effect, releases a durable claim or automatically resends. The durable
 question stays Answering until a late real settlement, process loss or restart
 recovery classifies it. This bounds a connection call slot even if the provider
 stays connected without acknowledging, without admitting a second provider command.
+
+The W22 isolated plan carrier116ac4005 is staged as199b3d0e6. Until explicit
+synthetic-permission lifetime/decision state and acknowledgements are attached,
+the session treats a PlanProposal carrier as unavailable and publishes only a
+static error, never an approval card. All driver plan decision arms are Unsupported.
+This closes exhaustive source paths without claiming an implemented plan workflow.

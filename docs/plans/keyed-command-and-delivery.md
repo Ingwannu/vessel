@@ -96,3 +96,11 @@ return Unsupported without an RPC; W22 owns positive transport branches and
 current-run capability proof. This source checkpoint does not remove the actor's
 unsupported guard or attach a wire request/event. One in-memory queue fixture
 checks the separate correlated result; it is not native transport evidence.
+
+NativeCommandOffers is a closed live-input capability set, read through
+AgentInput::native_command_offers and SessionHandle's current input route. All
+current drivers answer None. Retired/parked/closed input cannot offer anything;
+no restored Conversation.commands value is consulted. The node must query this
+before fresh admission and the actual dispatch rechecks the current run again.
+W12b's optional AgentCommand.native_command is UI metadata only. A small queue
+fixture checks live correlation and retirement; execution remains owed.

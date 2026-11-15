@@ -17,6 +17,9 @@ use crate::mapper;
 impl Driver {
     pub(super) async fn command(&mut self, cx: &ConnectionTo<Agent>, command: Command) {
         match command {
+            Command::NativeCommandOffers { reply } => {
+                let _closed = reply.send(crate::NativeCommandOffers::None);
+            }
             Command::DecidePlan { request, reply } => {
                 crate::input::plan::unsupported(request, reply)
             }

@@ -308,7 +308,7 @@ mod tests {
 
     use super::*;
     use crate::codex::protocol::{UserInputOption, UserInputQuestion, UserInputRequest};
-    use vessel_proto::conversation::{AnswerValue, FieldName};
+    use vessel_proto::conversation::{AnswerValue, FieldKind, FieldName};
     use vessel_proto::{QuestionAnswer, QuestionOutcome};
 
     fn command(decisions: Option<&Value>) -> CommandApproval {

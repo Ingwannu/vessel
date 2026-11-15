@@ -4,7 +4,7 @@ mod identified;
 pub(crate) mod native_command;
 mod permission;
 pub(crate) mod plan;
-pub use native_command::NativeCommandDispatch;
+pub use native_command::{NativeCommandDispatch, NativeCommandOffers};
 pub use permission::PermissionDispatch;
 
 use tokio::sync::{mpsc, oneshot};
@@ -38,6 +38,9 @@ pub enum SteerOutcome {
 /// A command for the driver, answered once it has been applied.
 #[derive(Debug)]
 pub(crate) enum Command {
+    NativeCommandOffers {
+        reply: oneshot::Sender<native_command::NativeCommandOffers>,
+    },
     DecidePlan {
         request: vessel_proto::timeline::DecidePlan,
         reply: plan::PlanReply,

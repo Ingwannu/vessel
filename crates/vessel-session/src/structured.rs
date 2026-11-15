@@ -252,6 +252,22 @@ impl StructuredActor {
             self.move_state.replaying = false;
         }
         match output {
+            AgentOutput::PlanProposal(_proposal) => {
+                // The carrier alone cannot create an approval. The typed lifetime,
+                // owner-bound decision state and acknowledgement must land together.
+                self.life
+                    .publish(
+                        &mut self.agent,
+                        SessionEvent::Agent {
+                            event: AgentEvent::Error {
+                                message:
+                                    "Plan approval is unavailable until its session owner is ready"
+                                        .into(),
+                            },
+                        },
+                    )
+                    .await;
+            }
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
             AgentOutput::Options(options) => {
