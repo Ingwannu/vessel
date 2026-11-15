@@ -317,6 +317,87 @@ fn a_clean_snapshot_moves_the_real_rows_disclosures_and_scroll_while_holds_retur
     });
 }
 
+fn thought_area(cx: &mut gpui::App, text: &str) -> ConversationArea {
+    let mut area = ConversationArea::with_display(ConversationDisplay::Full, cx);
+    let mut thought = record(1, text);
+    thought.event = SessionEvent::Agent {
+        event: AgentEvent::ThoughtChunk {
+            content: ContentBlock::Text {
+                text: text.to_owned(),
+            },
+        },
+    };
+    area.fold_records(&[thought]);
+    area
+}
+
+#[gpui::test]
+fn cloned_row_seats_keep_recursive_origin_context_and_refuse_stale_dispatch(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let Admitted { a, claim_a, .. } = admitted(shell, window, cx);
+        let mut first = thought_area(cx, "A first origin");
+        first.origin = Origin::Shown(Box::new(thought_area(cx, "A deep origin")));
+        first.list.splice(0..0, first.head());
+        shell
+            .areas
+            .session_residents
+            .resources_mut(&a)
+            .unwrap()
+            .conversation
+            .origin = Origin::Shown(Box::new(first));
+        let mut unrelated = thought_area(cx, "selected first origin");
+        unrelated.origin = Origin::Shown(Box::new(thought_area(cx, "selected deep origin")));
+        unrelated.list.splice(0..0, unrelated.head());
+        shell.areas.conversation.origin = Origin::Shown(Box::new(unrelated));
+        let main = crate::areas::conversation::Seat::admitted_main(a.clone());
+        let deep = main.origin().origin();
+        let captured = deep.clone();
+        assert!(
+            matches!(&deep.get(shell).unwrap().timeline.entries()[0].kind,
+            EntryKind::Thought { text } if text == "A deep origin")
+        );
+        shell.toggle_entry(captured.clone(), 0, cx);
+        assert!(deep.get(shell).unwrap().toggled.contains(&0));
+        assert!(
+            !crate::areas::conversation::Seat::SESSION
+                .origin()
+                .origin()
+                .get(shell)
+                .unwrap()
+                .toggled
+                .contains(&0)
+        );
+        shell.toggle_entry(captured.clone(), 0, cx);
+        assert!(!deep.get(shell).unwrap().toggled.contains(&0));
+        shell
+            .areas
+            .session_residents
+            .present(
+                a.resident,
+                &claim_a,
+                PaneId::MAIN,
+                Visibility::RetainedHidden,
+            )
+            .unwrap();
+        assert!(captured.get(shell).is_none());
+        assert!(captured.get_mut(shell).is_none());
+        shell.toggle_entry(captured, 0, cx);
+        assert!(
+            !crate::areas::conversation::Seat::SESSION
+                .origin()
+                .origin()
+                .get(shell)
+                .unwrap()
+                .toggled
+                .contains(&0)
+        );
+    });
+}
+
 #[gpui::test]
 fn retained_origin_protection_participates_in_the_parent_snapshot_vote(cx: &mut TestAppContext) {
     cx.update(|cx| {

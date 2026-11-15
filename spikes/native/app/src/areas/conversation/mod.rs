@@ -77,6 +77,7 @@ mod resident;
 pub(crate) use resident::{ResidentSeat, TimelineSnapshot};
 mod rewind;
 pub(crate) mod search;
+mod seat;
 mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
 pub(crate) mod timeline;
@@ -88,7 +89,8 @@ pub(crate) use bar::bar;
 pub(crate) use dock::dock;
 pub(crate) use meter::meter;
 pub(crate) use overlays::overlays;
-pub(crate) use place::{Answer, Place, Seat, SessionPlace};
+pub(crate) use place::{Answer, Place, SessionPlace};
+pub(crate) use seat::Seat;
 pub(crate) use timeline::timeline;
 
 #[cfg(test)]

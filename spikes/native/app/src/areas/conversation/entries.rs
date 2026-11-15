@@ -204,7 +204,7 @@ pub(super) fn work_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
-    let seat = paint.seat;
+    let seat = paint.seat.clone();
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -220,7 +220,7 @@ pub(super) fn work_row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.toggle_entry(seat, index, cx);
+            shell.toggle_entry(seat.clone(), index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(label))
