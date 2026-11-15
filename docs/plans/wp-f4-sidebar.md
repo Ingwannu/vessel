@@ -565,3 +565,24 @@ through its one host adapter; no invented Menu scope or composition cache.
 The hierarchy will mark one real focused root with this same constant. This is
 an explicitly unpassed source dependency, not app/OS/native-input approval;
 W22's checked producer/package remains a final integration prerequisite.
+
+
+## Checked menu lifecycle dependency integrated
+
+V1 bounded SOURCE / requested Kit NARROW passed exact d0954f4b + docs2599:
+private per-open allocation lease, automatic pointer focus fence, recognized-key
+and modal-outside containment. Both direct-cycle and nested-parent P2 closed;
+Kit173/0/0 and strict Kit Clippy0 with actual changed crate compile/check.
+Audit /tmp/work/m12-review/s2-menu-lease-d095/audit.json. The isolated producer
+was handed to the lead separately; this F4 union is not that checked source.
+
+Merge keeps the F4 path model/reset, the one extracted enhanced row body and
+W22's provisional KEY_CONTEXT on the same real focused menu root. Input router
+and seven lease tests retain exact producer bytes. Future hierarchy timers must
+validate the same render lease before mutation. Historical native/Linux focused
+TextField F5 HOLD is separate open; no hierarchy/Start/description/OS/full F4
+approval. Main combined narrow/consumer evidence remains owed.
+
+The previously adopted W22 marker leaves picker.rs at828 counted lines; lower
+its stale829 record to828, never increase a size exception. No picker renderer
+or behavior is changed by this bookkeeping correction.

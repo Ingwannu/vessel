@@ -33,7 +33,10 @@ mod feedback_tests;
 #[cfg(test)]
 mod focus_tests;
 pub mod hierarchy;
+mod input;
 mod item;
+#[cfg(test)]
+mod lease_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
@@ -51,7 +54,10 @@ pub use trigger::{
 };
 
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 
 /// A menu's state, kept by the screen that shows it.
 #[derive(Debug)]
@@ -61,6 +67,7 @@ pub struct MenuState {
     focus: FocusHandle,
     return_to: crate::focus::ReturnFocus,
     path: RefCell<hierarchy::Path>,
+    cycle: Rc<()>,
 }
 
 impl MenuState {
@@ -72,6 +79,7 @@ impl MenuState {
             focus: cx.focus_handle(),
             return_to: crate::focus::ReturnFocus::default(),
             path: RefCell::default(),
+            cycle: Rc::new(()),
         }
     }
 
@@ -79,6 +87,7 @@ impl MenuState {
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.path.borrow_mut().reset();
+        self.cycle = Rc::new(());
         self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
@@ -115,6 +124,19 @@ impl MenuState {
         }
     }
 
+    // Each explicit opening has allocation identity, rather than a wrapping
+    // counter. Retained Weak leases keep that allocation's header alive, so a
+    // replacement state/opening cannot reuse it while an old handler survives.
+    fn render_lease(&self) -> RenderLease {
+        RenderLease(Rc::downgrade(&self.cycle))
+    }
+    fn accepts(&self, lease: &RenderLease) -> bool {
+        self.is_open() && self.same_cycle(lease)
+    }
+    fn same_cycle(&self, lease: &RenderLease) -> bool {
+        Weak::ptr_eq(&lease.0, &Rc::downgrade(&self.cycle))
+    }
+
     /// Whether it is open.
     #[must_use]
     pub const fn is_open(&self) -> bool {
@@ -131,6 +153,7 @@ impl MenuState {
     pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
         self.path.borrow_mut().reset();
+        self.cycle = Rc::new(());
         self.at = Some(Placement::End(bounds));
         self.highlighted = None;
         self.focus.focus(window, cx);
@@ -181,6 +204,12 @@ impl MenuState {
         self.is_open() && self.path.borrow_mut().prune(has_page)
     }
 }
+
+// Entry requires an open cycle. After an authorized Close choice, identity
+// alone permits that choice's focus restoration/action; it does not authorize
+// another callback to enter the now-closed cycle.
+#[derive(Debug, Clone)]
+struct RenderLease(Weak<()>);
 
 /// What a screen does with a chosen row: the screen, the row's index.
 pub type Chose<V> = Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
