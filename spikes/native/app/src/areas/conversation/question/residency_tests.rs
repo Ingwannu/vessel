@@ -252,3 +252,48 @@ fn settlement_rejects_foreign_and_duplicate_tickets_before_owner_mutation(cx: &m
         );
     });
 }
+
+#[gpui::test]
+fn a_resolved_log_request_does_not_hold_its_stale_snapshot_form_forever(cx: &mut TestAppContext) {
+    use vessel_proto::{AgentEvent, EventRecord, EventSeq, QuestionOutcome, SessionEvent};
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let fixture = fixture(shell, window, cx);
+        let residents = &mut shell.areas.session_residents;
+        let context = residents.context(fixture.token, &fixture.claim).unwrap();
+        let area = &mut residents.resources_mut(&context).unwrap().conversation;
+        let question = area.live.questions[0].clone();
+        let records = [
+            EventRecord {
+                seq: EventSeq::ZERO,
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::QuestionAsked(question),
+                },
+            },
+            EventRecord {
+                seq: EventSeq::new(1),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::QuestionResolved {
+                        id: fixture.question,
+                        outcome: QuestionOutcome::Cancelled,
+                    },
+                },
+            },
+        ];
+        assert!(area.take(&fixture.token.address.session, &records));
+        assert_eq!(
+            area.live.questions.len(),
+            1,
+            "the older snapshot is retained as read"
+        );
+        assert!(
+            area.answering.get(fixture.question).is_some(),
+            "the local field still exists"
+        );
+        assert!(!area.response_waiting(Request::Question(fixture.question)));
+        assert_eq!(area.requests_readiness(), OwnerReadiness::Ready);
+    });
+}

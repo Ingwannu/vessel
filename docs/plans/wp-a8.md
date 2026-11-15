@@ -518,3 +518,11 @@ so redacting only reply errors would still expose private question text through
 actor diagnostics. A regression formats the actual Command::Respond for both an
 opaque permission option and a typed text answer with a private canary. The typed
 payload remains available to the wire call; only diagnostics are reduced.
+
+
+Requests readiness uses the same effective log/live projection as the cards,
+not raw snapshot array length. An exact resolution already present in the log
+wins over an older live snapshot; its leftover local field must not keep a clean
+resident permanently held. A real owned form plus Asked/Cancelled records tests
+this boundary without mutating the snapshot or manufacturing a resolution.
+Uncertain admitted effects remain a separate Hold until authoritative settlement.

@@ -74,8 +74,8 @@ impl ConversationArea {
             OwnerReadiness::Hold(HoldReason::PendingEffect)
         } else if self.timeline.pending_permissions().next().is_some()
             || !self.timeline.waiting_questions().is_empty()
-            || !self.live.permissions.is_empty()
-            || !self.live.questions.is_empty()
+            || !self.timeline.unseen_permissions(&self.live).is_empty()
+            || !self.timeline.unseen_questions(&self.live).is_empty()
         {
             OwnerReadiness::Hold(HoldReason::DirtyInput)
         } else {
