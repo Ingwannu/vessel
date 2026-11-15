@@ -1168,3 +1168,18 @@ accounts and loaded service managers are outside these config fixtures.
   validation, byte cap and all-or-nothing report are unchanged. Deterministic
   one-shot reader cancellation and post-close refusal tests are owed. This is
   an integration plan until its changed-source checks and package gate pass.
+
+The implementation uses the shared mutation task for both persistence and reload;
+there is no second tracker. A one-shot gate inside the real blocking reload
+closure demonstrates that cancelling its caller retains serialization, makes a
+following change wait, and keeps shutdown pending until that read and its final
+publication finish. A post-close reload refuses before taking the read gate.
+The existing writer regressions are retained. These are implementation fixtures,
+not executed evidence until the changed-source remote tests run.
+
+Settings task failures retain their concrete JoinError inside a private-field
+wrapper. Display, Debug and the exposed source chain provide only a fixed task
+failure category; the wire mapper uses that same boundary. This intentionally
+seals panic payloads in this settings path, not the process-wide panic hook.
+Tests exercise an actual panicking task and its mapped wire diagnostic. No
+ordinary I/O or strict input cause is flattened by this wrapper.

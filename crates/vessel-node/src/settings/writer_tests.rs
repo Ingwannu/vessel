@@ -1,4 +1,4 @@
-//! Pause the real blocking writer, rather than a fake or the RPC before spawn.
+//! Pause actual blocking settings I/O, rather than a fake or the RPC before spawn.
 
 use std::sync::Mutex as StdMutex;
 use std::task::Poll;
@@ -8,7 +8,7 @@ use tokio::sync::oneshot;
 
 use super::*;
 
-const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
+pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Default)]
 pub(super) struct GateSlot(StdMutex<Option<Gate>>);
@@ -18,7 +18,7 @@ impl GateSlot {
         self.0.lock().unwrap().take()
     }
 
-    fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+    pub(super) fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
         let (entered, observing) = oneshot::channel();
         let (release, released) = oneshot::channel();
         *self.0.lock().unwrap() = Some(Gate { entered, released });
@@ -146,4 +146,101 @@ async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
         result.is_ok(),
         "settings shutdown exceeded {WRITE_TEST_BUDGET:?}"
     );
+}
+
+#[tokio::test]
+async fn cancelled_reload_keeps_the_real_read_serialized_before_a_following_change() {
+    let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
+        let root = tempfile::tempdir().unwrap();
+        let settings = settings(root.path());
+        std::fs::write(
+            settings.data_dir.settings_path(),
+            br#"{"park_after":{"kind":"never"}}"#,
+        )
+        .unwrap();
+        let (entered, release) = settings.reload_gate.install();
+        let first = Arc::clone(&settings);
+        let caller = tokio::spawn(async move { first.reload().await });
+        entered.await.unwrap();
+        caller.abort();
+        assert!(caller.await.unwrap_err().is_cancelled());
+        assert!(settings.saved.try_lock().is_err());
+        assert_eq!(settings.runtime.park_after(), ParkAfter::DEFAULT.duration());
+        let mut second = Box::pin(settings.change(patch(ParkAfter::DEFAULT)));
+        assert!(matches!(futures_util::poll!(&mut second), Poll::Pending));
+        release.send(()).unwrap();
+        let applied = second.await.unwrap();
+        settings.shutdown().await;
+        assert_eq!(applied.park_after, ParkAfter::DEFAULT);
+        assert_eq!(settings.current().await, applied);
+        assert_eq!(settings.runtime.park_after(), applied.park_after.duration());
+        assert_eq!(
+            settings.data_dir.read_settings().unwrap().unwrap(),
+            patch(applied.park_after)
+        );
+    })
+    .await;
+    assert!(
+        result.is_ok(),
+        "cancelled settings reload exceeded {WRITE_TEST_BUDGET:?}"
+    );
+}
+
+#[tokio::test]
+async fn shutdown_joins_the_cancelled_reload_and_refuses_a_late_reader() {
+    let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
+        let root = tempfile::tempdir().unwrap();
+        let settings = settings(root.path());
+        std::fs::write(
+            settings.data_dir.settings_path(),
+            br#"{"park_after":{"kind":"never"}}"#,
+        )
+        .unwrap();
+        let (entered, release) = settings.reload_gate.install();
+        let first = Arc::clone(&settings);
+        let caller = tokio::spawn(async move { first.reload().await });
+        entered.await.unwrap();
+        caller.abort();
+        assert!(caller.await.unwrap_err().is_cancelled());
+        let mut shutdown = Box::pin(settings.shutdown());
+        assert!(matches!(futures_util::poll!(&mut shutdown), Poll::Pending));
+        release.send(()).unwrap();
+        shutdown.await;
+        assert_eq!(settings.current().await.park_after, ParkAfter::Never);
+        assert_eq!(settings.runtime.park_after(), None);
+        let bytes = b"private-invalid-reload-canary";
+        std::fs::write(settings.data_dir.settings_path(), bytes).unwrap();
+        let (mut entered, _release) = settings.reload_gate.install();
+        assert!(matches!(
+            settings.reload().await,
+            Err(SettingsError::Stopping)
+        ));
+        assert!(matches!(futures_util::poll!(&mut entered), Poll::Pending));
+        assert_eq!(
+            std::fs::read(settings.data_dir.settings_path()).unwrap(),
+            bytes
+        );
+        assert_eq!(settings.current().await.park_after, ParkAfter::Never);
+    })
+    .await;
+    assert!(
+        result.is_ok(),
+        "settings reload drain exceeded {WRITE_TEST_BUDGET:?}"
+    );
+}
+
+#[tokio::test]
+async fn task_failure_keeps_panic_payload_out_of_every_diagnostic_view() {
+    let canary = "private-settings-task-canary";
+    let cause = tokio::spawn(async move { panic!("{canary}") })
+        .await
+        .unwrap_err();
+    let error = SettingsError::Lost(cause.into());
+    assert!(!format!("{error:?}").contains(canary));
+    let mut source: Option<&dyn std::error::Error> = Some(&error);
+    while let Some(error) = source {
+        assert!(!error.to_string().contains(canary));
+        assert!(!format!("{error:?}").contains(canary));
+        source = error.source();
+    }
 }

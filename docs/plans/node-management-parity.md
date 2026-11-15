@@ -673,3 +673,16 @@ write-before-apply behavior. Offline local edits are deliberately not added.
 Paseo daemon/reload.ts and daemon-config-store.ts return applied, restart and
 launch-override paths; this implementation retains those three typed lists.
 The existing contract records whole fields instead of dotted key paths.
+
+
+## Config security correction: retained reload ownership
+
+Row 200's first source finding is implemented on the shared AA writer composition:
+one admitted mutation task retains the actual saved guard through reload read,
+validation and publication, and shutdown waits for it. A cancelled reload cannot
+leave an uncounted blocking read or overtake a later change. The concrete task
+failure cause is retained behind safe Display/Debug/source-chain containment.
+New real-read cancellation/order/drain and panic diagnostic fixtures are written;
+remote strict/runtime/package evidence is pending. AA's earlier scoped pass alone
+does not qualify this new reload use. Duplicate-member decoding is the next
+separate correction; no claim that row 200 is closed yet.

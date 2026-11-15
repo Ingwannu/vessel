@@ -82,7 +82,7 @@ pub(crate) enum SettingsError {
     Write(#[source] vessel_store::StoreError),
     /// The write's task did not finish.
     #[error("the settings could not be kept: {0}")]
-    Lost(#[source] tokio::task::JoinError),
+    Lost(#[source] writer::TaskFailure),
     /// `settings.json` could not be used at start and could not be moved
     /// aside either, so no change replaces it.
     #[error(
@@ -106,10 +106,12 @@ pub(crate) struct Settings {
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
     saved: Arc<Mutex<SetNodeSettings>>,
-    /// Writes survive caller cancellation and are joined at shutdown.
+    /// Mutations survive caller cancellation and are joined at shutdown.
     writers: TaskTracker,
     #[cfg(test)]
     gate: writer_tests::GateSlot,
+    #[cfg(test)]
+    reload_gate: writer_tests::GateSlot,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -159,6 +161,8 @@ impl Settings {
             writers: TaskTracker::new(),
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
+            #[cfg(test)]
+            reload_gate: writer_tests::GateSlot::default(),
             kept,
             later: AtomicBool::new(later),
         };
@@ -245,14 +249,36 @@ impl Settings {
         self.persist(saved, next).await
     }
 
-    /// Apply one complete validated disk snapshot under the mutation lock.
-    pub(crate) async fn reload(&self) -> Result<ReloadedNodeSettings, SettingsError> {
-        let mut saved = self.saved.lock().await;
-        let data_dir = self.data_dir.clone();
-        let next = tokio::task::spawn_blocking(move || data_dir.read_settings_for_reload())
+    /// Keep an admitted reload through reading, validation and publication.
+    /// A cancelled RPC drops only its waiter; shutdown joins the mutation.
+    pub(crate) async fn reload(self: &Arc<Self>) -> Result<ReloadedNodeSettings, SettingsError> {
+        let saved = Arc::clone(&self.saved).lock_owned().await;
+        let mutation = self.admit()?;
+        let settings = Arc::clone(self);
+        mutation
+            .run(saved, move |saved| async move {
+                settings.read_and_apply(saved).await
+            })
             .await
-            .map_err(SettingsError::Lost)??
-            .unwrap_or_default();
+    }
+
+    async fn read_and_apply(
+        &self,
+        mut saved: tokio::sync::OwnedMutexGuard<SetNodeSettings>,
+    ) -> Result<ReloadedNodeSettings, SettingsError> {
+        let data_dir = self.data_dir.clone();
+        #[cfg(test)]
+        let gate = self.reload_gate.take();
+        let next = tokio::task::spawn_blocking(move || {
+            #[cfg(test)]
+            if let Some(gate) = gate {
+                gate.pause();
+            }
+            data_dir.read_settings_for_reload()
+        })
+        .await
+        .map_err(|error| SettingsError::Lost(error.into()))??
+        .unwrap_or_default();
         validate(next)?;
         let before = self.in_force(*saved);
         let after = self.in_force(next);

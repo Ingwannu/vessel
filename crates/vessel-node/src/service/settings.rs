@@ -76,3 +76,20 @@ fn failure(error: &SettingsError) -> WireError {
     }
     WireError::new(code, error.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn a_settings_task_panic_never_becomes_a_wire_message() {
+        let canary = "private-settings-wire-canary";
+        let cause = tokio::spawn(async move { panic!("{canary}") })
+            .await
+            .unwrap_err();
+        let error = SettingsError::Lost(cause.into());
+        let wire = failure(&error);
+        assert!(!format!("{wire:?}").contains(canary));
+        assert!(!wire.to_string().contains(canary));
+    }
+}
