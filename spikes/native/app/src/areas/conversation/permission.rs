@@ -81,7 +81,14 @@ impl Shell {
                 .permit_sending
                 .as_ref()
                 .is_some_and(|(asked, _)| *asked == id)
-                && area.refused.is_none()
+                && area
+                    .response_failures
+                    .get(vessel_app_view::responses::Request::Permission(id))
+                    .is_none()
+                && area
+                    .refused
+                    .as_ref()
+                    .is_none_or(|(kind, _)| *kind != ActKind::Permit)
         {
             return;
         }
@@ -139,10 +146,15 @@ pub(crate) fn card<P: Place>(
     let narrow = breakpoint::phone(window);
     let id = permission.request.id;
     let refused = area
-        .refused
-        .as_ref()
-        .filter(|(kind, _)| *kind == ActKind::Permit)
-        .map(|(_, why)| why.clone());
+        .response_failures
+        .get(vessel_app_view::responses::Request::Permission(id))
+        .map(|failure| crate::areas::responses::problem(shell.words, failure).to_owned())
+        .or_else(|| {
+            area.refused
+                .as_ref()
+                .filter(|(kind, _)| *kind == ActKind::Permit)
+                .map(|(_, why)| why.clone())
+        });
     // The answer going, unless it failed or another request now shows.
     let sending = area
         .permit_sending
@@ -189,7 +201,7 @@ fn footer(answers: Div, refused: Option<String>, words: ConversationWords, token
             div()
                 .text_size(px(13.0))
                 .text_color(neutral.destructive)
-                .child(words.question_refused(&why))
+                .child(why)
         }))
 }
 

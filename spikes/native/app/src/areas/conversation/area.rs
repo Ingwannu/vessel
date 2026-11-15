@@ -98,6 +98,8 @@ pub(crate) struct ConversationArea {
     /// The last act the node refused, and its words: shown beside the
     /// control it is about.
     pub(crate) refused: Option<(ActKind, String)>,
+    /// Request-scoped answer failures survive unrelated metadata reads.
+    pub(crate) response_failures: vessel_app_view::responses::Failures,
     /// Start again, or a wake after a failed resume, is on its way (the
     /// banner's button, the menu's row): none is sent a second time.
     pub(super) restarting: bool,
@@ -185,6 +187,7 @@ impl ConversationArea {
             list: VirtualList::new(true),
             info: None,
             refused: None,
+            response_failures: vessel_app_view::responses::Failures::default(),
             restarting: false,
             again_refused: None,
             search: search::Searching::default(),
@@ -279,6 +282,7 @@ impl ConversationArea {
         self.queue_edit = None;
         self.answering = None;
         self.permit_sending = None;
+        self.response_failures = vessel_app_view::responses::Failures::default();
         self.plan_folded = false;
         self.live = Live::default();
         self.reveal = None;

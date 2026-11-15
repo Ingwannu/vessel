@@ -144,6 +144,10 @@ impl Shell {
             area.answering.as_ref().is_some_and(|answering| {
                 answering.sending.is_none()
                     || area
+                        .response_failures
+                        .get(vessel_app_view::responses::Request::Question(answering.id))
+                        .is_some()
+                    || area
                         .refused
                         .as_ref()
                         .is_some_and(|(kind, _)| *kind == ActKind::Answer)
@@ -221,6 +225,13 @@ impl Shell {
         let Some(area) = (P::SEAT.get_mut)(self) else {
             return;
         };
+        if area
+            .refused
+            .as_ref()
+            .is_some_and(|(kind, _)| *kind == ActKind::Answer)
+        {
+            area.refused = None;
+        }
         area.answering = Some(Answering {
             id: question.id,
             drafts: empty_drafts(&question),
@@ -383,7 +394,7 @@ impl Shell {
             cx.notify();
             return;
         }
-        self.question_send::<P>(question.id, answer, cx);
+        self.question_send::<P>(question.id, answer, ResponseAction::Submit, cx);
     }
 
     /// Decline the question.
@@ -395,7 +406,7 @@ impl Shell {
             .and_then(|area| area.answering.as_ref())
             .map(|answering| answering.id)
         {
-            self.question_send::<P>(id, QuestionAnswer::Decline, cx);
+            self.question_send::<P>(id, QuestionAnswer::Decline, ResponseAction::Dismiss, cx);
         }
     }
 
@@ -403,14 +414,14 @@ impl Shell {
         &mut self,
         id: QuestionId,
         answer: QuestionAnswer,
+        action: ResponseAction,
         cx: &mut Context<'_, Self>,
     ) {
         if let Some(area) = (P::SEAT.get_mut)(self) {
             if let Some(answering) = area.answering.as_mut() {
-                answering.sending = Some(match &answer {
-                    QuestionAnswer::Accept { .. } => ResponseAction::Submit,
-                    QuestionAnswer::Decline => ResponseAction::Dismiss,
-                });
+                // Dismiss may legitimately send an empty accepted answer;
+                // progress belongs to the pressed action, not its encoding.
+                answering.sending = Some(action);
             }
             if let Some(answering) = &area.answering {
                 answering

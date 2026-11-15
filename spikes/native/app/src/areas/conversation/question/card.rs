@@ -60,10 +60,15 @@ pub(crate) fn card<P: Place>(
     let neutral = tokens.neutral;
     let narrow = breakpoint::phone(window);
     let refused = area
-        .refused
-        .as_ref()
-        .filter(|(kind, _)| *kind == ActKind::Answer)
-        .map(|(_, message)| message.clone());
+        .response_failures
+        .get(vessel_app_view::responses::Request::Question(question.id))
+        .map(|failure| crate::areas::responses::problem(shell.words, failure).to_owned())
+        .or_else(|| {
+            area.refused
+                .as_ref()
+                .filter(|(kind, _)| *kind == ActKind::Answer)
+                .map(|(_, message)| message.clone())
+        });
     let sending = answering.sending.filter(|_| refused.is_none());
     let waiting_on_node = sending.is_some() || P::busy(shell);
     let last = answering.step.saturating_add(1) >= steps.len();
@@ -164,7 +169,6 @@ fn said(
         Some(Problem::ChooseAnAnswer | Problem::Required) | None => None,
     };
     refused
-        .map(|message| words.question_refused(&message))
         .or(problem)
         .or_else(|| (!answerable(question)).then(|| words.question_wrong(&Wrong::Unanswerable)))
 }

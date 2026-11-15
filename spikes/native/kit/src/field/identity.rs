@@ -7,7 +7,7 @@
 //! - Alternatives: capture a question id in dynamically allocated closures or
 //!   infer identity from text. The first duplicates callback ownership; the
 //!   second confuses equal text in different requests.
-//! - Choice: typed FieldId callbacks on the existing field, using engine identity.
+//! - Choice: typed `FieldId` callbacks on the existing field, using engine identity.
 //! - Cost: one opt-in constructor; plain callers keep their signatures.
 use super::{Kind, TextField, events::Callbacks};
 use gpui::{Context, EntityId, Window};

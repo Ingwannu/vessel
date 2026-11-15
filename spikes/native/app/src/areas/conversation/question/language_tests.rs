@@ -203,3 +203,26 @@ fn an_old_question_editor_cannot_change_or_submit_its_successor(cx: &mut gpui::T
         );
     });
 }
+
+#[gpui::test]
+fn dismiss_progress_belongs_to_the_clicked_action_even_when_the_answer_is_accepted(
+    cx: &mut gpui::TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, false, window, cx);
+        let question = waiting_at::<SessionPlace>(shell).unwrap();
+        let values = std::collections::BTreeMap::new();
+        shell.question_send::<SessionPlace>(
+            question.id,
+            QuestionAnswer::Accept { values },
+            ResponseAction::Dismiss,
+            cx,
+        );
+        assert_eq!(
+            shell.areas.conversation.answering.as_ref().unwrap().sending,
+            Some(ResponseAction::Dismiss)
+        );
+    });
+}

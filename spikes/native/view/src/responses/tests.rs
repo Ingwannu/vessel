@@ -53,7 +53,7 @@ fn capacity_and_exhaustion_do_not_reuse_or_release_other_tickets() {
     let mut registry = Registry::default();
     let target = target();
     for _ in 0..MAX_PENDING {
-        registry
+        let _pending = registry
             .begin(target.clone(), Request::Question(QuestionId::random()))
             .unwrap();
     }

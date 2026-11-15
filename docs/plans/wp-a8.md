@@ -153,3 +153,29 @@ Question option labels and descriptions use compact Markdown (question-form-card
 .tsx:151-163); option previews are plain wrapped text on surface0, shown for all
 options before selection (:163-178). Rich metadata integration must preserve
 those distinctions.
+
+
+## Failure isolation and shared editor seam
+
+An answer failure is now a typed, exact-request entry in `responses::Failures`,
+with independent permission/question slots. Generic Conversation/Info/Rename act
+failures cannot erase it. This fixes a queue-full/read-failure race where the
+reconciliation read replaced the old generic error, leaving a form marked
+sending with no visible retry. The controller clears only that request's failure
+on retry/ack. Cards translate retained categories at render time, so language
+changes do not retain a stale-language transport sentence. A failed refresh and
+duplicate old ack after retry are explicitly tested.
+
+The native lead requested Editability as a shared consumer seam. Independent
+branch backend/m12-wp-permissions-kit at base8d5513e4 has8eac02e8 (unchanged
+Handlers/listen extraction; normalized source-body equality recorded in scratch)
+and497dd62e (Editability-only API/root export and Line+Lines keyboard tests).
+V1 source review requested in queue134. Neither shared commit is consumer-green
+until its narrow Clippy/tests complete; the A8 package still gets its single V4
+review at the end. A8 will merge the lead's package base and use that shared seam.
+
+Narrow5d2b7054 run wp-side-narrow-20261115T065645Z-5d2b7054 failed on missing
+per-message Fluent translator context and a FieldId documentation backtick; both
+are fixed in the next commit. The newer source also corrects generated plain
+message method calls and test unused results found during inspection. No passing
+compile/test claim is made from a build that stopped in translation generation.

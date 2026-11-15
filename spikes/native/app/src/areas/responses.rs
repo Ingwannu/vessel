@@ -65,6 +65,9 @@ impl Shell {
         };
         match Ask::new(pending.clone(), response) {
             Ok(ask) => {
+                if let Some(area) = (seat.get_mut)(self) {
+                    area.response_failures.clear(request);
+                }
                 let _previous = self.areas.responses.seats.insert(pending.ticket, seat);
                 self.command(Command::Respond(ask));
             }
@@ -89,7 +92,7 @@ impl Shell {
         match answer.result {
             Ok(()) => {
                 if let Some(area) = (seat.get_mut)(self) {
-                    area.refused = None;
+                    area.response_failures.clear(answer.pending.request);
                 }
             }
             Err(problem) => self.response_refused(seat, answer.pending.request, problem),
@@ -119,30 +122,31 @@ impl Shell {
     }
 
     fn response_refused(&mut self, seat: Seat, request: Request, problem: Problem) {
-        let words = self.words.responses();
-        let message = match problem {
-            Problem::Offline => words.offline,
-            Problem::Unconfirmed => words.unconfirmed,
-            Problem::Busy => words.busy,
-            Problem::Exhausted => words.exhausted,
-            Problem::Unsupported => words.unsupported,
-            Problem::Invalid => words.invalid,
-            Problem::Unsent => words.unsent,
-            Problem::Refused(_) => words.refused,
-        };
         if let Some(area) = (seat.get_mut)(self)
             && area.response_waiting(request)
         {
-            area.refused = Some((
-                match request {
-                    Request::Permission(_) => vessel_app_link::ActKind::Permit,
-                    Request::Question(_) => vessel_app_link::ActKind::Answer,
-                },
-                message.to_owned(),
-            ));
+            area.response_failures.failed(request, problem);
         }
     }
 }
 
 #[cfg(test)]
 mod tests;
+
+/// Translate on render so a retained failure follows the selected language.
+pub(crate) fn problem(
+    catalog: &vessel_app_view::localization::Translator,
+    problem: Problem,
+) -> &str {
+    let words = catalog.responses();
+    match problem {
+        Problem::Offline => words.offline(),
+        Problem::Unconfirmed => words.unconfirmed(),
+        Problem::Busy => words.busy(),
+        Problem::Exhausted => words.exhausted(),
+        Problem::Unsupported => words.unsupported(),
+        Problem::Invalid => words.invalid(),
+        Problem::Unsent => words.unsent(),
+        Problem::Refused(_) => words.refused(),
+    }
+}

@@ -71,10 +71,17 @@ fn a_late_refusal_cannot_decorate_a_successor_canceled_or_other_target(
             };
             shell.areas.conversation.refused = None;
             shell.response_answered(Reply {
-                pending,
+                pending: pending.clone(),
                 result: Err(Problem::Unconfirmed),
             });
-            assert!(shell.areas.conversation.refused.is_none());
+            assert_eq!(
+                shell
+                    .areas
+                    .conversation
+                    .response_failures
+                    .get(pending.request),
+                None
+            );
             assert!(shell.areas.responses.seats.is_empty());
         }
         let pending = begin(shell);
@@ -83,10 +90,17 @@ fn a_late_refusal_cannot_decorate_a_successor_canceled_or_other_target(
             .conversation
             .open("other", pending.target.session);
         shell.response_answered(Reply {
-            pending,
+            pending: pending.clone(),
             result: Err(Problem::Unsent),
         });
-        assert!(shell.areas.conversation.refused.is_none());
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(pending.request),
+            None
+        );
     });
 }
 
@@ -102,8 +116,36 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
             pending: pending.clone(),
             result: Err(Problem::Unconfirmed),
         });
-        let refusal = shell.areas.conversation.refused.clone();
-        assert!(refusal.is_some());
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(pending.request),
+            Some(Problem::Unconfirmed)
+        );
+        // A failed refresh used to overwrite the response's generic refusal,
+        // leaving the original card permanently sending without a retry.
+        let _followup = shell
+            .areas
+            .conversation
+            .answered(vessel_app_link::ActAnswer {
+                machine: "scratch".into(),
+                session: pending.target.session,
+                kind: vessel_app_link::ActKind::Conversation,
+                result: Err(vessel_app_link::ActFailed {
+                    code: Some(vessel_proto::ErrorCode::Unavailable),
+                    message: "refresh failed".into(),
+                }),
+            });
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(pending.request),
+            Some(Problem::Unconfirmed)
+        );
         assert!(shell.areas.conversation.response_waiting(pending.request));
         let permission = shell.areas.conversation.live.permissions[0].clone();
         shell.response_at(
@@ -112,11 +154,18 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
         );
         assert_eq!(shell.areas.responses.seats.len(), 1);
         shell.response_answered(Reply {
-            pending,
+            pending: pending.clone(),
             result: Ok(()),
         });
         assert_eq!(shell.areas.responses.seats.len(), 1);
-        assert_eq!(shell.areas.conversation.refused, refusal);
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(pending.request),
+            None
+        );
     });
 }
 

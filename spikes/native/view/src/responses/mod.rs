@@ -117,3 +117,6 @@ impl Registry {
 
 #[cfg(test)]
 mod tests;
+
+mod failures;
+pub use failures::Failures;
