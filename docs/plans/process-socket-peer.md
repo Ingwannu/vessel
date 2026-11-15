@@ -11,7 +11,7 @@ accepted socket/process evidence. Existing listening/scanner decoding and
 the qualified shared proc reader/seeded identity are the only OS sources.
 No Child, reaper, provider ledger, workspace registry or browser policy is
 implemented here. No public network listener, credential or permission is
-changed. The node's D2 lease owns the verified dial and W14's policy proxy
+changed. The node's service-runtime lease owns the verified dial and the browser policy proxy
 consumes the owned stream; origin metadata is only an origin matcher.
 
 Paseo read: server/local-service-connection.ts4–28 and
@@ -50,5 +50,5 @@ TCP-health result.
 
 Only ADR and this plan exist. No socket_peer code or exported API is added,
 no dependency changed, no network operation run, no product caller enabled.
-The current D2 helper/health preparation has its own immutable narrow run;
+The current service helper/health preparation has its own immutable narrow run;
 its results do not qualify this future socket-peer backend.
