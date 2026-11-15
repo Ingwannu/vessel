@@ -1,8 +1,8 @@
 //! Durable session history and lifecycle navigation; provider import lives elsewhere.
-#[cfg(test)]
-mod tests;
 mod filters;
 mod lifecycle;
+#[cfg(test)]
+mod tests;
 pub(crate) use lifecycle::{error as lifecycle_error, overlay as lifecycle_overlay};
 mod navigation;
 mod rows;
