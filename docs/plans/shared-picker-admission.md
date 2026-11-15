@@ -70,3 +70,38 @@ extracts the unchanged enabled-row binding into one helper, keeping paint/layout
 and the same captured lease. No suppression, assertion deletion or minification.
 Per coordinator the last priority is spent; any changed-source retry uses the
 ordinary short lane, same temporary label, not another priority or whole gate.
+
+
+## Exact corrected source and requested narrow results
+
+Final Rust source99ad57b848413a8644a61ead07c0bea7bb570ac7 (range from
+announced914 through a1b1/eceae/99ad, NOT a1/ece leaves alone). Coordinator's
+last priority was spent on the preceding red head; BOTH corrected99 runs use
+ordinary SHORT, priority0, same temporary picker-control label. No whole rerun.
+
+- picker-control-20261115T144446Z-99ad57b8: native-fonts0, Kit all-target
+  Clippy0, no skip; actual Checking vessel-app-kit, finished13.23s.
+- picker-control-20261115T150539Z-99ad57b8: native-fonts0, Kit lib186/0/0,
+  no skip; actual Compiling vessel-app-kit. Six new focus/lease cases explicitly
+  report ok, including actual retained A/open B, compact scrim/wide outside,
+  parent containment, valid B and subsequent parent Escape.
+
+Steps.log SHA256:
+- clippy: e7e9ac0a93e042eb8555492d7b0422e3e0a98c4b1ff329d0860a40e70400c99e
+- tests: 739f8c21b8cddfbb3da94937a4d6c1a1db837d48a45ffa86c4e1aa87342e5d78
+
+Immutable ten-path Git blob/byte/SHA manifest, full source.diff, normalized old
+picker-test digest and all18 original public-signature comparison are in
+/tmp/work/m12-g2/picker-admission-99ad57b8-packet. completed-evidence.json pins
+every raw spec/step/log file from both runs, not a bare aggregate. Manifest
+aggregate generation is recorded exactly in manifest.json. Prior a1/ece REDs
+remain separate, never later-source evidence. This result-only doc does not
+change any Rust blob or the source-gate relation.
+
+V1 source precheck666ea07d found no remaining source blocker on exact99, but
+final bounded source/narrow disposition is still requested on these actual
+outcomes. No adoption/lead or consumer UI approval is inferred before it.
+Headless GPUI results do not close historical native Linux focused-field F5,
+physical input/OS/IME, accessibility, current App/F1 or real W2/W5 feature proof.
+After V1's checked handoff, the temporary label is retired and the isolated
+producer goes to the lead/consumers; no parallel picker engine is authorized.
