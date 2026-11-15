@@ -1,7 +1,6 @@
 //! Binary-edge launch flags and private-pipe readiness; no local launcher dependency.
 
 use clap::builder::TypedValueParser as _;
-use std::io::Write as _;
 use vessel_proto::NodeId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
