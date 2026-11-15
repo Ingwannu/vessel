@@ -86,3 +86,6 @@ git-panel-failed-title = 변경 사항을 읽지 못했습니다
 git-panel-problem-destination = 연결이 변경되었습니다. 이 워크스페이스를 다시 열고 변경 사항을 새로고침하세요.
 # Complete recovery when a file body names a different path; never install it under the requested file.
 git-panel-problem-file = 머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.
+
+# Neutral recovery for different stored/requested base refs; both identities are separate code detail.
+git-panel-problem-base = 저장된 기준 브랜치와 요청한 기준 브랜치가 다릅니다. 두 브랜치를 확인하고 비교 기준을 다시 선택하세요.

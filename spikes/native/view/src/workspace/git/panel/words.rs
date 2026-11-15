@@ -28,6 +28,8 @@ pub enum ReadIssue {
     DestinationChanged,
     /// The returned body belongs to another path and cannot be shown here.
     UnexpectedFile,
+    /// Stored and requested refs differ; both facts remain on the failure.
+    BaseMismatch,
     /// Unclassified read failure retains its diagnostic separately.
     Failed,
 }
@@ -65,6 +67,7 @@ impl ReadIssue {
                 Self::DestinationChanged
             }
             ReadFailure::UnexpectedFile { .. } => Self::UnexpectedFile,
+            ReadFailure::BaseMismatch { .. } => Self::BaseMismatch,
         }
     }
 
@@ -82,6 +85,7 @@ impl ReadIssue {
             Self::Unavailable => words.problem_unavailable(),
             Self::DestinationChanged => words.problem_destination(),
             Self::UnexpectedFile => words.problem_file(),
+            Self::BaseMismatch => words.problem_base(),
             Self::Failed => words.problem_failed(),
         }
     }
@@ -169,6 +173,11 @@ mod tests {
                 "머신에서 다른 파일의 변경 사항을 보냈습니다. 새로고침하고 다시 시도하세요.",
             ),
             (
+                ReadIssue::BaseMismatch,
+                "The stored and requested base branches differ. Check both branches and choose the comparison again.",
+                "저장된 기준 브랜치와 요청한 기준 브랜치가 다릅니다. 두 브랜치를 확인하고 비교 기준을 다시 선택하세요.",
+            ),
+            (
                 ReadIssue::Failed,
                 "The machine could not read these changes. Refresh and try again.",
                 "머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.",
@@ -208,5 +217,24 @@ mod tests {
             ReadIssue::Connection
         );
         assert_eq!(ReadIssue::of(&Problem::Unsent), ReadIssue::Unsent);
+    }
+
+    #[test]
+    fn ref_and_commit_base_refusals_select_the_same_neutral_recovery() {
+        use vessel_proto::workspace::WorktreeBase;
+        for requested in [
+            WorktreeBase::Ref {
+                name: "refs/heads/main".parse().unwrap(),
+            },
+            WorktreeBase::Commit {
+                id: "a".repeat(40).parse().unwrap(),
+            },
+        ] {
+            let failure = ReadFailure::BaseMismatch {
+                stored: "refs/remotes/upstream/main".parse().unwrap(),
+                requested,
+            };
+            assert_eq!(ReadIssue::for_failure(&failure), ReadIssue::BaseMismatch);
+        }
     }
 }

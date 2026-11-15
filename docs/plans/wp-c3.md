@@ -273,3 +273,18 @@ cover A/B/A, changed machine/root/session, changed availability and removed merg
 methods. This does not claim G4 connection-epoch admission or full C3 primary
 policy parity; those shared/feature integrations remain pending. It needs a
 changed-source narrow check and execution before another package consumes it.
+
+## Typed base mismatch and current model evidence
+
+The pending node comparison response preserves stored/requested base identities.
+The view now has the corresponding BaseMismatch failure and neutral EN/KO
+recovery, with both refs retained as typed detail for the future drawing. It does
+not interpret git output or call either ref correct. This bridge is a model
+addition; its C3 link and actual notice are not drawn or verified yet.
+
+The immutable base4 model at1b440f6a passed selected View/Kit/App all-target
+clippy (wp-git-narrow-20261115T084015Z-1b440f6a). View library execution
+wp-git-narrow-20261115T085405Z-1b440f6a compiled the changed View crate and
+passed921/0/0, including document source-key/row-layout fixtures and destination,
+wrong-file, late/duplicate-answer cases. Those results precede the command adapter
+and this base-ref recovery; no current screen or package approval is claimed.

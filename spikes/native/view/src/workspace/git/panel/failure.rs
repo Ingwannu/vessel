@@ -3,7 +3,7 @@
 //! machine error code or leaving a request loading when its route cannot be used.
 
 use vessel_proto::NodeId;
-use vessel_proto::workspace::RelPath;
+use vessel_proto::workspace::{RefName, RelPath, WorktreeBase};
 
 use crate::workspace::git::ReadState;
 use crate::workspace::problem::Problem;
@@ -35,6 +35,14 @@ pub enum ReadFailure {
         requested: RelPath,
         /// The path carried by the returned body.
         received: RelPath,
+    },
+    /// Retain both identities without declaring either branch correct.
+    #[error("the stored and requested comparison bases differ")]
+    BaseMismatch {
+        /// Recorded worktree ref, before the project-default fallback.
+        stored: RefName,
+        /// Different explicit base requested by the person.
+        requested: WorktreeBase,
     },
     /// An older/pending node cannot provide committed-only semantics.
     #[error("the selected comparison is unavailable on this connection")]

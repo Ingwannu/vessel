@@ -87,3 +87,6 @@ git-panel-failed-title = Changes could not be read
 git-panel-problem-destination = The connection changed. Reopen this workspace and refresh the changes.
 # Complete recovery when a file body names a different path; never install it under the requested file.
 git-panel-problem-file = The machine returned another file’s changes. Refresh and try again.
+
+# Neutral recovery for different stored/requested base refs; both identities are separate code detail.
+git-panel-problem-base = The stored and requested base branches differ. Check both branches and choose the comparison again.
