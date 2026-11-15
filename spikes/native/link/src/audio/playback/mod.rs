@@ -9,6 +9,7 @@
 //! - Cost: a missing/invalid device clock fails the segment rather than claiming
 //!   completion. Native callback timing and physical output remain separate proof.
 
+mod output;
 mod packet;
 mod receipts;
 

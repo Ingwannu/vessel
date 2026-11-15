@@ -3,6 +3,7 @@ use super::super::format::{Channels, Format, RateHz};
 use super::super::owner::{Engine, State};
 use super::*;
 use std::sync::mpsc as blocking;
+use std::time::Duration;
 use vessel_app_view::audio::CapturePurpose;
 
 struct Device {
@@ -15,9 +16,9 @@ impl CaptureDevice for Device {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure> {
+    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
         self.fence.close();
-        Ok(None)
+        std::future::pending().await
     }
     fn failure(&self) -> Option<DeviceFailure> {
         None
@@ -80,10 +81,9 @@ impl CaptureDevice for Frames {
     fn start(&self) -> Result<(), DeviceFailure> {
         Ok(())
     }
-    fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure> {
+    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
         self.0
             .capture(&[0.0; 160])
-            .map(Some)
             .map_err(|_private| DeviceFailure::Processing)
     }
     fn failure(&self) -> Option<DeviceFailure> {
@@ -117,4 +117,40 @@ fn opening_failure_releases_reservation_without_any_running_state() {
     run::<Frames>(owner, &sender, |_fence| Err(DeviceFailure::Unavailable));
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Unavailable));
     assert!(engine.reserve(CapturePurpose::Conversation).is_ok());
+}
+
+struct Silent {
+    started: blocking::SyncSender<()>,
+}
+impl CaptureDevice for Silent {
+    fn start(&self) -> Result<(), DeviceFailure> {
+        self.started.send(()).unwrap();
+        Ok(())
+    }
+    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
+        std::future::pending().await
+    }
+    fn failure(&self) -> Option<DeviceFailure> {
+        None
+    }
+}
+
+#[test]
+fn stop_wakes_a_silent_device_without_waiting_for_another_callback() {
+    let engine = Engine::default();
+    let (owner, handle) = engine.reserve(CapturePurpose::Conversation).unwrap();
+    let status = handle.status();
+    let (started, running) = blocking::sync_channel(1);
+    let (done, finished) = blocking::sync_channel(1);
+    let (sender, _receiver) = mpsc::channel(1);
+    let task = std::thread::spawn(move || {
+        run(owner, &sender, |_fence| Ok(Silent { started }));
+        done.send(()).unwrap();
+    });
+    running.recv_timeout(Duration::from_secs(2)).unwrap();
+    handle.stop();
+    finished.recv_timeout(Duration::from_secs(2)).unwrap();
+    task.join().unwrap();
+    assert_eq!(*status.borrow(), State::Released);
+    assert!(engine.reserve(CapturePurpose::Dictation).is_ok());
 }

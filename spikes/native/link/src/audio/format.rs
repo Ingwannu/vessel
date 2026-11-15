@@ -76,6 +76,9 @@ impl Format {
             frames: FrameCount(frames),
         })
     }
+    pub(super) const fn rate(self) -> RateHz {
+        self.rate
+    }
     pub(super) const fn frames(self) -> FrameCount {
         self.frames
     }

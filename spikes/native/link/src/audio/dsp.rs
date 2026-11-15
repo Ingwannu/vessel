@@ -36,6 +36,9 @@ impl Rendered {
     pub(super) fn samples(&self) -> &[f32] {
         &self.0
     }
+    pub(super) fn into_samples(self) -> Vec<f32> {
+        self.0
+    }
 }
 
 impl fmt::Debug for Rendered {
@@ -115,7 +118,7 @@ impl Processor {
     }
 
     pub(super) fn capture(&mut self, samples: &[f32]) -> Result<Captured, AudioError> {
-        validate(samples, self.input)?;
+        validate_external(samples, self.input)?;
         match self.input.channels() {
             Channels::Mono => self.in_left.copy_from_slice(samples),
             Channels::Stereo => {
@@ -159,17 +162,20 @@ impl Processor {
         Ok(Captured(pcm.into()))
     }
 
-    pub(super) fn render(&mut self, mono: &[f32], rate: RateHz) -> Result<Rendered, AudioError> {
+    pub(super) fn prepare_render(
+        &mut self,
+        mono: &[f32],
+        rate: RateHz,
+    ) -> Result<Rendered, AudioError> {
         let source = Format::new(rate, Channels::Mono)?;
-        validate(mono, source)?;
+        validate_external(mono, source)?;
         // Duplicate mono at the conversion edge: the DSP contract permits
         // output channels equal to input or mono, never an implicit upmix.
         let stereo_source = Format::new(rate, self.output.channels())?;
         self.convert_render(mono, stereo_source)?;
-        self.reference_render()?;
         let channels = usize::from(self.output.channels().get());
         let mut samples = Vec::with_capacity(self.output.frames().get().saturating_mul(channels));
-        for (&left, &right) in self.render_left.iter().zip(&self.render_right) {
+        for (&left, &right) in self.converted_left.iter().zip(&self.converted_right) {
             if !left.is_finite() || !right.is_finite() {
                 return Err(AudioError::NonFinite);
             }
@@ -199,23 +205,50 @@ impl Processor {
         result.map_err(AudioError::Processor)
     }
 
-    fn reference_render(&mut self) -> Result<(), AudioError> {
+    // Feed only samples the physical output callback actually wrote. Prepared
+    // audio may still be interrupted or discarded before reaching the speaker.
+    pub(super) fn reference_render(&mut self, samples: &[f32]) -> Result<(), AudioError> {
+        validate_external(samples, self.output)?;
+        match self.output.channels() {
+            Channels::Mono => self.render_left.copy_from_slice(samples),
+            Channels::Stereo => {
+                for ((pair, left), right) in samples
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .zip(&mut self.render_left)
+                    .zip(&mut self.render_right)
+                {
+                    let [a, b] = pair;
+                    *left = *a;
+                    *right = *b;
+                }
+            }
+        }
         let result = match self.output.channels() {
             Channels::Mono => self.voice.process_render_f32_with_config(
-                &[&self.converted_left],
+                &[&self.render_left],
                 &self.output.config(),
                 &self.output.config(),
-                &mut [&mut self.render_left],
+                &mut [&mut self.converted_left],
             ),
             Channels::Stereo => self.voice.process_render_f32_with_config(
-                &[&self.converted_left, &self.converted_right],
+                &[&self.render_left, &self.render_right],
                 &self.output.config(),
                 &self.output.config(),
-                &mut [&mut self.render_left, &mut self.render_right],
+                &mut [&mut self.converted_left, &mut self.converted_right],
             ),
         };
         result.map_err(AudioError::Processor)
     }
+}
+
+fn validate_external(samples: &[f32], format: Format) -> Result<(), AudioError> {
+    validate(samples, format)?;
+    if samples.iter().any(|sample| !(-1.0..=1.0).contains(sample)) {
+        return Err(AudioError::Range);
+    }
+    Ok(())
 }
 
 fn validate(samples: &[f32], format: Format) -> Result<(), AudioError> {

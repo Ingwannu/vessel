@@ -5,7 +5,10 @@ use std::{fmt, sync::Arc};
 use bytes::Bytes;
 use cpal::Sample as _;
 
-use super::{Refusal, receipts::Receipt};
+use super::{
+    Refusal,
+    receipts::{Lease, Receipt},
+};
 use crate::audio::format::RateHz;
 
 const MAX_PACKET_BYTES: usize = 8 * 1024 * 1024;
@@ -27,8 +30,9 @@ impl Packet {
         Ok(Self { pcm, rate })
     }
 
-    pub(super) fn reader(&self, receipt: Arc<Receipt>) -> Reader {
+    pub(super) fn reader(&self, lease: Lease, receipt: Arc<Receipt>) -> Reader {
         Reader {
+            lease,
             pcm: self.pcm.clone(),
             rate: self.rate,
             receipt,
@@ -47,12 +51,19 @@ impl fmt::Debug for Packet {
 
 /// The final block is zero-padded only after its valid PCM, never dropped.
 pub(in crate::audio) struct Reader {
+    lease: Lease,
     pcm: Bytes,
     rate: RateHz,
     receipt: Arc<Receipt>,
 }
 
 impl Reader {
+    pub(super) fn lease(&self) -> Lease {
+        self.lease
+    }
+    pub(super) fn receipt(&self) -> Arc<Receipt> {
+        Arc::clone(&self.receipt)
+    }
     pub(in crate::audio) fn rate(&self) -> RateHz {
         self.rate
     }
@@ -113,7 +124,7 @@ impl fmt::Debug for Block {
         f.debug_struct("PlaybackBlock")
             .field("frames", &self.mono.len())
             .field("last", &self.last)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

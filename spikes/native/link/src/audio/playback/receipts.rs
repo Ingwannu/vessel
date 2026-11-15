@@ -68,7 +68,7 @@ impl Receipt {
         self.stop.is_closed() || self.conversation.is_closed()
     }
     fn settle(&self, requested: State) {
-        self.state.send_if_modified(|state| {
+        let _changed = self.state.send_if_modified(|state| {
             if state.terminal() {
                 return false;
             }
@@ -152,7 +152,7 @@ impl Book {
             conversation: Arc::clone(&self.conversation),
             state,
         });
-        self.entries.insert(
+        let _previous = self.entries.insert(
             ticket,
             Entry {
                 packet,
@@ -180,7 +180,7 @@ impl Book {
             return Err(Refusal::Order);
         }
         entry.receipt.settle(State::Rendering);
-        Ok(Some(entry.packet.reader(Arc::clone(&entry.receipt))))
+        Ok(Some(entry.packet.reader(lease, Arc::clone(&entry.receipt))))
     }
     /// Called after the LAST output sample was copied by the device callback.
     /// `after` includes driver latency and the final sample's offset in that callback.

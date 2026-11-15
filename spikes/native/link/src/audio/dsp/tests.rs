@@ -33,7 +33,15 @@ fn malformed_callback_frames_are_refused_before_processing() {
         Err(AudioError::NonFinite)
     ));
     assert!(matches!(
-        processor.render(&[f32::INFINITY; 240], RateHz::new(24_000).unwrap()),
+        processor.capture(&[1.1; 480]),
+        Err(AudioError::Range)
+    ));
+    assert!(matches!(
+        processor.prepare_render(&[-1.1; 240], RateHz::new(24_000).unwrap()),
+        Err(AudioError::Range)
+    ));
+    assert!(matches!(
+        processor.prepare_render(&[f32::INFINITY; 240], RateHz::new(24_000).unwrap()),
         Err(AudioError::NonFinite)
     ));
 }
@@ -62,13 +70,14 @@ fn conversion_frames_preserve_mono_in_both_speaker_channels() {
     .unwrap();
     for _ in 0..4 {
         let rendered = processor
-            .render(&[0.25; 240], RateHz::new(24_000).unwrap())
+            .prepare_render(&[0.25; 240], RateHz::new(24_000).unwrap())
             .unwrap();
         assert_eq!(rendered.samples().len(), 960);
         for pair in rendered.samples().as_chunks::<2>().0 {
             let [left, right] = pair;
             assert_eq!(left.to_bits(), right.to_bits());
         }
+        processor.reference_render(rendered.samples()).unwrap();
         assert!(!format!("{rendered:?}").contains("0.25"));
     }
 }

@@ -17,7 +17,7 @@ const DEVICE_OPEN_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(super) trait CaptureDevice {
     fn start(&self) -> Result<(), DeviceFailure>;
-    fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure>;
+    async fn receive(&mut self) -> Result<Captured, DeviceFailure>;
     fn failure(&self) -> Option<DeviceFailure>;
 }
 
@@ -70,16 +70,11 @@ impl CaptureDevice for Native {
             .map_err(|_private| DeviceFailure::Unavailable)
     }
 
-    fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure> {
-        match self.frames.try_recv() {
-            Ok(frame) => self
-                .processor
-                .capture(frame.as_slice())
-                .map(Some)
-                .map_err(|_private| DeviceFailure::Processing),
-            Err(mpsc::error::TryRecvError::Empty) => Ok(None),
-            Err(mpsc::error::TryRecvError::Disconnected) => Err(DeviceFailure::Interrupted),
-        }
+    async fn receive(&mut self) -> Result<Captured, DeviceFailure> {
+        let frame = self.frames.recv().await.ok_or(DeviceFailure::Interrupted)?;
+        self.processor
+            .capture(frame.as_slice())
+            .map_err(|_private| DeviceFailure::Processing)
     }
 
     fn failure(&self) -> Option<DeviceFailure> {

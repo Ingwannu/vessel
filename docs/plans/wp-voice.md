@@ -205,3 +205,21 @@ Base updates: app consumed the selected line through e5e654b4's shared dialog
 focus seam; node consumed913f05d8, including the reviewed shared codec. The
 voice consumer remains staged, so its outer test gates stay in place. Generated
 TypeScript after the table extraction passed3/0/0 before commit e91a01a44.
+
+### Device callback and reference timing draft
+
+Capture now waits on the callback channel, callback fence and consumer closure
+on its dedicated current-thread executor; the former 5 ms polling sleep is
+removed. A silent or stalled callback cannot delay local Stop cleanup. Foreign
+float frames are finite and normalized before entering DSP; post-DSP overshoot
+is still clipped when converting PCM.
+
+Speaker preparation is separate from AEC reverse processing. A bounded callback
+writes prepared samples (checking both global and segment fences), records the
+actual quantized samples as 10 ms reference blocks, and emits a final scheduled
+event with CPAL's predicted DAC time plus the callback offset. Full reference or
+completion queues fence the engine; empty output is silence. Cancelled-block
+scanning is bounded, so a racing producer cannot keep a callback busy forever.
+Tests use synthetic CPAL callback timestamps and no output device. Native output
+stream creation, duplex actor wiring, clock/platform/AEC quality checks remain
+owed; this source is still staged and not an advertised audio capability.

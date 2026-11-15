@@ -30,6 +30,8 @@ pub(super) enum AudioError {
     Frame,
     #[error("audio contains a non-finite sample")]
     NonFinite,
+    #[error("audio sample is outside the normalized device range")]
+    Range,
     #[error("audio count exceeds this platform's range")]
     Count(#[source] TryFromIntError),
     #[error("audio processing failed")]

@@ -4,7 +4,6 @@
 //! driver can retain ownership but cannot authorize another acquisition.
 
 use std::sync::Arc;
-use std::time::Duration;
 
 use tokio::sync::mpsc;
 use vessel_app_view::audio::CaptureLease;
@@ -15,7 +14,6 @@ use super::owner::{DeviceFailure, Owner};
 use crate::cancel::Fence;
 
 const NORMALIZED_QUEUE_BLOCKS: usize = 100;
-const DEVICE_POLL: Duration = Duration::from_millis(5);
 
 #[derive(Debug)]
 pub(super) struct Frame {
@@ -51,7 +49,10 @@ fn run<D: CaptureDevice>(
     }
     match open(owner.fence()) {
         Ok(mut device) => {
-            let result = capture(&owner, sender, &mut device);
+            let result = match tokio::runtime::Builder::new_current_thread().build() {
+                Ok(runtime) => runtime.block_on(capture(&owner, sender, &mut device)),
+                Err(_private) => Err(DeviceFailure::Thread),
+            };
             if let Err(failure) = result {
                 owner.fail(failure);
             } else if let Some(failure) = device.failure() {
@@ -66,7 +67,7 @@ fn run<D: CaptureDevice>(
     drop(owner);
 }
 
-fn capture(
+async fn capture(
     owner: &Owner,
     sender: &mpsc::Sender<Frame>,
     device: &mut impl CaptureDevice,
@@ -78,21 +79,23 @@ fn capture(
     if owner.started().is_err() {
         return Ok(());
     }
-    while !owner.stopped() {
-        match device.receive()? {
-            Some(audio) => {
-                if owner.stopped() {
-                    break;
-                }
-                sender
-                    .try_send(Frame {
-                        lease: owner.lease(),
-                        audio,
-                    })
-                    .map_err(|_private| DeviceFailure::Overrun)?;
-            }
-            None => std::thread::sleep(DEVICE_POLL),
+    let fence = owner.fence();
+    loop {
+        let audio = tokio::select! {
+            biased;
+            () = fence.closed() => break,
+            () = sender.closed() => break,
+            received = device.receive() => received?,
+        };
+        if owner.stopped() {
+            break;
         }
+        sender
+            .try_send(Frame {
+                lease: owner.lease(),
+                audio,
+            })
+            .map_err(|_private| DeviceFailure::Overrun)?;
     }
     Ok(())
 }
