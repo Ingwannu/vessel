@@ -53,8 +53,30 @@ pub enum WorkspaceClaim {
 pub enum FirstInput {
     /// Empty workspace or a launch with no first message/typed shell command.
     Absent,
-    /// Completion must include first-message acceptance.
+    /// Unkeyed historical/terminal delivery. New chats use Identified.
     Present,
+    /// A new chat retains the caller's canonical input identity before spawn.
+    Identified {
+        /// The same id is used for every first-prompt retry on this child.
+        message: crate::timeline::ClientMessageId,
+    },
+}
+
+impl FirstInput {
+    /// Receipt observation retains unkeyed historical rows without fabricating ids.
+    #[must_use]
+    pub const fn message(self) -> Option<crate::timeline::ClientMessageId> {
+        match self {
+            Self::Identified { message } => Some(message),
+            Self::Absent | Self::Present => None,
+        }
+    }
+    const fn required(self) -> bool {
+        match self {
+            Self::Absent => false,
+            Self::Present | Self::Identified { .. } => true,
+        }
+    }
 }
 
 /// Resource identities reserved durably before any provision or spawn.
@@ -164,15 +186,11 @@ impl TryFrom<ReceiptWire> for Receipt {
             Phase::Accepted | Phase::Completed => true,
             Phase::WorkspaceReady => reserved.workspace_claim == WorkspaceClaim::Create,
             Phase::ResourceReady => reserved.resource.is_some(),
-            Phase::PromptStarted => {
-                reserved.resource.is_some() && reserved.first_input == FirstInput::Present
-            }
+            Phase::PromptStarted => reserved.resource.is_some() && reserved.first_input.required(),
             Phase::Failed { stage, .. } => match stage {
                 Stage::Workspace => reserved.workspace_claim == WorkspaceClaim::Create,
                 Stage::Resource => reserved.resource.is_some(),
-                Stage::Prompt => {
-                    reserved.resource.is_some() && reserved.first_input == FirstInput::Present
-                }
+                Stage::Prompt => reserved.resource.is_some() && reserved.first_input.required(),
             },
         };
         if !valid_phase {
@@ -238,7 +256,10 @@ impl Receipt {
             | (Kind::Agent, WorkspaceClaim::Existing, Some(Resource::Terminal { .. }))
             | (Kind::Terminal, WorkspaceClaim::Existing, Some(Resource::Agent { .. })) => false,
         };
-        if !valid {
+        if !valid
+            || (reserved.first_input.message().is_some()
+                && !matches!(reserved.resource, Some(Resource::Agent { .. })))
+        {
             return Err(CreationError::InvalidTransition);
         }
         Ok(Self {
@@ -344,7 +365,7 @@ impl Receipt {
                 stage == Stage::Resource && self.snapshot.reserved.resource.is_some()
             }
             Phase::ResourceReady => {
-                stage == Stage::Prompt && self.snapshot.reserved.first_input == FirstInput::Present
+                stage == Stage::Prompt && self.snapshot.reserved.first_input.required()
             }
             Phase::Failed {
                 stage: failed,

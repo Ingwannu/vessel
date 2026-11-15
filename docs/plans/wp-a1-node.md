@@ -72,3 +72,12 @@ remains person-only. Tests exercise independent origins, delegated identity,
 forged fields, migration and corrupted metadata. New agent creation/count
 lease orchestration remains unimplemented and is not approved by the contract
 review or these storage changes. Source review and execution evidence are owed.
+
+FirstInput::Identified retains W23's canonical ClientMessageId in the durable
+reservation before spawn, including serialization, known prompt refusal and
+unknown restart. Only an agent resource accepts this variant. Historical
+Present rows remain observable without assigning a synthetic id; new agent
+admission must use Identified and future drivers must refuse unkeyed agent
+prompt replay. Present still describes blank-terminal typed input, whose
+unknown side effect cannot be replayed. This value addition activates no
+prompt method and is not server-side deduplication proof.

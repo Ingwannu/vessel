@@ -177,3 +177,39 @@ fn forged_inflight_markers_and_resource_kind_mismatches_do_not_decode() {
     forged["snapshot"]["kind"] = serde_json::json!("agent");
     assert!(serde_json::from_value::<Receipt>(forged).is_err());
 }
+
+#[test]
+fn canonical_first_input_id_survives_known_retry_serialization_and_unknown_restart() {
+    let message = crate::timeline::ClientMessageId::random();
+    let mut receipt = receipt(Some(resource()), FirstInput::Identified { message });
+    for stage in [Stage::Workspace, Stage::Resource] {
+        advance(&mut receipt, Advance::Begin(stage));
+        advance(&mut receipt, Advance::Finished(stage));
+    }
+    advance(&mut receipt, Advance::Begin(Stage::Prompt));
+    advance(
+        &mut receipt,
+        Advance::Fail {
+            code: crate::ErrorCode::Forbidden,
+            certainty: Certainty::Known,
+        },
+    );
+    advance(&mut receipt, Advance::Begin(Stage::Prompt));
+    let encoded = serde_json::to_vec(&receipt).unwrap();
+    let mut restarted: Receipt = serde_json::from_slice(&encoded).unwrap();
+    advance(&mut restarted, Advance::Recover);
+    assert_eq!(
+        restarted.snapshot().reserved.first_input.message(),
+        Some(message)
+    );
+    assert!(
+        restarted
+            .advance(restarted.snapshot().revision, Advance::Begin(Stage::Prompt))
+            .is_err()
+    );
+    let mut terminal = restarted.snapshot().reserved;
+    terminal.resource = Some(Resource::Terminal {
+        terminal: crate::TerminalId::random(),
+    });
+    assert!(Receipt::admitted(Kind::Workspace, terminal, receipt.fingerprint()).is_err());
+}

@@ -20,7 +20,9 @@ fn candidate(key: &str, fingerprint: u8, workspace: WorkspaceId, session: Sessio
             workspace,
             workspace_claim: WorkspaceClaim::Create,
             resource: Some(Resource::Agent { session }),
-            first_input: FirstInput::Present,
+            first_input: FirstInput::Identified {
+                message: vessel_proto::timeline::ClientMessageId::random(),
+            },
         },
         Fingerprint::new(BlobHash::from_bytes([fingerprint; 32])),
     )
