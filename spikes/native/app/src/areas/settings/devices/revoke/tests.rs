@@ -51,8 +51,7 @@ fn connection_events_refuse_old_controls_and_answers_before_another_frame(cx: &m
         .admit(MachineKey::from_book("fixture"), NodeId::random())
         .unwrap();
     let (link, mut commands) = Link::detached(COMMAND_CAPACITY).unwrap();
-    let (shell, cx) =
-        cx.add_window_view(move |window, cx| Shell::without_io(window, cx, Some(link)));
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     shell.update_in(cx, |shell, window, cx| {
         shell.route = crate::routes::Route::Settings;
         shell.areas.settings.section = vessel_app_view::settings::Section::Devices;

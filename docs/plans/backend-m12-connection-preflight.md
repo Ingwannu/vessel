@@ -112,3 +112,17 @@ function budget and one barrier ignored a returned session vector. Its node
 metadata construction is extracted as a named fixture helper and the barrier
 now checks the returned empty vector. No lint allowance or size record grew.
 The red run `devices-narrow-20261115T085439Z-d736c1c5` is retained.
+
+The clean-base candidate `4de868b0` exposed App fixture compatibility
+errors: old two-argument shell constructors and a sidebar Machine literal
+needed to remain valid, and internal closure-report settlement must return
+the existing typed settlement model. The legacy constructor remains intact;
+a separate test-only detached-link helper serves Devices. The extra epoch
+is absent in unrelated fixtures. Actor-only bookkeeping is ignored by UI
+settlement, with no synthetic retirement event or notice.
+
+The shared RequestFailure also deliberately has no automatic raw-call error
+source chain: retaining structured detail for a feature mapper must not let
+a generic error reporter bypass redacted Display/Debug. A canary regression
+covers all three surfaces; no real credential is used. Core imports use
+view::connection directly, keeping Devices aliases as compatibility only.
