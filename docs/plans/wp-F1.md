@@ -425,3 +425,44 @@ The base6 merge's git diff --check reported four whitespace lines inherited
 unchanged from18eedad4 (vendored gpui accessibility comments and generated
 web/src/wire/proto.ts). They are not rewritten in this app package. The G2
 post-merge source diff itself has no whitespace error.
+
+## Editor definition/field and node-only preview skeleton
+
+[Decision Log]
+- Existing assets: accepted editor::replacement, cadence::Draft and node
+  PreviewSchedule/SchedulePreview types. Standard FromStr validates bounded
+  protocol text/counts; no external parser or local time projection is added.
+- Choice: fields caches the raw field text and its typed result at setters;
+  definition owns the original ScheduleInfo/revision and full SessionSpec. A
+  recurring-prompt draft exposes only cadence, so it cannot overwrite prompt,
+  target, name or run limit. A new-chat edit retains catch-up/end time and all
+  hidden SessionSpec fields instead of rebuilding a partial launch spec.
+- Reference: pinned1c00 schedule-form-sheet.tsx read whole (1088 lines),
+  inputs468–520, new-agent target selection674–814, heartbeat cadence-only
+  branch459–474, submit318–399 and footer420–455. Exact renderer work is still
+  pending; these are View rules, not a drawn/wired form.
+- Deliberate difference: malformed nonblank Max runs is an error instead of
+  reference parseInt dropping a suffix or interpreting zero as unlimited. Node
+  bounds are authoritative; blank alone means Unlimited. New prompt edits trim
+  as the reference does, but untouched wire text stays byte-identical.
+- Preview: a private outcome admits only the expected immutable context/ticket,
+  exact after/count, strictly increasing future instants and matching typed
+  cadence/zone. Every without an anchor requires the node-returned after anchor.
+  canonical_for additionally requires current context+input before reuse on
+  save. Node typed reasons, unknown future reasons and malformed results show
+  no times; there is no second cron evaluator or guessed fallback.
+- Cost: forms must allocate nonreused visit/edit tickets, invalidate on edits,
+  host changes/close, and reuse the matching canonical cadence before create
+  or update. No app option/RPC path is enabled by these modules yet. Isolation
+  stays hidden until the shared node runtime is actually implemented/reviewed.
+
+New editor field/preview words are solely schedules.ftl EN/KO through generated
+API. Accepted cadence and EditError words remain in text/schedules and are
+called through Lang, not duplicated in Fluent. Portable editor-fields.json
+cases have stable kebab ids; full integer/UTF-8/control-character bounds, every
+new error in both languages, complete spec/revision preservation, heartbeat
+restrictions, malformed/partial/stale node previews are source regressions.
+They are unexecuted: remote changed-head narrow and final F1 gate remain owed,
+with no form/preview UI or real-node proof. Prepared external drafts were plain
+copied (fresh timestamps), then corrected/formatted; their former README is
+historical uninstalled preparation, not a consumer-ready API.

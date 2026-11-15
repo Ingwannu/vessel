@@ -221,3 +221,37 @@ schedules-failed-connection-changed = Connection to this machine changed. Refres
 
 # Safe read deadline; a lost write uses the existing unconfirmed whole sentence.
 schedules-failed-timeout = The machine did not answer in time. Check its connection, then try again.
+
+## Form validation, separate from accepted cadence/error tables
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-name-invalid = Use a short name on one line, without control characters.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-prompt-invalid = Enter a prompt of at most { NUMBER($maximum, useGrouping: "false") } UTF-8 bytes, without control characters except tabs and line breaks.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-max-runs-invalid = Enter a whole number from 1 to { NUMBER($maximum, useGrouping: "false") }, or leave it blank for unlimited runs.
+
+# Required structured chat target; a missing selection blocks saving.
+schedules-form-target-required = Choose an agent and a folder for this schedule.
+
+## Node-only editor preview failures
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-mismatched = The machine returned a different or incomplete preview. No run times are shown.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown-zone = This machine does not know that time zone. Choose another zone or update the machine.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown-cadence = Update this machine before previewing this kind of schedule.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-no-future-run = This rule has no three future runs within the machine’s supported range.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-out-of-range = The selected time is outside this machine’s supported range.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown = Update the app to read this machine’s preview refusal.

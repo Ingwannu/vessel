@@ -221,3 +221,37 @@ schedules-failed-connection-changed = 머신 연결이 변경되었습니다. �
 
 # Safe read deadline; a lost write uses the existing unconfirmed whole sentence.
 schedules-failed-timeout = 머신에서 제시간에 응답하지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.
+
+## Form validation, separate from accepted cadence/error tables
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-name-invalid = 제어 문자 없이 짧은 이름을 한 줄로 입력하세요.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-prompt-invalid = 프롬프트를 { NUMBER($maximum, useGrouping: "false") } UTF-8 바이트 이내로 입력하세요. 제어 문자는 탭과 줄바꿈만 사용할 수 있습니다.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-max-runs-invalid = 1부터 { NUMBER($maximum, useGrouping: "false") } 사이의 정수를 입력하거나, 실행 횟수를 제한하지 않으려면 비워 두세요.
+
+# Required structured chat target; a missing selection blocks saving.
+schedules-form-target-required = 예약에 사용할 에이전트와 폴더를 선택하세요.
+
+## Node-only editor preview failures
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-mismatched = 머신에서 규칙과 다르거나 불완전한 미리보기를 받았습니다. 실행 시각을 표시할 수 없습니다.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown-zone = 이 머신에서 해당 시간대를 지원하지 않습니다. 다른 시간대를 선택하거나 머신을 업데이트하세요.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown-cadence = 이 종류의 예약을 미리 보려면 머신을 업데이트하세요.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-no-future-run = 머신에서 지원하는 기간 안에 이 규칙으로 실행할 시각 세 개를 찾을 수 없습니다.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-out-of-range = 선택한 시각이 머신에서 지원하는 범위를 벗어납니다.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown = 머신의 미리보기 거절 사유를 보려면 앱을 업데이트하세요.

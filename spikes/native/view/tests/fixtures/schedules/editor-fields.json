@@ -1,0 +1,15 @@
+[
+  {"id":"blank-unlimited","input":"","kind":"unlimited"},
+  {"id":"whitespace-unlimited","input":"   ","kind":"unlimited"},
+  {"id":"whole-count","input":"12","kind":"value","value":12},
+  {"id":"trimmed-whole-count","input":" 12 ","kind":"value","value":12},
+  {"id":"minimum-count","input":"1","kind":"value","value":1},
+  {"id":"maximum-count","input":"1000000","kind":"value","value":1000000},
+  {"id":"zero-is-not-unlimited","input":"0","kind":"range"},
+  {"id":"outside-maximum","input":"1000001","kind":"range"},
+  {"id":"negative-count","input":"-1","kind":"number"},
+  {"id":"fractional-count","input":"1.5","kind":"number"},
+  {"id":"suffix-is-not-a-count","input":"12runs","kind":"number"},
+  {"id":"representation-overflow","input":"4294967296","kind":"number"},
+  {"id":"non-ascii-digit","input":"１２","kind":"number"}
+]

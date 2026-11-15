@@ -2,6 +2,9 @@
 //! submission uses the validated value and the revision that was opened.
 
 pub mod cadence;
+pub mod definition;
+pub mod fields;
+pub mod preview;
 
 use thiserror::Error;
 use vessel_proto::SessionMode;
