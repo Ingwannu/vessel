@@ -553,3 +553,16 @@ The prior remote eed5 narrow remains pinned to its earlier admission/editor
 source, not these subsequent Kit/RPC deltas. No queued job is changed/relabelled
 as later-source evidence; final changed-head checks and one F1 package gate
 remain owed. Root registration/connection fan-out remains exactly one place.
+
+## Bundled zone choice boundary
+
+The future searchable zone control can build typed choices once through
+editor::zones::bundled. Explicit jiff TimeZoneDatabase::bundled uses embedded
+data, never filesystem/system discovery in View. Native jiff is pinned0.2.39
+with the node's bundled feature; no dependency/evaluator is added. Unknown or
+malformed bundle data fails as a typed whole-list error rather than silently
+skipping names or inventing UTC. Tests check Seoul/London/NewYork/UTC and
+strict sorted uniqueness; not executed yet. The form still must use the known
+viewer zone by default, preserve an opened rule zone even if absent from this
+app's older bundle, and offer explicit selection when the viewer is unknown.
+No preview/next_due is derived from this list; the node remains authoritative.
