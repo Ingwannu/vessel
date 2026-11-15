@@ -232,7 +232,8 @@ const fn forwardable(method: Method) -> bool {
         | Method::UnsubscribePush
         | Method::ReportPushPresence
         // Protocol 12: searching every session's messages.
-        | Method::SearchMessages
+        | Method::ListSessionPrompts
+            | Method::SearchMessages
         // Protocol 12: parking and waking a session's agent.
         | Method::ParkSession
         | Method::WakeSession

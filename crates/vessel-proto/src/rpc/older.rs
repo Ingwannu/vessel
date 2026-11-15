@@ -291,6 +291,7 @@ impl Reply {
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
+            | Self::ListSessionPrompts(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::GetAgentHistory(_) => None,

@@ -5,6 +5,8 @@ use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
+mod prompt_index;
+
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
     let (client, served, _) = raw_client_with_node(version).await;

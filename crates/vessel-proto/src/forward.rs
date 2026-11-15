@@ -417,6 +417,7 @@ impl Method {
             | Self::GetInboxEntry
             | Self::MarkInbox
             // Protocol 12: a search reads, as `session.read` does.
+            | Self::ListSessionPrompts
             | Self::SearchMessages
             // Parking acts on a session as a prompt does.
             | Self::ParkSession

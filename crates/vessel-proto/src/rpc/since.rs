@@ -261,6 +261,7 @@ impl Call {
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
+            | Self::ListSessionPrompts(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)

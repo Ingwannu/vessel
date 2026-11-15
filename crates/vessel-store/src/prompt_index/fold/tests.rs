@@ -42,39 +42,45 @@ fn chunked_history_steering_and_rewind_produce_only_visible_prompts() {
         prompt(0, "first"),
         agent(
             1,
+            AgentEvent::MessageChunk {
+                content: text("first reply"),
+            },
+        ),
+        agent(
+            2,
             AgentEvent::UserMessageChunk {
                 content: text("  한"),
             },
         ),
-        record(2, SessionEvent::Woken),
+        record(3, SessionEvent::Woken),
         agent(
-            3,
+            4,
             AgentEvent::UserMessageChunk {
                 content: text("글\n history"),
             },
         ),
         agent(
-            4,
+            5,
             AgentEvent::MessageChunk {
                 content: text("assistant is excluded"),
             },
         ),
         agent(
-            5,
+            6,
             AgentEvent::Steered {
                 content: vec![text("steered")],
             },
         ),
-        prompt(6, "superseded"),
+        prompt(7, "superseded"),
         record(
-            7,
+            8,
             SessionEvent::Rewound {
-                after: EventSeq::new(5),
+                after: EventSeq::new(6),
                 harness_session: "fake-history".parse().unwrap(),
                 files_changed: 0,
             },
         ),
-        prompt(8, "new branch"),
+        prompt(9, "new branch"),
     ] {
         index.take(&event).unwrap();
     }
@@ -86,12 +92,53 @@ fn chunked_history_steering_and_rewind_produce_only_visible_prompts() {
             .collect::<Vec<_>>(),
         [
             (0, "first"),
-            (1, "한글 history"),
-            (5, "steered"),
-            (8, "new branch")
+            (2, "한글 history"),
+            (6, "steered"),
+            (9, "new branch")
         ]
     );
-    assert_eq!(page.epoch().rewound_at(), Some(EventSeq::new(7)));
+    assert_eq!(page.epoch().rewound_at(), Some(EventSeq::new(8)));
+}
+
+#[test]
+fn chunks_after_a_turn_start_extend_its_one_prompt_instead_of_duplicating_it() {
+    let mut index = Index::default();
+    index.take(&prompt(0, "한")).unwrap();
+    index
+        .take(&agent(
+            1,
+            AgentEvent::UserMessageChunk {
+                content: text("글"),
+            },
+        ))
+        .unwrap();
+    let page = index.page(EventSeq::ZERO, request()).unwrap();
+    assert_eq!(page.entries().len(), 1);
+    assert_eq!(page.entries()[0].seq, EventSeq::ZERO);
+    assert_eq!(page.entries()[0].preview.as_str(), "한글");
+}
+
+#[test]
+fn work_and_metadata_budgets_refuse_without_silently_omitting_prompts() {
+    let mut scanned = Index {
+        scanned: SCAN_RECORDS,
+        ..Default::default()
+    };
+    assert!(matches!(
+        scanned.take(&prompt(0, "excess")),
+        Err(StoreError::PromptIndexRecords)
+    ));
+    let mut index = Index::default();
+    let record = prompt(0, "bounded");
+    for seq in 0..=INDEX_ENTRIES {
+        let mut entry = record.clone();
+        entry.seq = EventSeq::new(u64::try_from(seq).unwrap());
+        index.take(&entry).unwrap();
+    }
+    assert!(matches!(
+        index.page(EventSeq::ZERO, request()),
+        Err(StoreError::PromptIndexPrompts)
+    ));
 }
 
 #[test]

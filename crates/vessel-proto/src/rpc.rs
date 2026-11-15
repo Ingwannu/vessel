@@ -459,6 +459,8 @@ macro_rules! method_table {
             // Protocol 12, track A2: the conversation, further.
             /// Search every session's messages (protocol 12, ADR 0037).
             SearchMessages / search_messages / "session.search" [Read, 12, unary]: $crate::search::SearchMessages => $crate::search::SearchPage;
+            /// Ordered prompt metadata for outline navigation; pending consumer integration.
+            ListSessionPrompts / list_session_prompts / "session.prompts" [Read, (pending $crate::prompt_index::PROMPT_INDEX_PROTOCOL), unary]: $crate::prompt_index::ListSessionPrompts => $crate::prompt_index::PromptIndexPage;
             /// Stop an idle session's agent, keeping the session (protocol 12, ADR 0038).
             ParkSession / park_session / "session.park" [Operate, 12, unary]: $crate::parking::ParkSession => $crate::SessionInfo;
             /// Start a parked session's agent again (protocol 12).

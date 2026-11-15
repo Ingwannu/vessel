@@ -194,6 +194,7 @@ untargeted!(
     vessel_proto::limits::SetUsageLookup,
     // Protocol 12: a search reads, and reads are not ownership-checked.
     vessel_proto::search::SearchMessages,
+    vessel_proto::prompt_index::ListSessionPrompts,
     // The node's settings: no session's.
     vessel_proto::settings::GetNodeSettings,
     vessel_proto::settings::SetNodeSettings,

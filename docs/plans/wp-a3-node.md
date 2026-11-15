@@ -1,7 +1,7 @@
 # Session prompt index
 
-Status: proposed contract; additive wire row awaits the integrator's shared
-pending-method table and Quality B. No protocol number is assigned here.
+Status: contract, snapshot projection and pending RPC row implemented; validation
+is pending. Quality B is merged from 29eebb8b. No protocol number is assigned here.
 
 ## Reference and asset check
 
@@ -62,7 +62,9 @@ nested forwarding admission are tested via the common method-table policy.
 
 `vessel-proto::prompt_index`: validated values and pending protocol constant.
 `vessel-store::prompt_index`: snapshot read and pure folding, no harness access.
-`vessel-node::service::prompt_index`: session/read admission and semaphore only.
+`vessel-node::service::prompt_index`: typed delegation through the existing store
+handle. The method table owns Read scope and pending protocol admission; the store
+owns a two-scan semaphore whose permit stays inside blocking work after cancellation.
 Native `link` consumes it after integration; its view state retains session,
 revision and correlation identity. No crate dependency changes.
 
@@ -73,7 +75,8 @@ per commit; complete root gate and TS freshness once for the node package.
 
 ## Resume point
 
-Done: reference read, node gap verified, contract designed; shared pending-row
-support announced by integrator but its green head not yet consumed.
-Next: typed values and pure fold/store tests, service, pending registration after
-the common head is announced, gates and node review; then native consumption.
+Done: typed values, pure fold/store tests, pending registration and service, raw
+client/server refusal tests for direct calls and all three fleet envelopes, and
+deterministic abandoned-running/queued-scan admission regression. All await compile.
+Next: narrow checks, TS generation, scan latency measurement, root gate and node
+review; then integrator protocol assignment and native consumption.

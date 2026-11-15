@@ -59,11 +59,12 @@ impl Index {
                 for block in content {
                     push(&mut preview, block);
                 }
-                self.add(PromptLocation {
-                    seq: record.seq,
+                self.chunked = Some(Chunked {
+                    first: record.seq,
                     timestamp: record.at,
-                    preview: preview.finish(),
-                })
+                    preview,
+                });
+                Ok(())
             }
             AgentEvent::UserMessageChunk { content } => {
                 let chunked = self.chunked.get_or_insert_with(|| Chunked {

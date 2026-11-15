@@ -14,14 +14,25 @@ impl Store {
         &self,
         request: ListSessionPrompts,
     ) -> Result<PromptIndexPage, StoreError> {
+        self.prompt_read(move |reader| reader.prompt_index(request))
+            .await
+    }
+
+    async fn prompt_read<T: Send + 'static>(
+        &self,
+        read: impl FnOnce(&crate::reader::Reader) -> Result<T, StoreError> + Send + 'static,
+    ) -> Result<T, StoreError> {
         let permit = Arc::clone(&self.prompt_reads)
             .try_acquire_owned()
             .map_err(StoreError::PromptIndexBusy)?;
         self.read(move |reader| {
             // A disconnected requester must not release a still-running SQL scan.
             let _place = permit;
-            reader.prompt_index(request)
+            read(reader)
         })
         .await
     }
 }
+
+#[cfg(test)]
+mod tests;
