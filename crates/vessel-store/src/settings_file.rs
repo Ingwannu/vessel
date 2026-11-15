@@ -30,8 +30,12 @@
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
 
-// Dictation keeps its strict wire patch while this owner decodes saved values
-// through a lenient projection, preserving the existing later-file backup rule.
+mod decode;
+
+pub use decode::SettingsDecodeFailure;
+
+// The strict wire patch has a lenient file projection under the same safe
+// diagnostic decoder, preserving the existing later-file backup rule.
 mod dictation;
 
 use std::io;
@@ -72,9 +76,9 @@ pub enum SettingsFileError {
     Parse {
         /// The file.
         path: PathBuf,
-        /// What did not parse.
+        /// Safe metadata; the original serde cause stays private inside it.
         #[source]
-        source: serde_json::Error,
+        source: SettingsDecodeFailure,
     },
 }
 
@@ -96,7 +100,7 @@ impl DataDir {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
-        serde_json::from_slice::<dictation::FileSettings>(&text)
+        decode::settings::<dictation::FileSettings>(&text)
             .map(|settings| Some(settings.into_settings()))
             .map_err(|source| SettingsFileError::Parse { path, source })
     }

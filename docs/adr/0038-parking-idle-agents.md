@@ -156,3 +156,26 @@ shows it.
 - `park_after` is whole minutes on the wire and in the flag
   (`ParkAfter`), one at least: a test of the idle park below a minute is
   the session runtime's, not the node's.
+
+## Amendment: settings-file diagnostics (2026-11-15)
+
+Purpose: a mistaken inline credential in an invalid settings block must not
+become a startup log entry. Serde's invalid-type messages can quote the value;
+printing a fixed outer message alone still exposes it through Debug or sources.
+The file decoder therefore retains the serde cause privately behind a safe
+diagnostic. Display, Debug and the public source chain expose only the file
+path, error category and a bounded field-path shape. Map keys and enum names
+are placeholders, since they can themselves be credentials. List indices remain.
+The cost is less precise repair advice; the original file is still set aside
+under the existing recovery rule. No parsing acceptance or storage policy changes.
+
+Reuse decision: extend the store's single startup reader and use the existing
+workspace dependency serde_path_to_error 0.1.20 (MIT OR Apache-2.0, 106,364 bytes
+of unpacked source in the inspected copy; linked-size delta not measured). It
+already belongs to the RPC graph and adds no package/version to the lock.
+Serde JSON alone has no structured field path; reparsing or writing another
+visitor would duplicate validation. RPC's decoder deliberately discards its raw
+cause; the file boundary instead keeps that cause private, without a public
+raw-cause accessor. Explicit strict reload retains its separate acceptance rule.
+A marker test covers error formatting and the complete public source chain;
+a captured startup recovery log covers both move success and move failure.
