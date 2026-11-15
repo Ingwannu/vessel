@@ -492,6 +492,15 @@ teardown = "docker compose down"
   per-repository setting there (under `includeIf "gitdir:…"`) for Vessel
   to use it.
 
+Project-file terminal support is staged (ADR 0066):
+`[[worktree.terminals]]` accepts a `command` and optional `name`, at most
+32 entries. Invalid entries refuse the whole file; names use the existing
+120-character title limit. These entries enter the approval digest, but
+this build does not open them automatically. Its unassigned wire version
+means negotiated clients receive an explicit refusal for such a set until
+integration enables clients that can show it. Existing files without the
+new key retain their approvals.
+
 ### Pull requests
 
 A session placed in a project or a worktree, on a branch other than the

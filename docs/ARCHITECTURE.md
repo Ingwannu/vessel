@@ -1447,3 +1447,14 @@ receives infos without labels; after assignment, older peers do,
 including nested transfer replies and saved/scheduled session specs. One
 optional version constant is assigned at integration; no dependency edge changes.
 Filtering and patch/event ingress follow in the next slices.
+
+## Staged project-file terminal contract (ADR 0066)
+
+`vessel-workspace::project_file::terminals` owns TOML terminal decoding and
+ordered digest fields; it starts no process. `vessel-proto::workspace`
+carries the validated commands into the existing approval snapshot.
+The node describes that snapshot through the existing project-command path;
+reply adaptation refuses it to peers without the assigned field version.
+The CLI's `file_terminals` formatter makes those commands visible. Runtime
+terminal creation, service-port assignment and health are later changes.
+No dependency edge, external dependency or store schema changes.

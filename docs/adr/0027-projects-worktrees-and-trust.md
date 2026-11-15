@@ -271,4 +271,6 @@ The project's file stays `vessel.toml`. ADR 0066 maps each key of
 Paseo's `paseo.json` onto it and does not add a second file Vessel
 executes. Digest versions 1 and 2 stay byte for byte for a file that
 names no terminal, no port block and no service port. A file that names
-one of those is version 3 in the change that starts running it.
+one of those is version 3 before an execution path honors it; the
+parser and approval contract may land first under the unassigned protocol
+gate (ADR 0066, implementation stages).
