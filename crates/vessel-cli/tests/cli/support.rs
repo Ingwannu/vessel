@@ -38,6 +38,7 @@ pub(super) fn within<F: Future>(test: F) -> impl Future<Output = F::Output> {
 /// What a CLI run printed.
 pub(super) struct Ran {
     pub(super) ok: bool,
+    pub(super) status: std::process::ExitStatus,
     pub(super) stdout: String,
     pub(super) stderr: String,
 }
@@ -46,6 +47,7 @@ impl From<Output> for Ran {
     fn from(output: Output) -> Self {
         Self {
             ok: output.status.success(),
+            status: output.status,
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         }

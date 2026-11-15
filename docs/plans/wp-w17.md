@@ -20,7 +20,9 @@ Paseo shared options and exits: `packages/cli/src/cli.ts:48-60`, `output/index.t
 `utils/command-options.ts:46`, `utils/daemon-target.ts:6`, `run.ts:53-59`.
 Paseo table/json/yaml, --json precedence, quiet IDs, no-headers/no-color; help/version 0,
 parse errors 1, runtime errors 1. Ordinary returned agent timeout/permission/error states are
-exit 0. Existing Vessel clap parse errors are 2; this is a stated baseline difference to fix.
+exit 0. Baseline Vessel clap parse errors were 2; the current main edge maps parser
+failures to1 and help/version to0. An exact process exit-code regression is now drafted;
+no executed latest-head exit-code claim is made.
 Paseo --host and --home are mutually exclusive. Vessel uses --node and --data-dir and a local
 node book; daemon host registrations must not be emulated by mutating that local book.
 
@@ -1004,3 +1006,15 @@ regressions cover missing source vs a prompt+image without touching the file.
   root/dispatch regression uses an invalid node URI to prove the dependency refusal
   precedes connection parsing, and checks native list remains admitted. No new call,
   workspace ID inference or parser-only parity claim is made.
+
+
+### Explicit process exit evidence fixture (2026-11-15 13:35 UTC)
+
+The shared main edge already uses try_parse_from and explicitly returns1 for parse
+failures,0 for help/version, but the older baseline wording still said this was
+unfixed. Corrected that wording. Test Ran now retains the actual OS ExitStatus,
+so checks can distinguish1 from merely nonzero. A new real executable regression
+uses a fresh private home without starting a node: help/version0, missing/unknown
+arguments1, typed provider dependency refusal1 with empty stdout and a decoded
+Unsupported stderr envelope. It also asserts the home stays empty. This is a drafted
+regression, not a claimed new runtime pass; the current dd33 strict run predates it.

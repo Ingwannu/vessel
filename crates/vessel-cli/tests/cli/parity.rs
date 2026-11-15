@@ -21,6 +21,32 @@ struct Inspected {
     cwd: String,
 }
 
+#[tokio::test]
+async fn help_version_parse_and_dependency_exits_match_the_cli_contract_without_node_work() {
+    within(async {
+        let root = tempfile::tempdir().unwrap();
+        for args in [vec!["--help"], vec!["--version"]] {
+            let result = crate::support::vessel_in(root.path(), &args, b"").await;
+            assert_eq!(result.status.code(), Some(0), "{}", result.stderr);
+            assert!(!result.stdout.is_empty());
+        }
+        for args in [vec!["agent", "send"], vec!["not-a-command"]] {
+            let result = crate::support::vessel_in(root.path(), &args, b"").await;
+            assert_eq!(result.status.code(), Some(1), "{}", result.stderr);
+            assert!(result.stdout.is_empty());
+            assert!(!result.stderr.is_empty());
+        }
+        let refused =
+            crate::support::vessel_in(root.path(), &["provider", "ls", "--json"], b"").await;
+        assert_eq!(refused.status.code(), Some(1));
+        assert!(refused.stdout.is_empty());
+        let decoded: FailureEnvelope = serde_json::from_str(&refused.stderr).unwrap();
+        assert_eq!(decoded.error.code, vessel_proto::ErrorCode::Unsupported);
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    })
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknowledgements() {
     within(async {
