@@ -135,7 +135,20 @@ impl LocalNode {
     /// # Errors
     /// Admission, files, readiness, identity, authentication or startup deadline.
     pub async fn start(launch: Launch) -> Result<Self, LocalNodeError> {
-        let (lease, logs) = tokio::time::timeout(START_DEADLINE, open(&launch))
+        Self::start_observed(launch, |_logs| {}).await
+    }
+
+    /// Retain the bounded stderr reader before readiness, so a startup failure
+    /// can offer diagnostics without weakening child cleanup or exposing logs
+    /// in the error itself. The observer receives no process-control authority.
+    ///
+    /// # Errors
+    /// The same admission, authentication, readiness and deadline causes as start.
+    pub async fn start_observed(
+        launch: Launch,
+        on_logs: impl FnOnce(LogReader),
+    ) -> Result<Self, LocalNodeError> {
+        let (lease, logs) = tokio::time::timeout(START_DEADLINE, open(&launch, on_logs))
             .await
             .map_err(|source| LocalNodeError::Deadline {
                 operation: Operation::Start,
@@ -284,7 +297,10 @@ async fn serving(client: &NodeClient) -> Result<(), LocalNodeError> {
     }
 }
 
-async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), LocalNodeError> {
+async fn open(
+    launch: &Launch,
+    on_logs: impl FnOnce(LogReader),
+) -> Result<(Lease, Option<LogReader>), LocalNodeError> {
     let _permit = launch.home().start_permit().await?;
     if let Some(identity) = launch.home().identity().await? {
         match connect(launch, &identity).await {
@@ -300,7 +316,7 @@ async fn open(launch: &Launch) -> Result<(Lease, Option<LogReader>), LocalNodeEr
             Err(error) => return Err(error),
         }
     }
-    let (mut child, ready) = Owned::start(launch).await?;
+    let (mut child, ready) = Owned::start(launch, on_logs).await?;
     let identity = launch
         .home()
         .identity()

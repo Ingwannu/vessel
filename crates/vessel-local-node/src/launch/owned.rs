@@ -46,7 +46,10 @@ impl KeptNode {
 }
 
 impl Owned {
-    pub(crate) async fn start(launch: &Launch) -> Result<(Self, Ready), LaunchError> {
+    pub(crate) async fn start(
+        launch: &Launch,
+        on_logs: impl FnOnce(LogReader),
+    ) -> Result<(Self, Ready), LaunchError> {
         let Spawned {
             child,
             stdin,
@@ -58,6 +61,7 @@ impl Owned {
             child,
             logs: LogReader::collect(stderr),
         };
+        on_logs(owned.logs());
         // Probe one extra byte, so oversized input cannot look like a valid
         // truncated record. Reader allocation is capped before line decoding.
         let limit = u64::try_from(MAX_READY_BYTES.saturating_add(1))
