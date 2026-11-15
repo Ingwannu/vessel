@@ -46,7 +46,9 @@ impl FilePanelSlots {
 }
 
 impl NodeService {
-    async fn run_file_work<T: Send + 'static>(
+    /// Reuse one physical file-task budget; callers construct owned mutation
+    /// futures before entering here so their root snapshot precedes admission.
+    pub(super) async fn run_file_work<T: Send + 'static>(
         &self,
         work: impl Future<Output = Result<T, crate::workspace::WorkspaceError>> + Send + 'static,
     ) -> Result<T, WireError> {
@@ -76,8 +78,7 @@ impl NodeService {
         _: &Connection,
         request: DuplicateFileEntry,
     ) -> Result<DuplicatedFileEntry, WireError> {
-        let workspaces = Arc::clone(&self.workspaces);
-        self.run_file_work(async move { workspaces.duplicate_file_entry(request).await })
+        self.run_file_work(self.workspaces.duplicate_file_entry(request))
             .await
     }
 

@@ -77,13 +77,10 @@ async fn queued_change(reader: Reader, changed: ChangedFact) {
     drop(occupied);
     let error = answer.await.unwrap().unwrap_err();
     match reader {
-        Reader::History => assert!(
-            matches!(&error, WorkspaceError::GitTargetChanged),
-            "{error:?}"
-        ),
+        Reader::History => assert!(matches!(&error, WorkspaceError::TargetChanged), "{error:?}"),
         Reader::Comparison => assert!(
             matches!(&error, WorkspaceError::SharedComparison(source)
-            if matches!(source.as_ref(), WorkspaceError::GitTargetChanged)),
+            if matches!(source.as_ref(), WorkspaceError::TargetChanged)),
             "{error:?}"
         ),
     }

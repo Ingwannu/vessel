@@ -633,3 +633,43 @@ collector. Keep the full expected declaration and Content classification.
 The old run's wire.patch and status are empty; no fresh wire or generator pass
 is inferred, and that artifact is not applied over the new275 base. Source
 changed Node compilation and current-union generation remain owed.
+
+## File mutations join the existing physical task owner
+
+[Decision Log]
+- Reuse C5's existing run_file_work/spawn_file_work and its four permits plus
+  60-second reply deadline. No new pool, controller, watcher or cache is added.
+  W13 explicitly approved the legacy four wrappers plus DuplicateFileEntry join.
+- The five Workspaces mutation methods are now synchronous constructors of owned
+  futures. They capture the existing registry snapshot BEFORE service admission;
+  the service passes that future directly, not through a later async wrapper.
+  Polling revalidates the SAME snapshot, checks shutdown and opens the original
+  protected root. The comparison Mutation guard lives inside the tracked future
+  through the lower blocking disk operation, including errors. Losing delivery
+  or hitting the reply deadline cannot release physical work, its permit or its
+  post-completion invalidation. Timeout does not prove no effect; never replay
+  automatically. No authorization is inferred from cache invalidation.
+- W11 approved factoring the existing same-snapshot open into a private general
+  root helper. The Git wrapper retains its exact !git refusal; ordinary non-Git
+  files stay writable. The shared inner check also rechecks registry facts after
+  disk opening returns. Original identity/base/default facts are unchanged.
+  Internal TargetChanged replaces the Git-specific name with the same Conflict
+  code; existing typed assertions are renamed, not weakened. Neither equality
+  nor reopening is a RootLease, inode/generation fence or atomic filesystem lease.
+- Invalidation remains scoped as before: local working changes for that root,
+  not invented nested-project authority or arbitrary external paths. It does
+  not implement filesystem observation/push parity. W9's checkpoint restoration
+  still needs its original worktree+project facts joined INSIDE its retained
+  blocking closure; it has no checked hook yet and is not modified here.
+- Seven tests are written/unexecuted: actual legacy mutations, a detached waiter
+  with a comparison refill before real disk completion, original-root capture
+  before task scheduling, actual write followed by a real failing disk step,
+  non-Git edit with preserved Git refusal, actual duplication/returned path and
+  shutdown precedence. Cache storage counts are read only under cfg(test) to
+  avoid TTL sleeps; no product state or authority API is exposed. The partial
+  case tests the shared physical boundary, not an injected real duplicate/restore
+  failure. These are Workspaces/tracked-task tests, not full service wire proof.
+- Source changes outside C3's files are the agreed legacy service/workspace
+  wrappers, common private root factor and C5 run_file_work visibility/call.
+  Caller scopes/handlers/method numbers, ordinary read paths and all lower file
+  implementations are unchanged. All exact union checks remain pending.

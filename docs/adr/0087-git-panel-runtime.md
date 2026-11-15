@@ -303,3 +303,20 @@ Required future fixtures include BMP/supplementary boundaries at72 units,
 versus default (fixed contract preserved), initial plus two schema corrections
 per candidate, provider fallback versus HTTP retry, and original-root/cancel/
 usage settlement. These obligations do not relabel title-service results.
+
+## File-call invalidation follows physical completion
+
+The checked C5 base supplies one bounded tracked file task. Legacy write,
+create-directory, rename, delete and C5 duplicate reuse it; do not nest another
+comparison execution queue. Their owned-future constructors capture the original
+registered-root snapshot before admission. A common private same-snapshot open
+supports ordinary non-Git files while the Git wrapper retains its Git check.
+Registry facts are checked around disk opening, without claiming a RootLease.
+
+The existing comparison Mutation guard belongs INSIDE that actual retained file
+future. Dropping the RPC waiter or timing out delivery is not physical completion
+and cannot end its post-operation invalidation or release its physical permit.
+Errors invalidate too. This joins RPC changes only; external/agent edits still
+need the separately planned repository observer. Checkpoint restore is pending
+its owner's actual worktree/project and blocking-worker join, with no new hook
+claimed here. No automatic replay or known-no-effect inference from timeout.

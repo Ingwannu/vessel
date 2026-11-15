@@ -26,7 +26,7 @@ async fn queued_mutation_revalidates_after_the_project_reservation() {
         drop(held);
         assert!(matches!(
             queued.await.unwrap(),
-            Err(WorkspaceError::GitTargetChanged)
+            Err(WorkspaceError::TargetChanged)
         ));
         fixture.stop.cancel();
         assert!(fixture.tasks.close());

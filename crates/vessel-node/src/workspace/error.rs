@@ -20,8 +20,8 @@ pub(crate) enum WorkspaceError {
     #[error(transparent)]
     GitWriteAdmission(#[from] super::git_writes::WriteAdmission),
     /// Waiting never permits following changed repository or base authority facts.
-    #[error("the repository changed while waiting; refresh before trying again")]
-    GitTargetChanged,
+    #[error("the registered folder changed while waiting; refresh before trying again")]
+    TargetChanged,
     /// A tracked project/backing operation stopped; retain its actual task cause.
     #[error("the project operation stopped")]
     ProjectTask(#[source] ProjectTaskCause),
@@ -174,7 +174,7 @@ impl WorkspaceError {
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
-            Self::Conflict(_) | Self::GitTargetChanged => ErrorCode::Conflict,
+            Self::Conflict(_) | Self::TargetChanged => ErrorCode::Conflict,
             Self::Busy(_)
             | Self::GitWriteAdmission(_)
             | Self::Git(GitError::TimedOut { .. })

@@ -363,4 +363,11 @@ impl<V> Cache<V> {
 }
 
 #[cfg(test)]
+impl<T> Cache<T> {
+    pub(in crate::workspace::comparison) fn completed_for_test(&self) -> usize {
+        self.completed.len()
+    }
+}
+
+#[cfg(test)]
 mod tests;

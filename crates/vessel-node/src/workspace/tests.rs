@@ -2,6 +2,7 @@
 //! machine's real git isolated from its configuration.
 
 mod comparison;
+mod file_mutations;
 mod git_history;
 mod git_writes;
 

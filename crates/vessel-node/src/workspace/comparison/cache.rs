@@ -211,6 +211,10 @@ impl Drop for Mutation<'_> {
 
 #[cfg(test)]
 impl Reader {
+    // Observe actual storage, not a TTL-sensitive second read or a fake cache.
+    pub(in crate::workspace) fn cached_payloads_for_test(&self) -> usize {
+        self.state.lock().unwrap().cache.completed_for_test()
+    }
     pub(in crate::workspace) fn hold_execution_for_test(
         &self,
     ) -> tokio::sync::OwnedSemaphorePermit {

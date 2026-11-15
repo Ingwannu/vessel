@@ -42,10 +42,13 @@ impl NodeService {
         _: &Connection,
         request: WriteFile,
     ) -> Result<FileVersion, WireError> {
-        self.workspaces
-            .write_file(request.root, &request.path, request.text, request.expect)
-            .await
-            .map_err(|error| wire(&error))
+        self.run_file_work(self.workspaces.write_file(
+            request.root,
+            &request.path,
+            request.text,
+            request.expect,
+        ))
+        .await
     }
 
     /// `file.create_dir`.
@@ -54,11 +57,9 @@ impl NodeService {
         _: &Connection,
         request: CreateDir,
     ) -> Result<Ack, WireError> {
-        self.workspaces
-            .create_dir(request.root, &request.path)
+        self.run_file_work(self.workspaces.create_dir(request.root, &request.path))
             .await
             .map(|()| Ack)
-            .map_err(|error| wire(&error))
     }
 
     /// `file.rename`.
@@ -67,11 +68,12 @@ impl NodeService {
         _: &Connection,
         request: RenamePath,
     ) -> Result<Ack, WireError> {
-        self.workspaces
-            .rename_path(request.root, &request.from, &request.to)
-            .await
-            .map(|()| Ack)
-            .map_err(|error| wire(&error))
+        self.run_file_work(
+            self.workspaces
+                .rename_path(request.root, &request.from, &request.to),
+        )
+        .await
+        .map(|()| Ack)
     }
 
     /// `file.delete`.
@@ -80,11 +82,13 @@ impl NodeService {
         _: &Connection,
         request: DeletePath,
     ) -> Result<Ack, WireError> {
-        self.workspaces
-            .delete_path(request.root, &request.path, request.recursive)
-            .await
-            .map(|()| Ack)
-            .map_err(|error| wire(&error))
+        self.run_file_work(self.workspaces.delete_path(
+            request.root,
+            &request.path,
+            request.recursive,
+        ))
+        .await
+        .map(|()| Ack)
     }
 
     /// `file.find`.

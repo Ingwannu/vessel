@@ -133,13 +133,29 @@ impl Workspaces {
         root: WorkspaceRoot,
         before: &Snapshot,
     ) -> Result<Resolved, WorkspaceError> {
-        let current = self.root_snapshot(root)?;
-        if &current != before {
-            return Err(WorkspaceError::GitTargetChanged);
-        }
-        let resolved = self.resolve_snapshot(current).await?;
+        let resolved = self.resolve_unchanged_root(root, before).await?;
         if !resolved.git {
             return Err(WorkspaceError::NotGit);
+        }
+        Ok(resolved)
+    }
+
+    /// Share the same snapshot check/open for ordinary file operations too.
+    /// The Git wrapper above keeps its stricter repository requirement.
+    pub(super) async fn resolve_unchanged_root(
+        &self,
+        root: WorkspaceRoot,
+        before: &Snapshot,
+    ) -> Result<Resolved, WorkspaceError> {
+        let current = self.root_snapshot(root)?;
+        if &current != before {
+            return Err(WorkspaceError::TargetChanged);
+        }
+        let resolved = self.resolve_snapshot(current).await?;
+        // Opening awaits disk work; registry edits during that await must not
+        // revive the old candidate. This is still not a filesystem lease.
+        if &self.root_snapshot(root)? != before {
+            return Err(WorkspaceError::TargetChanged);
         }
         Ok(resolved)
     }
