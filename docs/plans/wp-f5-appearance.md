@@ -367,3 +367,13 @@ constructing kit internals or a second renderer. It accepts no plugin ids or
 wire values. The added actual-projection test covers custom alpha, same-dark
 replacement, component colours, retained typography/syntax and switching back
 to a built-in; execution remains pending the queued focused suite.
+
+The sole app theme adapter now also maps a typed resolved contribution's
+validated packed RGBA values to ContributedColors and compares the complete
+actual Tokens before projecting them. It does not parse strings or collapse
+all dark contributions into one Scheme. The old built-in entry point delegates
+to this same path; the environment override guard remains in Settings. New
+adapter regression independently checks every semantic input/alpha, absent
+accent fallback and ambient independence. Runtime installed-catalog binding
+and checked dependency import remain pending; static offline themes must use
+Registry::installed, never the online-only remote-action resolver (ADR0079).
