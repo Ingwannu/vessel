@@ -15,9 +15,9 @@ use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use vessel_proto::workspace_labels::{
-    AssignWorkspaceLabel, CatalogCursor, CatalogDelta, CatalogList, CatalogRead,
-    DeleteWorkspaceLabel, InspectWorkspaceLabelDelete, Label, ListWorkspaceLabels,
-    UpdateWorkspaceLabel, WorkspaceLabelAssigned, WorkspaceLabelDeleted, WorkspaceLabelUpdated,
+    AssignWorkspaceLabel, CatalogCursor, CatalogList, CatalogRead, DeleteWorkspaceLabel,
+    InspectWorkspaceLabelDelete, Label, ListWorkspaceLabels, UpdateWorkspaceLabel,
+    WorkspaceLabelAssigned, WorkspaceLabelDeleted, WorkspaceLabelUpdated,
 };
 use vessel_store::StoreError;
 

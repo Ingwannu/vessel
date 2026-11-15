@@ -13,9 +13,8 @@ use vessel_proto::{
 };
 
 async fn refused<R: crate::Unary>(client: &NodeClient, request: R) {
-    let error = match client.call(request).await {
-        Ok(_) => panic!("an unavailable label request succeeded"),
-        Err(error) => error,
+    let Err(error) = client.call(request).await else {
+        panic!("an unavailable label request succeeded");
     };
     assert_eq!(error.code(), Some(ErrorCode::Unsupported));
     assert!(matches!(error,

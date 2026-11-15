@@ -189,3 +189,12 @@ The lifecycle owner's checked c88066f2 has no LabelsChanged/SetLabels or metadat
 ordering guarantee. Its new session mutation clock is not assumed to be a label
 revision. Native current-label apply/Ready stays held for an exact tested atomic
 snapshot, typed watermark or causal-read contract; no speculative event/editor.
+
+
+The strict run on5e296 completed RED after reaching Client and Node. Corrected
+one Client-test manual-let-else lint, moved a test-only CatalogDelta import to
+its timing fixture, and changed guarded tests to inspect the actual Outcome
+rather than assuming Result. Scope/error expectations remain the same. Node
+start was101/100 lines; the original guarded-server construction moved verbatim
+into the existing bootstrap owner with the same config/watch/token. No limit or
+allowance was raised. Current execution remains owed after these corrections.

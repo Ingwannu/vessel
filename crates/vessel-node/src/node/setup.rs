@@ -127,6 +127,23 @@ pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local
 }
 
 /// Feature actors share the existing store and startup task/cancellation owners.
+/// Build the original guarded RPC server in the bootstrap owner, keeping node
+/// assembly within its function budget when feature teardown gains a field.
+/// The configuration, identity watch and closing token are passed unchanged.
+pub(super) fn rpc_server(
+    config: &Config,
+    service: &Arc<crate::guard::Guarded>,
+    lifecycle: &crate::lifecycle::Lifecycle,
+    closing: &tokio_util::sync::CancellationToken,
+) -> Arc<vessel_rpc::Server<crate::guard::Guarded>> {
+    Arc::new(vessel_rpc::Server::new(
+        Arc::clone(service),
+        lifecycle.watch_info(),
+        config.rpc.clone(),
+        closing.clone(),
+    ))
+}
+
 /// Kept here so node assembly remains registrations rather than growing setup logic.
 pub(super) struct FeatureState {
     pub(super) push: Arc<crate::push::Push>,

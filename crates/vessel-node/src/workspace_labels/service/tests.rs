@@ -5,7 +5,9 @@ use std::sync::Mutex;
 
 use vessel_proto::{
     WorkspaceId,
-    workspace_labels::{Assignment, CatalogMode, LabelColor, LabelCount, WorkspaceLabelFailure},
+    workspace_labels::{
+        Assignment, CatalogDelta, CatalogMode, LabelColor, LabelCount, WorkspaceLabelFailure,
+    },
 };
 
 use super::*;

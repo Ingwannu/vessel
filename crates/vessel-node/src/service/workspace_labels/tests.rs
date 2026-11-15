@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 use vessel_client::NodeClient;
 use vessel_harness::{HarnessEnv, Lookup};
 use vessel_proto::{
-    Call, ClientInfo, DeviceId, ErrorCode, NodeId, Origin, OriginBy, ProjectId, Reply,
+    Call, ClientInfo, DeviceId, ErrorCode, NodeId, Origin, OriginBy, Outcome, ProjectId, Reply,
     Request as _, Scope, SessionId, WorkspaceId,
     registry::{
         RegistryRevision, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
@@ -159,23 +159,22 @@ async fn workspace_labels_guarded_handlers_keep_scopes_person_only_and_real_stor
         let permitted = call.method().scope() == Some(Scope::Read);
         let result = vessel_proto::dispatch(&*fixture.guarded, &readonly, call.clone()).await;
         if permitted {
-            assert!(result.is_ok());
+            assert!(matches!(result, Outcome::Ok(_)));
         } else {
-            assert_eq!(result.unwrap_err().code, ErrorCode::Forbidden);
+            assert!(matches!(result, Outcome::Err(error) if error.code == ErrorCode::Forbidden));
         }
-        assert_eq!(
-            vessel_proto::dispatch(&*fixture.guarded, &agent, call)
-                .await
-                .unwrap_err()
-                .code,
-            ErrorCode::Forbidden
-        );
+        assert!(matches!(
+            vessel_proto::dispatch(&*fixture.guarded, &agent, call).await,
+            Outcome::Err(error) if error.code == ErrorCode::Forbidden
+        ));
     }
     assert!(store.workspace_label_catalog().await.unwrap().is_empty());
     for call in calls(workspace) {
-        let result = vessel_proto::dispatch(&*fixture.guarded, &fixture.connection, call)
-            .await
-            .unwrap();
+        let Outcome::Ok(result) =
+            vessel_proto::dispatch(&*fixture.guarded, &fixture.connection, call).await
+        else {
+            panic!("the person's owner call must reach the label handler");
+        };
         if let Reply::InspectWorkspaceLabelDelete(inspected) = &result {
             assert_eq!(inspected.affected.get(), 1);
         }

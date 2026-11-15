@@ -17,7 +17,6 @@ use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
-use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
@@ -128,12 +127,7 @@ impl Node {
         } = core(&config, id, &store, &keypair, relay, setup, started).await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
-        let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
-            config.rpc.clone(),
-            closing.clone(),
-        ));
+        let rpc = setup::rpc_server(&config, &service, &lifecycle, &closing);
         let token = Arc::new(token);
         let connections = TaskTracker::new();
 
