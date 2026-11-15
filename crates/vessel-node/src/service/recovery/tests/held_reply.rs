@@ -124,7 +124,7 @@ impl Scenario {
             }
         }
     }
-    async fn killed(&self, first: Held) -> vessel_session::SessionHandle {
+    async fn killed(&self, first: Held) -> SessionHandle {
         let sessions = &self.node.secure.service.0.sessions;
         let mut ended = sessions.ends();
         let original = sessions.runtime_handle(first.session).unwrap();

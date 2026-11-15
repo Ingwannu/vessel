@@ -304,3 +304,10 @@ opaque document and operation lane supplied by the settings implementation;
 this package's old parallel record and FIFO are to be removed at that joint
 join. The recovery hook is developed against the agreed shared-owner contract,
 with no second file writer, parser or admission quota.
+
+
+The first changed-tree Kill repair strict run failed at three test-related
+lints (unnecessary qualification, unwrap inside a Result-returning observer,
+and use of an underscore binding). They are corrected without an admission,
+barrier, assertion or duration change. That red run remains predecessor evidence;
+no positive repair execution or joint package gate is claimed yet.
