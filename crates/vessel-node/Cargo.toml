@@ -18,11 +18,18 @@ path = "src/main.rs"
 # with this feature, vesseld's product arguments/environment stay real.
 [features]
 forge-fixture = ["vessel-forge/fake"]
+local-node-fixture = []
 
 [[bin]]
 name = "vessel-forge-fixture"
 path = "src/bin/forge_fixture.rs"
 required-features = ["forge-fixture"]
+
+# A real, isolated node with an explicit lifecycle barrier for the owned-peer race.
+[[bin]]
+name = "vessel-local-node-fixture"
+path = "src/bin/local_node_fixture.rs"
+required-features = ["local-node-fixture"]
 
 [dependencies]
 # A member's calls to its fleet's home (`fleet.*` over the secure channel,

@@ -377,6 +377,18 @@ Launcher-exit behavior is qualified separately on each OS. Ordinary Child drop
 still kills its group/job.
 These conditions and adversarial tests are reviewed before implementation.
 
+The owned-peer correction in `docs/plans/desktop-owned-peer-binding.md` requires
+the opened IPC peer to be proven before any persistent token is sent. A NodeId
+Ready record alone is not a process-instance association. Unix uses kernel peer
+credentials; Windows uses one fresh single-instance pipe, one public challenge
+echoed through the retained child's stdout, and the same handle for subsequent
+authentication/RPC. No unsafe exception or new public wire RPC is introduced.
+The feature-gated node-package local-node fixture follows the forge-fixture
+precedent: real Node runtime, private fixture control module, no shipped entry,
+no new dependency edge or local-node test hook. Shared RPC source waits until
+W19's caller-drop fence is on the announced node head. These are correction
+requirements, not a claim that the returned4cb implementation already proves them.
+
 The release-capable launch is explicit: standard Proc spawn retains Windows
 KillOnDrop/kill-on-close; only spawn_releasable creates a job that can survive a
 hard launcher crash even before detach. Its owned Child still performs RAII error
