@@ -598,3 +598,69 @@ execution. Current source does not yet implement this amendment. Public/internal
 notice separation approved for ADR0033 remains a distinct joint contract: W18
 first supplies the exact bounded NoticeKey and captured parent/grant. No internal
 namespace field or new TimelineNotification body id is introduced here.
+
+### Joint ADR0033 private notice admission attachment (contract only)
+
+The aligned ADR0033 source is the docs-only amendment through 69a682be1. Its
+NoticeKey is { owner: NodeId, intent: FinishIntentId, checkpoint }, where intent
+is a node-minted UUID and checkpoint is closed NeedsYou { request: PermissionId
+or QuestionId, source: EventSeq }, Terminal { source: EventSeq }, or the singleton
+ObservationUnavailable. Owner is the actual local receipt owner; exact target
+node/session, source execution and captured parent/grant live in the immutable
+intent. Public SubmitPrompt/ObservePromptReceipt cannot select this namespace.
+The authenticated internal producer never defaults to Creator::Owner.
+
+The shared retained owner reserves named envelopes before intent storage or its
+original dispatch: 512 encoded bytes maximum notice key, 16 KiB encoded captured
+payload including its randomized fence, 32 KiB complete notice state, 64 KiB full
+canonical original finish-registration request, and 128 KiB complete non-payload
+intent state. The 64 KiB request bound is a deliberate internal registration
+floor; it is not a bound on ordinary generic SubmitPrompt. Reserve one intent
+plus NEEDS_YOU_MAX+1 complete checkpoint envelopes/row charges AND record slots
+atomically against the existing session/node count and byte ceilings. Capturing
+ObservationUnavailable irrevocably ends observation, so that final slot is for
+terminal OR unavailable. Its pending delivery can remain uncertain but cannot
+later add another terminal checkpoint. Existing-key lookup works at capacity.
+No captured field may outgrow its already reserved worst-case envelope.
+
+Only committed authorized whole-parent-session removal releases the intent,
+checkpoint and receipt reservations. Retention qualifies only by doing that same
+whole removal. Acknowledgement, ordinary pruning, replacement, grant revocation
+and uncertainty retain tombstones/charges. Startup verifies encoded bounds and
+derived accounting instead of resetting or forgetting replay protection. These
+are logical budgets, not a SQLite/WAL physical-byte or power-loss guarantee.
+
+Private admission returns/replays the exact canonical parent notice EventSeq AND
+QueueEntryId for the same key/fingerprint; later actual-turn binding is separate
+from that immutable acceptance. KeyConflict never overwrites or queues effects;
+Capacity is fresh no-admission; Unobserved/OutcomeUnknown never prove no effect.
+Captured payload/fence/source is immutable before enqueue, queue+event+receipt
+commit atomically or through an equivalent recoverable transaction in this same
+owner, and a failed acknowledgement/removal commit never creates another notice.
+No second receipt store, watcher or delivery queue is introduced.
+
+Current parent execution and captured Read/Operate ceiling intersected with the
+current grant/parentage are rechecked after awaits at atomic admission. Serialized
+intent is not a capability. Only the lifecycle owner's authoritative recovery of
+the same committed execution may rebind it; explicit resume, person stop, archive,
+detach or a new execution cannot do so. Current scopes/is_live snapshots alone
+are insufficient. Replacement/removal uses the exact captured intent id, so a
+late old callback cannot retire or mutate its replacement. Lack of that real
+shared fence leaves admission unsupported, never an Owner fallback.
+
+Canonical TimelineNotification stays {level,message}, identified by its own
+EventRecord.seq. Trusted internal provenance links later queue delivery to that
+notice sequence, so consumers do not append an extra ordinary-user bubble while
+still counting a real provider turn. Notice enqueue itself invents no turn.
+This provenance is display/control correlation, never caller authority; any
+additive client carrier remains under the same None gate and its exact typed
+wire join requires review before activation. No new SessionEvent presentation
+union, notification body id, opaque payload inspection or OS/Inbox owner follows.
+A pruned snapshot without the original source EventSeq cannot invent NeedsYou;
+use the retained exact checkpoint or explicit unavailable/uncertain outcome.
+
+The private fence, durable binding, read-only method and atomic notice join are
+implementation obligations, not existing APIs or runtime proof. V3 reviews this
+joint contract before code. Actual restart/fault, saturation, supersession,
+parent/grant revocation, queued-turn, old-peer/forwarded and renderer regressions
+remain required before either package claims durable finish-notification parity.

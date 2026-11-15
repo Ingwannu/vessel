@@ -59,3 +59,11 @@ web preflight. The recovery method is one staged row under TIMELINE_PARITY None
 with a deny policy line and merge-assigned number. The concrete observation and
 separate binding unions are now specified in ADR0084 for V3 contract review
 before implementation. The exact W18 NoticeKey/grant packet is still separate.
+
+Joint review source is now aligned with W18's final docs-only ADR0033 amendment
+0c8124d2a..69a682be1. ADR0084 records the exact private key, finite reservation
+ceilings, terminal-or-unavailable slot rule, whole-parent-only cleanup, captured
+current-lifetime/grant fence and same queue/event acceptance. Existing Paseo
+receipt and actor-ticket references remain the comparison; the durable recovery
+lookup/private namespace is an explicit Vessel addition, not copied Paseo wire.
+No product code or method is registered by this contract checkpoint.
