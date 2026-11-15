@@ -1527,3 +1527,21 @@ Settings/HostFilter/Form presentations and their tests retain their defaults.
 Style data moved into select/style.rs to keep responsibility and the ordinary
 file budget; no record is raised. The new literal both-theme assertions are
 source-only until the final F1 package check and actual heartbeat first use.
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.
