@@ -11,7 +11,7 @@ use std::{
 };
 use vessel_app_kit::ui::{
     Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _, Styled as _, Window,
-    div,
+    div, px,
 };
 use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_view::prefs::Theme;

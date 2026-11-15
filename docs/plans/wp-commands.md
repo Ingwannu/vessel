@@ -612,3 +612,11 @@ XKB/ASCII normalization. No scan code is invented at the Shell boundary. An
 actual GPUI synthetic event regression supplies a non-Latin typed character plus
 base T through the production interceptor. This proves adapter behavior only;
 macOS Option, Windows AltGr and actual OS layouts remain unverified.
+
+Strict4-crate run wp-commands-narrow-20261115T120545Z-4dc236da ended rc1:
+View/Kit/Link and App analysis were reached, but the new App overlay fixture
+omitted the px import (two E0425 occurrences). Added the missing test-only import;
+no product behavior or lint setting changed. The already queued same-source
+App/Kit test job123242-db95665d was verified by its ticket and local submit PID,
+then canceled queued-only to avoid spending a slot on the known compile failure.
+Replacement waits for that exact job's terminal state; all original logs remain.
