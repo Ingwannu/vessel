@@ -94,7 +94,8 @@ impl Sessions {
             .await
             .map_err(ServiceError::Task)?
     }
-    /// Only `archive_requested` calls this, while holding this node's marking lock.
+    /// Shared by explicit and current-parent child archives, while the caller
+    /// holds this node's marking lock through its admitted completion.
     async fn archive_locked(
         &self,
         session: SessionId,
