@@ -6,6 +6,35 @@ limits. No current C3 capture or final whole-package gate/review exists.
 
 ## Source
 
+**Current checkpoint,16:52 UTC:** the source/check chronology below is retained,
+but the current App Rust head isf1ab56456, after announced6ebdf8e8. Node head
+is34bb9f843, after announced9c150c6e. The isolated control Rust head is4133964f6;
+docs000fc16e5 records V1 bounded SOURCE/requested KitClippy+diff19 clearance,
+with adoption held only for the existing ordinary syntax selection163829.
+The19 passing tests are11 GPUI window tests plus8 ordinary units. No all-Kit,
+App, whole C3, UI/OS or physical-write acceptance follows from that result.
+
+Active registered runs (no retry/duplicate):
+
+- wp-git-narrow-20261115T164951Z-f1ab5645: short/no-priority exact App four-crate
+  all-target strict Clippy, queued. Includes actual15a fixture fixes plus the
+  failclosed unscoped-write barrier.15a remains RED, not relabeled.
+- wp-git-app-tests-20261115T164951Z-f1ab5645: ordinary/no-priority exact View,
+  Link and App all-target git-filter tests, queued. No Kit filter rerun.
+- wp-git-control-tests-20261115T163829Z-4133964f: short/no-priority existing
+  ordinary syntax regression outside the already executed diff filter, queued.
+- wp-git-node-narrow-20261115T162346Z-34bb9f84: ordinary TS generation, queued;
+  retrieve generated artifacts through the helper, never hand-edit wire bytes.
+
+W13's proposed ShownChangesContext/ShownDiffContext retains ORIGINAL acquisition
+Context+root/session receipt+summary/diff tickets; its implementation/checks are
+not ready. Never attach the current Machine context to old drawn facts. Until
+the checked C5/W12 Explorer join, legacy write dispatch deliberately emits Info
+without allocating a key, reserving pending or sending. This is suspended write
+functionality, not parity. The old controller lifecycle still needs real owner
+retirement. W8's common97 hook promotion/real Scripts startup is also unverified;
+do not race those cfg attributes or manufacture a local owner table.
+
 - App work: `backend/wp-c3-git`, announced line e1b73c9e merged as b95213aaf.
   Own code through b0110b040: fa1 token/import correction;762+ae7 move private
   vendor tests to public kit windows; b18+177 pure body projection and original
