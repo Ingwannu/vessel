@@ -1,6 +1,7 @@
 //! Private errors include no backend text; actual PTY launch uses the safe log label.
 use super::*;
 use crate::{PtyProcess, WindowSize};
+use std::fmt::Write as _;
 use std::{error::Error as _, io, time::Duration};
 use vessel_proc::{CommandDiagnostics, CommandSpec, InvalidGroup};
 use vessel_testkit::Fake;
@@ -14,7 +15,7 @@ fn chain(error: &PtyError) -> String {
     let mut text = format!("{error:?} {error}");
     let mut source = error.source();
     while let Some(cause) = source {
-        text.push_str(&format!(" {cause:?} {cause}"));
+        write!(text, " {cause:?} {cause}").unwrap();
         source = cause.source();
     }
     text

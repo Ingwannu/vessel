@@ -3,6 +3,7 @@ use super::*;
 use crate::{InvalidGroup, SpawnError, Stream, spawn};
 use std::error::Error as _;
 use std::ffi::OsStr;
+use std::fmt::Write as _;
 use std::time::Duration;
 use vessel_testkit::Fake;
 
@@ -21,7 +22,7 @@ fn diagnostic_chain(error: &impl std::error::Error) -> String {
     let mut text = format!("{error:?} {error}");
     let mut source = error.source();
     while let Some(cause) = source {
-        text.push_str(&format!(" {cause:?} {cause}"));
+        write!(text, " {cause:?} {cause}").unwrap();
         source = cause.source();
     }
     text

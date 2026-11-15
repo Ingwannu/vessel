@@ -111,6 +111,8 @@ uuid.workspace = true
 web-push-native.workspace = true
 
 [dev-dependencies]
+# portable-pty uses log; exercise that actual bridge, not only tracing events.
+log.workspace = true
 # `test-util`: the probes' cache is checked on a paused clock. Without it
 # here, `cargo test -p vessel-node` alone did not build: the feature came
 # only from other crates of a whole-workspace build.
