@@ -32,8 +32,8 @@ admitted-worker API it is a Linux normal dependency, with no new version. No pro
   deadline fencing. Timeout acknowledges without joining blocked I/O; capacity
   remains occupied until actual cleanup. Candidate persistence and durable Ready
   activation are separate phases; uncertain activation retains the archive.
-  Linux bootstrap installs the real SQL/filesystem bridge and actual actor
-  prompt/TurnEnded hooks. Compilation/runtime verification of that connection
+  Linux bootstrap wires the real SQL/filesystem bridge; actual actor
+  prompt/TurnEnded hooks activate only after FILE_CHECKPOINTS is assigned. Compilation/runtime verification of that connection
   is pending; restore, expiry/GC and recovery controllers remain incomplete.
 - node/service/checkpoints: registered methods explicitly refuse as unavailable.
   Guarded authorization and agent refusal remain in front of the seam. Ordinary
@@ -887,3 +887,23 @@ retires a real capture, proves garbage exists, collects its actual directory,
 and verifies synced absence plus the writer's accounting removal. It closes
 archive handles first. This fixture is unrun; orphan restart integration,
 preview expiry/image rotation and restore recovery remain owed.
+
+### Physical launch binding and the pending activation gate (source; unverified)
+
+Node registration retains the physical root supplied by the actual held startup
+admission through create/resume. This is launch evidence, not another root lock
+or WorkspaceId. After taking the canonical physical guard, capture checks the
+launch binding and rejects a replaced cwd inode or another live session sharing
+that physical root. Unknown live bindings conservatively yield Busy. Root and
+durability visibility publish together, and handover removes both; registry
+locks are never nested with runtime handle locks. The real fake-process fixture
+checks shared-root refusal and stable evidence after a cwd pathname is reused.
+Internal wake/move/fork start admission still needs its own complete bridge.
+
+Bootstrap now gates hook installation on the single FILE_CHECKPOINTS assignment.
+While it remains None, ordinary turns emit no new checkpoint anchor events and
+all pending RPCs stay unavailable. This avoids changing baseline history before
+central activation. The real wire/bootstrap fixture explicitly remains ignored
+until that assignment, rather than being counted as a pass. Private runtime
+and backend fixtures can install the existing typed hooks for pre-activation
+verification. The collector remains wired for already-journaled private work.

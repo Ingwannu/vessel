@@ -12,6 +12,16 @@ pub(crate) enum Admission {
     Detached,
 }
 impl Admission {
+    pub(crate) fn physical(&self) -> Option<vessel_proto::checkpoint::PhysicalRoot> {
+        match self {
+            #[cfg(target_os = "linux")]
+            Self::Held { root, .. } => Some(root.physical()),
+            #[cfg(not(target_os = "linux"))]
+            Self::Held { .. } => None,
+            #[cfg(test)]
+            Self::Detached => None,
+        }
+    }
     pub(crate) const fn new(root: StartGuard, placement: Option<Starting>) -> Self {
         Self::Held { root, placement }
     }

@@ -97,3 +97,66 @@ async fn checkpoint_session_admission_releases_after_registration_or_failed_stor
     fixture.settle().await;
     fixture.stop().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn checkpoint_capture_uses_launch_physical_identity_and_refuses_a_shared_live_root() {
+    use vessel_proto::checkpoint::CheckpointError;
+    let fixture = Fixture::new().await;
+    let (workspaces, stop) = workspace(&fixture).await;
+    let folder = fixture.data.path().join("capture-root");
+    std::fs::create_dir(&folder).unwrap();
+    let admitted = workspaces.admit_start(&folder).await.unwrap();
+    let physical = admitted.physical();
+    let first = fixture
+        .sessions
+        .create(
+            fixture.structured().with_cwd(folder.clone()),
+            LaunchOptions::default(),
+            None,
+            super::super::Admission::new(admitted, None),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        fixture.sessions.checkpoint_root(first.id).unwrap(),
+        physical
+    );
+    let admitted = workspaces.admit_start(&folder).await.unwrap();
+    let second = fixture
+        .sessions
+        .create(
+            fixture.structured().with_cwd(folder.clone()),
+            LaunchOptions::default(),
+            None,
+            super::super::Admission::new(admitted, None),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        fixture.sessions.checkpoint_root(first.id),
+        Err(CheckpointError::UnsupportedScope)
+    );
+    let second = fixture.runtime.get(second.id).unwrap();
+    second.kill();
+    second.ended().await;
+    assert_eq!(
+        fixture.sessions.checkpoint_root(first.id).unwrap(),
+        physical
+    );
+    std::fs::rename(&folder, fixture.data.path().join("old-capture-root")).unwrap();
+    std::fs::create_dir(&folder).unwrap();
+    let replacement = workspaces.admit_start(&folder).await.unwrap();
+    assert_ne!(replacement.physical(), physical);
+    assert_eq!(
+        fixture.sessions.checkpoint_root(first.id).unwrap(),
+        physical,
+        "a reused cwd string cannot rebind the agent's actual launch root"
+    );
+    drop(replacement);
+    let first = fixture.runtime.get(first.id).unwrap();
+    first.kill();
+    first.ended().await;
+    stop.cancel();
+    fixture.settle().await;
+    fixture.stop().await;
+}

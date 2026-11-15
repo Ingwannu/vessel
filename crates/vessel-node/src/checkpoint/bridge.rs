@@ -123,6 +123,11 @@ async fn handle(
             .await?;
         let worktree = worktree(&info)?;
         let guard = workspaces.checkpoint_admission(worktree).await?;
+        // Starts cannot register another process while this physical guard is
+        // held. A renamed/replaced cwd must not become the running agent's root.
+        if sessions.checkpoint_root(session)? != guard.physical() {
+            return Err(CheckpointError::StaleCapture);
+        }
         guard
             .revalidate()
             .await

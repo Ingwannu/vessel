@@ -9,6 +9,7 @@ use vessel_proto::{
 use vessel_store::{Store, StoreConfig};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "pending FILE_CHECKPOINTS assignment; run this actual bootstrap fixture after activation"]
 async fn checkpoint_node_turn_hooks_capture_real_managed_files_and_survive_restart() {
     within(async {
         let fixture = Fixture::new();

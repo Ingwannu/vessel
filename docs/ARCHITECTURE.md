@@ -1833,3 +1833,12 @@ cleanup precedes the sole writer's settlement acknowledgement. Physical errors
 retain a bounded per-object lease; the collector does not readmit that object
 within the same serving process. Stop closes admission and waits for actual I/O.
 Preview expiry, image rotation and restore reconciliation remain separate work.
+
+Capture root authority is bound at actual node session startup/resume through
+the held physical admission, independently of mutable cwd text. Capture compares
+that evidence under the canonical guard and refuses shared/unknown live roots.
+This is process-launch evidence, not a second writer lock or workspace registry.
+Bootstrap installs turn hooks only when FILE_CHECKPOINTS has its centrally
+assigned version; None leaves baseline turn history untouched. Private fixtures
+may install the typed runtime bridge directly while the wire fixture awaits
+activation. The private collector can reconcile existing journals independently.

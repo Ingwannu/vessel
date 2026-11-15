@@ -44,6 +44,7 @@ use crate::workspace::Occupant;
 
 #[cfg(target_os = "linux")]
 mod checkpoints;
+mod registration;
 mod starting;
 pub(crate) use starting::Admission;
 
@@ -81,6 +82,7 @@ pub(crate) struct Sessions {
     marking: tokio::sync::Mutex<()>,
     /// Sessions being started again (`again`), one call each.
     claims: again::Claims,
+    roots: registration::BoundRoots,
     /// Each session's end, once its log is complete (protocol 11): what an
     /// agent's schedules end with (`automation`). Lossy by design: a
     /// listener that falls behind finds the agent gone at the schedule's
@@ -112,6 +114,7 @@ impl Sessions {
             models,
             marking: tokio::sync::Mutex::new(()),
             claims: again::Claims::default(),
+            roots: registration::BoundRoots::default(),
             ended: tokio::sync::broadcast::Sender::new(ENDED),
         }
     }
@@ -142,7 +145,7 @@ impl Sessions {
             .spawn(async move {
                 let _lease = lease;
                 admission.revalidate().await?;
-                let started = sessions.start(spec, options).await;
+                let started = sessions.start(spec, options, admission.physical()).await;
                 drop(admission);
                 started
             })
@@ -154,12 +157,13 @@ impl Sessions {
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
+        root: Option<vessel_proto::checkpoint::PhysicalRoot>,
     ) -> Result<SessionInfo, ServiceError> {
         let Created { handle, durable } = self.runtime.create_with(spec, options).await?;
         let id = handle.id();
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
-        let durability = self.track(&handle, EventSeq::ZERO);
+        let durability = self.track_root(&handle, EventSeq::ZERO, root);
         if let Err(error) = self.store.create_session(handle.info()).await {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
@@ -177,29 +181,6 @@ impl Sessions {
         let info = handle.info();
         self.persist(handle, durable, durability);
         Ok(info)
-    }
-
-    /// Make a session the runtime has just started (or started again)
-    /// visible: its agent's and its model token's places take its handle,
-    /// and its durability entry says every record before `stored` is
-    /// committed (none for a new session, its stored log for one started
-    /// again).
-    fn track(&self, handle: &SessionHandle, stored: EventSeq) -> watch::Sender<Durability> {
-        let id = handle.id();
-        self.agents.started(id, handle.clone());
-        self.models.started(id, handle.clone());
-        let (durability, watching) = watch::channel(Durability::Through(stored));
-        let previous = self
-            .durability
-            .write()
-            .unwrap_or_else(PoisonError::into_inner)
-            .insert(id, watching);
-        #[cfg(target_os = "linux")]
-        self.registrations.notify_waiters();
-        if previous.is_some() {
-            tracing::error!(session = %id, "session id created twice");
-        }
-        durability
     }
 
     /// Drain the session's records into the store, then hand it over.
@@ -249,6 +230,7 @@ impl Sessions {
 
     /// Drop a session's durability entry; it is then found in the store.
     fn forget(&self, id: SessionId) {
+        self.roots.forget(id);
         drop(
             self.durability
                 .write()

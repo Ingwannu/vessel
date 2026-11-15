@@ -125,8 +125,10 @@ pub(super) fn runtime(
         tokio_util::sync::CancellationToken::new(),
     )
     .with_attachments(loader);
-    Arc::new(match hooks {
-        Some(hooks) => runtime.with_checkpoint_hooks(hooks),
-        None => runtime,
-    })
+    Arc::new(
+        match vessel_proto::checkpoint::FILE_CHECKPOINTS.and(hooks) {
+            Some(hooks) => runtime.with_checkpoint_hooks(hooks),
+            None => runtime,
+        },
+    )
 }

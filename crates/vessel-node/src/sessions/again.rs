@@ -158,7 +158,7 @@ impl Sessions {
         self.tasks
             .spawn(async move {
                 admission.revalidate().await?;
-                let started = sessions.reopen(ended, launch).await;
+                let started = sessions.reopen(ended, launch, admission.physical()).await;
                 drop(admission);
                 drop(claim);
                 started
@@ -171,6 +171,7 @@ impl Sessions {
         self: &Arc<Self>,
         ended: EndedSession,
         launch: Relaunch,
+        root: Option<vessel_proto::checkpoint::PhysicalRoot>,
     ) -> Result<SessionHandle, ServiceError> {
         let id = ended.info.id;
         let next = ended.info.next_seq;
@@ -180,7 +181,7 @@ impl Sessions {
         } = self.runtime.start_again(continued(ended), launch).await?;
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
-            let durability = self.track(&handle, next);
+            let durability = self.track_root(&handle, next, root);
             let reopened = self.store.reopen(id, next).await;
             if let Ok(kept) = &reopened {
                 handle.set_marks(*kept);

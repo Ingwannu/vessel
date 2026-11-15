@@ -5,6 +5,12 @@ use tokio::time::{Instant, timeout_at};
 use vessel_proto::{EventSeq, SessionId, SessionInfo, checkpoint::CheckpointError};
 
 impl Sessions {
+    pub(crate) fn checkpoint_root(
+        &self,
+        session: SessionId,
+    ) -> Result<vessel_proto::checkpoint::PhysicalRoot, CheckpointError> {
+        self.roots.capture(session, &self.runtime)
+    }
     pub(crate) async fn checkpoint_anchor(
         &self,
         session: SessionId,
