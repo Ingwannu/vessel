@@ -185,3 +185,16 @@ No engine, successful RPC, or native renderer is advertised by these types.
 Responses distinguish snapshots, evaluation, log rings, descriptors and PNGs.
 ADR 0078 records the separate PNG/pixel cap and no-client-favicon-fetch decision.
 The default-off BrowserTools value is staged but is not yet a saved setting.
+
+
+## Direct human input skeleton
+
+The fixed control vocabulary carries CSS-relative pointer/wheel events, key
+press/release, text, and release-all on capture/focus loss. Coordinates have
+a finite global bound and are rechecked against the actual current viewport
+at dispatch. Input names/text are redacted in Debug. Modifiers occupy fixed
+state; MCP array names fold once at its decode edge. Browser input/function
+text has a new 128 KiB per-field ceiling, beyond Paseo's observed tool schema,
+to keep bounded queue slots from retaining transport-sized strings. Oversized
+input refuses explicitly rather than truncating a password/function. These
+types do not persist human input or grant any engine/profile authority.

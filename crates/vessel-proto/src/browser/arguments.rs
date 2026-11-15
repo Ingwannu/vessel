@@ -96,7 +96,7 @@ pub struct ClickArgs {
     pub count: ClickCount,
     /// Hold only these known modifiers during trusted input.
     #[serde(default)]
-    pub modifiers: Vec<KeyModifier>,
+    pub modifiers: super::KeyModifiers,
 }
 
 /// Fill/select may legitimately set an empty value.

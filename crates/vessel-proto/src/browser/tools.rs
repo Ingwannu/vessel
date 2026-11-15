@@ -189,7 +189,7 @@ mod command_tests {
             },
             button: MouseButton::Left,
             count: ClickCount::Single,
-            modifiers: Vec::new(),
+            modifiers: super::super::KeyModifiers::default(),
         });
         assert_eq!(command.target(), Some(&id));
         assert_eq!(command.tool(), BrowserTool::Click);

@@ -8,10 +8,12 @@ mod arguments;
 mod bounds;
 mod content;
 mod failure;
+mod human;
 mod identity;
 mod image;
 mod input;
 mod lists;
+mod modifiers;
 mod policy;
 mod requests;
 mod result;
@@ -34,16 +36,20 @@ pub use content::{
     CappedText, InvalidBrowserContent, MAX_PAGE_TEXT_BYTES, PageText, TextCompleteness,
 };
 pub use failure::{BrowserEffect, BrowserFailure, HistoryDirection};
+pub use human::{
+    CssCoordinate, CssPoint, HumanInput, InvalidCssCoordinate, KeyAction, PointerAction,
+};
 pub use identity::{BrowserId, ElementRef, InvalidBrowserIdentity};
 pub use image::{
     ImagePixels, ImageSize, InvalidBrowserImage, MAX_RGBA_BYTES, MAX_SCREENSHOT_BYTES,
     ScreenshotPng,
 };
-pub use input::{EmptyBrowserInput, InputText, RequiredInput, WaitFor};
+pub use input::{InputText, InvalidBrowserInput, MAX_BROWSER_INPUT_BYTES, RequiredInput, WaitFor};
 pub use lists::{
     BrowserTabs, ConsoleEntries, InvalidBrowserList, MAX_BROWSER_LOGS, MAX_BROWSER_TABS,
     NetworkEntries,
 };
+pub use modifiers::KeyModifiers;
 pub use policy::BrowserTools;
 pub use requests::{
     BrowserCall, BrowserControl, BrowserControlCommand, BrowserWatched, ClearBrowserProfile,

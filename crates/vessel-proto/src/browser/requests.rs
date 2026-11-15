@@ -57,6 +57,15 @@ pub struct BrowserControl {
 pub enum BrowserControlCommand {
     /// Reuse the same real targets/actions without granting an agent this entry point.
     Drive(BrowserCommand),
+    /// Human input never becomes a tool call or a host-wide keyboard/mouse event.
+    Input {
+        /// The same real target watched by the pane.
+        browser_id: BrowserId,
+        /// Reject stale coordinate events after a resize/navigation/frame replacement.
+        revision: BrowserRevision,
+        /// Fixed direct-input vocabulary.
+        input: super::HumanInput,
+    },
     /// Service authority is minted only after node-owned lifetime/scheme checks.
     OpenPreview(PreviewServiceHint),
     /// A loading page can be stopped without pretending reload has completed.
