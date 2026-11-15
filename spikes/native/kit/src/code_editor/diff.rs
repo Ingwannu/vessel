@@ -255,3 +255,7 @@ impl InputLinePresentation for Presentation {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "diff/mapping_tests.rs"]
+mod mapping_tests;

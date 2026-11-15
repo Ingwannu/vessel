@@ -327,7 +327,3 @@ mod tests {
         assert_eq!(second.foreground, light.colors.foreground);
     }
 }
-
-// Vessel patch: preserve complete external literals and transparent syntax lookup.
-#[cfg(test)]
-mod line_presentation_tests;

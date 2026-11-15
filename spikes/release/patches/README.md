@@ -280,18 +280,20 @@ at the top and `Vessel patch` at the change.
   approximate digit-width formula. The initial kit profile retains the existing
   six-point gap; final reference geometry/consumer captures remain unverified.
 - Changed: src/input/editor/highlighting.rs, src/input/base/element.rs and its
-  additive tests/line_presentation.rs, src/input/mod.rs. File notices and every
+  src/input/base/state.rs and src/input/mod.rs. File notices and every
   changed block are marked Vessel patch. No other vendored crate is changed.
-- Checked: external revision3 drawing source precheck passed, then exact8a342503
-  remote compilation found gpui-component's exhaustive style literal (E0063;
-  fonts0/cargo101, no runtime proof). The revised optional resolver seam received
-  external revision4 source precheck and lead approval, avoiding another vendor
-  crate. Its installed source includes old-literal, nested/clear/transparency
-  regressions plus named paint geometry and actual-window tests for None invariance,
-  mapped width/right alignment, one projection per visible row, wrapped tint,
-  horizontal bounds/fixed scrolling gutter, selection/copy and read-only input.
-  These tests and remote narrow checks have NOT yet run. A later result records
-  their exact source and outcomes; this is not a runtime/visual approval claim.
+- Checked: external drawing/resolver and viewport-coordinate source prechecks
+  passed; installed compilation/runtime is still pending. The native workspace
+  cannot execute a dependency's private dev-tests. At the lead's ruling, new
+  private fixtures were removed and behavior moved to public-API kit windows:
+  `code_editor::diff::mapping_tests` (complete-literal/nested-clear/syntax,
+  None gutter/sample/tint/selection/clipboard), its `viewport` child (actual
+  owner scroll including cached child, bounded provider calls, offclip/empty
+  direct IME queries, boundary rows and unchanged None coordinates), and
+  `code_editor::diff::document::tests` (owner keyboard reveal and real wheel
+  packets). These are unexecuted source until their exact remote native test.
+  Mapped label right-alignment and private layout-array ordering remain source
+  checks; no inaccessible private value is asserted as runtime evidence.
 
 - Document viewport hunk (same change7): mapped **readonly** editors intersect
   their full bounds with the parent mask when choosing shape/paint rows only.
@@ -310,14 +312,11 @@ at the top and `Vessel patch` at the change.
   a preceding offscreen offset to the first visible line's local zero. Fixing
   ordinary editor behaviour is separate; patch7 changes mapped readonly only.
 - Checked source status: external element2921f9ae + statee5e657f5 received lead
-  and V1 same-row source precheck after V1 returned the earlier helper-only
-  correction. Installed now with current mtimes; actual changed-source compile
-  and real-window assertions remain **unexecuted**. New test source uses the
-  actual outer ListState and cached child, 2,500-line bounded shaping, empty
-  masks, fractional boundaries, before/after/crossclip IME bounds, selected
-  visible paint/handle/full copy, folded cache order and unchanged None lookup.
-  Kit's real VirtualList keyboard-end/shift-selection reveal fixture is also
-  unexecuted. No source-precheck result is presented as runtime or OS approval.
+  and V1 precheck. The first fixed-lock Base test command stopped before tests:
+  Cargo refuses dev-tests for a dependency outside workspace membership.
+  No standalone lock or temporary workspace member is added. The public kit
+  fixtures above replace the removed private test source; their results are
+  pending. No source-precheck result is runtime, consumer or OS approval.
 
 ## `gpui-pre` 0.3.10
 

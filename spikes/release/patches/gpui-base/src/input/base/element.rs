@@ -3974,8 +3974,6 @@ fn split_runs_by_bg_segments(
 
 #[cfg(test)]
 mod tests {
-    // Vessel patch: actual-window invariance/mapping/clipboard regressions.
-    mod line_presentation;
     use super::*;
     use crate::input::{EditorMode, EditorState, FoldRange, RangeDecoration, Redo, Undo};
     use gpui::{

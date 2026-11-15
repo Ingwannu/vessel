@@ -624,3 +624,16 @@ the existing theme-aware status accessor; the projection names its dependencies
 explicitly. The public-field documentation reported in the same run had already
 been corrected in 5ac39be2. This is a source correction, not an execution pass;
 earlier queued checks retain their original source and cannot validate it.
+
+## Patch7 executable regression boundary
+
+The fixed-lock Base test attempt reached Cargo but executed no tests: gpui-base
+is a nonmember dependency requiring dev-dependencies. The lead rejected both an
+independent lock graph and adding the vendor as a workspace member. New vendor
+private fixtures are therefore removed; public InputEditorStyle/EditorState,
+VisualTestContext, the real parent ListState and rendered scene quads are tested
+from kit. Existing upstream tests are untouched. Narrow/readiness claims must
+name the actual kit test results, not the removed private fixture inventory.
+The exact per-label right alignment and private folded-array ordering have no
+public query; these remain inspected source obligations, not executed proof.
+All new tests are unexecuted until their immutable remote run completes.
