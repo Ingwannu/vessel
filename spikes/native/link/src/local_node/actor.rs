@@ -58,11 +58,13 @@ pub(super) async fn run(
         };
         match command {
             Command::Logs(reply) => {
-                let result = match node
-                    .as_ref()
-                    .and_then(LocalNode::logs)
-                    .or_else(|| log_source.clone())
-                {
+                let result = match log_source.clone().or_else(|| {
+                    node.as_ref()
+                        .filter(|node| {
+                            matches!(node.status(), LocalStatus::Owned(_) | LocalStatus::Kept(_))
+                        })
+                        .and_then(LocalNode::logs)
+                }) {
                     Some(logs) => logs.read().await.map_err(ManagerError::Logs),
                     None => config.home.log_tail().await.map_err(ManagerError::Files),
                 };
@@ -109,13 +111,13 @@ async fn perform_action(
     });
     let result = match action {
         Action::Start => start(config, node, log_source).await,
-        Action::Stop => control(node, StopPolicy::Protect, false).await,
-        Action::Restart => control(node, StopPolicy::Protect, true).await,
+        Action::Stop => control(node, log_source, StopPolicy::Protect, false).await,
+        Action::Restart => control(node, log_source, StopPolicy::Protect, true).await,
         Action::InterruptConfirmed(_confirmation) => {
-            control(node, StopPolicy::InterruptConfirmed, false).await
+            control(node, log_source, StopPolicy::InterruptConfirmed, false).await
         }
         Action::RestartInterruptConfirmed(_confirmation) => {
-            control(node, StopPolicy::InterruptConfirmed, true).await
+            control(node, log_source, StopPolicy::InterruptConfirmed, true).await
         }
     };
     if node.is_none() && result.is_ok() {
@@ -179,6 +181,7 @@ async fn start(
 
 async fn control(
     node: &mut Option<LocalNode>,
+    log_source: &mut Option<vessel_local_node::LogReader>,
     policy: StopPolicy,
     restart: bool,
 ) -> Result<(), Arc<LocalNodeError>> {
@@ -186,7 +189,11 @@ async fn control(
         return Ok(());
     };
     if restart {
-        let _status = node.restart(policy).await.map_err(Arc::new)?;
+        *log_source = None;
+        let _status = node
+            .restart_observed(policy, |logs| *log_source = Some(logs))
+            .await
+            .map_err(Arc::new)?;
     } else {
         let _exit = node.stop(policy).await.map_err(Arc::new)?;
     }
