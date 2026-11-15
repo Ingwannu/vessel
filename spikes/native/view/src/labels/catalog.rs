@@ -55,23 +55,27 @@ pub enum HostState {
     Loading,
     /// Contract absent or peer too old.
     Unsupported,
-    /// An authoritative load failed; this does not prove deletion.
+    /// A connected host's load failed; cached definitions are not deletion evidence.
     Failed(Failure),
     /// Snapshot loaded and connection active.
     Online,
 }
 
 impl HostState {
+    /// A catalog load failure does not disconnect a mutation-capable host.
+    #[must_use]
+    pub const fn connected(self) -> bool {
+        matches!(self, Self::Online | Self::Failed(_))
+    }
     /// Refuse operations before the caller enters a pending state.
     /// # Errors
     /// Distinguishes unavailable contracts, failed loads, and disconnected hosts.
     pub fn writable(self) -> Result<(), Failure> {
         match self {
-            Self::Online => Ok(()),
+            Self::Online | Self::Failed(_) => Ok(()),
             Self::Unsupported => Err(Failure::Unsupported),
             Self::Offline => Err(Failure::Offline),
             Self::Loading => Err(Failure::Load),
-            Self::Failed(failure) => Err(failure),
         }
     }
 }
@@ -89,14 +93,12 @@ pub struct Host {
     pub catalog: Catalog,
 }
 
-/// Merge only online authoritative catalogs; target host wins, then host order.
+/// Merge connected hosts' cached catalogs; target host wins, then host order.
+/// A failed load must still block destructive filter reconciliation separately.
 /// Callers rendering a particular workspace use that host's catalog directly.
 #[must_use]
 pub fn project(hosts: &[Host], target: Option<&HostKey>) -> Vec<Label> {
-    let mut ordered: Vec<_> = hosts
-        .iter()
-        .filter(|host| host.state == HostState::Online)
-        .collect();
+    let mut ordered: Vec<_> = hosts.iter().filter(|host| host.state.connected()).collect();
     ordered.sort_by(|left, right| {
         let left_target = Some(&left.key) == target;
         let right_target = Some(&right.key) == target;

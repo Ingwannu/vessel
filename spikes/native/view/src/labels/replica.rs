@@ -94,7 +94,7 @@ impl Replica {
     /// # Errors
     /// Any noncontiguous identity forces a snapshot, including after a disconnect.
     pub fn updated(&mut self, update: &CatalogUpdate) -> Result<(), Failure> {
-        if self.state != HostState::Online
+        if !self.state.connected()
             || !self
                 .cursor
                 .is_some_and(|cursor| follows(cursor, update.cursor))
@@ -103,6 +103,7 @@ impl Replica {
         }
         apply(&mut self.catalog, &update.delta);
         self.cursor = Some(update.cursor);
+        self.state = HostState::Online;
         Ok(())
     }
 

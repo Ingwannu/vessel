@@ -5,7 +5,7 @@ pub(super) use vessel_proto::workspace_labels::LabelKey as Key;
 /// Form policy is independent of the toolkit's field implementation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditAccess {
-    /// Authoritative connected host and idle form.
+    /// Connected capable host and idle form; catalog error is shown separately.
     Editable,
     /// Keep selection/copy while refusing user edits and color changes.
     ReadOnly,

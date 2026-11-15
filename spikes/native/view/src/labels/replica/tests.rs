@@ -43,7 +43,35 @@ fn offline_and_failed_first_fetch_are_not_authoritative_deletions() {
     replica.reconnecting();
     replica.failed(Failure::Load);
     assert_eq!(replica.catalog().labels().count(), 1);
-    assert!(replica.state().writable().is_err());
+    assert!(replica.state().writable().is_ok());
+    assert_ne!(replica.state(), HostState::Online);
+}
+
+#[test]
+fn a_contiguous_update_recovers_a_connected_load_failure_with_a_known_cursor() {
+    let mut replica = Replica::default();
+    let head = cursor();
+    initial(&mut replica, head);
+    replica.failed(Failure::Load);
+    let next = CatalogCursor {
+        after: head.after.next().unwrap(),
+        ..head
+    };
+    replica
+        .updated(&CatalogUpdate {
+            cursor: next,
+            delta: CatalogDelta::Upsert {
+                label: label("Ready", Color::Sky),
+                previous: None,
+            },
+        })
+        .unwrap();
+    assert_eq!(replica.state(), HostState::Online);
+    assert_eq!(replica.cursor(), Some(next));
+    assert_eq!(
+        replica.catalog().get(&"ready".parse().unwrap()),
+        Some(&label("Ready", Color::Sky))
+    );
 }
 
 #[test]

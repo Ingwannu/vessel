@@ -94,7 +94,7 @@ fn create_and_assign_is_one_request_and_a_failed_request_keeps_the_form() {
 }
 
 #[test]
-fn projections_choose_target_then_host_order_and_exclude_offline_or_failed() {
+fn projections_choose_target_then_host_order_and_retain_connected_failed_caches() {
     let hosts = vec![
         Host {
             key: key("b"),
@@ -123,11 +123,19 @@ fn projections_choose_target_then_host_order_and_exclude_offline_or_failed() {
     ];
     assert_eq!(
         project(&hosts, None),
-        vec![label("alpha", Color::Blue), label("Ready", Color::Pink)]
+        vec![
+            label("alpha", Color::Blue),
+            label("failed", Color::Red),
+            label("Ready", Color::Pink)
+        ]
     );
     assert_eq!(
         project(&hosts, Some(&key("b"))),
-        vec![label("alpha", Color::Blue), label("ready", Color::Sky)]
+        vec![
+            label("alpha", Color::Blue),
+            label("failed", Color::Red),
+            label("ready", Color::Sky)
+        ]
     );
     assert!(hosts.get(2).unwrap().catalog.get(&name("hidden")).is_some());
 }
@@ -187,13 +195,22 @@ fn every_unavailable_host_refuses_picker_before_pending() {
         (HostState::Offline, Failure::Offline),
         (HostState::Loading, Failure::Load),
         (HostState::Unsupported, Failure::Unsupported),
-        (HostState::Failed(Failure::Load), Failure::Load),
     ] {
         let mut picker = Picker::default();
         let first = ticket(&mut Tickets::default());
         assert_eq!(picker.begin(state, &name("Ready"), first), Err(failure));
         assert!(!picker.finish(&name("Ready"), first, Ok(())));
     }
+}
+
+#[test]
+fn a_catalog_load_failure_does_not_revoke_a_connected_hosts_mutation_capability() {
+    let mut picker = Picker::default();
+    let request = ticket(&mut Tickets::default());
+    picker
+        .begin(HostState::Failed(Failure::Load), &name("Ready"), request)
+        .unwrap();
+    assert!(picker.finish(&name("Ready"), request, Ok(())));
 }
 
 #[test]
@@ -329,11 +346,14 @@ fn field_policy_is_read_only_for_unavailable_hosts_and_every_async_phase() {
         HostState::Offline,
         HostState::Loading,
         HostState::Unsupported,
-        HostState::Failed(Failure::Load),
     ] {
         assert_eq!(manager.edit_access(host), EditAccess::ReadOnly);
     }
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::Editable);
+    assert_eq!(
+        manager.edit_access(HostState::Failed(Failure::Load)),
+        EditAccess::Editable
+    );
     manager.draft_mut().unwrap().set_color(Color::Sky);
     let ticket = ticket(&mut Tickets::default());
     manager

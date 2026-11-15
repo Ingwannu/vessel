@@ -64,7 +64,7 @@ Reference sources read before implementation (relative to the reference source r
   registries only register this module and screen.
 - Intended flow: UI action -> validated view intent -> link command -> node
   client -> correlated event -> view transition -> draw. Catalogs belong to
-  one host; only online authoritative catalogs enter cross-host projection.
+  one host; connected hosts' cached catalogs enter cross-host projection.
   Cached offline catalogs remain available for that host's own row colors.
 
 ## Node contract dependency
@@ -97,7 +97,7 @@ and the package review remain pending.
 ## Editability and color choices
 
 Manager name/color editing is a pure `EditAccess` policy: only an idle editor
-on an authoritative online host accepts input. A regression traverses every
+on a connected capable host accepts input. A regression traverses every
 async phase. Package base `6036eeb8` supplied the shared `Editability` and
 `TextField::set_editability` API; it is wired once per policy transition,
 including immediate changes after opening an editor. No local field renderer
@@ -171,3 +171,12 @@ W12 owns the workspace header and takes its canonical
 has announced a checked authoritative row/header adapter yet. Both will pass
 registry identity/lifecycle plus this owner's ordered assignments; layout does
 not store labels or introduce a label pane. No second frame is introduced.
+
+Reference correction (`workspace-labels/index.ts:60–70,145–195,244–260`): a
+connected host's failed catalog request does not revoke mutation capability
+or remove its cached definitions from the merged choices. The initial model
+incorrectly treated this as an unavailable host. Connected failed hosts now
+remain writable, while Failed still means the cache is not deletion evidence
+for destructive filter reconciliation. Valid contiguous updates recover that
+load error without losing the cursor; gaps still require a snapshot. Added
+regressions distinguish connection, load authority and mutation permission.

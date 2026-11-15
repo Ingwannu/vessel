@@ -7,7 +7,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::{
-    labels::{Count, Draft, Host, HostState, ManagerState},
+    labels::{Count, Draft, Host, ManagerState},
     localization::Number,
 };
 
@@ -58,7 +58,7 @@ fn actions(shell: &Shell, host: &Host, tokens: &Tokens, cx: &mut Context<'_, She
         ManagerState::Listing => row,
         ManagerState::Editing(draft) => {
             let current = host.catalog.get(&draft.original().name);
-            let online = host.state == HostState::Online;
+            let online = host.state.connected();
             let can_save =
                 online && current.is_some_and(|label| draft.replacement(label).is_some());
             let can_delete = online && current.is_some();
@@ -136,10 +136,10 @@ fn confirmation(
                 "labels-delete-confirm",
                 words.delete(),
                 ButtonKind::Destructive,
-                enabled(host.state == HostState::Online),
+                enabled(host.state.connected()),
                 tokens,
             )
-            .when(host.state == HostState::Online, |button| {
+            .when(host.state.connected(), |button| {
                 button.on_click(
                     cx.listener(|shell, _, _window, cx| shell.label_action(Action::Delete, cx)),
                 )
