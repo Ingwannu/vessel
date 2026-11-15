@@ -73,7 +73,7 @@ fn owner_duplicates_and_zero_requirements_refuse_before_publication() {
 }
 
 fn themes(count: usize) -> ClientDocument {
-    let color = "#123".parse().expect("color");
+    let color: super::super::HexColor = "#123".parse().expect("color");
     let colors = ThemeColors {
         background: color.clone(),
         foreground: color.clone(),
@@ -107,7 +107,7 @@ fn theme_admission_is_whole_node_not_multiplied_per_installation() {
 }
 
 fn large_document() -> ClientDocument {
-    let text = "x".repeat(16 * 1024).parse().expect("bounded content");
+    let text: super::super::ContentText = "x".repeat(16 * 1024).parse().expect("bounded content");
     let controls = (0..60)
         .map(|i| Control {
             id: format!("control-{i}").parse().expect("id"),

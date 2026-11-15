@@ -229,3 +229,10 @@ counting sink is factored once for graph and catalog typed construction; no
 second oversized serialization is allocated. Nested generic serde errors are
 sealed, and invalid owner/duplicate/zero-floor snapshots refuse atomically.
 No public method or app network call is added by this value-only checkpoint.
+
+Parent hygiene: the runtime also needs no W15 release/detach API. Its public
+synchronous spawn checks for a live Tokio handle before invoking ordinary
+shared-head proc, so the no-reactor path is a typed failure instead of relying
+on W15's unreviewed SpawnError::Runtime addition. A synchronous regression
+covers refusal before any helper is launched. A clean source export will use
+the portable checked-wait prerequisite and omit W15 ancestry entirely.
