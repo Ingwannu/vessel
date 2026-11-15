@@ -65,7 +65,9 @@ assertion, provider choice or option-completion arm is changed. New tests pin
 the shared bound, controls, redacted setup/error Debug and pre-spawn refusal
 for every current transport. Actual override transport remains unavailable.
 
-None selects the original native instruction source for this launch; a future
+Some replaces the complete Vessel supplemental instruction layer for this
+launch; it does not replace the vendor-native base or append to an earlier
+transient layer. None uses the unmodified captured launch context. A future
 Supported transport must prove that resumed sessions actually restore it. All
 current transports are Unsupported, so no override can be installed by this
 change. The initial narrow compile found an import used only by a doc link;
@@ -120,3 +122,22 @@ claude/session/tests.rs::setup, codex/session.rs's unit-test launch setup; sessi
 session/runtime/agent.rs (probe and start), and session/runtime/launch.rs. No
 existing test assertion changed. The field-bearing commit includes those
 completions, and source review can verify the one-line-only head-test diffs.
+
+## Layer semantics and current-head evidence
+
+Paseo voice-session.ts:491-555 captures the stripped configured instruction
+base. Disable may supply Some(saved base + explicit disabled policy), so restore
+must not be equated with None. This seam does not provide an effective-base
+getter. Lifecycle must distinguish known absent Vessel context from unavailable
+capture before voice composes a replacement; neither native files nor built-in
+vendor instructions may be guessed. Capability must be checked before stopping
+the existing agent. Current/custom MCP preservation and authorized VoiceTools
+context are separate prerequisites, not supplied by this field.
+
+The required node head ba45a6e3 merged as b05bf2e7. Both architecture appendices
+were kept, head first; no owned source conflict or test assertion changed. Strict
+all-target Clippy for agent/harness/session passed on b05bf2e7 in run
+wp-providers-narrow-20261115T085155Z-b05bf2e7 (cargo rc0, 22 seconds). The whole
+gate remains the exact b7e8c329 evidence above; no combined whole-gate claim is
+made for the later required merges. The following clarification changes only
+comments and this contract document.

@@ -4,7 +4,9 @@
 use std::{fmt, str::FromStr};
 use vessel_proto::automation::{InvalidAutomationText, PromptText};
 
-/// Launch-only system instruction. Deliberately has no Serialize, Deserialize
+/// Complete launch-only Vessel supplemental instruction layer, preserving the
+/// vendor-native base. Callers compose this value from known captured context;
+/// an unavailable capture must not be guessed. Deliberately has no Serialize, Deserialize
 /// or Display implementation: only a proven transport may expose its contents.
 #[derive(Clone, PartialEq, Eq)]
 pub struct SystemPromptOverride(PromptText);

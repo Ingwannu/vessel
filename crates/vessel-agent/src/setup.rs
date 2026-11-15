@@ -9,10 +9,11 @@ use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, ResolvedMcpServers};
 /// What the session should start with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentSetup {
-    /// Launch-only system instructions for a transport with a tested replace
-    /// and restore contract. None selects the original native instruction source;
-    /// supported transports must also prove that restoration on a resumed session.
-    /// Never copied into persistent specs or user logs.
+    /// Complete transient replacement of Vessel's supplemental instruction layer;
+    /// the vendor-native base stays intact. None uses the captured launch context.
+    /// A supported transport must prove replacement and restoration on resume.
+    /// This field neither captures nor guesses that context, and is never kept
+    /// in persistent specs or user logs.
     pub system_prompt: Option<crate::SystemPromptOverride>,
     /// Working directory of the ACP session (absolute).
     pub cwd: PathBuf,
