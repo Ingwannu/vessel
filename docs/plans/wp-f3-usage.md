@@ -54,3 +54,29 @@ supplies the existing checked Number::count after a checked integer conversion.
 Abbreviated units remain whole translated messages, so adding a future plural
 selector does not change Rust argument types. This corrects the authored data
 path without changing elapsed-time thresholds or accepted earlier Usage words.
+
+### Landed shared header seam
+
+Announced green line a7aab9d6 supplies W19's reviewed header-actions input on the
+same dialog renderer and brings the announced root base through the app line.
+Usage consumes DialogContent::with_header_actions: host filter, Refresh all and
+Options now live before the existing close control, with no duplicate body
+Refresh all in the modal. Settings retains its own refresh action. Unavailable
+hosts keep only host choice; no-host frames leave the slot absent. Width remains
+the existing 640px Wide layout. Callbacks retain their existing modal ticket,
+ConnectionContext and selected node, separately from UI leases.
+
+Refresh actions use the already landed RotateCw and typed shared button/loading
+control, including disabled/loading admission and compact sizing. The same helper
+serves report and whole-host refresh. The actual shared tooltip wraps that control;
+it does not introduce another raw button. Header and consumer checks are owed on
+this merged source. No first-frame capture or exact HostFilter-control geometry
+approval is claimed.
+
+The shared localization owner confirmed that no canonical typed currency/compact
+amount formatter exists yet. USD currency, compact token balances and two-fraction
+other units remain an explicit formatting gap; raw typed finite amounts and their
+units stay visible, including values above Number's u32 decimal bound. The area
+will consume the owner's producer rather than fork a formatter or silently drop
+large values. Relative-age words at e89334984 are separately accepted as word/key/
+context only; that acceptance does not cover number formatting or UI.

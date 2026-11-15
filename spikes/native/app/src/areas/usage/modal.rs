@@ -7,7 +7,7 @@ use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ComboHandlers, ComboHeader, ComboRow, DialogContent, DialogSize, Side, Tokens, combobox,
@@ -16,7 +16,7 @@ use vessel_app_kit::{
 use vessel_app_view::{
     devices::Target,
     prefs::PreferenceChange,
-    usage::{HostAvailability, HostChoice, UsageHost},
+    usage::{HostAvailability, HostChoice, HostSupport, UsageHost},
 };
 use vessel_proto::NodeId;
 const HOST_LIST_WIDTH: f32 = 240.0;
@@ -152,6 +152,10 @@ pub(crate) fn dialogs(
         .into_iter()
         .filter(|host| host.availability == HostAvailability::Connected)
         .collect();
+    let mut actions = div()
+        .flex()
+        .items_center()
+        .gap(px(vessel_app_kit::theme::spacing::S2));
     let mut body = div().min_w_0().w_full().flex().flex_col();
     if connected.len() > 1 {
         let label = connected
@@ -159,7 +163,7 @@ pub(crate) fn dialogs(
             .find(|host| Some(host.node) == selected(shell))
             .map_or(text.host(), |host| host.label.as_str())
             .to_owned();
-        body = body.child(
+        actions = actions.child(
             outline_button("usage-host-filter", label, true, tokens)
                 .child(vessel_app_kit::anchor_probe(&state.host_anchor))
                 .on_click(cx.listener(move |shell, _, window, cx| {
@@ -173,18 +177,36 @@ pub(crate) fn dialogs(
         Target::NoMachines => body.child(message(text.no_hosts(), tokens)),
         Target::Offline(_) => body.child(message(text.offline(), tokens)),
     };
-    body = body.children(super::options::trigger(
-        shell,
-        "usage-options-modal",
-        tokens,
-        compact,
-        cx,
-    ));
+    let manageable = connected
+        .iter()
+        .any(|host| Some(host.node) == selected(shell) && host.support != HostSupport::Unsupported);
+    if manageable {
+        actions = actions
+            .children(super::toolbar::refresh_all(
+                shell,
+                "usage-header-refresh-all",
+                tokens,
+                compact,
+                cx,
+            ))
+            .children(super::options::trigger(
+                shell,
+                "usage-options-modal",
+                tokens,
+                compact,
+                cx,
+            ));
+    }
     let content = DialogContent {
         title: text.title().into(),
         body: body.into_any_element(),
         footer: Vec::new(),
         size: DialogSize::Wide,
+    };
+    let content = if connected.len() > 1 || manageable {
+        content.with_header_actions(actions)
+    } else {
+        content.into()
     };
     Some(
         div()

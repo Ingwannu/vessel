@@ -2,9 +2,11 @@
 use super::rows::Density;
 use std::{cell::RefCell, collections::BTreeMap};
 use vessel_app_kit::{
-    Tokens, Tooltips,
+    Button, Tokens, Tooltips,
     tooltip::Place,
-    ui::{AnyElement, Div, Stateful},
+    ui::{
+        AnyElement, Div, InteractiveElement as _, ParentElement as _, SharedString, Stateful, div,
+    },
 };
 use vessel_app_view::devices::Ticket;
 use vessel_proto::usage_reports::{SourceReportEntry, UsageReportId, UsageReports};
@@ -35,13 +37,19 @@ impl SourceTips {
     }
     pub(super) fn on(
         &self,
-        refresh: Stateful<Div>,
+        refresh: Button,
         entry: &SourceReportEntry,
         freshness: &str,
         density: Density,
     ) -> Stateful<Div> {
         let mut state = self.0.borrow_mut();
         let place = state.places.entry(entry.id().clone()).or_default().clone();
+        let refresh = div()
+            .id(SharedString::from(format!(
+                "usage-report-freshness-{}",
+                entry.id()
+            )))
+            .child(refresh);
         state.tips.on(
             refresh,
             &place,

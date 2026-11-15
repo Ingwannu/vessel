@@ -20,6 +20,7 @@ mod source_policy;
 mod source_reports;
 mod source_tips;
 mod source_windows;
+mod toolbar;
 mod windows;
 pub(crate) use options::dialogs;
 pub(crate) use session::{limit_notice, session_card};

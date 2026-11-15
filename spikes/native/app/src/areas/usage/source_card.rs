@@ -2,12 +2,9 @@
 use super::rows::{Density, message, notice};
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _, outline_button, settings,
+    Tokens, Type, TypeExt as _, settings,
     theme::spacing,
-    ui::{
-        AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-        StatefulInteractiveElement as _, Styled as _, div, px,
-    },
+    ui::{AnyElement, Context, Div, IntoElement as _, ParentElement as _, Styled as _, div, px},
 };
 use vessel_app_view::usage::{
     Phase, source_freshness, source_login_errors, source_view, timestamp,
@@ -71,22 +68,23 @@ pub(super) fn render(
         });
     let receipt = super::read_states::context(shell);
     let id = entry.id().clone();
-    let refresh = outline_button(
+    let busy = matches!(state.inventory.phase(), Phase::Loading { .. });
+    let refresh = super::toolbar::refresh_button(
         vessel_app_kit::ui::SharedString::from(format!("usage-report-refresh-{id}")),
         text.refresh(),
         enabled,
+        busy,
+        matches!(density, Density::Compact),
         tokens,
     )
-    .when(enabled, |button| {
-        button.on_click(cx.listener(move |shell, _, _, cx| {
-            if let Some(receipt) = &receipt
-                && super::read_states::current(shell, receipt)
-            {
-                shell.usage_refresh_report(receipt.machine().clone(), id.clone());
-                cx.notify();
-            }
-        }))
-    });
+    .on_click(cx.listener(move |shell, _, _, cx| {
+        if let Some(receipt) = &receipt
+            && super::read_states::current(shell, receipt)
+        {
+            shell.usage_refresh_report(receipt.machine().clone(), id.clone());
+            cx.notify();
+        }
+    }));
     let freshness = source_freshness(&view, chrono::Utc::now(), shell.words);
     let refresh = state.source_tips.on(refresh, entry, &freshness, density);
     let head = header(entry, &view, shell.words, tokens);
@@ -296,10 +294,12 @@ mod tests {
                             .debug_selector(|| "usage-source-head".to_owned())
                             .into_any_element(),
                         Some(
-                            outline_button(
+                            super::super::toolbar::refresh_button(
                                 "usage-source-head-refresh",
                                 words.usage().refresh(),
                                 true,
+                                false,
+                                self.compact,
                                 &tokens,
                             )
                             .into_any_element(),

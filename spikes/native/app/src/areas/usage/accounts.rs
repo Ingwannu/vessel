@@ -65,23 +65,15 @@ pub(super) fn render(
     if inventory.accounts().is_empty() {
         return body.child(message(text.empty(), tokens)).into_any_element();
     }
-    let enabled = inventory.policy() == Some(ExternalLookup::On)
-        && state.policy_pending.is_none()
-        && !matches!(state.inventory.phase(), Phase::Loading { .. });
-    let machine = state.inventory.selection().cloned();
-    body = body.child(
-        outline_button("usage-refresh-all", text.refresh_all(), enabled, tokens).when(
-            enabled,
-            |button| {
-                button.on_click(cx.listener(move |shell, _, _, cx| {
-                    if let Some(machine) = &machine {
-                        shell.usage_refresh_all(machine.clone());
-                        cx.notify();
-                    }
-                }))
-            },
-        ),
-    );
+    if state.modal.current().is_none() {
+        body = body.children(super::toolbar::refresh_all(
+            shell,
+            "usage-refresh-all",
+            tokens,
+            matches!(density, Density::Compact),
+            cx,
+        ));
+    }
     for account in inventory.accounts() {
         body = body.child(account_card(shell, account, density, tokens, cx));
     }

@@ -2,14 +2,11 @@
 use super::rows::{Density, message, notice};
 use crate::shell::Shell;
 use vessel_app_kit::{
-    Tokens, outline_button,
+    Tokens,
     theme::spacing,
-    ui::{
-        AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-        StatefulInteractiveElement as _, Styled as _, div, px,
-    },
+    ui::{AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, div, px},
 };
-use vessel_app_view::usage::{Phase, source_failure, source_problem};
+use vessel_app_view::usage::{source_failure, source_problem};
 use vessel_proto::{
     limits::ExternalLookup,
     usage_reports::{UsageAttemptFailure, UsageReports, UsageSourceAvailability},
@@ -40,33 +37,15 @@ pub(super) fn render(
             .child(super::read_states::off(shell, tokens, cx))
             .into_any_element();
     }
-    let enabled = state.policy_pending.is_none()
-        && state.source_pending.is_none()
-        && !matches!(state.inventory.phase(), Phase::Loading { .. })
-        && reports
-            .sources
-            .as_slice()
-            .iter()
-            .any(|source| source.availability == UsageSourceAvailability::Enabled);
-    let receipt = super::read_states::context(shell);
-    body = body.child(
-        outline_button(
+    if state.modal.current().is_none() {
+        body = body.children(super::toolbar::refresh_all(
+            shell,
             "usage-reports-refresh-all",
-            text.refresh_all(),
-            enabled,
             tokens,
-        )
-        .when(enabled, |button| {
-            button.on_click(cx.listener(move |shell, _, _, cx| {
-                if let Some(receipt) = &receipt
-                    && super::read_states::current(shell, receipt)
-                {
-                    shell.usage_refresh_all(receipt.machine().clone());
-                    cx.notify();
-                }
-            }))
-        }),
-    );
+            matches!(density, Density::Compact),
+            cx,
+        ));
+    }
     for failure in reports.source_failures.as_slice() {
         let reason = match &failure.failure {
             UsageAttemptFailure::Unavailable { problem } => source_problem(problem, shell.words),
