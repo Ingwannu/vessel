@@ -82,3 +82,10 @@ This supplies styled scrollback to the sole native renderer without another
 interpretation. Capture remains translated text: the reference server's
 `stripAnsi=false` branch does not synthesize SGR from cell attributes, so CLI
 Plain/Preserve mapping stays outside the engine.
+
+A seventh query oracle case rejects CSI intermediates that are not the plain
+DA/DSR handler identifiers. Source inspection found upstream's space-intermediate
+fallback drops that identifier before invoking callbacks. The new expected
+response is empty, produced by the same actual server handlers; the other six
+query inputs/responses remain byte-identical. Its regression is staged before
+changing that fallback.
