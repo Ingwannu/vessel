@@ -454,3 +454,7 @@ Before adding the preflight delegate, the SDK's existing `protocol()` accessor
 moves unchanged into `client::protocol`. This behavior-preserving extraction
 keeps endpoint calls within their shrinking size budget; it changes no public
 signature, value or assertion. The preflight wrapper follows as its own commit.
+
+The following commit adds the thin wrappers and the exact first-frame test.
+The shared checker, allocator and writer behavior are unchanged. Execution
+results are still pending; this is not a claim of a passed package gate.
