@@ -8,6 +8,7 @@ use vessel_app_kit::ui::{
     div, px, svg,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
+use vessel_app_view::prefs::ActionId;
 use vessel_app_view::shortcuts::definitions::Definition;
 use vessel_app_view::shortcuts::engine::EffectiveBinding;
 use vessel_app_view::shortcuts::sequence_capture::{CaptureFault, CaptureVerdict, SequenceCapture};
@@ -80,39 +81,9 @@ pub(super) fn row(
                 .on_click(cx.listener(|shell, _event, _window, cx| shell.shortcut_cancel(cx))),
             )
     } else {
-        let id = definition.id.clone();
         right
             .child(keys(shell, definition, bindings, tokens))
-            .child(
-                div().size(px(SLOT)).flex_none().child(
-                    div()
-                        .id(SharedString::from(format!("shortcut-menu-{id}")))
-                        .debug_selector({
-                            let id = id.clone();
-                            move || format!("shortcut-menu-{id}")
-                        })
-                        .size(px(SLOT))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .rounded(px(radius::R2))
-                        .cursor_pointer()
-                        .hover(|button| button.bg(neutral.surface2))
-                        .active(|button| button.bg(neutral.surface3))
-                        .child(
-                            svg()
-                                .path(Glyph::More.path())
-                                .size(px(14.0))
-                                .text_color(neutral.foreground_muted),
-                        )
-                        .on_mouse_down(
-                            MouseButton::Left,
-                            cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                                shell.shortcut_menu(id.clone(), event.position, window, cx);
-                            }),
-                        ),
-                ),
-            )
+            .child(menu_button(&definition.id, tokens, cx))
     };
     div()
         .flex()
@@ -126,6 +97,39 @@ pub(super) fn row(
         .child(label)
         .child(right)
 }
+fn menu_button(id: &ActionId, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+    let id = id.clone();
+    let neutral = tokens.neutral;
+    div().size(px(SLOT)).flex_none().child(
+        div()
+            .id(SharedString::from(format!("shortcut-menu-{id}")))
+            .debug_selector({
+                let id = id.clone();
+                move || format!("shortcut-menu-{id}")
+            })
+            .size(px(SLOT))
+            .flex()
+            .items_center()
+            .justify_center()
+            .rounded(px(radius::R2))
+            .cursor_pointer()
+            .hover(|button| button.bg(neutral.surface2))
+            .active(|button| button.bg(neutral.surface3))
+            .child(
+                svg()
+                    .path(Glyph::More.path())
+                    .size(px(14.0))
+                    .text_color(neutral.foreground_muted),
+            )
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
+                    shell.shortcut_menu(id.clone(), event.position, window, cx);
+                }),
+            ),
+    )
+}
+
 fn keys(
     shell: &Shell,
     definition: &Definition<Action>,

@@ -453,9 +453,9 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
                 .flat_map(|section| &section.rows)
                 .any(|row| matches!(
                     row.activate,
-                    snapshot::Activate::Root(source::CommandAction::Legacy(
-                        PaletteTarget::Settings(Section::Appearance)
-                    ))
+                    Activate::Root(source::CommandAction::Legacy(PaletteTarget::Settings(
+                        Section::Appearance
+                    )))
                 ))
         );
     });
@@ -513,7 +513,7 @@ fn center_navigation_precedes_global_rebinding_and_escape_closes_nested_page(
     cx.simulate_keystrokes("escape");
     cx.run_until_parked();
     update(&view, cx, |shell, _, _| {
-        assert!(!shell.areas.palette.is_open())
+        assert!(!shell.areas.palette.is_open());
     });
 }
 

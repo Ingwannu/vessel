@@ -527,8 +527,9 @@ registry used for rebinding and conflicts. It calls `Theme::next` and the
 existing appearance preference setter. The command center suppresses this
 action, including a rebound key; character-preferred input and focused
 composition stand down before shortcut matching. Non-Mac terminal focus is
-excluded by policy, but its actual focus query awaits the terminal surface;
-this integration still has a placeholder there.
+excluded by policy. F4's terminal owner query checks the retained opening,
+Session route and actual focus handle; it does not infer focus from selection or
+phase. Code-editor IME joins the same weak composition registry as fields.
 
 ### Named colour palettes (ADR 0070, staged)
 
@@ -1281,3 +1282,27 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+### Command center and keyboard ownership (ADR0092, implementation in progress)
+
+`view::shortcuts` owns the76 reference variants, typed predicates, bounded chord
+engine, conflict edits and primary hint resolution. App shortcut admission runs
+once before capture/dispatch; actual kit popup contexts and the shared weak
+field/code-editor composition registry retain their keys. Help, Settings and
+sidebar hints reuse that registry. Unsupported native zoom has no speculative
+extension registration; supported desktop operations remain with their owner.
+
+Command sources register typed callbacks into the existing palette registry;
+owner tokens fence replacement/removal before a presented row executes. W12
+pane callbacks additionally capture its LayoutActionContext and use the owner
+run_at adapter; G1 callbacks use its exact target/menu/activation projection.
+Local palette keys precede global overrides. Palette/help actual close reuses
+kit::focus::ReturnFocus instead of retaining a strong opener.
+
+Pure file-search presentation owns debounce and UI request lifetime only. Its
+All-vs-Matching distinction cannot weaken nonblank wire FindQuery; canonical
+file acquisition/open, workspace activation, provider/plugin commands and shared
+preference receipts stay with their feature owners. Their integration and the
+final native gate/captures/review remain incomplete. Exact source/evidence and
+outstanding owner boundaries are recorded in docs/plans/wp-commands.md.

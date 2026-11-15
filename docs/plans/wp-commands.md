@@ -570,3 +570,11 @@ but no keys, help/Settings rows, chips or conflicts advertise zoom now. Future
 native dispatcher admission must use the desktop owner's supported() capability.
 No test-only scale or rem-size substitute is used. The prior Mod0 extension
 assertion is updated and a platform projection regression covers this capability.
+
+
+Exact6d336854 combined all-target Clippy reached App production/test analysis
+and failed only5 strict lint findings: row function102lines plus test import,
+qualification and two semicolons. Extracted its existing menu button rendering
+into one local function; no second control/style/callback is introduced. Other
+findings corrected without relaxing lints. The next immutable combined check
+also includes the later composition registry, capability policy and shared lock.

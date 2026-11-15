@@ -1,6 +1,6 @@
 //! Actual shell controls and source callbacks, with no link or external I/O.
 use crate::shell::{Shell, language_tests};
-use gpui::{AppContext as _, Entity, TestAppContext, VisualTestContext};
+use gpui::{Entity, TestAppContext, VisualTestContext};
 use vessel_app_view::settings::Section;
 use vessel_app_view::shortcuts::Platform;
 
@@ -131,7 +131,7 @@ fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mu
     cx.executor().advance_clock(Duration::from_millis(149));
     cx.run_until_parked();
     shell.update_in(cx, |shell, window, cx| {
-        assert!(!shell.shortcut_badges_visible(window, cx))
+        assert!(!shell.shortcut_badges_visible(window, cx));
     });
     cx.executor().advance_clock(Duration::from_millis(1));
     cx.run_until_parked();

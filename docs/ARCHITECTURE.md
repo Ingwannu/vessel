@@ -1667,3 +1667,21 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+
+## Native command ownership and admission
+
+ADR0092 extends the existing pure shortcut/palette modules and native areas.
+One canonical binding snapshot feeds resolution, hints, help and rebinding;
+ordered, generation-owned callbacks delegate effects to feature controllers.
+Native admission checks actual input preference, shared kit composition and
+popup context before recording/matching. Code editors register in the same weak
+composition registry as other fields; there is no second focus/IME cache.
+
+Palette source tokens reject stale presented entries; captured pane commands
+also use W12's LayoutActionContext fence. These are presentation guards, not
+physical node/connection leases. File/Git/plugin operations retain their owner
+admission and dispatch paths. Shared preference receipt/rollback belongs to the
+desktop coordinator, with shortcut cache invalidation on effective deltas.
+The current package is still in progress; docs/plans/wp-commands.md distinguishes
+written source, executed checks and required owner integrations.
