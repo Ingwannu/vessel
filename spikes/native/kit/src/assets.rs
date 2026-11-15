@@ -244,10 +244,14 @@ pub enum Glyph {
     FolderPlus,
     /// Open sidebar help (Paseo's `CircleHelp` alias).
     CircleHelp,
+    /// A usage dial, on the shared24-unit line grid.
+    Gauge,
+    /// A catalog package with its add action.
+    PackagePlus,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 97] = [
+const ALL: [Glyph; 99] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -345,6 +349,8 @@ const ALL: [Glyph; 97] = [
     Glyph::Blocks,
     Glyph::FolderPlus,
     Glyph::CircleHelp,
+    Glyph::Gauge,
+    Glyph::PackagePlus,
 ];
 
 impl Glyph {
@@ -412,6 +418,8 @@ impl Glyph {
             Self::Blocks => "kit/blocks.svg",
             Self::FolderPlus => "kit/folder-plus.svg",
             Self::CircleHelp => "kit/circle-help.svg",
+            Self::PackagePlus => "kit/package-plus.svg",
+            Self::Gauge => "kit/gauge.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::PullRequestDraft => "kit/pull-request-draft.svg",
             Self::PullRequestClosed => "kit/pull-request-closed.svg",
@@ -842,3 +850,6 @@ mod activity_indicator_asset_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod added_navigation_tests;
