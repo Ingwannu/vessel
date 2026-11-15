@@ -31,7 +31,7 @@ request → typed response → presentation → stdout. Stream/attach paths reta
 No live node, real provider, credential store or production configuration is used for checks.
 Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 
-## Current integration state (2026-11-15 13:22 UTC)
+## Current integration state (2026-11-15 14:56 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
 The [current invocation map](wp-w17-current.md) records source adapters and refusals
@@ -44,7 +44,7 @@ W17 gate, package V3 pass, protocol assignment or merge handoff has been claimed
 | Boundary | Current state / owner |
 | --- | --- |
 | Shared output for W4 permit / W16 plugin | V3 scoped PASS for source5305: 6/0/0 root/process regressions and strict CLI alltarget Clippy0. Evidence-only handoff5b3ca1d is now on announced node head82ae7c91; W4/W16 were told to merge that head. No full W17 claim. |
-| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Exact0656 CLI units now134/0/0; older process/host checks are in the verification matrix. The public-host/dd33 strict run is queued, and later receipt/base changes still need checks. No latest-head/full-parity claim. |
+| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Exact0656 CLI units now134/0/0; older process/host checks are in the verification matrix. Public-host strict runs dd33 and 8545 returned before tests; declaration placement and the private Method import are corrected. Exact e4e4 host tests are queued; latest CLI and strict checks remain owed. No latest-head/full-parity claim. |
 | Run/send output | Typed command receipts now map idle completion to completed. Standalone wait remains idle. Wait/mutation tables and schedule/heartbeat deletion status are source-corrected; update/provider notices and detailed schedule logs retain documented native differences. |
 | W17 node host registry / capture | Six pending rows and one None feature constant; source-owned reference metadata, separately typed bounded public local-agent inventory and capture actor glue staged. Paired destinations lacking node-side trust lookup and direct/SSH creation remain typed refusals. Capture must consume C2's one reviewed pure engine before handoff; no second parser may merge. |
 | Workspace placement / project reset/cascade | W11 reviewed registry/operation contract awaited; WorkspaceId alone is not a workspace call. |
@@ -449,11 +449,11 @@ and owns args::plugin / plugin::run over the same Presentation/output helper sur
 
 | Check | Exact source | Result | Evidence |
 |---|---|---|---|
-| Shared seam clippy, proto/node | ed3a3323 | pass | /tmp/work/wp-cli/seams-check-recovery |
-| CLI unit tests | 6910fd61 | 116 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T075605Z-6910fd61; /tmp/work/wp-cli/cli-unit-check |
-| CLI process parity tests | 16428482 | 4 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T081105Z-16428482; /tmp/work/wp-cli/cli-process-check2 |
-| Full affected-crate narrow clippy | 19205c28 | failed on one unused extraction import, corrected in 6910fd61 | /tmp/work/wp-cli/qualityb-check6 |
-| Local TS generation | before1252d8dc | failed on the forge/registry declaration-name clash; corrected, rerun pending | /tmp/work/wp-cli/typescript-generation*.log |
+| Shared seam clippy, proto/node | ed3a3323 | pass | seams-check-recovery |
+| CLI unit tests | 6910fd61 | 116 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T075605Z-6910fd61; cli-unit-check |
+| CLI process parity tests | 16428482 | 4 passed, 0 failed, 0 ignored | wp-cli-narrow-20261115T081105Z-16428482; cli-process-check2 |
+| Full affected-crate narrow clippy | 19205c28 | failed on one unused extraction import, corrected in 6910fd61 | qualityb-check6 |
+| Local TS generation | before1252d8dc | failed on the forge/registry declaration-name clash; corrected, rerun pending | typescript-generation*.log |
 
 These are scoped results, not a whole root gate or V3 package pass. All runtime checks use
 fake ACP and isolated temporary nodes, under ubuntu UID/GID1000; no live user agent or
@@ -471,7 +471,7 @@ label alias. ParentAgentId remains null until W2's actual attachment contract is
 Creator provenance is deliberately never used to infer current parentage.
 
 Host registry scoped run e638bc46 passed 5/0/0 (wp-cli-narrow-20261115T081853Z-e638bc46,
-/tmp/work/wp-cli/host-registry-tests). The second TS attempt overlapped the required base3
+host-registry-tests). The second TS attempt overlapped the required base3
 merge and compiled mixed old/new ScriptEntry APIs; current source matches base3's entry
 API. That attempt is invalid generation evidence, and generation is rerun on stable source.
 W22 confirmed output-schema belongs to atomic create+initial prompt/per-turn transport,
@@ -497,7 +497,7 @@ C2 ADR0095 and is explicitly not mergeable as a second parser.
 
 Remote named ts run dc7d55d71 completed generator4/0/0 and exported a one-file expected
 tracked diff (overall step rc1 because generated declarations changed). Its manifest and
-artifacts are /tmp/work/wp-cli/ts-export/artifacts/ts. Since head40 updates wire types too,
+artifacts are ts-export/artifacts/ts. Since head40 updates wire types too,
 that older generated file will not overwrite the head's declarations; generation will be
 repeated on the resolved merge. Verified local waiting PID3674024 was terminated before
 submitting the remote ts job; no concurrent duplicate generator was started.
@@ -509,7 +509,7 @@ The exact cd9bb4bf remote TS generator passed four tests. Its tracked-diff exit
 was 1 because host/capture DTOs changed proto.ts, not because generation failed.
 Applied only the regenerated proto.ts after verifying artifact commit and every
 SHA256SUMS entry; bridge.ts and calls.ts were unchanged. Evidence:
-`/tmp/work/wp-cli/ts-export-head40`.
+`ts-export-head40`.
 
 [Decision Log]
 - Purpose: let permit/plugin owners share one typed formatter without depending
@@ -649,7 +649,7 @@ the development branch. Combined-head/consumer checks remain required.
 
 The W17 development sourcecd1a12d7 was separately submitted for all-target strict
 Clippy across CLI/proto/RPC/client/store/session/node/web, run
-wp-cli-narrow-20261115T111143Z-cd1a12d7, /tmp/work/wp-cli/main-clippy-head42.
+wp-cli-narrow-20261115T111143Z-cd1a12d7, main-clippy-head42.
 No result yet. Latest actor/CLI/schema/process tests, reviewed external contracts,
 shared-core consumption and the final whole root gate remain owed.
 
@@ -767,7 +767,7 @@ Latest development clippy run111143 (exactcd1a12d7) completed12:02:51 with
 three lint errors: one archive receipt struct/field naming prefix and two missing
 code backticks in schema-decoder docs. No type error or executed test result was
 reported. Renamed the private receipt type (wire field names unchanged) and fixed
-those comments. Retained /tmp/work/wp-cli/main-clippy-head42 evidence; a changed
+those comments. Retained main-clippy-head42 evidence; a changed
 source strict run and latest unit/process tests remain required.
 
 
@@ -843,7 +843,7 @@ Exact source0656af27d416232f2fb864d22805cd2a4d014d20 completed remote
 wp-cli-narrow-20261115T120656Z-0656af27 at 12:54 UTC, all four steps rc0.
 `cargo test -p vessel-cli --bin vessel --features vessel-proto/ts,vessel-web/ts`:
 134 passed / 0 failed / 0 ignored; actual tests took 5.44 seconds after compilation.
-Retained /tmp/work/wp-cli/cli-unit-head42 includes spec, cargo.log and steps.tsv.
+Retained cli-unit-head42 includes spec, cargo.log and steps.tsv.
 This executes the offline schema/retry, parser, output, option ACK and typed-error
 regressions on that source. It excludes later native init --home, gate44 merge,
 public host inventory and table corrections, and does not execute CLI process tests.
@@ -1068,7 +1068,7 @@ stopped at one items_after_statements diagnostic in proto host_registry/shared/t
 its independent Allowed response schema was declared after fixture statements.
 Moved that test-only type to module scope; no lint suppression, wire change or
 allowlist weakening. No test execution or strict pass is claimed. Retained
-/tmp/work/wp-cli/public-host-cli-clippy contains exact spec, cargo.log and steps.tsv.
+public-host-cli-clippy contains exact spec, cargo.log and steps.tsv.
 Later base/CLI receipt/no-force changes also need the changed-source check.
 
 ### Public read guard/service/actor regression (2026-11-15 13:58 UTC)
