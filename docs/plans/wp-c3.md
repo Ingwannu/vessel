@@ -567,3 +567,21 @@ The already queued84fa narrow excludes this correction.
 The buffer projection's exported split-column and malformed-row fields now
 document their original/modified/source identities explicitly under missing_docs.
 This documentation correction does not change the buffer packing or fixtures.
+
+
+## Diff lexer state isolation
+
+The initial readonly profile fed unified removed and added text through one
+normal lexer state. Source inspection identified that a deleted comment opener
+could colour an uncommented new line as old-side code. The profile now wraps
+the same existing LineSyntax with two cached states. Removed/added advance only
+their own source; context advances both, selecting modified-side output by
+default or explicit original-side output for a split old column. Headers reset
+unknown omitted context; notices/fillers do not enter the lexer. It adds no
+parser, syntax-kind mapping or ordinary editor change, and changes no engine
+selection/clipboard path. Context tokenization is twice per cache build, never
+per paint. Numbered non-source rows are refused by DiffText's existing admission.
+New unexecuted fixtures pin side divergence, header reset, notice/filler skipping,
+unchanged language forwarding and metadata admission. Existing queued84/5ac
+checks exclude this source. Earlier sparse-hunk syntax context and final header
+paint/cross-file selection remain unresolved; no complete syntax/UI claim.

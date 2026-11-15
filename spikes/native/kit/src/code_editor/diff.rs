@@ -13,6 +13,7 @@
 //!   The engine's existing six-point gutter gap is retained in this first
 //!   control; consumer/reference geometry and border parity remain unverified.
 mod document;
+mod syntax;
 pub use document::DiffDocumentEditor;
 
 use std::num::NonZeroU32;
@@ -36,6 +37,20 @@ pub enum DiffTone {
     Removed,
     /// A missing split-side cell keeps an empty surface and number.
     Empty,
+    /// A hunk header has no language state from the omitted gap.
+    Header,
+    /// A structural notice is not source text for the lexer.
+    Notice,
+}
+
+/// Which original source supplies context-line syntax in this column.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DiffSide {
+    /// A split old-side column uses the original source's lexer state.
+    Original,
+    /// Unified and split new-side context uses the modified source.
+    #[default]
+    Modified,
 }
 
 /// A displayed source number may differ from the engine's buffer row.
@@ -67,6 +82,12 @@ pub enum DiffTextError {
         /// Metadata supplied by the owner.
         rows: usize,
     },
+    /// Structural rows must not display an invented repository line number.
+    #[error("non-source diff row {row:?} has a source line number")]
+    NonSourceNumber {
+        /// Zero-based buffer position, not a repository source line.
+        row: BufferRow,
+    },
 }
 
 /// Immutable validated input; replace the whole editor for another generation.
@@ -75,6 +96,7 @@ pub struct DiffText {
     text: Arc<str>,
     rows: Arc<[DiffLine]>,
     sample: gpui::SharedString,
+    side: DiffSide,
 }
 impl DiffText {
     /// Preserve the exact buffer text, including a final empty line.
@@ -89,13 +111,35 @@ impl DiffText {
                 rows: rows.len(),
             });
         }
+
+        for (index, row) in rows.iter().enumerate() {
+            if row.number.is_some()
+                && matches!(
+                    row.tone,
+                    DiffTone::Empty | DiffTone::Header | DiffTone::Notice
+                )
+            {
+                return Err(DiffTextError::NonSourceNumber {
+                    row: BufferRow::new(index),
+                });
+            }
+        }
         let maximum = rows.iter().filter_map(|row| row.number).max();
         let sample = maximum.map_or_else(|| "00".to_owned(), |number| format!("{number:02}"));
         Ok(Self {
             text,
             rows,
             sample: sample.into(),
+            side: DiffSide::Modified,
         })
+    }
+
+    /// Split old-side columns select their actual source explicitly. Unified
+    /// context keeps the default modified-side syntax.
+    #[must_use]
+    pub const fn with_side(mut self, side: DiffSide) -> Self {
+        self.side = side;
+        self
     }
 }
 
@@ -116,6 +160,7 @@ impl DiffEditor {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
+        let syntax = syntax::DiffSyntax::new(syntax, Arc::clone(&text.rows), text.side);
         let editor = CodeEditor::new(&text.text, syntax, unchanged::<V>, window, cx);
         editor.set_read_only(true, cx);
         let result = Self {
@@ -187,7 +232,7 @@ impl InputLinePresentation for Presentation {
             DiffTone::Added => (Some(self.added), Some(self.added.opacity(0.15))),
             DiffTone::Removed => (Some(self.removed), Some(self.removed.opacity(0.1))),
             DiffTone::Context => (Some(self.muted), None),
-            DiffTone::Empty => (None, None),
+            DiffTone::Empty | DiffTone::Header | DiffTone::Notice => (None, None),
         };
         InputLinePaint {
             number: row.number.map(|number| number.to_string().into()),

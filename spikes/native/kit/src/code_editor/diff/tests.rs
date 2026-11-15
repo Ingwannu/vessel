@@ -99,3 +99,32 @@ fn the_profile_rejects_input_and_keeps_selection_on_the_shared_engine(
         window.draw(cx).clear(cx);
     });
 }
+
+#[test]
+fn non_source_rows_cannot_acquire_source_numbers_and_split_side_is_explicit() {
+    for tone in [DiffTone::Empty, DiffTone::Header, DiffTone::Notice] {
+        assert_eq!(
+            DiffText::new(
+                Arc::from("metadata"),
+                Arc::from([DiffLine {
+                    number: NonZeroU32::new(42),
+                    tone
+                }])
+            )
+            .unwrap_err(),
+            DiffTextError::NonSourceNumber {
+                row: BufferRow::new(0)
+            }
+        );
+    }
+    let text = DiffText::new(
+        Arc::from("source"),
+        Arc::from([DiffLine {
+            number: None,
+            tone: DiffTone::Context,
+        }]),
+    )
+    .unwrap();
+    assert_eq!(text.side, DiffSide::Modified);
+    assert_eq!(text.with_side(DiffSide::Original).side, DiffSide::Original);
+}

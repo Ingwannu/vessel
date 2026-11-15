@@ -1296,3 +1296,13 @@ parent-viewport correction, whose changed-source checks are pending; no new
 production pane consumes it yet, and its
 actual keyboard/selection window regression is unexecuted. It does not implement
 cross-file selection or claim the complete Paseo document surface.
+
+
+The readonly diff profile wraps the existing `LineSyntax` with independent
+original/modified states: removed text cannot change new-side syntax. Context
+advances both cached states, with `DiffText::with_side(DiffSide::Original)` for
+an old split column; unified/new-side context defaults to Modified. Header and
+Notice tones do not enter the lexer, fillers do not invent source lines, and
+numbered non-source metadata is refused at DiffText admission. No token kind,
+style resolver, parser or ordinary editor path changes. Sparse hunk context is
+still incomplete; full-file syntax parity and final consumer proof remain owed.
