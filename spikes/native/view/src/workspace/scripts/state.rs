@@ -246,9 +246,7 @@ impl Model {
     /// Capture only a successful, settled display, never retained/loading facts.
     #[must_use]
     pub fn action_ticket(&self) -> Option<ActionTicket> {
-        if self.read.ready().is_none() {
-            return None;
-        }
+        let _snapshot = self.read.ready()?;
         if self.writing.is_some() {
             return None;
         }
