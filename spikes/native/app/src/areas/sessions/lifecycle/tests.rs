@@ -133,7 +133,7 @@ fn a_peer_failure_cannot_render_under_another_admitted_node_with_reused_identifi
             }),
         ));
         let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
-        assert!(draw::error(shell, &tokens).is_some());
+        assert!(error(shell, &tokens).is_some());
         shell
             .areas
             .session
@@ -145,9 +145,9 @@ fn a_peer_failure_cannot_render_under_another_admitted_node_with_reused_identifi
             .unwrap()
             .address
             .node = NodeId::random();
-        assert!(draw::error(shell, &tokens).is_none());
+        assert!(error(shell, &tokens).is_none());
         shell.areas.session.open.as_mut().unwrap().binding = None;
-        assert!(draw::error(shell, &tokens).is_none());
+        assert!(error(shell, &tokens).is_none());
     });
 }
 

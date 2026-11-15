@@ -43,6 +43,8 @@ fn closing_a_maximized_empty_pane_restores_surviving_panel_and_poll_visibility(
                 agent: "fake".to_owned(),
                 structured: true,
                 live: true,
+                binding: None,
+                archived_at: None,
             });
             shell
         }))

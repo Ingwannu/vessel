@@ -26,7 +26,7 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
             SessionMode::Structured {
                 model: None,
                 resume: None,
-                options: vec![vessel_proto::OptionChoice {
+                options: vec![OptionChoice {
                     id: vessel_proto::OptionId::new("fast"),
                     value: vessel_proto::ChoiceValue::Toggle { on: true },
                 }],

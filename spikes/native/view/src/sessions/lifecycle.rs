@@ -4,6 +4,19 @@ use vessel_proto::SessionId;
 /// A lifecycle result is correlated independently from navigation lookups.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LifecycleTicket(u64);
+impl LifecycleTicket {
+    /// First local UI decision; this is never a resident operation capability.
+    pub const FIRST: Self = Self(1);
+
+    /// Never recycle a decision after exhaustion: a delayed callback can survive.
+    #[must_use]
+    pub const fn next(self) -> Option<Self> {
+        match self.0.checked_add(1) {
+            Some(next) => Some(Self(next)),
+            None => None,
+        }
+    }
+}
 /// One target keeps the saved host and session together at every boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LifecycleTarget {
