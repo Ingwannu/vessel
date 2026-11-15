@@ -239,5 +239,8 @@ fn host_requests(
 #[cfg(test)]
 mod language_tests;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+// Direct cfg(test) keeps Clippy's existing test-only assertion policy; the
+// native gate separately excludes the detached-link helper on wasm.
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod refresh_tests;

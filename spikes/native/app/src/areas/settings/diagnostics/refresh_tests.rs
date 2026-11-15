@@ -24,7 +24,7 @@ fn refresh_waits_for_the_held_read_and_does_not_spend_a_ticket(cx: &mut gpui::Te
             assert_eq!(
                 shell.areas.settings.diagnostics.collection.phase(),
                 &Phase::Hidden
-            )
+            );
         },
     );
 }

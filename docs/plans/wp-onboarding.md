@@ -252,3 +252,10 @@ but Clippy rejected unchecked Duration addition in the new test. Tests did not
 run. The assertion now uses std::time::Duration::checked_add, retaining its
 original bound; no lint allowance or product behavior change is introduced.
 The earlier rc143 interruption and this source-lint failure are separate.
+
+The next exact0ab10dc0 verification passed link Clippy but app Clippy identified
+a missing assertion semicolon and treated helpers behind cfg(all(test,...))
+as production for test-only unwrap/panic policy. The module now uses direct
+cfg(test) plus a separate native-only cfg, as existing test modules do; the
+root Clippy test assertion settings apply without adding a lint allowance.
+The semicolon is fixed. No product strictness or test assertions are removed.
