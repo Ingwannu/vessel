@@ -108,7 +108,7 @@ async fn the_end_notification_follows_runtime_and_durability_removal() {
             fixture.sessions.find(id).await.unwrap(),
             Found::Stored(_)
         ));
-        fixture.sessions.wait_side_stored(id).await.unwrap();
+        fixture.sessions.wait_stored(id).await.unwrap();
         fixture.stop().await;
     })
     .await

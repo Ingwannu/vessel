@@ -62,6 +62,7 @@ pub(super) fn agent_of(mut info: SessionInfo, parent: &str) -> SessionInfo {
 pub(super) fn machine(name: &str, online: bool, sessions: &[SessionInfo]) -> Machine {
     Machine {
         node: None,
+        connection_epoch: None,
         name: name.to_owned(),
         reach: if online {
             Reach::Online
