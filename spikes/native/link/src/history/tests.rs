@@ -51,6 +51,7 @@ async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
     };
     assert_eq!(outcomes.len(), batch.entries.len());
     assert!(outcomes.iter().all(|outcome| outcome.result.is_ok()));
+    {
     let calls = peer.calls.lock().unwrap();
     assert_eq!(calls.len(), batch.entries.len());
     for (call, entry) in calls.iter().zip(&batch.entries) {
@@ -66,7 +67,7 @@ async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
         );
     }
 
-    drop(calls);
+    }
 
     peer.finish().await;
 
@@ -331,9 +332,5 @@ async fn a_mismatched_create_receipt_is_uncertain_instead_of_opening_another_con
 }
 
 async fn bounded_answer(selected: &crate::connections::SelectedConnection, request: Ask) -> Reply {
-    crate::testing::phase(
-        "history adapter result",
-        crate::history::answer(selected, request),
-    )
-    .await
+    crate::testing::phase("history adapter result", answer(selected, request)).await
 }
