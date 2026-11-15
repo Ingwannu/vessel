@@ -44,3 +44,27 @@ retained shared reveal, and two nested origins containing actual hover/reveal
 state. They are source only until execution. Static fmt, size, tokens and
 whitespace checks passed; strict App Clippy and filtered navigation runtime
 checks are pending the one-own-build lane. No full A3 or product runtime claim.
+
+## Exact receipts and bounded review
+
+The pending-run wording above describes the authored source checkpoint. On exact
+source `5ab2a0c26face1eaca28d2b66fc7751103d6e34a`, the requested checks completed:
+
+- `wp-search-narrow-20261115T164519Z-5ab2a0c2`: native fonts rc0 and strict
+  App all-targets Clippy rc0. The log includes actual App checking; Cargo
+  finished in 2m43s. Native Cargo log digest prefix `460d83b93057d99a`.
+- `wp-search-narrow-20261115T165113Z-5ab2a0c2`: native fonts rc0 and Cargo rc0,
+  actual App compilation followed by four tests passing, zero failed/ignored
+  or skipped. The `navigation_` filter selected the three authored owner GPUI
+  regressions and one existing terminal navigation/motion regression. Runtime
+  was 0.24s, after a 5m26s test build. Log digest prefix `5a30c3a59bda8c32`.
+- Preflight fmt, static native size/tokens, whitespace, imports, Rust doc markup
+  and test-module-last checks passed without new exceptions.
+
+V1 queue row259 independently verified the four source pins and these exact
+receipts: BOUNDED STAGED SOURCE + REQUESTED NARROW PASS. The selected source
+handoff to W12 is allowed with literal test-only staging preserved. This receipt
+is documentation only; it does not change the gated Rust source or require an
+unchanged gate. Global async callback scoping remains open. A7 owns origin
+loading/other votes; this is no full A3, live registry/snapshot cutover, connection
+or lease authority, IME, capture or whole-native acceptance.
