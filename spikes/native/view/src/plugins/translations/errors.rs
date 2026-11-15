@@ -48,7 +48,7 @@ pub(super) enum Problem {
     Date(#[source] Sealed<crate::localization::FormatError>),
     #[error("plugin translation exceeds the target text contract")]
     Output(#[source] vessel_proto::plugins::InvalidPluginValue),
-    #[error("plugin translation and English fallback both failed")]
+    #[error("plugin translation failed ({translation}); English fallback failed ({english})")]
     Fallback {
         translation: Box<Self>,
         #[source]
