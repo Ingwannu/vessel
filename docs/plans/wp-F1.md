@@ -657,3 +657,32 @@ Proof: direct pinned formatting/source inspection only. The already queued
 e86d narrow predates this new module and is not evidence for it. One final
 changed F1 package check and actual long-label/error/trailing/phone/theme/language
 first-use layout evidence remain owed; no extra whole producer gate is started.
+
+## Run-history read skeleton (source only)
+
+[Decision Log]
+- Purpose: history stays available for read-only/ended schedules while rows and
+  session links remain bound to the originally selected physical machine.
+- Existing assets: node ListRuns/RunList cap, canonical ConnectionContext,
+  nonreusing Tickets, existing history outcome/session classifiers and body
+  states. No mutation, local execution, extra polling or synthetic history.
+- Choice: history::reader owns an explicit visit and exact pending envelope;
+  retry keeps the visit but issues another read ticket. Old visit/context/id/
+  ticket, oversized/duplicate/ascending list, and any retired connection are
+  refused before installation. No silently sorted or partial successful list.
+- Why: another machine can reconnect under the same book key without changing
+  its visible label; a retained click must not navigate to its session instead.
+  Links exist only when the authoritative outcome actually names a SessionId,
+  including a failed creation that got that far. Retire removes every link.
+- Reference boundary: Paseo schedule service logs returns recorded runs, while
+  its app schedule-row has no dedicated history screen; GOAT's scheduled-task
+  settings retain the last result rather than this node's full run list. This
+  requested Vessel extension will use existing shared rows/dialog controls;
+  it must not claim a copied Paseo history screen. The node's newest retained
+  RunList::MAX cap is authoritative and is not replaced by an app pagination cap.
+
+Source tests cover every body, explicit retry, close/reopen/late result,
+wrong schedule/admission, exact cap and ordering, same-node reconnect, read-only
+and ended rules, offline cached rows and outcome-derived links. They are not
+executed yet. Link and App history routing is still absent; no unwired history
+menu item is exposed. The e86d remote suite predates this source addition.
