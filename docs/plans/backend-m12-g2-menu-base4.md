@@ -83,3 +83,13 @@ to review the completed shared Kit source/narrow scope while that integration
 check waits. No full native, Git/F1 product or UI pass is implied. Historical
 F5/actual clip/hit/neighbor/consumer captures remain open. Primary merged074ade16
 with docs-only delta because complete G4 prerequisites were already adopted.
+
+V1 independently accepted exact8158be6d KIT SOURCE and exact Kit160/0/0 narrow
+scope, verifying all21 manifest blobs and the single renderer/focus dependency.
+G1 received the exact isolated producer, APIs, newer-glyph/default constructor
+union notes and the provisional boundary. App Clippy remains queued, so no
+full App/integration-ready verdict is recorded. V1's source approval explicitly
+requires current keyed-target/pending/authority guards in callers; a rendered
+snapshot/index guard is not stale-ticket protection. Historical Linux F5 and
+actual hit/clip/neighbor/consumer evidence remain open. No whole F1 branch or
+unimplemented ProviderRow/modal/passive control was handed off.
