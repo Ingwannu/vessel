@@ -15,6 +15,7 @@ mod receipt;
 mod reference;
 mod response;
 mod scope;
+mod submission;
 
 pub use detail::*;
 pub use identity::{
@@ -56,3 +57,8 @@ pub(crate) use reference::ReferenceContext;
 
 #[cfg(test)]
 mod reference_tests;
+
+pub use submission::{
+    NativeCommandRefusal, PromptDisposition, SubmissionAcceptedKind, SubmissionDelivery,
+    SubmissionRefusal,
+};

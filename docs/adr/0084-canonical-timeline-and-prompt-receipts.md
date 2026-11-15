@@ -381,3 +381,13 @@ downgrade-only origin described in
 [the concrete shared wire proposal](../plans/timeline-reference-provenance.md).
 That proposal requires V3 shared-wire review before runtime wiring; current
 stateless projection code is not a merge-ready compatibility claim.
+
+## Joint keyed command and steer-fallback amendment (review pending)
+
+The dormant proposal in [keyed-command-and-delivery](../plans/keyed-command-and-delivery.md)
+adds actual prompt dispositions and native command acceptance to the same identified
+pipeline, without changing legacy Delivery/Delivered or fabricating turns. W23 owns
+receipt/actor semantics, W12b pure intent/catalog production, W22 native transport.
+The current attached SubmitPrompt/PromptReceipt remain prompt-only until the shared
+amendment and producer capability path are reviewed and implemented. No new number,
+method or second receipt store is allocated by the dormant values.
