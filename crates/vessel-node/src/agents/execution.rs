@@ -41,6 +41,10 @@ impl Agents {
     /// Transition owners call after authorization/state validation, before the
     /// transition's first effect. No captured intent may recapture the new UUID.
     pub(crate) fn invalidate_execution(&self, session: SessionId, cause: ExecutionInvalidation) {
+        if cause == ExecutionInvalidation::Ended {
+            self.retire_execution(session);
+            return;
+        }
         let change = {
             let entries = self.lock();
             entries
@@ -52,6 +56,24 @@ impl Agents {
             tracing::debug!(%session, incarnation=%change.incarnation, cause=?change.cause, "agent execution invalidated");
         }
     }
+    fn retire_execution(&self, session: SessionId) {
+        let entry = {
+            let mut entries = self.lock();
+            let Some(entry) = entries.remove(&session) else {
+                return;
+            };
+            // The removal/final change has one current-incarnation order:
+            // no capture or same-id replacement can interleave between them.
+            let _change = entry.execution.invalidate(ExecutionInvalidation::Ended);
+            entry
+        };
+        for closing in entry.connections.values() {
+            closing.cancel();
+        }
+        if !entry.connections.is_empty() {
+            tracing::info!(%session, connections=entry.connections.len(), "the session ended; closed its agent's connections");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -60,8 +82,8 @@ mod tests {
     use crate::principal::Principal;
     use vessel_proto::NodeId;
 
-    #[tokio::test]
-    async fn every_transition_changes_the_exact_entry_and_publishes_to_existing_receivers() {
+    #[test]
+    fn every_transition_changes_the_exact_entry_and_publishes_to_existing_receivers() {
         let agents = Agents::new(NodeId::random());
         let session = SessionId::random();
         let other = SessionId::random();
@@ -90,7 +112,7 @@ mod tests {
         ] {
             let previous = watched.borrow().incarnation;
             agents.invalidate_execution(session, cause);
-            watched.changed().await.unwrap();
+            assert!(watched.has_changed().unwrap());
             let now = *watched.borrow_and_update();
             assert_ne!(now.incarnation, previous);
             assert_eq!(now.cause, Some(cause));
@@ -108,20 +130,19 @@ mod tests {
             other_id
         );
         agents.retire(session);
-        watched.changed().await.unwrap();
         assert_eq!(
             watched.borrow_and_update().cause,
             Some(ExecutionInvalidation::Ended)
         );
-        assert!(watched.changed().await.is_err());
+        assert!(watched.has_changed().is_err());
     }
 
-    #[tokio::test]
-    async fn replacing_the_same_session_id_never_reuses_the_old_watch_or_incarnation() {
+    #[test]
+    fn replacing_the_same_session_id_never_reuses_the_old_watch_or_incarnation() {
         let agents = Agents::new(NodeId::random());
         let id = SessionId::random();
         let _first = agents.reserve(id, &Principal::Owner, false).unwrap();
-        let mut old = agents
+        let old = agents
             .lock()
             .get(&id)
             .unwrap()
@@ -130,7 +151,7 @@ mod tests {
             .subscribe();
         let old_id = old.borrow().incarnation;
         agents.forget(id);
-        assert!(old.changed().await.is_err());
+        assert!(old.has_changed().is_err());
         let _next = agents.reserve(id, &Principal::Owner, false).unwrap();
         assert_ne!(
             agents

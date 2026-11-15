@@ -40,3 +40,12 @@ unchanged, natural retirement closes it, and replacing the same SessionId cannot
 reuse its incarnation/watch. Pure proto fixtures reject invalid UUID/admin while
 preserving the exact stamp. These are not capture/actor atomicity or transition
 call-site tests. Exact VM strict and runtime execution remain owed.
+
+Review correction: the watch regressions now use synchronous has_changed and
+borrow_and_update/closed assertions, since every mutation happens synchronously.
+No unbounded watch await remains, and all incarnation/cause/grant/replacement/
+closure assertions are preserved. Natural retirement now routes through the same
+invalidation owner and removes/publishes Ended within one registry lock interval;
+connection closing and diagnostics remain outside it. This closes the partial
+producer's split-lock ordering gap without claiming the later full capture fence.
+Predecessor strict evidence remains historical; corrected checks are still owed.
