@@ -1,12 +1,29 @@
 # Browser package: reference, integration and evidence
 
-Status: contract reviewed; staged identities/native models only, no engine or
-qualification claim.
+Status: contract reviewed; the sole pane renderer remains **NoEngine**. Pure
+view models and a test-only decoded-frame composition exist; no engine, frame
+stream, focus/input transaction or qualification is claimed.
 Decision: **modify/reuse** the earlier browser value/policy work and the
 existing MCP/client/proc/native layers; **new** engine/CDP/proxy modules are
 necessary because none of those layers renders or drives a page. Do not
 introduce wry, an Electron host, a second cookie jar or a general CDP tunnel.
 The architecture/security contract is ADR 0078.
+
+## Current native implementation boundary
+
+The pane owner retains layout and resource tickets. Browser rendering uses its
+one registry arm and displays the localized unavailable state. The test-only
+PreparedFrame reuses W6's checked bounded PNG decoder/CPU RenderImage projection
+and view::browser::SurfaceMap: decoded raster dimensions must match metadata;
+CSS dimensions remain independent and letterbox points are excluded. Its
+receiving-union Clippy and composition tests are queued on exact89add9b11.
+
+This model does not receive a frame or prove node/workspace/browser/revision,
+paint, GPU lifetime, focus or permission. Those remain the actual owner's
+requirements before any product image/input path. W18's isolated values carrier
+still awaits the announced receiving/app base; no browser identity is invented
+here to bypass that dependency. Windows and actual browser qualification remain
+unproved. Earlier source/checkpoint sections below are historical scoped evidence.
 
 ## Paseo reference, read before implementation
 
@@ -79,7 +96,7 @@ browser.control, browser.watch, browser.clear_profile and browser_tools.
 All use one unassigned feature constant. No numeric protocol ownership.
 The panel remains hidden until these calls and a working engine exist.
 
-## Evidence ledger
+## Initial document checkpoint (historical)
 
 - Read ADR 0069 and the initial return plus corrected document pass. Earlier
   document acceptance did not certify Chromium or a panel.
