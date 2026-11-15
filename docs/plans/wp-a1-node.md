@@ -46,13 +46,15 @@ including the current capacity/restart/namespace coverage, and one failed
 completed-resource deletion fixture. That fixture is corrected in5244;
 run wp-create-node-narrow-20261115T120447Z-5244c045 executed 31 focused tests
 with no failures, including exact acknowledgement, safe errors, namespaces,
-restart and retained keys. Later strict test-lint fixes remain under a queued
-narrow check. No runtime driver,
+restart and retained keys. Strict Store/Node all-target Clippy then passed
+run wp-create-node-safety-20261115T125224Z-4ee19cff after the test-lint fixes.
+No runtime driver,
 public protocol assignment or receipt/launch source acceptance is claimed.
 
-Approved shared identitye45a5d89 is merged. Unreviewed registry producer code
-was removed; registry ownership/provisioning remains behind the planned typed
-boundary until its producer passes review. Source-created change requests
+Approved shared identitye45a5d89 is merged. The minimal registry dependency
+has scoped source acceptance; integration still waits for its announced node
+head and the separately checked project admission/fixed-id primitive. Its old
+unreviewed prototype remains excluded. Source-created change requests
 must carry ADR0082's explicit blocked-automation gate before provisioning.
 
 Next: recover the registered checks, consume the reviewed registry Store and
