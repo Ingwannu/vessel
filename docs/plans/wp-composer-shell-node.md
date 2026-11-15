@@ -52,3 +52,5 @@ checked. The composer/actor still compare canonical name and the shared parser.
 Goals additionally require launchflag plus autonomous root-turn proof. Dormant
 valuesdd06 are merged for NODE-side preparation; no app activation/source-pass
 claim. Metadata and corrected browser policy need combined check/TS generation.
+
+Whole-consumer audit: both existing client/RPC fake handlers now include the new draft command query in their `unserved!` lists. They retain the same typed Unsupported result and RPC call recording behavior. This closes a test-target trait requirement missed by the earlier five-crate selection; it does not add a second fake or authorize discovery. The browser unary policy already classifies GetDraftCommands beside HarnessOptions (6e893096c). Current combined consumer lint remains pending.

@@ -457,6 +457,7 @@ impl Handler for FakeNode {
         lsp_diagnostics: vessel_proto::lsp::Diagnostics => vessel_proto::lsp::Page<vessel_proto::lsp::Diagnostic>;
         list_models: vessel_proto::ListModels => Vec<vessel_proto::ModelRoute>;
         harness_options: vessel_proto::GetHarnessOptions => vessel_proto::HarnessOptions;
+        draft_commands: vessel_proto::composer_commands::GetDraftCommands => vessel_proto::composer_commands::CommandCatalog;
         session_options: vessel_proto::GetSessionOptions => Vec<vessel_proto::SessionOption>;
         set_session_option: vessel_proto::SetSessionOption => Vec<vessel_proto::SessionOption>;
         rename_session: vessel_proto::RenameSession => SessionInfo;
