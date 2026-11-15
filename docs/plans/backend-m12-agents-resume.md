@@ -44,20 +44,22 @@ guard without starting a node. S2 separately proved its full fleet with
 both the shared and its own root binaries. Those are S2's runs; G3 did not
 repeat the full fleet or relabel the older failed capture setup as green.
 
-Next after this return: integrate the assigned lead line (`d30804b2` or
-later), preserving the lead's shared code and lower size record. The
-coordinator delegated a behavior-neutral move of the existing agent-option
-reader into `link/src/options.rs`, with its actual root actor caller and
-`pub(super)` visibility. Keep this separate from the other control track's
-error-type move. The move gets source-only review; its immediate module
-registration/size-record commit is the head gated by A13. The ratchet
-rejects a record above the measured size too, so do not claim the
-intermediate move has an isolated quality/compile pass. Then Models, then
-registry/Add. Remove still waits for the reviewed shared trigger and
-leading16 seam; do not duplicate them. Registry/Add rules and screens still
-remain, as do the shared alphabetical comparator and Models screen. Named
-launch-profile CRUD needs the separately reported node contract. No local
-capture/build/fleet/display processes remain running.
+The assigned lead baseline `d30804b2` merged without conflicts at
+`8dbf3ccd`; its root dispatcher stayed byte-identical to the lead's 988-line
+blob. Existing removal rules and normal screen evidence were already on
+that line. Own later removal call/test corrections remain separate.
+The coordinator-delegated unchanged option-query move is `5edd521b`,
+source-only. Its immediate native module registration lowers the measured
+root size to 952 and awaits the combined exact-head A13 gate. The other
+control track's error-type move is not included. See the Models plan for
+its unchanged-method proof and the deliberate intermediate gate boundary.
+After this extraction, consume the reviewed minimal loader on the assigned
+lead base and build Models first, then registry/Add with the shared title
+comparator. Remove UI still waits for the reviewed shared trigger and
+leading16 seam; no second trigger is implemented. Models preparations remain
+outside the repository and uncompiled. Named launch-profile CRUD waits for
+the separately reported node contract and assigned number. No local
+capture/fleet/display/build processes remain running.
 
 ## Start here
 
