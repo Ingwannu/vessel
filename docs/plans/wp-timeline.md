@@ -1383,9 +1383,12 @@ scoped host/root/image authority and final UI acceptance remain separate.
   boundaries. Closing tags embedded in examples require a valid whole suffix
   before recognition, matching the source's anchored lazy capture.
 - Effects: no I/O, new dependency, voice-mode permission or provider parsing.
-  This does not claim to repair node global-search hits or bounded metadata
-  previews built before a complete body exists; W1 owns those projections and
-  will consume the shared helper only after a checked union. Local tests cover
+  Metadata outline previews remain raw: W1 verified that Paseo's prompt index
+  only collapses whitespace in raw item.text and its outline displays that preview
+  unchanged. Global raw-source search may likewise hit hidden instruction terms;
+  that source/display distinction remains, rather than being claimed fixed.
+  W1 owns those projections; this helper affects displayed-body local find only.
+  Local tests cover
   source identity, assistant examples, hidden instruction terms, find offsets,
   optional legacy suffix, invalid XML and exact whitespace. Execution is owed.
 
