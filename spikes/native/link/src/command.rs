@@ -25,8 +25,6 @@ use vessel_proto::{
 pub enum Command {
     /// Correlated creation distinguishes registration from first-message delivery.
     Create(super::creation::Ask),
-    /// Debounced path suggestions for one captured composer.
-    Mentions(crate::mentions::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

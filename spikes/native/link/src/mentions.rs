@@ -38,7 +38,7 @@ pub struct RootAnswer {
 }
 
 /// One feature command keeps the shared transport dispatcher small.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ask {
     /// Resolve an existing session's registered root.
     Root(RootAsk),

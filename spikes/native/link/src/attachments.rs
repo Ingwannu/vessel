@@ -51,6 +51,8 @@ pub(crate) use send::{content, spawn};
 /// command loop stays one screen of dispatch).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Files {
+    /// File/root suggestions share this feature's single transport registration.
+    Suggest(crate::mentions::Ask),
     /// Read this created session's own abilities and limits without selecting it.
     Capabilities(CapabilityAsk),
     /// Send a file to its session beside the other commands; each step
@@ -71,6 +73,10 @@ pub enum Files {
 /// What the link says of the files (`Event::Files`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Answer {
+    /// Suggestions for a captured composer/token.
+    Suggestions(crate::mentions::Answer),
+    /// An existing session's registered root, with captured identity.
+    Root(crate::mentions::RootAnswer),
     /// Capabilities belong to the captured creation ticket and session.
     Capabilities {
         /// Original destination.

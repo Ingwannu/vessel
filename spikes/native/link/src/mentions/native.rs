@@ -41,7 +41,9 @@ impl Hub {
                 None => Err(Failure::Offline),
             };
             let _closed = events
-                .send(crate::Event::MentionRoot(RootAnswer { ask, result }))
+                .send(crate::Event::Files(crate::attachments::Answer::Root(
+                    RootAnswer { ask, result },
+                )))
                 .await;
         }));
     }
@@ -74,7 +76,9 @@ impl Hub {
                 None => Err(Failure::Offline),
             };
             let _closed = events
-                .send(crate::Event::Mentions(Answer { request, result }))
+                .send(crate::Event::Files(
+                    crate::attachments::Answer::Suggestions(Answer { request, result }),
+                ))
                 .await;
         });
         self.jobs.push_back((key, job));

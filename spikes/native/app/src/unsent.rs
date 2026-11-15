@@ -117,17 +117,17 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         },
         // The machine's page never asked: said under the Messages group as
         // that machine's failure, in the app's words.
-        Command::Mentions(vessel_app_link::mentions::Ask::Root(ask)) => {
-            Event::MentionRoot(vessel_app_link::mentions::RootAnswer {
+        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Root(ask))) => {
+            Event::Files(Answer::Root(vessel_app_link::mentions::RootAnswer {
                 ask,
                 result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            })
+            }))
         }
-        Command::Mentions(vessel_app_link::mentions::Ask::Suggestions(request)) => {
-            Event::Mentions(vessel_app_link::mentions::Answer {
+        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Suggestions(request))) => {
+            Event::Files(Answer::Suggestions(vessel_app_link::mentions::Answer {
                 request,
                 result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            })
+            }))
         }
         Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
             machine: ask.machine,
