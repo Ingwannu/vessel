@@ -1,20 +1,20 @@
 use super::{
-    MAX_LINES, MAX_WORD_BYTES, MAX_WORD_CELLS, MAX_WORD_TOKENS, changed_pair, word_highlights,
-    words,
+    MAX_LINES, MAX_WORD_BYTES, MAX_WORD_CELLS, MAX_WORD_TOKENS, WordChanges, changed_pair,
+    word_highlights, words,
 };
 use crate::timeline::{DiffLine, Side, diff_lines};
 use std::ops::Range;
 
 fn changed(old: &str, new: &str) -> (Vec<String>, Vec<String>) {
     let mut budget = MAX_WORD_CELLS;
-    let (old_ranges, new_ranges) = changed_pair(old, new, &mut budget).unwrap();
+    let WordChanges { removed, added } = changed_pair(old, new, &mut budget).unwrap();
     let text = |source: &str, ranges: Vec<Range<usize>>| {
         ranges
             .into_iter()
             .map(|range| source.get(range).unwrap().to_owned())
             .collect()
     };
-    (text(old, old_ranges), text(new, new_ranges))
+    (text(old, removed), text(new, added))
 }
 
 #[test]
