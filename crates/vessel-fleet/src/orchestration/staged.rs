@@ -2,6 +2,12 @@
 //! Tests exercise the actual filesystem machinery against isolated agent homes.
 
 mod filesystem;
+mod manifest;
+mod reconcile;
+mod status;
+
+/// Shared and Claude are active; Codex only retires its dedicated old copy.
+const ACTIVE_TARGETS: usize = 2;
 
 use std::path::{Component, PathBuf};
 

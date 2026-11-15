@@ -180,6 +180,12 @@ changes or captures are required by this node-only package.
   directory helpers compile only in tests until the pending-row wiring commit;
   no product endpoint can call them. Regression fixtures cover obsolete-file
   edits, symlink refusal and same-root directory staging. Execution pending.
+- Staged: complete status derivation, non-destructive reconcile/startup repair,
+  ownership manifests and retirement of unchanged managed legacy Codex files.
+  Unknown selections refuse before creating homes; startup leaves fresh homes
+  empty; update preflights every managed path before changing a declaration.
+  User-added files and edited obsolete files are preserved. Tests added, not
+  yet executed. Selection transactions and node wiring remain incomplete.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.
 

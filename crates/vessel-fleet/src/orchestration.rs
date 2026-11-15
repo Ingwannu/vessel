@@ -5,6 +5,9 @@ mod bundle;
 
 pub use bundle::{SkillAsset, SkillBundle, SkillBundles};
 
+/// Ownership metadata is reserved from compiled skill contents.
+pub(crate) const MANAGED_SKILL_MANIFEST: &str = ".vessel-managed-files.json";
+
 /// A bounded, portable bundled-skill operation failed.
 #[derive(Debug, thiserror::Error)]
 pub enum SkillError {
@@ -38,6 +41,12 @@ pub enum SkillError {
     /// A manifest must be decoded at its owning edge.
     #[error("invalid managed skill manifest")]
     Manifest(#[from] serde_json::Error),
+    /// A future manifest cannot be overwritten as the current version.
+    #[error("unsupported managed skill manifest version")]
+    ManifestVersion,
+    /// Selection must come from the currently shipped catalogue.
+    #[error("selection names a skill this release does not ship")]
+    UnknownSkill,
 }
 
 // Staged while skill RPCs await the shared pending-row method table. The wiring

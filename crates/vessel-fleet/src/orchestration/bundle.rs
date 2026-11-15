@@ -63,7 +63,13 @@ impl SkillBundle {
             return Err(SkillError::Budget);
         }
         let mut files = BTreeMap::new();
+        let mut portable = std::collections::HashSet::new();
         for asset in assets {
+            if asset.path.as_str() == super::MANAGED_SKILL_MANIFEST
+                || !portable.insert(crate::rel::fold(asset.path.as_str()))
+            {
+                return Err(SkillError::Duplicate);
+            }
             if files.insert(asset.path.clone(), asset).is_some() {
                 return Err(SkillError::Duplicate);
             }
@@ -102,8 +108,12 @@ impl SkillBundles {
             return Err(SkillError::Budget);
         }
         let mut out = BTreeMap::new();
+        let mut portable = std::collections::HashSet::new();
         let mut total = 0_usize;
         for bundle in bundles {
+            if !portable.insert(crate::rel::fold(bundle.name.as_str())) {
+                return Err(SkillError::Duplicate);
+            }
             for asset in bundle.files() {
                 total = total.saturating_add(asset.bytes().len());
             }
