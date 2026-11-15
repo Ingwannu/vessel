@@ -1047,5 +1047,3 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
 
 mod approvals;
 mod git_apart;
-
-mod registry;

@@ -28,9 +28,6 @@ mod forge;
 mod git;
 mod policy;
 mod projects;
-// Staged until the registry RPC wiring uses the shared pending method table.
-#[cfg(test)]
-mod registry;
 mod roots;
 mod scripts;
 mod setup;

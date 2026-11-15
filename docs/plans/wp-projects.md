@@ -136,14 +136,14 @@ is queued. Store persistence and Archiving/root adapter are implemented locally,
 awaiting narrow store checks. No node RPC is registered, no app wire integration,
 no full gate or captures yet. Shared registry types are not called reviewed.
 
-The staged provisioning service reuses existing worktree creation with a fixed,
+The continuation's staged provisioning service reuses worktree creation with a fixed,
 durable backing id. Local provisioning creates only a registry record. Replays
 return the same descriptor; an id with a different intent is refused. Approval
 is returned before a worktree is made. Startup marks interrupted Creating
 reservations Uncertain; no automatic filesystem replay occurs. Descriptor
-publication and reservation Ready are one transaction. The node module remains
-test-only until pending RPC wiring; existing worktree.create still chooses a
-random id before delegating to the same implementation.
+publication and reservation Ready are one transaction. The node module remains on that continuation until its real caller wires it.
+This dependency retains the unchanged legacy worktree.create implementation,
+which chooses its own random id.
 
 Contract narrow Clippy on 702277bd returned three documentation-markdown lints
 (no type/runtime error). They are corrected in the next commit and rechecked;
@@ -224,3 +224,19 @@ targets its preexisting schema checkpoint instead of newest-minus-one, so a
 later append cannot change which migration it tests. Production migration SQL,
 authorization, method scopes and assertions remain intact. Targeted reruns and a
 new whole gate remain owed; the unrelated browser failure must also be checked.
+
+## Dependency boundary: provisioning stays in the continuation
+
+The registry/store dependency excludes the cfg(test) filesystem provisioner and
+its node-only tests. Under A10, an unwired node service stays on its continuation
+branch until its real caller removes staging in a wiring commit. Its source is
+retained in the separate project-management continuation; it has no consumer-
+ready or shipped provisioning API claim. This dependency contains the live
+registry read/mutation handlers, durable metadata/reservations/membership and
+start-admission seams. Creation receipts, actual backing provisioning and actor
+launch remain separate work. No default workspace is synthesized.
+
+The first fixture-correction narrow failed at compile time because devices.rs
+uses its own inline fixture builders rather than support/fixtures.rs. The
+rollback SQL now has one small test-only module used by both fixture families.
+The failed run is retained; a corrected narrow and whole gate remain owed.

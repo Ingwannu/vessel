@@ -1610,7 +1610,7 @@ in-transaction seam for catalog assignment extensions, not a second registry.
 long-poll, rename and pin through the single pending method table. The separate
 create and lifecycle packages own actor launch and archive/recovery orchestration.
 Pre-spawn leases fence archive against late actor registration. Restoring is an
-exclusive persisted claim before backing recovery. Provisioning currently remains
-staged under tests while the create orchestration is developed. Project config,
+exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
+create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 No protocol number or full package acceptance follows from this architecture.

@@ -42,27 +42,11 @@ impl Workspaces {
         request: CreateWorktree,
         created_for: Option<SessionId>,
     ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
-        self.create_worktree_with_id(creator, request, created_for, WorktreeId::random())
-            .await
-    }
-
-    /// Registry provisioning supplies a durably reserved id before filesystem effects.
-    pub(crate) async fn create_worktree_with_id(
-        self: &Arc<Self>,
-        creator: Creator,
-        request: CreateWorktree,
-        created_for: Option<SessionId>,
-        id: WorktreeId,
-    ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
         // A task of the node's: a caller that goes away does not leave a
         // folder made and unrecorded.
         let workspaces = Arc::clone(self);
         self.tasks
-            .spawn(async move {
-                workspaces
-                    .create_now(creator, request, created_for, id)
-                    .await
-            })
+            .spawn(async move { workspaces.create_now(creator, request, created_for).await })
             .await
             .map_err(|_stopped| WorkspaceError::Io("making the worktree stopped".to_owned()))?
     }
@@ -72,13 +56,11 @@ impl Workspaces {
         creator: Creator,
         request: CreateWorktree,
         created_for: Option<SessionId>,
-        id: WorktreeId,
     ) -> Result<CreateWorktreeOutcome, WorkspaceError> {
         let refused = |reason| Ok(CreateWorktreeOutcome::Refused { reason });
         let project = request.project;
         let (root, default_branch) = {
             let mut state = self.state();
-            require_new_worktree_id(&state, id)?;
             let entry = state
                 .projects
                 .get(&project)
@@ -104,6 +86,7 @@ impl Workspaces {
             creator: creator.clone(),
         };
         let git = self.git()?.clone();
+        let id = WorktreeId::random();
         let Chosen {
             branch,
             start,
@@ -319,14 +302,4 @@ async fn canonical(path: PathBuf) -> PathBuf {
     tokio::task::spawn_blocking(move || std::fs::canonicalize(&path).unwrap_or(path))
         .await
         .unwrap_or_default()
-}
-
-/// A durably reserved identity must never replay an already-registered backing effect.
-fn require_new_worktree_id(state: &State, id: WorktreeId) -> Result<(), WorkspaceError> {
-    if state.worktrees.contains_key(&id) {
-        return Err(WorkspaceError::Conflict(
-            "the reserved worktree identity already exists".to_owned(),
-        ));
-    }
-    Ok(())
 }

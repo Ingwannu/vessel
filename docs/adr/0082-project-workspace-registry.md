@@ -185,3 +185,14 @@ successful wait/join. The node supervisor must reconcile the actual resource and
 run generation before using the opaque predecessor token. The store does not
 infer process state from cwd, PID shape or an elapsed time. Failed initial starts
 remain separate and retryable only after proof that no actor was spawned.
+
+## Dependency boundary: provisioning stays in the continuation
+
+The registry/store dependency excludes the cfg(test) filesystem provisioner and
+its node-only tests. Under A10, an unwired node service stays on its continuation
+branch until its real caller removes staging in a wiring commit. Its source is
+retained in the separate project-management continuation; it has no consumer-
+ready or shipped provisioning API claim. This dependency contains the live
+registry read/mutation handlers, durable metadata/reservations/membership and
+start-admission seams. Creation receipts, actual backing provisioning and actor
+launch remain separate work. No default workspace is synthesized.
