@@ -32,9 +32,12 @@ impl Shell {
         if same {
             return;
         }
-        // The file edited in the session left is written first (Paseo
-        // flushes an editor when its panel goes).
-        self.flush_file();
+        // This readonly producer cannot cause an alias-only legacy flush or
+        // discard an editor while C5's retained-file cutover is still pending.
+        if self.areas.workspace.code.files.viewer.is_some() {
+            self.areas.workspace.code.changes.sources.invalidate();
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         panel.target = Some(Target {
             machine: machine.clone(),

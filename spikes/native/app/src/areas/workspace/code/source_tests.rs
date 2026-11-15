@@ -354,3 +354,58 @@ fn same_alias_same_node_reconnect_does_not_restamp_the_old_summary(cx: &mut Test
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, _, _| {
+        let original = scene.context();
+        let (session, project) = prepare(shell, &original);
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let mut edit = editing::Editing::new();
+        let _step = edit.model.edit("retained draft");
+        shell.areas.workspace.code.files.viewer = Some(Viewer {
+            path: "a.rs".parse().unwrap(),
+            text: Shown::Loading,
+            list: VirtualList::new(false),
+            goto: None,
+            chosen: None,
+            edit: Some(edit),
+        });
+        let replacement = scene
+            .reconnect(
+                shell.fixture_link(),
+                vessel_app_link::testing::Reconnect::SameNode,
+            )
+            .unwrap();
+        shell.fleet.machines[0].connection_epoch = Some(replacement.epoch());
+        shell.code_follow();
+        let panel = &shell.areas.workspace.code;
+        let editing = panel.files.viewer.as_ref().unwrap().edit.as_ref().unwrap();
+        assert_eq!(editing.model.content(), "retained draft");
+        assert!(editing.model.writing().is_none());
+        assert_eq!(
+            panel
+                .target
+                .as_ref()
+                .unwrap()
+                .receipt
+                .as_ref()
+                .unwrap()
+                .context,
+            original
+        );
+        assert!(shell.shown_changes_context().is_none());
+        assert!(
+            scene
+                .transcript(shell.fixture_link())
+                .unwrap()
+                .iter()
+                .all(|call| !matches!(call, Call::WriteFile(_)))
+        );
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

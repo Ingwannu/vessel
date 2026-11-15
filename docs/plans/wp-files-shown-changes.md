@@ -69,7 +69,7 @@ DiffBody next-page value, with the original parent summary and page ticket; no
 second diff body or snapshot store is introduced. This proves correlation, not
 an atomic repository snapshot across requests.
 
-The isolated preparation currently has seven authored real framed App cases;
+The isolated preparation currently has eight authored real framed App cases;
 they have not run. No G4 export, selected-client method or delivery-module staging
 attribute differs from its exact producer. A typed Explorer getter is still
 unavailable until the real mount/current-target join is included; no synthetic
@@ -113,3 +113,20 @@ with explicit types, so the eventual G1 adapter can store the opaque snapshot
 without exposing constructors or private code-module paths. A missed doc type
 backtick is corrected in the same batch. The still-queued preparation check is
 replaced once after terminal cancellation; no executed result is inferred.
+
+
+[Decision Log]
+- Purpose: the readonly source producer must not trigger the legacy editor's
+  alias-only flush when an epoch/session transition is detected.
+- Constraint: the shared line does not yet contain C5's retained file-owner
+  cutover. Its legacy root-follow path flushed and discarded the viewer.
+- Alternatives: copy the entire unverified editor owner, or cause a new legacy
+  write as a side effect of acquiring readonly summary provenance.
+- Choice: while any legacy file viewer remains, invalidate summary admission
+  and refuse the root-follow transition before flush or viewer removal. The
+  existing Back/close path must release it before a new root can be acquired.
+- Why: this preserves actual engine text and original pending payload without
+  a second owner, guessed write settlement or automatic retry.
+- Impact: this portable producer is deliberately conservative, not complete
+  file-navigation parity. The real retained-file adapter replaces this hold
+  when it joins the shared line. No general legacy autosave safety is claimed.
