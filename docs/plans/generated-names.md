@@ -342,3 +342,21 @@ metadata stream. The node will still own selection, permission, request
 budgets, semantic JSON and title application. Tests use recorded API shapes
 and real parsers, never a live provider. Contract first; implementation and
 its narrow checks are next. No model request is wired by this library slice.
+
+The complete-response work is split for review: this first library slice
+supports Anthropic whole messages and bounds/privacy/error reporting.
+Other APIs return a typed unsupported result until the next library slice
+adds their existing typed response extraction. No node caller is wired in
+between. The shared accounting extraction preserves streamed cumulative
+usage; existing stream tests remain part of validation. Multi-API draft
+work is preserved separately and is not treated as compiled evidence.
+
+Anthropic completion implementation checkpoint: the bounded decoder now
+requires a known normal stop, rejects tool/refusal/non-text/error output,
+and redacts diagnostics at raw and decoded text boundaries. Whole error
+envelopes retain available usage; error-only bodies have none. The existing
+stream cumulative accounting moved without changing its convention.
+Narrow all-targets Clippy and all model API library tests pass, including
+the new synthetic whole-response cases. HTTP, node routing, settings and
+automatic application remain unconnected. The exact-commit whole gate is
+still owed; other APIs are a subsequent decoder slice.
