@@ -354,3 +354,17 @@ and uses the existing translated NodeChanged instruction. The new bounded
 Hub regression proves both refusals and an ordered no-frame barrier. Normal
 install progress, polling, retained output and offered command are unchanged.
 This adds no RPC, credential, permission grant or node behavior.
+
+
+The75b74ac1 narrow reached actual View/Link compilation and returned101 on
+test scaffolding: the concrete memory transport needs its supertrait methods
+through the existing generic FrameTransport bound, and a fallible fixture
+helper must return a diagnostic error instead of assert inside Result. The
+repair uses the already accepted generic transport pattern and keeps the
+catalogue-acceptance condition mandatory. No new dependency, allow/expect or
+product fallback was added. View/Link tests did not run in that red attempt.
+Base6 was then merged (18eedad4): Models and RetireConnection unsent arms both
+remain, and the Models hub moved into the lead's single shared test-state
+constructor rather than retaining a duplicate builder. G2's exact reviewed
+ProviderRow/modal producer four-commit range was adopted; no other F1 source
+or future hierarchy work was consumed. All actual consumer UI remains pending.

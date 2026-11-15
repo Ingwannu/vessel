@@ -46,7 +46,7 @@ fn set_catalogue(
     entry: CatalogueEntry,
 ) -> TestResult<()> {
     let ticket = pages.begin(machine.clone(), Operation::Catalogue { node })?;
-    assert!(pages.catalogue_loaded(
+    if !pages.catalogue_loaded(
         machine,
         ticket,
         node,
@@ -54,8 +54,10 @@ fn set_catalogue(
             fetched_at: Some(chrono::DateTime::UNIX_EPOCH),
             entries: vec![entry],
             ..Catalogue::default()
-        }
-    ));
+        },
+    ) {
+        return Err(std::io::Error::other("fixture catalogue was not accepted").into());
+    }
     Ok(())
 }
 fn ack(call: &AddAgent) -> TestResult<AgentInfo> {

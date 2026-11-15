@@ -62,7 +62,7 @@ pub(in crate::agents) struct Peer {
     pub(in crate::agents) seen: mpsc::Receiver<Call>,
     _abort: Abort,
 }
-async fn receive(transport: &mut MemoryTransport) -> Option<ClientFrame> {
+async fn receive<T: FrameTransport>(transport: &mut T) -> Option<ClientFrame> {
     // This idle read spans intentional product time. Its budget cannot be
     // shorter than the test's advance or it would fake a disconnect.
     within(
@@ -73,7 +73,7 @@ async fn receive(transport: &mut MemoryTransport) -> Option<ClientFrame> {
     .await
     .map(|raw| serde_json::from_str(&raw.unwrap()).unwrap())
 }
-async fn send(transport: &mut MemoryTransport, frame: ServerFrame) {
+async fn send<T: FrameTransport>(transport: &mut T, frame: ServerFrame) {
     phase(
         "registry peer writable",
         poll_fn(|cx| Pin::new(&mut *transport).poll_ready(cx)),
