@@ -24,7 +24,23 @@ writer, setter or activation engine is implemented by this document.
 
 The envelope extraction belongs exclusively to nodectl. W16 does not change
 DataDir read/write methods, Settings.saved, or implement another persistence
-queue. No current declaration inspection or parsed source spelling is a prepared
+queue. The saved plugins record owns the WHOLE top-level namespace, including
+its global flag: it must not be flattened beside a generic record carrying
+another plugins key. Disk serialization and safe wire projection/merge are
+explicit, so no duplicate key or private-field loss can arise. Generic update,
+reset and reload must preserve all protected fields.
+
+The proposed data-only schema location is vessel-store::plugin_settings at the
+existing Store/Node boundary, depending on canonical proto identities rather
+than Node. It is not a node RPC payload and has no generated TS surface. Pure
+scalar validators shared with source admission move once into that data layer;
+Node retains filesystem preparation, authorization and runtime policy. No
+Store-to-Node dependency or second parser is introduced. Its public cross-crate
+export is wired only together with actual saved-envelope and node consumers,
+not as a callerless facade. The detailed managed provenance variants wait for
+their qualified acquisition producer rather than an opaque placeholder.
+
+No current declaration inspection or parsed source spelling is a prepared
 installation, executable capability or accepted saved record.
 
 ## Private schema contract
