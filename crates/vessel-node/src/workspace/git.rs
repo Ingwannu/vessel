@@ -12,7 +12,8 @@ use vessel_workspace::GitError;
 use vessel_workspace::files::{MAX_BLOB, blob_page};
 
 use super::roots::Resolved;
-use super::{WorkspaceError, Workspaces};
+use super::{WorkspaceError, Workspaces, writing::RequiredRoot};
+use std::sync::Arc;
 
 /// How a write call changes the index.
 #[derive(Debug, Clone, Copy)]
@@ -36,13 +37,7 @@ impl Workspaces {
     }
 
     async fn status_of(&self, resolved: &Resolved) -> Result<GitStatus, WorkspaceError> {
-        let git = self.git()?;
-        let dir = resolved.root.path();
-        let mut status = git.status(dir).await?;
-        if let Some(base) = &resolved.base {
-            status.base = git.distance(dir, base).await?;
-        }
-        Ok(status)
+        status_with(self.git()?, resolved).await
     }
 
     /// `git.changes`.
@@ -175,20 +170,30 @@ impl Workspaces {
     /// # Errors
     /// `unavailable` when another git holds the index's lock.
     pub(crate) async fn git_index(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         paths: &PathSet,
         change: IndexChange,
     ) -> Result<GitStatus, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        let git = self.git()?;
-        let dir = resolved.root.path();
-        match change {
-            IndexChange::Stage => git.stage(dir, paths).await?,
-            IndexChange::Unstage => git.unstage(dir, paths).await?,
-            IndexChange::Discard { untracked } => git.discard(dir, paths, untracked).await?,
-        }
-        self.status_of(&resolved).await
+        let paths = paths.clone();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                let dir = resolved.root.path();
+                match change {
+                    IndexChange::Stage => git.stage(dir, &paths).await?,
+                    IndexChange::Unstage => git.unstage(dir, &paths).await?,
+                    IndexChange::Discard { untracked } => {
+                        git.discard(dir, &paths, untracked).await?
+                    }
+                }
+                status_with(&git, &resolved).await
+            },
+        )
+        .await
     }
 
     /// `git.commit`.
@@ -196,16 +201,22 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_commit(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         message: &CommitMessage,
         stage: CommitStage,
     ) -> Result<CommitOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        Ok(self
-            .git()?
-            .commit(resolved.root.path(), message, stage)
-            .await?)
+        let message = message.clone();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                Ok(git.commit(resolved.root.path(), &message, stage).await?)
+            },
+        )
+        .await
     }
 
     /// `git.fetch`.
@@ -213,12 +224,21 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_fetch(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         remote: Option<&RemoteName>,
     ) -> Result<FetchOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        Ok(self.git()?.fetch(resolved.root.path(), remote).await?)
+        let remote = remote.cloned();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                Ok(git.fetch(resolved.root.path(), remote.as_ref()).await?)
+            },
+        )
+        .await
     }
 
     /// `git.push`.
@@ -226,16 +246,24 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_push(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         remote: Option<&RemoteName>,
         set_upstream: bool,
     ) -> Result<PushOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        Ok(self
-            .git()?
-            .push(resolved.root.path(), remote, set_upstream)
-            .await?)
+        let remote = remote.cloned();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                Ok(git
+                    .push(resolved.root.path(), remote.as_ref(), set_upstream)
+                    .await?)
+            },
+        )
+        .await
     }
 
     /// `git.pull`.
@@ -243,11 +271,19 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_pull(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
     ) -> Result<PullOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        Ok(self.git()?.pull(resolved.root.path()).await?)
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                Ok(git.pull(resolved.root.path()).await?)
+            },
+        )
+        .await
     }
 
     /// `git.switch`; a worktree's recorded branch follows.
@@ -255,19 +291,30 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_switch(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         branch: &BranchName,
         create: Option<&WorktreeBase>,
     ) -> Result<SwitchOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        let git = self.git()?;
-        let outcome = git.switch(resolved.root.path(), branch, create).await?;
-        if let Some(worktree) = resolved.worktree {
-            let now = git.status(resolved.root.path()).await?.branch;
-            self.branch_switched(worktree, now).await;
-        }
-        Ok(outcome)
+        let branch = branch.clone();
+        let create = create.cloned();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                let outcome = git
+                    .switch(resolved.root.path(), &branch, create.as_ref())
+                    .await?;
+                if let Some(worktree) = resolved.worktree {
+                    let now = git.status(resolved.root.path()).await?.branch;
+                    this.branch_switched(worktree, now).await;
+                }
+                Ok(outcome)
+            },
+        )
+        .await
     }
 
     /// `git.rename_branch`; a worktree's `created_branch` follows.
@@ -275,23 +322,32 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_rename_branch(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         from: Option<&BranchName>,
         to: &BranchName,
     ) -> Result<RenameOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        let git = self.git()?;
-        let dir = resolved.root.path();
-        let from = match from {
-            Some(from) => Some(from.clone()),
-            None => git.status(dir).await?.branch,
-        };
-        let outcome = git.rename_branch(dir, from.as_ref(), to).await?;
-        if let (RenameOutcome::Renamed { .. }, Some(from)) = (&outcome, &from) {
-            self.branch_renamed(resolved.project, from, to).await;
-        }
-        Ok(outcome)
+        let from = from.cloned();
+        let to = to.clone();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                let dir = resolved.root.path();
+                let from = match from {
+                    Some(from) => Some(from),
+                    None => git.status(dir).await?.branch,
+                };
+                let outcome = git.rename_branch(dir, from.as_ref(), &to).await?;
+                if let (RenameOutcome::Renamed { .. }, Some(from)) = (&outcome, &from) {
+                    this.branch_renamed(resolved.project, from, &to).await;
+                }
+                Ok(outcome)
+            },
+        )
+        .await
     }
 
     /// `git.stash`.
@@ -299,13 +355,35 @@ impl Workspaces {
     /// # Errors
     /// As git's.
     pub(crate) async fn git_stash(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         action: &StashAction,
     ) -> Result<StashOutcome, WorkspaceError> {
-        let resolved = self.resolve_git(root).await?;
-        Ok(self.git()?.stash(resolved.root.path(), action).await?)
+        let action = action.clone();
+        let this = Arc::clone(self);
+        self.run_write(
+            root,
+            RequiredRoot::Repository,
+            move |resolved, cancellation| async move {
+                let git = this.git()?.with_cancellation(cancellation);
+                Ok(git.stash(resolved.root.path(), &action).await?)
+            },
+        )
+        .await
     }
+}
+
+/// Status reads after a retained mutation inherit its cooperative cancellation.
+async fn status_with(
+    git: &vessel_workspace::Git,
+    resolved: &Resolved,
+) -> Result<GitStatus, WorkspaceError> {
+    let dir = resolved.root.path();
+    let mut status = git.status(dir).await?;
+    if let Some(base) = &resolved.base {
+        status.base = git.distance(dir, base).await?;
+    }
+    Ok(status)
 }
 
 /// A scope whose base does not resolve is the caller's mistake.

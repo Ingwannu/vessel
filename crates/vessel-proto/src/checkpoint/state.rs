@@ -27,7 +27,7 @@ pub enum Boundary {
 #[serde(try_from = "u64", into = "u64")]
 pub struct CaptureGeneration(u64);
 impl CaptureGeneration {
-    /// Exact integer ceiling shared by SQLite persistence and JavaScript peers.
+    /// Exact integer ceiling shared by `SQLite` persistence and JavaScript peers.
     /// Going beyond it would round a fence on the wire instead of rejecting it.
     pub const MAX: Self = Self(9_007_199_254_740_991);
     /// Initial lease for a coordinator incarnation.

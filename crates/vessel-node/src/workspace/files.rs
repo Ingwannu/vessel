@@ -20,7 +20,7 @@ use vessel_proto::workspace::{
 };
 use vessel_workspace::files;
 
-use super::{WorkspaceError, Workspaces};
+use super::{WorkspaceError, Workspaces, writing::RequiredRoot};
 use crate::transfers::Holder;
 
 impl Workspaces {
@@ -69,9 +69,13 @@ impl Workspaces {
         expect: WriteExpect,
     ) -> Result<FileVersion, WorkspaceError> {
         let path = path.clone();
-        self.run_file_write(root, move |resolved| async move {
-            Ok(files::write(&resolved.root, &path, text, expect).await?)
-        })
+        self.run_write(
+            root,
+            RequiredRoot::Directory,
+            move |resolved, _cancellation| async move {
+                Ok(files::write(&resolved.root, &path, text, expect).await?)
+            },
+        )
         .await
     }
 
@@ -85,9 +89,13 @@ impl Workspaces {
         path: &RelPath,
     ) -> Result<(), WorkspaceError> {
         let path = path.clone();
-        self.run_file_write(root, move |resolved| async move {
-            Ok(files::create_dir(&resolved.root, &path).await?)
-        })
+        self.run_write(
+            root,
+            RequiredRoot::Directory,
+            move |resolved, _cancellation| async move {
+                Ok(files::create_dir(&resolved.root, &path).await?)
+            },
+        )
         .await
     }
 
@@ -103,9 +111,13 @@ impl Workspaces {
     ) -> Result<(), WorkspaceError> {
         let from = from.clone();
         let to = to.clone();
-        self.run_file_write(root, move |resolved| async move {
-            Ok(files::rename(&resolved.root, &from, &to).await?)
-        })
+        self.run_write(
+            root,
+            RequiredRoot::Directory,
+            move |resolved, _cancellation| async move {
+                Ok(files::rename(&resolved.root, &from, &to).await?)
+            },
+        )
         .await
     }
 
@@ -120,9 +132,13 @@ impl Workspaces {
         recursive: bool,
     ) -> Result<(), WorkspaceError> {
         let path = path.clone();
-        self.run_file_write(root, move |resolved| async move {
-            Ok(files::delete(&resolved.root, &path, recursive).await?)
-        })
+        self.run_write(
+            root,
+            RequiredRoot::Directory,
+            move |resolved, _cancellation| async move {
+                Ok(files::delete(&resolved.root, &path, recursive).await?)
+            },
+        )
         .await
     }
 

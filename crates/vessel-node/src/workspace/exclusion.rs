@@ -6,6 +6,7 @@
 //! a deadline cannot cancel kernel I/O. Read-only captures may release their
 //! common lease after invalidating publication, while their separate bounded
 //! capture worker/root permit remains occupied until actual cleanup.
+#[cfg(target_os = "linux")]
 use std::time::Duration;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -19,6 +20,7 @@ use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{CHECKPOINT_QUEUE, PhysicalRoot};
 
 /// Bound a wedged admission owner without waiting on filesystem work.
+#[cfg(target_os = "linux")]
 pub(super) const ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Covers registered project and worktree roots, with aliases sharing one slot.

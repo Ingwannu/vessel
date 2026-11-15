@@ -44,6 +44,12 @@ pub(crate) enum WorkspaceError {
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
+    /// Cooperative cancellation before a mutation begins is an explicit refusal.
+    #[error("workspace write was cancelled")]
+    WriteCancelled,
+    /// Shutdown closes new physical writer admission on every platform.
+    #[error("workspace writers are stopping")]
+    Stopping,
     /// The retained operation failed to reach its caller; never claim success.
     #[error("file operation response was lost")]
     ReplyGone(#[source] tokio::sync::oneshot::error::RecvError),
@@ -137,6 +143,7 @@ impl WorkspaceError {
             Self::RootAdmission(super::exclusion::RootRefusal::NotRecovering) => {
                 ErrorCode::Conflict
             }
+            Self::Stopping | Self::WriteCancelled => ErrorCode::Unavailable,
             Self::ReplyGone(_) | Self::Task(_) => ErrorCode::Internal,
             Self::NoGit | Self::NotGit => ErrorCode::Unsupported,
             Self::UnknownProject(_)
@@ -145,7 +152,9 @@ impl WorkspaceError {
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
             Self::Conflict(_) => ErrorCode::Conflict,
-            Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
+            Self::Busy(_) | Self::Git(GitError::TimedOut { .. } | GitError::Cancelled) => {
+                ErrorCode::Unavailable
+            }
             Self::Git(_) | Self::Store(_) | Self::Io(_) => ErrorCode::Internal,
         };
         if code == ErrorCode::Internal {

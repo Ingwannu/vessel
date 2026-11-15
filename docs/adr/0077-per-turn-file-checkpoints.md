@@ -617,3 +617,13 @@ Exhaustion refuses a new generation rather than reusing or wrapping a lease.
   admitted leases. Git, agent, terminal, script and lifecycle writers still need
   connecting before checkpoint restore can be activated; this slice alone does
   not establish root-wide exclusion.
+
+Git mutations use the same retained operation owner and root lease, including
+index/discard, commit, fetch/push/pull, switch, branch rename and stash. A typed
+repository requirement is checked before admission. Cooperative Git cancellation
+is scoped to the retained clone: disconnect or node shutdown requests the
+existing subprocess-group stop/reap path, while the owner still awaits the
+operation before releasing admission. Regular blocking file I/O may ignore that
+cancellation and retains its lease until completion. The original Git handle
+and unrelated requests are not cancelled by one scoped clone. Read-only Git
+status/diff/history remain outside writer admission.

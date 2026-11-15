@@ -198,3 +198,19 @@ On `fd884246`, checkpoint-filtered tests passed 79, zero failed, six ignored.
 This verifies the staged root admission cases and full Git/ignore capture scope;
 it precedes capture-evidence persistence, recovery resolution and production file
 writer connection. The latest eight-crate clippy is queued on `3fb22a1f`.
+
+The retained writer facade is now run_write with a typed directory/repository
+requirement. All eight Git mutators consume it, preserving branch metadata
+updates. Its operation cancellation token follows caller disconnect and node
+shutdown; a scoped Git clone passes that token into the existing command group
+stop/reap path. The owner awaits actual completion before lease release, including
+noncancellable file I/O. Written regression fixtures cover denied real file/Git
+mutations, cancellation isolation in a saturated Git pool and retained response
+loss. No process-reaping runtime proof or whole gate is claimed yet.
+
+The scoped clippy on `3fb22a1f` stopped on the generation ceiling's rustdoc
+`SQLite` spelling; it did not reach proof of the later writer connection.
+That lint is corrected without an allowance. Cooperative cancellation now also
+refuses a not-yet-started write after preflight; already running blocking I/O
+still drains under its lease. The latest product writer slice needs its own
+compiled result before being offered to other consumers.

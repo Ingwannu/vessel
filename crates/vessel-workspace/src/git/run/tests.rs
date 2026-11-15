@@ -151,3 +151,29 @@ async fn clones_have_slots_of_their_own() {
     assert!(matches!(network, Ok(Ok(_))), "a network run is not held up");
     drop(clones);
 }
+
+#[tokio::test]
+async fn checkpoint_retained_git_clone_inherits_cancellation_without_poisoning_other_callers() {
+    let sandbox = Sandbox::new();
+    let repo = sandbox.repo("r");
+    let git = sandbox.git().await;
+    let mut held = Vec::new();
+    for _slot in 0..super::LOCAL_SLOTS {
+        held.push(git.runner.local.slot().await.unwrap());
+    }
+    let token = CancellationToken::new();
+    let scoped = git.with_cancellation(token.clone());
+    let dir = repo.clone();
+    let waiting = tokio::spawn(async move { scoped.status(&dir).await });
+    token.cancel();
+    let result = tokio::time::timeout(
+        vessel_proto::checkpoint::CHECKPOINT_CAPTURE_DEADLINE,
+        waiting,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(matches!(result, Err(GitError::Cancelled)));
+    drop(held);
+    assert!(git.status(&repo).await.is_ok());
+}

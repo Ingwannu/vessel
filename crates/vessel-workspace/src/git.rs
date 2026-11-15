@@ -37,6 +37,7 @@ pub use worktree::{AddRefusal, NewBranch, SnapshotRefusal};
 pub struct Git {
     runner: run::Runner,
     version: GitVersion,
+    cancellation: Option<tokio_util::sync::CancellationToken>,
     /// Shared by every clone: the runs that change a repository's
     /// worktrees take turns per repository (`repository_lock`).
     worktrees: std::sync::Arc<repository_lock::RepositoryLocks>,
@@ -111,6 +112,7 @@ impl Git {
                 git: Some(Self {
                     runner,
                     version,
+                    cancellation: None,
                     worktrees: std::sync::Arc::default(),
                 }),
             },
@@ -123,9 +125,24 @@ impl Git {
         self.version
     }
 
+    /// Keep a retained node writer cancellable while it still owns root admission.
+    /// Cancelling requests group termination and reaping; it never releases the
+    /// node's lease by dropping an in-flight future.
+    #[must_use]
+    pub fn with_cancellation(&self, cancellation: tokio_util::sync::CancellationToken) -> Self {
+        Self {
+            cancellation: Some(cancellation),
+            ..self.clone()
+        }
+    }
+
     /// A command run in `dir`.
     pub(crate) fn command(&self, dir: &Path) -> GitCommand {
-        self.runner.command(dir)
+        let command = self.runner.command(dir);
+        match &self.cancellation {
+            Some(cancellation) => command.cancel_on(cancellation.clone()),
+            None => command,
+        }
     }
 }
 
