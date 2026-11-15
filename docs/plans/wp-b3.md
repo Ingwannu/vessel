@@ -214,3 +214,12 @@ That lint is corrected without an allowance. Cooperative cancellation now also
 refuses a not-yet-started write after preflight; already running blocking I/O
 still drains under its lease. The latest product writer slice needs its own
 compiled result before being offered to other consumers.
+
+The `9da7666c` all-target clippy reached the new production writers and found
+local lint issues in staged code (an unnecessary qualification, two unchecked
+set insert results, one missing unit semicolon and the unexercised Recovered
+writer command). The latter now has a real shared-writer recovery/retry/reopen
+fixture instead of a dead-code allowance. These corrections need their next
+scoped compiled run. `65b9fcec` checkpoint-filtered tests passed 87 with zero
+failures and six ignored obligations, including actual file denial and retained
+I/O after caller cancellation; this precedes the Git writer connection.

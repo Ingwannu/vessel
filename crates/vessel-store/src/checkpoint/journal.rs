@@ -93,10 +93,7 @@ pub(super) fn put_plan(
     plan: &Plan,
     at: DateTime<Utc>,
 ) -> Result<(), Error> {
-    let _validated = vessel_proto::checkpoint::ObservedSnapshot::new(
-        plan.current.clone(),
-        plan.evidence.clone(),
-    )?;
+    let _validated = ObservedSnapshot::new(plan.current.clone(), plan.evidence.clone())?;
     let lifetime =
         chrono::TimeDelta::from_std(vessel_proto::checkpoint::CHECKPOINT_PREVIEW_LIFETIME)?;
     let maximum = at

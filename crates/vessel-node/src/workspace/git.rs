@@ -187,7 +187,7 @@ impl Workspaces {
                     IndexChange::Stage => git.stage(dir, &paths).await?,
                     IndexChange::Unstage => git.unstage(dir, &paths).await?,
                     IndexChange::Discard { untracked } => {
-                        git.discard(dir, &paths, untracked).await?
+                        git.discard(dir, &paths, untracked).await?;
                     }
                 }
                 status_with(&git, &resolved).await

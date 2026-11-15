@@ -342,3 +342,75 @@ async fn session_delete_transfers_archive_quota_only_after_the_same_savepoint_co
     assert!(empty.is_empty());
     store.close().await;
 }
+
+#[tokio::test]
+async fn checkpoint_shared_writer_commits_verified_recovery_and_idempotent_status() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    publish_capture(&store, &plan).await;
+    store
+        .checkpoint_write(CheckpointWrite::Plan {
+            plan: Box::new(plan.clone()),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let restore = RestoreId::random();
+    store
+        .checkpoint_write(CheckpointWrite::Admit {
+            plan: Box::new(plan.clone()),
+            restore,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let operation = read_operation(&store, &plan, restore).await;
+    store
+        .checkpoint_write(CheckpointWrite::Outcome {
+            operation: Box::new(operation.clone()),
+            result: RestoreOutcome::RecoveryRequired { restore },
+        })
+        .await
+        .unwrap();
+    let observed = vessel_proto::checkpoint::ObservedSnapshot::new(
+        plan.current.clone(),
+        plan.evidence.clone(),
+    )
+    .unwrap();
+    for _ in 0..2 {
+        store
+            .checkpoint_write(CheckpointWrite::Recovered {
+                operation: Box::new(operation.clone()),
+                observed: observed.clone(),
+                reason: CheckpointError::CaptureUnstable,
+            })
+            .await
+            .unwrap();
+    }
+    assert_eq!(
+        read_operation(&store, &plan, restore).await.outcome,
+        RestoreOutcome::RolledBack {
+            reason: CheckpointError::CaptureUnstable
+        }
+    );
+    store.close().await;
+    let reopened = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    assert_eq!(
+        read_operation(&reopened, &plan, restore).await.outcome,
+        RestoreOutcome::RolledBack {
+            reason: CheckpointError::CaptureUnstable
+        }
+    );
+    reopened.close().await;
+}

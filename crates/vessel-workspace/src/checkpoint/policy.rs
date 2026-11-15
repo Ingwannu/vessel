@@ -124,12 +124,12 @@ impl Inputs {
         let admin = absolute(root, &terminated)?;
         let configuration=optional(git,root,&["config","--null","--get-regexp",r"^(core\.(excludesfile|ignorecase|sparsecheckout|sparsecheckoutcone|precomposeunicode)|extensions\.worktreeconfig)$"],cancel).await?.unwrap_or_default();
         let mut local = BTreeSet::new();
-        local.insert(policy_path(".gitignore")?);
+        let _inserted = local.insert(policy_path(".gitignore")?);
         for path in paths {
             let mut ancestor = Path::new(path.relative().as_str()).parent();
             while let Some(parent) = ancestor.filter(|parent| !parent.as_os_str().is_empty()) {
                 let name = parent.join(".gitignore");
-                local.insert(policy_path(
+                let _inserted = local.insert(policy_path(
                     name.to_str().ok_or(CheckpointError::InvalidPath)?,
                 )?);
                 let _count = PathCount::new(local.len())?;
