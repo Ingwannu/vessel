@@ -14,7 +14,7 @@ member is recorded in UPSTREAM-SHA256SUMS. LICENSE is retained verbatim.
   retired only after the new engine's corpus and native-contract cases pass.
 - Cost: local patches require independent review against upstream on upgrades.
 
-Numbered patch list (implementation in progress):
+Numbered patch list (implemented; consumer qualification remains separate):
 1. Read-only full-buffer cell/row access and latent right columns for capture.
 2. Primary scrollback capacity mutation, retaining newest rows.
 3. Primary soft-wrap reflow on resize without replaying synthetic ANSI or resetting

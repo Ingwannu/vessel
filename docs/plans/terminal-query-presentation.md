@@ -3,6 +3,32 @@
 The prerequisite engine remains a separate frozen package. This branch owns
 the following D1 work; none is consumer-ready or activated yet.
 
+## Current freeze and next action
+
+Current executable/fixture source cac74aab passes exact37/0/0 and strict
+all-target checking. It includes only the approved9dfdf0a1 base leaf, not the
+rest of its batch. One changed-source whole follows on the immutable docs
+head; append its actual terminal result before any readiness claim. Independent
+review of this extension and the node responder contract remain owed.
+
+The exact archive audit has8 modified original vt100 Rust files and10
+byte-identical original members, including its MIT license. VTE changes only
+lib.rs/params.rs;15 original members including both licenses remain identical.
+Both archives/checksums and numbered patches are retained. No normal/dev
+runtime dependency, I/O or build script was added by the follow-up.
+
+Normal query suppression, candidate preservation, modes, markers and borrowed
+frames are the producer scope. Native/CLI consumers, native parser retirement,
+program cursor shape, selection/clipboard/find and real transport/PTY ordering
+are not implemented or accepted here. Incomplete-token finalization belongs to
+future actor integration; this feed component keeps incomplete presentation
+held until more bytes arrive. The scoped complete-stream corpus is not an EOF
+or universal-malformed-stream claim. NodeAuthority stays off until the approved
+normal-only responder contract and full gate/review pass.
+
+The notes below retain intermediate design/check history; earlier owed/next
+statements are historical, not a replacement for this current freeze.
+
 [Decision Log]
 - Purpose: one node answer for normal suppressed queries across views and
   replay, with explicit best-effort handling of rare ambiguous legacy spans.
@@ -41,7 +67,7 @@ The CLI attach renderer remains D1 work: shared cells/modes render to terminal
 ANSI, with raw replay interpreted silently. ANSI is output to the real terminal,
 never fed into an engine. The native renderer remains the sole kit control.
 
-## Resume point
+## Historical first-staging resume
 
 VTE metadata and the vt100 bridge are staged with pure presentation regressions.
 Normal replies are separated from complete presentation; canceled-prefix/query
