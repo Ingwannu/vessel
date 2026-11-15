@@ -168,6 +168,16 @@ mod tests {
                     .map(|detail| detail.project),
                 Some(project.id)
             );
+            shell.fleet.machines[0].node = Some(old);
+            shell.confirm_project_removal(project.id, cx);
+            assert!(
+                shell.areas.workspace.page.removing.is_none(),
+                "a rebound peer cannot inherit removal authority from the cache"
+            );
+            shell.fleet.machines[0].node = Some(node);
+            shell.confirm_project_removal(project.id, cx);
+            assert!(shell.areas.workspace.page.removing.is_some());
+            shell.areas.workspace.page.removing = None;
             let newest = shell
                 .areas
                 .workspace

@@ -166,6 +166,13 @@ impl Shell {
             cx.notify();
             return;
         };
+        if self.areas.workspace.project_reads.node(&machine) != Some(node)
+            || self.areas.workspace.project_reads.pending(&host, node)
+        {
+            self.areas.workspace.page.error = Some(self.words().problem(&Problem::Unsent));
+            cx.notify();
+            return;
+        }
         let Some(info) = self
             .areas
             .workspace

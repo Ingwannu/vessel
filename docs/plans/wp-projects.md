@@ -379,3 +379,8 @@ are typed refusals, preserving the previous route and selection. Existing
 project rows capture the verified target rather than consulting Settings' host
 at click time. This is source-only; workspace activation remains W12's separate
 sink and the complete shared registry projection is still pending.
+
+Opening a removal confirmation also requires a settled project list from the
+same authenticated peer. A new welcome cannot grant removal authority to an old
+peer's cached project id. The headless race case checks refusal before a
+confirmation exists, followed by normal confirmation on the verified peer.
