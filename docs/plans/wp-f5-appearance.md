@@ -667,3 +667,24 @@ profiles and preserves root headroom. The raw observer counters reset on the
 same boundary as hook observations; equality lookup uses contains. Generic
 on_edit docs explicitly describe engine Change semantics, including repeated
 current text on native commit. The next scoped Kit suite checks this union.
+
+
+## Scoped Kit green and minimal reuse seams
+
+Exact e8051e72e passed the scoped Kit lib suite:228/0/0, run
+themes-narrow-20261115T184906Z-e8051e72, fonts0/Cargo0. This includes
+preview/card geometry at both schemes/four scales, Appearance field minimum
+and alignment, current-value one-submit, and the raw-editor notification
+regression. It is not a complete native/F5/UI approval. The signature and
+body of with_events are byte-identical across its module move.
+
+Two independent base9 control exports let consumers avoid a moving F5 branch:
+39b47c1e082520c738d59738437535ae3ef353df is syntax-only (13 files, including
+legacy CodeTokens delegation so there is one syntax colour owner);
+a821b758efc97fc7b5de292e12b17c63ca55ea8e is notifications-only (4 files).
+They use exact producer source blobs plus bounded registrations, no new
+renderer or copied field/font/preview/preferences. Each portable assembly
+requires the receiving consumer's own union check; neither has an independent
+standalone run or V1/full F5 approval. Earlier b010/102036 prototypes remain
+unverified and are not the handoff. Full native gate/export and actual
+private-display evidence remain next.
