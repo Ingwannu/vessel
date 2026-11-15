@@ -94,6 +94,7 @@ pub(crate) struct Shape {
     pub(super) conflicts: BTreeSet<Name>,
     pub(super) variables: BTreeMap<Name, Kind>,
     pub(super) references: Vec<Reference>,
+    pub(super) raw_reads: BTreeSet<Name>,
 }
 impl Shape {
     pub(super) fn merge(&mut self, name: Name, kind: Kind) {
@@ -120,6 +121,7 @@ impl Shape {
 #[derive(Debug, Clone)]
 pub(crate) struct Contract {
     pub(super) variables: BTreeMap<Name, Kind>,
+    pub(super) raw_reads: BTreeSet<Name>,
 }
 impl Contract {
     pub(crate) fn variables(&self) -> &BTreeMap<Name, Kind> {
@@ -165,6 +167,8 @@ pub(crate) enum ContractError {
     CallArguments { function: Name, arity: CallArity },
     #[error("DATETIME requires a typed date variable")]
     DateArgument,
+    #[error("{key}: ${name} is a typed date; read it through DATETIME")]
+    DateTextRead { key: Key, name: Name },
     #[error("minimumFractionDigits exceeds maximumFractionDigits")]
     FractionOrder,
     #[error(

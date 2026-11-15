@@ -26,8 +26,17 @@ pub(crate) fn expanded<'a>(
             variables: Conflicts(expanded.shape.conflicts),
         });
     }
+    for (name, kind) in &expanded.shape.variables {
+        if *kind == super::Kind::Date && expanded.shape.raw_reads.contains(name) {
+            return Err(ContractError::DateTextRead {
+                key: key.clone(),
+                name: name.clone(),
+            });
+        }
+    }
     Ok(Contract {
         variables: expanded.shape.variables,
+        raw_reads: expanded.shape.raw_reads,
     })
 }
 
@@ -82,6 +91,13 @@ fn expand_references<'a>(
         )?;
         height = height.max(referenced.height.saturating_add(1));
         shape.conflicts.extend(referenced.shape.conflicts);
+        shape.raw_reads.extend(
+            referenced
+                .shape
+                .raw_reads
+                .into_iter()
+                .filter(|name| !reference.bound.contains_key(name)),
+        );
         for (name, kind) in referenced.shape.variables {
             if let Some(literal) = reference.bound.get(&name) {
                 check_binding(&reference.key, &name, &kind, *literal)?;

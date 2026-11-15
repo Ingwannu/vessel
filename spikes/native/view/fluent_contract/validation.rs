@@ -26,6 +26,14 @@ pub(crate) fn compare(
     {
         return Err(ContractError::MissingVariables(key.clone()));
     }
+    for (name, kind) in expected.variables() {
+        if *kind == Kind::Date && actual.raw_reads.contains(name) {
+            return Err(ContractError::DateTextRead {
+                key: key.clone(),
+                name: name.clone(),
+            });
+        }
+    }
     for (name, kind) in actual.variables() {
         match kind {
             Kind::Date if expected.variables().get(name) != Some(&Kind::Date) => {

@@ -119,3 +119,23 @@ crates/manifests/lockfile match that incoming base. Its only FTL difference
 from the retained pre-extraction corpus is the already reviewed Korean PR
 form-title wording; English API definitions and numeric/native-name settings
 are unchanged. This merge is outside the earlier exact F5 approval.
+
+The first committed-tree narrow run on `6cd6aa981` passed 900 view and 20 host
+example tests (920/0/0). Its Clippy check reported five terminator/exhaustive-arm
+findings; `90c2c6d32` corrects those. The next Clippy check reached test helpers
+and found Result-returning fixture construction using assertions/unwrap. That
+fixture builder is now separate from the Result-returning scanner; lint levels
+are unchanged and both original failure logs are retained.
+
+A typed Date must be read through DATETIME, including references/compositions;
+otherwise its private encoding could be printed by a translated plain variable.
+The scanner retains raw reads with lexical term bindings removed during
+expansion, and the comparator checks translated reads against English Date
+arguments. Nested PARTICLE(DATETIME(...)) and a locally bound text parameter
+shadowing a Date name remain valid. Numbers may still use plain interpolation
+through the shared numeric formatter. New positive/negative cases cover these
+rules. The generated API at `6cd6aa981` was independently identified through the
+executed lib test's dep-info: 98,908 bytes, SHA-256
+`5407f5c425d160b7b1125c4a4eaa97cd70e6e7fc51cd3788f4083d83c645744d`,
+identical to the retained old generator on the same corpus. Follow-up checks
+remain owed for this final helper/date-read revision.

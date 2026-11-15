@@ -102,7 +102,9 @@ fn inline_shape(
 ) -> Result<(), ContractError> {
     match inline {
         InlineExpression::VariableReference { id } => {
-            shape.merge(Name::parse(id.name)?, Kind::Text);
+            let name = Name::parse(id.name)?;
+            let _new = shape.raw_reads.insert(name.clone());
+            shape.merge(name, Kind::Text);
         }
         InlineExpression::MessageReference { id, attribute } => {
             if attribute.is_some() {
@@ -193,6 +195,9 @@ fn function_shape(
             if let Some(InlineExpression::VariableReference { id }) = args.positional.first() {
                 shape.merge(Name::parse(id.name)?, Kind::Date);
             }
+            // check_call admitted exactly one typed variable and no options.
+            // Generic argument walking would incorrectly record a raw read.
+            return Ok(());
         }
         "PARTICLE" => {}
         name => return Err(ContractError::UnknownFunction(Name::parse(name)?)),

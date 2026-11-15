@@ -158,3 +158,7 @@ number must be bound to a numeric literal. `DATETIME` always receives a typed
 caller date; a resource literal cannot supply a term's Date parameter or encode
 the runtime's private Date representation. Invalid operands/bindings fail the
 same AST gate used by generation and installation resources.
+
+Read a typed Date through `DATETIME($date)` each time it is used; direct
+`{ $date }` interpolation is rejected. A grammar function can consume the
+formatted result, for example `PARTICLE(DATETIME($date), "object")`.

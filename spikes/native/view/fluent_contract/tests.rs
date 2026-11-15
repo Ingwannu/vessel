@@ -5,26 +5,37 @@ use super::{
 use fluent_syntax::{ast::Entry, parser};
 use std::collections::BTreeMap;
 
-fn shapes(source: &str) -> Result<BTreeMap<Key, Shape>, ContractError> {
+// Invalid fixture syntax is a test author error; validation failures remain
+// Results from the separate scanner below, rather than panics inside Result.
+fn fixture_patterns(source: &str) -> BTreeMap<Key, fluent_syntax::ast::Pattern<&str>> {
     let resource = parser::parse(source).unwrap();
-    let mut shapes = BTreeMap::new();
+    let mut patterns = BTreeMap::new();
     for entry in resource.body {
         let (key, pattern) = match entry {
             Entry::Message(message) => (
-                Key::Message(Name::parse(message.id.name)?),
+                Key::Message(Name::parse(message.id.name).unwrap()),
                 message.value.unwrap(),
             ),
-            Entry::Term(term) => (Key::Term(Name::parse(term.id.name)?), term.value),
+            Entry::Term(term) => (Key::Term(Name::parse(term.id.name).unwrap()), term.value),
             Entry::Comment(_)
             | Entry::GroupComment(_)
             | Entry::ResourceComment(_)
             | Entry::Junk { .. } => continue,
         };
-        let mut shape = Shape::default();
-        scan(&pattern, &mut shape, PatternRole::Message)?;
-        assert!(shapes.insert(key, shape).is_none());
+        assert!(patterns.insert(key, pattern).is_none());
     }
-    Ok(shapes)
+    patterns
+}
+
+fn shapes(source: &str) -> Result<BTreeMap<Key, Shape>, ContractError> {
+    fixture_patterns(source)
+        .into_iter()
+        .map(|(key, pattern)| {
+            let mut shape = Shape::default();
+            scan(&pattern, &mut shape, PatternRole::Message)?;
+            Ok((key, shape))
+        })
+        .collect()
 }
 
 #[test]
@@ -121,5 +132,51 @@ fn term_literals_must_match_the_referenced_typed_parameter() {
             .unwrap()
             .variables()
             .is_empty()
+    );
+}
+
+#[test]
+fn typed_dates_cannot_be_read_as_their_private_encoding() {
+    let key = Key::parse("label").unwrap();
+    let en = shapes("label = { DATETIME($date) }").unwrap();
+    let expected = expanded(&key, |key| en.get(key)).unwrap();
+    let translated = shapes("label = { $date }").unwrap();
+    let actual = expanded(&key, |key| translated.get(key)).unwrap();
+    assert!(matches!(
+        compare(&key, &expected, &actual, VariableCoverage::Exact),
+        Err(ContractError::DateTextRead { .. })
+    ));
+    for source in [
+        "label = { DATETIME($date) } { $date }",
+        "piece = { $date }\nlabel = { DATETIME($date) } { piece }",
+    ] {
+        let graph = shapes(source).unwrap();
+        assert!(matches!(
+            expanded(&key, |key| graph.get(key)),
+            Err(ContractError::DateTextRead { .. })
+        ));
+    }
+}
+
+#[test]
+fn formatted_date_composition_and_locally_shadowed_names_remain_valid() {
+    for source in [
+        "label = { DATETIME($date) }{ PARTICLE(DATETIME($date), \"object\") }",
+        "-term = { $date }\nlabel = { DATETIME($date) } { -term(date: \"caption\") }",
+    ] {
+        let graph = shapes(source).unwrap();
+        assert!(expanded(&Key::parse("label").unwrap(), |key| graph.get(key)).is_ok());
+    }
+    let key = Key::parse("label").unwrap();
+    let en = shapes("label = { NUMBER($count) }").unwrap();
+    let ko = shapes("label = { $count }").unwrap();
+    assert!(
+        compare(
+            &key,
+            &expanded(&key, |key| en.get(key)).unwrap(),
+            &expanded(&key, |key| ko.get(key)).unwrap(),
+            VariableCoverage::Exact
+        )
+        .is_ok()
     );
 }
