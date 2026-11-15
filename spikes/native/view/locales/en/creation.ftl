@@ -14,7 +14,7 @@ creation-offline = Connect to the selected machine and try again.
 # An explicit node refusal; raw diagnostics are not interpolated here.
 creation-refused = The machine refused this step. Your draft has been kept.
 # Side effect may have committed; never invite blind resubmission.
-creation-outcome-unknown = The connection ended before the result was confirmed. Check the existing session before starting another.
+creation-outcome-unknown = The result could not be confirmed. Check the existing work before starting again.
 
 # Registration is retained after a known first-message refusal.
 creation-registered-retry = The session was created. Retry the first message in that session.

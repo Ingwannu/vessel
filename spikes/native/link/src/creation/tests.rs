@@ -341,11 +341,19 @@ async fn a_reused_book_name_cannot_retarget_a_captured_submission() {
 }
 
 #[tokio::test]
-async fn internal_errors_cannot_prove_that_create_or_first_input_had_no_effect() {
+async fn errors_after_possible_dispatch_cannot_prove_no_effect() {
     for (scenario, stage) in [
         (Scenario::RefuseCreate(ErrorCode::Internal), Stage::Resource),
         (
+            Scenario::RefuseCreate(ErrorCode::Unavailable),
+            Stage::Resource,
+        ),
+        (
             Scenario::RefusePrompt(ErrorCode::Internal),
+            Stage::InitialInput,
+        ),
+        (
+            Scenario::RefusePrompt(ErrorCode::Unavailable),
             Stage::InitialInput,
         ),
     ] {

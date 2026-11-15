@@ -14,7 +14,7 @@ creation-offline = 선택한 머신에 연결한 뒤 다시 시도하세요.
 # 머신이 명시적으로 거절했습니다. 원문 진단은 표시하지 않습니다.
 creation-refused = 머신이 이 단계를 거절했습니다. 초안은 보관했습니다.
 # 결과가 불확실하므로 무조건 다시 제출하도록 안내하지 않습니다.
-creation-outcome-unknown = 결과를 확인하기 전에 연결이 끊겼습니다. 새로 시작하기 전에 기존 세션을 확인하세요.
+creation-outcome-unknown = 결과를 확인하지 못했습니다. 다시 시작하기 전에 기존 작업을 확인하세요.
 
 # Registration is retained after a known first-message refusal.
 creation-registered-retry = 세션이 생성되었습니다. 해당 세션에서 첫 메시지를 다시 보내세요.

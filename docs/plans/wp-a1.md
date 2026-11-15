@@ -279,3 +279,12 @@ Resolved read-only profiles remain terminal mode. The renderer consumes this
 same getter; missing node/workspace/draft identity yields None without a
 global selected-agent fallback. This is presentation policy, not a root/config
 or connection authority snapshot. B2's remaining controls use this seam.
+
+Legacy Unavailable is also uncertain after dispatch: run_structured checks
+shutdown after AgentProcess::spawn_with, drops the child and returns
+ShuttingDown/Unavailable. That cannot prove the child executed no code. The
+creation boundary conservatively retains the same payload for this code,
+with duplex tests at registration and first-input stages. Generic outcome
+wording covers both a live transport refusal and a disconnect; it does not
+assert that the connection necessarily ended. Durable before-effect refusal
+receipts will provide a narrower retry distinction in the new API.
