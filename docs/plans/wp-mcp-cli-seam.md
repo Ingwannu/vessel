@@ -35,3 +35,11 @@ guard are preserved. The CLI-help regression accepts clap's documented source
 processing that removes a final period from short descriptions (confirmed in
 the pinned clap_derive4.6.7 source); command attributes/text were not changed.
 Old cd25 runs remain old-head evidence; merged-head execution is still owed.
+
+V3 source passed the extraction at1cea5de1..a2d01334e, with gates owed.
+The older cd25 strict run exposed a help-test compilation defect: hide_env_values
+is an Arg method, not a Command method. The test now applies the pinned API
+through Command::mut_args for each rendered command, preserving the intention
+not to expose real environment values. The product parser/runtime move remains
+unchanged. This test fix and exact merged-head execution still require checks;
+source approval is not compilation or runtime proof.
