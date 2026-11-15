@@ -8,6 +8,7 @@ mod forge;
 mod inbox;
 mod push;
 mod search;
+mod subagents;
 mod usage;
 
 use std::path::Path;

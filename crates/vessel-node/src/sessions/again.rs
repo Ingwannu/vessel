@@ -183,10 +183,10 @@ impl Sessions {
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
             let durability = self.track(&handle, next);
-            let reopened = self.store.reopen(id, next).await;
-            if let Ok(kept) = &reopened {
-                handle.set_marks(*kept);
-            }
+            let reopened = match self.store.reopen(id, next).await {
+                Ok(kept) => self.restore_metadata(&handle, kept).await,
+                Err(error) => Err(error),
+            };
             (durability, reopened)
         };
         if let Err(error) = reopened {

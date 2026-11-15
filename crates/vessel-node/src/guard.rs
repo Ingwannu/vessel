@@ -171,6 +171,7 @@ targets!(
     vessel_proto::conversation::ResumeSession,
     vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
+    vessel_proto::subagents::DetachSession,
     vessel_proto::conversation::BeginUpload,
     // Protocol 11: opening, merging and the feedback switch act on a
     // session's branch and its conversation.

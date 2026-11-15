@@ -109,10 +109,13 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
     connection
-        .execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
+        .execute_batch(
+            "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;",
+        )
         .unwrap();
     connection
-        .pragma_update(None, "user_version", latest.checked_sub(1).unwrap())
+        .pragma_update(None, "user_version", latest.checked_sub(2).unwrap())
         .unwrap();
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;

@@ -383,6 +383,8 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Make a managed child independent without changing its process or conversation.
+            DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
         }
     };
 }

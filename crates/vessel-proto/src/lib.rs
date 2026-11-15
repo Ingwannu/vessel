@@ -56,6 +56,7 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
+pub mod subagents;
 mod terminal;
 pub mod terminals;
 mod title;
@@ -221,6 +222,3 @@ mod tests {
         assert_eq!(serde_json::from_str::<EventRecord>(&json).unwrap(), record);
     }
 }
-
-/// Read-only provider source identities and validated metadata.
-pub mod subagents;

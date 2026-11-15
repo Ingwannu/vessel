@@ -264,7 +264,8 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
-            | Self::GetAgentHistory(_) => None,
+            | Self::GetAgentHistory(_)
+            | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
         labels::on(self).map_or(Some(required), |labels| {
