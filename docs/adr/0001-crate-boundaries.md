@@ -346,6 +346,14 @@ damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
 
+## Local client-book shared values
+
+The coordinator approved BookRouteId and the existing pure appearance
+values in proto as local values, not new wire fields. Client and native
+view can share invariants without depending on each other's I/O/UI layer.
+There is no new crate edge or runtime. Locality policy and colors' paint
+tokens stay outside proto.
+
 
 ## Browser implementation boundary (ADR 0078)
 

@@ -56,6 +56,7 @@ mod lifetime;
 pub mod listening;
 pub mod lock;
 mod process_id;
+pub mod self_process;
 mod session;
 mod signal;
 mod spec;
