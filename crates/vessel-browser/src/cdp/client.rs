@@ -310,7 +310,7 @@ async fn run<T: Transport>(
     for waiting in pending.into_values() {
         let _gone = waiting.answer.send(Err(CdpError::Closed));
     }
-    // Dropping this owned TCP stream is the hard close; a blocked peer cannot
+    // Dropping this owned pipe/socket is the hard close; a blocked peer cannot
     // make shutdown wait for another application-level closing handshake.
     drop(socket);
     result
