@@ -563,3 +563,7 @@ anchors and tooltip state, while pending reads settle DestinationChanged. A
 new source fixture pins exact-epoch/duplicate/redraw-decision behavior; it is
 unexecuted and does not claim a real shell/window redraw or native UI pass.
 The already queued84fa narrow excludes this correction.
+
+The buffer projection's exported split-column and malformed-row fields now
+document their original/modified/source identities explicitly under missing_docs.
+This documentation correction does not change the buffer packing or fixtures.

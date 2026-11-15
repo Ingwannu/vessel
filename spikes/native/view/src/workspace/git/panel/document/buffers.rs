@@ -67,7 +67,9 @@ pub enum BufferColumns {
     Unified(BufferColumn),
     /// One old-side and one new-side buffer with identical row counts.
     Split {
+        /// Original-side text, without interleaved additions.
         old: BufferColumn,
+        /// Modified-side text, without interleaved removals.
         new: BufferColumn,
     },
 }
@@ -104,7 +106,10 @@ pub enum BufferError {
     /// The original document remains available for diagnostics; no partial
     /// buffer with misaligned numbering/selection is admitted.
     #[error("diff source row {row:?} contains an embedded line break")]
-    EmbeddedNewline { row: SourceRow },
+    EmbeddedNewline {
+        /// Original wire-row identity, retained for exact diagnostics.
+        row: SourceRow,
+    },
 }
 
 impl DiffDocument {
