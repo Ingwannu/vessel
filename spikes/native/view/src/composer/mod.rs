@@ -18,6 +18,7 @@ pub mod local;
 pub mod matching;
 pub mod mentions;
 pub mod modes;
+pub mod preview;
 pub mod recall;
 pub mod reveal;
 pub mod running;
