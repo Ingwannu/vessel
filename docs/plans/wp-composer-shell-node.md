@@ -26,9 +26,9 @@ Old/unassigned metadata projection covers direct conversations, events and neste
 
 - Values snapshot57f: remote proto tests4/0.
 - Exactbec742aa: strict all-target Clippy0 for proto, harness, agent, session and node.
-- Command-focused unit suite14/0; fake Codex/options integration29/0 (17 Codex,12 options). Logs: /tmp/work/wp-composer-shell/catalog-command-unit-tests.log and catalog-agent-integration.log.
-- Base3 merged at a25e73d83. Gate41 canonical913f05d8 is now being merged; its combined source checks are pending. Cache tests were waiting, cancelled by verified owned PID before this merge, and must be requeued on the merged head.
-- Codex schema generation used installed0.169 with isolated HOME/CODEX_HOME and an otherwise empty environment except PATH. It sent no session, network or model request. The full generated primary schema is retained under /tmp/work/wp-composer-shell/codex-schema/generated; pinned contract rerun remains pending.
+- Prior-source command-focused unit suite14/0; fake Codex/options integration29/0 (17 Codex,12 options), retained in the package unit/integration logs.
+- Gate41 union d9e5288d3 passed strict five-crate all-target Clippy and all four cache tests. Gate44 union67c5eb77 passed the same five-crate strict selection in run `wp-composer-shell-node-narrow-20261115T114725Z-67c5eb77`. Neither selected the client/RPC fake-handler targets or web crate; later source corrections have their own combined check pending.
+- Primary Codex schema generation used installed0.169 with isolated HOME/CODEX_HOME and an otherwise empty environment except PATH. It sent no session, network or model request. The fixed VM-only schema contract run `tools-codex-contract-20261115T124102Z-67c5eb77` remains queued; this does not cover later metadata or actual command transport.
 - No TypeScript refresh, whole root/native gate, capture or final V3/V4 review has passed for this package.
 
 Native custom prompt files, filesystem fallback and compact/goal execution remain explicit capability gaps. ClaudeStream/OpenCodeHttp native drivers remain unavailable. W22 owns model/config/provider coverage; no duplicate registry or guessed provider behavior is introduced here.
@@ -54,3 +54,5 @@ valuesdd06 are merged for NODE-side preparation; no app activation/source-pass
 claim. Metadata and corrected browser policy need combined check/TS generation.
 
 Whole-consumer audit: both existing client/RPC fake handlers now include the new draft command query in their `unserved!` lists. They retain the same typed Unsupported result and RPC call recording behavior. This closes a test-target trait requirement missed by the earlier five-crate selection; it does not add a second fake or authorize discovery. The browser unary policy already classifies GetDraftCommands beside HarnessOptions (6e893096c). Current combined consumer lint remains pending.
+
+Current immutable consumer check: `wp-composer-shell-node-narrow-20261115T125346Z-57f69672` selects proto, harness, agent, session, node, client, RPC and web all targets, with TS enabled. The earlier TS generation67c failed before generation at the missing browser match; corrected generation `wp-composer-shell-typescript-20261115T121643Z-237c6c35` remains queued. No generated diff has been applied or claimed green. Native values dd06 passed four TS-enabled tests; its strict lint failures were corrected in b7b4e87e (`root_name`, documentation and explicit Euclidean boundary arithmetic), without changing JSON. The standalone catalog carrier ce50 plus correction6988 separates these values and metadata projection from the draft RPC/probe runtime for shared-owner adoption; its own checks remain pending.
