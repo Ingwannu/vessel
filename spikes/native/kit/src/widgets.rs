@@ -4,7 +4,6 @@
 use gpui::prelude::*;
 use gpui::{Div, FontStyle, Hsla, SharedString, Stateful, div, px};
 
-use crate::control_sizing::ControlSizing;
 use crate::fonts::{self, Type};
 use crate::theme::{Tokens, radius};
 
@@ -48,199 +47,11 @@ pub trait TypeExt: Styled + Sized {
 
 impl<E: Styled> TypeExt for E {}
 
-/// Button meanings from Paseo (`default`, `secondary`, `destructive`,
-/// `ghost`). Outline retains its existing entry point.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ButtonKind {
-    /// The primary action, in the app's brand accent.
-    Primary,
-    /// An ordinary action on surface3.
-    Secondary,
-    /// A destructive action, with its own foreground independent of the accent.
-    Destructive,
-    /// A quiet action: transparent, muted text; foreground text on hover.
-    Ghost,
-}
-
-/// Whether the caller may attach a handler. Disabled buttons keep their words
-/// but have no pointer or pressed/hover treatment, as Paseo's Pressable does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ButtonState {
-    /// Ready for the caller's handler.
-    Enabled,
-    /// The caller attaches no handler.
-    Disabled,
-}
-
-const BUTTON_HEIGHT: gpui::Pixels = px(32.0);
-const BUTTON_HORIZONTAL: gpui::Pixels = px(16.0);
-const BUTTON_GAP: gpui::Pixels = px(8.0);
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct ButtonGeometry {
-    height: gpui::Pixels,
-    horizontal: gpui::Pixels,
-}
-const fn button_geometry(sizing: ControlSizing) -> ButtonGeometry {
-    match sizing {
-        ControlSizing::Pointer => ButtonGeometry {
-            height: BUTTON_HEIGHT,
-            horizontal: BUTTON_HORIZONTAL,
-        },
-        ControlSizing::Touch => ButtonGeometry {
-            height: px(crate::control_sizing::TOUCH_TARGET),
-            horizontal: px(crate::theme::spacing::S6),
-        },
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ButtonPhase {
-    Idle,
-    Hovered,
-    Pressed,
-    Disabled,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct ButtonPaint {
-    fill: Hsla,
-    border: Hsla,
-    text: Hsla,
-    opacity: f32,
-}
-
-fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> ButtonPaint {
-    let neutral = tokens.neutral;
-    let (fill, text) = match kind {
-        ButtonKind::Primary => (neutral.accent, neutral.accent_foreground),
-        ButtonKind::Secondary => (neutral.surface3, neutral.foreground),
-        ButtonKind::Destructive => (neutral.destructive, neutral.destructive_foreground),
-        ButtonKind::Ghost => (
-            gpui::transparent_black(),
-            match phase {
-                ButtonPhase::Hovered => neutral.foreground,
-                ButtonPhase::Idle | ButtonPhase::Pressed | ButtonPhase::Disabled => {
-                    neutral.foreground_muted
-                }
-            },
-        ),
-    };
-    ButtonPaint {
-        fill,
-        border: fill,
-        text,
-        opacity: match phase {
-            ButtonPhase::Idle | ButtonPhase::Hovered => 1.0,
-            ButtonPhase::Pressed => 0.85,
-            ButtonPhase::Disabled => 0.5,
-        },
-    }
-}
-
-/// A button, after Paseo's `button.tsx` and `control-geometry.ts`.
-///
-/// [Decision Log]
-/// - Purpose: every delete confirmation needs the same destructive control.
-/// - Constraint: existing callers still pass a primary bool; an accent's text
-///   may change with a brand/theme and cannot stand in for destructive text.
-/// - Alternatives: screen-local red overrides; change every caller at once.
-/// - Choice: typed kind/state, the existing pill geometry and wrapping label;
-///   filled kinds keep their palette on hover; ghost changes only text;
-///   pressed85%, disabled50%.
-/// - Why: one entry owns these values; the compatibility wrapper can retire
-///   separately, without a second look for confirmations.
-/// - Cost: a disabled caller attaches no handler, like the kit's outline button.
-#[must_use]
-pub fn button_with_kind(
-    id: impl Into<gpui::ElementId>,
-    label: impl Into<SharedString>,
-    kind: ButtonKind,
-    state: ButtonState,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    button_with_kind_at(id, label, kind, state, ControlSizing::Pointer, tokens)
-}
-
-/// The same shared button at the source's explicit pointer/touch geometry.
-/// Legacy entries remain Pointer until their owners migrate their callers.
-#[must_use]
-pub fn button_with_kind_at(
-    id: impl Into<gpui::ElementId>,
-    label: impl Into<SharedString>,
-    kind: ButtonKind,
-    state: ButtonState,
-    sizing: ControlSizing,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let geometry = button_geometry(sizing);
-    let phase = match state {
-        ButtonState::Enabled => ButtonPhase::Idle,
-        ButtonState::Disabled => ButtonPhase::Disabled,
-    };
-    let paint = button_paint(kind, phase, tokens);
-    let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
-    div()
-        .id(id)
-        .flex()
-        .flex_row()
-        .items_center()
-        .justify_center()
-        .gap(BUTTON_GAP)
-        .min_h(geometry.height)
-        .min_w_0()
-        .max_w_full()
-        .px(geometry.horizontal)
-        .rounded_full()
-        .border_1()
-        .border_color(paint.border)
-        .bg(paint.fill)
-        .text_color(paint.text)
-        .opacity(paint.opacity)
-        .type_(Type::Label)
-        .when(state == ButtonState::Enabled, |button| {
-            button
-                .cursor_pointer()
-                // Paseo sets no hover style on a filled button; ghost alone
-                // changes its text. Press changes only opacity, so the two
-                // selectors compose when the pointer is also hovering.
-                .when(kind == ButtonKind::Ghost, |button| {
-                    let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
-                    button.hover(move |style| style.text_color(hover.text))
-                })
-                .active(move |style| style.opacity(pressed.opacity))
-        })
-        .child(wrapping(label.into()))
-}
-
-/// Compatibility entry point. The lead retires this bool API after migrating
-/// its callers; all drawing already delegates to the typed entry point.
-#[must_use]
-pub fn button(
-    id: impl Into<gpui::ElementId>,
-    label: impl Into<SharedString>,
-    primary: bool,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let kind = if primary {
-        ButtonKind::Primary
-    } else {
-        ButtonKind::Secondary
-    };
-    button_with_kind(id, label, kind, ButtonState::Enabled, tokens)
-}
-
-/// A button's label: on one line while it fits, wrapped and centred when
-/// it does not (4 above and under each line block, so two lines do not
-/// touch the pill's edge).
-fn wrapping(label: SharedString) -> Div {
-    div()
-        .min_w_0()
-        .py(px(4.0))
-        .text_center()
-        .whitespace_normal()
-        .child(label)
-}
+mod button;
+pub use button::{
+    ButtonContent, ButtonIcon, ButtonKind, ButtonState, button, button_with_content,
+    button_with_kind, button_with_kind_at,
+};
 
 /// Paseo's outline button (`variant="outline"`): no fill, a hairline of
 /// `borderAccent`, the foreground's words; the same pill as [`button`].
@@ -364,6 +175,3 @@ pub fn mark_mono(size: f32, color: Hsla) -> gpui::Svg {
         .flex_shrink_0()
         .text_color(color)
 }
-
-#[cfg(test)]
-mod button_tests;

@@ -1192,3 +1192,9 @@ Escape, outside click or compact scrim. `close()` remains state-only for existin
 callbacks; the shared input renderer restores after callbacks that close it.
 `close_and_restore(window,cx)` is available for navigation. A newer field or
 modal that has already taken focus is preserved; intermediate choices stay open.
+
+The typed button accepts `ButtonContent::{Label,Icon,IconAndLabel}` through
+`button_with_content`; existing label-only signatures delegate unchanged.
+`ButtonIcon::new` follows button ink, while `ButtonIcon::muted` preserves an
+explicit muted source icon (the sidebar reorder arrows). Icon-only MD controls
+are32/44 squares for Pointer/Touch, with no empty label or horizontal padding.
