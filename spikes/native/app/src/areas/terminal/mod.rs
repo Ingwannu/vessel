@@ -103,7 +103,7 @@ impl TerminalArea {
             log: TerminalLog::default(),
             held: Vec::new(),
             pending: Vec::new(),
-            grid: cx.new(|_cx| TerminalGrid::empty()),
+            grid: cx.new(TerminalGrid::empty),
             probe: Rc::new(Cell::new(None)),
             fit: None,
             settling: None,
