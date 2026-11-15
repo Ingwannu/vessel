@@ -677,25 +677,25 @@ The existing contract records whole fields instead of dotted key paths.
 
 ## Config security correction: retained reload ownership
 
-Row 200's first source finding is implemented on the shared AA writer composition:
+The reload cancellation correction uses the shared retained writer:
 one admitted mutation task retains the actual saved guard through reload read,
 validation and publication, and shutdown waits for it. A cancelled reload cannot
 leave an uncounted blocking read or overtake a later change. The concrete task
 failure cause is retained behind safe Display/Debug/source-chain containment.
 New real-read cancellation/order/drain and panic diagnostic fixtures are written;
-remote strict/runtime/package evidence is pending. AA's earlier scoped pass alone
-does not qualify this new reload use. Duplicate-member decoding is the next
-separate correction; no claim that row 200 is closed yet.
+remote strict/runtime/package evidence is pending. The writer's earlier scoped pass alone
+does not qualify this new reload use. Duplicate-member decoding is a separate
+correction; source fixtures alone do not close the execution obligations.
 
 
 ## Config security correction: original JSON member uniqueness
 
-Row 200's second source finding is addressed before canonical typed comparison:
+Duplicate-member loss is addressed before canonical typed comparison:
 a recursive decoding-edge visitor refuses duplicate decoded object keys, also
 inside arrays. No raw diagnostic, extra key catalogue or dependency is added.
 The existing byte-edge/valid/unknown/null/trailing tests are retained, with
 snapshot/field duplicate canaries and actual CLI pre-contact / reload no-publish
-regressions added. Both row 200 corrections now have source fixtures; changed
+regressions added. Both corrections now have source fixtures; changed
 strict/TS/runtime evidence and the final package gate/review remain owed.
 
 
@@ -706,3 +706,11 @@ empty-parameter group, and the test uses is_none plus the explicit reply default
 All old sample values and assertions are retained. That source correction joins
 the reload/duplicate repairs for the next exact changed-source narrow check;
 f3 ran no runtime tests or TS generation.
+
+
+The changed-source strict check compiled the new recursive input decoder, then
+stopped on the mutation token import: tokio-util exposes TaskTrackerToken in its
+public task_tracker module rather than task's re-exports. The import now uses
+that canonical path; the operation owner, token lifetime and all tests are
+unchanged. Strict and actual runtime evidence remain owed on this corrected
+source; no TS or config tests ran in the failed check.

@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use tokio::sync::OwnedMutexGuard;
-use tokio_util::task::TaskTrackerToken;
+use tokio_util::task::task_tracker::TaskTrackerToken;
 use vessel_proto::settings::{NodeSettings, SetNodeSettings};
 use vessel_store::SetAside;
 
