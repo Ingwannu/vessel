@@ -62,7 +62,7 @@ pub(super) fn reference(raw: &str) -> Result<Reference, SourceError> {
     } else {
         (Prefix::None, raw)
     };
-    let (source, subpath) = split_subpath(source, prefix)?;
+    let (source, subpath) = split_subpath(source, prefix);
     let shape = if prefix == Prefix::None && directory_shape(source) {
         Shape::Directory
     } else {
@@ -76,24 +76,24 @@ pub(super) fn reference(raw: &str) -> Result<Reference, SourceError> {
     })
 }
 
-fn split_subpath(raw: &str, prefix: Prefix) -> Result<(&str, Option<RelPath>), SourceError> {
+fn split_subpath(raw: &str, prefix: Prefix) -> (&str, Option<RelPath>) {
     let Some((before, tail)) = raw.rsplit_once(':') else {
-        return Ok((raw, None));
+        return (raw, None);
     };
     let Some(subpath) = portable(tail) else {
-        return Ok((raw, None));
+        return (raw, None);
     };
     if let Some((_, authority)) = raw.split_once("://") {
         let path = authority.find('/');
         let separator = before.len();
         let authority_start = raw.len().saturating_sub(authority.len());
         if path.is_none_or(|path| separator < authority_start.saturating_add(path)) {
-            return Ok((raw, None));
+            return (raw, None);
         }
     } else if prefix != Prefix::Npm && scp_separator(raw) == Some(before.len()) {
-        return Ok((raw, None));
+        return (raw, None);
     }
-    Ok((before, Some(subpath)))
+    (before, Some(subpath))
 }
 
 pub(super) fn scp_separator(raw: &str) -> Option<usize> {

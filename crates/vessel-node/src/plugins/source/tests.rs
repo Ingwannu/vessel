@@ -4,8 +4,8 @@ use std::error::Error;
 fn endpoint() -> RegistryEndpoint {
     RegistryEndpoint::parse("https://registry.example.invalid/base/").expect("registry")
 }
-fn subpath(path: &Option<RelPath>) -> Option<&str> {
-    path.as_ref().map(RelPath::as_str)
+fn subpath(path: Option<&RelPath>) -> Option<&str> {
+    path.map(RelPath::as_str)
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn colon_suffix_does_not_confuse_uri_port_scp_separator_or_windows_drive() {
     ] {
         let parsed = reference(raw).expect("reference");
         assert_eq!(parsed.source.as_str(), base);
-        assert_eq!(subpath(&parsed.subpath), path);
+        assert_eq!(subpath(parsed.subpath.as_ref()), path);
     }
 }
 

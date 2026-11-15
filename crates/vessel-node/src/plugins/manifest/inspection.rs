@@ -50,7 +50,7 @@ enum InspectError {
     Filename,
 }
 
-/// FileError can contain a private node path. Preserve the concrete cause for
+/// `FileError` can contain a private node path. Preserve the concrete cause for
 /// ownership/debugging without reopening it through public diagnostics/chains.
 struct PrivateFileError(files::FileError);
 impl fmt::Debug for PrivateFileError {
