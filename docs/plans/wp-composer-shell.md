@@ -1,6 +1,6 @@
 # Composer shell and commands
 
-Status (2026-11-15 12:43 UTC): incomplete B2 package. App integration is source-stage;
+Status (2026-11-15 13:06 UTC): incomplete B2 package. App integration is source-stage;
 no whole gate, capture matrix or final reviewer approval exists. Packagebase6 and
 its exact dd13 lock correction are adopted. Node and native work remain separate.
 
@@ -109,7 +109,7 @@ IME handling, permissions forms or transport safety.
 Options carry find marks, typed authored/inferred links, authoritative image
 resolution, optional image clicks and opt-in copy policy. It calls the existing
 Base renderer directly and refines the Component-installed theme, rather than
-creating another control. Authored links win over image activation.
+creating another control. Authored text links win over inferred recognition. An installed image-activation callback consumes the image click, including linked images; without it the existing enclosing-link behavior remains.
 
 Opt-in recognition validates UTF8 byte ranges and skips authored links/fences.
 Recognized code/emphasis/link marks reuse the existing highlight sweep so source
@@ -156,7 +156,7 @@ Evidence is scoped to the exact source cited; it is not a package/UI pass.
 | Native3e all-kit |137passed/2failed: duplicate inferred-code source and compact double newline. Both source corrections are prepared; failed evidence is retained. |
 | Native519 | Lock-file refusal before compilation; exact lead dd13 fix adopted. |
 | Nativec151 strict / kit | Strict failed lifecycle/base6 union constructor fields; kit compile failed missing App argument to focus. Corrected atd4ca; no pass inferred. |
-| Independent native valuesdd06 +TS |4/0/0; strict same-head check pending. |
+| Independent native valuesdd06 +TS |4/0/0; strict failed doc, integer-division fixture and generated-TS name collision. Corrected b7b4 successor check queued; JSON unchanged. |
 | Node67 TS generation | Compile failed missing web Method arm before generation; empty artifacts. Corrected policy and metadata rerun queued. |
 
 Current d4ca strict4crate and kit+app library tests are registered on the build VM.
