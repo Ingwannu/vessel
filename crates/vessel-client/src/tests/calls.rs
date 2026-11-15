@@ -448,3 +448,4 @@ async fn pending_git_comparison_never_reaches_the_peer() {
         "no pending request frame was sent"
     );
 }
+mod file_panels;

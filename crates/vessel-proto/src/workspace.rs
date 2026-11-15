@@ -9,12 +9,14 @@
 
 mod approval;
 mod diff;
+pub mod directory_metadata;
 mod exec_path;
 mod file_terminals;
 mod files;
 mod git;
 mod history;
 mod panel;
+pub mod panel_files;
 mod path;
 mod port_range;
 mod port_script;
@@ -24,6 +26,7 @@ mod project_text;
 mod service_port;
 mod service_ports;
 mod setup_progress;
+pub mod suggestions;
 mod support;
 mod text;
 mod url;

@@ -602,3 +602,23 @@ wire proof; existing C5 slot tests are prior producer evidence only. No C5
 runtime branch has been merged here, no file wrapper changed, no test pass or
 ready join claimed. This Node tree stays on announced1c with its own TS run
 4be queued; batch16 is not an announced usable head yet.
+
+## Announced gate 54 node-head merge
+
+Merged announced2750243693543a8469477a3586eda472423079c3 (base gate54:
+Rust2635/0/12, web464, e2e80, forge4, wire diff0; protocol25/schema21).
+This is base evidence only, not a result for this C3 union. Two merge conflicts
+retain both sides: history is appended AFTER incoming skills.import_selection
+in the sole method table; the forwardable fixture includes incoming five file
+methods followed by history in actual Method order. GIT_PANEL stays None, the
+runtime comparison rows remain pending with their real handlers, and the generic
+pending-family exception list remains empty. No assigned number or exemption.
+
+Incoming lifecycle ListSessions tuple/default changes, file owner/notify
+implementation, staged skills and private notices are preserved. Generated
+proto.ts is byte-exact incoming275 (SHA2565d0ea054fda4defe695023e251ad440f4c20dc810cce5b67f95497e2b5ce644b);
+it does not include C3 history yet. The old4be TS run stays on its immutable
+source; any resulting patch must NOT be blindly applied over this newer wire.
+Current-union generation remains owed. Only pure size, standalone pinned
+rustfmt and text/diff checks ran locally; no Cargo/metadata or current union
+compile/runtime/whole gate/V3 acceptance is claimed.

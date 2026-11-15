@@ -1,18 +1,18 @@
-//! The label field rule for existing session templates. It combines with the
+//! Metadata field requirements for existing session templates. It combines with the
 //! assigned method and other fields through the single optional call accessor.
 
 use crate::automation::ScheduleTarget;
-use crate::{Call, ProtocolVersion, SessionLabels};
+use crate::{Call, ProtocolVersion, SessionSpec};
 
-pub(super) fn on(call: &Call) -> Option<&SessionLabels> {
+pub(super) fn on(call: &Call) -> Option<&SessionSpec> {
     if let Call::CreateSession(request) = call {
-        return Some(&request.spec.labels);
+        return Some(&request.spec);
     }
     if let Call::CreatePrompt(request) = call {
-        return request.session.as_ref().map(|spec| &spec.labels);
+        return request.session.as_deref();
     }
     if let Call::UpdatePrompt(request) = call {
-        return request.session.as_ref().map(|spec| &spec.labels);
+        return request.session.as_deref();
     }
     if let Call::CreateSchedule(request) = call {
         return target(&request.definition.target);
@@ -23,19 +23,19 @@ pub(super) fn on(call: &Call) -> Option<&SessionLabels> {
     None
 }
 
-fn target(value: &ScheduleTarget) -> Option<&SessionLabels> {
+fn target(value: &ScheduleTarget) -> Option<&SessionSpec> {
     match value {
-        ScheduleTarget::NewSession { spec, .. } => Some(&spec.labels),
+        ScheduleTarget::NewSession { spec, .. } => Some(spec),
         ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => None,
     }
 }
 
 pub(super) fn required(
     existing: ProtocolVersion,
-    labels: &SessionLabels,
+    spec: &SessionSpec,
     assigned: Option<ProtocolVersion>,
 ) -> Option<ProtocolVersion> {
-    if labels.is_empty() {
+    if spec.labels.is_empty() && spec.listing.is_none() {
         Some(existing)
     } else {
         assigned.map(|version| existing.max(version))
