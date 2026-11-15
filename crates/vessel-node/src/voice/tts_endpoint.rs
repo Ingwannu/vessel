@@ -8,6 +8,7 @@ use std::fmt;
 use super::http::{self, Operation};
 use reqwest::header;
 use serde::Serialize;
+use tokio_util::sync::CancellationToken;
 use vessel_proto::ResolvedValue;
 use vessel_proto::dictation::{EndpointBase, EndpointModel, Pcm16Mono};
 use vessel_proto::voice::{MAX_PLAYBACK_BYTES, PlaybackPcm, SpeechText};
@@ -61,7 +62,14 @@ impl Endpoint {
         Ok(Self { http, model, voice })
     }
 
-    pub(super) async fn synthesize(&self, segment: &SpeechText) -> Result<Synthesized, TtsError> {
+    pub(super) async fn synthesize(
+        &self,
+        segment: &SpeechText,
+        stop: &CancellationToken,
+    ) -> Result<Synthesized, TtsError> {
+        if stop.is_cancelled() {
+            return Err(TtsError::Cancelled);
+        }
         if segment.as_str().encode_utf16().count() > MAX_SEGMENT_UNITS {
             return Err(TtsError::Segment);
         }
@@ -74,9 +82,13 @@ impl Endpoint {
         .map_err(|_private| TtsError::Configuration)?;
         let response = self
             .http
-            .post(body, header::HeaderValue::from_static("application/json"))
+            .post(
+                body,
+                header::HeaderValue::from_static("application/json"),
+                stop,
+            )
             .await?;
-        let pcm = collect(response).await?;
+        let pcm = collect(response, stop).await?;
         Ok(Synthesized {
             format: PCM_FORMAT
                 .parse()
@@ -86,7 +98,10 @@ impl Endpoint {
     }
 }
 
-async fn collect(response: reqwest::Response) -> Result<Vec<u8>, TtsError> {
+async fn collect(
+    response: reqwest::Response,
+    stop: &CancellationToken,
+) -> Result<Vec<u8>, TtsError> {
     if !response.status().is_success() {
         return Err(TtsError::Rejected);
     }
@@ -103,7 +118,7 @@ async fn collect(response: reqwest::Response) -> Result<Vec<u8>, TtsError> {
             return Err(TtsError::Format);
         }
     }
-    http::read(response, MAX_PLAYBACK_BYTES).await
+    http::read(response, MAX_PLAYBACK_BYTES, stop).await
 }
 
 #[cfg(test)]

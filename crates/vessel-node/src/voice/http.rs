@@ -6,6 +6,7 @@
 
 use reqwest::{Client, Url, header};
 use std::{fmt, time::Duration};
+use tokio_util::sync::CancellationToken;
 use vessel_proto::{ResolvedValue, dictation::EndpointBase};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -13,6 +14,8 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub(super) enum EndpointError {
+    #[error("speech operation was cancelled")]
+    Cancelled,
     #[error("speech endpoint configuration is invalid")]
     Configuration,
     #[error("speech endpoint credential is absent or invalid")]
@@ -104,15 +107,22 @@ impl Endpoint {
         &self,
         body: Vec<u8>,
         content_type: header::HeaderValue,
+        stop: &CancellationToken,
     ) -> Result<reqwest::Response, EndpointError> {
-        self.client
+        if stop.is_cancelled() {
+            return Err(EndpointError::Cancelled);
+        }
+        let request = self
+            .client
             .post(self.url.clone())
             .header(header::AUTHORIZATION, self.authorization.clone())
             .header(header::CONTENT_TYPE, content_type)
             .body(body)
-            .send()
-            .await
-            .map_err(transport)
+            .send();
+        tokio::select! { biased;
+            () = stop.cancelled() => Err(EndpointError::Cancelled),
+            response = request => response.map_err(transport),
+        }
     }
 }
 
@@ -130,7 +140,11 @@ pub(super) fn transport(error: reqwest::Error) -> EndpointError {
 pub(super) async fn read(
     mut response: reqwest::Response,
     maximum: usize,
+    stop: &CancellationToken,
 ) -> Result<Vec<u8>, EndpointError> {
+    if stop.is_cancelled() {
+        return Err(EndpointError::Cancelled);
+    }
     let limit = u64::try_from(maximum).map_err(|_private| EndpointError::Capacity)?;
     if response
         .content_length()
@@ -139,7 +153,14 @@ pub(super) async fn read(
         return Err(EndpointError::Capacity);
     }
     let mut body = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(transport)? {
+    loop {
+        let chunk = tokio::select! { biased;
+            () = stop.cancelled() => return Err(EndpointError::Cancelled),
+            chunk = response.chunk() => chunk.map_err(transport)?,
+        };
+        let Some(chunk) = chunk else {
+            break;
+        };
         if body
             .len()
             .checked_add(chunk.len())
@@ -153,3 +174,6 @@ pub(super) async fn read(
     }
     Ok(body)
 }
+
+#[cfg(test)]
+mod tests;

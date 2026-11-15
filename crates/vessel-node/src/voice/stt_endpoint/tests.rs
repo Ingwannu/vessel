@@ -42,7 +42,10 @@ async fn voice_form_and_finite_logprob_policy_drive_the_actual_loopback_http_cli
     let client = endpoint(&server, "gpt-4o-transcribe").await;
     assert!(!format!("{client:?}").contains(SYNTHETIC_KEY));
     assert!(!format!("{client:?}").contains("127.0.0.1"));
-    let result = client.transcribe(&utterance()).await.unwrap();
+    let result = client
+        .transcribe(&utterance(), &tokio_util::sync::CancellationToken::new())
+        .await
+        .unwrap();
     assert_eq!(result, VoiceTranscript::Rejected);
     assert!(!format!("{result:?}").contains("private"));
     server.finish().await;
@@ -66,7 +69,7 @@ async fn whisper_ignores_unrequested_scores_and_successful_text_debug_is_redacte
     .await;
     let result = endpoint(&server, "whisper-1")
         .await
-        .transcribe(&utterance())
+        .transcribe(&utterance(), &tokio_util::sync::CancellationToken::new())
         .await
         .unwrap();
     assert!(matches!(
@@ -98,7 +101,7 @@ async fn rejected_and_oversized_foreign_responses_keep_no_diagnostic_payload() {
         .await;
         let error = endpoint(&server, "whisper-1")
             .await
-            .transcribe(&utterance())
+            .transcribe(&utterance(), &tokio_util::sync::CancellationToken::new())
             .await
             .unwrap_err();
         assert!(matches!(

@@ -191,3 +191,13 @@ but returned three strict-lint defects: Form's intentionally hidden content
 header needed non-exhaustive Debug, and two WAV fixture reads used forbidden
 get().unwrap(). Fixed without lint allowances or payload diagnostics. Runtime
 loopback tests and the new merged-head strict result remain owed.
+
+### Provider cancellation draft
+
+Voice STT/TTS now requires the owning generation's CancellationToken. Already
+cancelled work is refused before encoding/request dispatch; the shared site HTTP
+boundary prioritizes cancellation while waiting for headers and on every body
+chunk. Bounded loopback regressions hold headers/body and verify cancellation
+returns without an upstream reply. These fakes use only a synthetic credential
+and explicitly release their held server responses before teardown. They are
+not a provider/device test and still require narrow verification.

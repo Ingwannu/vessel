@@ -6,6 +6,7 @@ use super::{
     stt_form::{Form, FormError},
     transcript::{self, Scores},
 };
+use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     ResolvedValue,
     dictation::{EndpointBase, EndpointModel, Language},
@@ -47,13 +48,17 @@ impl Endpoint {
     pub(super) async fn transcribe(
         &self,
         utterance: &Utterance,
+        stop: &CancellationToken,
     ) -> Result<VoiceTranscript, SttError> {
+        if stop.is_cancelled() {
+            return Err(EndpointError::Cancelled.into());
+        }
         let (kind, body) = Form::new(utterance, &self.model, &self.language)?.into_parts();
-        let response = self.http.post(body, kind).await?;
+        let response = self.http.post(body, kind, stop).await?;
         if !response.status().is_success() {
             return Err(EndpointError::Rejected.into());
         }
-        let bytes = super::http::read(response, MAX_RESPONSE_BYTES).await?;
+        let bytes = super::http::read(response, MAX_RESPONSE_BYTES, stop).await?;
         Ok(transcript::decode(&bytes, Scores::for_model(&self.model))?)
     }
 }
