@@ -516,3 +516,38 @@ async fn the_nodes_stop_interrupts_them() {
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn captured_screen_survives_output_ring_pruning_and_process_exit() {
+    within(async {
+        let fixture = Fixture::new();
+        let terminal = start_script(ScriptStart {
+            info: info(script_kind(false), fixture.folder.path()),
+            spec: CommandSpec::new("/bin/sh")
+                .arg("-c")
+                .arg("i=0; while [ $i -lt 40 ]; do printf 'row-%s\r\n' \"$i\"; i=$((i+1)); done")
+                .cwd(fixture.folder.path()),
+            leftover: Leftover::default(),
+            service: false,
+            approved: || true,
+            scrollback: Scrollback {
+                records: NonZeroUsize::new(2).unwrap(),
+                bytes: 64,
+            },
+            shutdown: fixture.shutdown.clone(),
+            tasks: fixture.tasks.clone(),
+        });
+        terminal.ended().await;
+        assert!(terminal.info().oldest_seq > EventSeq::ZERO);
+        let captured = terminal
+            .capture(vessel_proto::terminals::CaptureOptions::default())
+            .await
+            .unwrap();
+        assert!(captured.lines.iter().any(|line| line == "row-0"));
+        assert!(captured.lines.iter().any(|line| line == "row-39"));
+        fixture.shutdown.cancel();
+        fixture.tasks.close();
+        fixture.tasks.wait().await;
+    })
+    .await;
+}

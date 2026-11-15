@@ -3,6 +3,7 @@
 mod agents;
 mod observe;
 pub(crate) mod output;
+mod terminals;
 
 use crate::{
     args::{
@@ -19,6 +20,9 @@ pub(crate) async fn run(
     command: ParityCommand,
 ) -> Result<(), CliError> {
     let command = match command {
+        ParityCommand::Terminal { command } => {
+            return terminals::run(target, output, command).await;
+        }
         ParityCommand::Host { command } => return host(target, output, command).await,
         ParityCommand::Agent { command } => command,
         ParityCommand::Ls(args) => AgentCommand::Ls(args),

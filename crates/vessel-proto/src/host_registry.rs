@@ -157,7 +157,7 @@ pub struct UpdateHostRegistration {
     pub enabled: Option<HostEnabled>,
     /// None preserves the current destination ref.
     pub destination: Option<HostDestination>,
-    /// Explicit consent if the destination's NodeId changes.
+    /// Explicit consent if the destination's `NodeId` changes.
     pub identity_change: IdentityChange,
 }
 /// Removing metadata never forgets a fleet node or revokes a paired device.

@@ -99,7 +99,7 @@ pub(super) async fn send(
     }
     let delivery = args.behavior.map_or_else(
         || {
-            if std::env::var_os("VESSEL_SESSION_ID").is_some() {
+            if std::env::var_os("VESSEL_AGENT_SESSION").is_some() {
                 Delivery::Steer
             } else {
                 Delivery::Interrupt

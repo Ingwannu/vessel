@@ -1438,3 +1438,17 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+The CLI parity work adds an `agent` group and the `ls`, `inspect`, `wait`, `stop`,
+`delete`, and `archive` shortcuts. For example, `vessel agent run "explain this project"
+--provider claude --json` starts a structured conversation; `vessel agent send "follow up"
+ID --no-wait` returns its delivery receipt. The original `vessel run HARNESS` and
+`vessel send ID TEXT` forms remain available. `stop` cancels active turns, while `kill`
+terminates the process. New typed handlers accept `--json`, `--format table|json|yaml|cli`,
+`--quiet`, and `--no-headers`; YAML uses JSON-compatible flow syntax.
+
+This is a staged parity package. Workspace/provider configuration, detach, host registry
+RPCs and terminal screen capture registration have explicit dependency refusals until their
+reviewed node contracts land. The complete 117-path inventory, ownership boundaries,
+reference flags/defaults and current differences are in [the W17 plan](docs/plans/wp-w17.md).
+A parsed command or a matching name alone is not evidence of functional parity.

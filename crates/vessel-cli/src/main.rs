@@ -159,14 +159,12 @@ async fn cli() -> ExitCode {
         .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
         .init();
 
+    let presentation = cli.output.error_presentation();
     // Boxed: the future of every command together is large (see `main`).
     match Box::pin(commands::run(cli)).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            if io::note(&format!("error: {}\n", chain(&error)))
-                .await
-                .is_err()
-            {
+            if parity::output::error(presentation, &error).await.is_err() {
                 tracing::error!("could not report an error on stderr");
             }
             ExitCode::FAILURE

@@ -46,6 +46,16 @@ struct ColorOptions {
     no_color: bool,
 }
 impl OutputOptions {
+    pub(crate) const fn error_presentation(&self) -> Presentation {
+        if self.json {
+            return Presentation::Json;
+        }
+        match self.format {
+            Format::Json => Presentation::Json,
+            Format::Yaml => Presentation::Yaml,
+            Format::Cli | Format::Table => Presentation::Table(Headers::Hide),
+        }
+    }
     pub(crate) const fn presentation(&self) -> Presentation {
         if self.quiet {
             return Presentation::Quiet;

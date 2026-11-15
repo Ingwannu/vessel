@@ -5,11 +5,13 @@ mod duration;
 mod host;
 mod identifier;
 pub(crate) mod output;
+mod terminal;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
 pub(crate) use duration::WaitBudget;
 pub(crate) use host::HostCommand;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
+pub(crate) use terminal::{TerminalCommand, TerminalSelector};
 
 use crate::selector::SessionSelector;
 use clap::Subcommand;
@@ -17,6 +19,11 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// List, create, inspect or send keys to workspace-owned terminals.
+    Terminal {
+        #[command(subcommand)]
+        command: TerminalCommand,
+    },
     /// Registrations reference the node's existing trusted fleet/paired destinations.
     Host {
         #[command(subcommand)]

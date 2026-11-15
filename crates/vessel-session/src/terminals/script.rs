@@ -82,7 +82,10 @@ where
     let kill = shutdown.child_token();
     // One restart at a time: a second one while the first is taken waits.
     let (restarts, restarting) = mpsc::channel(1);
+    let (screen, authority) =
+        super::screen::ScreenAuthority::channel(id, info.size.unwrap_or_default());
     let shared = Arc::new(Shared {
+        screen,
         info: watch::Sender::new(info),
         ring: Mutex::new(ring),
         input: None,
@@ -91,7 +94,7 @@ where
         pid: AtomicU32::new(0),
     });
     let actor = ScriptActor {
-        log: TermLog::new(Arc::clone(&shared)),
+        log: TermLog::new(Arc::clone(&shared), authority),
         stop: Stopper::with_grace(kill, shutdown.clone(), SCRIPT_GRACE),
         spec,
         leftover,
@@ -237,10 +240,15 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             code,
             restart_at,
         });
-        tokio::select! {
-            () = tokio::time::sleep(delay) => Wait::Again,
-            Some(()) = self.restarting.recv() => Wait::Restart,
-            _step = self.stop.next() => Wait::Stopped,
+        let sleeper = tokio::time::sleep(delay);
+        tokio::pin!(sleeper);
+        loop {
+            tokio::select! {
+                () = &mut sleeper => return Wait::Again,
+                Some(()) = self.restarting.recv() => return Wait::Restart,
+                _step = self.stop.next() => return Wait::Stopped,
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
+            }
         }
     }
 
@@ -290,6 +298,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     force_at = Some(Instant::now().checked_add(SCRIPT_GRACE).unwrap_or_else(Instant::now));
                 }
                 code = child.wait() => break code.ok().flatten(),
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
                 chunk = output.recv(), if output_open => match chunk {
                     Some(bytes) => self.log.output(bytes),
                     None => output_open = false,
@@ -339,6 +348,7 @@ async fn drain(log: &mut TermLog, output: &mut mpsc::Receiver<Bytes>) {
     let deadline = drain_deadline();
     loop {
         tokio::select! {
+            Some(request) = log.capture_command() => log.reply_capture(request),
             chunk = output.recv() => match chunk {
                 Some(bytes) => log.output(bytes),
                 None => return,

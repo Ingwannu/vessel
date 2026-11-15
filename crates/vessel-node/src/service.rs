@@ -59,6 +59,7 @@ mod forge;
 // Protocol 11's calls: terminals beside sessions, a project's scripts, and
 // the ports their trees listen on (`terminals`, ADR 0031).
 mod scripts;
+mod terminal_capture;
 mod terminals;
 // Protocol 11's calls: schedules (`automation`), and the runs they make
 // through the service's own checks; protocol 13's previews of them.

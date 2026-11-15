@@ -68,7 +68,9 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
     let id = info.id;
     let ring = Ring::bounded(scrollback.records, scrollback.bytes, info.next_seq);
     let kill = shutdown.child_token();
+    let (screen, authority) = super::screen::ScreenAuthority::channel(id, size);
     let shared = Arc::new(Shared {
+        screen,
         info: watch::Sender::new(info),
         ring: Mutex::new(ring),
         input: Some(pty.input()),
@@ -77,7 +79,7 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
         pid: AtomicU32::new(pty.pid()),
     });
     let actor = ShellActor {
-        log: TermLog::new(Arc::clone(&shared)),
+        log: TermLog::new(Arc::clone(&shared), authority),
         stop: Stopper::new(kill, shutdown),
         pty,
         output,
@@ -113,6 +115,7 @@ impl ShellActor {
                     self.pty.stop(step);
                     self.stop.advance(step);
                 }
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
                 code = self.pty.wait() => break code,
                 chunk = self.output.next(), if output_open => match chunk {
                     Some(bytes) => self.log.output(bytes),
@@ -140,6 +143,7 @@ impl ShellActor {
         let deadline = drain_deadline();
         loop {
             tokio::select! {
+                Some(request) = self.log.capture_command() => self.log.reply_capture(request),
                 chunk = self.output.next() => match chunk {
                     Some(bytes) => self.log.output(bytes),
                     None => return,

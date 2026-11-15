@@ -300,6 +300,9 @@ impl NodeService {
             .map(|()| Ack)
             .map_err(|error| {
                 wire(match error {
+                    InputError::Capture(_source) => TerminalsError::Conflict(
+                        "terminal screen could not accept the resize".to_owned(),
+                    ),
                     InputError::NoInput => TerminalsError::Unsupported(error.to_string()),
                     InputError::Ended => TerminalsError::Conflict(error.to_string()),
                 })

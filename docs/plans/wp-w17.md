@@ -210,3 +210,38 @@ https://docs.rs/vt100/0.18.1/vt100/ . `Parser` accepts split UTF-8/ANSI bytes an
 scrollback and line projections without exporting its types across our crate boundary.
 Only three new lockfile packages were resolved: vt100, vte, unicode-width; no existing
 locked dependency version was updated.
+
+## Implemented/staged status over the baseline
+
+- Added typed `agent` handlers plus root ls/inspect/wait/stop/delete/archive. Root run/send
+  retain their original Vessel syntax; their Paseo invocation forms are not yet aliases.
+- Agent list uses current-directory scope by default, excludes archived, supports global/all,
+  validated label filters and advertised thinking choices. The provider field currently uses
+  Vessel's HarnessRef; created is an RFC3339 timestamp, not Paseo's relative-time string.
+  Inspect currently returns typed SessionInfo, not Paseo's capitalized Inspect projection.
+- Stop reconstructs the logged turn and cancels that exact turn; it does not call process kill.
+  Live archive without --force refuses until an atomic archive-if-idle contract is available;
+  the current mark call unconditionally stops a live session and is unsafe for that promise.
+- Agent run/import support existing structured-session creation; missing workspace/provider
+  creation fields and schema-output/image staging refuse before creation. No env value is logged.
+- Wait reconstructs the subscription snapshot, follows the stream and returns timeout/permission/
+  error as data with exit 0. The default is a named 24-hour safety ceiling (strict finite-wait
+  rule), a stated difference from Paseo's unbounded default. No recent-activity preview yet.
+- Global formats apply to the new typed handlers. Legacy command handlers have not yet all been
+  converted; their global-format behavior remains a tracked gap, not complete parity.
+  Single-value human rendering currently uses pretty structured text; list rendering is a table.
+- Terminal ls/kill/send-keys use existing calls. Name lookup follows exact ID, unique ID prefix,
+  exact case-insensitive name, then unique partial name. Key expansion follows only Paseo's
+  documented tokens, and keysSent counts UTF-16 units. Default ls filters terminal folder until
+  real workspace identity lands; create refuses rather than substituting project/session IDs.
+- Terminal capture has typed range/options/results and an actor-owned vt100 screen, independent
+  of the event ring. Shell/script actors answer bounded snapshot requests; final snapshots remain
+  readable after process exit. Node handler reuses terminal_for ownership. RPC registration remains
+  pending, as does the client/CLI capture call.
+- Capture memory: 10,000 scrollback lines by default, 4,000,000 cells per screen maximum, 1 MiB
+  per response, 8 queued capture/resize requests, 5-second response deadline. Very wide initial
+  geometry lowers retained rows; a later resize that exceeds existing capacity's cell budget
+  explicitly disables capture rather than pretending discarded screen state can be recovered.
+- Host types, bounded text/metadata and a source-owned actor/file store are staged. Tests cover
+  identity replacement, stale updates, other-source refusal, canceled reply receiver, persisted
+  state, private modes and symlink rejection. Actual host RPC registration/routing remains pending.

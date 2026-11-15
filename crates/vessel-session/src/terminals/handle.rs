@@ -15,6 +15,7 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) info: watch::Sender<TerminalInfo>,
+    pub(super) screen: super::screen::CaptureEndpoint,
     pub(crate) ring: Mutex<Ring>,
     /// A shell's input; scripts take none.
     pub(crate) input: Option<PtyInput>,
@@ -50,6 +51,9 @@ pub enum InputError {
     /// A script or a service: it takes no input.
     #[error("a script's run takes no input")]
     NoInput,
+    /// Screen and PTY resizing must not diverge silently under a full actor queue.
+    #[error("terminal screen could not accept the resize")]
+    Capture(#[source] super::CaptureError),
     /// It ended.
     #[error("the terminal has ended")]
     Ended,
@@ -169,12 +173,16 @@ impl TerminalHandle {
                 .await
                 .map_err(|_closed| InputError::Ended),
             TerminalInput::Resize { size } => {
+                self.0.screen.resize(size).map_err(InputError::Capture)?;
                 pty.resize(WindowSize {
                     cols: size.cols,
                     rows: size.rows,
                 })
                 .await
-                .map_err(|_closed| InputError::Ended)?;
+                .map_err(|_closed| {
+                    self.0.screen.invalidate();
+                    InputError::Ended
+                })?;
                 self.0.info.send_modify(|info| {
                     info.size = Some(size);
                     info.revision = info.revision.wrapping_add(1);
@@ -182,6 +190,16 @@ impl TerminalHandle {
                 Ok(())
             }
         }
+    }
+
+    /// Read a bounded screen projection from its output actor, including after exit.
+    /// # Errors
+    /// Busy/stopped/oversized screens are refused, never reconstructed from pruned bytes.
+    pub async fn capture(
+        &self,
+        options: vessel_proto::terminals::CaptureOptions,
+    ) -> Result<vessel_proto::terminals::TerminalCapture, super::CaptureError> {
+        self.0.screen.capture(options).await
     }
 
     /// Give it a title.
