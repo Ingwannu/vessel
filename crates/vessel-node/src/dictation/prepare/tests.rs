@@ -108,7 +108,7 @@ async fn defaults_disabled_and_unknown_choices_refuse_without_reading_the_secret
             .await;
         match local {
             Err(PrepareError::LocalNotBuilt { model }) => {
-                assert_eq!(model, LocalModelId::default_model())
+                assert_eq!(model, LocalModelId::default_model());
             }
             Ok(_)
             | Err(
@@ -166,12 +166,11 @@ async fn absent_blank_and_invalid_header_keys_never_become_a_provider() {
         ));
         let marker = "synthetic-invalid\nheader";
         crate::fleet::set_secret(&files, &name, marker).unwrap();
-        let error = match factory
+        let Err(error) = factory
             .prepare(&saved, crate::dictation::quota::tests::lease())
             .await
-        {
-            Err(error) => error,
-            Ok(_) => panic!("a multiline credential became a provider"),
+        else {
+            panic!("a multiline credential became a provider");
         };
         assert!(matches!(
             error,
