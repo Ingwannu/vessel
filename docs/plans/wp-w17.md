@@ -350,3 +350,10 @@ The second narrow check (70385962) compiled the product protocol and reached dow
 crates, then stopped on two denied integer-division lints in the UTF-16 boundary test.
 The fixture now uses checked arithmetic. This is compilation evidence only; unit tests
 and package review have not passed yet.
+
+Hooks CLI grammar is staged against W7 ADR0089 terminal-activity attribution: a missing
+VESSEL_TERMINAL_ID / VESSEL_ACTIVITY_TOKEN / VESSEL_TERMINAL_ACTIVITY_URL is a silent no-op,
+with no stdin read or connection. A configured target currently returns Unsupported before
+reading a token value or payload. W7 confirmed it owns hook ingestion in addition to normal
+authenticated terminal.activity; no duplicate endpoint is introduced here. This configured
+unsupported exit1 is a stated temporary difference from Paseo's best-effort hook exit0.

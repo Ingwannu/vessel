@@ -4,6 +4,7 @@ mod agent;
 mod clone;
 mod duration;
 mod heartbeat;
+mod hooks;
 mod host;
 mod identifier;
 mod invocation;
@@ -18,6 +19,7 @@ pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, 
 pub(crate) use clone::{Clone, CloneProtocol};
 pub(crate) use duration::WaitBudget;
 pub(crate) use heartbeat::{HeartbeatCommand, ScheduleSelector};
+pub(crate) use hooks::HookInvocation;
 pub(crate) use host::{HostCommand, destination as host_destination, metadata as host_metadata};
 pub(crate) use invocation::normalize;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
@@ -31,6 +33,8 @@ use clap::Subcommand;
 /// Root shortcuts share the same typed handlers as the agent group.
 #[derive(Debug, Subcommand)]
 pub(crate) enum ParityCommand {
+    /// Record authenticated terminal hook activity when its node contract is available.
+    Hooks(HookInvocation),
     /// Provider snapshots/models/diagnostics await the canonical provider contract.
     Provider {
         #[command(subcommand)]
