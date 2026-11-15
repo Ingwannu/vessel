@@ -51,10 +51,11 @@ run wp-create-node-safety-20261115T125224Z-4ee19cff after the test-lint fixes.
 No runtime driver,
 public protocol assignment or receipt/launch source acceptance is claimed.
 
-Approved shared identitye45a5d89 is merged. The minimal registry dependency
-has scoped source acceptance; integration still waits for its announced node
-head and the separately checked project admission/fixed-id primitive. Its old
-unreviewed prototype remains excluded. Source-created change requests
+Approved shared identitye45a5d89 is merged. Announced gate50c head9c150c6e
+is now merged with the reviewed registry and project admission/fixed-id
+primitive. Its old unreviewed prototype remains excluded. New adapter/intake
+source and the combined generated declarations still owe their narrow checks.
+Source-created change requests
 must carry ADR0082's explicit blocked-automation gate before provisioning.
 
 Next: recover the registered checks, consume the reviewed registry Store and
@@ -186,7 +187,9 @@ keep approval/Uncertain outcomes, and hold current admission through registratio
 The coordinator approved merging only reviewed registry258c828d and project
 admission/fixed-id cd240807 into this private node tree ahead of the announced
 head. No result from that temporary union may be handed off or gated until
-the announced gate49 node head is merged. Registry migration precedes the
+the announced node head is merged. That restriction is now settled by merging
+announced gate50c9c150c6e; no check was started on the temporary union.
+Registry migration precedes the
 creation/owner appends; their versions derive from the preceding constant.
 The generated wire file is kept from the registry producer during conflict
 resolution and requires combined regeneration after the announced merge;
