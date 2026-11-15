@@ -18,6 +18,7 @@ pub mod badge;
 pub mod board;
 pub mod brand;
 pub mod composer;
+pub mod composer_shell;
 pub mod connections;
 mod conversation;
 pub mod devices;

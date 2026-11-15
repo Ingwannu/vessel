@@ -137,3 +137,11 @@ fn sent_messages_are_newest_first_without_empty_ones_or_repeats_in_a_row() {
         ["fix it", "add tests", "fix it"]
     );
 }
+
+#[test]
+fn history_trims_before_collapsing_consecutive_duplicates() {
+    assert_eq!(
+        sent_newest_first([" older ", " same", "same ", "\n", " last "].into_iter()),
+        ["last", "same", "older"]
+    );
+}

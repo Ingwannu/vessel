@@ -16,7 +16,8 @@ pub fn sent_newest_first<'a>(
 ) -> Vec<&'a str> {
     let mut sent: Vec<&str> = Vec::new();
     for text in oldest_first.rev() {
-        if text.trim().is_empty() || sent.last() == Some(&text) {
+        let text = text.trim();
+        if text.is_empty() || sent.last() == Some(&text) {
             continue;
         }
         sent.push(text);

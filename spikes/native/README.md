@@ -997,3 +997,7 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Composer shell policy
+
+`view::composer_shell` owns the pure mode/access/fullscreen controller, ordered command sources, file-reference parsing and gesture-to-send policy (ADR 0085). The existing composer keeps recall, draft and attachment state. Integration state and supported paths are recorded in `docs/plans/wp-composer-shell.md`; the new shell entry points remain hidden until their owning lifecycle, file and command boundaries are wired.
