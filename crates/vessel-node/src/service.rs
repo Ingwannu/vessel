@@ -35,6 +35,7 @@ use crate::waits::{ConnectionWaits, Share, WaitSlot, Waits};
 use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
+mod discovery;
 mod fleet;
 mod fleet_control;
 mod profiles;

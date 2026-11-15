@@ -178,6 +178,19 @@ omission inherits that agent's own session listing. An explicit value
 always wins, including a schedule's run made as an agent. A person's or
 a schedule-definer's omission is `shown`.
 
+For a forwarded creation the authenticated source resolves an omitted
+Background inheritance after scope/forwardability checks and before sending.
+It fills `Some(Background)` only for its own background agent; Shown keeps
+the legacy omission, and explicit overrides remain untouched. The receiving
+node treats a remote-agent omission as Shown. A filled Background field still
+passes shared admission and is refused for a pending or older protocol. This
+reuses the existing trusted source/origin boundary without another origin
+field or a privileged remote-parent lookup. Paseo has no node forwarding;
+Vessel needs this distinction to preserve both inheritance and old ordinary
+creation. Saved templates keep omission until a local run; the scheduler's
+existing remote-definer limit stays. Imports explicitly keep their source
+session's effective listing instead of inheriting from the importer.
+
 `session.list` gains `scope`: `shown` (default) or `all`. `shown` leaves
 background sessions out. `all` includes them. It does not change which
 archived sessions appear; those stay listed as they are today.

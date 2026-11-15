@@ -113,10 +113,11 @@ impl NodeService {
         &self,
         principal: &Principal,
         node: NodeId,
-        call: Box<Call>,
+        mut call: Box<Call>,
     ) -> Result<Forwarded, WireError> {
         forwardable(call.method())?;
         principal.permit(call.method())?;
+        self.inherit_forwarded_listing(principal, &mut call).await?;
         let origin = self.origin_of(principal)?;
         if self.links.is_home() {
             self.links.call_member(node, Deliver { call, origin }).await

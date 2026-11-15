@@ -682,3 +682,25 @@ admission too, so an explicit Shown override cannot disappear at an older hop.
 A synthetic assigned threshold retains the effective and requested listing for
 a new-enough peer. These new checks still need execution; creation and discovery
 service wiring remain next.
+
+### Creation inheritance and scoped discovery service
+
+The canonical session collection still includes both listing kinds. A selected
+read filters a fresh copy by scope and then by every current label pair, keeping
+its order. Exact-id operations and the existing SDK full collection are unchanged.
+Real store/runtime tests include live and ended background sessions, current
+labels different from creation labels, explicit Shown overriding inheritance,
+unknown-parent refusal and direct access after a filtered read.
+
+The authenticated source resolves an omitted Background before forwarding a
+CreateSession, after the existing forwardability and scope checks. Shown stays
+the legacy omission; explicit values are untouched. The destination treats
+a remote-agent omission as Shown, without a remote-parent lookup or new Origin
+field. This forwarding distinction has no Paseo counterpart and preserves old
+ordinary creation while refusing a new Background field at pending/older hops.
+A local scheduled run inherits then, not when its template is saved. The existing
+scheduler limit on remote definers remains. Dynamic manifests refuse pending metadata before files are fetched. Import
+spec assembly will first be extracted without a behavior change to make room
+for explicitly retaining its source listing. Side-question overrides are refused before parent lookup instead
+of being discarded. The source inheritance boundary is security-relevant and
+needs its commit reviewed; no trust or scope is added. CLI/MCP wiring is next.
