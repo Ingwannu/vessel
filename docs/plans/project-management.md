@@ -1,6 +1,7 @@
 # Project management after the registry dependency
 
-Status: planned source work; no runtime/gate/review/parity claim.
+Status: source implementation in progress. Narrow checks below are scoped; no
+whole-gate/reviewer/consumer-ready/parity claim.
 
 ## Existing assets and decision
 
@@ -109,3 +110,16 @@ repair, invalid saves, raw unknown fields, bounded/binary reads, external links,
 retained file mode/uid and serialized saves/removed-project refusal. These
 source changes are not compiled/tested yet. New method table rows stay pending
 PROJECT_MANAGEMENT; no protocol/schema number assigned.
+
+## Narrow evidence checkpoint
+
+Selected-root registration and empty-directory source at cf171f035 passed strict
+all-target Clippy for proto/node/client/RPC/web on the remote narrow run. This is
+compile/lint evidence, not execution of the new directory tests; their node test
+run remains queued. Later config edits are not covered by that earlier check.
+
+At f2558c4ce, local proto TypeScript checks passed 3/0 with generation enabled.
+The generated web/src/wire/proto.ts is committed with the canonical pending
+registration/directory/config requests, responses and aliases. The config IO
+functional tests and strict proto/workspace check remain queued; no live config
+file, provider, editor or node was accessed for these checks.
