@@ -33,7 +33,7 @@ pub(crate) struct Plan {
 impl Plan {
     /// The terminal kind of its run.
     pub(crate) fn kind(&self) -> TerminalKind {
-        match self.entry.kind {
+        match self.entry.kind() {
             ScriptKind::Script => TerminalKind::Script {
                 script: self.entry.name.clone(),
                 command: self.entry.command.clone(),
