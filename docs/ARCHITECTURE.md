@@ -1631,12 +1631,17 @@ It adds no crate edge or dependency; consumers remove its test gate when wiring
 real product callers. Payload-bearing Debug is redacted and no audio file is
 created by the codec.
 
-The staged node `connection_life` primitive owns an opaque Arc identity and
-context-lifetime close/drop signal. It contains no quota, presence id, transport
-or worker. The real connection setup will own one instance and acting-as contexts
-will clone it; resources retain only its identity/close observer and observe
-transport closure as well. Dictation, spoken conversation and later resources
-consume that connection accessor rather than creating another ownership key.
+The node `connection_life` primitive owns an opaque Arc identity and a close
+observer. It contains no quota, presence id, transport or worker. Every
+connection's context (`service::Connection`) makes one when the connection
+opens, over the transport's own closing token (`vessel_rpc::Outbound::closing_token`),
+and acting-as contexts clone it. The observer fires when the transport is closing
+or when the last context goes away, whichever comes first, so a call still
+running in the close grace does not keep it open. Resources reach it through
+`Connection::life()` and retain only `owner()` and `closed()`. Workspace preview,
+dictation, spoken conversation and later resources use this accessor rather than
+creating another ownership key. Until the first of them reads it, the non-test
+build expects the accessor to be unused; that consumer removes the expectation.
 
 ### Process observation boundary
 

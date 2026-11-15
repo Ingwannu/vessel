@@ -133,6 +133,14 @@ pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 #[cfg(test)]
 mod speech_audio;
 
-// The first connection-owned resource wires this into the real context once.
-#[cfg(test)]
+// Every connection's context carries one (`service::Connection::life`).
+// Nothing reads it outside tests yet: the first connection-owned resource
+// that does removes this expectation.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the first connection-owned resource reads the owner and close observer"
+    )
+)]
 mod connection_life;

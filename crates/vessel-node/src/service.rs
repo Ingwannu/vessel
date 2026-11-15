@@ -17,6 +17,7 @@ use crate::attachments::Attachments;
 use crate::automation::notices::Notices;
 use crate::automation::prompts::SavedPrompts;
 use crate::automation::schedules::Schedules;
+use crate::connection_life::ConnectionLife;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
@@ -81,6 +82,9 @@ mod parking;
 mod search;
 mod settings;
 mod side_questions;
+
+#[cfg(test)]
+mod connection_life_tests;
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -299,6 +303,9 @@ pub(crate) struct Connection {
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
     presence_id: crate::push::PresenceId,
+    /// Its identity and close observer, one per connection
+    /// (`connection_life`).
+    life: ConnectionLife,
 }
 
 impl Connection {
@@ -310,6 +317,7 @@ impl Connection {
             "client connected"
         );
         Self {
+            life: ConnectionLife::within(peer.outbound.closing_token()),
             outbound: peer.outbound,
             principal,
             protocol: peer.protocol,
@@ -342,7 +350,20 @@ impl Connection {
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
             presence_id: self.presence_id,
+            life: self.life.clone(),
         }
+    }
+
+    /// This connection's identity and close observer, the same for every
+    /// context acting for it. A resource the connection owns keeps
+    /// `owner()` and `closed()`, never the life: holding the life keeps the
+    /// connection's last context from ending it.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "the first connection-owned resource reads it")
+    )]
+    pub(crate) const fn life(&self) -> &ConnectionLife {
+        &self.life
     }
 }
 
