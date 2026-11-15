@@ -592,3 +592,11 @@ recorded/stalled tests pass, including paused-clock deadline, one attempt,
 byte refusal, usage retention, key echo and error-chain sealing; node
 all-targets Clippy passes. No socket was opened. The module remains staged
 and has no production caller, permit acquisition or ModelCall writer yet.
+
+
+Client build extraction checkpoint: constructors and their documentation
+move byte-for-byte into client/build.rs. The public Client path is a
+re-export; field access remains limited to the same client-module subtree
+as before. No configuration, call, response or test expectation changes.
+The large-file ratchet drops from 786 to 747. The separate initialized-trust
+factory extension is next; this extraction introduces no new behavior.
