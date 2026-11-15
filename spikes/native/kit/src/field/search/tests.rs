@@ -132,7 +132,7 @@ fn the_shared_clear_target_clears_the_real_engine_and_keeps_input_focus(cx: &mut
         assert!(clear.top() >= narrow.top());
         assert!(clear.bottom() <= narrow.bottom());
         view.read_with(cx, |this, cx| {
-            assert_eq!(this.field.text(cx), "after clear")
+            assert_eq!(this.field.text(cx), "after clear");
         });
     }
 }

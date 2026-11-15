@@ -21,7 +21,7 @@
 
 ## Source and API
 
-Pinned Paseo components/ui/search-field.tsx, whole file (field 98–139):
+Pinned Paseo components/ui/search-field.tsx, whole file (field/input 92–122):
 Search14/X14 with inherited1.5 stroke; horizontal12/vertical6/gap8; max420;
 input20; radius.md6; surface1/border at rest, surface2/borderAccent focused.
 X has hitSlop8 with no new hover/pressed fill. One source geometry in both
@@ -47,3 +47,10 @@ keyboard access to X, actual OS IME or consumer UI pass is claimed. Existing
 kit-wide keyboard/accessibility gaps are not solved by this drawing control.
 No unchanged whole gate or screenshot matrix is requested for the producer;
 consumer first-use and final A9 evidence remain separate.
+
+
+The first exact2e3 Kit Clippy returned101 solely for a missing unit-statement
+semicolon in the last test assertion. The sequential runtime stage did not
+start. Add that semicolon only; no product body, assertion, expected geometry
+or deadline changes. Old red evidence remains. Corrected exact-head Clippy
+and focused tests are still owed, without priority or a whole-gate claim.
