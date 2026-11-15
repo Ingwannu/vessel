@@ -1901,7 +1901,8 @@ it can display them completely. No allocator or process runs in this stage.
 
 ## Pending provider metadata (ADR 0081)
 
-`providers::PROVIDERS` remains None;24 is reserved only. The3runtime rows
+`providers::PROVIDERS` remains None; the integrator assigns its number in merge
+order. The earlier reservation of24 was superseded by host diagnostics. The3runtime rows
 provider.list/provider.diagnostic/provider.set_enabled stay pending in the
 one method table. No client or server admits them before integrator assignment.
 Cached reads are passive Read; Discover/Refresh additionally require Operate
@@ -1914,5 +1915,5 @@ a half-frame budget derived from the canonical RPC frame bound. An oversized
 individual catalogue becomes whole InvalidCatalogue; no partial Ready is emitted.
 An oversized aggregate returns Unavailable and callers may request individual
 diagnostics. This differs from paging and does not silently omit providers.
-The integrator adds Version24 and regenerates TS only at the reviewed wiring
+The integrator documents the assigned version and regenerates TS at the reviewed wiring
 merge after the package whole gate; MIN remains2 and no SQLite schema changes.

@@ -50,8 +50,10 @@ catalogue and parent configuration, before any process is launched.
 
 The metadata core now has the registry, private-file owner, bounded catalogue
 producer/cache, node startup/shutdown wiring,3pending typed methods and client
-wrappers. Protocol24 is reserved by the integrator, not assigned: PROVIDERS
-remains None and MIN2/current23 are unchanged. No pending traffic is sent.
+wrappers. PROVIDERS remains None: the integrator assigns the next free protocol
+number at the wiring merge. The earlier reservation of24 was superseded when
+host diagnostics received24; no provider number is assigned here. MIN2/current23
+are unchanged on this package snapshot. No pending traffic is sent.
 G3 keeps modern provider metadata apart from legacy installation/account rows;
 no profile, sign-in, defaults or removal identity is inferred from a provider ID.
 
@@ -62,7 +64,7 @@ below. Current node46g union, encoded reply budget and strict corrections await
 merged-head strict and provider regression execution before the final whole
 and V3 core PASS. All new Rust work runs on the build VM through the approved
 remote gate. Detailed current run IDs are in the review packet; no green gate
-or callable24 head is claimed here.
+or callable provider head is claimed here.
 
 The pure create resolver is not an authoritative create RPC. Native mode
 capability, actor-attested binding, actual applied provider/env/sign-in proof,
@@ -436,14 +438,16 @@ red outputs remain in provider-mcp-clippy-node42-resize-recovery. No new local
 cargo/rustc invocation is permitted; the already waiting TS job finished with
 the previously recorded browser-classification error, and all new work is remote.
 
-## Protocol reservation and account identity boundary (2026-11-15)
+## Protocol assignment and account identity boundary (2026-11-15)
 
-The integrator reserved protocol24 exclusively for PROVIDERS. This is not
-assignment: the constant remains None and no client may send these calls until
+Integrator correction7f9077bb supersedes the earlier protocol24 reservation:
+host diagnostics received24, and PROVIDERS receives the next free number in
+merge order. The constant remains None and no client may send these calls until
 the reviewed, whole-gated wiring merge announces an assigned head. MIN remains2;
 providers.json needs no SQLite schema number. Only the three provider rows use
 this constant. The future wiring commit assigns the constant and current
-protocol together and regenerates TypeScript, with a Version24 changelog.
+protocol together and regenerates TypeScript, with the assigned version changelog.
+A likely number is not authority for a client or a generated transport.
 
 [Decision Log]
 - Purpose: keep provider display identity distinct from credential/account and
