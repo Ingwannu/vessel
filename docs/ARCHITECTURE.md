@@ -1788,3 +1788,12 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+
+Private PTY spawn diagnostics use the existing tracing-core subscriber API to
+forward the caller's span context while suppressing command-bearing upstream
+portable-pty records in a synchronous thread-local scope. The daemon separately
+caps portable_pty at warn after its user filter to suppress inherited Windows
+environment trace records. See `plans/wp-command-diagnostics.md` for why both
+boundaries are required and their execution limits. The test-only log and
+tracing-subscriber edges exercise the actual bridge without a second logger.

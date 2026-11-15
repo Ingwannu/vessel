@@ -12,7 +12,9 @@ CommandDiagnostics policy keeps current callers unchanged and redacts a private
 spec's Debug, executable log label and returned spawn error payload/source.
 No shell quoting, program resolution, execution, group/identity, stream or
 reaping behavior changes. Standard-library formatting/error-kind projection
-and existing tracing suffice; no dependency or wire type is added.
+and existing tracing suffice; no wire type is added. The existing tracing-core
+package is a direct PTY dependency solely to preserve the parent subscriber's
+public span context while filtering private backend records.
 
 The actual execution fields remain intact. Diagnostic labels must never be
 used to execute a command. Private error projection keeps a safe variant and
@@ -53,3 +55,28 @@ The test-only log dependency already exists transitively; it lets the fixture
 emit actual log records without adding a production dependency or a second
 logger. The initial strict run found only two format_push_string test lints;
 those fixtures now write into the existing buffer without an extra allocation.
+
+
+[Decision Log]
+- Purpose: portable-pty 0.9.0 win/psuedocon.rs constructs a failed CreateProcessW
+  message from the complete command line and cwd and emits it with log::error
+  before returning the error. Returned-error projection and a warn ceiling
+  cannot hide that earlier record.
+- Choice: a Redacted PTY spawn uses a scoped subscriber which drops only targets
+  portable_pty and portable_pty:: descendants at every level. It forwards other
+  events, callsite registration, span lifecycle and current-span context to the
+  original dispatcher. Standard calls use the original path directly.
+- Constraint: the backend spawn remains synchronous on the same thread while
+  the scoped default is installed. No detached task or thread may perform it.
+  A test-only probe immediately at the actual backend call asserts its thread,
+  emits an ERROR sentinel through the real log bridge, and checks parent-span
+  context. A subprocess exercises both Standard and Redacted real failed spawns,
+  unrelated events, and restoration of the parent after the scope returns.
+- Tradeoff: private portable-pty backend warnings are also unavailable during
+  that short call. The caller still receives the projected typed error; this
+  does not mute unrelated targets or change exec/cleanup behavior.
+- Limits: pinned Windows backend source was inspected, but Windows execution
+  has not been performed. The Linux bridge regression proves the shared scoped
+  boundary, not Windows process/group behavior. Child output, OS-visible argv,
+  unscoped later backend diagnostics and another embedding's logger are not a
+  whole-process confidentiality guarantee.

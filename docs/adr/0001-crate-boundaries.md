@@ -366,3 +366,13 @@ cleanup request, not observed death of every descendant or account process.
 ProcessLifetime revocation and durable PID identity do not mint it. No crate
 edge, dependency, wire field or management caller is added by this mechanism.
 The source/validation record is docs/plans/checked-process-cleanup.md.
+
+## Private command diagnostic boundaries
+
+The PTY crate directly uses the already-present tracing-core package to forward
+parent span context inside its private synchronous spawn diagnostic scope. This
+subscriber extension filters upstream command-bearing records only; it grants
+no process authority. Test-only log and tracing-subscriber dependencies exercise
+the real bridge. The daemon separately caps portable-pty's inherited environment
+trace output. See docs/plans/wp-command-diagnostics.md for the opt-in/default
+boundaries, why two filters are needed, and remaining Windows execution limits.
