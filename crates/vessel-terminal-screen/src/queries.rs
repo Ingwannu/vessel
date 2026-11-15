@@ -97,7 +97,7 @@ impl vt100::Callbacks for Queries {
         }
         let parameter = match params {
             [] => 0,
-            [&[value]] => value,
+            &[&[value]] => value,
             _ => return,
         };
         match (first, final_byte, parameter) {

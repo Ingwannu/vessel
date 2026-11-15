@@ -102,6 +102,11 @@ the vendor patch record. No byte recognizer or ANSI capture renderer is added.
 The already queued older source remains immutable evidence; it is not reported
 as a successful execution of the newer fixtures or fixes.
 
+The next test build caught Rust 2024's explicit-reference pattern rule before
+executing tests. The single-parameter pattern now explicitly matches the outer
+slice reference as well; acceptance and golden expectations remain unchanged.
+That compiler failure is not reported as the expected semantic regression.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure
