@@ -46,7 +46,7 @@ pub(crate) async fn project(
             let client = connect(target).await?.client;
             let project = client.call(AddProject { path, name: None }).await?;
             let row = ProjectRow::from(project);
-            output::single(presentation, &row.project_id.to_string(), &row).await
+            output::record(presentation, &row).await
         }
         ProjectCommand::Rename { .. } | ProjectCommand::Delete { .. } => {
             Err(CliError::ParityBlocked(

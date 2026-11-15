@@ -159,7 +159,7 @@ async fn show_record(
 }
 async fn show(presentation: Presentation, host: HostSummary) -> Result<(), CliError> {
     let row = HostRow::from(host);
-    output::single(presentation, &row.registration_id.to_string(), &row).await
+    output::record(presentation, &row).await
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

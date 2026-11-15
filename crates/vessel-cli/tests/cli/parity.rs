@@ -22,6 +22,61 @@ struct Inspected {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknowledgements() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        for (name, flags) in [
+            ("table", vec![]),
+            ("headerless", vec!["--no-headers"]),
+            ("json", vec!["--json"]),
+            ("quiet", vec!["--quiet"]),
+        ] {
+            let path = fixture.data().join(name);
+            std::fs::create_dir(&path).unwrap();
+            let mut args = vec!["project", "create", path.to_str().unwrap()];
+            args.extend(flags);
+            let result = fixture.vessel(&args, b"").await;
+            assert!(result.ok, "{}", result.stderr);
+            let projects = owner
+                .call(vessel_proto::workspace::ListProjects {})
+                .await
+                .unwrap();
+            let created = projects
+                .projects
+                .iter()
+                .find(|project| project.root == path)
+                .unwrap();
+            match name {
+                "table" => {
+                    assert!(result.stdout.starts_with("PROJECT ID  NAME  KIND  PATH\n"));
+                    assert!(result.stdout.contains(path.to_str().unwrap()));
+                }
+                "headerless" => {
+                    assert!(result.stdout.starts_with(&created.id.to_string()));
+                    assert!(!result.stdout.contains("PROJECT ID"));
+                }
+                "json" => {
+                    #[derive(Deserialize)]
+                    #[serde(rename_all = "camelCase")]
+                    struct Created {
+                        project_id: vessel_proto::ProjectId,
+                        path: std::path::PathBuf,
+                    }
+                    let decoded: Created = serde_json::from_str(&result.stdout).unwrap();
+                    assert_eq!(decoded.project_id, created.id);
+                    assert_eq!(decoded.path, path);
+                }
+                "quiet" => assert_eq!(result.stdout, format!("{}\n", created.id)),
+                _ => unreachable!(),
+            }
+        }
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() {
     within(async {
         let fixture = Fixture::start().await;

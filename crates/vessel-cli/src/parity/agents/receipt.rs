@@ -206,14 +206,7 @@ pub(super) async fn send_finished(
     .await
 }
 async fn emit<T: Row>(presentation: Presentation, result: &T) -> Result<(), CliError> {
-    match presentation {
-        Presentation::Table(_) | Presentation::Quiet => {
-            output::list(presentation, std::slice::from_ref(result)).await
-        }
-        Presentation::Json | Presentation::Yaml => {
-            output::single(presentation, &result.id(), result).await
-        }
-    }
+    output::record(presentation, result).await
 }
 #[cfg(test)]
 mod tests {

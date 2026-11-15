@@ -1,5 +1,5 @@
 //! Terminal CLI effects use existing terminal calls; capture stays gated with its node handler.
-use super::output;
+use super::output::{self, Row};
 use crate::{
     args::{
         Target,
@@ -84,9 +84,8 @@ pub(super) async fn run(
                     terminal: terminal.id,
                 })
                 .await?;
-            output::single(
+            output::record(
                 presentation,
-                &terminal.id.to_string(),
                 &Killed {
                     terminal_id: terminal.id,
                     success: output::Success,
@@ -130,12 +129,33 @@ async fn list(
         .into_iter()
         .filter(|t| cwd.as_ref().is_none_or(|cwd| &t.folder == cwd))
         .collect::<Vec<_>>();
-    let ids = entries
-        .iter()
-        .map(|t| t.id.to_string())
-        .collect::<Vec<_>>()
-        .join("\n");
-    output::single(presentation, &ids, &entries).await
+    let rows = entries.into_iter().map(ListedTerminal).collect::<Vec<_>>();
+    output::list(presentation, &rows).await
+}
+
+/// Keep the actual native structured fields until terminal WorkspaceId lands.
+#[derive(Serialize)]
+#[serde(transparent)]
+struct ListedTerminal(TerminalInfo);
+impl Row for ListedTerminal {
+    fn id(&self) -> String {
+        self.0.id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["ID", "NAME", "CWD", "WORKSPACE"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.0.id.to_string().chars().take(8).collect(),
+            self.0
+                .title
+                .as_ref()
+                .map_or_else(|| "-".to_owned(), ToString::to_string),
+            self.0.folder.display().to_string(),
+            // A project or session identifier is not a workspace identity.
+            "-".to_owned(),
+        ]
+    }
 }
 
 async fn capture(
@@ -205,6 +225,20 @@ async fn send_keys(
 struct Killed {
     terminal_id: TerminalId,
     success: output::Success,
+}
+impl Row for Killed {
+    fn id(&self) -> String {
+        self.terminal_id.to_string()
+    }
+    fn headers() -> &'static [&'static str] {
+        &["ID", "SUCCESS"]
+    }
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.terminal_id.to_string().chars().take(8).collect(),
+            "true".to_owned(),
+        ]
+    }
 }
 #[derive(Serialize)]
 #[serde(transparent)]

@@ -805,3 +805,27 @@ annotations; no private config, credential migration or heuristic redaction exis
 Actor cross-source/disabled retention, serialized field allowlist, bounded decoding,
 local/foreign/delegated admission and pending client no-frame regressions are drafted.
 No compilation/test pass for this implementation or consumer-ready hash is claimed yet.
+
+### Existing-call table rendering correction (2026-11-15 12:50 UTC)
+
+[Decision Log]
+- Purpose: explicit table/header choices must reach an actual row renderer, including
+  one-result commands. Source inspection found project create and host inspect/mutation
+  using object serialization in table mode, and terminal ls serializing its entire list.
+- Existing assets: reuse Row/render_list and the accepted structured single serializer.
+  No dependency, node call, credential or transport change is needed.
+- Alternatives: duplicate per-command output branches, or lose object shape by wrapping
+  every single structured result in an array.
+- Choice: add output::record for table/quiet row emission and object-shaped JSON/YAML.
+  Project creation, host single rows and terminal kill consume it; existing run/send and
+  schedule receipt branches reuse it without changing their result shapes.
+- Reason/consequences: terminal ls now has ID/NAME/CWD/WORKSPACE columns, quiet still
+  emits actual IDs, and its structured output deliberately retains native TerminalInfo
+  fields until the reviewed workspace terminal contract exists. WORKSPACE is explicitly
+  unknown (`-`), never a substituted project/session ID. This is not terminal schema parity.
+
+Reference terminal/schema.ts defines the four list columns and kill ID/SUCCESS table;
+client/src/terminals/index.ts resolves exactly the eleven existing CLI key tokens (not
+MCP's richer key grammar), which W17 already matches. A real fake-node process regression
+creates four projects and checks default table, headerless table, object JSON and quiet
+against node acknowledgements. It is drafted, not an executed latest-head pass.

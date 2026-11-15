@@ -104,12 +104,7 @@ impl Row for ScheduleRow {
 }
 pub(crate) async fn one(presentation: Presentation, info: &ScheduleInfo) -> Result<(), CliError> {
     let row = ScheduleRow::from(info);
-    match presentation {
-        Presentation::Table(_) => output::list(presentation, std::slice::from_ref(&row)).await,
-        Presentation::Quiet | Presentation::Json | Presentation::Yaml => {
-            output::single(presentation, &info.id.to_string(), &row).await
-        }
-    }
+    output::record(presentation, &row).await
 }
 pub(crate) async fn inspect(
     presentation: Presentation,
