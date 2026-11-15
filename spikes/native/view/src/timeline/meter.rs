@@ -81,6 +81,7 @@ pub fn meter_of(usage: Option<&ContextUsage>) -> Option<Meter> {
 #[cfg(test)]
 mod tests {
     use super::{Fullness, meter_of};
+    use vessel_proto::conversation::UsageObservation;
     use vessel_proto::{ContextUsage, TokenCount};
 
     #[test]
@@ -96,7 +97,7 @@ mod tests {
             let context = ContextUsage {
                 used: TokenCount::new(used),
                 size: TokenCount::new(size),
-                observation: Default::default(),
+                observation: UsageObservation::Current,
                 cost: None,
             };
             assert_eq!(meter_of(Some(&context)).unwrap().fullness, expected);

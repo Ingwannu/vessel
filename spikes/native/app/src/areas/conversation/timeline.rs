@@ -126,7 +126,6 @@ pub(super) fn paint<'a>(
             .as_ref()
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
         seat,
-        inline_details: false,
         entries: area.timeline.entries(),
         agent: area.info.as_deref().map(|info| &info.spec.harness),
         rewinds: rewinds(shell, area).then_some(&area.timeline),

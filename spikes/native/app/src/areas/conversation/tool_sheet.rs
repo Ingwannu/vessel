@@ -43,6 +43,12 @@ impl SheetState {
         self.shown = None;
     }
 
+    pub(super) fn group_open(&self) -> bool {
+        self.shown
+            .as_ref()
+            .is_some_and(|shown| matches!(shown.selection, Selection::Run { .. }))
+    }
+
     fn take(&mut self, generation: Generation) -> Option<Shown> {
         if self.shown.as_ref()?.generation != generation {
             return None;
@@ -65,9 +71,7 @@ impl SheetState {
 }
 
 fn entry_selection(area: &ConversationArea, index: usize) -> Option<Selection> {
-    let Some(entry) = area.timeline.entries().get(index) else {
-        return None;
-    };
+    let entry = area.timeline.entries().get(index)?;
     let eligible = match &entry.kind {
         EntryKind::Tool(tool) => plan_text(tool).is_none(),
         EntryKind::Thought { .. } => !area.reasoning.expanded(),
@@ -185,8 +189,7 @@ pub(super) fn overlay(
     let area = (seat.get)(shell)?;
     let shown = area.tool_sheet.shown.as_ref()?;
     let generation = shown.generation;
-    let mut paint = super::timeline::paint(shell, area, seat, tokens, window);
-    paint.inline_details = true;
+    let paint = super::timeline::paint(shell, area, seat, tokens, window);
     let Some((title, body)) = content(&paint, area, &shown.selection, window, cx) else {
         cx.defer_in(window, move |shell, window, cx| {
             shell.dismiss_tool_sheet(seat, generation, window, cx)

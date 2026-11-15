@@ -108,10 +108,10 @@ pub mod ui {
     pub use gpui::prelude::*;
     pub use gpui::{
         AnyElement, App, AsyncApp, Bounds, ClickEvent, ClipboardItem, Context, Div, DragMoveEvent,
-        ElementId, Entity, HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListState,
-        MouseButton, MouseDownEvent, Pixels, Point, SharedString, Stateful, StyledText,
-        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, svg,
-        uniform_list,
+        ElementId, Entity, FocusHandle, HighlightStyle, Hsla, KeyDownEvent, ListAlignment,
+        ListState, MouseButton, MouseDownEvent, Pixels, Point, SharedString, Stateful, StyledText,
+        Subscription, WeakEntity, Window, canvas, div, list, point, px, relative, rgb, rgba, size,
+        svg, uniform_list,
     };
 }
 

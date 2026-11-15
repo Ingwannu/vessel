@@ -423,3 +423,7 @@ invented from titles/opaque input. Canonical Read/Edit/Write paths will join thi
 same interpretation after W23's typed detail fields are consumable. One
 regression covers repeated and different file paths in both group and turn
 summaries; the iterator path does not allocate an intermediate tool list.
+
+Compact group inline expansion is derived from that conversation's single
+SheetState rather than adding a field to the shared Paint struct; A8 permission
+and question consumers keep their existing Paint construction unchanged.
