@@ -6,7 +6,8 @@
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_view::workspace::file_location::FileLocation;
 use vessel_app_view::workspace::file_tree::Listing;
