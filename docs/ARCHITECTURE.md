@@ -1612,3 +1612,9 @@ invalidates the previous query before debounce; a selection retains its query
 before clearing and reveals the chosen message with find open. No crate edge or
 backend contract changes. See `docs/plans/wp-a3.md` for reference differences and
 validation.
+
+The existing message-search controller is owned once by `PaletteArea`, outside
+the resident `ConversationArea`. Its asks and replies still pass through the
+same Shell methods. This keeps a resident replacement from discarding a global
+query or multiplying cross-node work. A destination enters the normal session
+selection boundary; only find, prompt navigation and hover state are resident.

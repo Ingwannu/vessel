@@ -209,3 +209,8 @@ message reveal/find path, so W12 owns its registry cutover once. A regression
 replaces the complete conversation area between two machine replies and checks
 that the same window query and rows remain live. Per-resident hold excludes this
 window-global controller and preserves only local find/index/jump/hover work.
+
+Actual-shell prompt navigation tests now cover stale painted node/epoch/address
+rejection, an unloaded destination deadline, a newer jump surviving the older
+deadline, and the actual rail disappearing/reappearing through the existing
+typed preference handler. These tests are source-complete and await execution.
