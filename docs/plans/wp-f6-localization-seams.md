@@ -112,3 +112,10 @@ Package base 3 (`6c782cb6`) was merged as `a6c9d0c4`. Incoming node Quality B
 and race corrections are preserved unchanged; this track adds no root/protocol
 work. Current state: coherent source, formatting and static quality checked;
 Clippy, target/host tests, generated API parity and consumer integration owed.
+
+Package base 4 (`3cd0d3fc`, published/candidate app packages) was then merged
+as `a4157f17` before submitting the committed-tree narrow checks. The root
+crates/manifests/lockfile match that incoming base. Its only FTL difference
+from the retained pre-extraction corpus is the already reviewed Korean PR
+form-title wording; English API definitions and numeric/native-name settings
+are unchanged. This merge is outside the earlier exact F5 approval.
