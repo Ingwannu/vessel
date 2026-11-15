@@ -49,6 +49,6 @@ fn enter_uses_the_original_capture_after_owner_selection_changes(cx: &mut TestAp
         probe.read_with(cx, |probe, _| {
             assert_eq!(probe.selected, Opening(2));
             assert_eq!(probe.submitted, Some((original, "captured.txt".to_owned())));
-        })
+        });
     });
 }

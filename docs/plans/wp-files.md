@@ -406,3 +406,6 @@ Deferred editor creation now captures the original canonical file key and locate
 - Admission/status: `FILE_PANELS_PROTOCOL` remains None until the integrator assigns it. The native adapter is therefore disabled on the current pending protocol and is not claimed as product-ready/live parity. It will use the assigned feature check plus exact live shared context, never an invented method number. The GPUI synthetic owner regression and interval-floor test are not real-node/live-watch proof.
 
 A failed initial read is retryable on explicit reopen/refresh with a new read sequence; an older failed acquisition cannot install data into that retry. This also permits a paused observer to be retried by explicit reopen without implicitly retrying an original write.
+
+
+Exact a3d7b3a1 strict four-crate all-target narrow15 finished rc1: `file_scope.rs` rustdoc backticks and captured-submit regression trailing semicolon only; both corrected. Kit library/type checking reached the captured Fn callback seam, but the all-target run is not green and Link/App checking remains owed. Latest canonical ownership/observation code was not part of that older immutable run.

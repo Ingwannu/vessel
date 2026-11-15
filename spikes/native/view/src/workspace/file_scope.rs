@@ -31,7 +31,7 @@ impl FileScope {
         self.connection.node()
     }
 
-    /// Node-authorized physical file root, distinct from logical WorkspaceId.
+    /// Node-authorized physical file root, distinct from logical `WorkspaceId`.
     #[must_use]
     pub const fn root(&self) -> WorkspaceRoot {
         self.root

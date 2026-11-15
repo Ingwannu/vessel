@@ -1,4 +1,4 @@
-//! Empty picker acquisition is a listing, never an invalid empty FindQuery.
+//! Empty picker acquisition is a listing, never an invalid empty `FindQuery`.
 use vessel_proto::workspace::FindQuery;
 /// File-owner acquisition intent shared by every picker consumer.
 #[derive(Debug, Clone, PartialEq, Eq)]
