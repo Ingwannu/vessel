@@ -72,7 +72,7 @@ fn count_duplicate_and_reordered_rows_cannot_be_admitted_as_a_snapshot() {
     decoding_refuses(&progress);
 
     let mut duplicate = snapshot();
-    duplicate.commands.get_mut(1).unwrap().index = duplicate.commands.first().unwrap().index;
+    duplicate.commands[1].index = duplicate.commands.first().unwrap().index;
     assert_eq!(duplicate.validate(), Err(InvalidSetupProgress::Order));
     decoding_refuses(&duplicate);
 

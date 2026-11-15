@@ -72,6 +72,15 @@ async fn approved_worktree(fixture: &Fixture) -> WorktreeInfo {
     fixture.created(project.id).await
 }
 
+fn assert_approved_ordinals(progress: &SetupProgress) {
+    for (position, command) in progress.commands.iter().enumerate() {
+        assert_eq!(
+            command.index.get(),
+            u32::try_from(position.checked_add(1).unwrap()).unwrap()
+        );
+    }
+}
+
 #[tokio::test]
 async fn cancellation_is_generation_specific_and_restart_does_not_invent_command_history() {
     let fixture = Fixture::new().await;
@@ -85,12 +94,7 @@ async fn cancellation_is_generation_specific_and_restart_does_not_invent_command
     .await;
     assert_eq!(running.state, SetupRunState::Running);
     assert_eq!(running.commands.len(), 2);
-    for (position, command) in running.commands.iter().enumerate() {
-        assert_eq!(
-            command.index.get(),
-            u32::try_from(position.checked_add(1).unwrap()).unwrap()
-        );
-    }
+    assert_approved_ordinals(&running);
     assert_eq!(
         fixture
             .workspaces
