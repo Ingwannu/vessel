@@ -699,3 +699,10 @@ Reasoning, these prose details and explicit tool errors now reuse kit::plain_tex
 rather than an unselectable Div/string or a console surface. The shared domain
 prose container wraps and scrolls at the source's 300-point default height. The
 existing engine retains selection/copy; no Markdown interpretation is introduced.
+
+
+The merged97db model run compiled and reached 989 passing/one failing library
+test. The only failure was the new compaction sentence expectation omitting the
+shared Fluent resolver's bidi isolation around its string argument. The expected
+whole EN/KO sentences now retain those U+2068/U+2069 controls, consistent with
+existing locale tests; no formatter or production message was weakened/changed.

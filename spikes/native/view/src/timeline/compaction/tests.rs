@@ -86,11 +86,11 @@ fn whole_marker_sentences_match_the_reference_in_both_languages() {
     .timeline_items();
     assert_eq!(
         en.compaction(&completed(Some(1500))),
-        "Context compacted (2K tokens)"
+        "Context compacted (\u{2068}2\u{2069}K tokens)"
     );
     assert_eq!(
         ko.compaction(&completed(Some(1500))),
-        "컨텍스트가 압축되었습니다 (2K 토큰)"
+        "컨텍스트가 압축되었습니다 (\u{2068}2\u{2069}K 토큰)"
     );
     assert_eq!(en.compaction(&completed(None)), "Context compacted");
     assert_eq!(ko.compaction(&completed(None)), "컨텍스트가 압축되었습니다");
