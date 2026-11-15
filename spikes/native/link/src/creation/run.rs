@@ -90,7 +90,8 @@ pub(super) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
 fn failure(error: &CallError) -> Failure {
     match error {
         CallError::Remote(error) => Failure::Refused(error.code),
-        CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. }
+        CallError::NotInProtocol { .. }
+        | CallError::UnassignedProtocol { .. }
         | CallError::RequestIdsExhausted => Failure::Unsupported,
         CallError::Disconnected | CallError::UnexpectedReply(_) => Failure::OutcomeUnknown,
     }
