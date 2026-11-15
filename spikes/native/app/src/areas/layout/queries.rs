@@ -1,7 +1,34 @@
 //! Read-only owner queries never manufacture an absent layout or resource.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::layout::{LayoutKey, LayoutMode, TabId};
+use vessel_app_view::layout::{Layout, LayoutKey, LayoutMode, PaneId, TabId};
+
+/// Drawing and polling share one effective projection. A removed maximized pane
+/// falls back to the full tree instead of hiding every surviving panel.
+pub(super) fn projected_pane(
+    shell: &Shell,
+    layout: &Layout,
+    workspace: &LayoutKey,
+    window: &Window,
+) -> Option<PaneId> {
+    if super::mode(window) == LayoutMode::Compact {
+        return Some(layout.focused_pane());
+    }
+    shell
+        .areas
+        .layout
+        .maximized
+        .as_ref()
+        .filter(|(key, _)| key == workspace)
+        .map(|(_, pane)| *pane)
+        .filter(|id| {
+            layout
+                .root()
+                .panes()
+                .into_iter()
+                .any(|pane| pane.id() == *id)
+        })
+}
 
 impl Shell {
     /// Existence is independent of navigation and does not authorize resource I/O.
@@ -35,16 +62,7 @@ impl Shell {
         if let Some(sheet) = layout.sheets().last() {
             return sheet.tab == tab;
         }
-        let projection = if super::mode(window) == LayoutMode::Compact {
-            Some(layout.focused_pane())
-        } else {
-            self.areas
-                .layout
-                .maximized
-                .as_ref()
-                .filter(|(key, _)| key == workspace)
-                .map(|(_, pane)| *pane)
-        };
+        let projection = projected_pane(self, layout, workspace, window);
         layout
             .root()
             .panes()
@@ -68,3 +86,6 @@ impl Shell {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
