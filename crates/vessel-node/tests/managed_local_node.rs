@@ -137,7 +137,7 @@ async fn active_fake_session_is_protected_and_a_drain_deadline_retains_ownership
                 args: Vec::new(), env: Vec::new(), inherit: Vec::new(), mcp: Vec::new(),
             }},
             replace: false,
-        })).await.unwrap();
+        }).await.unwrap();
         let spec = SessionSpec::new(HarnessRef::Added("lifecycle-fixture".parse().unwrap()), SessionMode::Structured {
             model: None, resume: None, options: Vec::new(),
         }).with_cwd(root.path().to_owned());
