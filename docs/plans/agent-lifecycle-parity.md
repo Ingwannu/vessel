@@ -1056,3 +1056,8 @@ barrier, releases close and verifies exact transfer settlement and original
 Origin/scopes. The real callback fixture remains separate transport evidence.
 The shared cache helper is cfg(test)-only and will be called out explicitly at
 integration. New regression execution is still owed.
+
+The approved connection-cache helper lives inside links.rs's existing cfg(test)
+module. This keeps all helper documentation and spacing classified as test code
+and preserves that file's product-line ratchet; no product code or size exception
+is removed or increased. The helper's behavior and visibility stay unchanged.
