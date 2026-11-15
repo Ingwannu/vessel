@@ -4,7 +4,7 @@
 use crate::automation::ScheduleTarget;
 use crate::{Call, ProtocolVersion, SessionSpec};
 
-pub(super) fn on(call: &Call) -> Option<&crate::SessionSpec> {
+pub(super) fn on(call: &Call) -> Option<&SessionSpec> {
     if let Call::CreateSession(request) = call {
         return Some(&request.spec);
     }
@@ -23,7 +23,7 @@ pub(super) fn on(call: &Call) -> Option<&crate::SessionSpec> {
     None
 }
 
-fn target(value: &ScheduleTarget) -> Option<&crate::SessionSpec> {
+fn target(value: &ScheduleTarget) -> Option<&SessionSpec> {
     match value {
         ScheduleTarget::NewSession { spec, .. } => Some(spec),
         ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => None,

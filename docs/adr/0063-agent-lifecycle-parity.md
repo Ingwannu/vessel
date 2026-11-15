@@ -172,11 +172,19 @@ pair (logical and). Empty means no label filter.
 
 ### Background
 
-`SessionListing` is `shown` or `background`, chosen at creation, never
-updated. Omitted means `shown`, except when the caller is an agent: then
-omission inherits that agent's own session listing. An explicit value
-always wins, including a schedule's run made as an agent. A person's or
-a schedule-definer's omission is `shown`.
+`SessionListing` is `shown` or `background`, immutable after creation. For a
+bound session, workspace visibility is the one truth (ADR 0082). Creation
+orchestration resolves that visibility to the same typed listing, refuses a
+conflicting explicit session override before work, and writes an immutable
+mirror. Discovery, storage and source inheritance read that fixed mirror;
+they never override the owning workspace. That bridge belongs to creation
+orchestration and is not implemented by this legacy/unbound package.
+
+For a legacy or unbound session, omitted means `shown`, except when the caller
+is an agent: then omission inherits that agent's resolved session listing.
+An explicit value wins, including a local schedule's run made as an agent.
+A person's omission is `shown`. The forwarding rule below applies to unbound
+creation and to a listing already fixed by the owning-workspace bridge.
 
 For a forwarded creation the authenticated source resolves an omitted
 Background inheritance after scope/forwardability checks and before sending.
@@ -397,11 +405,17 @@ Vessel does not copy it.
   items (`logs.ts:288-295,384-393`). Vessel selects its typed, durable
   permission requests and resolutions. Reason: the existing log contains
   these approval records, and the named filter should expose them.
-- Background is `workspace.background`, creation-only
-  (`docs/agent-lifecycle.md:186`, "controls discovery only"). Vessel
-  puts `SessionListing` on the session. Reason: a project is a shared
-  folder, not an agent workspace; hiding the folder would hide sessions
-  nobody asked to hide. The flag stays creation-only, as Paseo's does.
+- Background is creation-only `workspace.background` in Paseo
+  (`docs/agent-lifecycle.md:186-203`). Bound Vessel sessions derive their
+  immutable listing mirror from canonical workspace visibility (ADR 0082).
+  Only legacy/unbound sessions have an independent listing: they predate
+  canonical workspace membership, and a shared project folder is not that
+  membership. The creation bridge refuses conflicts instead of keeping two
+  authorities. It remains outside this package until workspace creation lands.
+- `run -d/--background` in Paseo is a hidden legacy alias for `--no-wait`,
+  not workspace visibility (`run.ts:30-36,396-414`). The CLI retains that
+  alias. Discovery uses the CLI's list filters, and bound visibility uses
+  workspace creation's background choice; no run flag is repurposed here.
 - `ls -a` includes archived and background (`ls.ts:149`,
   `options.background || options.all`). Vessel's `--background` only
   adds background sessions. Reason: Vessel already lists archived

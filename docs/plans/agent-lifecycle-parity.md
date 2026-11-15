@@ -76,9 +76,15 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`paseo-tools.ts:1396-1401`) and `list_agents.includeBackground`
   (`:2133`, default false) and `list_workspaces`
   (`:1526`, default false).
-- Vessel has no workspace visibility. The flag is `SessionListing` on
-  the session (ADR 0063). Archived sessions stay listed as they are;
-  `--background` does not mean `-a`.
+- Bound Vessel sessions derive an immutable `SessionListing` mirror from
+  canonical workspace visibility (ADR 0082); conflicting explicit session
+  overrides are refused by creation orchestration before work. Only legacy or
+  unbound sessions retain an independent listing. The bridge is owned by
+  workspace/session creation and is not implemented here yet.
+- Paseo `run.ts:30-36,396-414` makes `run -d/--background` a hidden legacy
+  no-wait alias, not visibility. The CLI owner retains it; list filters consume
+  discovery, while workspace creation owns bound visibility. Archived sessions
+  remain listed as before; discovery inclusion does not change archival.
 
 ### Reload
 
@@ -228,7 +234,9 @@ patches and their RPC/event; 2e CLI/MCP ingress. Each is gated separately.
    column on the same schema append as the labels column when that
    append has not shipped yet, otherwise the append after it.
    `session.list`'s `scope`. CLI
-   `--background` on `run` and on `sessions`. MCP `listing` and `scope`.
+   list inclusion filters are consumed by the CLI owner; the run no-wait alias
+   keeps its legacy meaning. Bound creation visibility is the workspace owner's
+   flag. MCP `listing` and `scope` cover legacy/unbound metadata.
    Tests: default hides, `all` shows, an exact get still finds it, an
    older peer is not filtered and does not see the field, an agent
    inherits, a person does not.
@@ -720,3 +728,24 @@ caller inheritance, including a source whose original spec omitted it. A focused
 unit checks this with current labels and the same resume id. The dynamic starting
 manifest guard remains before file fetching; no import deadline or existing
 assertion changes.
+
+### Canonical workspace authority and consumer ownership
+
+Workspace visibility is the one authority for bound sessions (ADR 0082). The
+creation owner resolves it into `SessionListing::{Shown, Background}`, refuses
+a conflicting explicit `SessionSpec.listing` before any work, and writes the
+immutable mirror read by this package. Its reviewed producer/adapter is still
+pending: no bound bridge is claimed. The source-node inheritance rule applies
+only to legacy/unbound creation or to an already fixed mirror. The registry and
+workspace DTOs are not edited here.
+
+The CLI owner consumes the discovery contract and owns new flags/creation flows.
+Only the approved legacy run preflight line is added by this track. Paseo's
+run background spelling is a legacy no-wait alias, as its command and caller
+confirm; it is never repurposed as a visibility flag. The earlier contrary
+plan promise is corrected. Native views, bound creation and CLI integration
+remain separately owned consumer work before protocol assignment.
+
+The first core narrow lint refused redundant SessionSpec qualifications in
+the template rule and its test. They are removed without changing behavior
+or expectations; a fresh corrected-source check remains owed.

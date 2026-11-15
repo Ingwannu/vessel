@@ -59,7 +59,7 @@ fn assignment_combines_with_existing_requirements_and_omitted_metadata_needs_non
     let old = crate::MIN_PROTOCOL_VERSION;
     let new = crate::PROTOCOL_VERSION;
     assert!(old < new);
-    let plain = crate::SessionSpec::new(
+    let plain = SessionSpec::new(
         crate::HarnessKind::Codex,
         crate::SessionMode::Structured {
             model: None,
