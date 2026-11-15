@@ -319,3 +319,11 @@ host without falling back to the first online machine; provider choices become
 unavailable. An explicit host choice updates that destination and clears the
 prior node's project placement while retaining input. This local display and
 selection policy does not replace before-effect ConnectionContext admission.
+
+Known first-input retries now require the retained original ConnectionContext,
+including epoch, before preparation; the same node on a replacement admission
+cannot inherit the retry. A completion queued across admission retirement is
+classified unknown, retaining the registered child/input instead of offering
+a duplicate prompt. The existing conservative flow and payload owner are
+reused. This closes local retry behavior while W12's guarded delivery/minter
+remains a separate required handoff; it is not a full follow-authority claim.

@@ -110,7 +110,10 @@ impl Shell {
                         source: vessel_app_view::composer::drafts::DraftKey::New,
                         ticket,
                         stage: vessel_app_view::creation::Stage::InitialInput,
-                        failure: Failure::Refused(vessel_proto::ErrorCode::Conflict),
+                        // Completion may already include accepted first input.
+                        // A retired admission cannot turn that into a retryable
+                        // refusal and send the prompt again on a new connection.
+                        failure: Failure::OutcomeUnknown,
                     },
                     cx,
                 );
@@ -182,6 +185,79 @@ impl Shell {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[gpui::test]
+    fn queued_completion_after_same_node_reconnect_retains_input_without_retry(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        crate::shell::language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, _window, cx| {
+            use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+            let node = vessel_proto::NodeId::random();
+            let mut admissions = ConnectionEpochs::default();
+            let original = admissions
+                .admit(MachineKey::from_book("fixture"), node)
+                .unwrap();
+            let replacement = admissions
+                .admit(MachineKey::from_book("fixture"), node)
+                .unwrap();
+            let mut machine = vessel_app_view::Machine::unreachable("fixture".into(), "fixture");
+            machine.node = Some(node);
+            machine.connection_epoch = Some(replacement.epoch());
+            shell.fleet.machines.push(machine);
+            let id = vessel_proto::SessionId::random();
+            let info = vessel_proto::SessionInfo::new(
+                id,
+                vessel_proto::SessionSpec::new(
+                    vessel_proto::HarnessKind::Codex,
+                    vessel_proto::SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                ),
+                chrono::DateTime::UNIX_EPOCH,
+            );
+            let ticket = Ticket::new(1);
+            let creation = &mut shell.areas.draft.creation;
+            creation.node = Some(node);
+            creation.context = Some(original);
+            creation.registered = Some(Card::from_session("fixture", &info));
+            assert_eq!(
+                creation
+                    .flow
+                    .begin(ticket, vessel_app_view::creation::Stage::InitialInput),
+                Transition::Applied
+            );
+            shell.areas.draft.sending = Some("retain first input".to_owned());
+            shell.creation_complete(ticket, cx);
+            assert!(!shell.areas.draft.creation.flow.may_submit());
+            assert!(matches!(
+                shell.areas.draft.creation.flow,
+                Flow::Failed {
+                    failure: Failure::OutcomeUnknown,
+                    ..
+                }
+            ));
+            assert_eq!(
+                shell
+                    .areas
+                    .draft
+                    .creation
+                    .registered
+                    .as_ref()
+                    .unwrap()
+                    .session,
+                id
+            );
+            assert_eq!(
+                shell.areas.draft.sending.as_deref(),
+                Some("retain first input")
+            );
+            assert!(shell.areas.session.open.is_none());
+        });
+    }
 
     #[gpui::test]
     fn another_drafts_same_local_ticket_cannot_complete_the_top_level_draft(

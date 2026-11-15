@@ -52,7 +52,7 @@ impl Shell {
             return;
         };
         let expected_node = context.node();
-        let Some((ticket, target)) = self.draft_creation_target(&machine, expected_node, &harness)
+        let Some((ticket, target)) = self.draft_creation_target(&machine, &context, &harness)
         else {
             cx.notify();
             return;
@@ -179,7 +179,7 @@ impl Shell {
     fn draft_creation_target(
         &mut self,
         machine: &Name,
-        expected_node: vessel_proto::NodeId,
+        context: &vessel_app_view::connection::ConnectionContext,
         harness: &HarnessRef,
     ) -> Option<(Ticket, Target)> {
         if let Flow::Failed {
@@ -191,7 +191,8 @@ impl Shell {
         {
             // A rejected first message never makes another agent.
             if card.machine != machine.as_str()
-                || self.areas.draft.creation.node != Some(expected_node)
+                || self.areas.draft.creation.node != Some(context.node())
+                || self.areas.draft.creation.context.as_ref() != Some(context)
             {
                 self.areas.draft.error = Some(self.words.creation().refused().to_owned());
                 return None;
@@ -243,7 +244,7 @@ mod tests {
     use vessel_proto::{HarnessKind, NodeId, SessionId, SessionInfo};
 
     #[gpui::test]
-    fn first_input_retry_retains_original_node_and_cannot_follow_a_reused_alias(
+    fn first_input_retry_retains_original_admission_and_cannot_follow_a_reused_alias(
         cx: &mut TestAppContext,
     ) {
         language_tests::init(cx);
@@ -252,6 +253,13 @@ mod tests {
             let machine = Name::parse("fixture").unwrap();
             let harness = HarnessRef::from(HarnessKind::Codex);
             let node = NodeId::random();
+            let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+            let context = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    node,
+                )
+                .unwrap();
             let session = SessionId::random();
             let ticket = Ticket::new(1);
             let spec = SessionSpec::new(
@@ -268,6 +276,7 @@ mod tests {
             );
             let creation = &mut shell.areas.draft.creation;
             creation.node = Some(node);
+            creation.context = Some(context.clone());
             creation.registered = Some(card);
             assert_eq!(
                 creation.flow.begin(ticket, Stage::Resource),
@@ -284,9 +293,26 @@ mod tests {
                 Transition::Applied
             );
             let message = creation.message(ticket);
+            let replaced = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    NodeId::random(),
+                )
+                .unwrap();
             assert!(
                 shell
-                    .draft_creation_target(&machine, NodeId::random(), &harness)
+                    .draft_creation_target(&machine, &replaced, &harness)
+                    .is_none()
+            );
+            let reconnected = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    node,
+                )
+                .unwrap();
+            assert!(
+                shell
+                    .draft_creation_target(&machine, &reconnected, &harness)
                     .is_none()
             );
             assert_eq!(shell.areas.draft.creation.node, Some(node));
@@ -302,7 +328,7 @@ mod tests {
                 session
             );
             let (same, target) = shell
-                .draft_creation_target(&machine, node, &harness)
+                .draft_creation_target(&machine, &context, &harness)
                 .unwrap();
             assert_eq!(same, ticket);
             assert!(matches!(target, Target::Registered(id) if id == session));
