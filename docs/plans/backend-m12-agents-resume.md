@@ -6,7 +6,9 @@ V1 returned `7a2c7eb2` for test liveness: finite named phases and an outer
 safety net are required around every new await that can hang. No additional
 product blocker was found. The test-only correction retains the original
 assertions, event ordering, read barrier and explicit product-time advance;
-it awaits new changed-source checks/review. The earlier green run is not a
+the first correction commit `6fe855ab` passed local narrow checks but its
+A13 gate stopped at Clippy on documentation markup added afterward. The
+markup-only follow-up requires a new exact-source A13 run and review. The earlier green run is not a
 source pass for the correction.
 
 Coordinator order is Models, then registry/Add with the one shared title

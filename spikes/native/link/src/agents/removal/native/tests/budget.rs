@@ -1,6 +1,6 @@
 //! Test phases are finite; virtual product time is part of the outer budget.
 //!
-//! These memory-transport tests build no processes. Root testkit::within
+//! These memory-transport tests build no processes. Root `vessel_testkit::within`
 //! prepares fake binaries in the root workspace, so adding that dependency
 //! here would perform unrelated nested builds from the native workspace.
 //! Keep its timeout semantics through the existing Tokio dev dependency.

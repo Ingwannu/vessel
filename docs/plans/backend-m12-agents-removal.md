@@ -137,3 +137,9 @@ actually compiled. A comparison retained all 34 original assertions in
 order after removing only timeout wrappers; the product source and explicit
 virtual advance were unchanged. Formatting and compile-free quality checks
 precede the immutable correction commit; A13 and V1 disposition follow.
+
+The first correction gate on `6fe855ab` stopped at native Clippy: the last
+added rationale comment omitted code markup around the root helper's name.
+Fonts, formatting and quality passed; build and tests did not run. That
+execution remains failed. The markup is corrected without changing a test
+or product instruction, followed by a new exact-source A13 run.
