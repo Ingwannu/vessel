@@ -243,3 +243,7 @@ Desktop-menu trait imports/unused paths are coordinated with the shell owner.
 Owned status names retained management rather than asserting the process is
 running: a failed checked wait retains that lease and displays its typed failure,
 without claiming Serving or a confirmed stop. Fleet hydration remains separate.
+
+The refusal modal's Keep running and quit applies only to that quit attempt. It
+does not change the separately persisted Keep running after quit preference.
+Only the explicit settings switch changes future-launch policy.

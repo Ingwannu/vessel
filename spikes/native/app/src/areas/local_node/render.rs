@@ -276,7 +276,6 @@ fn prompt_footer(
                     if !shell.dismiss_local_prompt(&identity, window, cx) {
                         return;
                     }
-                    shell.keep_local_node(true, cx);
                     crate::local_node::request_keep_quit(cx);
                 }))
                 .into_any_element(),
