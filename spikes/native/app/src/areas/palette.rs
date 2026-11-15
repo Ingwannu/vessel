@@ -101,6 +101,15 @@ impl PaletteArea {
 }
 
 impl Shell {
+    /// The toggle uses the same focus-restoring close path as Escape.
+    pub(crate) fn toggle_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.palette.is_open() {
+            self.close_palette(window, cx);
+        } else {
+            self.open_palette(window, cx);
+        }
+    }
+
     /// Open the palette with an empty search holding the keys; when it is
     /// open already, give its search the keys again.
     pub(crate) fn open_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {

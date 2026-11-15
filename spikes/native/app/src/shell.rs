@@ -105,7 +105,7 @@ impl Shell {
         };
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
-        areas::shortcuts::listen(&mut shell, cx);
+        areas::shortcuts::listen(&mut shell, window, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
@@ -393,6 +393,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::shortcuts::help_dialog::render(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

@@ -1,0 +1,188 @@
+//! Retained core fallbacks. Feature handlers register at higher priority and
+//! may handle workspace/composer/desktop commands before these local actions.
+
+use crate::areas::session::Open;
+use crate::routes::Route;
+use crate::shell::Shell;
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_view::prefs::PreferenceChange;
+use vessel_app_view::settings::Section;
+use vessel_app_view::shortcuts::Action;
+use vessel_app_view::sidebar::{Step, step_session};
+
+impl Shell {
+    /// Do what `action` says; whether it did anything (else the key goes
+    /// on to the field and the controls). The exhaustive dispatch stays
+    /// in one table so adding an action cannot leave a handler implicit.
+    pub(super) fn run_shortcut(
+        &mut self,
+        action: Action,
+        index: Option<u8>,
+        repeat: bool,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        match action {
+            Action::Palette => self.toggle_palette(window, cx),
+            Action::Help => self.toggle_shortcuts_help(window, cx),
+            Action::ToggleSidebars => self.toggle_sidebar(window, cx),
+            Action::NewSession => {
+                let machine = self.machine_in_view();
+                self.go(Route::Draft, window, cx);
+                if let Some(machine) = machine {
+                    self.choose_machine(machine, window, cx);
+                }
+            }
+            Action::Settings => {
+                if self.route == Route::Settings {
+                    let route = if self.areas.session.open.is_some() {
+                        Route::Session
+                    } else {
+                        Route::Board
+                    };
+                    self.go(route, window, cx);
+                } else {
+                    self.open_settings(None, window, cx);
+                }
+            }
+            Action::CycleTheme => {
+                let next = self.prefs.settings.appearance.theme.next();
+                self.prefer(&PreferenceChange::Theme(next), window, cx);
+            }
+            Action::GoBoard => self.go(Route::Board, window, cx),
+            Action::GoMachines => self.open_settings(Some(Section::Overview), window, cx),
+            Action::GoSync => self.open_settings(Some(Section::Sync), window, cx),
+            Action::GoDevices => self.open_settings(Some(Section::Devices), window, cx),
+            Action::NextSession => return self.step_to(Step::Next, window, cx),
+            Action::PreviousSession => return self.step_to(Step::Previous, window, cx),
+            Action::JumpSession => return self.jump_to(index, window, cx),
+            Action::Find => {
+                if self.route != Route::Session {
+                    return false;
+                }
+                self.conversation_find(window, cx);
+            }
+            Action::FocusComposer => return self.focus_composer(window, cx),
+            Action::ToggleSidebar => self.toggle_sidebar(window, cx),
+            Action::ToggleInspector => {
+                if self.route != Route::Session {
+                    return false;
+                }
+                self.toggle_code(window, cx);
+            }
+            // GOAT: only in a session, never on a draft, and never for
+            // the system's repeat of a held key (one message per press).
+            Action::SteerQueued => {
+                return !repeat && self.route == Route::Session && self.conversation_steer_next();
+            }
+            Action::EditQueued => {
+                return self.route == Route::Session
+                    && self.areas.session.composer.at_start(window, cx)
+                    && self.conversation_edit_latest_queued(window, cx);
+            }
+            Action::SearchFiles
+            | Action::NewWindow
+            | Action::CloseWindow
+            | Action::Fullscreen
+            | Action::ZoomIn
+            | Action::ZoomOut
+            | Action::ActualSize
+            | Action::OpenProject
+            | Action::PinWorkspace
+            | Action::ArchiveWorkspace
+            | Action::NewTab
+            | Action::TabAgent
+            | Action::NewTerminal
+            | Action::TabBrowser
+            | Action::TabChanges
+            | Action::TabFiles
+            | Action::CloseTab
+            | Action::JumpTab
+            | Action::PreviousTab
+            | Action::NextTab
+            | Action::SplitRight
+            | Action::SplitDown
+            | Action::FocusLeft
+            | Action::FocusRight
+            | Action::FocusUp
+            | Action::FocusDown
+            | Action::MoveTabLeft
+            | Action::MoveTabRight
+            | Action::MoveTabUp
+            | Action::MoveTabDown
+            | Action::ClosePane
+            | Action::ToggleFocus
+            | Action::CycleMode
+            | Action::ToggleVoice
+            | Action::ToggleDictation
+            | Action::Interrupt
+            | Action::MuteVoice
+            | Action::ConfirmDictation => return false,
+        }
+        true
+    }
+
+    /// Give the composer on screen the keys: the session's, or the new
+    /// chat's; nothing on a page without one.
+    pub(super) fn focus_composer(&self, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
+        let composer = match self.route {
+            Route::Session => &self.areas.session.composer,
+            Route::Draft => &self.areas.draft.composer,
+            Route::Board | Route::Archive | Route::Pair | Route::Settings => return false,
+        };
+        composer.focus(window, cx);
+        true
+    }
+
+    /// The machine the window shows: the open session's, or the one the
+    /// board is scoped to (the page's `machineInView`).
+    pub(in crate::areas) fn machine_in_view(&self) -> Option<String> {
+        match self.route {
+            Route::Session => self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .map(|open| open.machine.clone()),
+            Route::Board | Route::Archive => self.board_scope().map(str::to_owned),
+            Route::Draft | Route::Pair | Route::Settings => None,
+        }
+    }
+
+    /// The session on screen, if one is.
+    fn session_in_view(&self) -> Option<(&str, vessel_proto::SessionId)> {
+        (self.route == Route::Session)
+            .then_some(self.areas.session.open.as_ref())
+            .flatten()
+            .map(|open| (open.machine.as_str(), open.session))
+    }
+
+    /// Open the session one `step` from the one on screen, in the
+    /// sidebar's order.
+    fn step_to(&mut self, step: Step, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
+        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
+        let open = step_session(&order, self.session_in_view(), step).map(Open::of);
+        open.is_some_and(|open| {
+            self.open_session(open, window, cx);
+            true
+        })
+    }
+
+    /// Open the sidebar's session `index` (1 to 9).
+    fn jump_to(
+        &mut self,
+        index: Option<u8>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
+        let open = index
+            .and_then(|index| usize::from(index).checked_sub(1))
+            .and_then(|at| order.get(at).copied())
+            .map(Open::of);
+        open.is_some_and(|open| {
+            self.open_session(open, window, cx);
+            true
+        })
+    }
+}

@@ -45,7 +45,7 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
     let (view, cx) = cx.add_window_view(|window, cx| {
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
-            super::listen(&mut shell, cx);
+            super::listen(&mut shell, window, cx);
             shell
         });
         Probe {
@@ -125,11 +125,19 @@ fn real_key_events_leave_theme_alone_while_palette_is_open(cx: &mut TestAppConte
 #[gpui::test]
 fn character_preferred_platform_event_propagates_and_clears_pending(cx: &mut TestAppContext) {
     let (view, cx) = setup(cx);
+    view.update_in(cx, |probe, _window, cx| {
+        probe.shell.update(cx, |shell, _| {
+            let action = "go-board".parse().unwrap();
+            let keys =
+                vessel_app_view::prefs::Bindings::try_from(vec!["G S".parse().unwrap()]).unwrap();
+            drop(shell.prefs.settings.shortcuts.insert(action, keys));
+        });
+    });
     cx.simulate_keystrokes("g");
     cx.run_until_parked();
     view.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
-            assert!(shell.areas.shortcuts.pending.is_some());
+            assert!(shell.areas.shortcuts.engine.is_pending());
             shell.areas.draft.composer.focus(window, cx);
         });
     });
@@ -164,6 +172,6 @@ fn character_preferred_platform_event_propagates_and_clears_pending(cx: &mut Tes
         );
         let shell = probe.shell.read(cx);
         assert_eq!(shell.prefs.settings.appearance.theme, Theme::System);
-        assert!(shell.areas.shortcuts.pending.is_none());
+        assert!(!shell.areas.shortcuts.engine.is_pending());
     });
 }
