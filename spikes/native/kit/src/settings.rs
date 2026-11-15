@@ -434,14 +434,51 @@ pub fn row_with_content(
     compact: bool,
     tokens: &Tokens,
 ) -> Div {
+    row_with_content_profile(
+        content,
+        control,
+        first,
+        compact,
+        RowProfile::Standard,
+        tokens,
+    )
+}
+
+/// Source-specific settings furniture through one unchanged row renderer.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum RowProfile {
+    /// Existing gap12 and compact wrapping for all current callers.
+    #[default]
+    Standard,
+    /// Sidebar navigation's gap8 and no wrapping, even on compact layouts.
+    SidebarNavigation,
+}
+
+/// Prepared content and controls using one measured source row profile.
+/// Existing callers retain the Standard profile and exact geometry.
+#[must_use]
+pub fn row_with_content_profile(
+    content: AnyElement,
+    control: Option<AnyElement>,
+    first: bool,
+    compact: bool,
+    profile: RowProfile,
+    tokens: &Tokens,
+) -> Div {
     let neutral = tokens.neutral;
     div()
         .flex()
         .flex_row()
         .items_center()
         .justify_between()
-        .gap(px(spacing::S3))
-        .when(compact, Styled::flex_wrap)
+        .gap(px(match profile {
+            RowProfile::Standard => spacing::S3,
+            RowProfile::SidebarNavigation => spacing::S2,
+        }))
+        .when(
+            compact && profile == RowProfile::Standard,
+            Styled::flex_wrap,
+        )
         .p(px(spacing::S4))
         .when(!first, |row| row.border_t_1().border_color(neutral.border))
         .child(content)

@@ -267,3 +267,106 @@ fn sidebar_info_accessory_changes_only_header_height_in_the_shared_section(
         ]
     );
 }
+struct NavigationProfileProbe {
+    profile: RowProfile,
+    compact: bool,
+    scheme: Scheme,
+    inner: Seen,
+    outer: Seen,
+}
+impl Render for NavigationProfileProbe {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(self.scheme);
+        let inner = Rc::clone(&self.inner);
+        let outer = Rc::clone(&self.outer);
+        let content = div()
+            .flex_1()
+            .min_w_0()
+            .h(px(21.0))
+            .when(self.compact, |content| content.flex_basis(px(160.0)))
+            .into_any_element();
+        let controls = div()
+            .flex_none()
+            .w(px(if self.compact { 148.0 } else { 114.0 }))
+            .h(px(if self.compact { 44.0 } else { 32.0 }))
+            .into_any_element();
+        div()
+            .w(px(if self.compact { 280.0 } else { 360.0 }))
+            .flex()
+            .flex_col()
+            .on_children_prepainted(move |bounds, _, _| *outer.borrow_mut() = bounds)
+            .child(
+                row_with_content_profile(
+                    content,
+                    Some(controls),
+                    true,
+                    self.compact,
+                    self.profile,
+                    &tokens,
+                )
+                .on_children_prepainted(move |bounds, _, _| *inner.borrow_mut() = bounds),
+            )
+    }
+}
+#[gpui::test]
+fn sidebar_navigation_profile_keeps_gap_eight_no_wrap_and_standard_keeps_its_geometry(
+    cx: &mut TestAppContext,
+) {
+    for scheme in [Scheme::Dark, Scheme::Light] {
+        for (profile, compact, expected_inner, expected_outer) in [
+            (
+                RowProfile::Standard,
+                false,
+                vec![
+                    bounds(16.0, 21.5, 202.0, 21.0),
+                    bounds(230.0, 16.0, 114.0, 32.0),
+                ],
+                bounds(0.0, 0.0, 360.0, 64.0),
+            ),
+            (
+                RowProfile::SidebarNavigation,
+                false,
+                vec![
+                    bounds(16.0, 21.5, 206.0, 21.0),
+                    bounds(230.0, 16.0, 114.0, 32.0),
+                ],
+                bounds(0.0, 0.0, 360.0, 64.0),
+            ),
+            (
+                RowProfile::Standard,
+                true,
+                vec![
+                    bounds(16.0, 16.0, 248.0, 21.0),
+                    bounds(16.0, 49.0, 148.0, 44.0),
+                ],
+                bounds(0.0, 0.0, 280.0, 109.0),
+            ),
+            (
+                RowProfile::SidebarNavigation,
+                true,
+                vec![
+                    bounds(16.0, 27.5, 92.0, 21.0),
+                    bounds(116.0, 16.0, 148.0, 44.0),
+                ],
+                bounds(0.0, 0.0, 280.0, 76.0),
+            ),
+        ] {
+            let inner = Seen::default();
+            let outer = Seen::default();
+            let (_, cx) = cx.add_window_view({
+                let inner = Rc::clone(&inner);
+                let outer = Rc::clone(&outer);
+                move |_, _| NavigationProfileProbe {
+                    profile,
+                    compact,
+                    scheme,
+                    inner,
+                    outer,
+                }
+            });
+            cx.run_until_parked();
+            assert_eq!(*inner.borrow(), expected_inner);
+            assert_eq!(*outer.borrow(), vec![expected_outer]);
+        }
+    }
+}

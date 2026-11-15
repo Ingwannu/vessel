@@ -340,3 +340,20 @@ now names `kit::drag::LIST_DRAG_DISTANCE` (6) so its caller's normal `on_drag`
 uses the reference threshold. A real row-input regression covers5-point no-drag
 and7-point drag; no area gesture state is added. The producer's whole gate is
 not inferred from source adoption.
+
+### Sidebar settings row profile
+
+The same settings row renderer now has typed Standard/SidebarNavigation
+profiles (`styles/settings.ts:31–37`, `sidebar-nav-section.tsx:222–226`).
+The existing API delegates Standard unchanged: gap12 and compact wrapping.
+Sidebar navigation uses gap8 and no wrapping. Padding16, border/card/frame
+remain shared. Both-theme literal tests retain ordinary geometry and check
+wide/compact behavior; a consumer never overrides the control's gap.
+
+`keyboard/availability.ts` returns no Shortcut at all while compact. Sidebar
+settings derives its own density from the existing shared sidebar viewport
+policy, not the Settings list/back form. The prepared consumer suppresses
+compact hints and reads the effective keyboard registry; its final W22b
+primary-key seam and actual long-label/action fit remain to be integrated
+and verified. E2 reserved only three mechanical tooltip-clear calls at its
+existing navigation controller entries; its frame/nav/layout remain untouched.
