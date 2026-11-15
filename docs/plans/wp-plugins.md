@@ -159,8 +159,9 @@ menus replace the current core menu after selection rather than adding a
 second hover-submenu renderer. These are explicit native-author-port control
 choices, since arbitrary React presentation cannot execute in GPUI.
 
-The coordinator approved only an additive markdown_with_link_handler entry
-delegating to the existing Markdown renderer. Existing markdown is unchanged.
+The coordinator approved an additive markdown_guarded entry with typed
+MarkdownGuards, delegating to the existing Markdown renderer. It supersedes
+the earlier unmerged link-only helper. Existing markdown is unchanged.
 Plugin-authored links pass the canonical HTTP(S)/no-userinfo URL validator and
 the supplied core opener; test windows always supply a recording fake opener.
 This refuses executable OS schemes and credential-bearing links rather than
@@ -168,6 +169,17 @@ letting the Markdown component open an unchecked URL. Refusals emit safe typed
 events, with no raw input in their diagnostics. New actual-input GPUI tests
 exercise Enter before/after offline and valid/refused Markdown link clicks;
 these cases are written but have not yet run.
+
+The resource guard also supplies ImagePolicy::RefuseAll through TextView's
+authoritative image_source hook for rendering and intrinsic sizing. This stops
+implicit remote fetch, local/relative image paths and embedded data SVG decode;
+link interception alone would leave those default paths reachable. Every URI
+receives the same inert loader and fixed refusal, without URI capture or loader
+fallback. A typed Resolve callback exists only for a future approved host-owned
+contract; plugin declaration data cannot select it. New kit tests check fixed
+source identity and actual Markdown hook routing for all four URI kinds against
+a recording fake HTTP client, requiring zero requests. These cases are not yet
+executed and no actual image decoder or network permission proof is claimed.
 
 A separate button fixture first activates the real kit button, then changes the
 sole owner to offline and invokes that captured dispatch before a toolkit

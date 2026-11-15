@@ -45,6 +45,7 @@ pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
+mod guarded_markdown;
 pub mod host_rename;
 pub mod loading;
 pub mod menu;
@@ -86,6 +87,9 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{Editability, SendOn, TextField, composer_card};
 pub use fonts::Type;
+pub use guarded_markdown::{
+    ImagePolicy, MarkdownGuards, MarkdownImageResolver, MarkdownLinkHandler, markdown_guarded,
+};
 pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
@@ -108,8 +112,7 @@ pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     Button, ButtonConfig, ButtonContent, ButtonIcon, ButtonKind, ButtonSize, ButtonState, TypeExt,
     button, button_control, button_with_content, button_with_kind, button_with_kind_at, choice,
-    dot, kicker, mark, mark_mono, markdown, markdown_with_link_handler, outline_button,
-    outline_button_with_glyph,
+    dot, kicker, mark, mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so

@@ -290,14 +290,19 @@ fn markdown(
 ) -> AnyElement {
     let opener = Arc::clone(&view.opener);
     let owner = cx.weak_entity();
-    let markdown = vessel_app_kit::markdown_with_link_handler(
+    let markdown = vessel_app_kit::markdown_guarded(
         identity(view, control_id),
         text.as_str().to_owned(),
-        move |link, _event, window, cx| match link.as_str().parse::<AttachmentUrl>() {
-            Ok(url) => opener(&url, window, cx),
-            Err(_untrusted) => {
-                drop(owner.update(cx, |_view, cx| cx.emit(SurfaceEvent::LinkRejected)));
-            }
+        vessel_app_kit::MarkdownGuards {
+            images: vessel_app_kit::ImagePolicy::RefuseAll,
+            on_link: Arc::new(move |link, _event, window, cx| {
+                match link.as_str().parse::<AttachmentUrl>() {
+                    Ok(url) => opener(&url, window, cx),
+                    Err(_untrusted) => {
+                        drop(owner.update(cx, |_view, cx| cx.emit(SurfaceEvent::LinkRejected)));
+                    }
+                }
+            }),
         },
     );
     div()

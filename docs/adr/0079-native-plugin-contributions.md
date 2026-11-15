@@ -208,6 +208,16 @@ executable string. Core controls own focus, keyboard, accessibility, compact
 layout, tokens and text scale. Actions are local navigation or a registered
 plugin RPC; Rpc actions carry captured host/plugin/generation and context,
 revalidated at dispatch. No host fallback when the selected host is offline.
+
+The native Markdown adapter uses the kit's existing renderer with explicit
+link and image guards. Link clicks require the canonical bounded HTTP(S),
+no-userinfo value before the core opener. ImagePolicy::RefuseAll overrides
+document remote/local/relative and data-image sources, including intrinsic
+measurement, before any default URI fetch or SVG decoding. Refusal never falls
+back to the authored URI. Only trusted host code may provide a future typed
+Resolve policy; the current declaration schema contains no such selector.
+This deliberately narrower native-author-port resource behavior enforces the
+no-arbitrary-image/SVG contract without a Markdown parser/renderer fork.
 Arbitrary React animations and custom rendering require an explicit native
 control decision, rather than an executable escape hatch. Audio and timeline
 transformation need typed opt-in adapters; they are not performed implicitly
