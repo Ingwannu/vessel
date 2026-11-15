@@ -4,7 +4,7 @@
 //! - Purpose: cross-row selection/copy/wrap must remain the source editor's.
 //! - Constraint: ordinary line numbers do not identify old/new source rows;
 //!   a list of styled text rows has no shared input or clipboard semantics.
-//! - Choice: reuse CodeEditor construction/highlighter and the optional drawing
+//! - Choice: reuse `CodeEditor` construction/highlighter and the optional drawing
 //!   mapping. Immutable text and row metadata are admitted together, once.
 //! - Effect: editing is disabled, selection/copy retained; theme projection is
 //!   shared and no parser, file controller, palette or syntax kind is added.

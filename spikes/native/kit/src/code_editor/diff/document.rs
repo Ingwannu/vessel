@@ -1,8 +1,8 @@
 //! Full-height readonly files in one owner-scrolled document, same input engine.
 //!
 //! [Decision Log]
-//! - Existing assets: DiffEditor, the engine's complete display map and owner
-//!   VirtualList::reveal_bounds. No independent cursor/selection/wrap model.
+//! - Existing assets: `DiffEditor`, the engine's complete display map and owner
+//!   `VirtualList`::reveal_bounds. No independent cursor/selection/wrap model.
 //! - Choice: keep full file height, remove source-panel vertical insets and the
 //!   editor's empty bottom rows. Patch7 bounds shaping against the parent;
 //!   its installed compilation and runtime proof are pending.

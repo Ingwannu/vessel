@@ -515,3 +515,9 @@ proposal received V1 same-row SOURCE PRECHECK PASS and lead approval, and is
 now installed in vendor change7 with current timestamps. Earlier paragraphs
 describe earlier source snapshots. New Base/Kit tests remain unexecuted and
 no installed-source, runtime, consumer, UI or OS acceptance is inferred.
+
+Exact df4 compatibility narrow ended fonts0/cargo101 on two View doc-markdown
+findings (ConnectionContext and TabId in binding docs). Base was checked but Kit
+and App were not reached; no tests ran. Fixing these in the current source does
+not relabel the old result. Current new Link/App/document changes still need
+one combined changed-source remote Clippy pass and targeted window execution.

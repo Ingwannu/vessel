@@ -1,7 +1,7 @@
 //! A pane's exact selected admission is independent of whichever agent is active.
 //!
 //! [Decision Log]
-//! - Existing assets: W12's LayoutKey/TabId and G4's opaque ConnectionContext.
+//! - Existing assets: W12's `LayoutKey`/`TabId` and G4's opaque `ConnectionContext`.
 //! - Choice: locate only the exact legacy Session key through session.get;
 //!   real Workspace keys wait for W11's authoritative registry adapter.
 //! - Why: guessing a root from cwd, selected session or a first matching node
@@ -16,7 +16,7 @@ use crate::workspace::root::session_root;
 use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::{SessionId, SessionInfo};
 
-/// Presentation ownership includes logical workspace, never TabId alone.
+/// Presentation ownership includes logical workspace, never `TabId` alone.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PanelAddress {
     /// Authoritative workspace identity or the explicit legacy Session bridge.

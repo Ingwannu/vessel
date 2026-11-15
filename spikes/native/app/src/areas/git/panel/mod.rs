@@ -6,7 +6,7 @@
 //!   Workspace key waits for its authoritative registry adapter, with no cwd,
 //!   selected-session or first-alias fallback.
 //! - Each answer must still match its original owner, target and admission.
-//!   Lifetime keys belong to GitArea, never a disposable pane entry.
+//!   Lifetime keys belong to `GitArea`, never a disposable pane entry.
 //! - This registration is the package skeleton; document/editor mounting is
 //!   added on the same state rather than a second panel or transport.
 mod draw;

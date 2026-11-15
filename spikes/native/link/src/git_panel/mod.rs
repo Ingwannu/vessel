@@ -27,7 +27,7 @@ pub enum Ask {
     Locate(LocationTicket),
     /// Repository facts are independent of a selected diff comparison.
     Status {
-        /// Logical workspace and stable tab, never TabId alone.
+        /// Logical workspace and stable tab, never `TabId` alone.
         address: PanelAddress,
         /// Original selected admission from the canonical Machine snapshot.
         context: ConnectionContext,
