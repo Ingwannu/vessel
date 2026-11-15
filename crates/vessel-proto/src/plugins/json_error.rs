@@ -4,7 +4,7 @@ use std::fmt;
 
 /// A concrete JSON cause with a sealed input-bearing source chain. The original
 /// parser error remains owned for classification/location, but cannot escape
-/// through Debug, Display or Error::source into a scoped failure or trace.
+/// through Debug, Display or `Error::source` into a scoped failure or trace.
 pub struct PluginJsonError(serde_json::Error);
 
 impl PluginJsonError {

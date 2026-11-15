@@ -271,7 +271,7 @@ impl Validator<'_> {
             ContributionContent::Panel {
                 locations, surface, ..
             } => {
-                self.panel_locations(locations)?;
+                Self::panel_locations(locations)?;
                 self.surface(surface, 0, &mut ids)
             }
             ContributionContent::FilePanel {
@@ -296,7 +296,7 @@ impl Validator<'_> {
         }
     }
 
-    fn panel_locations(&self, locations: &[super::PanelLocation]) -> Result<(), DocumentError> {
+    fn panel_locations(locations: &[super::PanelLocation]) -> Result<(), DocumentError> {
         if locations.is_empty() {
             return Err(DocumentError::EmptyOptions);
         }
