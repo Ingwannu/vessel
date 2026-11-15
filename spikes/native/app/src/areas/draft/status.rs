@@ -2,14 +2,14 @@
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::alert::{Content, Size, Variant, alert};
-use vessel_app_kit::ui::{Div, IntoElement as _, div};
+use vessel_app_kit::ui::{Div, IntoElement as _, ParentElement as _, div};
 use vessel_app_view::creation::{Failure, Flow, Stage};
 
 use crate::shell::Shell;
 
 pub(super) fn render(shell: &Shell, tokens: &Tokens) -> Option<Div> {
     let words = shell.words.creation();
-    let (description, variant) = match &shell.areas.draft.creation {
+    let (description, variant) = match &shell.areas.draft.creation.flow {
         Flow::Editing | Flow::Complete { .. } => return None,
         Flow::Creating { stage, .. } => (
             match stage {

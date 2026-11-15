@@ -139,6 +139,29 @@ impl Flow {
         Transition::Applied
     }
 
+    /// A person's explicit retry reuses the committed resource, never a new create.
+    #[must_use]
+    pub fn retry_input(&mut self, incoming: Ticket) -> Transition {
+        let Self::Failed {
+            ticket,
+            failure,
+            stage: Stage::InitialInput,
+            ..
+        } = self
+        else {
+            return Transition::Ignored;
+        };
+        if *ticket != incoming || *failure == Failure::OutcomeUnknown {
+            return Transition::Ignored;
+        }
+        *self = Self::Creating {
+            ticket: incoming,
+            stage: Stage::InitialInput,
+            navigation: Navigation::Foreground,
+        };
+        Transition::Applied
+    }
+
     /// A later stage cannot be overwritten by an older progress update.
     #[must_use]
     pub fn progress(&mut self, incoming: Ticket, next: Stage) -> Transition {

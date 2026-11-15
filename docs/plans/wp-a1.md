@@ -100,8 +100,21 @@ outcome, input preservation, profile substitution and bounds, receipt intent
 conflict/restart/concurrency, first-prompt failure after registration, empty
 workspace and each launch target. Fakes only; no real agent or preview.
 
-Done: reference/asset inspection and dependency boundaries agreed. No parity
-claim, capture or compile result yet. Next: commit a compiling native state /
-link / area skeleton with narrow checks; fill existing chat flow; implement
-node receipts/profiles against ADR 0082; merge the central base when announced;
-finish all available flows, then whole gates, captures and reviews.
+Native base8d5513e4 is merged. Pure Ticket/Flow tests3823224d passed five cases;
+initial app/link/view skeleton Clippy found five import/qualification issues,
+now fixed for the next narrow check. This is not a whole package gate.
+
+The staged W6 range througha01781ed is integrated for combined checks, not
+claimed ready. New-session submission now captures a Ticket, options and
+placement before dispatch; worktree preparation delegates resource creation
+to the same link boundary. Registration is retained before first input,
+known first-input retries address that SessionId, and unknown outcomes lock
+resubmission. Ticketed file completion runs even after navigation; route
+ownership is relinquished by navigation boundaries. No attachment producer
+module is copied or edited by A1.
+
+Still owed: combined compilation/regressions, stable node identity pin,
+multiple seeded drafts using W12's DraftId, registry-backed empty workspace
+and terminal flows, receipt reconciliation, terminal profile selection,
+whole gates/captures/reviews. The node receipt/profile work is separate in
+ADR0091. No full parity claim or user-flow capture exists yet.

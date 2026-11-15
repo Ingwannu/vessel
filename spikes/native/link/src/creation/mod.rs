@@ -4,6 +4,8 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 mod run;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use run::create as perform;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
 
@@ -11,7 +13,16 @@ use std::sync::Arc;
 
 use vessel_app_view::creation::{Failure, Stage, Ticket};
 use vessel_app_view::machine_book::Name;
-use vessel_proto::{SessionInfo, SessionSpec};
+use vessel_proto::{SessionId, SessionInfo, SessionSpec};
+
+/// A first-message retry can never accidentally register another resource.
+#[derive(Debug, Clone)]
+pub enum Target {
+    /// Create once with the selected launch specification.
+    New(SessionSpec),
+    /// A committed session whose first message was explicitly refused.
+    Registered(SessionId),
+}
 
 /// Files/context are delivered by their owner only after capabilities arrive.
 #[derive(Clone, PartialEq, Eq)]
@@ -39,7 +50,7 @@ pub struct Ask {
     /// Existing node-book entry, parsed once by the app.
     pub machine: Name,
     /// Existing node creation contract; placement remains node-authoritative.
-    pub spec: SessionSpec,
+    pub target: Target,
     /// First-message owner, independent of resource registration.
     pub input: FirstInput,
 }
@@ -80,9 +91,13 @@ impl Ask {
     /// Settle unsent/unsupported commands with the same correlation as a reply.
     #[must_use]
     pub fn refused(self, failure: Failure) -> Answer {
+        let stage = match self.target {
+            Target::New(_) => Stage::Resource,
+            Target::Registered(_) => Stage::InitialInput,
+        };
         Answer::Failed {
             ticket: self.ticket,
-            stage: Stage::Resource,
+            stage,
             failure,
         }
     }

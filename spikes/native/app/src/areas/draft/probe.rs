@@ -66,9 +66,9 @@ impl Shell {
 
 /// The agent's kind, when it is one of the four (an agent added on the
 /// node has none the effort table could know).
-pub(crate) const fn kind_of(agent: &vessel_proto::HarnessRef) -> Option<vessel_proto::HarnessKind> {
+pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessKind> {
     match agent {
-        vessel_proto::HarnessRef::Known(kind) => Some(*kind),
-        vessel_proto::HarnessRef::Added(_) => None,
+        HarnessRef::Known(kind) => Some(*kind),
+        HarnessRef::Added(_) => None,
     }
 }

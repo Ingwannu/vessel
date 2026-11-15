@@ -1,32 +1,28 @@
 //! Registration and first delivery have separate failure boundaries.
 
+use super::{Answer, Ask, FirstInput, Target};
 use std::time::Duration;
-
 use tokio::sync::mpsc;
 use vessel_app_view::creation::{Failure, Stage};
 use vessel_client::{CallError, NodeClient};
-use vessel_proto::{ContentBlock, Delivery, ProtocolVersion, SessionInput};
+use vessel_proto::{ContentBlock, Delivery, ProtocolVersion, SessionId, SessionInfo, SessionInput};
 
-use super::{Answer, Ask, FirstInput};
-
-/// A legacy single RPC has a bound; this is not a provisioning-operation TTL.
+/// A legacy RPC bound is distinct from a provisioning-operation TTL.
 const CALL_DEADLINE: Duration = Duration::from_secs(120);
 
-pub(super) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<crate::Event>) {
+pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<crate::Event>) {
     let ticket = ask.ticket;
-    let created = tokio::time::timeout(CALL_DEADLINE, client.create_session(ask.spec)).await;
-    let info = match created {
-        Ok(Ok(info)) => info,
-        result => {
-            let failure = match result {
-                Ok(Err(error)) => failure(&error),
-                Err(_elapsed) => Failure::OutcomeUnknown,
-                Ok(Ok(_)) => return,
-            };
+    let stage = match &ask.target {
+        Target::New(_) => Stage::Resource,
+        Target::Registered(_) => Stage::InitialInput,
+    };
+    let info = match register(client, ask.target).await {
+        Ok(info) => info,
+        Err(failure) => {
             let _closed = events
                 .send(crate::Event::Creation(Answer::Failed {
                     ticket,
-                    stage: Stage::Resource,
+                    stage,
                     failure,
                 }))
                 .await;
@@ -57,9 +53,34 @@ pub(super) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
             stage: Stage::InitialInput,
         }))
         .await;
+    let answer = match deliver(client, session, &text).await {
+        Ok(()) => Answer::Complete(ticket),
+        Err(failure) => Answer::Failed {
+            ticket,
+            stage: Stage::InitialInput,
+            failure,
+        },
+    };
+    let _closed = events.send(crate::Event::Creation(answer)).await;
+}
+
+async fn register(client: &NodeClient, target: Target) -> Result<SessionInfo, Failure> {
+    let register = async {
+        match target {
+            Target::New(spec) => client.create_session(spec).await,
+            Target::Registered(session) => client.session(session).await,
+        }
+    };
+    tokio::time::timeout(CALL_DEADLINE, register)
+        .await
+        .map_err(|_elapsed| Failure::OutcomeUnknown)?
+        .map_err(|error| failure(&error))
+}
+
+async fn deliver(client: &NodeClient, session: SessionId, text: &str) -> Result<(), Failure> {
     let send = async {
         let content = vec![ContentBlock::Text {
-            text: text.to_string(),
+            text: text.to_owned(),
         }];
         if client.protocol() >= ProtocolVersion::new(10) {
             client
@@ -70,20 +91,10 @@ pub(super) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
             client.send(session, SessionInput::Prompt { content }).await
         }
     };
-    let answer = match tokio::time::timeout(CALL_DEADLINE, send).await {
-        Ok(Ok(())) => Answer::Complete(ticket),
-        Ok(Err(error)) => Answer::Failed {
-            ticket,
-            stage: Stage::InitialInput,
-            failure: failure(&error),
-        },
-        Err(_elapsed) => Answer::Failed {
-            ticket,
-            stage: Stage::InitialInput,
-            failure: Failure::OutcomeUnknown,
-        },
-    };
-    let _closed = events.send(crate::Event::Creation(answer)).await;
+    tokio::time::timeout(CALL_DEADLINE, send)
+        .await
+        .map_err(|_elapsed| Failure::OutcomeUnknown)?
+        .map_err(|error| failure(&error))
 }
 
 /// Transport loss may hide a committed side effect; never turn it into retry.

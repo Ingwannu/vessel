@@ -45,6 +45,7 @@ mod features;
 mod pickers;
 mod probe;
 mod status;
+mod submit;
 
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
@@ -56,7 +57,6 @@ use vessel_app_view::{Controls, Machine, Picks, agent_name, controls_with_effort
 use vessel_proto::{HarnessRef, OptionChoice};
 
 use crate::areas::composer::{attach_button, draft_card};
-use crate::routes::Route;
 use crate::shell::Shell;
 
 /// What the controls show (the page's `ControlsState`; the app starts no
@@ -81,9 +81,7 @@ pub(crate) struct Lists {
 /// The draft: the composer, and what is chosen.
 pub(crate) struct Draft {
     /// Correlated progress retained while another route is shown.
-    pub(crate) creation: vessel_app_view::creation::Flow,
-    /// A committed resource must survive a refused first prompt.
-    pub(crate) registered: Option<vessel_app_view::Card>,
+    pub(crate) creation: create::CreationState,
     pub(crate) composer: TextField,
     pub(crate) machine: Option<String>,
     pub(crate) agent: Option<HarnessRef>,
@@ -129,8 +127,7 @@ impl Draft {
         let nanos = chrono::Utc::now().timestamp_subsec_nanos();
         let suggestion = usize::try_from(nanos % 4).unwrap_or(0);
         Self {
-            creation: vessel_app_view::creation::Flow::default(),
-            registered: None,
+            creation: create::CreationState::default(),
             composer: TextField::composer(
                 "",
                 |shell: &mut Shell, text, window, cx| shell.send_draft(text, window, cx),
@@ -352,7 +349,7 @@ pub(crate) fn render(
     let neutral = tokens.neutral;
 
     let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
-    let can_send = typed && draft.agent.is_some();
+    let can_send = typed && draft.agent.is_some() && draft.creation.flow.may_submit();
     let attach = attach_button(true, touch, tokens, cx);
     let card = draft_card(shell, tokens, touch, window, cx).child(
         // Paseo's button row bleeds 6 past the card's padding.

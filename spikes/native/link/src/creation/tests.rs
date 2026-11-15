@@ -15,7 +15,7 @@ use vessel_proto::{
     Welcome, WireError,
 };
 
-use super::{Answer, Ask, FirstInput, run};
+use super::{Answer, Ask, FirstInput, Target, run};
 use crate::Event;
 
 const TEST_DEADLINE: Duration = Duration::from_secs(10);
@@ -172,7 +172,7 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
         ticket: TICKET,
         machine: Name::parse("fake")
             .map_err(|problem| std::io::Error::other(format!("fixture name: {problem:?}")))?,
-        spec,
+        target: Target::New(spec),
         input,
     };
     let (tx, mut rx) = mpsc::channel(EVENT_ROOM);

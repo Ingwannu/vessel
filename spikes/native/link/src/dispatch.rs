@@ -73,8 +73,8 @@ impl State {
                 text,
             } => self.resume(&machine, session, text).await,
             Command::Stop { machine, session } => {
-                let input = SessionInput::CancelTurn { turn: None };
-                self.input(&machine, session, input).await;
+                self.input(&machine, session, SessionInput::CancelTurn { turn: None })
+                    .await
             }
             Command::Answer {
                 machine,
