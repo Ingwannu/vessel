@@ -1553,3 +1553,10 @@ This is an A10 test-only module, not a registered product RPC. Deterministic fak
 ports check failure and late-registration ordering without providers or network.
 The registry adapter and pending wire calls must remove staging and pass the root
 gate before product adoption; see `docs/plans/wp-workspace-archive.md`.
+
+
+The staged `vessel-proto::workspace::recovery` values reserve the lifecycle
+threshold and keep authoritative inspection/restore outcomes separate from
+transport failures. They carry exact WorkspaceId identity and explicit future
+Unknown values. No method/client is registered until the registry-backed node
+workflow is wired; DTO roundtrips alone do not advertise recovery capability.

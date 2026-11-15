@@ -18,6 +18,7 @@ mod port_range;
 mod port_script;
 mod project;
 mod project_text;
+mod recovery;
 mod service_port;
 mod service_ports;
 mod support;
@@ -53,6 +54,11 @@ pub use project::{
     ProjectState, RemoveProject,
 };
 pub use project_text::trim_project_text;
+pub use recovery::{
+    InspectWorkspaceRecovery, WORKSPACE_LIFECYCLE, WorkspaceRecoveryAction,
+    WorkspaceRecoveryInspection, WorkspaceRecoveryStage, WorkspaceRecoveryState,
+    WorkspaceRecoveryUnavailable, WorkspaceRestoreOutcome, WorkspaceRestoreReport,
+};
 pub use service_port::{InvalidServicePort, ServicePort};
 pub use service_ports::{InvalidServicePorts, ServicePorts};
 pub use support::{GitSupport, GitVersion};
