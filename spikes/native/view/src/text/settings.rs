@@ -30,8 +30,6 @@ pub struct SettingsText {
     pub no_machines: &'static str,
     pub switch_machine: &'static str,
     // General.
-    pub kept_note: &'static str,
-    pub path_copied: &'static str,
     pub refused: &'static str,
     // Appearance.
     pub appearance_lead: &'static str,
@@ -79,8 +77,6 @@ const EN: SettingsText = SettingsText {
     machine: "Machine",
     no_machines: "No machines yet.",
     switch_machine: "Switch machine",
-    kept_note: "Kept by Vessel on this computer, so every launch opens with them.",
-    path_copied: "The path was copied.",
     refused: "That change was not kept",
     appearance_lead: "How Vessel looks on this computer.",
     theme: "Theme",
@@ -134,8 +130,6 @@ const KO: SettingsText = SettingsText {
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
     switch_machine: "머신 바꾸기",
-    kept_note: "Vessel이 이 컴퓨터에 보관하므로, 실행할 때마다 그대로 열립니다.",
-    path_copied: "경로를 복사했습니다.",
     refused: "그 변경은 보관되지 않았습니다",
     appearance_lead: "이 컴퓨터에서 Vessel이 보이는 방식.",
     theme: "테마",

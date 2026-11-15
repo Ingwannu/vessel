@@ -30,16 +30,73 @@ removed. Whole English/Korean goldens verify all messages and delivery cases.
 
 ## Remaining General scope
 
-This is not a complete General feature. Kept-file/reason text still uses the
-legacy kept_note/kept_why path pending event/language prepared-cache seams.
-Path-copy notice ownership/refresh and the shared refused banner are separate.
-The NoPath raw diagnostic branch has no current producer; its typed/fallback
-boundary needs coordination rather than a translation of arbitrary diagnostics.
-General retains its existing storage behaviors while these parts are prepared.
-The settings owner permits word expressions only in Overview/Connections;
-those pages have not been touched. Its terminal-settings domain is separate.
+The shared refusal banner still uses a legacy English Display cause; it needs
+its own typed retained cause and whole EN/KO sentence before General failure
+states can be complete. The current-base Diagnostics compatibility use of
+kept_why also remains until W20's package is integrated. Overview/Connections
+have not been touched; E2's terminal-settings domain is separate.
 
-State: plain-word source prepared, narrow checks owed. Full General completion,
-its package gate/review and before/after screen proof remain owed. Static quality
-and component checks are reported at each committed source checkpoint; the F6
-helper's earlier evidence is not used as approval for these new resources.
+State: plain-word source committed as e9116d6ca; its immutable merged checkpoint
+008181b3 has a remote component suite pending. New storage source below still
+owes its own component checks. Full General completion, its package gate/review
+and before/after screen proof remain owed. F6 helper evidence does not approve
+these new resources.
+
+## Prepared storage subfeature
+
+The General renderer now borrows a complete `SharedString` hint instead of
+formatting the file note or calling `kept_why` during paint. A pure
+`PreparedGeneral::new(words, &prefs.kept)` prepares it before Areas exists.
+`Areas::new` forwards that one typed value to `SettingsState::new`; neither
+constructor guesses a language or creates an unprepared placeholder. Both Shell
+constructors, including `without_io` in the language test harness, use the same
+preparation path.
+
+The view adapter `General::storage` formats whole messages from `Kept` and
+`FileFault`. Four unreadable shapes distinguish a known field from a closed
+problem and presence from absence of a source position. No absent field/position
+is represented by a fabricated argument. Numeric schema versions and positions
+use NUMBER without grouping; positions outside its exact u32 count range return
+a typed error instead of being truncated. A complete localized fallback is
+prepared on error. No I/O, new dependency or view-to-link edge is introduced.
+
+The existing English/Korean file explanations and recovery remain the same.
+Two deliberate word-error fixes are included: NoPath's arbitrary diagnostic is
+replaced by one safe translated sentence (the public model is unchanged), and
+the newer-file Korean message uses the particle function rather than the
+interim `은(는)`. The new ten keys bring General to 23 keys in each language.
+
+`Shell::refresh_general_words` runs after the catalog changes, before paint. It
+rebuilds the hint from current facts and retranslates the copied-path notice
+only while that notice still owns the frame foot. The actual clipboard path
+remains data. Today `Prefs.kept` is discovered at startup and skipped by serde;
+SavePrefs logs an error but produces no storage-state event. A future caller
+that replaces `prefs.kept` after startup must call this same refresh method.
+No synthetic event or change to store outcomes has been added.
+
+Tests cover complete English/Korean explanations for each typed problem,
+located/named forms, NoPath diagnostic suppression, newer-file grammar, exact
+position rejection, pseudo output, changed typed storage facts, and the real
+copy/language dispatch with clipboard and typed input/caret preservation. The
+old `kept_why` remains only for the current-base Diagnostics compatibility
+caller; W20's incoming package removes that call. It is not used by General.
+
+### Shared seams
+
+- `settings/mod.rs`: one PreparedGeneral field; constructor parameter and
+  initialization; helper module/re-export. E2 owns the remaining settings state.
+- `areas/mod.rs`: one owned constructor parameter, forwarded unchanged.
+- `shell.rs`: prepare from the effective catalog and loaded facts; pass to Areas.
+- `shell/language_tests.rs`: the second Areas caller passes prepared English
+  default facts. Other test shell behavior is unchanged.
+- `language.rs`: one additive refresh after changing the effective catalog.
+  K's additive appearance-placeholder registration must be preserved on merge.
+- `settings/general.rs`: prepared hint borrow and the copy-notice handler call;
+  controls, conditions and geometry are unchanged.
+
+Static size/boundary/token checks pass on the prepared storage source (610
+Rust files; 14 existing size exceptions, no new token entries). An old retained
+explicit-root checker first rejected numeric useGrouping: 0; the files now use
+its supported Fluent useGrouping: "false" option. This is a data correction,
+not a relaxation of the gate. Current-source compilation and runtime tests are
+still owed; old checked binaries are only source-parser evidence.
