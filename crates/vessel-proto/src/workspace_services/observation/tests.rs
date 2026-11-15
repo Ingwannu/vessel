@@ -63,6 +63,51 @@ fn role_invariants_hold_at_constructor_and_decoder() {
 }
 
 #[test]
+fn mapped_ipv4_uses_the_same_parsed_loopback_class_at_both_edges() {
+    for (address, expected) in [
+        ("::ffff:127.0.0.1", ServiceLinkAccess::NodeLoopback),
+        ("::ffff:127.3.5.7", ServiceLinkAccess::NodeLoopback),
+        ("::1", ServiceLinkAccess::NodeLoopback),
+        ("2001:db8::1", ServiceLinkAccess::AnonymousPublic),
+        ("::ffff:192.0.2.1", ServiceLinkAccess::AnonymousPublic),
+    ] {
+        let url: ServiceProxyUrl = format!("http://[{address}]:8080/").parse().unwrap();
+        let local = ServiceLink {
+            access: ServiceLinkAccess::NodeLoopback,
+            url: url.clone(),
+        };
+        let public = ServiceLink {
+            access: ServiceLinkAccess::AnonymousPublic,
+            url,
+        };
+        let local_json = format!(r#"{{"local":{}}}"#, serde_json::to_string(&local).unwrap());
+        let public_json = format!(
+            r#"{{"public":{}}}"#,
+            serde_json::to_string(&public).unwrap()
+        );
+        let local = ServiceProxyUrls::new(Some(local), None);
+        let public = ServiceProxyUrls::new(None, Some(public));
+        let decoded_local = serde_json::from_str::<ServiceProxyUrls>(&local_json);
+        let decoded_public = serde_json::from_str::<ServiceProxyUrls>(&public_json);
+        match expected {
+            ServiceLinkAccess::NodeLoopback => {
+                assert!(local.is_ok());
+                assert!(decoded_local.is_ok());
+                assert_eq!(public, Err(InvalidServiceProxyUrls::Access));
+                assert!(decoded_public.is_err());
+            }
+            ServiceLinkAccess::AnonymousPublic => {
+                assert!(public.is_ok());
+                assert!(decoded_public.is_ok());
+                assert_eq!(local, Err(InvalidServiceProxyUrls::Access));
+                assert!(decoded_local.is_err());
+            }
+            ServiceLinkAccess::Unknown => panic!("fixture needs a concrete role"),
+        }
+    }
+}
+
+#[test]
 fn planned_registered_missing_and_future_health_are_distinct_observations() {
     let urls = ServiceProxyUrls::new(None, Some(link(ServiceLinkAccess::AnonymousPublic))).unwrap();
     let planned = ServiceProxyState::Planned { urls: urls.clone() };

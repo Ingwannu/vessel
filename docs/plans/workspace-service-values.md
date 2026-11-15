@@ -78,3 +78,14 @@ invalid ports from ServicePort::MIN/MAX; sample non-bound ports are unchanged.
 A row-view doc reference is marked as code; no runtime behavior changed.
 All execution for this changed head remains owed; earlier immutable source
 checks continue untouched and cannot qualify these additions.
+
+
+URL-role correction: IPv4-mapped IPv6 loopback is node-loopback metadata
+rather than anonymous-public metadata. The same already parsed IPv6 address
+uses std Ipv6Addr::to_ipv4_mapped and the mapped IPv4 predicate; native ::1
+keeps its existing loopback classification. This adds no resolver/parser,
+connection or kernel/route attestation. Constructor and serde role fixtures
+cover both mapped 127/8 examples, ordinary ::1, documentation IPv6 and mapped
+non-loopback IPv4. The old canonical/credential/dot-path/cause tests remain.
+Reference: [Rust IPv6 embedding rules](https://doc.rust-lang.org/std/net/struct.Ipv6Addr.html#embedding-ipv4-addresses).
+All eighteen authored consumer-value tests remain unexecuted on this source.

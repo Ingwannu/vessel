@@ -58,7 +58,12 @@ impl ServiceProxyUrl {
     pub(super) fn is_node_loopback(&self) -> bool {
         match self.0.host() {
             Some(url::Host::Ipv4(address)) => address.is_loopback(),
-            Some(url::Host::Ipv6(address)) => address.is_loopback(),
+            Some(url::Host::Ipv6(address)) => {
+                address.is_loopback()
+                    || address
+                        .to_ipv4_mapped()
+                        .is_some_and(|ipv4| ipv4.is_loopback())
+            }
             Some(url::Host::Domain(domain)) => {
                 domain == "localhost" || domain.ends_with(".localhost")
             }
