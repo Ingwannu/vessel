@@ -329,7 +329,7 @@ fn a_service_restart_cannot_reuse_an_old_preview_callback_even_with_the_same_id_
     let key = model.begin_read().unwrap();
     assert!(model.accept_read(&target, key, Ok(current.clone())));
     assert!(model.preview_url(&preview, "localhost").is_ok());
-    current.scripts.runs[0].revision += 1;
+    current.scripts.runs[0].revision = current.scripts.runs[0].revision.checked_add(1).unwrap();
     let key = model.begin_read().unwrap();
     assert!(model.accept_read(&target, key, Ok(current.clone())));
     assert_eq!(
