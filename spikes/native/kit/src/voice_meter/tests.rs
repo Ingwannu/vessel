@@ -31,14 +31,12 @@ impl Render for Probe {
 #[gpui::test]
 fn horizontal_bars_keep_reference_geometry_in_both_themes(cx: &mut TestAppContext) {
     let full = Level::new(1.0).unwrap();
+    // GPUI rounds layout origins half toward zero (taffy.rs), while
+    // retaining the reference fractional bar heights.
     let cases = [
         (State::Muted, [12.0, 12.0, 12.0], [24.0, 24.0, 24.0]),
-        (
-            State::Listening(full),
-            [48.0, 43.5, 39.0],
-            [6.0, 8.25, 10.5],
-        ),
-        (State::Speaking(full), [48.0, 43.5, 39.0], [6.0, 8.25, 10.5]),
+        (State::Listening(full), [48.0, 43.5, 39.0], [6.0, 8.0, 10.0]),
+        (State::Speaking(full), [48.0, 43.5, 39.0], [6.0, 8.0, 10.0]),
     ];
     for scheme in [Scheme::Light, Scheme::Dark] {
         for (state, heights, positions) in cases {
