@@ -125,14 +125,33 @@ pub(super) fn hash(bytes: &[u8]) -> BlobHash {
     BlobHash::from_bytes(Sha256::digest(bytes).into())
 }
 
-/// Whole-directory deletion is only used after a fresh explicit confirmation.
+/// Bound both a tree's depth and total names before the first unlink.
 const MAX_REMOVAL_DEPTH: usize = 32;
+const MAX_REMOVAL_ENTRIES: usize = 8192;
 
-pub(super) fn remove_directory(parent: &Dir, name: &str) -> Result<(), SkillError> {
-    remove_tree(parent, name, 0)
+#[derive(Debug, Clone, Copy)]
+enum Removal {
+    Check,
+    Apply,
 }
 
-fn remove_tree(parent: &Dir, name: &str, depth: usize) -> Result<(), SkillError> {
+pub(super) fn check_directory(parent: &Dir, name: &str) -> Result<(), SkillError> {
+    walk(parent, name, 0, &mut 0, Removal::Check)
+}
+
+/// Whole-directory deletion is only used after a fresh explicit confirmation.
+pub(super) fn remove_directory(parent: &Dir, name: &str) -> Result<(), SkillError> {
+    check_directory(parent, name)?;
+    walk(parent, name, 0, &mut 0, Removal::Apply)
+}
+
+fn walk(
+    parent: &Dir,
+    name: &str,
+    depth: usize,
+    entries: &mut usize,
+    action: Removal,
+) -> Result<(), SkillError> {
     if depth > MAX_REMOVAL_DEPTH {
         return Err(SkillError::Budget);
     }
@@ -143,16 +162,27 @@ fn remove_tree(parent: &Dir, name: &str, depth: usize) -> Result<(), SkillError>
     }
     let dir = parent.open_dir(name)?;
     dir.each_name(|child| {
+        *entries = entries.saturating_add(1);
+        if *entries > MAX_REMOVAL_ENTRIES {
+            return Err(std::io::Error::other(
+                "skill directory entry budget exceeded",
+            ));
+        }
         match dir.entry(child)? {
-            Entry::Dir => {
-                remove_tree(&dir, child, depth.saturating_add(1)).map_err(std::io::Error::other)?
+            Entry::Dir => walk(&dir, child, depth.saturating_add(1), entries, action)
+                .map_err(std::io::Error::other)?,
+            Entry::File | Entry::Symlink => {
+                if matches!(action, Removal::Apply) {
+                    dir.remove_file(child)?;
+                }
             }
-            Entry::File | Entry::Symlink => dir.remove_file(child)?,
             Entry::Missing => {}
             Entry::Other => return Err(std::io::Error::other("special file blocks skill removal")),
         }
         Ok(())
     })?;
-    parent.remove_dir(name)?;
+    if matches!(action, Removal::Apply) {
+        parent.remove_dir(name)?;
+    }
     Ok(())
 }

@@ -233,3 +233,12 @@ Reconciliation now applies only the additions/updates in its frozen status plan.
 It does not rescan after a transaction captured paths, and it does not rewrite
 selected directories outside that plan. Mutations borrow the service mutably
 to express the single-writer requirement before node actor serialization.
+
+Selection deletion staging now writes an owned, bounded journal before moving
+confirmed directories beside their original names. A rollback refuses to
+replace any recreated live name and retains the original staged directory.
+Recovery binds the recorded canonical roots and durable selection; equal old
+and new choices roll back unless the commit marker was written. Tree cleanup
+preflights a named depth/entry budget and refuses special files. This remains
+staged code: selection-save file backups and the node controller are not yet
+wired, so it is not a completed transactional API.

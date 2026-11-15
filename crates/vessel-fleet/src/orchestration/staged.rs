@@ -1,6 +1,7 @@
 //! Staged skill service, pending the shared method table and node controller.
 //! Tests exercise the actual filesystem machinery against isolated agent homes.
 
+mod deletion;
 mod filesystem;
 mod manifest;
 mod mode;

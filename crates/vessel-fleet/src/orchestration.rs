@@ -50,6 +50,12 @@ pub enum SkillError {
     /// Cross-platform or privileged mode bits cannot be guessed during recovery.
     #[error("unsupported saved skill file permissions")]
     FileMode,
+    /// A durable transaction cannot be safely associated with current roots/state.
+    #[error("skill transaction recovery requires its original roots and selection")]
+    Recovery,
+    /// Another writer recreated a name; both versions are retained for recovery.
+    #[error("skill transaction conflicts with a recreated directory; originals retained")]
+    RecoveryConflict,
 }
 
 // Staged while skill RPCs await the shared pending-row method table. The wiring

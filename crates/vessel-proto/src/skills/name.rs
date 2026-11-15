@@ -41,4 +41,10 @@ impl fmt::Display for SkillName {
         out.write_str(self.as_str())
     }
 }
+// Preserve fleet's textual comparison contract after sharing the name value.
+impl PartialEq<str> for SkillName {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
 crate::key::serde_via_text!(SkillName);

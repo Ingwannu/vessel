@@ -198,3 +198,117 @@ fn rollback_file_primitives_restore_the_original_content_and_mode() {
         0o640
     );
 }
+
+#[test]
+fn deletion_journal_restores_a_staged_directory_after_restart() {
+    use vessel_proto::skills::{SkillNames, SkillSelection};
+    let home = tempfile::tempdir().unwrap();
+    let mut service = service(home.path(), catalogue("one", None));
+    service.reconcile(&SkillSelection::All).unwrap();
+    let previous = Some(SkillSelection::All);
+    let next = SkillSelection::Custom {
+        skills: SkillNames::default(),
+    };
+    let plan = service.status(&next).unwrap();
+    let state = SkillRoot::new(home.path().join("state")).unwrap();
+    let transaction = super::deletion::DeletionTransaction::begin(
+        &service.homes,
+        &state,
+        previous.clone(),
+        next,
+        &plan,
+    )
+    .unwrap();
+    transaction.apply().unwrap();
+    assert!(!home.path().join("agents/skills/vessel").exists());
+    drop(transaction);
+    super::deletion::recover(&service.homes, &state, &previous).unwrap();
+    assert!(home.path().join("agents/skills/vessel/SKILL.md").exists());
+    assert!(home.path().join("claude/skills/vessel/SKILL.md").exists());
+    assert_eq!(
+        std::fs::read_dir(home.path().join("state"))
+            .unwrap()
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn committed_deletion_can_remove_extra_files_only_after_the_explicit_action() {
+    use vessel_proto::skills::{SkillNames, SkillSelection};
+    let home = tempfile::tempdir().unwrap();
+    let mut service = service(home.path(), catalogue("one", None));
+    service.reconcile(&SkillSelection::All).unwrap();
+    std::fs::write(
+        home.path().join("agents/skills/vessel/extra.md"),
+        b"user file",
+    )
+    .unwrap();
+    let next = SkillSelection::Custom {
+        skills: SkillNames::default(),
+    };
+    let plan = service.status(&next).unwrap();
+    let state = SkillRoot::new(home.path().join("state")).unwrap();
+    let transaction = super::deletion::DeletionTransaction::begin(
+        &service.homes,
+        &state,
+        Some(SkillSelection::All),
+        next,
+        &plan,
+    )
+    .unwrap();
+    transaction.apply().unwrap();
+    transaction.commit().unwrap();
+    assert!(!home.path().join("agents/skills/vessel").exists());
+    assert_eq!(
+        std::fs::read_dir(home.path().join("state"))
+            .unwrap()
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn recreated_live_directories_keep_both_versions_on_rollback() {
+    use vessel_proto::skills::{SkillNames, SkillSelection};
+    let home = tempfile::tempdir().unwrap();
+    let mut service = service(home.path(), catalogue("one", None));
+    service.reconcile(&SkillSelection::All).unwrap();
+    let next = SkillSelection::Custom {
+        skills: SkillNames::default(),
+    };
+    let plan = service.status(&next).unwrap();
+    let state = SkillRoot::new(home.path().join("state")).unwrap();
+    let transaction = super::deletion::DeletionTransaction::begin(
+        &service.homes,
+        &state,
+        Some(SkillSelection::All),
+        next,
+        &plan,
+    )
+    .unwrap();
+    transaction.apply().unwrap();
+    let recreated = home.path().join("agents/skills/vessel");
+    std::fs::create_dir(&recreated).unwrap();
+    std::fs::write(recreated.join("new.md"), b"external").unwrap();
+    assert!(matches!(
+        transaction.rollback(),
+        Err(SkillError::RecoveryConflict)
+    ));
+    assert_eq!(
+        std::fs::read(recreated.join("new.md")).unwrap(),
+        b"external"
+    );
+    let originals: Vec<_> = std::fs::read_dir(home.path().join("agents/skills"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".vessel-delete-")
+        })
+        .collect();
+    assert_eq!(originals.len(), 1);
+    assert!(originals[0].path().join("SKILL.md").exists());
+}
