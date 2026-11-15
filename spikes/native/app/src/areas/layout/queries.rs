@@ -40,7 +40,9 @@ impl Shell {
         tab: TabId,
         target: &Target,
     ) -> bool {
-        super::initialized(self);
+        if !self.layout_tab_exists(workspace, tab) {
+            return false;
+        }
         self.areas
             .layout
             .book
