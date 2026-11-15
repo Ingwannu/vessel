@@ -110,7 +110,7 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
+        .execute_batch("DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
     connection
         .pragma_update(

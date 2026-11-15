@@ -50,6 +50,9 @@ pub(crate) enum CheckpointWrite {
         result: RestoreOutcome,
     },
     InvalidateCandidates,
+    GarbageCleaned {
+        object: super::GarbageObject,
+    },
 }
 
 /// The writer's savepoint encloses an admission AND every Pending path intent.
@@ -90,5 +93,6 @@ pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(
             journal::outcome(connection, &operation, &result)
         }
         CheckpointWrite::InvalidateCandidates => journal::invalidate_candidates(connection),
+        CheckpointWrite::GarbageCleaned { object } => super::garbage::cleaned(connection, object),
     }
 }

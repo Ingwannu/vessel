@@ -19,7 +19,7 @@ use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 /// `approvals`), the workspace's tables (9), retention's index (schema 1's
 /// in its place, 8), the conversation's columns and the attachments table
 /// (7).
-const UNDO_SCHEMAS_7_TO_16: &str = "DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;
+const UNDO_SCHEMAS_7_TO_16: &str = "DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;

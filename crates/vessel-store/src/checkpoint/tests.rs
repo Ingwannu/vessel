@@ -15,6 +15,7 @@ fn one_migration_creates_all_tables_and_rolls_back_atomically() {
             names,
             [
                 "checkpoint_captures",
+                "checkpoint_garbage",
                 "checkpoint_paths",
                 "checkpoint_plans",
                 "checkpoint_restores"

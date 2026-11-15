@@ -77,7 +77,11 @@ pub(super) fn apply(
             Answer::Marked(done, applied)
         }
         Write::Delete { session, done } => {
-            let applied = isolated(transaction, |connection| marks::delete(connection, session));
+            let applied = isolated(transaction, |connection| {
+                #[cfg(test)]
+                crate::checkpoint::retire_session(connection, session, chrono::Utc::now())?;
+                marks::delete(connection, session)
+            });
             if applied.is_ok() {
                 effects.removed.push(session);
             }

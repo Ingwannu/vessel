@@ -22,7 +22,8 @@ pub(super) fn candidate(
         return Err(CheckpointError::StorageFull.into());
     }
     let used: i64 = connection.query_row(
-        "SELECT COALESCE(sum(reserved_bytes),0) FROM checkpoint_captures",
+        "SELECT COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_captures),0)
+         + COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_garbage),0)",
         [],
         |row| row.get(0),
     )?;

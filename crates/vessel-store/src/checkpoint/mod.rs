@@ -4,6 +4,7 @@
 //! one schema constant at merge. The existing migration runner is unchanged.
 
 mod changes;
+mod garbage;
 mod journal;
 #[cfg(test)]
 mod journal_tests;
@@ -14,6 +15,7 @@ mod records;
 mod recovery;
 mod write;
 
+pub(crate) use garbage::{Object as GarbageObject, retire_session};
 pub use records::CheckpointStoreError;
 pub(crate) use write::{CheckpointWrite, apply};
 

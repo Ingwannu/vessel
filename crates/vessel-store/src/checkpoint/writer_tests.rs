@@ -85,18 +85,7 @@ async fn read_operation(
         .unwrap()
 }
 
-#[tokio::test]
-async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent_result() {
-    let temp = tempfile::tempdir().unwrap();
-    let dir = DataDir::new(temp.path());
-    dir.prepare().unwrap();
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
-    let info = info();
-    store.create_session(info.clone()).await.unwrap();
-    let plan = plan(info.id);
+async fn publish_capture(store: &Store, plan: &Plan) {
     store
         .checkpoint_write(CheckpointWrite::Reserve {
             key: plan.key,
@@ -119,6 +108,21 @@ async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent
         })
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent_result() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    publish_capture(&store, &plan).await;
     store
         .checkpoint_write(CheckpointWrite::Plan {
             plan: Box::new(plan.clone()),
@@ -264,5 +268,71 @@ async fn failed_pending_path_insert_rolls_back_restore_admission_in_the_shared_w
         .checkpoint_write(CheckpointWrite::InvalidateCandidates)
         .await
         .unwrap();
+    store.close().await;
+}
+
+#[tokio::test]
+async fn session_delete_transfers_archive_quota_only_after_the_same_savepoint_commits() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    publish_capture(&store, &plan).await;
+    assert!(matches!(
+        store.delete_session(info.id).await,
+        Err(StoreError::SessionLive(_))
+    ));
+    let empty = store
+        .read(|reader| {
+            reader.with(|connection| super::garbage::pending(connection).map_err(StoreError::from))
+        })
+        .await
+        .unwrap();
+    assert!(
+        empty.is_empty(),
+        "a failed live-session delete must roll back quota transfer"
+    );
+    store
+        .append(
+            info.id,
+            vec![std::sync::Arc::new(vessel_proto::EventRecord {
+                seq: EventSeq::new(0),
+                at: DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Status {
+                    status: vessel_proto::SessionStatus::Exited { code: Some(0) },
+                },
+            })],
+        )
+        .await
+        .unwrap();
+    store.delete_session(info.id).await.unwrap();
+    let pending = store
+        .read(|reader| {
+            reader.with(|connection| super::garbage::pending(connection).map_err(StoreError::from))
+        })
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 1);
+    let item = pending.first().unwrap();
+    assert_eq!(item.reserved, ByteCount::new(1));
+    store
+        .checkpoint_write(CheckpointWrite::GarbageCleaned {
+            object: item.object,
+        })
+        .await
+        .unwrap();
+    let empty = store
+        .read(|reader| {
+            reader.with(|connection| super::garbage::pending(connection).map_err(StoreError::from))
+        })
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
     store.close().await;
 }

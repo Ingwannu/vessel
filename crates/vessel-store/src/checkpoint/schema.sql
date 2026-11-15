@@ -14,6 +14,11 @@ CREATE TABLE checkpoint_captures (
     CHECK(state != 'unavailable' OR reason IS NOT NULL)
 ) STRICT;
 CREATE INDEX checkpoint_session ON checkpoint_captures(session, created_at);
+CREATE TABLE checkpoint_garbage (
+    object TEXT PRIMARY KEY NOT NULL,
+    reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),
+    created_at INTEGER NOT NULL
+) STRICT;
 CREATE TABLE checkpoint_plans (
     id TEXT PRIMARY KEY NOT NULL,
     capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,

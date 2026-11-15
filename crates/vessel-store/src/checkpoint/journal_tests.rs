@@ -719,3 +719,84 @@ fn local_owner_keeps_its_authenticated_identity_across_restore_retries() {
         RestoreOutcome::Unchanged
     );
 }
+
+#[test]
+fn retiring_a_session_keeps_its_archive_reservation_until_cleanup_acknowledgement() {
+    use super::garbage;
+    let (mut connection, key) = fixture();
+    let _ready = ready_plan(&connection, key);
+    let transaction = connection.transaction().unwrap();
+    garbage::retire_session(&transaction, key.session, DateTime::UNIX_EPOCH).unwrap();
+    let _deleted = transaction
+        .execute(
+            "DELETE FROM sessions WHERE id=?1",
+            [key.session.to_string()],
+        )
+        .unwrap();
+    transaction.commit().unwrap();
+    let pending = garbage::pending(&connection).unwrap();
+    assert_eq!(pending.len(), 1);
+    let item = pending.first().unwrap();
+    assert_eq!(
+        item.object,
+        garbage::Object::Capture {
+            worktree: key.worktree,
+            capture: key.capture
+        }
+    );
+    assert_eq!(item.reserved, crate::ByteCount::new(1));
+    let mut next = key;
+    next.capture = CaptureId::random();
+    next.session = SessionId::random();
+    let _inserted = connection
+        .execute(
+            "INSERT INTO sessions(id) VALUES (?1)",
+            [next.session.to_string()],
+        )
+        .unwrap();
+    assert!(matches!(
+        journal::candidate(
+            &connection,
+            next,
+            crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES),
+            DateTime::UNIX_EPOCH
+        ),
+        Err(Error::Refused(CheckpointError::StorageFull))
+    ));
+    garbage::cleaned(&connection, item.object).unwrap();
+    garbage::cleaned(&connection, item.object).unwrap();
+    assert!(garbage::pending(&connection).unwrap().is_empty());
+    journal::candidate(
+        &connection,
+        next,
+        crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+}
+
+#[test]
+fn active_preview_and_recovery_data_prevent_session_retirement() {
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    assert!(matches!(
+        super::garbage::retire_session(&connection, key.session, DateTime::UNIX_EPOCH),
+        Err(Error::Refused(CheckpointError::Busy))
+    ));
+    let operation = journal::admit(
+        &connection,
+        &plan,
+        RestoreId::random(),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    assert!(matches!(
+        super::garbage::retire_session(&connection, key.session, plan.expires),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    assert!(super::garbage::pending(&connection).unwrap().is_empty());
+    journal::outcome(&connection, &operation, &RestoreOutcome::Unchanged).unwrap();
+    super::garbage::retire_session(&connection, key.session, plan.expires).unwrap();
+    assert_eq!(super::garbage::pending(&connection).unwrap().len(), 1);
+}
