@@ -46,3 +46,20 @@ isolated producer results, not the serializer branch's48-test result. The
 changed-source enclosing whole and source review remain owed.
 Frozen2d5 whole is unchanged; no full consumer
 or universal Unicode/control-stream parity follows from finite fixtures.
+
+V3 returned two additional concrete cases: DECSTR left the facade's VT input
+switches stale, and repeated1049 erased already active alternate cells. A new
+oracle attachment adds nine checkpoints, preserving every original34 snapshot
+field/value and program event. Its red regression is202764a2, submitted before
+the repair. The same decoded mode owner now resets app-cursor/bracketed-paste.
+The server keyboard tracker still owns Kitty/Win32 flags and saved stack: it
+does not recognize DECSTR/RIS. Both reference traces are retained explicitly;
+no raw tracker or expected value inversion is introduced.
+
+Re-entry retains DECSC on the current buffer, but clears/advances alternate
+epoch only on a real transition. Cursor ink is saved per physical buffer so
+repeated alternate saves cannot overwrite primary restore attributes; DECSTR
+resets only the active buffer's saved presentation. Oracle checks include
+repeated entry, restore position and foreground; a marker regression guards
+against a spurious epoch reset. Earlier readonly snapshots are checked again
+after every later mutation. Actual changed-source checks remain owed.

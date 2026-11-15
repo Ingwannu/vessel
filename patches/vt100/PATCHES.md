@@ -63,3 +63,10 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
     alternate starting position. Soft reset resets modes/saved presentation
     without erasing live cells. Cursor restore clamps pending wrap like the
     reference's explicit cursor move. No raw scanner or second interpretation added.
+
+11. Make redundant1049 activation non-destructive while retaining DECSC on
+    the active buffer. Save cursor attributes separately for primary/alternate
+    buffers, including active-buffer-only DECSTR save reset. Why: the pinned
+    BufferSet refuses to clear an already active alternate screen and saves
+    cursor attributes per buffer. Re-entry must retain text/markers and cannot
+    overwrite the primary's saved ink before its later restore.

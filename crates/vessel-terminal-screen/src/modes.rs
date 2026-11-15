@@ -75,6 +75,12 @@ impl Modes {
             return Ok(ModeAction::None);
         }
         match (intermediates, final_byte) {
+            ([b'!'], 'p') => {
+                // VT reset and the server's keyboard tracker have distinct reference
+                // contracts. DECSTR resets VT switches, not Kitty/Win32 negotiation.
+                self.state.application_cursor = ModeState::Disabled;
+                self.state.bracketed_paste = ModeState::Disabled;
+            }
             ([b'>'], 'u') => {
                 let flags = KittyFlags(parameter(params.explicit().next(), 1)?);
                 if self.stack.len() >= MAX_KEYBOARD_STACK || self.stack.try_reserve(1).is_err() {

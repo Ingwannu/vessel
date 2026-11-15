@@ -239,3 +239,25 @@ metadata/cell oracle supplements the unchanged original cell/mode/marker corpus.
 This remains a pure producer extension; actor/transport/native/CLI renderer
 adoption and enclosing consumer qualification are separate. NodeAuthority stays
 off; no universal Unicode or malformed-stream parity is inferred.
+
+### DECSTR mode sources and redundant alternate activation
+
+DECSTR resets VT application-cursor and bracketed-paste switches in the same
+decoded mode owner as the borrowed frame. Pinned headless InputHandler2817-2835
+calls CoreService.reset68-72, whose defaults disable those switches. Kitty and
+Win32 flags and the saved keyboard stack retain the actual server tracker
+contract: protocol/terminal-input-mode.ts regex20-25/feed85-124 does not match
+CSI ! p or RIS; terminal/terminal.ts1041 feeds that tracker, and1017 resets it
+at lifecycle restart. The optional headless keyboard extensions have different
+reset state; they are not substituted for this server negotiation contract.
+Both original reference traces are retained, with no second scanner or flipped
+accepted239-step expectations. This is an explicit split between the two
+reference responsibilities, including the already stated RIS behavior.
+
+Repeated1049 still saves the active buffer cursor, as InputHandler2017-2018
+does, but BufferSet103-105 leaves an already active alternate grid intact.
+The same engine now preserves its cells and marker epoch on that no-op.
+Cursor attributes are saved independently per buffer, matching the reference's
+buffer-local savedCurAttrData, so an alternate save cannot replace primary ink.
+DECSTR resets the active buffer's saved presentation only. No synthesized Home,
+replay, new parser or authority change is involved.

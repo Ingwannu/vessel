@@ -194,6 +194,7 @@ fn check(program: &Program) {
     )
     .unwrap();
     let mut snapshots = program.snapshots.iter();
+    let mut retained = Vec::new();
     for event in &program.events {
         match event {
             Event::Output { output } => {
@@ -221,6 +222,7 @@ fn check(program: &Program) {
                     &snapshot.frame(ViewportRequest::FollowLive, rows).unwrap(),
                     expected,
                 );
+                retained.push((snapshot, expected));
                 if expected.history > 0 {
                     let pin = engine.create_marker(LineIndex(0)).unwrap();
                     check_frame(
@@ -233,6 +235,17 @@ fn check(program: &Program) {
         }
     }
     assert!(snapshots.next().is_none());
+    for (snapshot, expected) in retained {
+        check_frame(
+            &snapshot
+                .frame(
+                    ViewportRequest::FollowLive,
+                    FrameRows::new(expected.rows).unwrap(),
+                )
+                .unwrap(),
+            expected,
+        );
+    }
 }
 #[test]
 fn cursor_overrides_match_pinned_headless_controls() {
@@ -257,6 +270,23 @@ fn repeated_alternate_entry_retains_cells_and_primary_saved_cursor_and_ink() {
 #[test]
 fn soft_reset_clears_vt_negotiation_but_preserves_server_keyboard_tracker_stack() {
     check(&program(ProgramName::SoftResetNegotiation));
+}
+#[test]
+fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
+    let mut engine = Screen::new(Size::new(8, 3).unwrap(), ScrollbackLines::default()).unwrap();
+    engine.feed(b"\x1b[?1049hA").replies.unwrap();
+    let marker = engine.create_marker(LineIndex(0)).unwrap();
+    let before = engine.resolve_marker(&marker).unwrap();
+    let retained = engine.snapshot();
+    engine.feed(b"\x1b[?1049hB").replies.unwrap();
+    assert_eq!(engine.resolve_marker(&marker).unwrap(), before);
+    assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
+    engine.feed(b"\x1b[?1049l\x1b[?1049h").replies.unwrap();
+    assert_eq!(
+        engine.resolve_marker(&marker).unwrap().state,
+        crate::AnchorState::Reset
+    );
+    assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
 }
 fn program(name: ProgramName) -> Program {
     let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();

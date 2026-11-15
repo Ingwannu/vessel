@@ -114,6 +114,7 @@ pub struct Screen {
 
     attrs: crate::attrs::Attrs,
     saved_attrs: crate::attrs::Attrs,
+    alternate_saved_attrs: crate::attrs::Attrs,
 
     modes: u8,
     mouse_protocol_mode: MouseProtocolMode,
@@ -145,6 +146,7 @@ impl Screen {
 
             attrs: crate::attrs::Attrs::default(),
             saved_attrs: crate::attrs::Attrs::default(),
+            alternate_saved_attrs: crate::attrs::Attrs::default(),
 
             modes: 0,
             mouse_protocol_mode: MouseProtocolMode::default(),
@@ -920,12 +922,20 @@ impl Screen {
 
     fn save_cursor(&mut self) {
         self.grid_mut().save_cursor();
-        self.saved_attrs = self.attrs;
+        if self.alternate_screen() {
+            self.alternate_saved_attrs = self.attrs;
+        } else {
+            self.saved_attrs = self.attrs;
+        }
     }
 
     fn restore_cursor(&mut self) {
         self.grid_mut().restore_cursor();
-        self.attrs = self.saved_attrs;
+        self.attrs = if self.alternate_screen() {
+            self.alternate_saved_attrs
+        } else {
+            self.saved_attrs
+        };
     }
 
     fn set_mode(&mut self, mode: u8) {
@@ -1346,7 +1356,12 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
     pub(crate) fn decstr(&mut self) {
         self.screen.grid_mut().soft_reset_modes();
         self.screen.attrs = crate::attrs::Attrs::default();
-        self.screen.saved_attrs = crate::attrs::Attrs::default();
+        if self.screen.alternate_screen() {
+            self.screen.alternate_saved_attrs =
+                crate::attrs::Attrs::default();
+        } else {
+            self.screen.saved_attrs = crate::attrs::Attrs::default();
+        }
         self.screen.modes &= MODE_ALTERNATE_SCREEN;
         self.screen.set_cursor_style(CursorStyle::Default);
     }
@@ -1523,12 +1538,14 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                     screen.set_mouse_encoding(MouseProtocolEncoding::Sgr);
                 }
                 [1049] => {
-                    let position = self.screen.grid().pos();
                     self.decsc();
-                    self.callbacks.buffer_reset(BufferReset::Alternate);
-                    self.screen.alternate_grid.clear();
-                    self.screen.alternate_grid.inherit_cursor(position);
-                    self.screen.enter_alternate_grid();
+                    if !self.screen.alternate_screen() {
+                        let position = self.screen.grid().pos();
+                        self.callbacks.buffer_reset(BufferReset::Alternate);
+                        self.screen.alternate_grid.clear();
+                        self.screen.alternate_grid.inherit_cursor(position);
+                        self.screen.enter_alternate_grid();
+                    }
                 }
                 [2004] => screen.set_mode(MODE_BRACKETED_PASTE),
                 _ => unhandled(self),
