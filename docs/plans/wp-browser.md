@@ -1,6 +1,7 @@
 # Browser package: reference, integration and evidence
 
-Status: ADR proposed; no product implementation or qualification claim.
+Status: contract reviewed; staged identities/native models only, no engine or
+qualification claim.
 Decision: **modify/reuse** the earlier browser value/policy work and the
 existing MCP/client/proc/native layers; **new** engine/CDP/proxy modules are
 necessary because none of those layers renders or drives a page. Do not
@@ -123,3 +124,16 @@ menu dimensions follow the reference once; a custom agent resize will use
 the wire's validated dimensions, not a nearest-preset fallback. Toolbar
 buttons and keyboard routing consume one history/load eligibility rule.
 Nothing is registered or visible until a real frame/input path exists.
+
+
+## Runtime diagnostic scope
+
+ADR 0078 records the measured unified-Chrome switch correction. Sandbox-on
+startup and a synthetic page/PNG now work; force-prefixed WebRTC handling
+failed the UDP canary. The Chrome-specific switch completed ICE with zero
+IPv4 direct TCP/UDP packets after successful canary positive controls.
+The Preferences-only run failed navigation and proves no traffic rule.
+This is not the product proxy or a supported/qualified browser. Runtime
+fingerprint changes must invalidate qualification. Full IPv6, QUIC,
+WebTransport, profile isolation, service revocation and Windows proofs are
+still owed, alongside all node/app gates and native captures.
