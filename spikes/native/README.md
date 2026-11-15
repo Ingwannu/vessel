@@ -77,6 +77,16 @@ The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
 Its module split changes no request, cache order or event.
 
+The link's crate root is kept under the 500-line budget so every package
+can register without growing a listed file: `Command` lives in
+`link/src/command.rs`, `Event` and `KeptLists` in `link/src/event.rs`
+(both re-exported from the root), the actor's command dispatch
+(`State::handle`) in `link/src/dispatch.rs`, and its refresh and
+connection (`refresh`, `connect`, `hand_kept`, `keep_commands`) in
+`link/src/refresh.rs`. A package adds its variants and its dispatch arm
+there, its own module and hub with one line each in `lib.rs`, and its
+logic in its own module.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches
@@ -160,7 +170,7 @@ app/src/
 5. Register it: one `mod` line and one field in `areas/mod.rs`, one
    variant and one arm in each match of `routes.rs`; `Route::NAV` if the
    sidebar lists it. An event from the link for it: one arm in
-   `Shell::on_event` calling the area's method.
+   `Shell::on_event` (`app/src/shell/events.rs`) calling the area's method.
 
 Settings areas with nested pages can supply a scroll identity at the
 `scroll_id` slot next to their content registration. Agents uses one for
