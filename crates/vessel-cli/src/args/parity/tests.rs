@@ -238,3 +238,31 @@ fn native_init_scan_home_never_replaces_the_node_data_directory() {
     .unwrap();
     assert!(cli.connection.apply(&mut cli.target, &cli.command).is_err());
 }
+
+#[test]
+fn images_do_not_replace_the_required_send_prompt_source() {
+    assert!(
+        Cli::try_parse_from([
+            "vessel",
+            "agent",
+            "send",
+            "ab12",
+            "--image",
+            "not-opened.png"
+        ])
+        .is_err()
+    );
+    assert!(
+        Cli::try_parse_from([
+            "vessel",
+            "agent",
+            "send",
+            "ab12",
+            "--prompt",
+            "describe",
+            "--image",
+            "not-opened.png"
+        ])
+        .is_ok()
+    );
+}

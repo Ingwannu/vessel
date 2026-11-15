@@ -977,3 +977,14 @@ from the old boolean to a closed status enum. These source changes follow the al
 queued dd33 strict head and have not executed yet. Latest-head unit/process/gate proof
 remains owed. Update/provider notices and detailed schedule-log projections still have
 explicitly documented native differences and are not covered by this table correction.
+
+### Send prompt-source admission (2026-11-15 13:26 UTC)
+
+Paseo send.ts102-141 resolves exactly one prompt source before connecting; an
+image flag does not replace a prompt argument/--prompt/--prompt-file. Removed
+W17's image-only exception at clap and runtime edges. The normal typed image
+staging/sending path still accepts a real prompt plus images. Empty/whitespace
+content continues to refuse before opening images or connecting, now consistently
+with images too. This intentionally remains stricter than Paseo's unvalidated
+empty-file return, retaining the existing CLI empty-input admission rule. Parser
+regressions cover missing source vs a prompt+image without touching the file.

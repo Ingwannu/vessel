@@ -96,7 +96,6 @@ pub(super) async fn send(
     let text = match (args.text, args.prompt, args.prompt_file) {
         (Some(text), None, None) | (None, Some(text), None) => text,
         (None, None, Some(path)) => crate::parity::prompt_input::file(&path).await?,
-        (None, None, None) if !args.image.is_empty() => String::new(),
         _ => {
             return Err(CliError::Usage(
                 "give exactly one positional prompt, --prompt or --prompt-file",
@@ -106,7 +105,7 @@ pub(super) async fn send(
     if text.len() > crate::parity::prompt_input::MAX_BYTES {
         return Err(CliError::Usage("prompt exceeds the CLI input byte budget"));
     }
-    if text.trim().is_empty() && args.image.is_empty() {
+    if text.trim().is_empty() {
         return Err(CliError::Usage("the prompt is empty"));
     }
     let images = crate::conversation::Images::open(&args.image).await?;
