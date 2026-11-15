@@ -102,6 +102,12 @@ pub enum SessionEvent {
     Renamed {
         /// The title now.
         title: SessionTitle,
+        /// Who produced it (ADR 0062). Absent decodes as unknown. The
+        /// event stays protocol 9: a peer that ignores an unknown field
+        /// still reads `title`. A typed older hop may omit the origin;
+        /// the next reader then keeps the title with unknown origin.
+        #[serde(default, skip_serializing_if = "crate::title::TitleOrigin::is_unknown")]
+        origin: crate::title::TitleOrigin,
     },
     /// The session's queue changed (protocol 10, ADR 0024): a prompt
     /// queued, edited, moved, removed or started, or the queue held or let
@@ -179,8 +185,14 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if self.since() <= protocol
+            && let Self::UsageChanged { usage } = self
+            && let Some(usage) = usage.for_protocol(protocol)
+        {
+            return Some(Self::UsageChanged { usage });
+        }
         if self.since() <= protocol {
-            return None;
+            return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
         let log = |line: String| {
             Some(Self::Agent {
@@ -231,7 +243,7 @@ impl SessionEvent {
                     line: format!("vessel: options: {}", SessionOption::summary(options)),
                 },
             }),
-            Self::Renamed { title } => Some(Self::Agent {
+            Self::Renamed { title, .. } => Some(Self::Agent {
                 event: AgentEvent::HarnessLog {
                     line: format!("vessel: renamed to {title}"),
                 },
@@ -265,6 +277,23 @@ impl SessionEvent {
                 }
             )),
         }
+    }
+
+    /// One origin rule shared with synthetic assigned-threshold tests,
+    /// without changing the durable event's own protocol version.
+    pub(crate) fn origin_for_protocol(
+        &self,
+        protocol: ProtocolVersion,
+        assigned: Option<ProtocolVersion>,
+    ) -> Option<Self> {
+        if let Self::Renamed { title, origin } = self {
+            let adapted = origin.for_protocol(protocol, assigned);
+            return (adapted != *origin).then(|| Self::Renamed {
+                title: title.clone(),
+                origin: adapted,
+            });
+        }
+        None
     }
 }
 

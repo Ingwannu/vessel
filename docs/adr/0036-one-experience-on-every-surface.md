@@ -150,3 +150,21 @@ and option 3 inside it removes the cost entirely where it holds.
 - `docs/plans/backend-m12.md`, `docs/plans/backend-m12-phone.md`
   (what was seen on Android), `docs/plans/backend-m11.md` (the feature
   tables).
+
+
+## Amendment: ended conversations stay visible by default (2026-11-15)
+
+Ending or interrupting an agent process does not archive its conversation.
+Hiding ended sessions by default leaves a machine with only stopped agents
+looking empty even though its conversations remain. Paseo retains ended
+conversations until they are archived; Vessel's page and bridge now start
+with “Show ended sessions” on for the same reason. This changes the default
+of the existing sidebar preference, not its format or a protocol version.
+
+The bridge's existing field-aware document reader uses that default only
+when the field is absent or unreadable. A stored false is an explicit
+choice and stays false, including after an unrelated preference change.
+The page's initial copy and sidebar fallback use the same on default.
+Archived sessions remain excluded regardless of the ended-session choice.
+The shared default is a behavior contract for every surface; this page
+change does not claim that a native client was changed or validated here.

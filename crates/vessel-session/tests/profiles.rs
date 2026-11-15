@@ -85,6 +85,13 @@ mod support {
             ));
             // Not canonicalised: Windows would make it a `\\?\` path, which
             // `cmd.exe` cannot run a `.cmd` shim from inside a console.
+            // Owner-only, as the node's MCP directory is: a terminal test
+            // writes its MCP file here, and `McpFile::write` refuses a
+            // directory open to others.
+            let mut builder = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            let _owner_only = std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+            builder.create(&dir).unwrap();
             let bin = dir.join("bin");
             std::fs::create_dir_all(&bin).unwrap();
             let tui = Fake::Tui.path().unwrap();
@@ -100,6 +107,7 @@ mod support {
                     durable_capacity: DEFAULT_DURABLE_CAPACITY,
                     agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
                     park_after: None,
+                    private_dir: None,
                 },
                 CancellationToken::new(),
             );
@@ -173,6 +181,7 @@ mod support {
         pub(super) fn request(&self, from: &Profile, to: &Profile, force: bool) -> ProfileMove {
             std::fs::create_dir_all(self.home_of(to)).unwrap();
             ProfileMove {
+                limits: vessel_session::LimitAssociation::Unavailable,
                 profile: to.clone(),
                 from_home: self.home_of(from),
                 to_home: self.home_of(to),
@@ -706,6 +715,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             id: DeviceId::random(),
         };
         let options = LaunchOptions {
+            limits: vessel_session::LimitAssociation::Unavailable,
             profile: Some(alt.clone()),
             mcp_servers: servers(),
             mcp_dir: None,
@@ -728,6 +738,7 @@ async fn structured_sessions_get_the_profile_and_servers_over_acp() {
             // The runtime follows the node's choice, whoever created it.
             questions: false,
             fork: None,
+            title_origin: None,
         };
         let created = fixture
             .create(structured(None), options.clone())

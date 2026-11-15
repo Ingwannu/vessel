@@ -1,8 +1,8 @@
 //! The `OpenAI`-compatible Chat Completions API: `POST /chat/completions`
 //! under a provider's base URL (`OpenRouter`, Ollama, vLLM, LM Studio,
 //! Gemini's compatible endpoint). The proxy only calls it, streaming, so
-//! the request is written and the stream's chunks are read; a non-streamed
-//! answer is not modelled.
+//! the request is written and the stream's chunks are read. Bounded
+//! complete-response consumers also decode whole assistant replies.
 //!
 //! Compatible servers differ (opencodex's experience): reasoning comes as
 //! `reasoning_content` (vLLM, `DeepSeek`) or `reasoning` (`OpenRouter`); a
@@ -401,6 +401,50 @@ pub struct ErrorBody {
 pub struct ErrorMessage {
     /// What went wrong, for a person.
     pub message: String,
+}
+
+/// A whole completion, needed by bounded nonstreaming consumers.
+#[derive(Debug, Deserialize)]
+pub struct CompletionResponse {
+    /// The caller requests one result; selection is validated by the consumer.
+    pub choices: Vec<CompletionChoice>,
+    /// Missing usage remains the existing zero/unknown accounting convention.
+    #[serde(default)]
+    pub usage: Option<Usage>,
+}
+
+/// One complete assistant choice and its explicit finish reason.
+#[derive(Debug, Deserialize)]
+pub struct CompletionChoice {
+    /// The assistant's output, including legacy tool/refusal fields.
+    pub message: CompletionMessage,
+    /// Missing is not evidence of a normal completed turn.
+    #[serde(default)]
+    pub finish_reason: Option<FinishReason>,
+}
+
+/// The role a whole completion must have; it is not an input message.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CompletionRole {
+    /// An assistant response.
+    Assistant,
+}
+
+/// Complete messages carry fields absent from streamed text deltas.
+#[derive(Debug, Deserialize)]
+pub struct CompletionMessage {
+    /// Reject an input message offered as a completion.
+    pub role: CompletionRole,
+    /// Existing text, reasoning and current tool-call grammar.
+    #[serde(flatten)]
+    pub body: AssistantMessage,
+    /// Any non-null refusal is unusable even with a `stop` finish.
+    #[serde(default)]
+    pub refusal: Option<RawJson>,
+    /// Legacy calls must not be silently ignored as unknown fields.
+    #[serde(default)]
+    pub function_call: Option<RawJson>,
 }
 
 #[cfg(test)]

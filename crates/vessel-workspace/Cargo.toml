@@ -25,6 +25,9 @@ nix = { workspace = true, features = ["fs"] }
 
 [dev-dependencies]
 tempfile.workspace = true
+# `write_executable`: scripts a test runs, written so running them never
+# meets ETXTBSY.
+vessel-testkit.workspace = true
 # The tests find `git` on the test runner's `PATH`; the node finds it on its
 # own and passes the path in.
 which.workspace = true

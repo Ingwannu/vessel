@@ -60,7 +60,7 @@ fn a_usage_limit_is_its_sentence_alone_without_the_wrapper_or_the_json() {
     assert_eq!(failure.sentence, SENTENCE);
     assert_eq!(failure.kind, FailureKind::Limit);
     for lang in [Lang::En, Lang::Ko] {
-        let line = lang.conversation().spoken(&failed(4, LIMIT));
+        let line = lang.conversation().spoken(&failed(4, LIMIT), catalog(lang));
         assert_eq!(line, SENTENCE, "{lang:?}");
     }
 }
@@ -73,13 +73,13 @@ fn another_failure_reads_turn_failed_and_its_sentence() {
     assert_eq!(
         Lang::En
             .conversation()
-            .spoken(&failed(4, "agent exited: signal 9")),
+            .spoken(&failed(4, "agent exited: signal 9"), catalog(Lang::En)),
         "Turn failed · agent exited: signal 9"
     );
     assert_eq!(
         Lang::Ko
             .conversation()
-            .spoken(&failed(4, "agent exited: signal 9")),
+            .spoken(&failed(4, "agent exited: signal 9"), catalog(Lang::Ko)),
         "턴 실패 · agent exited: signal 9"
     );
 }
@@ -135,4 +135,15 @@ fn a_reply_that_only_repeats_the_failure_is_held_back() {
         !repeats_failure(&other, 1),
         "a reply with other words stays"
     );
+}
+
+fn catalog(lang: Lang) -> &'static crate::localization::Translator {
+    crate::localization::Translator::get(
+        crate::localization::Locale::from_tag(match lang {
+            Lang::En => "en",
+            Lang::Ko => "ko",
+        })
+        .unwrap(),
+    )
+    .unwrap()
 }

@@ -28,9 +28,11 @@ mod ko;
 pub mod labels;
 mod labels_en;
 mod labels_ko;
+mod script_words;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, DiffScope, GitOperation, GitRefusal, GitSupport,
     KeptReason, ProjectState, RelPath, SetupFailure, SetupState, WorktreeRefusal,
@@ -155,7 +157,9 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn blocked(&self, blocked: Blocked) -> &'static str;
     /// What a script or a service is called in a sentence.
     fn script_kind(&self, kind: ScriptKind) -> &'static str;
-    /// What differs between two entries of one name.
+    /// The declared port, including an explicit absence when comparing changes.
+    fn script_port(&self, port: Option<ServicePort>) -> String;
+    /// What differs between two entries of one name, including declared ports.
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String;
     /// What the approval dialog says above the lists.
     fn compared(&self, compared: &Compared, local: &Local) -> String;

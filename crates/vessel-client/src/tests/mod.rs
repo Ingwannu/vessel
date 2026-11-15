@@ -279,6 +279,14 @@ impl Handler for FakeNode {
         ))
     }
 
+    async fn device_self(
+        &self,
+        _context: &Self::Context,
+        _request: vessel_proto::GetDeviceSelf,
+    ) -> Result<vessel_proto::DeviceSelf, WireError> {
+        Err(unsupported())
+    }
+
     async fn list_devices(
         &self,
         _context: &Context,
@@ -416,6 +424,9 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
+        prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
+        reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;
@@ -522,6 +533,7 @@ impl Handler for FakeNode {
         leave_fleet: vessel_proto::LeaveFleet => Ack;
         sync_fleet: vessel_proto::SyncFleet => Ack;
         fleet_status: vessel_proto::GetFleetStatus => vessel_proto::FleetSyncStatus;
+        fleet_published: vessel_proto::GetPublished => vessel_proto::FleetPublished;
         preview_schedule: vessel_proto::automation::PreviewSchedule => vessel_proto::automation::SchedulePreview;
         list_schedules: vessel_proto::automation::ListSchedules => vessel_proto::automation::ScheduleList;
         get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
@@ -532,10 +544,20 @@ impl Handler for FakeNode {
         run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;
         delete_schedule: vessel_proto::automation::DeleteSchedule => Ack;
         list_runs: vessel_proto::automation::ListRuns => vessel_proto::automation::RunList;
+            get_usage_limits: vessel_proto::limits::GetUsageLimits => vessel_proto::limits::UsageLimits;
+        set_usage_lookup: vessel_proto::limits::SetUsageLookup => vessel_proto::limits::ExternalLookup;
+    query_usage: vessel_proto::usage::QueryUsage => vessel_proto::usage::UsageReport;
         list_prompts: vessel_proto::automation::ListPrompts => vessel_proto::automation::PromptList;
         create_prompt: vessel_proto::automation::CreatePrompt => vessel_proto::automation::SavedPrompt;
         update_prompt: vessel_proto::automation::UpdatePrompt => vessel_proto::automation::SavedPrompt;
         delete_prompt: vessel_proto::automation::DeletePrompt => Ack;
+        list_inbox: vessel_proto::inbox::ListInbox => vessel_proto::inbox::InboxPage;
+        mark_inbox: vessel_proto::inbox::MarkInbox => Ack;
+        get_inbox_entry: vessel_proto::inbox::GetInboxEntry => Option<vessel_proto::inbox::InboxEntry>;
+        get_push_key: vessel_proto::push::GetPushKey => vessel_proto::push::PushKey;
+        subscribe_push: vessel_proto::push::SubscribePush => vessel_proto::push::PushLease;
+        unsubscribe_push: vessel_proto::push::UnsubscribePush => Ack;
+        report_push_presence: vessel_proto::push::ReportPushPresence => Ack;
         search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
         park_session: vessel_proto::parking::ParkSession => SessionInfo;
         wake_session: vessel_proto::parking::WakeSession => SessionInfo;
@@ -543,6 +565,7 @@ impl Handler for FakeNode {
         set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
+        agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
     }
 }
 

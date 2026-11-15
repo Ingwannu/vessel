@@ -188,6 +188,17 @@ test("every way in: the sidebar, the palette, Settings and the old addresses", a
   const origin = await openUi(page);
   const sidebar = page.getByRole("navigation", { name: "Sidebar" });
   const add = page.getByRole("dialog", { name: "Add a machine" });
+  // The index draws nothing until a machine connects, then goes to the
+  // new-session page, whose prompt takes focus when it mounts. A dialog
+  // opened before that loses focus to the prompt, and Escape then reaches
+  // the prompt instead of the dialog (gates 29 and 31, 2026-11-15). The
+  // test starts once that first screen holds focus.
+  const prompt = page.getByRole("form", { name: "Prompt" });
+  await expect
+    .poll(() =>
+      prompt.evaluate((form) => form.contains(document.activeElement)),
+    )
+    .toBe(true);
 
   // The "+" on the sidebar's Machines heading.
   await sidebar.getByRole("button", { name: "Add machine" }).click();
@@ -195,11 +206,18 @@ test("every way in: the sidebar, the palette, Settings and the old addresses", a
   await page.keyboard.press("Escape");
   await expect(add).toBeHidden();
 
-  // The palette's action.
+  // The palette's action. The dialog takes focus after the palette has
+  // closed, so the test waits for it to hold focus before Escape.
   await page.keyboard.press("Control+k");
   await page.getByRole("option", { name: /Add a machine/ }).click();
   await expect(add).toBeVisible();
+  await expect
+    .poll(() =>
+      add.evaluate((dialog) => dialog.contains(document.activeElement)),
+    )
+    .toBe(true);
   await page.keyboard.press("Escape");
+  await expect(add).toBeHidden();
 
   // A machine in the sidebar opens its detail in Settings, marked there.
   await sidebar
