@@ -84,7 +84,7 @@ fn feedback_line(text: SharedString, kind: FeedbackKind, field: bool, tokens: &T
         .text_color(ink(kind, tokens))
         .whitespace_normal()
         .child(text);
-    if field {
+    if presentation == ErrorPresentation::Field {
         line.line_height(px(geometry().subtext_line))
             .when(kind == FeedbackKind::Error, |line| line.line_clamp(1))
     } else {
@@ -96,12 +96,7 @@ fn feedback_line(text: SharedString, kind: FeedbackKind, field: bool, tokens: &T
 /// specifies fontSize12/red300 without an explicit lineHeight (sheet1080–1083).
 #[must_use]
 pub fn error_message(text: SharedString, presentation: ErrorPresentation, tokens: &Tokens) -> Div {
-    feedback_line(
-        text,
-        FeedbackKind::Error,
-        presentation == ErrorPresentation::Field,
-        tokens,
-    )
+    feedback_line(text, FeedbackKind::Error, presentation, tokens)
 }
 /// The source Field frame, around one caller-owned existing control.
 #[must_use]
@@ -126,7 +121,7 @@ pub fn frame(content: Content, tokens: &Tokens) -> Div {
         header = header.child(trailing);
     }
     let line = feedback(content.hint.as_ref(), content.error.as_ref())
-        .map(|(kind, text)| feedback_line(text.clone(), kind, true, tokens));
+        .map(|(kind, text)| feedback_line(text.clone(), kind, ErrorPresentation::Field, tokens));
     div()
         .flex()
         .flex_col()
