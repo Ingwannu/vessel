@@ -37,6 +37,10 @@ impl NodeService {
         }
         let claim = self.sessions.claim(id)?;
         let ended = self.sessions.ended(id).await?;
+        if let Some(parent) = ended.info.spec.side_question_of {
+            crate::side_questions::person(connection.principal())?;
+            let _parent = self.sessions.get(parent).await?;
+        }
         self.refuse_installing(&ended.info.spec.harness)?;
         // Not into a worktree a removal (or setup) holds: the removal may
         // take the folder from under the agent. Held, once checked, until

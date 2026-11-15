@@ -69,6 +69,7 @@ fn problem(error: CallError) -> Problem {
             | vessel_proto::ErrorCode::Internal => Problem::Failed,
         },
         CallError::NotInProtocol { .. } => Problem::Unsupported,
+        CallError::UnassignedProtocol { .. } => Problem::Unavailable,
         CallError::UnexpectedReply(_) => Problem::InvalidReply,
         CallError::RequestIdsExhausted => Problem::Exhausted,
     }

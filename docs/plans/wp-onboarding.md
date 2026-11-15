@@ -90,3 +90,15 @@ The third narrow run compiled the changed view and link crates and found two
 formatting-only app closure lints, now corrected. The exact current compile
 check and diagnostic tests still need a green result. Unchanged offline rows
 now keep their existing report allocation instead of rebuilding it per frame.
+
+### Announced base integration
+
+Merged the announced package base `8d5513e4`. Conflicts were limited to
+`app/src/shell.rs` and `link/src/lib.rs`: the announced head won both files,
+then this package's registration lines were reapplied. Command/Event variants
+now register in `link/src/command.rs` and `event.rs`; dispatch in `dispatch.rs`;
+app events in `shell/events.rs`. No base behaviour or expectation was changed.
+The new unassigned-protocol client error maps to explicit unavailability.
+Native format, size, boundary and token checks pass after the merge. The prior
+package compile check passed on `6f6dac4f`; the merged code still needs its
+updated narrow check and diagnostics tests. Shared file budget blocker resolved.

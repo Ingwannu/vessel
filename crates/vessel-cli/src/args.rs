@@ -4,30 +4,40 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use vessel_client::BearerToken;
-use vessel_proto::{EventSeq, HarnessRef, ProfileName};
+use vessel_proto::{EventSeq, HarnessRef, ProfileName, SessionTitle};
 
 use crate::selector::SessionSelector;
 
 mod agents;
 mod automation;
+mod control;
 mod conversation;
 mod fleet;
 mod forge;
+mod history;
+mod inbox;
+mod log;
 mod node;
 mod nodes;
 mod search;
 mod terminals;
+mod usage;
 mod workspace;
 
 pub(crate) use agents::{AddAgentArgs, AgentsCommand};
 pub(crate) use automation::{PromptCommand, ScheduleArgs, ScheduleCommand};
-pub(crate) use conversation::{ConversationCommand, QueueCommand, Send};
+pub(crate) use control::{Confirmation, Stop, StopPolicy, StopTimeout};
+pub(crate) use conversation::{Compare, ConversationCommand, QueueCommand, Send};
 pub(crate) use fleet::{FleetCommand, MemoryCommand, SecretCommand};
 pub(crate) use forge::{Method, PrCommand, Switch};
+pub(crate) use history::History;
+pub(crate) use inbox::InboxCommand;
+pub(crate) use log::{Log, LogMode};
 pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
+pub(crate) use usage::{LookupChoice, Period, UsageCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
@@ -68,6 +78,11 @@ pub(crate) struct Target {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// List and answer attention across sessions on the selected node.
+    Inbox {
+        #[command(subcommand)]
+        command: InboxCommand,
+    },
     /// Run a node in the foreground, or install one on another machine.
     Node {
         #[command(subcommand)]
@@ -125,14 +140,11 @@ pub(crate) enum Command {
     /// was asked and what the agents answered, in sessions live, ended or
     /// archived.
     Search(Search),
+    /// List an agent's own conversations, newest first (protocol 17), to
+    /// import one: `vessel run AGENT --structured --resume ID --cwd DIR`.
+    History(History),
     /// Print a session's log.
-    Log {
-        /// Session id, or a unique prefix of one.
-        session: SessionSelector,
-        /// First record to print.
-        #[arg(long, default_value = "0", value_parser = parse_seq)]
-        from: EventSeq,
-    },
+    Log(Log),
     /// Stop a session (its whole process group).
     Kill {
         /// Session id, or a unique prefix of one.
@@ -183,6 +195,11 @@ pub(crate) enum Command {
     },
     /// The TCP ports the node's sessions and terminals listen on.
     Ports(Ports),
+    /// Reported tokens and cost, by session, agent or machine.
+    Usage {
+        #[command(subcommand)]
+        command: UsageCommand,
+    },
     /// Schedules: prompts the node sends on its own, at times or every so
     /// often (protocol 11, ADR 0033).
     Schedule {
@@ -341,9 +358,13 @@ pub(crate) struct Run {
     /// Model to request (structured mode).
     #[arg(long, requires = "structured")]
     pub(crate) model: Option<String>,
-    /// Resume this harness session (structured mode).
+    /// Resume this harness session (structured mode): one of `vessel
+    /// history`'s, imported.
     #[arg(long, requires = "structured")]
     pub(crate) resume: Option<String>,
+    /// What to call the session.
+    #[arg(long)]
+    pub(crate) title: Option<SessionTitle>,
     /// Run under this profile of the node (`vessel profiles` lists them);
     /// the harness's default when absent.
     #[arg(long)]

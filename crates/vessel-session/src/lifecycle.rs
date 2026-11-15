@@ -9,7 +9,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 use vessel_agent::AgentProcess;
 use vessel_proto::{
@@ -18,6 +18,7 @@ use vessel_proto::{
 use vessel_pty::{PtyProcess, Signal};
 
 use crate::forge::ForgeView;
+use crate::handle::Rename;
 use crate::publish::Publisher;
 use crate::stop::{Step, Stopper};
 
@@ -92,14 +93,6 @@ pub(crate) struct Lifecycle {
     pub(crate) titled: bool,
 }
 
-/// A rename for the actor to publish, in order with the session's other
-/// records; `done` is answered once it is in the log and the info.
-#[derive(Debug)]
-pub(crate) struct Rename {
-    pub(crate) title: SessionTitle,
-    pub(crate) done: oneshot::Sender<()>,
-}
-
 impl Lifecycle {
     /// The first records: `Status{Starting}`, then the notices, each a
     /// `HarnessLog` line.
@@ -152,9 +145,24 @@ impl Lifecycle {
 
     /// Publish a rename and answer it.
     pub(crate) async fn renamed<P: Stoppable>(&mut self, process: &mut P, rename: Rename) {
-        self.rename(process, rename.title).await;
-        // The caller may have given up; the title stands.
-        let _gone = rename.done.send(());
+        let selected = {
+            let current = self.out.current();
+            rename.change.resolve(&current)
+        };
+        let outcome = match selected {
+            Some((title, origin)) => {
+                let before = self.out.next_seq();
+                self.rename(process, title, origin).await;
+                if self.out.next_seq() == before {
+                    crate::TitleUpdate::Kept
+                } else {
+                    crate::TitleUpdate::Applied
+                }
+            }
+            None => crate::TitleUpdate::Kept,
+        };
+        // A cancelled caller does not roll back a committed title.
+        let _gone = rename.done.send(outcome);
     }
 
     /// The title an untitled session takes from a prompt: the first text
@@ -174,9 +182,15 @@ impl Lifecycle {
     }
 
     /// Publish `title` as the session's title.
-    pub(crate) async fn rename<P: Stoppable>(&mut self, process: &mut P, title: SessionTitle) {
+    pub(crate) async fn rename<P: Stoppable>(
+        &mut self,
+        process: &mut P,
+        title: SessionTitle,
+        origin: vessel_proto::TitleOrigin,
+    ) {
         self.titled = true;
-        self.publish(process, SessionEvent::Renamed { title }).await;
+        self.publish(process, SessionEvent::Renamed { title, origin })
+            .await;
     }
 
     /// Publish a status change.
