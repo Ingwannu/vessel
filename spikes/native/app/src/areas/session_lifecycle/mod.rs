@@ -6,13 +6,13 @@ mod tests;
 pub(crate) use state::{Disposition, LifecycleResources};
 
 use crate::areas::layout::residents::{SessionAdmission, SessionResources};
-use vessel_app_view::residents::{ResidentProblem, ResidentToken};
+use vessel_app_view::residents::{FollowBinding, ResidentProblem, ResidentToken};
 use vessel_proto::{OptionChoice, SessionInfo};
 
 /// Domain values only; actual fields, selection/undo and forms stay in the bundle.
 #[derive(Debug)]
 pub(crate) struct Snapshot {
-    resident: ResidentToken,
+    binding: FollowBinding,
     info: Box<SessionInfo>,
     choices: Vec<OptionChoice>,
 }
@@ -67,13 +67,13 @@ impl Snapshot {
             },
         );
         Ok(Self {
-            resident,
+            binding: admission.binding,
             info: info.clone(),
             choices,
         })
     }
     pub(crate) const fn resident(&self) -> ResidentToken {
-        self.resident
+        self.binding.resident
     }
     pub(crate) fn info(&self) -> &SessionInfo {
         &self.info

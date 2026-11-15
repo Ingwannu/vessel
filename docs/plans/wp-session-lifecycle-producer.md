@@ -1,6 +1,6 @@
 # Minimal staged lifecycle resource producer
 
-Status: source preparation on announced app base `82ca07a7`; not consumer-ready.
+Status: source preparation on announced app base `a7aab9d6`; not consumer-ready.
 The full A2 source/test snapshot `6859d9314` remains unchanged and separate.
 
 ## Decision Log
@@ -36,6 +36,15 @@ Only original delivery validity followed by canonical receive may call
 context resident, binding/address and actual open/shown/metadata IDs. It never
 infers origin from global Open or a legacy binding, and never refreshes visibility
 merely to install hidden fresh metadata.
+
+Snapshot retains the exact FollowBinding, not just its stable resident token.
+prepare must match that binding. Full retirement of a Ready snapshot's binding
+changes its own hold to Loading while retaining cached launch values; guarded
+metadata on the new binding is required before a new lifecycle intent. Dismissing
+a retired decision likewise returns to Loading. A stale retirement notice cannot
+invalidate a newly hydrated successor. Sending/Uncertain input retention is
+unchanged. This is full-retirement freshness, not the expected-end sealing policy;
+the latter and ACK-held Window work remain a separate coordinated amendment.
 
 Failure Disposition is an actor-correlated local fact. NoSend means definite
 pre-poll/pre-effect refusal; late errors, lost replies and timeouts remain

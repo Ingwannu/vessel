@@ -269,8 +269,21 @@ fn exact_decision_and_single_use_canonical_settlement_gate_completion(cx: &mut T
             .unwrap();
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Overlay));
         owner.dismiss(old);
+        assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
         let fresh = residents
             .begin_follow(context.resident, |_, _| panic!("already retired"))
+            .unwrap();
+        assert_eq!(
+            owner.prepare(fresh, LifecycleAction::Exit),
+            Err(Problem::Held)
+        );
+        let refreshed = SessionAdmission {
+            connection: admission.connection.clone(),
+            context: context.clone(),
+            binding: fresh,
+        };
+        owner
+            .hydrate(received_snapshot(residents, &refreshed).unwrap())
             .unwrap();
         let decision = owner.prepare(fresh, LifecycleAction::Exit).unwrap();
         assert_ne!(old, decision);
@@ -294,6 +307,79 @@ fn exact_decision_and_single_use_canonical_settlement_gate_completion(cx: &mut T
                 .is_err()
         );
         assert_eq!(owner.readiness(), OwnerReadiness::Ready);
+    });
+}
+
+#[gpui::test]
+fn a_same_resident_reattach_requires_new_binding_hydration_before_lifecycle_intent(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let admission = admitted(shell, window, cx);
+        let context = admission.context.clone();
+        let residents = &mut shell.areas.session_residents;
+        let mut owner = LifecycleResources::staged();
+        owner
+            .hydrate(received_snapshot(residents, &admission).unwrap())
+            .unwrap();
+        residents
+            .resources_mut(&context)
+            .unwrap()
+            .session
+            .composer
+            .set_text(" keep across reattach ", window, cx);
+        let mut previous = None;
+        let fresh = residents
+            .begin_follow(context.resident, |_, notice| {
+                owner.retired(notice);
+                previous = Some(notice.clone());
+            })
+            .unwrap();
+        assert_ne!(fresh, admission.binding);
+        assert_eq!(fresh.resident, admission.binding.resident);
+        assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
+        assert!(matches!(owner.take_clean_snapshot(), Err(Problem::Held)));
+        assert_eq!(
+            owner.prepare(fresh, LifecycleAction::Fresh),
+            Err(Problem::Held)
+        );
+        assert_eq!(
+            residents
+                .resources(&context)
+                .unwrap()
+                .conversation
+                .info
+                .as_ref()
+                .unwrap()
+                .id,
+            context.resident.address.session
+        );
+        let refreshed = SessionAdmission {
+            connection: admission.connection.clone(),
+            context: context.clone(),
+            binding: fresh,
+        };
+        owner
+            .hydrate(received_snapshot(residents, &refreshed).unwrap())
+            .unwrap();
+        assert_eq!(
+            owner.prepare(admission.binding, LifecycleAction::Fresh),
+            Err(Problem::WrongResource)
+        );
+        owner.retired(previous.as_ref().unwrap());
+        assert_eq!(owner.readiness(), OwnerReadiness::Ready);
+        assert!(owner.prepare(fresh, LifecycleAction::Fresh).is_ok());
+        assert_eq!(
+            residents
+                .resources(&context)
+                .unwrap()
+                .session
+                .composer
+                .text(cx),
+            " keep across reattach "
+        );
     });
 }
 

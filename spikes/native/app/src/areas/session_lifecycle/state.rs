@@ -84,7 +84,7 @@ impl LifecycleResources {
             return Err(Problem::Held);
         }
         let snapshot = self.snapshot.as_ref().ok_or(Problem::Loading)?;
-        if snapshot.resident() != binding.resident {
+        if snapshot.binding != binding {
             return Err(Problem::WrongResource);
         }
         let decision = self.next_decision.ok_or(Problem::Exhausted)?;
@@ -157,6 +157,16 @@ impl LifecycleResources {
     }
     pub(crate) fn retired(&mut self, retirement: &FollowRetirement) {
         match self.phase {
+            Phase::Ready
+                if self
+                    .snapshot
+                    .as_ref()
+                    .is_some_and(|snapshot| snapshot.binding == retirement.binding()) =>
+            {
+                // Cached launch values remain available, but only metadata
+                // received on the replacement binding can authorize intent.
+                self.phase = Phase::Loading;
+            }
             Phase::Decision(decision) if decision.binding == retirement.binding() => {
                 self.phase = Phase::RevokedDecision(decision);
             }
@@ -188,9 +198,19 @@ impl LifecycleResources {
         }
     }
     pub(crate) fn dismiss(&mut self, decision: LifecycleTicket) {
-        if matches!(self.phase, Phase::Decision(expected) | Phase::RevokedDecision(expected) if expected.ticket == decision)
-        {
-            self.phase = Phase::Ready;
+        match self.phase {
+            Phase::Decision(expected) if expected.ticket == decision => {
+                self.phase = Phase::Ready;
+            }
+            Phase::RevokedDecision(expected) if expected.ticket == decision => {
+                self.phase = Phase::Loading;
+            }
+            Phase::Loading
+            | Phase::Ready
+            | Phase::Decision(_)
+            | Phase::RevokedDecision(_)
+            | Phase::Sending(_)
+            | Phase::Uncertain(_) => {}
         }
     }
     /// Uncertain effects and retained confirmations cannot become clean by hydration.
