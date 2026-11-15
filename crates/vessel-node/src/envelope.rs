@@ -39,13 +39,15 @@
 use vessel_proto::{
     Ack, Call, Callback, Deliver, ErrorCode, FleetNode, ForgetNode, Forward, Forwarded,
     GetCallback, GrantHome, ListNodes, ListPeers, Method, NodeForgotten, NodeId, Origin, OriginBy,
-    RelayCall, Reply, Request, Scope, WireError,
+    Reply, Request, Scope, WireError,
 };
 
 use crate::guard::Guarded;
 use crate::principal::Principal;
 use crate::service::{Connection, NodeService};
 use crate::waits::{Share, WaitSlot, Waiter};
+
+mod route;
 
 fn forbidden(message: &str) -> WireError {
     WireError::new(ErrorCode::Forbidden, message.to_owned())
@@ -100,7 +102,23 @@ impl NodeService {
         }
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.passed_wait(connection, shares, &mut call);
-        self.pass_on(connection.principal(), node, call).await
+        let route = self
+            .pass_route(connection.principal(), node, &mut call)
+            .await?;
+        let forwarded = route.call(call).await?;
+        let permitted = connection
+            .principal()
+            .permit(vessel_proto::CloseTransfer::METHOD);
+        self.settle_export(
+            &forwarded,
+            connection.protocol(),
+            move |transfer| async move {
+                permitted?;
+                route.close(transfer).await
+            },
+        )
+        .await?;
+        Ok(forwarded)
     }
 
     /// Run `call` on fleet node `node` (another node) for `principal`: the
@@ -113,31 +131,34 @@ impl NodeService {
         &self,
         principal: &Principal,
         node: NodeId,
-        call: Box<Call>,
+        mut call: Box<Call>,
     ) -> Result<Forwarded, WireError> {
+        self.pass_route(principal, node, &mut call)
+            .await?
+            .call(call)
+            .await
+    }
+
+    async fn pass_route(
+        &self,
+        principal: &Principal,
+        node: NodeId,
+        call: &mut Call,
+    ) -> Result<route::Route, WireError> {
         forwardable(call.method())?;
         principal.permit(call.method())?;
-        let origin = self.origin_of(principal)?;
-        if self.links.is_home() {
-            self.links.call_member(node, Deliver { call, origin }).await
-        } else if self.links.is_member() {
-            self.links.call_home(RelayCall { node, call, origin }).await
-        } else {
-            Err(WireError::new(
-                ErrorCode::NotFound,
-                format!("this node is in no fleet, so it cannot reach node {node}"),
-            ))
-        }
+        self.inherit_forwarded_listing(principal, call).await?;
+        route::Route::forward(&self.links, node, self.origin_of(principal)?)
     }
 
     /// `fleet.relay` (the home): pass a member's call on, or run it here.
     pub(crate) async fn relay(
         &self,
         connection: &Connection,
-        request: RelayCall,
+        request: vessel_proto::RelayCall,
         guard: &Guarded,
     ) -> Result<Forwarded, WireError> {
-        let RelayCall { node, call, origin } = request;
+        let vessel_proto::RelayCall { node, call, origin } = request;
         forwardable(call.method())?;
         let Principal::Device { id, scopes } = connection.principal() else {
             return Err(forbidden("only a fleet member's device relays calls"));
@@ -166,7 +187,13 @@ impl NodeService {
         let mut shares = Waiter::origin(&origin).shares(self.links.node());
         shares.push(Share::Relay(*id));
         let _slot = self.passed_wait(connection, shares, &mut call);
-        self.links.call_member(node, Deliver { call, origin }).await
+        let route = route::Route::member(&self.links, node, origin);
+        let forwarded = route.call(call).await?;
+        self.settle_export(&forwarded, connection.protocol(), move |transfer| {
+            route.close(transfer)
+        })
+        .await?;
+        Ok(forwarded)
     }
 
     /// `fleet.deliver` (a member): run a call the home delivered, as the
