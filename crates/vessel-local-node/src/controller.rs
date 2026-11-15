@@ -249,7 +249,7 @@ async fn connect(
     identity: &crate::node_files::Identity,
 ) -> Result<NodeClient, Error> {
     let client = NodeClient::connect_local(
-        &identity.endpoint,
+        identity.endpoint.path(),
         &identity.credential,
         launch.client().clone(),
     )

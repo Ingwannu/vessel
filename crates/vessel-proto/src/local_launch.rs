@@ -1,6 +1,6 @@
 //! Dedicated child readiness is separate from human logs and authenticated RPC.
 //!
-//! The launcher still authenticates the local token and checks NodeId/Serving
+//! The launcher still authenticates the local token and checks `NodeId`/Serving
 //! after reading this record. A readiness line never grants process ownership.
 
 use crate::NodeId;

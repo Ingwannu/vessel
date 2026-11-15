@@ -91,8 +91,8 @@ impl Owned {
         // Keep draining stderr until direct-child exit even after all UI handles
         // disappear. This task ends with the original launcher runtime.
         drop(tokio::spawn(async move {
-            let _logs = logs;
             let _observed = reaped.wait().await;
+            drop(logs);
         }));
         Ok(KeptNode { detached })
     }

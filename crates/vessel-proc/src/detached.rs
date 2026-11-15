@@ -124,7 +124,6 @@ pub(crate) fn start(
     drop(runtime.spawn(async move {
         // Retain the exact OS child and its launch facts until it is reaped;
         // dropping every observer never becomes an implicit stop operation.
-        let _identity = retained;
         if let Some(mut inner) = inner {
             let result = match os::wait_for_leader(&mut inner).await {
                 Ok(status) => State::Exited(status.code()),
@@ -132,6 +131,7 @@ pub(crate) fn start(
             };
             let _unobserved = state.send_replace(result);
         }
+        drop(retained);
     }));
     Detached {
         state: receiver,

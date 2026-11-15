@@ -31,8 +31,15 @@ pub enum FilesError {
 
 pub(crate) struct Identity {
     pub(crate) node: NodeId,
-    pub(crate) endpoint: PathBuf,
+    pub(crate) endpoint: Endpoint,
     pub(crate) credential: LocalCredential,
+}
+
+pub(crate) struct Endpoint(PathBuf);
+impl Endpoint {
+    pub(crate) fn path(&self) -> &Path {
+        &self.0
+    }
 }
 
 /// Keeping this guard alive serializes cooperating starts without PID authority.
@@ -81,7 +88,7 @@ impl NodeHome {
             let token: BearerToken = token.expose().parse().map_err(FilesError::Credential)?;
             Ok(Some(Identity {
                 node,
-                endpoint: dir.local_endpoint(node),
+                endpoint: Endpoint(dir.local_endpoint(node)),
                 credential: LocalCredential::Token(token),
             }))
         })

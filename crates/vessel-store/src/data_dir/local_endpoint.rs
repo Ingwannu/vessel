@@ -17,15 +17,15 @@ impl DataDir {
     /// Windows pipe spelling beside this directory layout prevents client and
     /// node launchers from independently inventing the endpoint.
     #[must_use]
+    #[cfg(unix)]
+    pub fn local_endpoint(&self, _node: NodeId) -> PathBuf {
+        self.socket_path()
+    }
+
+    /// Windows uses one pipe spelling for the authenticated node identity.
+    #[must_use]
+    #[cfg(windows)]
     pub fn local_endpoint(&self, node: NodeId) -> PathBuf {
-        #[cfg(unix)]
-        {
-            let _node = node;
-            self.socket_path()
-        }
-        #[cfg(windows)]
-        {
-            PathBuf::from(format!(r"\\.\pipe\vessel-node-{node}"))
-        }
+        PathBuf::from(format!(r"\\.\pipe\vessel-node-{node}"))
     }
 }
