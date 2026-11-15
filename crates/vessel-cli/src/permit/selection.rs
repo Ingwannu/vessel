@@ -30,3 +30,31 @@ pub(super) fn scope(
         (Direction::Allow | Direction::Deny, Some(request)) => Ok(Scope::One(request)),
     }
 }
+
+/// A request prefix is resolved only among this exact agent's pending rows.
+/// Ambiguity is refused before any live-form lookup or response effect.
+pub(crate) fn select(
+    rows: &[super::pending::Row],
+    session: vessel_proto::SessionId,
+    scope: &Scope<'_>,
+) -> Result<Vec<super::pending::Row>, crate::error::CliError> {
+    let own: Vec<_> = rows
+        .iter()
+        .filter(|row| row.agent_id == session)
+        .cloned()
+        .collect();
+    if own.is_empty() {
+        return Err(crate::error::CliError::Usage(
+            "this agent has no pending requests",
+        ));
+    }
+    match scope {
+        Scope::All => Ok(own),
+        Scope::One(prefix) => Ok(vec![
+            prefix.pick(&own, |row| row.id, "pending request")?.clone(),
+        ]),
+    }
+}
+
+#[cfg(test)]
+mod tests;

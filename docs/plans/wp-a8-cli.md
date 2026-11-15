@@ -60,3 +60,9 @@ returns rows only after all pages succeed. A maximum of 10,000 pending rows or
 Every selected form is reloaded by its exact InboxKey before a response batch;
 resolved, substituted and still-compact forms refuse preflight. The response
 runtime is intentionally absent until W23's reviewed rich receipt contract.
+
+Selection is scoped to the resolved agent SessionId before request-prefix lookup.
+An ambiguous prefix refuses before form lookup or mutation, including a future
+collision between permission/question UUID text. `allow` omitted scope remains
+all; denial still needs explicit scope. This intentionally follows Vessel's
+existing unambiguous selector contract rather than Paseo's first-match shortcut.
