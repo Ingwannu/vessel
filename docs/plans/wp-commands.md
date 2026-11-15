@@ -687,3 +687,13 @@ CodeEditor marked-Hangul/focus-switch/commit regressions all executed and passed
 This closes the earlier two fixture failures and the control packet's previously
 unexecuted IME case. Later c526/FieldId/menu/FileQuery/whitespace union remains a
 different source and receives its own combined narrow validation next.
+
+S2 hint integration boundary: primary_keys/binding_id are not independently
+portable onto the old Action-level registry. Their per-binding Definition,
+ShortcutContext and KeySequence identities arrive with the canonical action enum
+and native exhaustive dispatcher. S2 keeps its existing one bindings_of adapter
+until that coherent producer lands, then replaces that one adapter; chord_caps
+already exists on the shared line. No second default table, fabricated binding
+id, partial enum migration or whole moving F4 branch is handed over as a tiny
+hint producer. NewWorkspace/NewSession and command-center/Palette typed variant
+identities stay stable across the eventual adapter change.
