@@ -126,6 +126,12 @@ Proto name/color tests (2) and proto clippy passed on the node value commit
 name/color/assignment/count definitions are no longer duplicated in view.
 The new root values make the root gate required at package close as well.
 
+Client replica now stages atomic snapshot/catch-up validation. A gap, wrong
+generation/base/head, or duplicate snapshot identity requests a full resync
+without partially changing the cached catalog. Disconnect/load failure keeps
+colors cached and revokes write authority. Four new regression tests are
+pending; no subscription or reconnect RPC is claimed wired.
+
 Follow-up behavior: create failure retains its safe error and exact draft;
 a later successful toggle of a different label cannot erase an earlier
 concurrent failure; hiding/reopening a manager preserves in-flight work.
