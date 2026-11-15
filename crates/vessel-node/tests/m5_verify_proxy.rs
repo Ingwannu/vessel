@@ -462,22 +462,52 @@ async fn verify_canonical_errors_escaped_keys_id_comments_and_multiline_data() {
         }
     }).await;
 }
+/// The product deadlines `verify_header_and_body_deadlines_recover_capacity`
+/// waits out: the request head's (vessel-node `models::listen::HEADER_READ`)
+/// and a body's (`models::proxy::BODY_DEADLINE`). Mirrored here because
+/// they are the crate's own; a change there must change these.
+const HEADER_READ: Duration = Duration::from_secs(10);
+const BODY_DEADLINE: Duration = Duration::from_secs(30);
+/// How late each 408 may arrive after its deadline.
+const SLACK: Duration = Duration::from_secs(2);
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn verify_header_and_body_deadlines_recover_capacity() {
-    support::within(async {
-        let rig=Rig::start("anthropic-messages").await;
-        let mut headers=TcpStream::connect(rig.addr).await.unwrap();
-        headers.write_all(b"GET /v1/models HTTP/1.1\r\nHost:").await.unwrap();
-        let ended=tokio::time::timeout(Duration::from_secs(12),read_one(&mut headers)).await.unwrap();
-        assert_eq!(ended.status,408);
-        drop(headers);
-        let mut body=TcpStream::connect(rig.addr).await.unwrap();
-        body.write_all(format!("POST /v1/messages HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {}\r\nExpect: 100-continue\r\nContent-Length: 100\r\nConnection: close\r\n\r\n",rig.addr,rig.token).as_bytes()).await.unwrap();
-        assert_eq!(read_one(&mut body).await.status,100);
-        let ended=tokio::time::timeout(Duration::from_secs(32),read_one(&mut body)).await.unwrap();
-        assert_eq!(ended.status,408);
-        drop(body);
-        assert_eq!(rig.call("/v1/messages","{").await.status,400);
-        rig.stop().await;
-    }).await;
+    // Two clocks (2026-11-14). The test waits out both product deadlines,
+    // 44 s with their slack; inside the one common 60 s net that left 16 s
+    // for the node, the session and the proxy to start, which a loaded
+    // machine missed (a track's gate, start-up 19 s at load 23). Start-up
+    // keeps the common net; the deadline phase gets the two waits plus the
+    // common net for the rest of its steps. No deadline or assertion moved.
+    let rig = support::within(Rig::start("anthropic-messages")).await;
+    let phase = HEADER_READ + BODY_DEADLINE + 2 * SLACK + support::SAFETY_NET;
+    vessel_testkit::within(
+        phase,
+        Box::pin(async {
+            let mut headers = TcpStream::connect(rig.addr).await.unwrap();
+            headers
+                .write_all(b"GET /v1/models HTTP/1.1\r\nHost:")
+                .await
+                .unwrap();
+            let ended = tokio::time::timeout(HEADER_READ + SLACK, read_one(&mut headers))
+                .await
+                .unwrap();
+            assert_eq!(ended.status, 408);
+            drop(headers);
+            let mut body = TcpStream::connect(rig.addr).await.unwrap();
+            body.write_all(format!("POST /v1/messages HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {}\r\nExpect: 100-continue\r\nContent-Length: 100\r\nConnection: close\r\n\r\n", rig.addr, rig.token).as_bytes())
+                .await
+                .unwrap();
+            assert_eq!(read_one(&mut body).await.status, 100);
+            let ended = tokio::time::timeout(BODY_DEADLINE + SLACK, read_one(&mut body))
+                .await
+                .unwrap();
+            assert_eq!(ended.status, 408);
+            drop(body);
+            assert_eq!(rig.call("/v1/messages", "{").await.status, 400);
+            rig.stop().await;
+        }),
+    )
+    .await
+    .expect("the deadline phase timed out");
 }

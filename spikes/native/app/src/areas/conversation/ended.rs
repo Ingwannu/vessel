@@ -73,7 +73,7 @@ pub(super) fn banner(
     // records say so before the node's description is read again.
     let status = area.timeline.status().unwrap_or(&info.status);
     if let Some(why) = empty_fork(status) {
-        return Some(empty_fork_banner(shell, &why, tokens, narrow, cx));
+        return Some(empty_fork_banner(shell, why, tokens, narrow, cx));
     }
     // Slice M (the owner, 2026-11-14: as in Paseo, the next message
     // starts an ended agent again): a session that ended and can go on has
@@ -94,17 +94,17 @@ pub(super) fn banner(
 /// refused Remove (the node's words) under it.
 fn empty_fork_banner(
     shell: &Shell,
-    why: &EmptyFork,
+    why: EmptyFork,
     tokens: &Tokens,
     narrow: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let area = &shell.areas.conversation;
-    let words = shell.t.lang.conversation();
+    let words = shell.words.fork();
     let going = area.forking.removing();
     let remove = button_with_kind(
         "empty-fork-remove",
-        words.remove_fork(),
+        words.remove(),
         ButtonKind::Secondary,
         if going {
             ButtonState::Disabled
@@ -117,12 +117,8 @@ fn empty_fork_banner(
     .when(!going, |button| {
         button.on_click(cx.listener(|shell, _event, _window, cx| shell.empty_fork_remove(cx)))
     });
-    let callout = callout(
-        (words.empty_fork_heading(), words.empty_fork_line(why)),
-        Some(remove),
-        tokens,
-        narrow,
-    );
+    let line = why.words(shell.words);
+    let callout = callout((words.empty_heading(), line), Some(remove), tokens, narrow);
     let refused = area
         .refused
         .as_ref()
@@ -197,7 +193,7 @@ fn with_refusal(callout: Div, refused: Option<String>, tokens: &Tokens) -> AnyEl
 /// Paseo's callout: a heading and a line at the left, a button at the
 /// right when there is one.
 fn callout(
-    (heading, line): (&'static str, String),
+    (heading, line): (&'static str, impl Into<vessel_app_kit::ui::SharedString>),
     button: Option<Stateful<Div>>,
     tokens: &Tokens,
     narrow: bool,
@@ -219,7 +215,7 @@ fn callout(
             div()
                 .type_(Type::Body)
                 .text_color(neutral.foreground_muted)
-                .child(line),
+                .child(line.into()),
         );
     div()
         .flex()

@@ -207,7 +207,8 @@ fn problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        vessel_client::CallError::NotInProtocol { .. } => {
+        vessel_client::CallError::NotInProtocol { .. }
+        | vessel_client::CallError::UnassignedProtocol { .. } => {
             Problem::Refused(vessel_proto::ErrorCode::Unsupported)
         }
         vessel_client::CallError::UnexpectedReply(_) => Problem::InvalidReply,
@@ -218,6 +219,15 @@ fn problem(error: vessel_client::CallError) -> Problem {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+    #[test]
+    fn an_unassigned_call_is_unsupported() {
+        assert_eq!(
+            problem(vessel_client::CallError::UnassignedProtocol {
+                method: vessel_proto::Method::NodeInfo,
+            }),
+            Problem::Refused(vessel_proto::ErrorCode::Unsupported)
+        );
+    }
     #[test]
     fn a_peer_cannot_echo_a_credential_through_an_error_or_debug() {
         let raw = "a-credential-that-a-faulty-peer-echoed";
