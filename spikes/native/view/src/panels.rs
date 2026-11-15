@@ -43,6 +43,114 @@ pub const SIDEBAR: Limits = Limits {
     beside: 400.0,
 };
 
+/// Paseo compact layouts are below 600 (`constants/layout.ts:36`), independent
+/// of the native shell's 768-point phone chrome and other areas.
+pub const SIDEBAR_COMPACT: f32 = 600.0;
+/// Paseo settings split minimum: navigation 320 plus detail 400.
+pub const SETTINGS_CONTENT_MINIMUM: f32 = 720.0;
+
+/// Whether the sidebar uses a transient overlay or can dock beside content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SidebarForm {
+    /// Compact: its own sheet state, independent of desktop visibility.
+    Sheet,
+    /// Wide: persistent visibility and shared width budget apply.
+    Docked,
+}
+
+/// What must remain usable beside the sidebar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SidebarContext {
+    /// The normal workspace, with an optional code panel.
+    Workspace(Option<Placement>),
+    /// Settings' list/detail content.
+    Settings,
+}
+
+/// Whether the requested native sidebar and content minimum can coexist.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sharing {
+    /// Both fit after clamping the sidebar to its limits.
+    Fits,
+    /// Keeping the sidebar would reduce the content below its minimum.
+    TooNarrow,
+}
+
+/// One computed sidebar placement, also consumed by Settings' future compact
+/// fallback. The Settings exception preserves its only navigation path today.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SidebarLayout {
+    /// Compact overlay, opened/closed independently by the shell.
+    Sheet,
+    /// Desktop preference is hidden or the workspace cannot share the row.
+    Hidden,
+    /// Docked width and the real budget result (Settings may be `TooNarrow`).
+    Docked {
+        /// Whole logical points after native frame insets and clamping.
+        width: f32,
+        /// Settings uses this result instead of copying a width constant.
+        sharing: Sharing,
+    },
+}
+
+/// Sidebar-only form factor, without changing the global phone breakpoint.
+#[must_use]
+pub fn sidebar_form(viewport: f32) -> SidebarForm {
+    if !viewport.is_finite() || viewport < SIDEBAR_COMPACT {
+        SidebarForm::Sheet
+    } else {
+        SidebarForm::Docked
+    }
+}
+
+/// Minimum content for the named route; code placement remains one policy.
+#[must_use]
+pub fn sidebar_minimum(context: SidebarContext) -> f32 {
+    match context {
+        SidebarContext::Workspace(code) => sidebar_leaves(code),
+        SidebarContext::Settings => SETTINGS_CONTENT_MINIMUM,
+    }
+}
+
+/// Reference `canDesktopAppSidebarShare`, measured inside the native frame.
+#[must_use]
+pub fn sidebar_share(room: f32, width: f32, context: SidebarContext) -> Sharing {
+    if width.mul_add(-1.0, room) >= sidebar_minimum(context) {
+        Sharing::Fits
+    } else {
+        Sharing::TooNarrow
+    }
+}
+
+/// Compute form, width and auto-hiding once from typed route/preference facts.
+/// Settings temporarily remains docked when too narrow: its sidebar is its
+/// only navigation, unlike Paseo's independent settings split. E2 will consume
+/// `sharing` for a list/back stack before that exception may be removed.
+#[must_use]
+pub fn sidebar_layout(
+    viewport: f32,
+    room: f32,
+    asked: Option<f32>,
+    preference: crate::prefs::Panel,
+    context: SidebarContext,
+) -> SidebarLayout {
+    if sidebar_form(viewport) == SidebarForm::Sheet {
+        return SidebarLayout::Sheet;
+    }
+    if preference == crate::prefs::Panel::Hidden {
+        return SidebarLayout::Hidden;
+    }
+    let width = SIDEBAR.width_leaving(asked, room, sidebar_minimum(context));
+    let sharing = sidebar_share(room, width, context);
+    match (context, sharing) {
+        (SidebarContext::Workspace(_), Sharing::TooNarrow) => SidebarLayout::Hidden,
+        (SidebarContext::Workspace(_), Sharing::Fits)
+        | (SidebarContext::Settings, Sharing::Fits | Sharing::TooNarrow) => {
+            SidebarLayout::Docked { width, sharing }
+        }
+    }
+}
+
 /// The code panel beside a session.
 pub const CODE_PANEL: Limits = Limits {
     least: 320.0,
@@ -206,5 +314,113 @@ mod tests {
         assert!(near(over_width(Some(1600.0), 480.0), 480.0));
         assert!(near(over_width(None, 480.0), 440.0));
         assert!(near(over_width(Some(100.0), 480.0), 320.0));
+    }
+}
+
+#[cfg(test)]
+mod sidebar_policy_tests {
+    use super::*;
+    use crate::prefs::Panel;
+    #[test]
+    fn sidebar_only_compact_boundary_is_six_hundred() {
+        for width in [-1.0, 390.0, 599.99, f32::NAN] {
+            assert_eq!(sidebar_form(width), SidebarForm::Sheet);
+        }
+        for width in [600.0, 650.0, 767.0, 768.0, 1280.0] {
+            assert_eq!(sidebar_form(width), SidebarForm::Docked);
+        }
+    }
+    #[test]
+    fn workspace_auto_hides_but_settings_retains_its_only_navigation_until_fallback() {
+        let workspace = SidebarContext::Workspace(None);
+        assert_eq!(
+            sidebar_layout(600.0, 588.0, None, Panel::Shown, workspace),
+            SidebarLayout::Hidden
+        );
+        assert_eq!(
+            sidebar_layout(612.0, 600.0, None, Panel::Shown, workspace),
+            SidebarLayout::Docked {
+                width: 200.0,
+                sharing: Sharing::Fits
+            }
+        );
+        assert_eq!(
+            sidebar_layout(800.0, 788.0, Some(600.0), Panel::Shown, workspace),
+            SidebarLayout::Docked {
+                width: 388.0,
+                sharing: Sharing::Fits
+            }
+        );
+        assert_eq!(
+            sidebar_layout(800.0, 788.0, None, Panel::Shown, SidebarContext::Settings),
+            SidebarLayout::Docked {
+                width: 200.0,
+                sharing: Sharing::TooNarrow
+            }
+        );
+        assert_eq!(
+            sidebar_layout(932.0, 920.0, None, Panel::Shown, SidebarContext::Settings),
+            SidebarLayout::Docked {
+                width: 200.0,
+                sharing: Sharing::Fits
+            }
+        );
+        assert_eq!(
+            sidebar_layout(
+                1280.0,
+                1268.0,
+                Some(600.0),
+                Panel::Shown,
+                SidebarContext::Settings
+            ),
+            SidebarLayout::Docked {
+                width: 548.0,
+                sharing: Sharing::Fits
+            }
+        );
+        assert_eq!(
+            sidebar_layout(800.0, 788.0, None, Panel::Hidden, SidebarContext::Settings),
+            SidebarLayout::Hidden
+        );
+        assert_eq!(
+            sidebar_layout(390.0, 378.0, None, Panel::Hidden, workspace),
+            SidebarLayout::Sheet
+        );
+    }
+    #[test]
+    fn code_budget_and_intended_native_default_are_not_redefined() {
+        assert_eq!(
+            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Beside))).to_bits(),
+            800.0_f32.to_bits()
+        );
+        assert_eq!(
+            sidebar_minimum(SidebarContext::Workspace(Some(Placement::Over))).to_bits(),
+            480.0_f32.to_bits()
+        );
+        assert_eq!(
+            sidebar_minimum(SidebarContext::Settings).to_bits(),
+            720.0_f32.to_bits()
+        );
+        assert_eq!(
+            sidebar_layout(
+                1280.0,
+                1268.0,
+                None,
+                Panel::Shown,
+                SidebarContext::Workspace(None)
+            ),
+            SidebarLayout::Docked {
+                width: 264.0,
+                sharing: Sharing::Fits
+            }
+        );
+        assert_eq!(
+            sidebar_share(900.0, 200.0, SidebarContext::Settings),
+            Sharing::TooNarrow
+        );
+        assert_eq!(
+            sidebar_share(920.0, 200.0, SidebarContext::Settings),
+            Sharing::Fits
+        );
     }
 }
