@@ -66,7 +66,7 @@ fn failure(error: &SettingsError) -> WireError {
             ErrorCode::InvalidRequest
         }
         SettingsError::NoDirect(_) => ErrorCode::Unsupported,
-        SettingsError::Kept(_) => ErrorCode::Conflict,
+        SettingsError::Kept(_) | SettingsError::Stopping => ErrorCode::Conflict,
         SettingsError::Write(_)
         | SettingsError::Lost(_)
         | SettingsError::Reload(vessel_store::ReloadSettingsError::Read(_)) => ErrorCode::Internal,

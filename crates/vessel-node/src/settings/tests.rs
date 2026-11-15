@@ -2,7 +2,7 @@
 
 use super::*;
 
-fn settings(root: &std::path::Path, flag: ParkAfter) -> Settings {
+fn settings(root: &std::path::Path, flag: ParkAfter) -> Arc<Settings> {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
@@ -15,7 +15,12 @@ fn settings(root: &std::path::Path, flag: ParkAfter) -> Settings {
         },
         tokio_util::sync::CancellationToken::new(),
     );
-    Settings::open(DataDir::new(root), Arc::new(runtime), flag, false)
+    Arc::new(Settings::open(
+        DataDir::new(root),
+        Arc::new(runtime),
+        flag,
+        false,
+    ))
 }
 
 #[tokio::test]

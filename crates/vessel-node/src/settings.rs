@@ -48,6 +48,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use tokio::sync::Mutex;
+use tokio_util::task::TaskTracker;
+
+mod writer;
+#[cfg(test)]
+mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
@@ -60,12 +65,9 @@ use vessel_store::{DataDir, SetAside};
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SettingsError {
-    /// Explicit reload never falls back after a failed read or validation.
-    #[error("the saved settings could not be reloaded: {0}")]
-    Reload(#[from] vessel_store::ReloadSettingsError),
-    /// Unknown reset keys cannot remove a future build's settings.
-    #[error(transparent)]
-    Key(#[from] UnknownSettingKey),
+    /// Shutdown has closed mutation admission, so no late writer may start.
+    #[error("the node is stopping; settings cannot be changed")]
+    Stopping,
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -87,6 +89,12 @@ pub(crate) enum SettingsError {
         "the settings could not be kept: settings.json could not be read at start and could not be moved aside ({0}); it is left as it is. Move or repair it, then restart the node"
     )]
     Kept(Arc<str>),
+    /// Explicit reload never falls back after a failed read or validation.
+    #[error("the saved settings could not be reloaded: {0}")]
+    Reload(#[from] vessel_store::ReloadSettingsError),
+    /// Unknown reset keys cannot remove a future build's settings.
+    #[error(transparent)]
+    Key(#[from] UnknownSettingKey),
 }
 
 /// The node's settings: the flags' values and what a person saved.
@@ -97,7 +105,11 @@ pub(crate) struct Settings {
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Mutex<SetNodeSettings>,
+    saved: Arc<Mutex<SetNodeSettings>>,
+    /// Writes survive caller cancellation and are joined at shutdown.
+    writers: TaskTracker,
+    #[cfg(test)]
+    gate: writer_tests::GateSlot,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -107,6 +119,17 @@ pub(crate) struct Settings {
 }
 
 impl Settings {
+    /// Keep the node startup adapter beside saved-value precedence, not in its
+    /// already large composition function. This reads only the passed config.
+    pub(crate) fn for_config(config: &crate::Config, runtime: Arc<SessionRuntime>) -> Self {
+        Self::open(
+            config.data_dir.clone(),
+            runtime,
+            ParkAfter::from_duration(config.park_after),
+            config.park_after_given,
+        )
+    }
+
     /// Read `settings.json` and apply what it holds to `runtime`. A file
     /// that cannot be used is moved aside and logged, and the flags'
     /// values stand.
@@ -132,7 +155,10 @@ impl Settings {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved),
+            saved: Arc::new(Mutex::new(saved)),
+            writers: TaskTracker::new(),
+            #[cfg(test)]
+            gate: writer_tests::GateSlot::default(),
             kept,
             later: AtomicBool::new(later),
         };
@@ -191,11 +217,11 @@ impl Settings {
     /// Change what `change` names, keep it, then apply it; answers what is
     /// in force.
     pub(crate) async fn change(
-        &self,
+        self: &Arc<Self>,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         validate(change)?;
-        let mut saved = self.saved.lock().await;
+        let saved = Arc::clone(&self.saved).lock_owned().await;
         let mut next = *saved;
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
@@ -203,17 +229,20 @@ impl Settings {
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
-        self.replace(&mut saved, next).await
+        self.persist(saved, next).await
     }
 
     /// Remove saved overrides through the existing locked write-before-apply rule.
-    pub(crate) async fn unset(&self, keys: &SettingKeys) -> Result<NodeSettings, SettingsError> {
-        let mut saved = self.saved.lock().await;
+    pub(crate) async fn unset(
+        self: &Arc<Self>,
+        keys: &SettingKeys,
+    ) -> Result<NodeSettings, SettingsError> {
+        let saved = Arc::clone(&self.saved).lock_owned().await;
         let mut next = *saved;
         for key in keys.iter() {
             key.clear(&mut next)?;
         }
-        self.replace(&mut saved, next).await
+        self.persist(saved, next).await
     }
 
     /// Apply one complete validated disk snapshot under the mutation lock.
@@ -239,40 +268,6 @@ impl Settings {
             self.apply(&after);
         }
         Ok(report)
-    }
-
-    // The same locked replacement is reused by explicit override removal;
-    // no caller may publish settings before their atomic write succeeds.
-    async fn replace(
-        &self,
-        saved: &mut SetNodeSettings,
-        next: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if next == *saved {
-            return Ok(self.in_force(*saved));
-        }
-        if let Some(reason) = &self.kept {
-            return Err(SettingsError::Kept(Arc::clone(reason)));
-        }
-        let data_dir = self.data_dir.clone();
-        let later = self.later.load(Ordering::Relaxed);
-        let aside = tokio::task::spawn_blocking(move || {
-            let aside = later
-                .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
-                .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
-        })
-        .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
-        if let Some(aside) = aside {
-            tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
-            self.later.store(false, Ordering::Relaxed);
-        }
-        *saved = next;
-        let in_force = self.in_force(*saved);
-        self.apply(&in_force);
-        Ok(in_force)
     }
 }
 

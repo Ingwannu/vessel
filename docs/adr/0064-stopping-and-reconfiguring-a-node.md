@@ -1035,6 +1035,39 @@ must record zero invocations. All fixtures isolate HOME and XDG before
 service lookup. Actual manager behavior and macOS/Windows execution remain
 unverified by Linux fixtures.
 
+## Cancellation-safe settings publication
+
+[Decision Log]
+- Purpose and intent: cancelling an RPC must not let its still-running atomic
+  file replacement overtake a later settings change and leave disk and runtime
+  disagreeing. Shutdown must also wait for any write already admitted.
+- Existing implementation and constraints: a borrowed serialization guard lived
+  in the RPC future while spawn_blocking retained the actual writer. Dropping
+  the future released the guard without stopping the filesystem operation.
+  The original validation, later-file preservation, owner-only atomic writer
+  and saved-value precedence remain the required path.
+- Alternatives considered: abort the blocking task, hold a guard only inside
+  its filesystem closure, or detach an untracked task. Blocking I/O cannot be
+  cancelled once started; the second option releases serialization before
+  application; the last lets shutdown report completion before publication.
+- Selected approach: acquire an owned settings guard before writing and move it
+  into an independently scheduled task through I/O and runtime publication.
+  Its tracker token precedes the admission check, closing the race with tracker
+  shutdown. A cancelled caller drops only its result waiter. After closing and
+  joining RPC connections, node teardown closes writer admission and joins the
+  writers before closing the store. Late mutations receive typed Conflict.
+- Why this approach: one task owns the complete state transition; no second
+  writer, database, setting, wire version or dependency is introduced. Paseo's
+  daemon-config-store.ts 655–659 serializes operations in its promise queue;
+  Vessel explicitly owns the spawned task and shutdown join required by Rust
+  future cancellation. No additional parity claim about Paseo shutdown is made.
+- Advantages, costs and effects: an admitted write may complete after its caller
+  disconnects, and a blocked filesystem can delay node shutdown. Two one-shot
+  regressions pause the real blocking writer before file replacement, cancel
+  its caller, and check serialization, final disk/runtime agreement and shutdown
+  admission/join. No sleeps or replacement fake writer are used. Actual service
+  managers, other operating systems and service-account permissions remain
+  separate from these isolated fixtures.
 
 ## Reuse settings replacement before reset/reload
 
