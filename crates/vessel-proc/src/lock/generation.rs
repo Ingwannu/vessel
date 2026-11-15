@@ -8,10 +8,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::NodeProcess;
+use crate::proc_stat::{StartTicks, Stat};
 use crate::procfs::Record;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct StartTicks(u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Generation {
@@ -20,9 +18,11 @@ struct Generation {
 }
 
 impl Generation {
-    // Kernel stat field positions are format facts, not time/length budgets.
-    const FIRST_AFTER_COMM: usize = 3;
-    const START_TICKS: usize = 22;
+    // Fixture aliases preserve the old test text while the parser owns layout.
+    #[cfg(test)]
+    const FIRST_AFTER_COMM: usize = Stat::FIRST_AFTER_COMM;
+    #[cfg(test)]
+    const START_TICKS: usize = Stat::START_TICKS;
 
     fn read(path: &Path) -> io::Result<Self> {
         let record = Record::read(&path.join("stat"))?;
@@ -30,29 +30,9 @@ impl Generation {
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Error> {
-        let mut prefix = bytes.splitn(2, |byte| *byte == b' ');
-        let pid = prefix.next().ok_or(Error::Stat)?;
-        let rest = prefix.next().ok_or(Error::Stat)?;
-        let process = process(pid)?;
-        if rest.first() != Some(&b'(') {
-            return Err(Error::Stat);
-        }
-        // comm is opaque kernel bytes and may contain both spaces and ')'.
-        // The final ')' precedes the numeric stat fields, which have neither.
-        let close = rest
-            .iter()
-            .rposition(|byte| *byte == b')')
-            .ok_or(Error::Stat)?;
-        let fields = rest.get(close.saturating_add(1)..).ok_or(Error::Stat)?;
-        if !fields.first().is_some_and(u8::is_ascii_whitespace) {
-            return Err(Error::Stat);
-        }
-        let ticks = fields
-            .split(u8::is_ascii_whitespace)
-            .filter(|field| !field.is_empty())
-            .nth(Self::START_TICKS.saturating_sub(Self::FIRST_AFTER_COMM))
-            .ok_or(Error::Stat)?;
-        let started = number(ticks).map(StartTicks)?;
+        let record = Stat::split(bytes).map_err(Error::from)?;
+        let process = process(record.process())?;
+        let started = record.started().map_err(Error::from)?;
         Ok(Self { process, started })
     }
 }
@@ -216,6 +196,16 @@ enum Error {
     Namespace,
     #[error("process generation or namespace changed during observation")]
     Changed,
+}
+
+impl From<crate::proc_stat::Error> for Error {
+    fn from(error: crate::proc_stat::Error) -> Self {
+        match error {
+            crate::proc_stat::Error::Fields => Self::Stat,
+            crate::proc_stat::Error::Encoding(cause) => Self::Encoding(cause),
+            crate::proc_stat::Error::Number(cause) => Self::Number(cause),
+        }
+    }
 }
 
 #[cfg(test)]

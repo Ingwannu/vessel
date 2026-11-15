@@ -55,6 +55,8 @@ mod group;
 mod lifetime;
 pub mod listening;
 pub mod lock;
+#[cfg(target_os = "linux")]
+mod proc_stat;
 mod process_id;
 #[cfg(target_os = "linux")]
 mod procfs;

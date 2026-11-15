@@ -483,3 +483,27 @@ auto-reaped boundary refusal, release/reap refusal and cancellation after held
 read preparation. The generic embedding case remains explicitly unsupported.
 A separate atomic pidfd-spawn OS wrapper is not introduced; stable standard
 library support may be considered when it exists.
+
+
+### Shared start-time decoding preparation
+
+[Decision Log]
+- Purpose and intent: durable identity must reuse the lock observation's stat
+  layout instead of growing a second field-position and opaque-command parser.
+- Existing implementation and constraints: the bounded Record reader and
+  generation owner already decode PID before comm/start ticks. Their typed
+  failures and existing assertions must not change during extraction.
+- Alternatives considered: duplicate the parser, move lock policy into identity,
+  or make an eagerly PID-validating generic record. The first drifts, the second
+  couples unrelated ownership, and the third changes the old refusal order.
+- Selected approach: a private Linux proc_stat decoding edge splits the borrowed
+  prefix and decodes start ticks. The current generation caller still validates
+  its typed PID first, then transfers each original format cause into its same
+  error variant. The existing combined generation tests remain byte-identical
+  and exercise the extracted decoder through that actual caller.
+- Why this approach: one owner retains the kernel format positions, while PID
+  admission and namespace proof stay with the observation. No raw record is
+  exposed publicly or retained in domain state.
+- Advantages, costs and effects: no dependency, syscall, cap, public API, Child
+  hook, identity issuer or signal is added. This behavior-preserving preparation
+  still owes changed-crate execution and the enclosing identity package gate.

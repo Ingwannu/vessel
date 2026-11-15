@@ -6,6 +6,12 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Prepared after the reviewed portable checked-cleanup prerequisite: stat field
+  selection/start ticks move to the private process decoding edge. The actual
+  generation caller keeps PID-first admission and exact prior test bytes/error
+  sources. Canonical ProcessId is now on the designated base. No Child seed,
+  identity API or signal is implemented by this extraction; execution is owed.
+
 - Shared-reader preparation: move the existing bounded proc record reader to the
   private procfs owner, retaining every check, error source, bound and test.
   Existing lock observations remain its actual callers; identity is still only
