@@ -699,3 +699,20 @@ The existing catalog validator is the regression that rejects this defect.
 A read-only source scan finds no remaining schedules key without a context.
 The already registered e86d snapshot predates this repair and stays untouched;
 its actual outcome will not be relabelled as evidence for the correction.
+
+### History transport fan-in (source only)
+
+The existing schedules Request/Message sub-enums now carry History as well as
+Row/Form. ListRuns uses the SAME selected-client pre/post fence, four-permit
+pool, named deadline and bounded event delivery. Every local/queue/browser/
+transport refusal keeps the original context/schedule/ticket in HistoryAnswer;
+read failures never become an uncertain-write warning. No root Command/Event,
+connection hook, actor, registry or resource/version table is added.
+
+App Data holds the history Reader and retires it through the same Fleet and
+fresh-connection notice paths. The overlay/open/session-navigation widgets are
+not yet connected, so no new history menu item is visible. Framed tests now
+cover an actual ListRuns request/reply and unchanged envelope, retired unsent
+zero-frame refusal, and combined Row/Form/History shared-pool saturation with
+all frames/receipts drained. New cases remain unexecuted/source-only. Prior e86d
+queued narrow source does not contain these deltas or the catalog-comment repair.

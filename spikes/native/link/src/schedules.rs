@@ -14,7 +14,7 @@ mod clock;
 pub use clock::ViewerClockError;
 pub use vessel_app_view::schedules::page::Request as RowRequest;
 mod request;
-pub use request::{FormAnswer, Request};
+pub use request::{FormAnswer, HistoryAnswer, Request};
 use vessel_app_view::schedules::page::WriteValue;
 use vessel_proto::{
     automation::ScheduleInfo,
@@ -54,6 +54,8 @@ pub enum Message {
     Replied(Answer),
     /// A typed editor read/save reply with its original form request.
     FormReplied(FormAnswer),
+    /// Read-only history with its original schedule/admission/ticket.
+    HistoryReplied(HistoryAnswer),
 }
 
 /// Complete response, retaining every transport error until the app consumes it.

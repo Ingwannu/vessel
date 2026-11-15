@@ -68,7 +68,7 @@ async fn a_preview_keeps_its_original_envelope_and_actual_typed_request() {
     .await;
 }
 #[tokio::test]
-async fn row_and_editor_work_share_one_four_request_pool() {
+async fn row_editor_and_history_work_share_one_four_request_pool() {
     within(async {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
@@ -85,6 +85,12 @@ async fn row_and_editor_work_share_one_four_request_pool() {
                         ticket,
                         Ask::Run("00000000-0000-4000-8000-000000000001".parse().unwrap()),
                     )),
+                )
+                .await;
+            } else if index == 1 {
+                phase(
+                    "history admission",
+                    state.schedule(super::history::request(context.clone())),
                 )
                 .await;
             } else {
@@ -108,7 +114,9 @@ async fn row_and_editor_work_share_one_four_request_pool() {
                 .unwrap();
             assert!(matches!(
                 frame.call,
-                vessel_proto::Call::RunSchedule(_) | vessel_proto::Call::PreviewSchedule(_)
+                vessel_proto::Call::RunSchedule(_)
+                    | vessel_proto::Call::PreviewSchedule(_)
+                    | vessel_proto::Call::ListRuns(_)
             ));
             frame
                 .answer
@@ -120,6 +128,7 @@ async fn row_and_editor_work_share_one_four_request_pool() {
         }
         let mut rows = 0;
         let mut forms = 0;
+        let mut histories = 0;
         for _ in 0..vessel_app_view::schedules::load::MAX_IN_FLIGHT {
             match phase("settled receipt", events.recv()).await.unwrap() {
                 crate::Event::Schedules(Message::Replied(answer)) => {
@@ -130,10 +139,14 @@ async fn row_and_editor_work_share_one_four_request_pool() {
                     assert!(answer.result.is_err());
                     forms += 1;
                 }
+                crate::Event::Schedules(Message::HistoryReplied(answer)) => {
+                    assert!(answer.result.is_err());
+                    histories += 1;
+                }
                 event => panic!("wrong receipt: {event:?}"),
             }
         }
-        assert_eq!((rows, forms), (1, 3));
+        assert_eq!((rows, forms, histories), (1, 2, 1));
     })
     .await;
 }

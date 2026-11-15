@@ -28,7 +28,8 @@ impl Shell {
             self.areas.schedules.data.page.machines(&keys);
             let admission_changed = self.areas.schedules.data.page.admissions(&self.fleet);
             let editor_changed = self.areas.schedules.data.editor.reconcile(&self.fleet);
-            if editor_changed && self.route == Route::Schedules {
+            let history_changed = self.areas.schedules.data.history.reconcile(&self.fleet);
+            if (editor_changed || history_changed) && self.route == Route::Schedules {
                 cx.notify();
             }
             if book_changed || admission_changed {

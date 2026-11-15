@@ -72,6 +72,11 @@ impl Effect {
     }
 }
 impl ScheduleError {
+    /// Read-only history never becomes an uncertain write on transport loss.
+    #[must_use]
+    pub fn read_failure(&self) -> Failure {
+        self.for_effect(Effect::Read)
+    }
     /// Existing row mapping; diagnostic prose never becomes UI copy.
     #[must_use]
     pub fn failure(&self, ask: Ask) -> Failure {

@@ -134,3 +134,5 @@ fn retained_peer_errors_do_not_disclose_their_message_in_diagnostic_chains() {
 mod admission;
 
 mod form;
+
+mod history;

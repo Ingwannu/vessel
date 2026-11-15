@@ -2,6 +2,7 @@
 use super::{Answer, Message, RowRequest, ScheduleError};
 use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::schedules::editor::io;
+use vessel_app_view::schedules::history::reader;
 
 /// Node-backed schedules operations; no extra root dispatcher or request pool.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,6 +11,8 @@ pub enum Request {
     Row(RowRequest),
     /// Project/model/preview/create/update from an explicit form visit.
     Form(io::Request),
+    /// Read-only run history from the explicitly selected physical machine.
+    History(reader::Request),
 }
 impl From<RowRequest> for Request {
     fn from(value: RowRequest) -> Self {
@@ -21,6 +24,11 @@ impl From<io::Request> for Request {
         Self::Form(value)
     }
 }
+impl From<reader::Request> for Request {
+    fn from(value: reader::Request) -> Self {
+        Self::History(value)
+    }
+}
 impl Request {
     /// Every family is fenced by its original physical admission.
     #[must_use]
@@ -28,6 +36,7 @@ impl Request {
         match self {
             Self::Row(request) => request.connection(),
             Self::Form(request) => request.connection(),
+            Self::History(request) => request.connection(),
         }
     }
     /// Unsent/browser/deadline refusals settle the original family and ticket.
@@ -42,6 +51,10 @@ impl Request {
                 request,
                 result: Err(error),
             }),
+            Self::History(request) => Message::HistoryReplied(HistoryAnswer {
+                request,
+                result: Err(error),
+            }),
         }
     }
 }
@@ -52,4 +65,13 @@ pub struct FormAnswer {
     pub request: io::Request,
     /// Node payload or a source-preserving closed failure.
     pub result: Result<io::Value, ScheduleError>,
+}
+
+/// Run-list outcome retains its original resource/admission/ticket on all paths.
+#[derive(Debug)]
+pub struct HistoryAnswer {
+    /// Exact selected schedule request, including its original admission.
+    pub request: reader::Request,
+    /// Node-authored list or a source-preserving typed failure.
+    pub result: Result<vessel_proto::automation::RunList, ScheduleError>,
 }

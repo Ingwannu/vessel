@@ -1,6 +1,6 @@
 //! A permit covers the call and its bounded event delivery. It is not released
 //! early when a page invalidates its own ticket or stops drawing the row.
-use super::{Answer, FormAnswer, ListValue, Message, Request, ScheduleError, Value};
+use super::{Answer, FormAnswer, HistoryAnswer, ListValue, Message, Request, ScheduleError, Value};
 use crate::connections::SelectedConnection;
 use std::sync::Arc;
 use std::time::Duration;
@@ -153,6 +153,13 @@ async fn execute(client: &SelectedConnection, request: &Request) -> Message {
         Request::Form(request) => Message::FormReplied(FormAnswer {
             request: request.clone(),
             result: super::form::run(client, request.operation()).await,
+        }),
+        Request::History(request) => Message::HistoryReplied(HistoryAnswer {
+            request: request.clone(),
+            result: client
+                .call(request.input())
+                .await
+                .map_err(ScheduleError::from),
         }),
     }
 }
