@@ -9,7 +9,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{
     CHECKPOINT_CAPTURE_DEADLINE, CHECKPOINT_QUEUE, CHECKPOINT_WORKERS, CaptureKey, CheckpointError,
-    ObservedSnapshot,
+    ObservedSnapshot, PhysicalRoot,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +30,7 @@ pub(super) enum Publication {
 #[derive(Debug)]
 struct Request {
     key: CaptureKey,
+    physical: PhysicalRoot,
     bytes: ReservedBytes,
     deadline: Instant,
     reply: oneshot::Sender<Result<CaptureKey, CheckpointError>>,
@@ -37,6 +38,7 @@ struct Request {
 #[derive(Debug)]
 struct Work {
     key: CaptureKey,
+    physical: PhysicalRoot,
     bytes: ReservedBytes,
     deadline: Instant,
     cancellation: CancellationToken,
@@ -85,12 +87,14 @@ impl Client {
     pub(super) fn lifecycle(&self) -> watch::Receiver<Lifecycle> {
         self.lifecycle.clone()
     }
+    #[cfg(test)]
     pub(super) async fn capture(
         &self,
         key: CaptureKey,
         bytes: ReservedBytes,
     ) -> Result<CaptureKey, CheckpointError> {
-        self.capture_by(
+        self.capture_at_root(
+            super::capture::model_root(key.worktree),
             key,
             bytes,
             Instant::now()
@@ -100,8 +104,9 @@ impl Client {
         .await
     }
     /// Bridges preserve the actor's original deadline across their own queues.
-    pub(super) async fn capture_by(
+    pub(super) async fn capture_at_root(
         &self,
+        physical: PhysicalRoot,
         key: CaptureKey,
         bytes: ReservedBytes,
         deadline: Instant,
@@ -113,6 +118,7 @@ impl Client {
         self.requests
             .try_send(Request {
                 key,
+                physical,
                 bytes,
                 deadline,
                 reply,
@@ -132,7 +138,7 @@ pub(super) fn start<Read, Persist, Cleanup, Stored>(
     cleanup: Cleanup,
 ) -> (Client, tokio::task::JoinHandle<()>)
 where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
+    Read: Fn(CaptureKey, PhysicalRoot, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -169,10 +175,10 @@ where
                         continue;
                     }
                     let key=request.key;
-                    if captures.admit(key,request.deadline,request.bytes,request.reply).is_ok() {
+                    if captures.admit_at_root(key,request.physical,request.deadline,request.bytes,request.reply).is_ok() {
                         let cancellation=captures.cancellation(key);
                         if let Some(cancellation)=cancellation {
-                            let job=Work {key,bytes:request.bytes,deadline:request.deadline,cancellation};
+                            let job=Work {key,physical:request.physical,bytes:request.bytes,deadline:request.deadline,cancellation};
                             let _worker=tokio::spawn(work(job,Arc::clone(&read),Arc::clone(&persist),Arc::clone(&cleanup),events.clone()));
                         }
                     }
@@ -246,7 +252,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
     cleanup: Arc<Cleanup>,
     events: mpsc::Sender<Event>,
 ) where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
+    Read: Fn(CaptureKey, PhysicalRoot, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -293,7 +299,7 @@ async fn read_candidate<Read, Persist, Stored>(
     events: &mpsc::Sender<Event>,
 ) -> Disposition
 where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
+    Read: Fn(CaptureKey, PhysicalRoot, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -301,7 +307,8 @@ where
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
 {
     let key = job.key;
-    let candidate = tokio::task::spawn_blocking(move || read(key, job.cancellation)).await;
+    let candidate =
+        tokio::task::spawn_blocking(move || read(key, job.physical, job.cancellation)).await;
     match candidate {
         Ok(Ok(image)) => publish(key, image, persist, events).await,
         Ok(Err(reason)) => {

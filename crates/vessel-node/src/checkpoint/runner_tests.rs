@@ -38,7 +38,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        move |_key, _cancel| {
+        move |_key, _physical, _cancel| {
             entered.lock().unwrap().take().unwrap().send(()).unwrap();
             held.lock()
                 .unwrap()
@@ -65,19 +65,33 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
         },
     );
     let capture_key = key();
+    let physical = super::capture::model_root(capture_key.worktree);
     let call = client.clone();
     let prompt = tokio::spawn(async move {
-        call.capture(capture_key, ReservedBytes::new(1).unwrap())
-            .await
+        call.capture_at_root(
+            physical,
+            capture_key,
+            ReservedBytes::new(1).unwrap(),
+            tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE,
+        )
+        .await
     });
     entry.await.unwrap();
     tokio::time::advance(CHECKPOINT_CAPTURE_DEADLINE).await;
     assert_eq!(prompt.await.unwrap(), Err(CheckpointError::CaptureTimedOut));
+    let alias = key();
+    assert_ne!(alias.worktree, capture_key.worktree);
     assert_eq!(
         client
-            .capture(capture_key, ReservedBytes::new(1).unwrap())
+            .capture_at_root(
+                physical,
+                alias,
+                ReservedBytes::new(1).unwrap(),
+                tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE
+            )
             .await,
-        Err(CheckpointError::Busy)
+        Err(CheckpointError::Busy),
+        "a different logical worktree cannot bypass a held physical capture guard",
     );
     release.send(()).unwrap();
     finished.await.unwrap();
@@ -93,7 +107,7 @@ async fn dropping_all_clients_does_not_drop_the_owner_before_held_io_is_cleaned(
     let (entered, entry) = oneshot::channel();
     let entered = std::sync::Mutex::new(Some(entered));
     let (client, owner) = runner::start(
-        move |_key, _cancel| {
+        move |_key, _physical, _cancel| {
             entered.lock().unwrap().take().unwrap().send(()).unwrap();
             let _closed = held.lock().unwrap().take().unwrap().recv();
             empty()
@@ -131,7 +145,7 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| empty(),
+        |_key, _physical, _cancel| empty(),
         move |_key, phase| {
             let release = match phase {
                 Publication::Reserve(bytes) => {
@@ -183,7 +197,7 @@ async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_roo
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| empty(),
+        |_key, _physical, _cancel| empty(),
         move |_key, phase| {
             let held = match phase {
                 Publication::Reserve(bytes) => {
@@ -242,7 +256,7 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| empty(),
+        |_key, _physical, _cancel| empty(),
         |_key, phase| async move {
             match phase {
                 Publication::Reserve(bytes) => {
@@ -283,7 +297,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        move |_key, _cancel| {
+        move |_key, _physical, _cancel| {
             let _previous = read_count.fetch_add(1, Ordering::SeqCst);
             empty()
         },
@@ -331,7 +345,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
 #[tokio::test]
 async fn failed_cleanup_cannot_return_worker_capacity_or_its_root_guard() {
     let (client, owner) = runner::start(
-        |_key, _cancel| empty(),
+        |_key, _physical, _cancel| empty(),
         |_key, _phase| async { Ok(()) },
         |_key, _disposition| Err(CheckpointError::StorageFull),
     );

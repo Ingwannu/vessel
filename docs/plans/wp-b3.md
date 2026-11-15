@@ -550,3 +550,21 @@ owned preview/pages, idempotent admission, result-marker commit and ended reopen
 retry. It uses synthetic file evidence and performs no filesystem restoration;
 it has not run. Unit fixture changes reserve the same private envelopes as the
 production writer. Current source needs VM compilation and behavioral checks.
+
+
+### Capture guard uses the physical root (staged coordinator)
+
+The separate bounded capture-worker guard is now keyed by the actual physical
+root passed by the opened-FD admission bridge, independent of WorktreeId. The
+runner forwards that root to its read callback for FD-root revalidation. A second
+logical worktree alias cannot start another worker after the first actor deadline
+while the first read/cleanup remains held. Existing small admission models have
+an explicitly cfg(test)-only logical→synthetic-root helper; product capture input
+accepts a PhysicalRoot and never derives its lock from WorktreeId.
+
+The held blocking-read barrier now retries through a different logical worktree
+with the same physical key and expects Busy, then verifies no late publication.
+This is an unrun coordinator barrier, not proof of real FD/node assembly. Common
+root exclusion may be released after invalidating a read-only candidate, as its
+existing contract says; that does not release this separate worker/root/quota
+guard. Thus a stalled read does not force the next prompt/wake to wait for it.

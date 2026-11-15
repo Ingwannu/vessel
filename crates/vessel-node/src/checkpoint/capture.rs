@@ -5,12 +5,13 @@ use std::collections::BTreeMap;
 use tokio::{sync::oneshot, time::Instant};
 use vessel_proto::{
     WorktreeId,
-    checkpoint::{CHECKPOINT_WORKERS, CaptureId, CaptureKey, CheckpointError},
+    checkpoint::{CHECKPOINT_WORKERS, CaptureId, CaptureKey, CheckpointError, PhysicalRoot},
 };
 
 #[derive(Debug)]
 struct Job {
     key: CaptureKey,
+    physical: PhysicalRoot,
     deadline: Instant,
     bytes: ReservedBytes,
     cancel: tokio_util::sync::CancellationToken,
@@ -26,6 +27,7 @@ impl Captures {
     pub(super) fn idle(&self) -> bool {
         self.jobs.is_empty()
     }
+    #[cfg(test)]
     pub(super) fn admit(
         &mut self,
         key: CaptureKey,
@@ -33,12 +35,19 @@ impl Captures {
         bytes: ReservedBytes,
         reply: oneshot::Sender<Result<CaptureKey, CheckpointError>>,
     ) -> Result<(), CheckpointError> {
+        self.admit_at_root(key, model_root(key.worktree), deadline, bytes, reply)
+    }
+    pub(super) fn admit_at_root(
+        &mut self,
+        key: CaptureKey,
+        physical: PhysicalRoot,
+        deadline: Instant,
+        bytes: ReservedBytes,
+        reply: oneshot::Sender<Result<CaptureKey, CheckpointError>>,
+    ) -> Result<(), CheckpointError> {
         if self.jobs.len() >= CHECKPOINT_WORKERS
             || self.jobs.contains_key(&key.capture)
-            || self
-                .jobs
-                .values()
-                .any(|job| job.key.worktree == key.worktree)
+            || self.jobs.values().any(|job| job.physical == physical)
         {
             let _closed = reply.send(Err(CheckpointError::Busy));
             return Err(CheckpointError::Busy);
@@ -51,6 +60,7 @@ impl Captures {
             key.capture,
             Job {
                 key,
+                physical,
                 deadline,
                 bytes,
                 cancel: tokio_util::sync::CancellationToken::new(),
@@ -147,10 +157,22 @@ impl Captures {
             }
         }
     }
+    #[cfg(test)]
     pub(super) fn occupied(&self, root: WorktreeId) -> bool {
         self.jobs.values().any(|job| job.key.worktree == root)
     }
+    #[cfg(test)]
     pub(super) fn reserved(&self) -> u64 {
         self.quota.reserved()
     }
+}
+
+// Pure admission-model fixtures only. Product callers supply an opened-FD root;
+// no logical worktree identity is accepted as a physical lock key in production.
+#[cfg(test)]
+pub(super) fn model_root(worktree: WorktreeId) -> PhysicalRoot {
+    use sha2::Digest as _;
+    PhysicalRoot::new(vessel_proto::BlobHash::from_bytes(
+        sha2::Sha256::digest(worktree.to_string().as_bytes()).into(),
+    ))
 }
