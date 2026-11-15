@@ -8,7 +8,7 @@ use crate::session::{SessionInput, SessionMode};
 
 use super::Call;
 
-mod labels;
+mod templates;
 
 impl Call {
     /// The assigned requirement for admission: [`Call::since`]. A feature
@@ -270,8 +270,8 @@ impl Call {
             | Self::GetAgentHistory(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
-        labels::on(self).map_or(Some(required), |labels| {
-            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        templates::on(self).map_or(Some(required), |labels| {
+            templates::required(required, labels, crate::lifecycle_version::SINCE)
         })
     }
 }

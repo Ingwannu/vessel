@@ -654,3 +654,11 @@ The typed label iterator is borrowed and exact-size; callers can count remaining
 entries without parsing the display summary. Its first narrow check found a
 missing must-use annotation and a newly added title-event test using the removed
 numeric event accessor. Both are corrected; a new narrow check is owed.
+
+### Session-template boundary naming
+
+Before extending discovery metadata, the optional admission and older-peer
+modules are named for their responsibility: session templates. This separate
+refactor only renames modules and the internal synthetic-threshold projection
+helper. It changes no value, expectation or wire representation. Label rules
+and their tests remain byte-identical in the renamed files.
