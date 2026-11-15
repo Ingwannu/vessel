@@ -5,6 +5,7 @@
 //! references cannot alias elements across snapshot/navigation replacement.
 //! The node remains responsible for authenticated owner/service capabilities.
 
+pub mod cdp;
 pub mod network;
 pub mod proxy;
 mod references;

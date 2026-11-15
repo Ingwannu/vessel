@@ -237,3 +237,25 @@ wait is 15s. These are deliberate resource limits beyond the reference behavior.
 Private-target refusal and profile-close fixtures use only own ephemeral loopback
 listeners with independent positive controls. Passing them will not qualify a
 real Chromium configuration, Preview service authority, or Windows support.
+
+
+## Typed CDP transport (staged, no qualified engine)
+
+Reuse tokio-tungstenite/futures/serde/url already pinned in the workspace. A local
+launcher endpoint parser is not child-ownership proof: the controller must verify
+the just-launched child separately, never accept a caller endpoint. Only sealed
+request structs choose CDP methods and response types. Per connection: 64 queued
+commands (each encoded control message <=256KiB), 16 pending replies, 32 essential
+events (each <=256KiB), 16MiB transport frames/messages; overload closes/refuses
+rather than dropping navigation/dialog invalidations. Delivery is recorded before
+a potentially partial socket send; timeout or lost response after delivery is
+uncertain. Private target/session ids, payloads and page exceptions redact Debug;
+RawJson's default Debug is deliberately wrapped. Unknown unrelated events are
+ignored without interpreting their opaque payload. Owned cancellation/shutdown
+closes only this debugger connection and settles pending calls.
+Scripted own-loopback peers cover out-of-order correlation, lost mutation reply
+and essential event overflow. Those are transport fixtures, not product browser
+frames or engine qualification. Primary CDP method references: devtools-protocol
+Target and Page (https://chromedevtools.github.io/devtools-protocol/tot/Target/ ,
+https://chromedevtools.github.io/devtools-protocol/tot/Page/). Actual launched149
+protocol/runtime still must be qualified, with Preview support and all22 actions.
