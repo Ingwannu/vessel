@@ -658,6 +658,11 @@ package. Its proposed exact Agents/metadata-lease/actor insertion boundary is in
 docs/plans/timeline-execution-fence.md and requires V3 review before shared
 registrations. Transition call sites stay with GKS lifecycle and W2 detach. No
 private positive admission is enabled by that proposal or the correlation DTOs.
+
+The exact proposed display-only queue/turn/chunk provenance join is recorded in
+docs/plans/timeline-notice-provenance.md for shared-wire review before code. It
+keeps the existing notice body and sequence identity, excludes public selectors,
+and masks internal content for legacy readers without fabricating lifecycle.
 This provenance is display/control correlation, never caller authority; any
 additive client carrier remains under the same None gate and its exact typed
 wire join requires review before activation. No new SessionEvent presentation
