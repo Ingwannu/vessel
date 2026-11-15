@@ -25,6 +25,8 @@ pub(super) struct Route {
 }
 
 impl Route {
+    /// Select the existing fleet hop after the caller's scope and origin checks.
+    /// This retains transport state, without granting permission to send a call.
     pub(super) fn forward(
         links: &Arc<Links>,
         node: NodeId,
@@ -48,6 +50,7 @@ impl Route {
         })
     }
 
+    /// Keep a relay's already-checked origin for delivery and later compensation.
     pub(super) fn member(links: &Arc<Links>, node: NodeId, origin: Origin) -> Self {
         Self {
             links: Arc::clone(links),
@@ -57,6 +60,7 @@ impl Route {
         }
     }
 
+    /// Leave secure connection and callback selection to the existing Links path.
     pub(super) async fn call(&self, call: Box<Call>) -> Result<Forwarded, WireError> {
         match frame(self.hop, self.node, &self.origin, call) {
             Frame::Member { node, request } => self.links.call_member(node, request).await,
@@ -64,6 +68,8 @@ impl Route {
         }
     }
 
+    /// Close only the returned handle through its original origin and destination;
+    /// a failure is uncertainty, never permission to replay the export.
     pub(super) async fn close(self, transfer: TransferId) -> Result<(), WireError> {
         let forwarded = self
             .call(Box::new(CloseTransfer { transfer }.into_call()))

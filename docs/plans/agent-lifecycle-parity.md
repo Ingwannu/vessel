@@ -1026,3 +1026,9 @@ The first cleanup increment's strict check stopped in a new fixture before tests
 a string converted with Into left the generic WireError constructor ambiguous.
 The fixture now passes its string literal directly; its Forbidden result and
 assertions are unchanged. The original compile failure remains recorded.
+
+Retained route entry points document their authorization prerequisite: the
+transport descriptor grants no permission, keeps the exact origin, and leaves
+callback selection to Links. Test fixture visibility exists only to share the
+synthetic manifest across policy and real-transport tests; it is absent from
+product builds. These comments add no behavior or assertion change.

@@ -7,6 +7,7 @@ use vessel_proto::{
     TransferManifest,
 };
 
+/// Build fictional metadata without creating a real provider session.
 pub(crate) fn info() -> SessionInfo {
     SessionInfo::new(
         SessionId::random(),
@@ -22,6 +23,7 @@ pub(crate) fn info() -> SessionInfo {
     )
 }
 
+/// Model an assignment threshold without publishing a feature number.
 pub(super) fn versions() -> (ProtocolVersion, ProtocolVersion) {
     let new = vessel_proto::PROTOCOL_VERSION;
     let old = ProtocolVersion::new(new.get().saturating_sub(1));
@@ -86,6 +88,7 @@ fn current_labels_and_background_share_the_projection_visibility_rule() {
     }
 }
 
+/// Supply a synthetic returned manifest for visibility and compensation tests.
 pub(crate) fn exported(info: SessionInfo) -> Forwarded {
     Forwarded {
         reply: Box::new(Reply::ExportSession(TransferManifest {
