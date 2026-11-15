@@ -113,3 +113,22 @@ fn abandoned_prefetch_cannot_accumulate_stale_work_or_complete_after_device_loss
     assert_eq!(*first.status().borrow(), State::Failed);
     assert_eq!(*second.status().borrow(), State::Failed);
 }
+
+#[test]
+fn a_queued_handle_cancelled_between_worker_steps_does_not_fail_the_new_segment() {
+    let (mut pump, mut processor, mut callback, mut ports, fence) = setup();
+    let cancelled = pump.submit(packet(1)).unwrap();
+    let next = pump.submit(packet(1)).unwrap();
+    cancelled.interrupt();
+    // An external handle can close its receipt after the worker's advance;
+    // preparation must skip that generation rather than fail the device owner.
+    let prepared = pump.next(&mut processor).unwrap().unwrap();
+    ports.blocks.try_send(prepared).unwrap();
+    callback.render(&mut [0_i16; 960], &info());
+    let event = ports.completions.try_recv().unwrap();
+    assert_eq!(event.lease, next.lease());
+    pump.scheduled(event).unwrap();
+    assert_eq!(*cancelled.status().borrow(), State::Interrupted);
+    assert_eq!(*next.status().borrow(), State::Draining);
+    assert!(!fence.is_closed());
+}

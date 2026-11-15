@@ -22,6 +22,7 @@ use crate::{
 // Yield to capture/control after a bounded amount of preparation, even if a
 // callback consumes blocks concurrently and continuously creates more space.
 const PREPARE_BLOCKS_PER_TURN: usize = 100;
+const READERS_PER_STEP: usize = 2;
 
 #[derive(Debug, thiserror::Error)]
 pub(in crate::audio) enum Failure {
@@ -118,29 +119,42 @@ impl Pump {
         Ok(())
     }
     fn next(&mut self, processor: &mut Processor) -> Result<Option<Prepared>, Failure> {
-        if self.current.as_ref().is_some_and(Reader::stopped) {
-            self.current = None;
-        }
-        while self.current.is_none() {
-            let Some(lease) = self.pending.pop_front() else {
+        for _ in 0..READERS_PER_STEP {
+            if self.current.as_ref().is_some_and(Reader::stopped) {
+                self.current = None;
+            }
+            if self.current.is_none() {
+                let Some(lease) = self.pending.pop_front() else {
+                    return Ok(None);
+                };
+                match self.book.begin(lease) {
+                    Ok(Some(reader)) => self.current = Some(reader),
+                    Ok(None) | Err(Refusal::Stopped) => continue,
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            let Some(reader) = self.current.as_mut() else {
                 return Ok(None);
             };
-            self.current = self.book.begin(lease)?;
+            let block = match reader.next() {
+                Ok(Some(block)) => block,
+                Err(Refusal::Stopped) => {
+                    self.current = None;
+                    continue;
+                }
+                Err(error) => return Err(error.into()),
+                // Last blocks retire readers below, so exhaustion here would
+                // indicate broken packet/worker ordering.
+                Ok(None) => return Err(Refusal::Order.into()),
+            };
+            let audio = processor.prepare_render(block.mono(), reader.rate())?;
+            let prepared = Prepared::new(audio, reader, block.last(), self.output)?;
+            if block.last() {
+                self.current = None;
+            }
+            return Ok(Some(prepared));
         }
-        let Some(reader) = self.current.as_mut() else {
-            return Ok(None);
-        };
-        let Some(block) = reader.next()? else {
-            // A last block always retires the reader below; reaching exhausted
-            // input here would be a broken packet/worker ordering contract.
-            return Err(Refusal::Order.into());
-        };
-        let audio = processor.prepare_render(block.mono(), reader.rate())?;
-        let prepared = Prepared::new(audio, reader, block.last(), self.output)?;
-        if block.last() {
-            self.current = None;
-        }
-        Ok(Some(prepared))
+        Ok(None)
     }
 }
 

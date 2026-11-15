@@ -366,3 +366,10 @@ clock has been tested by this source work. The existing queued10second
 preparation deadline stays explicit: the server sends the next TTS segment
 only after playback confirmation, while synthesis prefetch remains node-side
 (Paseo tts-manager.ts189–251). It is not an arbitrary long app playlist.
+
+Per-segment cancellation is also checked between worker steps: a handle can
+close after deadline advancement but before reader preparation. That cancelled
+reader is skipped within the two-reservation bound; it does not turn a normal
+barge-in into a global device failure. A queued-cancel/new-segment fake covers
+that interleaving. This follow-up is newer than the accae1d3 test snapshot and
+will need its own subsequent batched native narrow evidence.
