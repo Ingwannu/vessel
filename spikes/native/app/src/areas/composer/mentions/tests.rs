@@ -23,6 +23,19 @@ fn shortcut_admission_reads_exact_token_scope_without_mutating_the_menu(cx: &mut
             structured: true,
             live: true,
         });
+        shell
+            .layout_open_target(
+                &vessel_app_view::layout::LayoutKey::Session {
+                    machine: vessel_app_view::layout::HostAlias::parse("fixture").unwrap(),
+                    session,
+                },
+                vessel_app_view::layout::Target::Agent(session),
+                vessel_app_view::layout::OpenIntent::New,
+                vessel_app_view::layout::Placement::Focused,
+                window,
+                cx,
+            )
+            .unwrap();
         let ask = RootAsk {
             ticket: mentions::Ticket::default(),
             machine: machine.clone(),

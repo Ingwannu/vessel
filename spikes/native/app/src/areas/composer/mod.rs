@@ -28,6 +28,7 @@ pub(crate) mod running;
 mod sent;
 mod slash;
 mod transmission;
+mod workspace;
 
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
@@ -58,6 +59,14 @@ use vessel_app_view::composer::sent::Pictures as SentPictures;
 use vessel_app_view::composer::trays::Trays;
 use vessel_app_view::offers::Offers;
 use vessel_proto::SessionId;
+#[cfg_attr(
+    not(test),
+    expect(
+        unused_imports,
+        reason = "W3 scoped panel renderer adopts this producer next"
+    )
+)]
+pub(crate) use workspace::workspace_card;
 
 /// The composer's own state.
 #[derive(Debug)]
@@ -103,7 +112,7 @@ pub(crate) struct ComposerArea {
     pub(crate) attach_menu: MenuState,
     /// Whether the attach menu is open for the new chat (else the open
     /// session).
-    pub(crate) attach_for: Option<bool>,
+    pub(crate) attach_for: Option<vessel_app_view::composer::drafts::DraftKey>,
     /// Pasted and sent images' pictures, decoded.
     pub(crate) pictures: pictures::Pictures,
     /// Sent images' bytes: read back when a message showing them is drawn

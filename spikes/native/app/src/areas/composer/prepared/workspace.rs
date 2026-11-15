@@ -233,6 +233,11 @@ mod tests {
             let workspace = vessel_proto::WorkspaceId::random();
             let a = admit(shell, node, workspace, DraftId::random(), window, cx);
             let b = admit(shell, node, workspace, DraftId::random(), window, cx);
+            let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+            assert!(
+                crate::areas::composer::workspace_card(shell, a, true, &tokens, window, cx)
+                    .is_some()
+            );
             let ticket = Ticket::new(1);
             for target in [a, b] {
                 shell.composer_add(

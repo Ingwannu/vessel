@@ -29,3 +29,10 @@ Context/history intake refuses a new occupied-slot overflow before calling the l
 Creation now reserves an additional byte/context tray slot before any create effect, because newer input may remain in the source while its captured snapshot transfers. New owners count those reservations during intake; empty remnants alone are pruned, while suppressed context and pending revisions remain protected. If every slot contains retained data, preparation refuses Capacity before the create call. A regression fills the remaining slots, adds newer source input, completes in the background and requires every sibling plus both source/destination to survive. Completion also refuses an already-owned session destination instead of replacing its pending submission.
 
 The context-only pump uses a temporary empty byte tray when none exists. Merely submitting context cannot allocate a persistent byte slot or evict an unrelated file owner; its regression fills all byte slots and requires them to survive context-only dispatch.
+
+
+## Scoped card and effective selection
+
+The scoped card reuses the existing card, attachment menu, captured pills, file/drop handlers and IME-safe field hook. Its creation owner supplies the exact admitted key and editability; Enter remains with the original W3 editor. Attachment menu state now retains DraftKey rather than a New/session boolean, so menu selection cannot redirect its asynchronous file dialog to another composer. The legacy button API remains a wrapper while scoped owners pass an explicit key. B2 owns slash/fullscreen policy and its remaining workspace adapter.
+
+Destination lookup consumes the checked layout effective-target getter: only an explicit selected Draft with a Workspace key or the currently owned Agent may receive input. Files, terminals, launchers, plugin panels and top compact sheets do not select a hidden draft. Root Workspace registry/provisioning and the owner renderer activation remain separate prerequisites; this source does not claim those runtime paths are active.

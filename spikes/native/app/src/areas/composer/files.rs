@@ -47,9 +47,10 @@ pub(crate) fn session_card(
     let files = shell
         .session_tray_key()
         .and_then(|key| tray(shell, key, tokens, touch, cx));
-    let attach = (shell.areas.composer.attach_for == Some(false))
-        .then(|| attach_menu(shell, tokens, touch, cx))
-        .flatten();
+    let attach = (shell.areas.composer.attach_for.is_some()
+        && shell.areas.composer.attach_for == shell.session_tray_key())
+    .then(|| attach_menu(shell, tokens, touch, cx))
+    .flatten();
     dropped_on(
         composer_card(tokens, touch),
         shell.session_tray_key(),
@@ -89,7 +90,7 @@ pub(crate) fn draft_card(
     let menu = super::mentions::menu(shell, DraftKey::New, tokens, window, cx)
         .or_else(|| super::draft_menu(shell, tokens, window, cx));
     let files = tray(shell, DraftKey::New, tokens, touch, cx);
-    let attach = (shell.areas.composer.attach_for == Some(true))
+    let attach = (shell.areas.composer.attach_for == Some(DraftKey::New))
         .then(|| attach_menu(shell, tokens, touch, cx))
         .flatten();
     dropped_on(
@@ -115,7 +116,7 @@ pub(crate) fn draft_card(
 
 /// Files dropped on `card` join its composer; the card's edge takes the
 /// accent while files are dragged over it.
-fn dropped_on(
+pub(super) fn dropped_on(
     card: Div,
     target: Option<DraftKey>,
     tokens: &Tokens,
@@ -164,6 +165,25 @@ pub(crate) fn attach_button(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    attach_button_with(None, new_chat, touch, tokens, cx)
+}
+
+pub(super) fn attach_button_at(
+    target: DraftKey,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    attach_button_with(Some(target), false, touch, tokens, cx)
+}
+
+fn attach_button_with(
+    target: Option<DraftKey>,
+    new_chat: bool,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let neutral = tokens.neutral;
     let size = if touch { TOUCH_TARGET } else { CONTROL };
     div()
@@ -185,7 +205,18 @@ pub(crate) fn attach_button(
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                shell.areas.composer.attach_for = Some(new_chat);
+                let target = target.or_else(|| {
+                    if new_chat {
+                        Some(DraftKey::New)
+                    } else {
+                        shell.session_tray_key()
+                    }
+                });
+                let Some(target) = target.filter(|target| shell.composer_field(*target).is_some())
+                else {
+                    return;
+                };
+                shell.areas.composer.attach_for = Some(target);
                 shell
                     .areas
                     .composer
@@ -208,7 +239,7 @@ const CHOICES: &[select::Acquire] = &[select::Acquire::Image, select::Acquire::F
 
 /// The attach menu, when open (Paseo's rows: an image, a file; the forge's
 /// issues and the plugins' rows are not Vessel's yet).
-fn attach_menu(
+pub(super) fn attach_menu(
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -311,7 +342,7 @@ impl Shell {
 }
 
 /// `key`'s tray, when it holds files.
-fn tray(
+pub(super) fn tray(
     shell: &Shell,
     key: DraftKey,
     tokens: &Tokens,

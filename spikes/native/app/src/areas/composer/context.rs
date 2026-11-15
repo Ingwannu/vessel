@@ -35,15 +35,43 @@ impl Shell {
     pub(crate) fn composer_destination(&self) -> Option<DraftKey> {
         match self.route {
             crate::routes::Route::Draft | crate::routes::Route::NewWorkspace => Some(DraftKey::New),
-            crate::routes::Route::Session => self
-                .areas
-                .session
-                .open
-                .as_ref()
-                .filter(|open| open.structured)
-                .map(|open| DraftKey::Session {
-                    session: open.session,
-                }),
+            crate::routes::Route::Session => {
+                use vessel_app_view::layout::{LayoutKey, Target};
+                let selected = self.layout_action_context()?;
+                match selected.target()? {
+                    Target::Draft(draft) => match selected.workspace() {
+                        LayoutKey::Workspace { node, workspace } => {
+                            let target = DraftKey::Workspace {
+                                node: *node,
+                                workspace: *workspace,
+                                draft: *draft,
+                            };
+                            self.composer_field(target).map(|_| target)
+                        }
+                        LayoutKey::Session { .. } => None,
+                    },
+                    Target::Agent(session) => self
+                        .areas
+                        .session
+                        .open
+                        .as_ref()
+                        .filter(|open| open.structured && open.session == *session)
+                        .map(|_| DraftKey::Session { session: *session }),
+                    Target::NewTab
+                    | Target::ProviderSubagent { .. }
+                    | Target::Terminal(_)
+                    | Target::Browser(_)
+                    | Target::Changes
+                    | Target::Files
+                    | Target::Scripts
+                    | Target::PullRequest
+                    | Target::File { .. }
+                    | Target::WorkingDiff
+                    | Target::Plugin { .. }
+                    | Target::Setup(_)
+                    | Target::CommitDiff(_) => None,
+                }
+            }
             crate::routes::Route::Board
             | crate::routes::Route::Archive
             | crate::routes::Route::Settings
