@@ -129,6 +129,51 @@ impl Gate {
     }
 }
 
+/// A prepared relaunch with no process started yet. A node can await fresh
+/// authority after preparation, then synchronously admit the actual spawn.
+/// Dropping it releases the conversation claim without launching anything.
+pub struct PreparedAgain<'a> {
+    runtime: &'a SessionRuntime,
+    claim: crate::runtime::claims::Claim<'a>,
+    launch: Launch,
+    begin: Begin,
+    notices: Vec<String>,
+    actor: ActorStart,
+    gate: Gate,
+}
+impl std::fmt::Debug for PreparedAgain<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreparedAgain")
+            .field("session", &self.begin.info.id)
+            .finish_non_exhaustive()
+    }
+}
+impl PreparedAgain<'_> {
+    /// MCP setup resolved by the node at the final fresh-grant admission.
+    pub fn mcp_servers(&mut self) -> &mut ResolvedMcpServers {
+        &mut self.launch.setup.mcp_servers
+    }
+
+    /// Admit the prepared spawn without an intervening await.
+    ///
+    /// # Errors
+    /// The runtime stopped, another run exists, or the process cannot spawn.
+    pub fn start(self) -> Result<Reopening, SessionError> {
+        let _in_flight = self.runtime.tasks_token();
+        if self.runtime.is_shutting_down() {
+            return Err(SessionError::ShuttingDown);
+        }
+        let created =
+            self.runtime
+                .run_structured(self.launch, self.begin, self.notices, self.actor)?;
+        self.claim.keep();
+        Ok(Reopening {
+            created,
+            gate: self.gate,
+        })
+    }
+}
+
 /// Why an ended session cannot start again.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum NotResumable {
@@ -185,6 +230,18 @@ impl SessionRuntime {
         ended: Ended,
         launch: Relaunch,
     ) -> Result<Reopening, SessionError> {
+        self.prepare_again(ended, launch).await?.start()
+    }
+
+    /// Prepare an ended session's relaunch, without spawning a process.
+    ///
+    /// # Errors
+    /// As [`start_again`](Self::start_again), except process spawn failures.
+    pub async fn prepare_again(
+        &self,
+        ended: Ended,
+        launch: Relaunch,
+    ) -> Result<PreparedAgain<'_>, SessionError> {
         // Counts as a running task, as a creation does.
         let _in_flight = self.tasks_token();
         if self.is_shutting_down() {
@@ -274,10 +331,13 @@ impl SessionRuntime {
             setup,
             driver,
         };
-        let created = self.run_structured(launch, begin, notices, actor)?;
-        claim.keep();
-        Ok(Reopening {
-            created,
+        Ok(PreparedAgain {
+            runtime: self,
+            claim,
+            launch,
+            begin,
+            notices,
+            actor,
             gate: Gate(gate),
         })
     }

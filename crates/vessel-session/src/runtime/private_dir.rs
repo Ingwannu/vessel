@@ -117,9 +117,13 @@ impl Fixture {
 }
 
 /// Take a session's durable records as the node does, so it never waits.
-fn drain(mut durable: tokio::sync::mpsc::Receiver<Arc<EventRecord>>) {
+fn drain(mut durable: tokio::sync::mpsc::Receiver<crate::JournalEntry>) {
     drop(tokio::spawn(async move {
-        while durable.recv().await.is_some() {}
+        while let Some(entry) = durable.recv().await {
+            let _record = entry
+                .into_event()
+                .expect("this runtime has no node-only checkpoints");
+        }
     }));
 }
 
@@ -287,3 +291,5 @@ fn a_probe_carries_none() {
 }
 
 mod stop_failure;
+
+mod stopping;

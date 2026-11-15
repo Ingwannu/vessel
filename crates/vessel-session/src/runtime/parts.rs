@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::Instrument as _;
 use vessel_agent::Driver;
 use vessel_proc::ProcessLifetime;
-use vessel_proto::{EventRecord, EventSeq, ModelCall, SessionInfo};
+use vessel_proto::{EventSeq, ModelCall, SessionInfo};
 
 use super::{Created, SessionRuntime};
 use crate::activity::Tracker;
@@ -75,7 +75,7 @@ const MODEL_CALL_CAPACITY: usize = 64;
 pub(super) struct Parts {
     pub(super) shared: Arc<Shared>,
     pub(super) life: Lifecycle,
-    pub(super) durable: mpsc::Receiver<Arc<EventRecord>>,
+    pub(super) durable: mpsc::Receiver<crate::JournalEntry>,
 }
 
 /// How many renames may wait for a session's actor; a caller waits for
@@ -116,9 +116,11 @@ impl SessionRuntime {
         let (forge, forge_view) = watch::channel(None);
         let state = (seen, Marks::after(attention, info.detach_receipt));
         let channels = (model_calls, renames, forge);
-        let (info, kill, shared) = self.shared(info, (input, process), control, channels, state);
-        let _previous = shared.limits.send_replace(limits);
         let (durable_sender, durable) = mpsc::channel(self.config.durable_capacity.get());
+        let journal = crate::journal::Control::new(self.restart_journal, durable_sender.clone());
+        let (info, kill, shared) =
+            self.shared(info, (input, process), control, channels, state, journal);
+        let _previous = shared.limits.send_replace(limits);
         Parts {
             life: Lifecycle {
                 out: Publisher::new(Arc::clone(&shared), durable_sender, info, activity),
@@ -142,6 +144,7 @@ impl SessionRuntime {
         (control, driver): (Option<mpsc::Sender<Control>>, Driver),
         (model_calls, renames, forge): Channels,
         (seen, marks): (Seen, Marks),
+        journal: crate::journal::Control,
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
         let next = info.next_seq;
@@ -149,6 +152,9 @@ impl SessionRuntime {
         let kill = self.shutdown.child_token();
         let shared = Arc::new(Shared {
             id,
+            journal,
+            admission: self.admission.clone(),
+            input_admission: Arc::new(tokio::sync::Mutex::new(())),
             limits: watch::channel(crate::LimitAssociation::Unavailable).0,
             info: info_receiver,
             ring: Mutex::new(Ring::new(self.config.ring_capacity, next)),
@@ -176,7 +182,7 @@ impl SessionRuntime {
         &self,
         shared: Arc<Shared>,
         actor: impl Future<Output = ()> + Send + 'static,
-        durable: mpsc::Receiver<Arc<EventRecord>>,
+        durable: mpsc::Receiver<crate::JournalEntry>,
     ) -> Created {
         let handle = SessionHandle(shared);
         let id = handle.id();

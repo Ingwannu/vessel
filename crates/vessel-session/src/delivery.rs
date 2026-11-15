@@ -48,6 +48,7 @@ use crate::structured::StructuredActor;
 /// `session.prompt` (and `session.send`'s prompt, which is `start`).
 #[derive(Debug)]
 pub(crate) struct Deliver {
+    pub(crate) generation: vessel_proto::restart::RestartGeneration,
     pub(crate) content: Vec<ContentBlock>,
     pub(crate) delivery: Delivery,
     pub(crate) by: Creator,
@@ -59,7 +60,8 @@ pub(crate) struct Deliver {
 /// `session.queue`.
 #[derive(Debug)]
 pub(crate) struct Change {
-    pub(crate) change: QueueChange,
+    pub(crate) generation: vessel_proto::restart::RestartGeneration,
+    pub(crate) action: QueueChange,
     pub(crate) reply: oneshot::Sender<Result<QueueChanged, SessionError>>,
 }
 
@@ -84,6 +86,10 @@ pub(crate) enum TurnEnd {
 #[derive(Debug, Default)]
 pub(crate) struct Desk {
     pub(crate) queue: Queue,
+    /// Captured at actual control admission, never reread after a stop.
+    admission: vessel_proto::restart::RestartGeneration,
+    /// Automatic queue progress inherits the last accepted input.
+    accepted: vessel_proto::restart::RestartGeneration,
     /// The queue as last published, so a change that changes nothing logs
     /// nothing.
     published: Queue,
@@ -197,12 +203,14 @@ impl StructuredActor {
     /// Carry out a `session.prompt` and answer it.
     pub(crate) async fn deliver(&mut self, order: Deliver) {
         let Deliver {
+            generation,
             content,
             delivery,
             by,
             turn,
             reply,
         } = order;
+        self.desk.admission = generation;
         let result = self.send_as(content, delivery, by).await;
         if let (Ok(delivered), Some(ticket)) = (&result, turn) {
             let started = self.desk.started();
@@ -279,14 +287,46 @@ impl StructuredActor {
         content: Vec<ContentBlock>,
         attachments: Attachments,
     ) -> Result<(), SessionError> {
+        if self.life.out.input_closed() {
+            return Err(SessionError::ShuttingDown);
+        }
         // Every prompt reaches the agent here: a parked one is started
         // again first (protocol 12).
         self.wake().await?;
+        if self.life.out.input_closed() {
+            return Err(SessionError::ShuttingDown);
+        }
         let input = self.input.clone();
         self.pump(async move { input.prompt_with(content, attachments).await })
             .await
             .map_err(|_stopped| SessionError::Ended)??;
         self.desk.started_one();
+        self.arm_restart().await?;
+        Ok(())
+    }
+
+    /// A driver accepts a prompt only after emitting its start. Pump that
+    /// already-emitted record before committing the generation, including
+    /// when a very short turn ended before the driver's reply arrived.
+    async fn arm_restart(&mut self) -> Result<(), SessionError> {
+        if !self.life.out.restart_enabled() {
+            return Ok(());
+        }
+        let (ticket, turn) = oneshot::channel();
+        self.desk
+            .tickets
+            .give(ticket, Delivered::Started, self.desk.started());
+        let turn = self
+            .pump(turn)
+            .await
+            .map_err(|_stopped| SessionError::Ended)?
+            .map_err(|_ended| SessionError::Ended)?;
+        let change = vessel_proto::restart::RestartCheckpoint::Arm {
+            generation: self.desk.admission,
+            turn,
+        };
+        self.life.out.checkpoint_restart(change).await?;
+        self.desk.accepted = self.desk.admission;
         Ok(())
     }
 

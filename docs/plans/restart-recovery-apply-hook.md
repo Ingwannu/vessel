@@ -76,3 +76,21 @@ projection for both Get and Set remains the joint base's implementation. The
 explicit request fields and all forwarding wrappers remain refused while the
 feature is unassigned. Existing callers/literals must be completed during joint
 assembly; this source leaf alone is not a compilable runtime handoff.
+
+
+## Session journal port
+
+The session leaf ports the existing single ordered JournalEntry persistence
+stream, durable person-stop barrier, restart checkpoint admission and prepared
+resume split. Records-only runtimes keep their existing behavior. Head process
+lifetime, stop failure and provider fields are retained. The structured and
+terminal test collectors and private-directory drain only adapt the receiver
+to JournalEntry and extract records with a test-only records-mode expectation;
+no assertion, ordering or deadline changes.
+
+This leaf does not qualify blocking preparation. Its prepared-resume consumer
+will be adapted to the common physically retained ownership seam after that
+producer's checks and source review. The node must then retain its original
+attempt through actual preparation settlement and recheck authority/policy at
+final admission. No second claim registry, tracker or quota is introduced.
+The source port remains uncompiled until the complete joint assembly.
