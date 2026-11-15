@@ -2,6 +2,10 @@
 
 Status: implementation in progress.
 
+Close owners route from `ClosePlan::target()`, the immutable original snapshot,
+never a later selected tab. Keyed completion still checks current identity and
+modified state; reading the snapshot grants no close or transport authority.
+
 ## Decision Log
 
 - Purpose and intent: one typed pane contract for files, terminals, browser
