@@ -149,6 +149,8 @@ pub(crate) struct ConversationArea {
     pub(crate) origin: origin::Origin,
     /// A permission's answer being sent.
     pub(crate) permit_sending: permission::Sending,
+    #[cfg(test)]
+    pub(super) request_effects: super::resident_requests::RequestEffects,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
     /// unfolded).
     pub(crate) plan_folded: permission::Disclosures,
@@ -212,6 +214,8 @@ impl ConversationArea {
             forking: fork::Forking::new(cx),
             origin: origin::Origin::None,
             permit_sending: permission::Sending::default(),
+            #[cfg(test)]
+            request_effects: super::resident_requests::RequestEffects::default(),
             plan_folded: permission::Disclosures::default(),
             live: Live::default(),
             reveal: None,

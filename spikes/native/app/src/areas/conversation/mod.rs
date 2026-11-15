@@ -71,6 +71,8 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+#[cfg(test)]
+mod resident_requests;
 mod responses;
 mod rewind;
 pub(crate) mod search;

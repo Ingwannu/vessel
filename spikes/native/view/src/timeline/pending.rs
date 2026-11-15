@@ -2,7 +2,6 @@
 use super::{Entry, EntryKind, Permission, Timeline};
 impl Timeline {
     /// All unresolved permissions in record order, for simultaneous request cards.
-    #[must_use]
     pub fn pending_permissions(&self) -> impl Iterator<Item = (&Entry, &Permission)> {
         self.waiting.iter().filter_map(|index| {
             let entry = self.entries.get(*index)?;

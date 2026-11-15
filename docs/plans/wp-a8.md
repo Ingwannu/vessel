@@ -474,3 +474,39 @@ schema, rather than relying on only the drawing handler to have validated input.
 It follows the same log-first/exact-live fallback as the card. Invalid input gets
 an exact-request safe failure and leaves the admission registry empty. Real Shell
 regressions cover an unoffered permission id and a wrong-type Boolean answer.
+
+
+## Staged concrete Requests owner
+
+Adopted W12's isolated exact1d93 source (with its declared W1 constructor
+prerequisite), retaining literal cfg(test) on the sole resource producer. The A8
+resident_requests adapter stays literal cfg(test) too. It stores bounded original
+binding/ticket/request correlation inside its existing ConversationArea; it does
+not introduce another admission table or resource manager. The only admission
+path validates the owning pending/sending request before calling the sole
+SessionResidents::admit_operation(Request); settlement consumes that same ticket
+before a caller can apply an exact-request result.
+
+The mandatory retirement callback matches original binding plus opaque Requests
+ticket, marks the owner effect Uncertain, retains real form fields/actions and
+sets only that request's safe inline failure. A replacement follow cannot admit a
+second response while this uncertain effect remains. Pending forms, including
+untouched forms, conservatively Hold the resource bundle; no clean form snapshot
+or dehydration is claimed. Live scoped factories, input/focus/keyboard routing,
+network delivery leases, rich settlement reconciliation and product cutover
+remain the coordinated producer/consumer work. The global product path is still
+the only active runtime; this staged adapter is not live authority proof.
+
+The staged form regressions retain an actual TextField entity, its text/drafts
+and exact input source across hide/rebegin; they reject original-attempt late
+settlement, readmission while uncertain, foreign Requests tickets and duplicate
+settlement. Requests is made the only Hold before testing refused eviction, so
+unrelated default owner holds cannot make the test pass. These tests do not
+simulate keyboard/focus/IME or prove live scoped callbacks; those remain explicit
+cutover requirements. Current execution evidence is still pending.
+
+Exact cc120 native Clippy run wp-side-narrow-20261115T110400Z-cc120e9e completed
+with rc101 after actual dependency compilation. Its only reported source error
+was duplicate must_use on pending_permissions' Iterator return; Iterator already
+carries the contract, so the redundant attribute is removed. The failure stopped
+view compilation and is not app/link execution or a package pass.

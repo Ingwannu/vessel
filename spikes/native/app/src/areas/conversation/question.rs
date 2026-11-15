@@ -391,3 +391,6 @@ mod compat_tests;
 
 #[cfg(test)]
 mod multi_tests;
+
+#[cfg(test)]
+mod residency_tests;
