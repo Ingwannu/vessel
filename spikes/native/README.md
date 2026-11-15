@@ -1358,3 +1358,8 @@ capture obligation. Vendor patch7 and its precise source/runtime/paint limitatio
 spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
+
+Keyboard mechanics and the typed owner callback seam are described in
+[the receiving plan](../../docs/plans/wp-commands-keyboard-producer.md).
+Its source-only status does not imply a completed command center or feature
+controller; receiving compilation and tests are recorded separately.
