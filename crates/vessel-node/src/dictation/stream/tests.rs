@@ -66,7 +66,7 @@ fn pcm(sample: i16) -> DictationPcm {
     .unwrap()
 }
 async fn feed(handle: &Handle, start: usize, count: usize, sample: i16) {
-    for index in start..start + count {
+    for index in start..start.checked_add(count).unwrap() {
         let seq = ChunkSeq::new(u32::try_from(index).unwrap());
         assert_eq!(handle.chunk(seq, pcm(sample)).await.unwrap(), Some(seq));
     }

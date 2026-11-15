@@ -76,7 +76,7 @@ async fn cancel_settles_a_next_already_queued_before_actor_admission() {
         );
         match response.await.unwrap() {
             Reply::Update(Event::End(End::Failed(error))) => {
-                assert_eq!(error.reason(), Some(DictationReason::Cancelled))
+                assert_eq!(error.reason(), Some(DictationReason::Cancelled));
             }
             Reply::Update(Event::Partial(_) | Event::End(End::Final(_))) | Reply::Refused(_) => {
                 panic!("queued next lost its terminal")

@@ -14,7 +14,7 @@ use tokio::{sync::watch, task::JoinSet};
 use vessel_proto::dictation::Transcript;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Classify TooSmall at provider return rather than delayed result folding.
+/// Classify `TooSmall` at provider return rather than delayed result folding.
 pub(super) enum CommitPhase {
     Running,
     Finishing,

@@ -510,3 +510,8 @@ The CLI amendment records the absence of a Paseo equivalent, the existing asset
 check, the narrow validated WAV subset, no new dependency, concurrent next drain,
 final/finish reply ordering and cancellation/no-resend behavior. Both are contracts,
 not implementation or runtime evidence. No new wire number is assigned here.
+
+Actor compile correction: the validating constructors now compile. The next
+narrow check found nine documentation/style/checked-test-arithmetic lints; these
+are fixed without allowances, weaker assertions or longer deadlines. Runtime
+checks are still pending, so actor behavior is not yet claimed as verified.

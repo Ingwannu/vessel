@@ -10,7 +10,7 @@ use vessel_proto::dictation::Transcript;
 impl Stream {
     pub(super) async fn apply(&mut self, event: Wake) {
         let result = match event {
-            Wake::Closed => {
+            Wake::Closed | Wake::Data(None) | Wake::Next(None) => {
                 self.closed().await;
                 return;
             }
@@ -32,10 +32,6 @@ impl Stream {
                 Ok(())
             }
             Wake::Data(Some(data)) => self.admit(data),
-            Wake::Data(None) | Wake::Next(None) => {
-                self.closed().await;
-                return;
-            }
             Wake::Completed(Some(Ok(completion))) => self.fold(completion),
             Wake::Completed(Some(Err(error))) => Err(Arc::new(StreamError::Provider(error))),
             Wake::Completed(None) => Ok(()),
@@ -205,13 +201,13 @@ impl Stream {
     }
 
     pub(super) async fn release(&mut self) {
-        if let Some(mut jobs) = self.jobs.take() {
-            if let Err(source) = jobs.clear().await {
-                let _chosen = self.control.stop(
-                    Arc::new(StreamError::Provider(source)),
-                    Retention::KeepTerminal,
-                );
-            }
+        if let Some(mut jobs) = self.jobs.take()
+            && let Err(source) = jobs.clear().await
+        {
+            let _chosen = self.control.stop(
+                Arc::new(StreamError::Provider(source)),
+                Retention::KeepTerminal,
+            );
         }
         drop(self.audio.take());
         drop(self.input.take());

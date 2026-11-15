@@ -35,12 +35,11 @@ impl<E> Control<E> {
     }
     pub(super) fn stop(&self, incoming: Arc<E>, retention: Retention) -> Arc<E> {
         let mut chosen = Arc::clone(&incoming);
-        let _changed = self.selected.send_if_modified(|current| match current {
-            Some(first) => {
+        let _changed = self.selected.send_if_modified(|current| {
+            if let Some(first) = current {
                 chosen = Arc::clone(first);
                 false
-            }
-            None => {
+            } else {
                 *current = Some(incoming);
                 true
             }

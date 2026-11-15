@@ -10,9 +10,8 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
         let request = first.request().await;
         let (reply, response) = oneshot::channel();
         first.handle.next.send(reply).await.unwrap();
-        let error = match first.handle.next().await {
-            Err(error) => error,
-            Ok(_) => panic!("extra next was admitted"),
+        let Err(error) = first.handle.next().await else {
+            panic!("extra next was admitted");
         };
         assert!(matches!(
             error.as_ref(),
@@ -31,7 +30,7 @@ async fn cancel_first_drops_provider_work_and_leaves_another_stream_alive() {
         cancel.await;
         match response.await.unwrap() {
             Reply::Update(Event::End(End::Failed(error))) => {
-                assert_eq!(error.reason(), Some(DictationReason::Cancelled))
+                assert_eq!(error.reason(), Some(DictationReason::Cancelled));
             }
             Reply::Update(Event::Partial(_) | Event::End(End::Final(_))) | Reply::Refused(_) => {
                 panic!("missing cancel")
@@ -145,7 +144,10 @@ async fn repeated_finish_keeps_the_original_budget_and_conflicts_do_not_change_i
         tokio::time::advance(half).await;
         assert_eq!(f.handle.finish(last).await.unwrap(), first);
         tokio::time::advance(
-            Duration::from_millis(u64::from(first.get())) - half + Duration::from_millis(1),
+            Duration::from_millis(u64::from(first.get()))
+                .checked_sub(half)
+                .unwrap()
+                + Duration::from_millis(1),
         )
         .await;
         failed(&f.handle, DictationReason::TimedOut).await;
