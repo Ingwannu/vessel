@@ -1,12 +1,15 @@
 //! Real arbitrary input, measured anchoring and retained-render dismissal paths.
 
+mod retained;
+
 use super::*;
 use crate::{Scheme, SchemeChoice, TextField, Tokens};
 use gpui::prelude::*;
 use gpui::{
-    Entity, FocusHandle, Modifiers, Render, TestAppContext, VisualTestContext, div, point, px, size,
+    Entity, FocusHandle, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton,
+    MouseDownEvent, MouseUpEvent, Render, TestAppContext, VisualTestContext, div, point, px, size,
 };
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 struct Probe {
     state: PopoverState,
@@ -17,6 +20,8 @@ struct Probe {
     pending: bool,
     context: u8,
     admissions: usize,
+    body_events: usize,
+    renders: Rc<Cell<usize>>,
     body: Rc<RefCell<Vec<Bounds<Pixels>>>>,
     host: Option<DialogState>,
     host_open: bool,
@@ -24,14 +29,30 @@ struct Probe {
 
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        self.renders.set(self.renders.get().saturating_add(1));
         let tokens = Tokens::of(Scheme::Dark);
         let expected = self.context;
         let measured = Rc::clone(&self.body);
         let content = div()
             .w_full()
+            .on_key_down(
+                cx.listener(|probe: &mut Self, event: &KeyDownEvent, _, cx| {
+                    if event.keystroke.key == "f7" {
+                        probe.body_events = probe.body_events.saturating_add(1);
+                        cx.stop_propagation();
+                    }
+                }),
+            )
             .on_children_prepainted(move |bounds, _, _| *measured.borrow_mut() = bounds)
             .child(div().w_full().h(px(1.0)).flex_shrink_0())
-            .child(self.inside.element(&tokens, false, cx));
+            .child(self.inside.element(&tokens, false, cx))
+            .child(div().w_full().h(px(24.0)).on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|probe: &mut Self, _, _, cx| {
+                    probe.body_events = probe.body_events.saturating_add(1);
+                    cx.stop_propagation();
+                }),
+            ));
         let body = div()
             .size_full()
             .child(self.outside.element(&tokens, false, cx))
@@ -137,6 +158,8 @@ fn mount(
             pending: false,
             context: 1,
             admissions: 0,
+            body_events: 0,
+            renders: Rc::default(),
             body: Rc::default(),
             host,
             host_open: true,
@@ -202,9 +225,7 @@ fn desktop_is_end_anchored_340_and_compact_reuses_the_existing_dialog(cx: &mut T
 }
 
 #[gpui::test]
-fn pending_and_replaced_openings_refuse_every_old_rendered_dismissal_before_focus_ack(
-    cx: &mut TestAppContext,
-) {
+fn pending_openings_refuse_every_rendered_dismissal_before_focus_ack(cx: &mut TestAppContext) {
     for narrow in [false, true] {
         let paths = if narrow {
             vec![Path::Escape, Path::Outside, Path::Glyph]
@@ -223,18 +244,6 @@ fn pending_and_replaced_openings_refuse_every_old_rendered_dismissal_before_focu
                 assert!(probe.inside.focus_handle(cx).is_focused(window));
                 probe.pending = false;
                 probe.admissions = 0;
-                probe.context = 2;
-                let _new = probe.state.open(anchor(), Alignment::End, window, cx);
-                // Do not render B: the retained input handlers still belong to A.
-            });
-            activate(path, cx);
-            probe.update_in(cx, |probe, window, _cx| {
-                assert!(probe.state.is_open(), "{narrow:?}/{path:?}");
-                assert!(probe.state.dialog.focus_handle().is_focused(window));
-                assert_eq!(
-                    probe.admissions, 0,
-                    "stale input never reaches domain admission"
-                );
             });
             cx.run_until_parked();
             activate(path, cx);
