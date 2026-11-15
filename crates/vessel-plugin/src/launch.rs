@@ -80,8 +80,8 @@ impl PreparedCommand {
         Ok(Self(spec))
     }
 
-    pub(crate) const fn spec(&self) -> &CommandSpec {
-        &self.0
+    pub(crate) fn into_spec(self) -> CommandSpec {
+        self.0
     }
 }
 
@@ -149,6 +149,6 @@ mod tests {
         )
         .expect("explicit");
         assert!(!format!("{prepared:?}").contains("PRIVATE-LAUNCH-CANARY"));
-        assert_eq!(prepared.spec().environment, Environment::Clear);
+        assert_eq!(prepared.0.environment, Environment::Clear);
     }
 }

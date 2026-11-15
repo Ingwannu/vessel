@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// Node-owned supervision. Dropping this owner requests cleanup even if stale
-/// feature adapters still retain cloned RuntimeHandles. Explicit shutdown joins
+/// feature adapters still retain cloned `RuntimeHandle` values. Explicit shutdown joins
 /// cleanup; a failed reap cannot be reported as successful disable/remove.
 #[derive(Debug)]
 pub struct Supervisor {
@@ -46,7 +46,8 @@ impl Supervisor {
         if parent.is_cancelled() {
             return Err(RuntimeError::Stopping);
         }
-        let spawned = vessel_proc::spawn(command.spec()).map_err(RuntimeError::Spawn)?;
+        let spec = command.into_spec();
+        let spawned = vessel_proc::spawn(&spec).map_err(RuntimeError::Spawn)?;
         let (requests, receive) = mpsc::channel(MAX_PENDING_CALLS);
         let (published, state) = watch::channel(RuntimeState::Starting);
         let cancelled = Arc::new(Notify::new());

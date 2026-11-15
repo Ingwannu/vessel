@@ -12,10 +12,10 @@ pub(crate) async fn reap(
 ) -> Result<OwnedGroupExit, RuntimeError> {
     // A full writer means cooperative shutdown could not be admitted. Do not
     // block on that queue or acknowledge disable while old callbacks run.
-    if writer.try_send(NodeToHelper::Shutdown {}).is_ok() {
-        if let Some(receipt) = exited(child).await? {
-            return Ok(receipt);
-        }
+    if writer.try_send(NodeToHelper::Shutdown {}).is_ok()
+        && let Some(receipt) = exited(child).await?
+    {
+        return Ok(receipt);
     }
     if let Err(source) = child.signal(Signal::Terminate) {
         // Still attempt the owned group's hard stop. Preserve the first signal
