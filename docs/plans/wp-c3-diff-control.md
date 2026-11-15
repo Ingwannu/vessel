@@ -146,3 +146,31 @@ Kit/vendor source/test blobs match. Earlier b011/27194 returns stay red; there i
 no current producer pass or V1 submission. Local preflight is standalone
 rustfmt5 files, pure size656/14, token ratchet no new and import/doc checks;
 boundary invokes Cargo metadata and belongs on the VM, not local preflight.
+
+
+## First actual window run:13 passed,3 failed
+
+Exact08b1 public tests executed16 cases:13/3/0. Successful cases include UTF-8
+header ranges and real theme notification behavior, old resolver literals/clear,
+actual gutter origin, wrapped tint/readonly copy, cached2500 parent scroll and
+ordinaryNone coordinate preservation. The three failures remain recorded:
+empty-mask row projection assertion and two document keyboard/wheel fixtures
+panicking in ListState::viewport_bounds due to recursive list borrowing.
+
+The fixture and audit list fill their root window, so capture that actual
+viewport width BEFORE their row callback; calling list.width inside that callback
+tries to borrow the already borrowed list. This fixes the consumers, not the
+vendor. Narrow-pane production code must use its actual pane width rather than
+assuming a window-wide list. The first empty-mask fixture used cx.draw, whose
+helper refreshes the original visible owner; that is an unproven contamination
+hypothesis, not a declared hook cause. Replace it with an actual clipped parent
+which remains outside on every redraw, keep zero-projection/IME assertions, and
+add positive visible-control plus actual outside-coordinate assertions. No
+vendor or assertion relaxation is made; only a rerun can establish the result.
+
+The exact08b1 all-target Clippy also returned test/example-only lints: explicit
+example Context lifetimes/unit pattern/semicolons, checked source offsets/counts
+and pixel arithmetic. Offsets/counts use saturation; the three finite test-only
+pixel operations use smallest-item expects with reasons, matching existing kit
+pixel geometry policy, not file-wide allows or a production lint waiver. Current
+corrections need their own exact source test/lint selections. No pass/handoff.

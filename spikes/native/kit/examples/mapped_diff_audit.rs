@@ -17,7 +17,7 @@ impl LineSyntax for Plain {
     fn language(&self) -> gpui::SharedString {
         "text".into()
     }
-    fn line(&self, _: &str, _: ()) -> (Runs, ()) {
+    fn line(&self, _: &str, (): ()) -> (Runs, ()) {
         (Vec::new(), ())
     }
 }
@@ -26,7 +26,7 @@ struct Audit {
     list: VirtualList,
 }
 impl Audit {
-    fn new(text: DiffText, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    fn new(text: DiffText, window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         let list = VirtualList::new(false);
         list.reset(1);
         Self {
@@ -44,7 +44,7 @@ impl Audit {
             list,
         }
     }
-    fn wrap(&mut self, wrapping: DiffWrapping, window: &mut Window, cx: &mut Context<Self>) {
+    fn wrap(&mut self, wrapping: DiffWrapping, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.editor.set_wrapping(wrapping, window, cx);
         self.list.changed(0..1);
         cx.notify();
@@ -87,12 +87,14 @@ fn fixture() -> Result<DiffText, vessel_app_kit::code_editor::DiffTextError> {
 }
 
 impl Render for Audit {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = vessel_app_kit::tokens(cx);
         let source = self.editor.clone();
-        let list = self.list.clone();
+        // The audit root has no horizontal inset or sibling pane. Its list
+        // fills this viewport; do not borrow ListState inside its own renderer.
+        let width = window.viewport_size().width;
         let body = self.list.element(move |_, window, cx| {
-            source.element(&vessel_app_kit::tokens(cx), list.width(), window, cx)
+            source.element(&vessel_app_kit::tokens(cx), width, window, cx)
         });
         div()
             .size_full()
@@ -113,7 +115,7 @@ impl Render for Audit {
                             &tokens,
                         )
                         .on_click(cx.listener(|owner, _, window, cx| {
-                            owner.wrap(DiffWrapping::Scroll, window, cx)
+                            owner.wrap(DiffWrapping::Scroll, window, cx);
                         })),
                     )
                     .child(
@@ -125,7 +127,7 @@ impl Render for Audit {
                             &tokens,
                         )
                         .on_click(cx.listener(|owner, _, window, cx| {
-                            owner.wrap(DiffWrapping::Wrap, window, cx)
+                            owner.wrap(DiffWrapping::Wrap, window, cx);
                         })),
                     ),
             )

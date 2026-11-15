@@ -149,7 +149,7 @@ fn none_retains_gutter_and_mapped_sample_changes_actual_text_origin(cx: &mut Tes
     cx.update(|_, cx| {
         state.update(cx, |state, _| {
             state.set_editor_style(complete_literal().with_line_presentation(None));
-        })
+        });
     });
     let cleared = caret(cx);
     assert_eq!(before, cleared);
@@ -184,7 +184,7 @@ fn mapped_tint_keeps_bounds_wrap_height_and_readonly_selection_copy(cx: &mut Tes
                 state.set_soft_wrap(true, window, cx);
                 state.focus(window, cx);
                 state.select_all(window, cx);
-            })
+            });
         });
         window.draw(cx).clear(cx);
         let quads = window.painted_quads();
@@ -211,7 +211,7 @@ fn mapped_tint_keeps_bounds_wrap_height_and_readonly_selection_copy(cx: &mut Tes
         assert!(
             tints
                 .iter()
-                .all(|q| q.bounds.right() <= viewport + gpui::ScaledPixels(1.))
+                .all(|q| within_viewport(q.bounds.right(), viewport))
         );
         view.update(cx, |view, cx| {
             view.state.update(cx, |state, cx| {
@@ -219,7 +219,7 @@ fn mapped_tint_keeps_bounds_wrap_height_and_readonly_selection_copy(cx: &mut Tes
                 assert_eq!(state.selected_text().to_string(), text);
                 state.replace_text_in_range(None, "blocked", window, cx);
                 assert_eq!(state.value(), text);
-            })
+            });
         });
     });
     cx.simulate_keystrokes(if cfg!(target_os = "macos") {
@@ -231,4 +231,28 @@ fn mapped_tint_keeps_bounds_wrap_height_and_readonly_selection_copy(cx: &mut Tes
     cx.update(|_, cx| {
         assert_eq!(cx.read_from_clipboard().and_then(|v| v.text()), Some(text));
     });
+}
+
+// Pixel operators have no checked counterpart. Keep the expected finite test
+// geometry in these smallest helpers; no count/offset arithmetic is unchecked.
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "finite test-only pixel extent from a known row count and the test window font"
+)]
+fn extent(rows: usize, line: gpui::Pixels) -> gpui::Pixels {
+    line * rows
+}
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "finite test-only distance between two neighboring shaped rows"
+)]
+fn row_distance(first: gpui::Pixels, next: gpui::Pixels) -> gpui::Pixels {
+    next - first
+}
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "finite physical viewport with the existing one-pixel paint rounding tolerance"
+)]
+fn within_viewport(right: gpui::ScaledPixels, viewport: gpui::ScaledPixels) -> bool {
+    right <= viewport + gpui::ScaledPixels(1.)
 }

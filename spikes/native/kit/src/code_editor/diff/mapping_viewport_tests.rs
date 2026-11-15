@@ -51,7 +51,7 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
             Document {
                 state,
                 list: list_state.clone(),
-                height: window.line_height() * 2500,
+                height: extent(2500, window.line_height()),
                 cached,
             }
         });
@@ -78,8 +78,8 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
         );
         let first = *projected.iter().min().unwrap();
         let start = text.find(&format!("row{first}\n")).unwrap();
-        let end = start + format!("row{first}").len();
-        let next = end + 1;
+        let end = start.saturating_add(format!("row{first}").len());
+        let next = end.saturating_add(1);
         cx.update(|window, cx| {
             owner.update(cx, |owner, cx| {
                 owner.state.update(cx, |state, cx| {
@@ -104,10 +104,10 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
                     let b = state
                         .bounds_for_range(next..next, bounds, window, cx)
                         .unwrap();
-                    assert_eq!(b.top() - a.top(), state.line_height().unwrap());
+                    assert_eq!(row_distance(a.top(), b.top()), state.line_height().unwrap());
                     state.focus(window, cx);
                     state.select_all(window, cx);
-                })
+                });
             });
             window.activate_window();
         });
@@ -125,22 +125,75 @@ fn parent_scroll_reprojects_bounded_rows_including_a_cached_editor(cx: &mut Test
         });
     }
 }
+#[derive(Clone, Copy)]
+enum Placement {
+    Visible,
+    Outside,
+}
+struct Clipped {
+    input: Probe,
+    placement: Placement,
+}
+impl Render for Clipped {
+    fn render(&mut self, window: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let x = match self.placement {
+            Placement::Visible => px(0.),
+            Placement::Outside => window.viewport_size().width,
+        };
+        div().size_full().relative().overflow_hidden().child(
+            div()
+                .absolute()
+                .left(x)
+                .top(px(0.))
+                .w(px(240.))
+                .h(px(5000.))
+                .child(Editor::new(&self.input.state)),
+        )
+    }
+}
 #[gpui::test]
 fn empty_parent_mask_projects_no_rows_and_refuses_direct_ime_bounds(cx: &mut TestAppContext) {
     cx.update(gpui_base::init);
     let mapping = Mapping::new("9999");
-    let (owner, cx) = cx.add_window_view(|w, cx| input("one\ntwo", mapping.style(), w, cx));
-    let state = owner.read_with(cx, |owner, _| owner.state.clone());
-    mapping.rows.lock().unwrap().clear();
-    let _ = cx.draw(
-        point(px(2000.), px(0.)),
-        size(px(240.), px(5000.)),
-        |_, _| Editor::new(&state).into_any_element(),
+    let (owner, cx) = cx.add_window_view(|window, cx| {
+        let state = cx.new(|cx| {
+            let mut state = EditorState::new(window, cx)
+                .soft_wrap(false)
+                .folding(false)
+                .default_value("one\ntwo");
+            state.set_readonly(true, cx);
+            state.set_scroll_beyond_last_line(Some(0), window, cx);
+            state.set_editor_style(mapping.style());
+            state
+        });
+        Clipped {
+            input: Probe { state },
+            placement: Placement::Visible,
+        }
+    });
+    cx.run_until_parked();
+    assert!(
+        !mapping.rows.lock().unwrap().is_empty(),
+        "positive control: the visible owner projects rows"
     );
-    assert!(mapping.rows.lock().unwrap().is_empty());
+    mapping.rows.lock().unwrap().clear();
+    owner.update(cx, |owner, cx| {
+        owner.placement = Placement::Outside;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    assert!(
+        mapping.rows.lock().unwrap().is_empty(),
+        "the actual parent stays outside on every automatic redraw"
+    );
     cx.update(|window, cx| {
+        let state = owner.read(cx).input.state.clone();
         state.update(cx, |state, cx| {
             let bounds = state.input_bounds();
+            assert!(
+                bounds.left() >= window.viewport_size().width,
+                "the editor really moved beyond the viewport"
+            );
             assert!(state.range_to_bounds(&(0..0)).is_none());
             assert!(state.bounds_for_range(0..0, bounds, window, cx).is_none());
             assert!(
@@ -149,7 +202,7 @@ fn empty_parent_mask_projects_no_rows_and_refuses_direct_ime_bounds(cx: &mut Tes
                     .is_none()
             );
             assert_eq!(state.value(), "one\ntwo");
-        })
+        });
     });
 }
 #[gpui::test]
@@ -160,7 +213,7 @@ fn none_preserves_the_existing_offscreen_coordinate_result(cx: &mut TestAppConte
     let state = owner.read_with(cx, |owner, _| owner.state.clone());
     cx.update(|window, cx| {
         state.update(cx, |state, cx| {
-            state.set_scroll_offset(point(px(0.), px(-400.)), cx)
+            state.set_scroll_offset(point(px(0.), px(-400.)), cx);
         });
         window.refresh();
         window.draw(cx).clear(cx);
@@ -174,7 +227,7 @@ fn none_preserves_the_existing_offscreen_coordinate_result(cx: &mut TestAppConte
     );
     cx.update(|window, cx| {
         state.update(cx, |state, _| {
-            state.set_editor_style(complete_literal().with_line_presentation(None))
+            state.set_editor_style(complete_literal().with_line_presentation(None));
         });
         window.refresh();
         window.draw(cx).clear(cx);

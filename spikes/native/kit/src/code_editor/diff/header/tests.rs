@@ -64,7 +64,7 @@ fn unchanged_header_projection_does_not_notify_and_clones_share_theme_updates(
     let counter = Rc::clone(&notifications);
     let _watch = cx.update(|_, cx| {
         cx.observe(&state, move |_, _| {
-            counter.set(counter.get().saturating_add(1))
+            counter.set(counter.get().saturating_add(1));
         })
     });
     let dark = crate::Tokens::of(crate::theme::Scheme::Dark)
