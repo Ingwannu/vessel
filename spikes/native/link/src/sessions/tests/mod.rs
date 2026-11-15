@@ -218,3 +218,43 @@ async fn superseding_a_waiting_link_cancels_only_the_older_metadata_request() {
     tokio::time::advance(TEST_WAIT).await;
     assert!(events.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn metadata_transport_loss_retries_same_address_on_authenticated_reconnect() {
+    let node = NodeId::random();
+    let mut first = peer::connect_as(peer::Behavior::Disconnect, node).await;
+    let (mut state, mut events) = state(first.client.clone());
+    let session = SessionId::random();
+    let ticket = NavigationTicket::FIRST;
+    state.session_navigation(super::Ask {
+        ticket,
+        target: NavigationTarget::Address(SessionAddress { node, session }),
+    });
+    assert!(
+        matches!(tokio::time::timeout(TEST_WAIT, first.calls.recv()).await.unwrap(),
+        Some(Call::GetSession(request)) if request.session == session)
+    );
+    let mut second = peer::connect_as(peer::Behavior::Accept, node).await;
+    state.clients.clear();
+    let previous = state.clients.insert(
+        "after-reconnect".to_owned(),
+        Connected {
+            client: second.client.clone(),
+            agents: Vec::new(),
+        },
+    );
+    assert!(previous.is_none());
+    state.session_connections_changed();
+    let Event::Sessions(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.ticket, ticket);
+    let located = answer.result.unwrap();
+    assert_eq!(located.address, SessionAddress { node, session });
+    assert_eq!(located.host.as_str(), "after-reconnect");
+    assert!(
+        matches!(second.calls.recv().await, Some(Call::GetSession(request)) if request.session == session)
+    );
+    assert!(first.calls.try_recv().is_err());
+    assert!(second.calls.try_recv().is_err());
+}

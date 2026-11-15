@@ -114,13 +114,21 @@ async fn locate(
             };
             match connection.client.session(session).await {
                 Ok(info) if info.id == session => {
+                    // A rename/replacement can arrive while the read is in flight.
+                    // Bind the result to the latest authenticated name for this node.
+                    let Some(current) = selected(&receiver.borrow(), target)? else {
+                        continue;
+                    };
+                    if current.client.node().id != connection.client.node().id {
+                        return Err(Failure::Offline);
+                    }
                     return Ok(Located {
                         address: SessionAddress {
                             node: connection.client.node().id,
                             session,
                         },
-                        card: Card::from_session(connection.host.as_str(), &info),
-                        host: connection.host,
+                        card: Card::from_session(current.host.as_str(), &info),
+                        host: current.host,
                     });
                 }
                 Ok(_) => return Err(Failure::WrongSession),

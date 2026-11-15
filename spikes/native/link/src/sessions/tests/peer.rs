@@ -15,6 +15,7 @@ pub(super) enum Behavior {
     Accept,
     Refuse,
     WrongSession,
+    Disconnect,
 }
 pub(super) struct Peer {
     pub client: NodeClient,
@@ -57,9 +58,12 @@ fn info(id: SessionId) -> SessionInfo {
     )
 }
 pub(super) async fn connect(behavior: Behavior) -> Peer {
+    connect_as(behavior, NodeId::random()).await
+}
+pub(super) async fn connect_as(behavior: Behavior, node: NodeId) -> Peer {
     let (local, mut remote) = tokio::io::duplex(FRAME_CAPACITY);
     let node = NodeInfo {
-        id: NodeId::random(),
+        id: node,
         name: "peer".to_owned(),
         hostname: "test".to_owned(),
         os: "test".to_owned(),
@@ -91,6 +95,7 @@ pub(super) async fn connect(behavior: Behavior) -> Peer {
             if let ClientFrame::Request { id, call } = frame {
                 sender.send(call.clone()).await.unwrap();
                 let outcome = match behavior {
+                    Behavior::Disconnect => break,
                     Behavior::Refuse => {
                         Outcome::Err(WireError::new(ErrorCode::Conflict, "synthetic refusal"))
                     }
