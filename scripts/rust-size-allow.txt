@@ -15,7 +15,7 @@ crates/vessel-llm/src/client.rs 786
 crates/vessel-llm/src/front/anthropic.rs 818
 crates/vessel-llm/src/front/responses.rs 945
 crates/vessel-llm/src/ir.rs 743
-crates/vessel-llm/src/upstream/anthropic.rs 586
+crates/vessel-llm/src/upstream/anthropic.rs 575
 crates/vessel-llm/src/upstream/chat.rs 506
 crates/vessel-llm/src/upstream/responses.rs 522
 crates/vessel-llm/src/wire/anthropic.rs 646
