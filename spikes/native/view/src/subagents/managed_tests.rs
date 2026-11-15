@@ -211,3 +211,48 @@ fn jump_expansion_and_visible_rows_read_the_same_nested_order() {
         reveal.target
     );
 }
+
+#[test]
+fn old_and_unassigned_peers_never_turn_audit_creator_into_a_root_fact() {
+    use vessel_proto::{
+        Creator, HarnessKind, ProtocolVersion, SessionInfo, SessionMode, SessionSpec,
+    };
+    let parent = id(NodeId::random());
+    let info = SessionInfo::new(
+        SessionId::random(),
+        SessionSpec::new(
+            HarnessKind::Codex,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: vec![],
+            },
+        ),
+        chrono::DateTime::UNIX_EPOCH,
+    )
+    .with_creator(Creator::Agent {
+        node: parent.node,
+        session: parent.session,
+    });
+    assert_eq!(
+        Relation::for_session(&info, ProtocolVersion::new(1)),
+        Relation::Unknown
+    );
+    let legacy = crate::Card::from_session("fixture", &info);
+    assert_eq!(legacy.detail.relation, Relation::Unknown);
+    assert_eq!(legacy.detail.created_by, info.created_by);
+    if vessel_proto::subagents::SUBAGENT_RELATIONS.is_none() {
+        assert_eq!(
+            Relation::for_session(&info, vessel_proto::PROTOCOL_VERSION),
+            Relation::Unknown
+        );
+    }
+    let mut json = serde_json::to_value(&legacy).unwrap();
+    json.get_mut("detail")
+        .unwrap()
+        .as_object_mut()
+        .unwrap()
+        .remove("relation");
+    let cached: crate::Card = serde_json::from_value(json).unwrap();
+    assert_eq!(cached.detail.relation, Relation::Unknown);
+}

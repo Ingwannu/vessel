@@ -1,6 +1,7 @@
 //! Prepare once on fleet/expansion changes. Rendering only reads prepared rows.
 
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use vessel_proto::SessionRef;
 
@@ -10,12 +11,27 @@ pub const MAX_MANAGED_SNAPSHOTS: usize = 16_384;
 pub const MAX_TREE_DEPTH: usize = 64;
 
 /// UI hydration confidence, distinct from immutable creator/audit information.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Relation {
     /// A capable authoritative lookup resolved current parent; None includes detach.
     Known(Option<SessionRef>),
     /// Unsupported, missing, stale or conflicting current-parent information.
+    #[default]
     Unknown,
+}
+impl Relation {
+    /// A missing/unassigned relationship capability is not evidence of a root.
+    #[must_use]
+    pub fn for_session(
+        info: &vessel_proto::SessionInfo,
+        peer: vessel_proto::ProtocolVersion,
+    ) -> Self {
+        if !vessel_proto::subagents::SUBAGENT_RELATIONS.is_some_and(|since| since <= peer) {
+            return Self::Unknown;
+        }
+        info.parentage()
+            .map_or(Self::Unknown, |parentage| Self::Known(parentage.parent()))
+    }
 }
 /// Active children exclude archive intent as well as completed archival.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

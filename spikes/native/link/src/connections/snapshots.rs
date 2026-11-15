@@ -8,7 +8,7 @@ impl State {
             Ok(sessions) => Machine {
                 sessions: sessions
                     .iter()
-                    .map(|s| Card::from_session(&name, s))
+                    .map(|s| Card::from_session_at_protocol(&name, s, connected.client.protocol()))
                     .collect(),
                 agents: connected.agents.clone(),
                 protocol: Some(connected.client.protocol()),

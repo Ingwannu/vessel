@@ -22,6 +22,10 @@ pub struct CardDetail {
     pub harness: Option<HarnessRef>,
     /// Who started it (the card's origin line).
     pub created_by: Creator,
+    /// Current capable-node parentage; Creator remains immutable audit data.
+    /// This cached projection never authorizes a lifecycle operation.
+    #[serde(default)]
+    pub relation: crate::subagents::Relation,
     /// Its folder, as the node wrote it; `None` is the home folder ("~").
     pub cwd: Option<String>,
     /// Its worktree's branch, when it has one (protocol 10).
@@ -106,6 +110,7 @@ impl Card {
         let detail = CardDetail {
             harness: Some(session.spec.harness.clone()),
             created_by: session.created_by.clone(),
+            relation: crate::subagents::Relation::Unknown,
             cwd: session
                 .spec
                 .cwd
@@ -156,6 +161,18 @@ impl Card {
             at,
             detail,
         }
+    }
+
+    /// Hydrate advisory current parentage only from the answering peer's capability.
+    #[must_use]
+    pub fn from_session_at_protocol(
+        machine: &str,
+        session: &SessionInfo,
+        peer: vessel_proto::ProtocolVersion,
+    ) -> Self {
+        let mut card = Self::from_session(machine, session);
+        card.detail.relation = crate::subagents::Relation::for_session(session, peer);
+        card
     }
 
     /// Whole minutes since it last did something (the text table words

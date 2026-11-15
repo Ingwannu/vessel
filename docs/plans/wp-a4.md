@@ -152,3 +152,14 @@ An accepted rebuilt child projection exposes projection_revision (the accepted
 read ticket), so the keyed renderer can invalidate old index callbacks even after
 a same-query prepend. Query identity alone cannot prove an old numeric row index.
 Tests cover delayed same-child reopen and revision change on earlier-page rebuild.
+
+## Current parentage in fleet cards
+
+CardDetail now carries advisory Relation, default Unknown for old/demo/cache
+records. Only from_session_at_protocol on the authenticated answering client
+projects current parentage behind SUBAGENT_RELATIONS. Old/pending peers never
+become roots from missing detach receipt or immutable Creator. Creator remains
+an audit field. Lifecycle consumers must still hydrate current authority before
+mutation. A changed capable fleet relation clears stale parent navigation and
+requests the same authoritative lookup rather than keeping a detached child's
+Back link indefinitely. No workspace identity or visibility is inferred here.

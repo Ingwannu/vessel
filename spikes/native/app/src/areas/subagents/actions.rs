@@ -63,6 +63,34 @@ impl Shell {
         if let Some(open) = self.areas.session.open.clone() {
             self.subagents_opened(&open);
         }
+        let area = &mut self.areas.subagents;
+        let relation = area.track.as_ref().and_then(|track| {
+            self.fleet
+                .machines
+                .iter()
+                .find(|machine| machine.node == Some(track.target().address.node))
+                .and_then(|machine| {
+                    machine
+                        .sessions
+                        .iter()
+                        .find(|card| card.session == track.target().address.session)
+                })
+                .map(|card| card.detail.relation)
+        });
+        if let Some(vessel_app_view::subagents::Relation::Known(current)) = relation
+            && let Some(info) = &area.info
+            && info
+                .parentage()
+                .ok()
+                .and_then(vessel_proto::subagents::Parentage::parent)
+                != current
+        {
+            // Hide stale parent navigation until a fresh authoritative lookup settles.
+            area.info = None;
+            if area.lookup.is_none() {
+                self.subagents_refresh();
+            }
+        }
     }
     pub(super) fn open_subagents(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.subagents;
