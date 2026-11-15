@@ -87,10 +87,10 @@ impl<T> Phase<T> {
             Self::Ready(value) => Some(value),
         }
     }
-    /// Query errors hide values; an in-flight reread may keep a complete prior snapshot.
-    /// This is independent from an account report's retained-success attempt state.
+    /// Agent-query errors hide values; an in-flight reread may keep a complete prior snapshot.
+    /// Host queries keep data first through `observation`; account-attempt retention is separate.
     #[must_use]
-    pub fn visible_observation(&self) -> Option<&T> {
+    pub fn agent_observation(&self) -> Option<&T> {
         match self {
             Self::Idle | Self::Failed { .. } => None,
             Self::Loading { retained } => retained.as_deref(),

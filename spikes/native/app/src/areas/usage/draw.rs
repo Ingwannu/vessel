@@ -118,6 +118,18 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
     ))
 }
 
+pub(super) fn read_host_status<T>(
+    phase: &Phase<T>,
+    shell: &Shell,
+    tokens: &Tokens,
+) -> Option<AnyElement> {
+    if phase.observation().is_some() {
+        None
+    } else {
+        read_query_status(phase, shell, tokens)
+    }
+}
+
 pub(super) fn read_query_status<T>(
     phase: &Phase<T>,
     shell: &Shell,

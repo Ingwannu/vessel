@@ -44,7 +44,7 @@ pub(super) fn render(
             tokens,
         ));
     }
-    let Some(inventory) = state.inventory.phase().visible_observation() else {
+    let Some(inventory) = state.inventory.phase().observation() else {
         return body.into_any_element();
     };
     if let Some(error) = inventory.refresh_problem() {

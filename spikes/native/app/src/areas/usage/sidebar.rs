@@ -111,7 +111,7 @@ pub(crate) fn sidebar_summary(
     if !visible(shell) {
         return None;
     }
-    let inventory = shell.areas.usage.summary.phase().visible_observation()?;
+    let inventory = shell.areas.usage.summary.phase().observation()?;
     let reports = candidates(inventory, shell.words);
     let pinned = pinned_windows(
         &reports,

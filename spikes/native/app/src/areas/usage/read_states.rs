@@ -31,7 +31,10 @@ pub(super) fn retry(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
-    if !matches!(state.inventory.phase(), Phase::Failed { .. }) {
+    if !matches!(
+        state.inventory.phase(),
+        Phase::Failed { retained: None, .. }
+    ) {
         return None;
     }
     let receipt = context(shell)?;
@@ -46,7 +49,10 @@ pub(super) fn retry(
         .when(enabled, |button| {
             button.on_click(cx.listener(move |shell, _, _, cx| {
                 if current(shell, &receipt)
-                    && matches!(shell.areas.usage.inventory.phase(), Phase::Failed { .. })
+                    && matches!(
+                        shell.areas.usage.inventory.phase(),
+                        Phase::Failed { retained: None, .. }
+                    )
                 {
                     shell.usage_accounts(InventoryRefresh::Cached);
                     cx.notify();

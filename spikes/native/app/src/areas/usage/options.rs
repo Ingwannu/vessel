@@ -173,10 +173,10 @@ fn draw(
     let policy = state
         .inventory
         .phase()
-        .visible_observation()
+        .observation()
         .and_then(vessel_app_view::usage::Inventory::policy);
     let body = div()
-        .children(super::draw::read_query_status(
+        .children(super::draw::read_host_status(
             state.inventory.phase(),
             shell,
             tokens,

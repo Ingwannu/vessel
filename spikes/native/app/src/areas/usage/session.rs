@@ -150,7 +150,7 @@ pub(crate) fn session_card(
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
     let text = shell.words.usage();
-    if state.session.phase().visible_observation().is_none() {
+    if state.session.phase().agent_observation().is_none() {
         let selected = state.session.selection()?.clone();
         let failed = matches!(state.session.phase(), Phase::Failed { .. });
         return Some(
@@ -173,7 +173,7 @@ pub(crate) fn session_card(
                 .into_any_element(),
         );
     }
-    let limits = state.session.phase().visible_observation()?;
+    let limits = state.session.phase().agent_observation()?;
     let view = limit_view(limits);
     let mut card = div()
         .min_w_0()
@@ -238,7 +238,7 @@ pub(crate) fn limit_notice(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
-    let limits = state.session.phase().visible_observation()?;
+    let limits = state.session.phase().agent_observation()?;
     let reported = limits.notice.as_ref()?;
     let expected = state.session.selection()?.clone();
     let text = shell.words.usage();

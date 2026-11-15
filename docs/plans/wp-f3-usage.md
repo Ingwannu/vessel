@@ -128,3 +128,16 @@ existing presentation API returns String, while the new login-error fallback had
 selected &str through Option::map_or. The correction uses map_or_else with an
 owned public-label fallback, preserving the same identity/reason text. No tests
 executed in that failed run; the current query/pin/focus deltas also remain owed.
+
+Correction to the preceding query paragraph after opening the pinned implementation:
+model.ts:107–150 `resolveUsageView` prefers host query.data before query.error;
+model.ts:155–181 `resolveAgentUsageView` explicitly prefers error before data.
+The earlier paragraph incorrectly applied the agent rule to hosts. Native now
+keeps a complete prior host snapshot and summary through transport errors, and
+only shows the host loading/error/Retry state when no data exists. Settings policy
+also remains a cached known fact when available. The separate agent projection
+hides quota/notice on query error, with Cached Retry as described above. A pure
+reader regression verifies both views of the same failed read and preserved time.
+Per-report Failed/Unavailable retention remains independent. N2 independently
+identified the distinction; this follows the opened code, not a stricter invented
+machine policy. Current combined execution is still owed.
