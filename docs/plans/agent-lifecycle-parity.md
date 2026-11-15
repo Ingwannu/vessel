@@ -943,3 +943,11 @@ fixture called a nonexistent service-error accessor and imported an unused trait
 The assertion now uses the existing wire mapping, keeping the same Unsupported
 expectation. The returned-transfer cleanup correction and its cancellation proof
 remain in progress; no package gate or completed background feature is claimed.
+
+### Retaining a fleet route
+
+A separate structural extraction moves the existing home/member transport choice
+into envelope::route. It keeps Links' existing callback selection, destination,
+origin, permission checks and response unchanged. The retained descriptor will
+let rejected-transfer cleanup use the export's exact holder rather than rebuild
+an origin after the original call has completed.

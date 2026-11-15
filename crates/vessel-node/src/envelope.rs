@@ -39,13 +39,15 @@
 use vessel_proto::{
     Ack, Call, Callback, Deliver, ErrorCode, FleetNode, ForgetNode, Forward, Forwarded,
     GetCallback, GrantHome, ListNodes, ListPeers, Method, NodeForgotten, NodeId, Origin, OriginBy,
-    RelayCall, Reply, Request, Scope, WireError,
+    Reply, Request, Scope, WireError,
 };
 
 use crate::guard::Guarded;
 use crate::principal::Principal;
 use crate::service::{Connection, NodeService};
 use crate::waits::{Share, WaitSlot, Waiter};
+
+mod route;
 
 fn forbidden(message: &str) -> WireError {
     WireError::new(ErrorCode::Forbidden, message.to_owned())
@@ -122,26 +124,17 @@ impl NodeService {
         principal.permit(call.method())?;
         self.inherit_forwarded_listing(principal, &mut call).await?;
         let origin = self.origin_of(principal)?;
-        if self.links.is_home() {
-            self.links.call_member(node, Deliver { call, origin }).await
-        } else if self.links.is_member() {
-            self.links.call_home(RelayCall { node, call, origin }).await
-        } else {
-            Err(WireError::new(
-                ErrorCode::NotFound,
-                format!("this node is in no fleet, so it cannot reach node {node}"),
-            ))
-        }
+        route::Route::forward(&self.links, node, origin)?.call(call).await
     }
 
     /// `fleet.relay` (the home): pass a member's call on, or run it here.
     pub(crate) async fn relay(
         &self,
         connection: &Connection,
-        request: RelayCall,
+        request: vessel_proto::RelayCall,
         guard: &Guarded,
     ) -> Result<Forwarded, WireError> {
-        let RelayCall { node, call, origin } = request;
+        let vessel_proto::RelayCall { node, call, origin } = request;
         forwardable(call.method())?;
         let Principal::Device { id, scopes } = connection.principal() else {
             return Err(forbidden("only a fleet member's device relays calls"));
@@ -170,10 +163,7 @@ impl NodeService {
         let mut shares = Waiter::origin(&origin).shares(self.links.node());
         shares.push(Share::Relay(*id));
         let _slot = self.passed_wait(connection, shares, &mut call);
-        let forwarded = self
-            .links
-            .call_member(node, Deliver { call, origin })
-            .await?;
+        let forwarded = route::Route::member(&self.links, node, origin).call(call).await?;
         crate::metadata_export::forwarded(&forwarded, connection.protocol())
             .map_err(|error| error.to_wire())?;
         Ok(forwarded)
