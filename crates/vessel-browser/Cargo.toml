@@ -12,6 +12,10 @@ vessel-proto.workspace = true
 vessel-relay.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tokio-util = { workspace = true, features = ["rt"] }
+axum.workspace = true
+hyper = { workspace = true, features = ["client"] }
+hyper-util.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = { workspace = true, features = ["net"] }

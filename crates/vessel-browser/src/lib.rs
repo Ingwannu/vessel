@@ -6,6 +6,7 @@
 //! The node remains responsible for authenticated owner/service capabilities.
 
 pub mod network;
+pub mod proxy;
 mod references;
 
 pub use references::{ReferenceError, References, SnapshotGeneration};

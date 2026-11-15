@@ -220,3 +220,20 @@ matching Paseo rpc-schemas.ts16-18 fourth-group [89ab]. Fixtures reject NCS,
 Microsoft and future variant spellings through both direct parse and serde.
 The earlier successful tests did not cover this predicate and do not override
 the returned source finding.
+
+
+## General HTTP proxy implementation (staged)
+
+Reuse workspace hyper/axum HTTP types and streaming bodies, rather than invent
+a raw parser or buffering page bodies. HTTP absolute-form and CONNECT authority
+are decoded separately. Host is rewritten to the validated URL; connection-named
+hop headers and proxy credentials are removed. Only a requested WebSocket can
+upgrade. Each upstream is a pinned public dial; the entire DNS answer and current
+interfaces are checked again at connection boundaries. No direct fallback exists.
+A profile owns the listener, client sockets, upstream drivers and upgraded tunnels
+under one cancellation token; 128 connections retain permits through upgrades,
+64 headers/32KiB parser storage and 5s header wait bound admission. Backend header
+wait is 15s. These are deliberate resource limits beyond the reference behavior.
+Private-target refusal and profile-close fixtures use only own ephemeral loopback
+listeners with independent positive controls. Passing them will not qualify a
+real Chromium configuration, Preview service authority, or Windows support.
