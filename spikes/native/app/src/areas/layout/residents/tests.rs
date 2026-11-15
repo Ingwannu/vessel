@@ -128,11 +128,45 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
                 conversation: ConversationArea::new(cx),
             })
             .unwrap();
-        let first = residents.begin_follow(token).unwrap();
+        let context = residents.context(token, &claim).unwrap();
+        residents
+            .resources(&context)
+            .unwrap()
+            .session
+            .composer
+            .set_text("protected input", window, cx);
+        let first = residents.begin_follow(token, |_, _| {}).unwrap();
         let old_ticket = residents
             .admit_operation(first, OperationKind::Composer)
             .unwrap();
-        let fresh = residents.begin_follow(token).unwrap();
+        let fresh = residents
+            .begin_follow(token, |resources, retired| {
+                assert_eq!(retired.binding(), first);
+                assert_eq!(retired.operations().len(), 1);
+                let operation = retired.operations().first().unwrap();
+                assert_eq!(operation.kind(), OperationKind::Composer);
+                assert_eq!(operation.ticket(), old_ticket);
+                resources.session.resume_error = Some("uncertain".to_owned());
+            })
+            .unwrap();
+        assert_eq!(
+            residents
+                .resources(&residents.context(token, &claim).unwrap())
+                .unwrap()
+                .session
+                .resume_error
+                .as_deref(),
+            Some("uncertain")
+        );
+        assert_eq!(
+            residents
+                .resources(&context)
+                .unwrap()
+                .session
+                .composer
+                .text(cx),
+            "protected input"
+        );
         let applied = Cell::new(false);
         assert!(residents.receive(first, |_| applied.set(true)).is_err());
         assert!(
@@ -165,12 +199,31 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
                 .is_err()
         );
         assert!(!applied.get());
-        residents.retire_follow(fresh).unwrap();
+        residents
+            .retire_follow(fresh, |_, retired| {
+                assert!(retired.operations().is_empty());
+            })
+            .unwrap();
         assert!(residents.receive(fresh, |_| applied.set(true)).is_err());
         assert!(matches!(
             residents.retire_clean(token),
             Err(ResidentProblem::Held)
         ));
+        assert_eq!(
+            residents
+                .resources(&context)
+                .unwrap()
+                .session
+                .composer
+                .text(cx),
+            "protected input"
+        );
+        residents
+            .resources(&context)
+            .unwrap()
+            .session
+            .composer
+            .clear(window, cx);
         for owner in ResourceOwner::ALL {
             residents
                 .readiness(token, owner, OwnerReadiness::Ready)

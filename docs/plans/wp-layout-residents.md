@@ -24,6 +24,11 @@ to authoritative workspace membership and the live connection lease; the staged
 resource map alone grants neither. The final product admission caller must check
 the current layout's agent target and authoritative registry membership before
 claiming, and must release a claim on guarded retarget/close.
+The staged owner retires admission in two phases: `retire_current` first invalidates
+the binding/tickets and returns bounded `FollowRetirement` data; a required owner
+callback updates matching pending UI to uncertain before replacement follow begins.
+The callback precedes generation-allocation failure as well, so exhaustion cannot
+leave an obsolete Sending indicator. Notices cannot mint or readmit operations.
 
 ## Decision Log
 

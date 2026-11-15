@@ -291,6 +291,40 @@ fn exhausted_follow_retires_old_attempt_without_wrapping_or_losing_input_lifetim
 }
 
 #[test]
+fn transport_retirement_reports_exact_tickets_despite_protected_resources_and_exhaustion() {
+    let (mut residents, token, claim) = fixture();
+    let _initial = residents.begin_follow(token).unwrap();
+    residents.entry_mut(token).unwrap().follow = FollowGeneration(u64::MAX);
+    let binding = FollowBinding {
+        resident: token,
+        follow: FollowGeneration(u64::MAX),
+    };
+    let ticket = residents
+        .admit_operation(binding, OperationKind::Request)
+        .unwrap();
+    let retired = residents.retire_current(token).unwrap().unwrap();
+    assert_eq!(retired.binding(), binding);
+    assert_eq!(retired.operations().len(), 1);
+    let operation = retired.operations().first().unwrap();
+    assert_eq!(operation.kind(), OperationKind::Request);
+    assert_eq!(operation.ticket(), ticket);
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    assert_eq!(
+        residents.begin_follow(token),
+        Err(ResidentProblem::Exhausted)
+    );
+    assert_eq!(
+        residents.validate_binding(binding),
+        Err(ResidentProblem::StaleBinding)
+    );
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Request, ticket),
+        Err(ResidentProblem::StaleBinding)
+    );
+    assert_eq!(residents.context(token, &claim).unwrap().resident, token);
+}
+
+#[test]
 fn tickets_cannot_settle_another_resident_with_the_same_local_operation_ordinal() {
     let (mut residents, first, first_claim) = fixture();
     let address = SessionAddress {

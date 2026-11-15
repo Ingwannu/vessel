@@ -3,8 +3,8 @@ use super::{SessionResidents, SessionResources};
 use std::time::Duration;
 use vessel_app_view::layout::PaneId;
 use vessel_app_view::residents::{
-    FollowBinding, OperationKind, OperationTicket, OwnerReadiness, PanelClaim, ResidentProblem,
-    ResidentToken, ResourceOwner, SessionContext, Visibility,
+    FollowBinding, FollowRetirement, OperationKind, OperationTicket, OwnerReadiness, PanelClaim,
+    ResidentProblem, ResidentToken, ResourceOwner, SessionContext, Visibility,
 };
 
 impl SessionResidents {
@@ -59,12 +59,26 @@ impl SessionResidents {
     pub(crate) fn begin_follow(
         &mut self,
         token: ResidentToken,
+        retired: impl FnOnce(&mut SessionResources, &FollowRetirement),
     ) -> Result<FollowBinding, ResidentProblem> {
         let _entry = self.entry(token)?;
+        if let Some(notice) = self.admission.retire_current(token)? {
+            retired(&mut self.entry_mut(token)?.resources, &notice);
+        }
         self.admission.begin_follow(token)
     }
-    pub(crate) fn retire_follow(&mut self, binding: FollowBinding) -> Result<(), ResidentProblem> {
-        self.admission.retire_follow(binding)
+    pub(crate) fn retire_follow(
+        &mut self,
+        binding: FollowBinding,
+        retired: impl FnOnce(&mut SessionResources, &FollowRetirement),
+    ) -> Result<(), ResidentProblem> {
+        self.admission.validate_binding(binding)?;
+        let notice = self
+            .admission
+            .retire_current(binding.resident)?
+            .ok_or(ResidentProblem::StaleBinding)?;
+        retired(&mut self.entry_mut(binding.resident)?.resources, &notice);
+        Ok(())
     }
     pub(crate) fn admit_operation(
         &mut self,
