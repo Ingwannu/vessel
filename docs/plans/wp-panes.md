@@ -1,5 +1,13 @@
 # Workspace panels and split layout
 
+## Disposition
+
+This is an unimplemented contract proposal, superseded by the canonical workspace
+layout package. No product code, working panel API, gate, capture or parity evidence
+was produced here. Do not integrate the signatures below as an independent API.
+The canonical layout owner received this proposal and the panel-owner feedback.
+Stable workspace identity must reuse ADR 0082 rather than a local substitute.
+
 ## Reference and asset analysis
 
 Paseo 0.15.4, app sources: `workspace-tabs/model.ts:34`,
@@ -70,5 +78,7 @@ are excluded from persistence. Hydration gates entity pruning.
 ## Resume point
 
 Done: reference/asset analysis, worktree, panel integration contract.
-Next: compile skeleton, model transitions/tests, persistence and frame; merge app base
-when announced. No gate, capture or review has run yet. No parity claim.
+Disposition: implementation transferred to the canonical layout package before any
+product-code change. This tree has no remaining assigned implementation. The proposal
+remains available for reference; use the canonical package for the final API.
+No gate, capture or review has run yet. No parity claim.
