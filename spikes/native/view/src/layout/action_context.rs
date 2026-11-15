@@ -22,10 +22,16 @@ impl LayoutActionContext {
     /// the underlying pane, so input cannot silently select a hidden draft.
     #[must_use]
     pub fn target(&self) -> Option<&Target> {
+        self.selected().map(|(_, target)| target)
+    }
+    /// Effective captured tab and target, scoped by `workspace()`. A compact
+    /// sheet takes precedence; callers still validate the complete context.
+    #[must_use]
+    pub fn selected(&self) -> Option<(TabId, &Target)> {
         self.sheet
             .as_ref()
             .or(self.selected.as_ref())
-            .map(|(_, target)| target)
+            .map(|(tab, target)| (*tab, target))
     }
 }
 impl Layout {
