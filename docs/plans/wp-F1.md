@@ -818,3 +818,21 @@ survives wrong id/context/ticket and late replies in new source cases.
 Link routing for this candidate is not yet added, and no lookup/Open chat button
 is exposed. The shared opener/delivery capability remains a required dependency;
 this source model is not a session-navigation proof. New cases are unexecuted.
+
+
+## Shared source-identity adoption boundary
+
+The exact isolated dcbdbb018 source producer received bounded source adoption
+and requested Kit all-target Clippy0. Prior matching four-field-blob Kit128
+keyboard evidence remains prior-source only; no exact-dcb full test/whole/UI
+claim is made. This merge retains its Plain/Identified Callbacks and single
+listen path, plus the earlier FormMinimum member/default in BOTH existing Self
+initializers and the extracted form shell. The source-identity module/events
+are otherwise the producer's bytes. Field's merged measured record is598,
+never raised; picker's independently lowered615 is preserved instead of the
+producer parent's older829. No whole producer tree replaces this area.
+
+The reserved multiline identified constructor is the next control-only change.
+FieldId remains real editor identity, not form visit, backend admission or
+permission. F1 must retain original visit/context alongside current source id;
+reusing an engine alone is not old-form safety. The consumer remains unverified.
