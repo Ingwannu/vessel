@@ -1,5 +1,5 @@
 ## Settings Chat, after Paseo's chat section.
-## Two existing native displays; the preference and order stay unchanged.
+## Three native displays, in the reference order.
 
 # The Settings navigation entry and page title. Keep short.
 chat-title = Chat
@@ -18,3 +18,6 @@ chat-display-full = Full
 
 # Fold tool calls in the conversation. Keep short.
 chat-display-collapse-tools = Collapse tool calls
+
+# Fold work before the final reply of a completed turn. Keep short.
+chat-display-collapse-turns = Collapse turns

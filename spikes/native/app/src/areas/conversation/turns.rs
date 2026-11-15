@@ -19,10 +19,17 @@ pub(super) struct Turns {
     pub(super) open: HashSet<usize>,
 }
 
-/// Existing capture override gains the third display without exposing a Settings
-/// row before its shared translated getter and typed choice have landed.
-pub(super) fn pinned() -> bool {
-    std::env::var("VESSEL_APP_CONVERSATION").is_ok_and(|value| value == "turns")
+/// Settings and the existing capture override select the same consumed display.
+pub(super) fn enabled(display: Option<vessel_app_view::prefs::ConversationDisplay>) -> bool {
+    use vessel_app_view::prefs::ConversationDisplay;
+    match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
+        Ok("turns") => true,
+        Ok("full" | "collapse") => false,
+        _ => match display.unwrap_or_default() {
+            ConversationDisplay::Full | ConversationDisplay::CollapseTools => false,
+            ConversationDisplay::CollapseTurns => true,
+        },
+    }
 }
 
 impl ConversationArea {

@@ -184,7 +184,15 @@ fn row_element(
         .folds
         .as_ref()
         .and_then(|folds| folds.run_of(index))
-        .filter(|run| run.lead == index);
+        .filter(|run| run.lead == index)
+        .filter(|_| {
+            !area.turns.as_ref().is_some_and(|turns| {
+                turns
+                    .folds
+                    .containing(index)
+                    .is_some_and(|turn| turns.open.contains(&turn.host))
+            })
+        });
     let mut content = div().flex().flex_col().gap(px(2.0));
     let run_open = run.is_some_and(|run| area.open_runs.contains(&run.lead));
     if let Some(run) = run {

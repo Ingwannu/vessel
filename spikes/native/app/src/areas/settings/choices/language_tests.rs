@@ -20,7 +20,14 @@ fn display_choices_reword_while_the_preference_and_input_stay(cx: &mut gpui::Tes
                 .iter()
                 .map(|row| (row.label.as_ref(), row.checked))
                 .collect();
-            assert_eq!(actual, [("Full", false), ("Collapse tool calls", true)]);
+            assert_eq!(
+                actual,
+                [
+                    ("Full", false),
+                    ("Collapse tool calls", true),
+                    ("Collapse turns", false)
+                ]
+            );
             // Legacy table labels change for Korean but cannot expose an
             // untranslated picker in pseudo mode. Exercise the real dispatcher.
             let pseudo = Translator::get(resolve_language(
@@ -49,7 +56,14 @@ fn display_choices_reword_while_the_preference_and_input_stay(cx: &mut gpui::Tes
                 .iter()
                 .map(|row| (row.label.as_ref(), row.checked))
                 .collect();
-            assert_eq!(actual, [("전체", false), ("도구 호출 접기", true)]);
+            assert_eq!(
+                actual,
+                [
+                    ("전체", false),
+                    ("도구 호출 접기", true),
+                    ("턴 접기", false)
+                ]
+            );
         },
     );
 }

@@ -32,3 +32,25 @@ fn chat_sentences_and_display_choices_keep_the_existing_words() {
         "도구 호출 접기"
     );
 }
+
+#[test]
+fn every_display_choice_has_its_whole_english_and_korean_label_in_source_order() {
+    let en = Translator::get(Locale::from_tag("en").unwrap())
+        .unwrap()
+        .chat();
+    let ko = Translator::get(Locale::from_tag("ko").unwrap())
+        .unwrap()
+        .chat();
+    let actual: Vec<_> = ConversationDisplay::ALL
+        .into_iter()
+        .map(|display| (en.display_choice(display), ko.display_choice(display)))
+        .collect();
+    assert_eq!(
+        actual,
+        [
+            ("Full", "전체"),
+            ("Collapse tool calls", "도구 호출 접기"),
+            ("Collapse turns", "턴 접기")
+        ]
+    );
+}

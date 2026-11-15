@@ -60,14 +60,20 @@ impl Rows {
     #[must_use]
     pub fn fold_turns(self, entries: &[Entry], turns: &TurnFolds, open: &HashSet<usize>) -> Self {
         Self::Some(
-            (0..self.len())
-                .filter_map(|row| self.entry(row))
+            (0..entries.len())
                 .filter(|index| {
-                    entries.get(*index).is_some_and(|entry| {
-                        matches!(entry.kind, EntryKind::Steer { .. })
-                            || turns
-                                .containing(*index)
-                                .is_none_or(|turn| open.contains(&turn.host))
+                    let base_visible = match &self {
+                        Self::All(count) => *index < *count,
+                        Self::Some(rows) => rows.binary_search(index).is_ok(),
+                    };
+                    let Some(entry) = entries.get(*index) else {
+                        return false;
+                    };
+                    if matches!(entry.kind, EntryKind::Steer { .. }) {
+                        return base_visible;
+                    }
+                    turns.containing(*index).map_or(base_visible, |turn| {
+                        open.contains(&turn.host) && !matches!(entry.kind, EntryKind::Log { .. })
                     })
                 })
                 .collect(),

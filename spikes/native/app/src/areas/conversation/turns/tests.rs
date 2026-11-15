@@ -84,6 +84,7 @@ fn changing_reasoning_default_preserves_the_visible_answer_and_exact_scroll_offs
         let session = SessionId::random();
         let mut area = ConversationArea::new(cx);
         area.open("fake", session);
+        area.turns = None; // This case specifically exercises Collapse tool calls.
         let mut events: Vec<_> = records().into_iter().map(|record| record.event).collect();
         let mut second_tool = events.get(1).unwrap().clone();
         if let SessionEvent::Agent {

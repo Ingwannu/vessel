@@ -228,16 +228,18 @@ impl ContentWidth {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConversationDisplay {
-    /// Every tool call open.
-    #[default]
+    /// Every tool call as an individual row.
     Full,
     /// Tool calls folded to a line.
     CollapseTools,
+    /// Completed turns fold work before their final reply (Paseo's default).
+    #[default]
+    CollapseTurns,
 }
 
 impl ConversationDisplay {
-    /// Both, in the order Settings offers them.
-    pub const ALL: [Self; 2] = [Self::Full, Self::CollapseTools];
+    /// Every display, in the reference picker's order.
+    pub const ALL: [Self; 3] = [Self::Full, Self::CollapseTools, Self::CollapseTurns];
 }
 
 /// The Chat preference changes defaults, never a person's explicit disclosure.

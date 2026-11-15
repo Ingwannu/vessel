@@ -11,6 +11,7 @@ impl<'a> Chat<'a> {
         match display {
             ConversationDisplay::Full => self.display_full(),
             ConversationDisplay::CollapseTools => self.display_collapse_tools(),
+            ConversationDisplay::CollapseTurns => self.display_collapse_turns(),
         }
     }
 }

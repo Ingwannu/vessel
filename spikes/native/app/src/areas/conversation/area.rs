@@ -188,7 +188,7 @@ impl ConversationArea {
             timeline: Timeline::default(),
             folds: None,
             open_runs: HashSet::new(),
-            turns: None,
+            turns: super::turns::enabled(None).then(super::turns::Turns::default),
             logs: Logs::default(),
             agent_log: AgentLog::Hidden,
             collapse: collapsing(None),
@@ -398,9 +398,6 @@ impl ConversationArea {
     /// The rows again, after the entries, the folds or the open runs
     /// changed.
     pub(super) fn rows_again(&mut self) {
-        if self.turns.is_some() {
-            self.folds = None;
-        }
         let rows = Rows::of(
             self.timeline.entries().len(),
             self.folds.as_ref(),
@@ -421,18 +418,17 @@ impl ConversationArea {
     }
 }
 
-/// Whether the conversation collapses tool calls: as Settings ›
-/// Appearance › Conversation display says (`display`; "Full": every tool
-/// call a row, an agent's log as one folded row; "Collapse tool calls":
-/// runs of tool calls one row each, the log not shown), unless
-/// `VESSEL_APP_CONVERSATION` (`full` or `collapse`) pins it for a run, for
-/// captures. Before the preferences are read (`None`), collapsed, as the
-/// app has drawn it since its first build.
+/// Both collapsed Chat displays group active tool work and hide harness logs.
+/// Full keeps individual tools and folded harness logs. The capture override
+/// selects these same modes; a missing preference uses the current default.
 pub(super) fn collapsing(display: Option<ConversationDisplay>) -> bool {
     match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
-        Ok("full" | "turns") => false,
-        Ok("collapse") => true,
-        _ => display.is_none_or(|display| display == ConversationDisplay::CollapseTools),
+        Ok("full") => false,
+        Ok("collapse" | "turns") => true,
+        _ => match display.unwrap_or_default() {
+            ConversationDisplay::Full => false,
+            ConversationDisplay::CollapseTools | ConversationDisplay::CollapseTurns => true,
+        },
     }
 }
 

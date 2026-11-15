@@ -147,10 +147,8 @@ pub struct Folds {
 }
 
 impl Folds {
-    /// The runs of `entries` worth folding: every run with a tool call in
-    /// it, a single one included (Paseo's overview rows summarise one
-    /// call as they do ten); a lone thought stays as it is, a disclosure
-    /// already.
+    /// Consecutive groups with at least two members and a tool call. Paseo
+    /// keeps a single tool or thought as its original disclosure row.
     #[must_use]
     pub fn of(entries: &[Entry]) -> Self {
         Self::with_reasoning(entries, false)
@@ -198,6 +196,9 @@ fn close(runs: &mut Vec<ToolRun>, entries: &[Entry], from: usize, to: usize) {
     let Some(members) = entries.get(from..to) else {
         return;
     };
+    if members.len() < 2 {
+        return;
+    }
     let mut tools = members
         .iter()
         .filter_map(|entry| entry.kind.as_tool())

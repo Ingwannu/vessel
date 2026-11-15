@@ -100,6 +100,7 @@ pub(crate) struct SettingsState {
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
     pub(crate) animations_turns: u64,
+    pub(crate) reasoning_turns: u64,
 }
 
 impl SettingsState {
@@ -124,6 +125,7 @@ impl SettingsState {
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,
+            reasoning_turns: 0,
         }
     }
 

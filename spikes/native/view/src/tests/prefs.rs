@@ -31,7 +31,7 @@ fn defaults_are_the_contracts() {
     let values = Preferences::default();
     // Keep the page/bridge fixture unchanged. The native document adds three
     // explicit fields (language, animations and reasoning expansion)
-    // and differs in one stated default: ended sessions are listed
+    // and differs in two stated defaults: collapsed turns, and listed ended sessions
     // (`SidebarView::default`, 2026-11-14; the page and the bridge still
     // write `"ended":false` until the node line's slice moves them, and
     // then this exception goes). Every other byte of its defaults still
@@ -40,7 +40,7 @@ fn defaults_are_the_contracts() {
         .replacen('{', r#"{"language":"system","#, 1)
         .replacen(
             r#""conversation":"full""#,
-            r#""conversation":"full","reasoning":"collapsed","animations":"on""#,
+            r#""conversation":"collapse_turns","reasoning":"collapsed","animations":"on""#,
             1,
         )
         .replacen(r#""ended":false"#, r#""ended":true"#, 1);
@@ -49,9 +49,13 @@ fn defaults_are_the_contracts() {
         serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
-    // The page's document reads as the defaults with its own stated
-    // `"ended":false`: the one temporary difference, kept as written.
+    // Preserve the older bridge document's explicit Full/ended choices while
+    // missing fields receive the current native defaults.
     let page_default = Preferences {
+        appearance: crate::prefs::Appearance {
+            conversation: crate::prefs::ConversationDisplay::Full,
+            ..values.appearance
+        },
         sidebar: SidebarView {
             ended: false,
             ..values.sidebar
@@ -465,4 +469,25 @@ fn reasoning_expansion_is_independent_and_invalid_values_fall_back_locally() {
     assert!(changed.appearance.reasoning.expanded());
     let wire = serde_json::to_string(&changed).unwrap();
     assert_eq!(serde_json::from_str::<Preferences>(&wire).unwrap(), changed);
+}
+
+#[test]
+fn collapse_turns_is_the_new_default_but_an_explicit_legacy_full_choice_is_retained() {
+    use crate::prefs::ConversationDisplay;
+    assert_eq!(
+        Preferences::default().appearance.conversation,
+        ConversationDisplay::CollapseTurns
+    );
+    let kept: Preferences =
+        serde_json::from_str(r#"{"appearance":{"conversation":"full"}}"#).unwrap();
+    assert_eq!(kept.appearance.conversation, ConversationDisplay::Full);
+    let changed = kept
+        .changed(&PreferenceChange::Conversation(
+            ConversationDisplay::CollapseTurns,
+        ))
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Preferences>(&serde_json::to_string(&changed).unwrap()).unwrap(),
+        changed
+    );
 }

@@ -41,11 +41,11 @@ impl Shell {
     }
 
     /// The conversation as Settings' display says: its runs folded or
-    /// not, every row measured again (the list starts over at the end).
+    /// not, with the reading anchor preserved while rows are measured again.
     pub(crate) fn conversation_display(&mut self, display: ConversationDisplay) {
         let collapse = collapsing(Some(display));
         let area = &mut self.areas.conversation;
-        let turn_collapse = super::turns::pinned();
+        let turn_collapse = super::turns::enabled(Some(display));
         if area.collapse == collapse && area.turns.is_some() == turn_collapse {
             return;
         }

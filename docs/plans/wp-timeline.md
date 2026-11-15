@@ -442,3 +442,27 @@ summaries; the iterator path does not allocate an intermediate tool list.
 Compact group inline expansion is derived from that conversation's single
 SheetState rather than adding a field to the shared Paint struct; A8 permission
 and question consumers keep their existing Paint construction unchanged.
+
+### Consumed Chat controls after base4
+
+Base4 `3cd0d3fc` merged as `e6c1d9ab`; README conflict retained both existing
+settings audit notes and timeline glyph/font notes. L's Chat adapter is now
+consumed directly. `ConversationDisplay::CollapseTurns` is the third picker
+choice and new-document default, matching Paseo storage.ts:163; explicitly
+saved Full stays Full. Existing lenient field serialization and PreferenceChange
+store remain the only path. Chat rows are reasoning, display, then W1's outline
+when that owner lands. No second display label table is introduced.
+
+Both collapsed modes group active tool work. Whole-turn expansion reveals the
+original grouped members individually, and a closed turn keeps its trigger and
+last reply. Added projection regression prevents a tool group from concealing
+members inside an opened turn. The existing capture override selects these same
+consumed modes instead of a separate feature path. Reasoning switch words are
+L-approved cached FTL getters; whole EN/KO labels and all three picker choices
+are checked, including preference roundtrip and explicit old Full retention.
+
+Paseo `tool-calls/detail-level/grouping.ts:90-117` keeps a lone tool as the
+original row; only runs of at least two groupable members get a group. Native
+`Folds` now applies that same threshold (including thought/tool pairs), rather
+than replacing one call with a summary. Auto-expanded reasoning splits runs;
+the isolated tools on either side therefore remain individual disclosures.

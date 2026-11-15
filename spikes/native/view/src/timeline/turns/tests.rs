@@ -153,8 +153,8 @@ fn automatically_expanded_reasoning_is_never_hidden_by_a_tool_group() {
     assert!(ordinary.run_of(2).is_some());
     let expanded = Folds::with_reasoning(timeline.entries(), true);
     assert!(expanded.run_of(2).is_none());
-    assert!(expanded.run_of(1).is_some());
-    assert!(expanded.run_of(3).is_some());
+    assert!(expanded.run_of(1).is_none());
+    assert!(expanded.run_of(3).is_none());
 }
 
 #[test]
@@ -185,5 +185,36 @@ fn group_and_turn_summaries_count_distinct_reported_files() {
             .summary
             .read,
         2
+    );
+}
+
+#[test]
+fn opening_a_closed_turn_reveals_members_that_were_inside_tool_groups() {
+    use crate::timeline::{Folds, Logs, Rows};
+    use std::collections::HashSet;
+    let timeline = timeline(vec![
+        prompt(),
+        tool(),
+        tool_id("second"),
+        reply("Done"),
+        end(),
+    ]);
+    let entries = timeline.entries();
+    let groups = Folds::of(entries);
+    let grouped = Rows::of(
+        entries.len(),
+        Some(&groups),
+        &Logs::default(),
+        &HashSet::new(),
+    );
+    assert_eq!(grouped, Rows::Some(vec![0, 1, 3, 4]));
+    let turns = TurnFolds::of(entries, TurnActivity::Closed);
+    assert_eq!(
+        grouped.clone().fold_turns(entries, &turns, &HashSet::new()),
+        Rows::Some(vec![0, 3, 4])
+    );
+    assert_eq!(
+        grouped.fold_turns(entries, &turns, &HashSet::from([0])),
+        Rows::Some(vec![0, 1, 2, 3, 4])
     );
 }

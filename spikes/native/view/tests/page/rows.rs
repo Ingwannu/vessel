@@ -24,7 +24,7 @@ fn paseos_sentence() {
 }
 
 #[test]
-fn every_run_with_a_tool_call_is_folded_a_message_ends_a_run() {
+fn multiple_groupable_items_fold_but_a_single_tool_stays_a_tool() {
     let entries = [
         tool(1, ToolKind::Read),
         tool(2, ToolKind::Edit),
@@ -35,10 +35,7 @@ fn every_run_with_a_tool_call_is_folded_a_message_ends_a_run() {
     let first = folds.run_of(0).unwrap();
     assert_eq!((first.lead, first.end), (0, 2));
     assert_eq!(folds.run_of(1).unwrap().lead, 0);
-    assert_eq!(
-        EN.run_summary(&folds.run_of(3).unwrap().summary),
-        "Ran 1 command"
-    );
+    assert!(folds.run_of(3).is_none());
     assert!(folds.run_of(2).is_none());
 }
 
