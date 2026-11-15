@@ -1,7 +1,8 @@
 # F1 node extension: per-run schedule isolation
 
-Current assigned node base: 9c150c6e, merged as a6fa710ce under the
-coordinator's F1 ended-edit ruling. The older gate40 design section below is
+Current assigned node base: 275024369 (gate54, protocol25/MIN2/schema21),
+merged at926f14c54. The Ended-edit source was checked on9c150c6e; those
+results remain pinned to that older producer. The older gate40 section below is
 historical. No protocol/schema number is allocated or changed by this slice.
 The isolated known-Ended update change below has bounded V3 SOURCE/NARROW
 PASS (row260); its combined integration gate remains pending. Per-run
@@ -210,3 +211,12 @@ conflicts. Batch17 waits for batch16/gate54 and then its own gate. The trial is
 not an announced green node/package base: the App retains its current Ended
 refusal until the actual combined head is announced. No unchanged producer
 gate was requested or repeated.
+
+
+Node integrator announced275024369 after gate54 (Rust2635/0/12, web464,
+e2e80, forge4; wire diff0). It merged conflict-free into this separate node
+worktree. Ended-edit product bytes under automation/schedules still match d26;
+that byte match is not a new combined gate. Batch17 now gates on e0eb0a55 and
+contains the Ended producer, W19 fence, G4 lifetime and W3 schema-sequence move.
+No App node-head merge or Ended permission change was made. Future pending
+method rows append after skills.import_selection; no feature number is guessed.
