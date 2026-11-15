@@ -67,7 +67,7 @@ impl Shell {
         self.choose_machine(seed.destination.machine.as_str().to_owned(), window, cx);
         self.forget_place();
         if let Some(folder) = folder {
-            self.areas.draft.folder = folder.to_owned();
+            folder.clone_into(&mut self.areas.draft.folder);
         }
         self.areas
             .draft
