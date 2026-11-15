@@ -237,6 +237,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
     ("UsageAccountKey", Alias::Handle),
+    ("UsageDisclosureVersion", Alias::Quantity),
     ("UsageReportId", Alias::Handle),
     ("UsageSourceId", Alias::Handle),
     ("WorktreeId", Alias::Handle),

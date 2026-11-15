@@ -299,3 +299,11 @@ With independent contexts both saved readers queue and the named safety budget
 fails. A release guard unblocks the callback even on failure. No timers coordinate
 the interleaving and no node listener, real sign-in or endpoint is started. This
 new regression and changed assembly await remote execution and review.
+
+TS run `wp-usage-wire-fresh-20261115T121923Z-ac977308` compiled but refused
+the unclassified `UsageDisclosureVersion` alias before generating declarations
+(two proto tests passed, one failed; web did not run). The alias is now explicitly
+Quantity: it is a numeric disclosure revision, not a node-minted identity. The
+generator's existing complete alias classification check covers this boundary.
+Its failure is retained; no partial artifact is presented as fresh wire output.
+The corrected generator run must produce and verify the declarations remotely.
