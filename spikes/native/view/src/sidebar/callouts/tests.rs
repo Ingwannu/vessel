@@ -127,3 +127,57 @@ fn malformed_and_oversized_dismissals_are_refused_without_dropping_existing_keys
         .unwrap();
     assert!(restarted.active().is_none());
 }
+
+#[test]
+fn sidebar_callout_preferences_round_trip_without_replacing_other_choices() {
+    use crate::prefs::{PreferenceChange, Preferences, Theme};
+    let initial = Preferences::default();
+    let old_document = serde_json::to_value(&initial).unwrap();
+    assert!(old_document.get("sidebar_callout_dismissals").is_none());
+    let initial = initial
+        .changed(&PreferenceChange::Theme(Theme::Light))
+        .unwrap();
+    let keys =
+        Dismissals::try_from(vec![key("setup:one"), key("setup:one"), key("release:two")]).unwrap();
+    let changed = initial
+        .changed(&PreferenceChange::SidebarCalloutDismissals(keys.clone()))
+        .unwrap();
+    assert_eq!(changed.appearance.theme, Theme::Light);
+    assert_eq!(
+        changed.sidebar_callout_dismissals.keys(),
+        &[key("setup:one"), key("release:two")]
+    );
+    let encoded = serde_json::to_string(&changed).unwrap();
+    let restored: Preferences = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(restored.sidebar_callout_dismissals, keys);
+    let mut restarted = State::default();
+    restarted
+        .load_dismissed(restored.sidebar_callout_dismissals.keys())
+        .unwrap();
+    let _token = restarted
+        .register("setup", Priority::default(), Some(key("setup:one")), ())
+        .unwrap();
+    assert!(restarted.active().is_none());
+}
+
+#[test]
+fn sidebar_callout_malformed_preference_band_does_not_erase_theme() {
+    use crate::prefs::{Preferences, Theme};
+    for invalid in [
+        serde_json::json!(["valid", "\n"]),
+        serde_json::json!(vec!["same"; MAX_DISMISSALS + 1]),
+        serde_json::json!({"invalid": true}),
+    ] {
+        let prefs: Preferences = serde_json::from_value(serde_json::json!({
+            "appearance": {"theme": "light"},
+            "sidebar_callout_dismissals": invalid,
+        }))
+        .unwrap();
+        assert!(prefs.sidebar_callout_dismissals.is_empty());
+        assert_eq!(prefs.appearance.theme, Theme::Light);
+    }
+    assert_eq!(
+        Dismissals::try_from(vec![key("same"); MAX_DISMISSALS + 1]),
+        Err(Problem::DismissalsFull)
+    );
+}

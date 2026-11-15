@@ -56,6 +56,8 @@ pub enum PreferenceChange {
         /// Bounded choices produced by the shared navigation resolver.
         entries: crate::sidebar::navigation::Entries,
     },
+    /// Retain all admitted provider dismissal keys through the existing writer.
+    SidebarCalloutDismissals(crate::sidebar::callouts::Dismissals),
     /// Some actions' keys.
     Shortcuts {
         /// The edits, applied in order.
@@ -196,6 +198,9 @@ impl Preferences {
             PreferenceChange::SidebarEnded(ended) => self.sidebar.ended = *ended,
             PreferenceChange::SidebarNavigation { section, entries } => {
                 self.sidebar_navigation.set(*section, entries.clone());
+            }
+            PreferenceChange::SidebarCalloutDismissals(keys) => {
+                self.sidebar_callout_dismissals = keys.clone();
             }
             PreferenceChange::Shortcuts { edits } => {
                 for edit in edits.items() {

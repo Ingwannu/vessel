@@ -36,6 +36,43 @@ impl From<DismissalKey> for String {
         key.0.to_string()
     }
 }
+/// Persisted dismissals use the existing preference document and its writer.
+/// Empty keys are absent; malformed or oversized input is refused as a whole.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<DismissalKey>", into = "Vec<DismissalKey>")]
+pub struct Dismissals(Vec<DismissalKey>);
+impl TryFrom<Vec<DismissalKey>> for Dismissals {
+    type Error = Problem;
+    fn try_from(keys: Vec<DismissalKey>) -> Result<Self, Self::Error> {
+        if keys.len() > MAX_DISMISSALS {
+            return Err(Problem::DismissalsFull);
+        }
+        let mut unique = Vec::new();
+        for key in keys {
+            if !unique.contains(&key) {
+                unique.push(key);
+            }
+        }
+        Ok(Self(unique))
+    }
+}
+impl From<Dismissals> for Vec<DismissalKey> {
+    fn from(keys: Dismissals) -> Self {
+        keys.0
+    }
+}
+impl Dismissals {
+    /// Preserve older preference bytes until a notice is dismissed.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    /// The complete retained keys, passed to admission after preference load.
+    #[must_use]
+    pub fn keys(&self) -> &[DismissalKey] {
+        &self.0
+    }
+}
 /// Source priority sorts descending; equal priorities keep first registration.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Priority(i32);

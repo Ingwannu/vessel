@@ -133,6 +133,12 @@ pub struct Preferences {
         skip_serializing_if = "crate::sidebar::navigation::Navigation::is_empty"
     )]
     pub sidebar_navigation: crate::sidebar::navigation::Navigation,
+    /// Provider-owned durable dismissal keys; never a second settings store.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "crate::sidebar::callouts::Dismissals::is_empty"
+    )]
+    pub sidebar_callout_dismissals: crate::sidebar::callouts::Dismissals,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,

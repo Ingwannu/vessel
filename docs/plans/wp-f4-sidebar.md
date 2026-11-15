@@ -389,3 +389,18 @@ Merged the published line `2e95b7d31` after the previous check ended. It brings
 base 5, canonical WorkspaceId/plugin values, W12's conditional shared producer
 and G4 preflight without a separate node-head merge. Preserve the source-only
 limits of each producer; the canonical registry runtime is still unavailable.
+
+### Callout dismissal persistence
+
+Reuse the existing `Preferences` document, `PreferenceChange`, and
+`Shell::prefer`; do not create the source's separate AsyncStorage file in
+native. `sidebar_callout_dismissals` is a typed bounded band, omitted while
+empty and read leniently so malformed dismissal input does not erase unrelated
+preferences. Keys stay provider-owned; admission still suppresses a matching
+key after restart. The same named 128-key bound refuses growth without evicting
+prior dismissals. Tests exercise JSON restart, duplicate keys, malformed and
+oversized bands, retained theme, and the admitted update through the existing
+preference change. E2 authorized precisely one exhaustive read-next-frame arm
+in `settings/prefer.rs`; no field/frame/application behavior was copied there.
+W19's canonical multiwindow preference delta merger must include this band
+when its checked producer lands; no alternative save path is introduced.
