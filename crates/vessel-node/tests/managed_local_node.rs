@@ -127,6 +127,7 @@ async fn stub_start(
 ) -> (
     tokio::task::JoinHandle<Result<LocalNode, Error>>,
     tokio::io::BufReader<tokio::net::UnixStream>,
+    tokio::sync::oneshot::Receiver<vessel_local_node::LogReader>,
 ) {
     use tokio::io::{AsyncBufReadExt as _, BufReader};
     let control = root.join("control.sock");
@@ -151,24 +152,34 @@ async fn stub_start(
             command
         })
         .unwrap();
-    let starting = tokio::spawn(LocalNode::start(recipe));
+    let (logs, retained) = tokio::sync::oneshot::channel();
+    let starting = tokio::spawn(async move {
+        LocalNode::start_observed(recipe, |reader| {
+            let _closed = logs.send(reader);
+        })
+        .await
+    });
     let (stream, _) = listener.accept().await.unwrap();
     let mut stream = BufReader::new(stream);
     let mut announced = String::new();
     let _read = stream.read_line(&mut announced).await.unwrap();
     assert_eq!(announced, "started\n");
-    (starting, stream)
+    (starting, stream, retained)
 }
 
 #[cfg(unix)]
 async fn refused_start(root: &Path, ready: Option<&[u8]>) -> Error {
     use tokio::io::AsyncReadExt as _;
-    let (starting, mut stream) = stub_start(root, ready).await;
+    let (starting, mut stream, retained) = stub_start(root, ready).await;
+    let logs = retained.await.unwrap();
     let error = starting.await.unwrap().unwrap_err();
     // The fake holds this socket until process exit. EOF proves startup failure
     // retained the original owned handle through its group/job cleanup.
     let mut rest = Vec::new();
     let _eof = stream.read_to_end(&mut rest).await.unwrap();
+    // Diagnostics survive the owned startup failure without retaining a child
+    // handle or granting another stop path to the viewer.
+    assert!(logs.read().await.is_ok());
     error
 }
 
@@ -206,7 +217,7 @@ async fn caller_cancellation_and_wrong_ready_identity_cleanup_owned_children() {
     use tokio::io::AsyncReadExt as _;
     vessel_testkit::within(SAFETY_NET, async {
         let cancelled = tempfile::tempdir().unwrap();
-        let (starting, mut control) = stub_start(cancelled.path(), None).await;
+        let (starting, mut control, _logs) = stub_start(cancelled.path(), None).await;
         starting.abort();
         assert!(starting.await.unwrap_err().is_cancelled());
         let mut rest = Vec::new();
