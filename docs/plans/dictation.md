@@ -1074,3 +1074,9 @@ the existing later-file test exposed an empty override block being written back.
 The deletion-race test waited for a downstream gate without continuing to poll
 the future that reaches it. These are findings to fix while preserving the
 shared assertions and deadlines, not grounds for retrying an unchanged suite.
+
+The designated listing head is adopted before correcting the combined findings.
+Its protocol, schema, session selection behavior, cases and architecture text
+remain unchanged. The generated-wire merge takes that head's complete snapshot;
+the combined Rust tree must regenerate dictation's declarations again, rather
+than hand-combining conflicting generated type blocks.

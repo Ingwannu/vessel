@@ -36,6 +36,8 @@ use crate::waits::{ConnectionWaits, Share, WaitSlot, Waits};
 use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
+mod discovery;
+mod export_cleanup;
 mod fleet;
 mod fleet_control;
 mod profiles;
@@ -102,8 +104,8 @@ pub(crate) struct NodeService {
     lookup: Lookup,
     sessions: Arc<Sessions>,
     devices: Arc<Devices>,
-    /// Subscription forwarders, so shutdown can let them queue their last
-    /// frames.
+    /// Forwarding tasks, including transfer cleanup retained across caller
+    /// cancellation; shutdown gives them its existing bounded grace.
     forwarders: TaskTracker,
     /// `profiles.toml` (ADR 0011).
     profiles: Arc<NodeProfiles>,
