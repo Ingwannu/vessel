@@ -340,3 +340,6 @@ fn validate(change: &SetNodeSettings) -> Result<(), SettingsError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

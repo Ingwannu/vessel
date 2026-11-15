@@ -44,6 +44,15 @@ fn failed_preference_write_restores_overwritten_and_obsolete_files() {
     let shared = temp.path().join("agents/skills/vessel");
     std::fs::write(shared.join("user.md"), b"user").unwrap();
     let original = std::fs::read(shared.join("SKILL.md")).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(
+            shared.join("SKILL.md"),
+            std::fs::Permissions::from_mode(0o750),
+        )
+        .unwrap();
+    }
     let mut new = service(
         temp.path(),
         catalogue("two", Some(("new/nested.md", b"new"))),

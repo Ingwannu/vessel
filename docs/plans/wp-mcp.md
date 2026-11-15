@@ -357,3 +357,11 @@ marker. A partial provider-policy object does not silently turn tools off on
 an existing identity: the missing switch receives the fresh/upgrade default
 while the exact stored policy remains. Synthetic fresh/existing cases pin
 both policy retention and absence of accidental identity creation.
+
+
+A settings cancellation fixture now holds the actual settings writer lock,
+admits an injection edit, cancels only its requesting task and verifies the
+permit/shutdown tracking remain held. After releasing the writer it checks
+both persisted choice and launch watch state. It creates no session or agent
+process. The selection rollback mode fixture explicitly sets its source mode
+before asserting restoration; execution is still pending.
