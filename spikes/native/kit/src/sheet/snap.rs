@@ -2,7 +2,8 @@
 //! Existing edge sheets keep their API; a host opts into this state.
 //!
 //! [Decision Log]
-//! - Purpose: every snap sheet uses the same 60/90/closed geometry,
+//! - Purpose: authored and natural-fit sheets use the same default60/90/closed
+//!   engine or an explicit measured open position,
 //!   projected-velocity release and spring, rather than area gestures.
 //! - Constraint: GPUI exposes pointer positions but no gesture velocity;
 //!   pointer samples supply it. The host owns hit boxes and focus.
@@ -74,7 +75,7 @@ pub struct Geometry {
     pub top: Pixels,
     /// The panel's height, including its handle.
     pub height: Pixels,
-    /// Backdrop coverage: zero when closed, one at 60% and above.
+    /// Backdrop coverage: zero when closed, one at the initial open height and above.
     pub backdrop: f32,
     /// Its movement state.
     pub movement: Movement,
@@ -171,7 +172,7 @@ impl State {
         self.drag = None;
         self.pose = Pose::At(Stop::Compact);
     }
-    /// Present afresh at the initial 60% stop, from below the window.
+    /// Present afresh at the configured initial stop (60% by default), from below.
     pub fn present(&mut self, now: Instant) {
         self.drag = None;
         self.pose = Pose::Settling {

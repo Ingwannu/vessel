@@ -3,8 +3,8 @@ use super::*;
 use gpui::prelude::*;
 use gpui::{
     Bounds, Context, Entity, InputEvent as _, Modifiers, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, Pixels, Point, Render, TestAppContext, VisualTestContext,
-    deferred, div, point, px, size,
+    MouseMoveEvent, MouseUpEvent, Pixels, Point, Render, ScrollDelta, ScrollEvent, TestAppContext,
+    VisualTestContext, deferred, div, point, px, size,
 };
 use std::cell::Cell;
 #[derive(Clone, Copy)]
@@ -288,4 +288,45 @@ fn fitted_native_body_scrolls_before_pulling_the_same_sheet_down(cx: &mut TestAp
             "after content reaches top, the pan may close"
         );
     });
+}
+
+#[gpui::test]
+fn fitted_stale_body_cannot_wheel_its_retained_native_scroller(cx: &mut TestAppContext) {
+    let (view, cx) = setup_with(cx, 300.0, Contents::Scrolling);
+    cx.update(|window, cx| {
+        let before = view.read(cx).renders.get();
+        let old_scroll = view.read(cx).fit.scroll.clone();
+        view.update(cx, |this, cx| {
+            this.generation.set(1);
+            this.fit.reset();
+            cx.notify();
+        });
+        let _result = window.dispatch_event(
+            ScrollEvent {
+                position: point(px(100.0), px(450.0)),
+                delta: ScrollDelta::Pixels(point(px(0.0), px(-100.0))),
+                ..ScrollEvent::default()
+            }
+            .to_platform_input(),
+            cx,
+        );
+        assert_eq!(view.read(cx).renders.get(), before, "A before B redraw");
+        assert_eq!(
+            old_scroll.offset().y,
+            px(0.0),
+            "default old scroller is fenced"
+        );
+        assert_eq!(view.read(cx).fit.scroll.offset().y, px(0.0));
+    });
+    cx.run_until_parked();
+    cx.simulate_event(ScrollEvent {
+        position: point(px(100.0), px(450.0)),
+        delta: ScrollDelta::Pixels(point(px(0.0), px(-100.0))),
+        ..ScrollEvent::default()
+    });
+    cx.run_until_parked();
+    assert!(
+        view.read_with(cx, |this, _| this.fit.scroll.offset().y < px(0.0)),
+        "current B native wheel still works"
+    );
 }

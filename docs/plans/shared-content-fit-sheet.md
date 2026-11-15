@@ -100,3 +100,12 @@ native pointer capture before mouse-up, and require even A's retained motion
 to stay at its old open position. Thus replacing only the closed callback guard
 cannot make the geometry-admission fixture pass. New B remains uninitialized
 until its own redraw and must still work afterward. No product test hook added.
+
+Native wheel belongs to GPUI's scroller, not the pan recognizer. The opt-in
+owner listener also contains stale in-bounds ScrollEvent during capture before
+GPUI's default bubble scroller can mutate its retained handle; legacy listeners
+install no extra wheel fence. A separate retained-A/default-wheel regression
+keeps the actual old and new scroll handles unchanged before redraw, then
+requires fresh B native wheel to work. This closes a source inspection gap;
+these new tests remain unexecuted. Existing authored docs now name configured
+open heights rather than implying every sheet always opens at60 percent.

@@ -8,7 +8,7 @@ use std::time::Instant;
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, HitboxBehavior, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
-    ScrollHandle, Window, canvas, point, px,
+    ScrollEvent, ScrollHandle, Window, canvas, point, px,
 };
 
 use super::{Origin, Release, State};
@@ -78,6 +78,16 @@ fn listener_with(
     canvas(
         |bounds, window, _cx| window.insert_hitbox(bounds, HitboxBehavior::Normal),
         move |bounds, hitbox, window, _cx| {
+            if let Gate::Owner(admit) = &gate {
+                let admit = Rc::clone(admit);
+                window.on_mouse_event(move |event: &ScrollEvent, phase, window, cx| {
+                    if phase.capture() && bounds.contains(&event.position) && !admit(window, cx) {
+                        // Fence GPUI's default scroller too, before its bubble
+                        // listener can mutate the retained child's old handle.
+                        cx.stop_propagation();
+                    }
+                });
+            }
             let pressing = Rc::clone(&state);
             let press_scroll = scroll.clone();
             let press_gate = gate.clone();

@@ -118,7 +118,8 @@ impl Drag {
         self.scroll = self.start_scroll;
         if self.origin == Origin::Content {
             if translation < 0.0 {
-                // Expand first; only the travel beyond 90% scrolls rows.
+                // Reach the top open stop first (default90%); only extra
+                // travel scrolls rows. A fitted sheet already starts there.
                 self.scroll = self
                     .start_scroll
                     .mul_add(1.0, position.mul_add(-1.0, top).max(0.0))
