@@ -13,6 +13,8 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error("cannot encode command output")]
+    ParityEncode(#[source] serde_json::Error),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

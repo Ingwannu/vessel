@@ -53,9 +53,7 @@ pub(crate) async fn run(cli: Cli) -> Result<(), CliError> {
             .await
         }
         Command::Models => {
-            let client = connect(target).await?.client;
-            let text = render::models(&client.models().await?);
-            Ok(io::out(text.as_bytes()).await?)
+            crate::formatted_models::run(target, cli.output.presentation()).await
         }
         Command::Sessions => {
             let client = connect(target).await?.client;
