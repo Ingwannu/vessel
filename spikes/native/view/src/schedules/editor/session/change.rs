@@ -11,7 +11,7 @@ pub enum FieldChange {
     Name(String),
     /// Prompt text, parsed once at this edge.
     Prompt(String),
-    /// Optional whole count; invalid nonblank remains invalid.
+    /// Source decimal prefix; malformed/nonpositive clears, positive node bounds remain.
     Limit(String),
 }
 impl Model {
