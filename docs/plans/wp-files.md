@@ -824,3 +824,25 @@ inside submission. The acknowledgement still coalesces unchanged writes; it is
 not proof of source readiness. The next test batch selects native packages
 without a lib-only filter so the application's binary unit tests actually run,
 along with the changed shared field/IME kit tests.
+
+
+### Checked shared control adoption and compatibility-key collision
+
+Only the layout producer's three checked query commits ending0396f7ab and
+image helper e1a171623 are adopted; moving branches are not imported. The
+query has exact strict/runtime2/0 and bounded V1 source approval, but proves
+only current target equality, not ABA/visit/lease lifetime. The image leaf has
+exact Kit all-target strict rc0; earlier codec2/0 is prior-source only. It
+supports six raster formats total (PNG/JPEG/GIF/WebP/BMP/TIFF), retaining PNG/
+JPEG and converting the other four to first-frame PNG. Its result bound is
+encoded output, not a global texture/GPU budget or a decoded-image projection.
+The next combined native tests include the changed shared controls; no complete
+image viewer, upload pipeline, browser engine or HTML surface follows from this.
+
+The compatibility Session key deliberately lacks actual node identity. C5 now
+refuses rebinding an existing key/root/path presentation to another actual node,
+even when an alias, session id and wire root are reused. Original buffers remain
+owned until explicit safe release; an exact alias snapshot known to point to
+another node cannot render the old binding as that node's file. A synthetic
+shared-layout regression pins the refusal and retained original unsaved text.
+This is a fail-closed compatibility limit, not a fabricated Workspace identity.

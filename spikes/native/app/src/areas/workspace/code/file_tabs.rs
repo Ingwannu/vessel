@@ -30,6 +30,16 @@ impl FileTabs {
     pub(super) fn files(&self) -> impl Iterator<Item = &FileKey> {
         self.bindings.values().map(|binding| &binding.file)
     }
+    /// A compatibility alias/session cannot lend an old tab to a different node.
+    #[cfg(test)]
+    pub(super) fn conflicts(&self, workspace: &LayoutKey, file: &FileKey) -> bool {
+        self.bindings.iter().any(|((at, _), binding)| {
+            at == workspace
+                && binding.file.root == file.root
+                && binding.file.path == file.path
+                && binding.file.node != file.node
+        })
+    }
     // Opening stays staged until the real UI caller and close dispatcher join it.
     #[cfg(test)]
     pub(super) fn can_bind(&self, workspace: &LayoutKey, file: &FileKey) -> bool {
@@ -86,6 +96,12 @@ pub(crate) fn render_file_panel(
     else {
         return unavailable();
     };
+    if shell
+        .file_connection(binding.origin.scope().connection().machine().as_str())
+        .is_some_and(|current| current.node() != binding.file.node)
+    {
+        return unavailable();
+    }
     if binding.file.root != *root
         || binding.file.path != *path
         || binding.file.node != binding.origin.scope().node()
@@ -131,7 +147,7 @@ impl Shell {
             .collect();
         for (workspace, tab, expected) in pending {
             // Missing layout never releases its retained owner reference.
-            if !self.layout_tab_exists(&workspace, tab) {
+            if !self.layout_tab_matches(&workspace, tab, &expected) {
                 continue;
             }
             let result = self.update_layout(

@@ -49,6 +49,8 @@ impl Shell {
 pub(crate) enum FileOpenRefusal {
     /// Original receipt is no longer installed.
     Changed,
+    /// A reused compatibility key still belongs to another actual node.
+    DifferentNode,
     /// The workspace directory itself is not a file target.
     Root,
     /// An original path mutation still owns the resource.
@@ -93,6 +95,9 @@ impl Shell {
             session: origin.session,
         };
         let panel = &self.areas.workspace.code;
+        if panel.file_tabs.conflicts(&workspace, &file) {
+            return Err(FileOpenRefusal::DifferentNode);
+        }
         if panel.file_mutating(&file) {
             return Err(FileOpenRefusal::Busy);
         }

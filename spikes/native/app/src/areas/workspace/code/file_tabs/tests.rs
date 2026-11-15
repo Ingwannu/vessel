@@ -266,3 +266,90 @@ fn binding_reference_survives_layout_absence_until_owner_ack_then_becomes_dispos
         assert!(!shell.areas.workspace.code.files.retained.contains_key(&a));
     });
 }
+
+#[gpui::test]
+fn reused_alias_session_and_wire_root_cannot_rebind_the_original_nodes_tab(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
+    shell.update_in(cx, |shell, window, cx| {
+        let root = io_tests::root();
+        let (origin, workspace) = opening(shell, root);
+        let tab = shell
+            .open_workspace_file(
+                &origin,
+                "a.txt".parse().unwrap(),
+                None,
+                Placement::Focused,
+                window,
+                cx,
+            )
+            .unwrap();
+        let original = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&original).unwrap().reading.unwrap().0;
+        shell.editor_read_answered_for(
+            &original,
+            ticket,
+            &super::super::editing::whole_read(root, original.path.clone()),
+            Ok(io_tests::text("baseline A")),
+            cx,
+        );
+        let _step = shell
+            .editing_for(&original)
+            .unwrap()
+            .model
+            .edit("unsaved A");
+        shell.publish_file_tabs(&original, cx);
+        let mut epochs = ConnectionEpochs::default();
+        let _first = epochs
+            .admit(MachineKey::from_book("node"), original.node)
+            .unwrap();
+        let other = epochs
+            .admit(
+                MachineKey::from_book("node"),
+                vessel_proto::NodeId::random(),
+            )
+            .unwrap();
+        let receipt = shell.next_file_ticket().unwrap();
+        let admission = shell
+            .areas
+            .workspace
+            .code
+            .target
+            .as_mut()
+            .unwrap()
+            .admission
+            .as_mut()
+            .unwrap();
+        admission.context = other.clone();
+        admission.ticket = receipt;
+        let machine = shell.fleet.machines.first_mut().unwrap();
+        machine.node = Some(other.node());
+        machine.connection_epoch = Some(other.epoch());
+        let replacement = shell.file_open_context().unwrap();
+        assert_eq!(
+            shell.open_workspace_file(
+                &replacement,
+                original.path.clone(),
+                None,
+                Placement::Focused,
+                window,
+                cx
+            ),
+            Err(FileOpenRefusal::DifferentNode)
+        );
+        assert_eq!(
+            shell.areas.workspace.code.file_key().as_ref(),
+            Some(&original)
+        );
+        assert_eq!(
+            shell.editing_for(&original).unwrap().model.content(),
+            "unsaved A"
+        );
+        assert!(shell.layout_tab_exists(&workspace, tab));
+        assert_eq!(shell.areas.workspace.code.file_tabs.bindings.len(), 1);
+    });
+}
