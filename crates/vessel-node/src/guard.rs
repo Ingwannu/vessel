@@ -74,6 +74,12 @@ macro_rules! guarded {
     };
 }
 
+// Each guarded call runs boxed (`Box::pin`): one allocation per call. In
+// debug builds the per-call dispatch future, sized by the largest handler
+// once every handler gained the diagnostics wrapper, overflowed tokio's
+// 2 MiB worker stack beside batch 11's handlers (gate 49b, 2026-11-15).
+// Boxing keeps that future a pointer; raising stack sizes would hide it.
+//
 // A staged row (`(staged FEATURE)`: values without a runtime) gets nothing
 // here: the protocol's `Handler` answers it `Unsupported` by default, and
 // no `NodeService` method exists to forward to. The package that wires it
@@ -87,7 +93,7 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            let result = async {
+            let result = Box::pin(async {
                 connection
                     .principal()
                     .permit(<$request as Request>::METHOD)?;
@@ -96,7 +102,7 @@ macro_rules! guarded_method {
                     self.0.refuse_older(connection, session).await?;
                 }
                 self.0.$handler(connection, request, self).await
-            }
+            })
             .await;
             self.0
                 .diagnostics
@@ -110,7 +116,7 @@ macro_rules! guarded_method {
             connection: &Connection,
             request: $request,
         ) -> Result<$response, WireError> {
-            let result = async {
+            let result = Box::pin(async {
                 connection
                     .principal()
                     .permit(<$request as Request>::METHOD)?;
@@ -123,7 +129,7 @@ macro_rules! guarded_method {
                     self.0.refuse_older(connection, session).await?;
                 }
                 self.0.$handler(connection, request).await
-            }
+            })
             .await;
             self.0
                 .diagnostics
