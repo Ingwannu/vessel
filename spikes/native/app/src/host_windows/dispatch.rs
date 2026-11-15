@@ -4,6 +4,7 @@ use super::{Registry, Shell, WindowRecord, init};
 use gpui::{App, Context, Window};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[must_use]
 pub(crate) enum Delivery {
     Delivered,
     Unavailable,
