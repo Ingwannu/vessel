@@ -65,6 +65,9 @@ The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
 using the existing Admin-scoped RPC, authenticated local identity binding
 (`node_ctl/observe`) and an OS-lock completion event (`lock_wait`) under a
 bounded command deadline.
+Service-file observations (`node_ctl/service_probe`) reuse the installer's
+bounded template decoder (`init/service/matching`); they supply warnings,
+never manager execution or authority inferred from editable file text.
 
 The dependency direction is fixed by ADR 0001; adding an edge means updating
 that ADR and this table, in the same commit. `scripts/check-boundaries.mjs`
@@ -1692,3 +1695,11 @@ written source, executed checks and required owner integrations.
 Modal close uses shared weak ReturnFocus ownership; missing/dead openers remain
 blurred. Weak liveness alone does not establish retained-opener visibility or
 Visible/Focused resource admission; that owner integration remains unverified.
+
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.

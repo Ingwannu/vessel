@@ -443,7 +443,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Source be31d4d65, checks pending; no second writer or duplicate failure toast |
-| Messages mode | W1 existing Searching controller | Initial source665d preserved; window-lifetime successor not checked/adopted yet |
+| Messages mode | W1 existing Searching controller | Announced base8b window lifetime adopted; F4 immediate invalidation and prepared selection preserved; union checks pending |
 
 Owner-integration rows above remain skeleton. View/Kit/App source and behavioral tests must pass on
 the combined actual head before the final frozen gate/captures/V4 submission.
@@ -802,3 +802,15 @@ executed under the corrected B2 policy. Same-source View/App strict run
 wp-commands-narrow-20261115T145941Z-02e4567a failed only doc_markdown on
 TextField in the Backspace-order comment; corrected the markup without changing
 behavior. Current union strict checking remains owed; no whole/UI/OS claim.
+
+Announced package base8b c34299520 is merged after the prior narrow runs
+finished. Merge decisions preserve one window PaletteArea.messages_search,
+its incoming resident-replacement regression, existing immediate ticket invalidation
+before debounce, and prepared selection before close. The obsolete environment
+example renderer stays removed because Messages already has its real renderer.
+The shared multiline constructor extraction/FormMinimum/FieldId is retained;
+its ONE factory registers with the existing weak composition registry. No second
+registry/subscription or constructor family is retained. field.rs falls below500
+and its size exception is removed; picker remains capped828. Test-only resident
+and delivery staging remains test-only. New union strict/tests are required;
+previous source checks do not establish this merge.

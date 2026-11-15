@@ -50,6 +50,9 @@ use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
 use crate::areas::session::Open;
 use crate::shell::Shell;
 
+#[cfg(test)]
+mod residency_tests;
+
 /// How long the words rest before they are searched.
 const SETTLE: Duration = Duration::from_millis(150);
 
@@ -68,8 +71,13 @@ impl Shell {
             .iter()
             .filter(|machine| machine.reach == Reach::Online)
             .map(|machine| machine.name.as_str());
-        let asks = self.areas.conversation.search.view.start(text, machines);
-        let ticket = self.areas.conversation.search.view.ticket();
+        let asks = self
+            .areas
+            .palette
+            .messages_search
+            .view
+            .start(text, machines);
+        let ticket = self.areas.palette.messages_search.view.ticket();
         cx.notify();
         if asks.is_empty() {
             return;
@@ -77,7 +85,7 @@ impl Shell {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(SETTLE).await;
             let _gone = this.update(cx, |shell, _cx| {
-                if shell.areas.conversation.search.view.ticket() == ticket {
+                if shell.areas.palette.messages_search.view.ticket() == ticket {
                     shell.message_search_ask(asks);
                 }
             });
@@ -87,7 +95,7 @@ impl Shell {
 
     /// Send `asks`, tagged with the search they belong to.
     fn message_search_ask(&self, asks: Vec<PageAsk>) {
-        let ticket = self.areas.conversation.search.view.ticket();
+        let ticket = self.areas.palette.messages_search.view.ticket();
         for ask in asks {
             self.command(Command::Search(Ask {
                 machine: ask.machine,
@@ -107,8 +115,8 @@ impl Shell {
         };
         let asks =
             self.areas
-                .conversation
-                .search
+                .palette
+                .messages_search
                 .view
                 .answered(answer.ticket, &answer.machine, page);
         self.message_search_ask(asks);
@@ -117,19 +125,19 @@ impl Shell {
 
     /// The group's rows, top to bottom (none while no words are searched).
     pub(crate) fn message_search_rows(&self) -> Vec<Row> {
-        self.areas.conversation.search.view.rows()
+        self.areas.palette.messages_search.view.rows()
     }
 
     /// The person chose More: show the next messages.
     pub(crate) fn message_search_more(&mut self, cx: &mut Context<'_, Self>) {
-        let asks = self.areas.conversation.search.view.more();
+        let asks = self.areas.palette.messages_search.view.more();
         self.message_search_ask(asks);
         cx.notify();
     }
 
     /// Prepare before clearing the palette; stale or removed rows cannot navigate.
     pub(crate) fn message_search_destination(&self, hit: &HitId) -> Option<Destination> {
-        let view = &self.areas.conversation.search.view;
+        let view = &self.areas.palette.messages_search.view;
         let found = view.hit(hit)?;
         Some(Destination {
             open: card_of(self, hit).map(Open::of)?,
@@ -210,7 +218,7 @@ pub(crate) fn message_row(
         }
         Row::Hit(id) => id,
     };
-    let Some(found) = shell.areas.conversation.search.view.hit(hit) else {
+    let Some(found) = shell.areas.palette.messages_search.view.hit(hit) else {
         return frame.into_any_element();
     };
     let title = card_of(shell, hit).map_or_else(
@@ -326,7 +334,7 @@ fn excerpt(shell: &Shell, hit: &SearchHit, tokens: &Tokens) -> AnyElement {
 /// The lines under the group's rows: searching, no match, the words not a
 /// search, machines too old to search, machines that could not.
 pub(crate) fn message_search_note(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
-    let notes = shell.areas.conversation.search.view.notes();
+    let notes = shell.areas.palette.messages_search.view.notes();
     if notes.is_empty() {
         return None;
     }

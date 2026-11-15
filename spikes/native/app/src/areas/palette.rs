@@ -62,6 +62,8 @@ pub(crate) struct PaletteArea {
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
     cursor: PaletteCursor<snapshot::Identity>,
+    /// One window search survives replacement of any conversation resident.
+    pub(crate) messages_search: crate::areas::conversation::search::Searching,
     sources: vessel_app_view::palette::registration::Registry<source::Command>,
     page: Option<vessel_app_view::palette::pages::ChoiceLocation>,
     root_help: Option<vessel_app_view::palette::registration::Owner>,
@@ -99,6 +101,7 @@ impl PaletteArea {
             ),
             query: String::new(),
             cursor: PaletteCursor::default(),
+            messages_search: crate::areas::conversation::search::Searching::default(),
             sources: vessel_app_view::palette::registration::Registry::default(),
             page: None,
             root_help: None,
