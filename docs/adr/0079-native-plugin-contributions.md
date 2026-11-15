@@ -1,6 +1,7 @@
 # ADR 0079: Native plugin contributions and a node-owned helper contract
 
-Status: proposed, 2026-11-15. Extends ADR 0068; no executable plugin is
+Status: architecture contract accepted by V3, 2026-11-15; implementation
+remains unreviewed. Extends ADR 0068; no executable plugin is
 enabled by this document. ADR 0068's hook machinery was accepted on its
 track in commit 118a59da. Its original RPC-only hook site and conflated
 timeout/refusal were returned and corrected before that acceptance.
@@ -254,6 +255,7 @@ calls. New reply/event fields are gated on every nested/forwarded path.
 | UTF-8 id ordering instead of process-locale localeCompare | Stable hook order across machines, as ADR 0068 already records |
 | Only modern hook/registration names | No deprecated aliases on a new native contract; explicit unsupported errors |
 | Bounded declarations, frames, schemas and queues | New format needs resource and cancellation guarantees |
+| Validated bounded theme/contribution identifiers and control-free names | Native retained identities must be safe keys; this is stricter than the theme parser's unconstrained id string |
 | Safe typed errors rather than helper exception text on scoped wire | Preserve retry class without leaking secrets or local paths |
 | Declarative cache instead of JS bundle cache | Same host/hash/offline ownership, no client execution |
 | Full plugin capability requires each owner integration | Do not silently ignore provider, tools, usage or client contributions |
@@ -262,3 +264,13 @@ Cost: more explicit schemas and a plugin author port; limited arbitrary UI.
 Benefit: one native kit, typed ownership, predictable teardown and no code
 evaluation on a connected app. Runtime evidence, installation safety and
 cross-platform execution remain separate from acceptance of this design.
+
+## Initial scalar limits
+
+The staged proto scalar implementation owns its actual limits in
+`plugins/identity.rs`: identifiers, method names, captions, UTF-16 theme
+names, multiline content and literal file extensions. Its messages format
+those constants; tests derive boundary cases from them. Other declaration
+budgets land with their owning validation module rather than becoming a
+second table of copied limits here. These are additive value types only:
+`PLUGINS` remains None and no registered request or settings field exists.
