@@ -26,6 +26,8 @@
 //!   the old registration when the new one proves the key); a refused
 //!   ticket is tried again as soon as a newer one arrives.
 
+mod pending;
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -37,7 +39,7 @@ use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{
-    ConnId, NodeToRelay, RegistrationRefusal, RelayTicket, RelayToNode, RelayToken, RouteUrl,
+    NodeToRelay, RegistrationRefusal, RelayTicket, RelayToNode, RelayToken, RouteUrl,
 };
 use vessel_secure::{NodeKeypair, answer_proof, routing_id};
 
@@ -47,7 +49,7 @@ use crate::carrier::WsCarrier;
 use crate::reach::Reach;
 use crate::socket::{self, Socket};
 use crate::tls::TlsConfig;
-use crate::{ACCEPT_PATH, NODE_PATH, endpoint};
+use crate::{NODE_PATH, endpoint};
 
 /// How long connecting, and each step of the registration, may take.
 const STEP: Duration = Duration::from_secs(10);
@@ -201,13 +203,15 @@ impl NodeLink {
         F: Fn(WsCarrier) + Send + Sync + 'static,
     {
         let accept = Arc::new(accept);
+        let mut pending = pending::DataOpens::new(&shutdown);
         let mut backoff = Backoff::new();
         let mut renewals = self.credential.renewals();
         loop {
             let _previous = self.state.send_replace(LinkState::Connecting);
             let ended = tokio::select! {
-                ended = self.connection(&accept, &mut renewals) => ended,
+                biased;
                 () = shutdown.cancelled() => break,
+                ended = self.connection(&accept, &mut renewals, &mut pending) => ended,
             };
             match ended {
                 Ended::Failed => {}
@@ -233,6 +237,9 @@ impl NodeLink {
                 () = shutdown.cancelled() => break,
             }
         }
+        // Stopped is published only after no child can hand over a carrier.
+        // Already handed-off gateway connections have their independent owner.
+        pending.stop().await;
         let _previous = self.state.send_replace(LinkState::Stopped);
     }
 
@@ -242,6 +249,7 @@ impl NodeLink {
         &self,
         accept: &Arc<F>,
         renewals: &mut Option<watch::Receiver<RelayTicket>>,
+        pending: &mut pending::DataOpens,
     ) -> Ended
     where
         F: Fn(WsCarrier) + Send + Sync + 'static,
@@ -287,7 +295,9 @@ impl NodeLink {
             };
             match message {
                 Message::Text(text) => match serde_json::from_str::<RelayToNode>(&text) {
-                    Ok(RelayToNode::Incoming { conn }) => self.open_data(conn, Arc::clone(accept)),
+                    Ok(RelayToNode::Incoming { conn }) => {
+                        pending.open(&self.relay, &self.tls, self.reach, conn, Arc::clone(accept))
+                    }
                     Ok(other) => {
                         tracing::debug!(?other, "unexpected relay message");
                         return Ended::Lost;
@@ -334,22 +344,6 @@ impl NodeLink {
             RelayToNode::Prove { .. } | RelayToNode::Incoming { .. } => Err(None),
         }
     }
-
-    /// Open the data connection for a waiting client and hand it over.
-    fn open_data<F>(&self, conn: ConnId, accept: Arc<F>)
-    where
-        F: Fn(WsCarrier) + Send + Sync + 'static,
-    {
-        let url = endpoint(&self.relay, &format!("{ACCEPT_PATH}?conn={conn}"));
-        let (tls, reach) = (self.tls.clone(), self.reach);
-        drop(tokio::spawn(async move {
-            match timeout(STEP, socket::open_reaching(&url, &tls, reach)).await {
-                Ok(Ok(socket)) => accept(WsCarrier::new(socket, Some(Keepalive::DEFAULT.silence))),
-                Ok(Err(error)) => tracing::debug!(%error, "could not accept a relayed client"),
-                Err(_elapsed) => tracing::debug!("accepting a relayed client timed out"),
-            }
-        }));
-    }
 }
 
 async fn send<T: Serialize>(
@@ -394,3 +388,7 @@ async fn receive<T: DeserializeOwned>(
         }
     }
 }
+
+// Pending data opens are owned and joined by this same run (ADR 0096).
+// A normal stop includes their final accept/discard decision; no established
+// gateway connection is retained or cancelled by that drain.

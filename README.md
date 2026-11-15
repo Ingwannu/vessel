@@ -1447,3 +1447,9 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+
+Relay registration shutdown (ADR0096) drains its bounded pending data opens
+before reporting Stopped; it does not terminate an already handed-off secure
+data connection. A dropped runner is not a completed graceful-stop receipt.
+The isolated implementation still requires its narrow checks and review.
