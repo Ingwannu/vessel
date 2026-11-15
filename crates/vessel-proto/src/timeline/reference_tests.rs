@@ -115,7 +115,7 @@ fn assert_isolation(value: &EventPage) {
             event: AgentEvent::PermissionRequested(request),
         } = &record.event
         {
-            permission_ref = Some(request.tool_call.clone());
+            permission_ref = request.tool_call.clone();
         } else {
             panic!("fixture kind");
         }

@@ -27,12 +27,14 @@ fn rich_tool() -> ToolCall {
 
 fn permission() -> PermissionRequest {
     PermissionRequest {
+        plan_proposal: None,
+        delivery_state: Default::default(),
         tool_scope: Some(Box::new(crate::timeline::ToolCallScope::ProviderTurn {
             thread: "thread-1".parse().unwrap(),
             turn: "turn-1".parse().unwrap(),
         })),
         id: PermissionId::random(),
-        tool_call: crate::ToolCallId::new("call"),
+        tool_call: Some(crate::ToolCallId::new("call")),
         options: vec![PermissionOption {
             id: PermissionOptionId::new("implement"),
             name: "Implement".to_owned(),
@@ -318,14 +320,14 @@ fn old_raw_id_folds_keep_reused_scoped_calls_and_permission_references_distinct(
         assert_eq!(old[&a.id], "late A");
         assert_eq!(old[&b.id], "B");
         let mut request = permission();
-        request.tool_call = second.id.clone();
+        request.tool_call = Some(second.id.clone());
         request.tool_scope.clone_from(&second.scope);
         let AgentEvent::PermissionRequested(request) =
             adapt_event(&AgentEvent::PermissionRequested(request), peer, gate).unwrap()
         else {
             panic!("permission")
         };
-        assert_eq!(request.tool_call, b.id);
+        assert_eq!(request.tool_call, Some(b.id));
         let mut collision = first.clone();
         collision.id = a.id.clone();
         collision.scope = None;
@@ -388,4 +390,124 @@ fn scoped_legacy_identity_is_identical_on_direct_page_and_nested_outgoing_paths(
         };
         assert_eq!(*inner.reply, Reply::ReadEvents(masked_page.clone()));
     }
+}
+
+#[test]
+fn standalone_synthetic_and_admitted_permissions_are_inert_before_old_decode() {
+    use crate::timeline::{PermissionDeliveryState, PermissionReference, PlanProposalKey};
+    let proposal: PlanProposalKey = serde_json::from_value(json!({
+        "thread":"thread", "turn":"turn", "source":{"kind":"legacy_turn_plan"}
+    }))
+    .unwrap();
+    for assigned in [None, Some(ProtocolVersion::new(31))] {
+        for state in [
+            PermissionDeliveryState::Pending,
+            PermissionDeliveryState::Answering,
+            PermissionDeliveryState::OutcomeUnknown,
+        ] {
+            let mut request = permission();
+            request.tool_call = None;
+            request.plan_proposal = Some(Box::new(proposal.clone()));
+            request.delivery_state = state;
+            let event = AgentEvent::PermissionRequested(request.clone());
+            assert!(matches!(
+                adapt_event(&event, ProtocolVersion::new(30), assigned),
+                Some(AgentEvent::HarnessLog { .. })
+            ));
+            let mut snapshot = Conversation {
+                through: Some(EventSeq::new(7)),
+                queue: PromptQueue::default(),
+                commands: Vec::new(),
+                usage: None,
+                permissions: vec![request.clone()],
+                questions: Vec::new(),
+                abilities: None,
+                limits: AttachmentLimits::DEFAULT,
+            };
+            snapshot = adapt_conversation(&snapshot, ProtocolVersion::new(30), assigned).unwrap();
+            assert!(snapshot.permissions.is_empty());
+            let entry = InboxEntry {
+                cursor: InboxCursor::new(3),
+                key: InboxKey {
+                    session: crate::SessionId::random(),
+                    seq: EventSeq::new(6),
+                },
+                title: None,
+                project: None,
+                project_name: None,
+                at: chrono::DateTime::UNIX_EPOCH,
+                read: InboxRead::Unread,
+                item: InboxItem::Permission {
+                    request: request.clone(),
+                    tool: None,
+                    detail: InboxDetail::Complete,
+                },
+            };
+            let context = ReferenceContext {
+                origin: None,
+                assigned,
+            };
+            assert_eq!(
+                inbox_with_reference(&entry, ProtocolVersion::new(30), context)
+                    .unwrap()
+                    .item,
+                InboxItem::Unknown
+            );
+            let mut pointer = entry;
+            pointer.item = InboxItem::InSession {
+                request: crate::inbox::InboxRequest::Permission { id: request.id },
+                question: None,
+                permission: PermissionReference::from_request(&request),
+            };
+            assert_eq!(
+                inbox_with_reference(&pointer, ProtocolVersion::new(30), context)
+                    .unwrap()
+                    .item,
+                InboxItem::Unknown
+            );
+        }
+        let mut standalone = permission();
+        standalone.tool_call = None;
+        assert!(matches!(
+            adapt_event(
+                &AgentEvent::PermissionRequested(standalone),
+                ProtocolVersion::new(30),
+                assigned
+            ),
+            Some(AgentEvent::HarnessLog { .. })
+        ));
+        let mut admitted = permission();
+        admitted.delivery_state = PermissionDeliveryState::Answering;
+        assert!(matches!(
+            adapt_event(
+                &AgentEvent::PermissionRequested(admitted),
+                ProtocolVersion::new(30),
+                assigned
+            ),
+            Some(AgentEvent::HarnessLog { .. })
+        ));
+    }
+}
+
+#[test]
+fn ordinary_tool_permission_keeps_legacy_json_and_plan_presentation_is_not_a_lifetime() {
+    let original = json!({"id": PermissionId::random(), "tool_call":"actual", "options":[]});
+    let decoded: PermissionRequest = serde_json::from_value(original.clone()).unwrap();
+    assert_eq!(serde_json::to_value(&decoded).unwrap(), original);
+    assert_eq!(
+        crate::timeline::PermissionReference::from_request(&decoded),
+        None
+    );
+    let mut ordinary_plan = permission();
+    ordinary_plan.tool_scope = None;
+    let AgentEvent::PermissionRequested(masked) = adapt_event(
+        &AgentEvent::PermissionRequested(ordinary_plan),
+        ProtocolVersion::new(30),
+        None,
+    )
+    .unwrap() else {
+        panic!("ordinary tool request");
+    };
+    assert_eq!(masked.tool_call, Some(crate::ToolCallId::new("call")));
+    assert!(masked.plan_proposal.is_none());
 }

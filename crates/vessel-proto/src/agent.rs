@@ -277,8 +277,18 @@ pub struct PermissionRequest {
     pub presentation: Option<PermissionPresentation>,
     /// Node-assigned id clients answer with.
     pub id: PermissionId,
-    /// The tool call needing approval.
-    pub tool_call: ToolCallId,
+    /// Actual tool identity, absent for standalone plan/mode requests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call: Option<ToolCallId>,
+    /// Only dedicated provider proposals have a lifetime beyond their completed turn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan_proposal: Option<Box<crate::timeline::PlanProposalKey>>,
+    /// In-flight or uncertain decisions cannot be offered again by another client.
+    #[serde(
+        default,
+        skip_serializing_if = "crate::timeline::PermissionDeliveryState::is_pending"
+    )]
+    pub delivery_state: crate::timeline::PermissionDeliveryState,
     /// Choices, in the harness's order.
     pub options: Vec<PermissionOption>,
 }

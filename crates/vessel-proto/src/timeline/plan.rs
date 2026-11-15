@@ -147,7 +147,8 @@ pub enum PlanDecisionReply {
         /// Exact accepted decision.
         decision: PlanDecision,
     },
-    /// No external effect was attempted; the pending presentation remains authoritative.
+    /// No external effect was attempted. StaleProposal/TurnChanged withdraw the expired
+    /// capability; other refusals leave the pending proposal available for a new decision.
     Refused {
         /// Exact proposal refused.
         proposal: PlanProposalKey,

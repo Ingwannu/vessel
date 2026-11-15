@@ -26,7 +26,7 @@ pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
 pub use permission::{
     PermissionAction, PermissionActionIntent, PermissionActionVariant, PermissionBehavior,
-    PermissionKind, PermissionPresentation,
+    PermissionDeliveryState, PermissionKind, PermissionPresentation, PermissionReference,
 };
 
 pub use question::{
