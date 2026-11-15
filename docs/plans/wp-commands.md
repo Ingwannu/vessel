@@ -78,8 +78,8 @@ reset, rather than a second contribution registry.
 
 ## Validation and closeout
 
-Every compile, test and Clippy run uses vessel-remote-gate on build-vm; no new
-cargo/rustc or cargo-slot invocation runs on dev-host. Run narrow checks per
+Every compile, test and Clippy run uses vessel-remote-gate on the build VM; no new
+cargo/rustc or cargo-slot invocation runs on the development host. Run narrow checks per
 meaningful immutable source, then one final frozen native remote gate.
 End-of-package fake-fleet captures at 1280x900 and 390x844, plus
 800x600 for layout-sensitive changes, both themes and EN/KO. Never use live
@@ -539,7 +539,8 @@ G1's checked isolated connection-admission correction remains pending.
 
 L reviewed exact8b4bd738: WORD/KEY/CONTEXT ACCEPT for all4 catalog/helper blobs
 and93 EN/KO keys, including57 action labels. Packet:
-/tmp/work/m12-i18n/ko-review-w22-shortcuts-8b4bd738-20261115/result.json.
+the Korean-review packet `ko-review-w22-shortcuts-8b4bd738-20261115`,
+`result.json`.
 This is source wording evidence only. Applied L's nonblocking comment-only
 clarifications for physical chord-step vs alternative separators and exact legacy
 sentence variables; Fluent values, keys and interpolation contracts are byte
@@ -964,3 +965,34 @@ remain intact. W10 resident adapters and protocol25 values remain within their
 own announced scope. Product main still does not contain S2's held sidebar
 policy/caller: that exact source and its two keyboard/focus tests live only in
 the separate authorized sidebar-check worktree pending8captures+leadunion.
+
+
+## Isolated sidebar receiving evidence and keyboard producer
+
+The corrected sidebar policy remains outside this product tree. Its isolated
+receiving source d629c293 contains the exact owner policy/correction, this
+package's sole ToggleSidebars caller, staged-attribute removal and two real-key
+regressions. Run wp-commands-narrow-20261115T182847Z-d629c293 passed App/View/Kit
+all-target strict checks. Run wp-commands-20261115T182847Z-d629c293 executed
+App154/0/2, Kit235/0/0, View library1068/0/0 and integrations129/1/0: total
+1586/1/2. Both new owner-intent/focus-exit/off-workspace cases and the corrected
+600-width policy cases passed. The only failure was the unchanged page find
+wall-clock assertion: cold2.298131175s against2s, with cargo-step load45.52 at
+entry and46.93 at completion. This is not a green whole suite. A single named
+case replay on the same source is pending under the coordinator's replay rule;
+no timing threshold is changed here.
+
+The coordinator has now compared and cleared the corrected owner's captures.
+Main still waits for an announced green shared line containing that correction
+before adopting the caller union. Narrow checks do not replace this condition.
+
+A separate keyboard mechanics producer is prepared from the clean base10.
+It includes the canonical registry/engine/prefs grammar, native help/rebinding,
+callback dispatcher, actual kit composition/overlay boundary and only the old
+palette's local-key/weak-close-focus integration. New palette pages, Messages
+mode/navigation and unfinished git/file/sidebar/desktop effects are excluded.
+The old base has17 actions while the canonical request requires the full typed
+context and76 reference definitions; copying only dispatch.rs would not be a
+self-contained API. This extraction is source preparation, with receiving
+compile and actual GPUI evidence still owed. It is not a second keyboard
+implementation or a completed F4 package.
