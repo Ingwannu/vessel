@@ -23,10 +23,8 @@
 //!   never grows memory.
 
 mod command;
-// Staged shared envelope capability; real callers remove both exact attributes.
-#[cfg(test)]
+// A4 observed replies carry the original weak delivery validity to UI application.
 mod delivery;
-#[cfg(test)]
 pub use delivery::DeliveryGuard;
 #[cfg(not(target_arch = "wasm32"))]
 mod connections;

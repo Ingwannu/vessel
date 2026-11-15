@@ -1,6 +1,9 @@
 //! Existing history/import calls run off the UI thread and never leak raw errors.
 //! Own-history imports use session.create + resume (ADR 0053), not transfers.
 
+mod delivery;
+pub use delivery::Answer;
+
 pub use vessel_app_view::history::{Ask, Reply};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -41,23 +44,22 @@ impl crate::State {
         let client = match selected {
             Ok(client) => client,
             Err(problem) => {
-                self.emit(crate::Event::History(ask.refused(problem))).await;
+                self.emit(crate::Event::History(Answer::refused(ask, problem)))
+                    .await;
                 return;
             }
         };
         let Ok(permit) = std::sync::Arc::clone(&self.history_calls.0).try_acquire_owned() else {
-            self.emit(crate::Event::History(ask.refused(Problem::Unsent)))
+            self.emit(crate::Event::History(Answer::refused(ask, Problem::Unsent)))
                 .await;
             return;
         };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
+            let original = ask.clone();
+            let guard = client.delivery_guard();
             let reply = answer(&client, ask).await;
-            let _closed = tokio::time::timeout(
-                PUBLICATION_DEADLINE,
-                events.send(crate::Event::History(reply)),
-            )
-            .await;
+            delivery::publish(&client, &events, original, reply, guard).await;
             drop(permit);
         }));
     }

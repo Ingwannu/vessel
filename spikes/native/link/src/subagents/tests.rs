@@ -156,12 +156,15 @@ async fn same_node_reconnect_refuses_an_old_admission_before_any_subagent_rpc() 
     let ticket = Tickets::default().next_ticket().unwrap();
     state.subagents(Ask::Lookup { target, ticket }).await;
     let reply = crate::testing::within(async { events.recv().await.unwrap() }).await;
+    let crate::Event::Subagents(answer) = reply else {
+        panic!("subagent reply")
+    };
     assert!(matches!(
-        reply,
-        crate::Event::Subagents(Reply::LookedUp {
+        answer.into_reply(),
+        Reply::LookedUp {
             result: Err(TrackProblem::IdentityChanged),
             ..
-        })
+        }
     ));
     assert!(peer.calls.lock().unwrap().is_empty());
 }

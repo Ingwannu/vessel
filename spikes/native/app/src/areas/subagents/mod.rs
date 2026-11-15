@@ -46,6 +46,7 @@ pub(crate) struct SubagentArea {
     pub(super) pane: Option<ChildPane>,
     pub(super) readonly: ConversationArea,
     pub(super) readonly_source: Option<vessel_proto::subagents::ProviderChildRef>,
+    pub(super) readonly_revision: Option<Ticket>,
     pub(super) failure: Option<TrackProblem>,
     pub(super) partial: bool,
     pub(super) pill: String,
@@ -73,6 +74,7 @@ impl SubagentArea {
             pane: None,
             readonly: ConversationArea::new(cx),
             readonly_source: None,
+            readonly_revision: None,
             failure: None,
             partial: true,
             pill: String::new(),
@@ -138,19 +140,27 @@ pub(super) const CHILD_SEAT: crate::areas::conversation::Seat = crate::areas::co
 };
 fn child_seat(shell: &Shell) -> Option<&ConversationArea> {
     let area = &shell.areas.subagents;
-    let pane = area.pane.as_ref()?;
-    area.readonly_for(&pane.identity(), pane.projection_revision()?)
+    let (source, revision) = area.readonly_projection()?;
+    area.readonly_for(&source, revision)
 }
 fn child_seat_mut(shell: &mut Shell) -> Option<&mut ConversationArea> {
     let area = &mut shell.areas.subagents;
-    let pane = area.pane.as_ref()?;
-    let source = pane.identity();
-    let revision = pane.projection_revision()?;
+    let (source, revision) = area.readonly_projection()?;
     area.readonly_for_mut(&source, revision)
 }
 impl SubagentArea {
+    /// The revision describes the actual installed Area, including while a newer
+    /// accepted source projection is deferred behind protected navigation.
+    pub(crate) fn readonly_projection(
+        &self,
+    ) -> Option<(vessel_proto::subagents::ProviderChildRef, Ticket)> {
+        let source = self.readonly_source.as_ref()?;
+        let revision = self.readonly_revision?;
+        self.accepts_readonly(source, revision)
+            .then(|| (source.clone(), revision))
+    }
     /// Parent resources must first validate their full SessionContext. The child
-    /// key and accepted projection revision then fence retargets and prepends.
+    /// key and installed projection revision then fence retargets and prepends.
     pub(crate) fn readonly_for(
         &self,
         expected: &vessel_proto::subagents::ProviderChildRef,
@@ -173,8 +183,10 @@ impl SubagentArea {
         revision: Ticket,
     ) -> bool {
         self.readonly_source.as_ref() == Some(expected)
-            && self.pane.as_ref().is_some_and(|pane| {
-                pane.identity() == *expected && pane.projection_revision() == Some(revision)
-            })
+            && self.readonly_revision == Some(revision)
+            && self
+                .pane
+                .as_ref()
+                .is_some_and(|pane| pane.identity() == *expected)
     }
 }

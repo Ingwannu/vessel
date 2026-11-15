@@ -294,3 +294,30 @@ module. Preference-save dispatch is extracted unchanged to retain its existing
 blocking-pool/error behavior within the shared function ceiling. Test fixture
 map accesses and ignored previous insertions are explicit. No lint suppression
 or raised size record is introduced; the changed native strict rerun is owed.
+
+## A4 product exposure of queued delivery validity
+
+The lead assigned W2 the selected.rs/delivery export writer slot. Exact checked
+staged W12 dd13..e42 is merged with the lead line ed7d0a1e; only guard mint/export
+and bounded queue support are promoted with actual history/subagent consumers.
+The protocol getter delegates to lease.client; follow remains literal cfg(test).
+Observed replies carry one original Weak DeliveryGuard, validated synchronously
+at the beginning of the actual Shell receiver before model mutation. Private
+Answer fields permit unguarded results only through a constructor that produces
+correlated errors. Queue retirement/backpressure discards data and emits only
+read refusal or write uncertainty under the existing publication budgets.
+
+One reusable crate-internal testing::actor fixture drives ordinary Commands
+through real State::handle and actual guarded Events, using the existing controlled
+framed peer. It exposes only the derived ConnectionContext and typed Call/Outcome
+scripts, never State, client, allocator or guard constructors. Tests hold actual
+queued history/create results, retire the real Connected or close the actual peer,
+and validate the public receiver edge. Its cross-crate App-test support is left
+to the next owner; link execution is not claimed as GPUI/App receive execution.
+
+The child read-only carrier now records the installed Area revision separately
+from ChildPane's newest accepted revision. A deferred future A7 install must keep
+the old installed stamp until actual replacement; scoped find/disclosures cannot
+be falsely rebound to a new numeric projection. Current synchronous installation
+sets source/revision after replacing the Area. A7's protected-find refresh hook,
+keyed resident carrier and independent Subagents snapshot remain union work.

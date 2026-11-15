@@ -192,7 +192,10 @@ async fn same_node_reconnect_rejects_original_history_admission_before_any_rpc()
     request.scope.context = old;
     state.history(Ask::Import(request)).await;
     let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
-    let crate::Event::History(Reply::Imported { outcomes, .. }) = event else {
+    let crate::Event::History(answer) = event else {
+        panic!("history")
+    };
+    let Reply::Imported { outcomes, .. } = answer.into_reply() else {
         panic!("import refusal")
     };
     assert!(
@@ -218,12 +221,15 @@ async fn full_history_budget_refuses_before_spawning_or_sending() {
         })
         .await;
     let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
+    let crate::Event::History(answer) = event else {
+        panic!("history")
+    };
     assert!(matches!(
-        event,
-        crate::Event::History(Reply::Profiles {
+        answer.into_reply(),
+        Reply::Profiles {
             result: Err(Problem::Unsent),
             ..
-        })
+        }
     ));
     assert!(peer.calls.lock().unwrap().is_empty());
 }

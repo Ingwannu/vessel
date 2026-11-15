@@ -1,5 +1,8 @@
 //! Registered subagent calls, scoped by the node that actually answered welcome.
 
+mod delivery;
+pub use delivery::Answer;
+
 pub use vessel_app_view::subagents::{SubagentAsk as Ask, SubagentReply as Reply};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -36,24 +39,25 @@ impl crate::State {
         let client = match selected {
             Ok(client) => client,
             Err(problem) => {
-                self.emit(crate::Event::Subagents(ask.refused(problem)))
+                self.emit(crate::Event::Subagents(Answer::refused(ask, problem)))
                     .await;
                 return;
             }
         };
         let Ok(permit) = std::sync::Arc::clone(&self.subagent_calls.0).try_acquire_owned() else {
-            self.emit(crate::Event::Subagents(ask.refused(TrackProblem::Busy)))
-                .await;
+            self.emit(crate::Event::Subagents(Answer::refused(
+                ask,
+                TrackProblem::Busy,
+            )))
+            .await;
             return;
         };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
+            let original = ask.clone();
+            let guard = client.delivery_guard();
             let reply = answer(&client, ask).await;
-            let _closed = tokio::time::timeout(
-                PUBLICATION_DEADLINE,
-                events.send(crate::Event::Subagents(reply)),
-            )
-            .await;
+            delivery::publish(&client, &events, original, reply, guard).await;
             drop(permit);
         }));
     }

@@ -124,7 +124,12 @@ impl Shell {
         }
     }
 
-    pub(crate) fn history_answer(&mut self, reply: Reply, cx: &mut Context<'_, Self>) {
+    pub(crate) fn history_answer(
+        &mut self,
+        answer: vessel_app_link::history::Answer,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let reply = answer.into_reply();
         if let Reply::Profiles {
             scope,
             ticket,

@@ -154,3 +154,53 @@ impl SubagentAsk {
         }
     }
 }
+
+impl SubagentReply {
+    /// The same original per-hop admission captured by the request.
+    #[must_use]
+    pub fn context(&self) -> &crate::connection::ConnectionContext {
+        match self {
+            Self::LookedUp { target, .. } => &target.context,
+            Self::Managed { host, .. } => &host.context,
+            Self::Providers { read, .. } => &read.target.context,
+            Self::Timeline { read, .. } => &read.query.target.context,
+            Self::Detached { choice, .. } => &choice.child.context,
+        }
+    }
+    /// A stale queued mutation receipt cannot prove a repeat safe. Read payloads
+    /// are discarded before projection and retain only their original correlation.
+    #[must_use]
+    pub fn invalidated(self, read_problem: TrackProblem) -> Self {
+        match self {
+            Self::LookedUp { target, ticket, .. } => Self::LookedUp {
+                target,
+                ticket,
+                result: Err(read_problem),
+            },
+            Self::Managed {
+                host,
+                parent,
+                ticket,
+                ..
+            } => Self::Managed {
+                host,
+                parent,
+                ticket,
+                result: Err(read_problem),
+            },
+            Self::Providers { read, .. } => Self::Providers {
+                read,
+                result: Err(read_problem),
+            },
+            Self::Timeline { read, .. } => Self::Timeline {
+                read,
+                result: Err(read_problem),
+            },
+            Self::Detached { choice, ticket, .. } => Self::Detached {
+                choice,
+                ticket,
+                result: Err(TrackProblem::Uncertain),
+            },
+        }
+    }
+}

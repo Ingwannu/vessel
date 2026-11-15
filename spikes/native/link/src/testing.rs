@@ -1,5 +1,6 @@
 //! Isolated actor inputs and the one framed test peer, shared by book and
 //! device-binding regressions. No live node, global HOME edit or credentials.
+pub(crate) mod actor;
 mod deadline;
 pub(crate) mod peer;
 use crate::{Event, State};

@@ -241,3 +241,47 @@ impl Ask {
         }
     }
 }
+
+impl Reply {
+    /// Original scope for immediate receiver-side delivery validation.
+    #[must_use]
+    pub const fn scope(&self) -> &Scope {
+        match self {
+            Self::Profiles { scope, .. }
+            | Self::Listed { scope, .. }
+            | Self::Imported { scope, .. } => scope,
+        }
+    }
+    /// Invalidated observations cannot install data; any already-issued import
+    /// remains uncertain even if its successful receipt had reached the UI queue.
+    #[must_use]
+    pub fn invalidated(self, read_problem: Problem) -> Self {
+        match self {
+            Self::Profiles { scope, ticket, .. } => Self::Profiles {
+                scope,
+                ticket,
+                result: Err(read_problem),
+            },
+            Self::Listed { scope, ticket, .. } => Self::Listed {
+                scope,
+                ticket,
+                result: Err(read_problem),
+            },
+            Self::Imported {
+                scope,
+                ticket,
+                outcomes,
+            } => Self::Imported {
+                scope,
+                ticket,
+                outcomes: outcomes
+                    .into_iter()
+                    .map(|outcome| Outcome {
+                        id: outcome.id,
+                        result: Err(Problem::Uncertain),
+                    })
+                    .collect(),
+            },
+        }
+    }
+}

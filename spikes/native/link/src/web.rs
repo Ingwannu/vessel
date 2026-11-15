@@ -84,9 +84,16 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
-            Command::History(ask) => self.emit(Event::History(
-                ask.refused(vessel_app_view::history::Problem::Unsupported),
-            )),
+            Command::History(ask) => self.emit(Event::History(crate::history::Answer::refused(
+                ask,
+                vessel_app_view::history::Problem::Unsupported,
+            ))),
+            Command::Subagents(ask) => {
+                self.emit(Event::Subagents(crate::subagents::Answer::refused(
+                    ask,
+                    vessel_app_view::subagents::TrackProblem::Unsupported,
+                )))
+            }
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

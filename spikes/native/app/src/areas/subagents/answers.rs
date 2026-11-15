@@ -8,7 +8,12 @@ use vessel_app_view::{
 };
 
 impl Shell {
-    pub(crate) fn subagents_answer(&mut self, reply: Reply, cx: &mut Context<'_, Self>) {
+    pub(crate) fn subagents_answer(
+        &mut self,
+        answer: vessel_app_link::subagents::Answer,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let reply = answer.into_reply();
         match reply {
             Reply::Providers { read, result } => {
                 if let Some(track) = self.areas.subagents.track.as_mut() {
@@ -47,6 +52,7 @@ impl Shell {
             && pane.failure().is_none()
         {
             let source = pane.identity();
+            let revision = pane.projection_revision();
             let Some(timeline) = pane.take_projection() else {
                 return;
             };
@@ -67,6 +73,7 @@ impl Shell {
             readonly.list.reset(readonly.rows.len());
             self.areas.subagents.readonly = readonly;
             self.areas.subagents.readonly_source = Some(source);
+            self.areas.subagents.readonly_revision = revision;
         }
     }
     fn subagent_managed_answer(

@@ -46,6 +46,7 @@ impl Shell {
         area.open = false;
         area.pending_open = None;
         area.readonly_source = None;
+        area.readonly_revision = None;
         area.confirm = None;
         area.failure = None;
         area.partial = true;
@@ -180,6 +181,7 @@ impl Shell {
         let read = pane.read(None, &mut self.areas.subagents.tickets);
         self.areas.subagents.pane = Some(pane);
         self.areas.subagents.readonly_source = None;
+        self.areas.subagents.readonly_revision = None;
         self.areas.subagents.reproject(self.words);
         if let Ok(read) = read {
             self.command(Command::Subagents(Ask::Timeline(read)));
@@ -200,6 +202,7 @@ impl Shell {
         } else {
             self.areas.subagents.pane = None;
             self.areas.subagents.readonly_source = None;
+            self.areas.subagents.readonly_revision = None;
             self.areas.subagents.reproject(self.words);
         }
     }
