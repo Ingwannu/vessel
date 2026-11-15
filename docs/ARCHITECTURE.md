@@ -1795,3 +1795,13 @@ The shared admitted-directory helper derives current namespaces/nearest managed
 ancestor from opened FDs; file/Git writers and starts use it, and their placement
 postconditions run in the retained bounded metadata pool. Runtime recovery owner
 claims/completion and the node restore controller remain separate integration work.
+
+
+Linux checkpoint Storage owns only private FD-relative namespace creation below
+an existing service-owned node data folder. It validates existing directories
+instead of changing their security policy, uses typed ids/static components and
+same-mount checks, and syncs newly created private names independently of umask.
+Raw blob handles reuse opened directories; stage locations retain their opened
+folder. The node must reserve first and retain actual I/O ownership. Drop does
+not remove storage or free accounting; physical GC and controller assembly remain
+separate work. No runtime setting or live permission change is implied.

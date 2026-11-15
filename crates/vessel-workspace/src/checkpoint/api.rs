@@ -17,7 +17,7 @@ use vessel_proto::{
 pub struct Tree(Root);
 /// Service-owned immutable raw blobs in an existing private capture directory.
 #[derive(Debug)]
-pub struct Archive(archive::Archive);
+pub struct Archive(pub(super) archive::Archive);
 /// Explicit global-ignore fallback resolved by the node, never ambient HOME here.
 #[derive(Debug, Clone)]
 pub struct IgnoreDefaults(policy::Defaults);

@@ -5,12 +5,12 @@ use std::fs::File;
 use vessel_proto::checkpoint::CheckpointError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct MountId(u64);
+pub(in crate::checkpoint) struct MountId(u64);
 impl MountId {
-    pub(super) const fn get(self) -> u64 {
+    pub(in crate::checkpoint) const fn get(self) -> u64 {
         self.0
     }
-    pub(super) fn of(file: &File) -> Result<Self, Error> {
+    pub(in crate::checkpoint) fn of(file: &File) -> Result<Self, Error> {
         let found = rustix::fs::statx(file, "", AtFlags::EMPTY_PATH, StatxFlags::MNT_ID)
             .map_err(std::io::Error::from)?;
         Self::from_stat(found.stx_mask, found.stx_mnt_id)

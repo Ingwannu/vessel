@@ -717,3 +717,27 @@ capture escrow settlement (charged/changed); the SQL affected-row count is now
 updated. The run did not complete the later dependency graph, current worker API
 or recovery interfaces, and no runtime pass follows from it. Exact logs remain
 in production-store-clippy. No lint allowance is added.
+
+
+### Private storage creation (cleanup not yet wired)
+
+The Linux worker Storage API opens the service's already-private data directory
+and uses relative no-follow directory handles for checkpoints/worktree/capture,
+immutable blobs, preview before-images and restore stages. Only validated ids and
+fixed component names form descendants. Existing folders are validated for actual
+effective UID, exact0700, unsupported attributes and mount identity, never chmodded
+into acceptance. Newly created directories get a no-follow0700 chmod independent
+of umask, followed by child/parent sync; immutable Archive handles reuse opened
+folders instead of traversing a pathname again. Stage location keeps its opened
+folder owned while the existing restore worker API opens its stage.
+
+All creation requires the node's prior durable escrow and retained worker. The
+Storage API itself does not authenticate or release quota and does not delete on
+Drop. Filesystem GC/cleanup callbacks remain next work; no operational quota or
+cleanup proof follows from creation. Isolated fixtures check non-reuse, private
+UID/mode, symlink refusal and preserving an existing0750 directory. The umask0777
+case runs in a one-test child with an explicit helper selector, verifies the helper
+actually created storage, and never changes the parent/service umask. The helper
+is intentionally ignored in normal runs and explicitly executed by its parent.
+These tests are unrun; chmodat/no-follow behavior on supported kernels remains a
+VM/platform obligation. No live permissions or runtime configuration changed.

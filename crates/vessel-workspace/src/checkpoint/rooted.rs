@@ -5,7 +5,7 @@ pub(super) mod mutation;
 mod observation;
 
 use super::Error;
-use mount::MountId;
+pub(super) use mount::MountId;
 use rustix::fs::{CWD, Mode, OFlags};
 use std::{
     fs::{File, Metadata},

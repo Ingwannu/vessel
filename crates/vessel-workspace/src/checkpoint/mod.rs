@@ -24,6 +24,7 @@ mod restore;
 mod rooted;
 #[cfg(target_os = "linux")]
 mod scope;
+mod storage;
 
 #[cfg(test)]
 mod tests;
@@ -44,6 +45,7 @@ pub enum Error {
 
 pub use api::{Archive, IgnoreDefaults, Restore, Tree, image_fingerprint};
 pub use restore::{RecoveryState, Undo as Rollback};
+pub use storage::{CaptureStorage, StageDirectory, Storage};
 
 impl Error {
     /// Classify once without putting paths or file contents into RPC errors.

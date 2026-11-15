@@ -44,7 +44,12 @@ impl Archive {
             rustix::fs::openat(CWD, &path, DIRECTORY, Mode::empty())
                 .map_err(std::io::Error::from)?,
         );
+        Self::from_folder(folder, path)
+    }
+    pub(in crate::checkpoint) fn from_folder(folder: File, path: PathBuf) -> Result<Self, Error> {
         super::account::private_directory(&folder)?;
+        #[cfg(not(test))]
+        drop(path);
         Ok(Self {
             folder,
             #[cfg(test)]
