@@ -9,6 +9,7 @@
 
 pub mod palette;
 pub mod spacing;
+pub mod terminal;
 pub use palette::Palette;
 
 /// The desktop command panel's scrim: black at 50 % (track S3's, after
@@ -194,6 +195,8 @@ pub struct Tokens {
     pub btn_secondary_bg: Hsla,
     /// `--btn-secondary-bg-hover`.
     pub btn_secondary_bg_hover: Hsla,
+    /// The terminal's palette (Paseo's, ADR 0073).
+    pub terminal: terminal::TerminalColors,
 }
 
 impl Tokens {
@@ -244,6 +247,7 @@ impl Tokens {
             btn_primary_fg: rgb(0x00ff_ffff).into(),
             btn_secondary_bg: rgb(0x00f0_f0f0).into(),
             btn_secondary_bg_hover: rgb(0x00e4_e4e4).into(),
+            terminal: terminal::TerminalColors::light(),
         }
     }
 
@@ -278,6 +282,7 @@ impl Tokens {
             btn_primary_fg: rgb(0x0018_1818).into(),
             btn_secondary_bg: rgb(0x002c_2c2c).into(),
             btn_secondary_bg_hover: rgb(0x0036_3636).into(),
+            terminal: terminal::TerminalColors::dark(),
         }
     }
 }
