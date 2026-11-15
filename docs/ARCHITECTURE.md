@@ -1659,3 +1659,14 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+
+## Retained project metadata admission
+
+The node's workspace projects own an opaque asynchronous admission hold shared
+by registration/removal and backing creation. Its semaphore bounds holders and
+waiters; the provisioner retains a clone through descriptor finalization.
+The existing worktree creator accepts the caller's reserved identity only through
+the admitted Skip path, with in-flight duplicate exclusion. This adds no crate
+edge, wire call or second registry. It does not attest config approval, physical
+root continuity or process lifetime; see `docs/plans/project-admission.md`.
