@@ -541,3 +541,19 @@ Closing the last capture client drains admitted workers before the owner drops
 their root guards or reservations. Caller disappearance is not I/O completion.
 Linux staging also checks FD mount IDs, since device identity alone cannot
 distinguish same-filesystem bind mounts; missing mount identity refuses support.
+
+### Journal durability through the shared writer
+
+The event log normally uses WAL with `synchronous=NORMAL`; a normal commit
+acknowledgement alone is insufficient before a durable filesystem rename.
+Checkpoint writes remain on the existing serialized writer. Before opening a
+batch transaction containing checkpoint work, that writer temporarily selects
+`FULL` synchronous mode, commits all path intent in the same transaction and
+restores the connection's previous mode before acknowledging callers. It never
+changes synchronous mode inside a transaction. Ordinary event-only batches keep
+the existing cost and policy. A failed sync-policy admission applies no work and
+answers every queued caller with the source-preserving commit error. A commit
+or policy-restoration error refuses an affirmative acknowledgement; ambiguous
+commits are resolved by the existing operation identity/status, never by replay.
+Tests inspect the actual connection policy during commit and after rollback.
+This proves policy selection, not power-cut behavior of an arbitrary device.

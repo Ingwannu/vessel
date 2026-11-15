@@ -118,3 +118,9 @@ filesystem capture samples observations around its content reads. Equal-byte
 inode replacement therefore changes evidence without changing the content image.
 Ignore-policy discovery and crash-journal staging identities still need wiring;
 the supplied policy digest is not yet evidence of automatic discovery.
+
+The staged shared-writer adapter now selects FULL WAL synchronization for each
+batch containing checkpoint work, outside its transaction, then restores the
+prior policy. This closes the NORMAL-commit versus durable-file-rename ordering
+gap without changing ordinary event batches. Tests inspect real connection
+policy and rollback/reopen behavior; they are not power-loss hardware proof.

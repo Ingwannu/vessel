@@ -22,6 +22,8 @@
 //! a transaction of its own before looking at the queue again.
 
 mod apply;
+#[cfg(test)]
+mod durability;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -242,7 +244,7 @@ fn run(mut connection: Connection, mut ops: mpsc::Receiver<WriteOp>, setup: &Set
                 WriteOp::Close { done } => closes.push(done),
             }
         }
-        commit(&mut connection, writes.drain(..), setup, &mut indexer);
+        commit(&mut connection, &mut writes, setup, &mut indexer);
         if !closes.is_empty() {
             break;
         }
@@ -308,19 +310,34 @@ fn checkpoint(connection: &Connection) {
 /// caller in it.
 fn commit(
     connection: &mut Connection,
-    writes: impl Iterator<Item = Write>,
+    writes: &mut Vec<Write>,
     setup: &Setup,
     indexer: &mut Indexer,
 ) {
     let mut answers = Vec::new();
     let mut effects = Effects::default();
-    let committed = connection.transaction().and_then(|mut transaction| {
-        for write in writes {
-            answers.push(apply(&mut transaction, write, &mut effects, indexer));
+    #[cfg(test)]
+    let previous = match durability::begin(connection, writes) {
+        Ok(previous) => previous,
+        Err(error) => {
+            let error = Arc::new(error);
+            tracing::error!(%error, "checkpoint journal sync admission failed");
+            for write in writes.drain(..) {
+                durability::rejected(write, &error).send(None);
+            }
+            return;
         }
-        retain(&mut transaction, &mut effects, &setup.retention);
-        transaction.commit()
-    });
+    };
+    let committed = apply_batch(
+        connection,
+        writes,
+        setup,
+        indexer,
+        &mut answers,
+        &mut effects,
+    );
+    #[cfg(test)]
+    let committed = committed.and(durability::finish(connection, previous));
     let failed = committed.err().map(Arc::new);
     if let Some(error) = &failed {
         tracing::error!(%error, "committing to the event log failed");
@@ -351,6 +368,24 @@ fn commit(
     for answer in answers {
         answer.send(failed.as_ref());
     }
+}
+
+/// All intents in a checkpoint batch are committed before filesystem work begins.
+fn apply_batch(
+    connection: &mut Connection,
+    writes: &mut Vec<Write>,
+    setup: &Setup,
+    indexer: &mut Indexer,
+    answers: &mut Vec<Answer>,
+    effects: &mut Effects,
+) -> rusqlite::Result<()> {
+    connection.transaction().and_then(|mut transaction| {
+        for write in writes.drain(..) {
+            answers.push(apply(&mut transaction, write, effects, indexer));
+        }
+        retain(&mut transaction, effects, &setup.retention);
+        transaction.commit()
+    })
 }
 
 /// Retention for this batch. Failures are logged, not returned: keeping a
