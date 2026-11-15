@@ -120,6 +120,16 @@ async fn prompt(stream: &mut DuplexStream, id: RequestId, scenario: Scenario) ->
     };
     write(stream, ServerFrame::Response { id, outcome }).await
 }
+async fn await_close(stream: &mut DuplexStream) -> TestResult {
+    // A success/refusal fixture models a still-admitted connection. Dropping
+    // immediately after its reply instead races the post-await liveness guard
+    // and correctly makes even that reply uncertain. Keep transport loss an
+    // explicit scenario, and still reject any extra create/prompt dispatch.
+    if read(stream).await?.is_some() {
+        return Err(std::io::Error::other("no request after the terminal reply").into());
+    }
+    Ok(())
+}
 pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestResult {
     welcome(&mut stream).await?;
     if matches!(scenario, Scenario::WrongNode) {
@@ -129,7 +139,7 @@ pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestR
         return Ok(());
     }
     let Some(session) = register(&mut stream, scenario).await? else {
-        return Ok(());
+        return await_close(&mut stream).await;
     };
     if let Some(frame) = read(&mut stream).await? {
         let ClientFrame::Request {
@@ -143,6 +153,9 @@ pub(super) async fn serve(mut stream: DuplexStream, scenario: Scenario) -> TestR
             return Err(std::io::Error::other("wrong retry destination").into());
         }
         prompt(&mut stream, id, scenario).await?;
+        if !matches!(scenario, Scenario::DisconnectPrompt) {
+            await_close(&mut stream).await?;
+        }
     }
     Ok(())
 }
