@@ -488,3 +488,33 @@ feature and byte checks. Its isolated UID/GID-1000 boot, same-source CLI status,
 normal stop and scratch permissions were checked separately. That older binary
 is not evidence for this frozen runtime, assigned report calls or UI acceptance.
 No production service, credential, vendor or permission change was performed.
+
+### Global revocation reaches admitted source work
+
+[Decision Log]
+- Purpose: committed global Off must stop credential results from beginning vendor
+  HTTP and must drop active HTTP even if the settings caller disappears.
+- Constraint: the legacy policy actor already cancels its canonical observation
+  generation independently of its RPC. Caller-owned registry cleanup and Clear
+  cannot be the enforcement boundary. Node/source cancellation and physical
+  reader permits must remain intact.
+- Choice: each independent source job observes that captured global generation,
+  cancels its existing probe token and awaits the same actual work. The source
+  owner separately observes the canonical generation to invalidate entries and
+  its copied-snapshot generation without a follow-up RPC command. No new policy
+  store, authority, generation allocator or detached cancellation task is added.
+- Compatibility: source grants survive global Off; On does not fetch. Existing
+  source Off, node shutdown, bounds, cooldowns, coalescing and physical draining
+  remain. Stale global observations are refused before they can prune current work.
+- Regression: real guarded service/actors warm a success, hold credential work or
+  a network-free HTTP future, commit durable Off, block the setter's registry
+  cleanup and drop its future before Clear. Tests require independent cache
+  invalidation, zero late HTTP polls or active HTTP drop, and fresh Off/On ids.
+  Fakes-only recorded HTTP is an explicit format-boundary capability; it never
+  selects an arbitrary endpoint or appears in installed node arguments.
+
+The original frozen whole run `wp-usage-source-tests-20261115T145906Z-5421d793`
+is retained RED: web installation passed; fmt stopped on this package's harness
+re-export ordering before any later gate step. Corrected source, strict/runtime
+checks, current generated freshness and the eventual changed-source whole gate
+remain owed. No vulnerability fix or package acceptance is claimed from inspection.

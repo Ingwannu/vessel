@@ -48,6 +48,10 @@ impl Snapshot {
 }
 #[derive(Debug)]
 enum Command {
+    #[cfg(test)]
+    CachedEntries {
+        reply: oneshot::Sender<usize>,
+    },
     Snapshot {
         global: Observation,
         reply: oneshot::Sender<Result<Snapshot, WireError>>,
@@ -87,6 +91,7 @@ struct Owner {
     stop: CancellationToken,
     legacy_supported: bool,
     policy_generation: CancellationToken,
+    observed_global: Option<Observation>,
 }
 struct Completed {
     source: Source,
@@ -96,6 +101,17 @@ struct Completed {
     at: DateTime<Utc>,
 }
 impl Sources {
+    #[cfg(test)]
+    pub(crate) async fn cached_entries(&self) -> usize {
+        let (reply, response) = oneshot::channel();
+        self.0
+            .as_ref()
+            .unwrap()
+            .send(Command::CachedEntries { reply })
+            .await
+            .unwrap();
+        response.await.unwrap()
+    }
     pub(crate) async fn start(
         config: &crate::Config,
         stop: CancellationToken,
@@ -119,6 +135,7 @@ impl Sources {
             stop: stop.clone(),
             legacy_supported,
             policy_generation: stop.child_token(),
+            observed_global: None,
         };
         let (commands, receiver) = mpsc::channel(COMMANDS);
         drop(tasks.spawn(owner.run(receiver)));

@@ -23,6 +23,20 @@ impl AccountUsageProbe {
         now: DateTime<Utc>,
         stop: &CancellationToken,
     ) -> Result<Zeroizing<Vec<u8>>, (LimitFailure, Option<DateTime<Utc>>)> {
+        #[cfg(feature = "fakes")]
+        if let Self::Recorded { access, .. } = self
+            && let Some(reading) = &access.recorded_http
+        {
+            // Invoke only inside the admitted future: revoked work must not even
+            // poll the fake transport, exactly as for the fixed-origin live path.
+            return cancellable(stop, async {
+                reading()
+                    .await
+                    .map(Zeroizing::new)
+                    .map_err(|reason| (reason, None))
+            })
+            .await;
+        }
         match self {
             Self::Disabled => Err((LimitFailure::Unsupported, None)),
             Self::Local(_) => {

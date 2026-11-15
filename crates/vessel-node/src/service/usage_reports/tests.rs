@@ -5,6 +5,7 @@ use vessel_proto::{
     Handler as _,
     usage_reports::{SetUsageSourceLookup, SourceReportState, UsageSourceAvailability},
 };
+mod global_revocation;
 mod harness;
 use harness::{Fixture, SERVICE_TEST_BUDGET};
 fn cursor(reports: &UsageReports) -> &SourceReportEntry {

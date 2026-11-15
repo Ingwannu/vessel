@@ -20,6 +20,10 @@ impl Observation {
     pub(crate) fn still_current(&self) -> bool {
         !self.generation.is_cancelled()
     }
+    /// Actual admitted work observes the same revocation as cached publication.
+    pub(crate) async fn cancelled(&self) {
+        self.generation.cancelled().await;
+    }
 }
 impl Limits {
     /// Pure actor/cache read; never touches a credential, policy file or vendor.

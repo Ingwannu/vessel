@@ -72,6 +72,18 @@ impl Registry {
             .await
             .retain(|entry| entry.policy.still_current());
     }
+    #[cfg(test)]
+    pub(crate) async fn hold_cleanup(
+        &self,
+        entered: tokio::sync::oneshot::Sender<()>,
+        released: tokio::sync::oneshot::Receiver<()>,
+    ) {
+        // The test deliberately holds this Tokio mutex across the barrier so
+        // the real service setter cannot reach its caller-owned cleanup.
+        let _held = self.0.lock().await;
+        let _closed = entered.send(());
+        let _closed = released.await;
+    }
 }
 fn changed() -> WireError {
     WireError::new(

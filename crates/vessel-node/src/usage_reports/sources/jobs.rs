@@ -18,11 +18,11 @@ impl Owner {
         global: Observation,
         reply: oneshot::Sender<Result<(), UsageFetchFailure>>,
     ) {
-        self.prune(&global);
         if !global.still_current() || global.policy != ExternalLookup::On {
             let _closed = reply.send(Err(UsageFetchFailure::SourceRemoved));
             return;
         }
+        self.prune(&global);
         if !self.enabled(source) {
             let _closed = reply.send(Ok(()));
             return;
@@ -95,10 +95,24 @@ impl Owner {
         let stop = entry.stop.child_token();
         let probe = self.probe.clone();
         let context = self.context.clone();
-        drop(self.jobs.spawn(async move{
-            let reading=probe.read(&context,source.builtin(),Utc::now(),&stop);tokio::pin!(reading);
-            let (result,timed_out)=tokio::select!{result=&mut reading=>(result,false),()=tokio::time::sleep(SOURCE_BUDGET)=>{stop.cancel();(reading.await,true)}};
-            Completed{source,epoch,result,timed_out,at:Utc::now()}
+        let global = entry.global.clone();
+        drop(self.jobs.spawn(async move {
+            let reading = probe.read(&context, source.builtin(), Utc::now(), &stop);
+            tokio::pin!(reading);
+            // Preserve node/source cancellation and physical permits while the
+            // independent global owner revokes this job even if its RPC vanished.
+            let (result, timed_out) = tokio::select! {biased;
+                ()=global.cancelled()=>{stop.cancel();(reading.await,false)},
+                result=&mut reading=>(result,false),
+                ()=tokio::time::sleep(SOURCE_BUDGET)=>{stop.cancel();(reading.await,true)}
+            };
+            Completed {
+                source,
+                epoch,
+                result,
+                timed_out,
+                at: Utc::now(),
+            }
         }));
     }
     pub(super) fn completed(&mut self, done: Completed) {

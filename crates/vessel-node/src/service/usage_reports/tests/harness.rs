@@ -36,13 +36,23 @@ impl Drop for Fixture {
 }
 impl Fixture {
     pub(super) async fn start() -> Self {
+        Self::with_access(|home, seen| {
+            AccountSourceAccess::new(home, move |name| {
+                let _previous = seen.fetch_add(1, Ordering::SeqCst);
+                (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
+            })
+        })
+        .await
+    }
+    pub(super) async fn with_access(
+        access: impl FnOnce(std::path::PathBuf, Arc<AtomicUsize>) -> AccountSourceAccess,
+    ) -> Self {
         let root = tempfile::tempdir().unwrap();
         let home = root.path().join("home");
         std::fs::create_dir(&home).unwrap();
         let body = root.path().join("report.json");
         std::fs::write(&body,br#"{"plan":"Fixture","windows":[],"balances":[{"id":"credits","label":"Credits","used":3,"remaining":7,"limit":10,"unit":"credits","resets_at":null,"tone":null}],"details":[{"id":"private","label":"Private","value":"synthetic-only","access":"operate","tone":null}]}"#).unwrap();
         let reads = Arc::new(AtomicUsize::new(0));
-        let seen = Arc::clone(&reads);
         let mut config = crate::Config::new(
             vessel_store::DataDir::new(root.path().join("data")),
             HarnessEnv::new(home.clone()),
@@ -51,10 +61,7 @@ impl Fixture {
         config.harness_lookup = Lookup::new([]);
         config.usage_sources = AccountUsageProbe::Recorded {
             root: root.path().to_owned(),
-            access: AccountSourceAccess::new(home, move |name| {
-                let _previous = seen.fetch_add(1, Ordering::SeqCst);
-                (name == "CURSOR_ACCESS_TOKEN").then(|| "synthetic-service-source".into())
-            }),
+            access: access(home, Arc::clone(&reads)),
             source: BuiltinUsageSource::Cursor,
             body,
             status: 200,
@@ -117,6 +124,9 @@ impl Fixture {
     }
     pub(super) fn service(&self) -> &crate::guard::Guarded {
         &self.node.as_ref().unwrap().secure.service
+    }
+    pub(super) fn handler(&self) -> Arc<crate::guard::Guarded> {
+        Arc::clone(&self.node.as_ref().unwrap().secure.service)
     }
     pub(super) async fn finish(mut self) {
         self.stop.cancel();
