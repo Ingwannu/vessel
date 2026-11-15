@@ -362,16 +362,27 @@ root initialization also stays cached; wiring owes a test of shared failure
 across starts and recovery by re-creating the service. The fixed prompt has no
 environment override, unlike Paseo's.
 
-Half-done: the foreign JSON decoder and six tests are staged beside those
-helpers. It returns only validated Transcript or a fixed typed error, retains
-syntax/status causes, and checks decoded text with Redactor::finds. The literal
-escape-looking speech fixture distinguishes this from parsing escapes again.
-Its narrow node clippy passes; the whole gate still owes runtime evidence for
-these six tests. No HTTP request is wired.
+Done as staged source: the JSON decoder and six tests, with the whole gate
+(Rust 1998/0/12, web unit 417, e2e 62). It returns only validated Transcript or a
+fixed typed error; the escape-looking speech fixture prevents a second parse.
 
-Next: finish the decoder checks, then stage the HTTP client and the actor in
-small review slices. The one-upload contract is passed; HTTP request-count,
-deadline and response-cap tests still belong to that client slice. Wiring waits for the shared protocol accessor and call-table refactor,
+Half-done: the stream-owned HTTP client is staged. URL/header validation precedes
+root loading; redirects, proxies and retries are disabled, with named connect,
+request and response bounds. The reader checks Content-Length and every append
+before decoding. Its fixed Debug hides nested transport diagnostics while
+retaining typed causes. Each TLS client copy has its own resumption store;
+sharing only root configuration must never accumulate endpoint host state.
+Nine loopback cases cover header-only authentication/WAV, redirect refusal,
+chunked and advertised size, bad credentials, response-body deadline, safe
+transport diagnostics, 503/429 hints with one upload and a fully accepted upload
+whose socket closes before headers. A rustls store probe adds the isolation test.
+Narrow clippy and the 27 helper tests pass; a strengthened body-deadline test
+also waits for client-side headers before advancing its clock and passes alone.
+The client still needs this commit's whole gate; product wiring remains absent.
+
+Next: finish the HTTP whole gate, then the stream contract amendment and actor.
+Active commit/stream quotas and fresh secret resolution belong to the service,
+not to the client's idle pool. Cancellation cannot retract accepted provider work. Wiring waits for the shared protocol accessor and call-table refactor,
 removes staging, and gets a whole product gate with actual transport close and
 scope tests. Name the one-second input-chunk duration beside the segment bound
 when wiring it; the segment limit must keep following the proto chunk rule.

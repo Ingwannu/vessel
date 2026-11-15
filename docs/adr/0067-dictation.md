@@ -370,6 +370,14 @@ failing worker from spawning repeated loaders. Wiring owes a test that failed
 starts share the same cached failure and a re-created service can initialize
 again. This preparation rule is separate from the one-upload request policy.
 
+A rustls ClientConfig clone normally shares its mutable TLS resumption store.
+Each client copy therefore gets a fresh resumption store: cached roots must not
+retain past endpoint host names or session tickets. The default TLS resumption
+mechanism remains available within one stream; no second TLS configuration block
+or global HTTP policy is added to http_tls. A test uses rustls's real session-store
+extension point and ClientConnection construction to distinguish a shared store
+from these independent copies without a socket or an alternate TLS backend.
+
 Each stream builds its own HTTP client after its URL and
 sensitive authorization header validate. Connect has a ten-second deadline;
 the entire request, including response body, has a sixty-second deadline. The
@@ -426,6 +434,9 @@ floor over matching arbitrary SDK error text. Non-success HTTP statuses and
 JSON syntax errors retain typed causes and no response payload. Transport
 errors discard their request URL with reqwest::Error::without_url while keeping
 the typed cause; diagnostics need not retain admin-selected URL path text.
+ProviderError Debug also prints only its fixed Display, because a peer-controlled
+nested transport cause must not enter a log. Error::source keeps the typed cause
+for classification; the wire boundary must never format the foreign error chain.
 
 Advantages, costs and effects: credentials and audio remain bounded in-memory
 stream resources; cancellation cannot multiply root loaders or release blocked
@@ -597,8 +608,8 @@ in force unchanged.
 
 ### Privacy: where the audio goes
 
-Audio exists in three places, all memory, all dropped when the stream
-ends:
+Inside Vessel, audio exists in three places, all memory, all dropped when the
+stream ends:
 
 1. The client's buffer, until it has sent the chunk. Not this node's
    problem, and not written by this node.
@@ -609,6 +620,9 @@ ends:
    bodies handed to the provider. The endpoint provider puts one body
    into the HTTPS request and drops it when the response is read or
    the call fails. No temporary file.
+
+The configured provider receives the committed WAV. Retention there is outside
+the node's guarantee, and cancelling cannot retract an already accepted upload.
 
 The transcript exists only in the `dictation.next` reply. It is not
 written to the session log, to settings, or to a tracing field.

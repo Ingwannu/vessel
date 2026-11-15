@@ -11,7 +11,7 @@ use vessel_proto::dictation::Transcript;
 
 /// A foreign response cannot carry its payload into a diagnostic.
 #[derive(Debug, thiserror::Error)]
-enum DecodeError {
+pub(super) enum DecodeError {
     #[error("the dictation endpoint returned invalid JSON")]
     Json(#[source] serde_json::Error),
     #[error("the dictation endpoint returned no text field")]
@@ -33,7 +33,11 @@ enum DecodeError {
 }
 
 /// Decode only after the HTTP reader has enforced its response byte cap.
-fn decode(status: StatusCode, body: &[u8], redactor: &Redactor) -> Result<Transcript, DecodeError> {
+pub(super) fn decode(
+    status: StatusCode,
+    body: &[u8],
+    redactor: &Redactor,
+) -> Result<Transcript, DecodeError> {
     let value: Value = serde_json::from_slice(body).map_err(|source| {
         if status.is_success() {
             DecodeError::Json(source)

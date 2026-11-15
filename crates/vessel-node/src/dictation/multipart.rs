@@ -18,7 +18,7 @@ const DELIMITER_DIGITS: usize = DELIMITER_BYTES * 2;
 
 /// A fixed form's encoding failures retain their causes, never their payload.
 #[derive(Debug, thiserror::Error)]
-enum FormError {
+pub(super) enum FormError {
     #[error("a dictation multipart delimiter could not be generated")]
     Entropy(#[source] getrandom::Error),
     #[error("a dictation multipart delimiter collided after {max} attempts", max = MAX_DELIMITER_ATTEMPTS)]
@@ -30,15 +30,15 @@ enum FormError {
 }
 
 /// Borrow validated metadata without replacing it with boundary strings.
-struct Fields<'a> {
+pub(super) struct Fields<'a> {
     /// Select the endpoint model only at the multipart edge.
-    model: &'a EndpointModel,
+    pub(super) model: &'a EndpointModel,
     /// Encode the configured language at the same edge.
-    language: &'a Language,
+    pub(super) language: &'a Language,
 }
 
 /// Only the HTTP request builder can consume the completed form.
-struct Multipart {
+pub(super) struct Multipart {
     /// Contains audio; deliberately has no Debug implementation.
     bytes: Bytes,
     /// Kept together with its matching generated delimiter.
@@ -46,8 +46,14 @@ struct Multipart {
 }
 
 impl Multipart {
+    /// Consume a matching header/body pair only at the HTTP request edge.
+    #[must_use]
+    pub(super) fn into_parts(self) -> (HeaderValue, Bytes) {
+        (self.content_type, self.bytes)
+    }
+
     /// Validate delimiter collisions before retaining a second audio body.
-    fn new(segment: &Segment, fields: &Fields<'_>) -> Result<Self, FormError> {
+    pub(super) fn new(segment: &Segment, fields: &Fields<'_>) -> Result<Self, FormError> {
         let boundary = Boundary::new(segment, fields)?;
         let mut body = Vec::new();
         for (name, value) in [

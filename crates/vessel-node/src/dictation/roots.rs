@@ -10,7 +10,7 @@ use tokio::sync::watch;
 
 /// Root failures retain their causes while callers share the same initialization.
 #[derive(Debug, thiserror::Error)]
-enum RootsError {
+pub(super) enum RootsError {
     /// Preserve the existing catalogue helper's rustls cause.
     #[error("the dictation TLS configuration was refused")]
     Tls(#[source] rustls::Error),
@@ -24,13 +24,25 @@ enum RootsError {
 
 /// Clone the root configuration for a stream-owned HTTP client.
 #[derive(Clone)]
-struct Configuration(Arc<rustls::ClientConfig>);
+pub(super) struct Configuration(Arc<rustls::ClientConfig>);
+
+impl Configuration {
+    /// Clients share roots but keep their own host pools and credentials.
+    #[must_use]
+    pub(super) fn for_client(&self) -> rustls::ClientConfig {
+        let mut config = self.0.as_ref().clone();
+        // rustls clones share their resumption store. Keep session names/tickets
+        // with this stream-owned client, never with the shared root cache.
+        config.resumption = rustls::client::Resumption::default();
+        config
+    }
+}
 
 type Loaded = Result<Configuration, Arc<RootsError>>;
 
 /// Construct once with the node's dictation service, never once per stream.
 #[derive(Default)]
-struct Factory {
+pub(super) struct Factory {
     result: OnceLock<watch::Receiver<Option<Loaded>>>,
     #[cfg(test)]
     gate: Option<Arc<Gate>>,
@@ -38,7 +50,7 @@ struct Factory {
 
 impl Factory {
     /// Waiting is cancel-safe: the independent producer remains unique.
-    async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
+    pub(super) async fn get(&self) -> Result<Configuration, Arc<RootsError>> {
         let mut receiver = self
             .result
             .get_or_init(|| {
@@ -116,5 +128,69 @@ mod tests {
         })
         .await
         .unwrap();
+    }
+
+    /// Observe the external session-store interface without network I/O.
+    #[derive(Debug, Default)]
+    struct SessionProbe(std::sync::atomic::AtomicUsize);
+
+    impl rustls::client::ClientSessionStore for SessionProbe {
+        fn set_kx_hint(
+            &self,
+            _name: rustls::pki_types::ServerName<'static>,
+            _group: rustls::NamedGroup,
+        ) {
+        }
+        fn kx_hint(&self, _name: &rustls::pki_types::ServerName<'_>) -> Option<rustls::NamedGroup> {
+            let _previous = self.0.fetch_add(1, Ordering::SeqCst);
+            None
+        }
+        fn set_tls12_session(
+            &self,
+            _name: rustls::pki_types::ServerName<'static>,
+            _value: rustls::client::Tls12ClientSessionValue,
+        ) {
+        }
+        fn tls12_session(
+            &self,
+            _name: &rustls::pki_types::ServerName<'_>,
+        ) -> Option<rustls::client::Tls12ClientSessionValue> {
+            let _previous = self.0.fetch_add(1, Ordering::SeqCst);
+            None
+        }
+        fn remove_tls12_session(&self, _name: &rustls::pki_types::ServerName<'static>) {}
+        fn insert_tls13_ticket(
+            &self,
+            _name: rustls::pki_types::ServerName<'static>,
+            _value: rustls::client::Tls13ClientSessionValue,
+        ) {
+        }
+        fn take_tls13_ticket(
+            &self,
+            _name: &rustls::pki_types::ServerName<'static>,
+        ) -> Option<rustls::client::Tls13ClientSessionValue> {
+            let _previous = self.0.fetch_add(1, Ordering::SeqCst);
+            None
+        }
+    }
+
+    #[test]
+    fn stream_clients_cannot_populate_or_read_the_factory_session_store() {
+        let probe = Arc::new(SessionProbe::default());
+        let mut config = crate::http_tls::config().unwrap();
+        let shared = Arc::clone(&probe);
+        config.resumption = rustls::client::Resumption::store(shared);
+        let config = Configuration(Arc::new(config));
+        let name = rustls::pki_types::ServerName::try_from("dictation.invalid").unwrap();
+        // Establish that a normal clone really would reuse this mutable store.
+        drop(rustls::ClientConnection::new(Arc::clone(&config.0), name.clone()).unwrap());
+        assert!(probe.0.load(Ordering::SeqCst) > 0);
+        probe.0.store(0, Ordering::SeqCst);
+        for _ in 0..2 {
+            drop(
+                rustls::ClientConnection::new(Arc::new(config.for_client()), name.clone()).unwrap(),
+            );
+        }
+        assert_eq!(probe.0.load(Ordering::SeqCst), 0);
     }
 }

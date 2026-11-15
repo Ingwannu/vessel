@@ -8,7 +8,8 @@ use bytes::Bytes;
 use std::{fmt, time::Duration};
 use vessel_proto::dictation::{DictationPcm, SampleRate};
 
-const PROVIDER_HZ: u32 = 24_000;
+/// HTTP fixtures verify that the real WAV encoder supplies the provider rate.
+pub(super) const PROVIDER_HZ: u32 = 24_000;
 const SAMPLE_BYTES: usize = size_of::<i16>();
 const WAV_HEADER_BYTES: usize = 44;
 const RIFF_PREFIX_BYTES: usize = 8;

@@ -1338,8 +1338,11 @@ encoding independent of the HTTP client. Their typed errors flow up to the
 client once; they do not depend on its destination or credential. The client
 owns redirect/proxy/time/attempt policies and response bounds; a bounded foreign JSON
 edge produces only typed transcript or fixed failures. Root configuration is
-shared per node, HTTP pools and credentials per stream. None of these layers
-adds a second secret reader or an HTTP policy to http_tls.
+shared per node, HTTP pools and credentials per stream. TLS client copies also
+receive independent resumption stores, so the root cache accumulates no past-host
+session state. None of these layers adds a second secret reader or an HTTP policy
+to http_tls. The staged reader caps response bytes before the JSON edge, and only
+fixed diagnostics leave the client; the actor and product wiring remain later.
 
 The node's `http_tls` module builds the operating-system root, explicit
 ring and ALPN configuration once per client constructor. `catalogue::fetch`
