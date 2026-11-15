@@ -15,8 +15,8 @@ doc-comment clarification changes no rule or assertion and does not borrow an
 exact-source pass. Accepted does not prove painted or physically authorized.
 Its actual body consumer, pagination and retention budget remain pending. Node head
 is34bb9f843, after announced9c150c6e. The isolated control Rust head is4133964f6;
-docs000fc16e5 records V1 bounded SOURCE/requested KitClippy+diff19 clearance,
-with adoption held only for the existing ordinary syntax selection163829.
+The isolated producer's final docs record V1 bounded SOURCE/requested Kit
+NARROW PASS: ordinary syntax163829 passed1/0/0, closing the sole hold.
 The19 passing tests are11 GPUI window tests plus8 ordinary units. No all-Kit,
 App, whole C3, UI/OS or physical-write acceptance follows from that result.
 
@@ -27,8 +27,11 @@ Active registered runs (no retry/duplicate):
   failclosed unscoped-write barrier.15a remains RED, not relabeled.
 - wp-git-app-tests-20261115T164951Z-f1ab5645: ordinary/no-priority exact View,
   Link and App all-target git-filter tests, queued. No Kit filter rerun.
-- wp-git-control-tests-20261115T163829Z-4133964f: short/no-priority existing
-  ordinary syntax regression outside the already executed diff filter, queued.
+- wp-git-control-tests-20261115T163829Z-4133964f: terminal0, short/no-priority
+  existing ordinary syntax regression1/0/0 outside the diff filter; Base,
+  gpui-component and Kit actually compiled, no skips. Original19 source pins
+  remain unchanged. Lead/coordinator received only the reviewed control range,
+  not the moving App/Node branches. Actual UI/capture obligations remain.
 - wp-git-node-narrow-20261115T162346Z-34bb9f84: ordinary TS generation, queued;
   retrieve generated artifacts through the helper, never hand-edit wire bytes.
 

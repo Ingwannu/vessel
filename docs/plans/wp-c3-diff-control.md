@@ -1,7 +1,16 @@
 # C3 readonly mapped editor producer
 
-Status: prepared isolated source, **unchecked; not consumer-ready**. Base is the
-announced e1b73c9e line. The source bytes are copied with current timestamps from
+Current status: exact4133964f69ff87edcc6e6af37d3cb47f35ea3019 has V1 bounded
+SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. The requested
+ordinary syntax selection163829 has now passed1/0/0. V1's same-row FINAL bounded
+shared-control SOURCE and requested Kit NARROW PASS permits adoption of only
+e1b73c9e..413, preserving newer shared unions. It does not approve a full Kit
+gate, App consumer or actual screen.
+The19 passing tests comprise11 GPUI window tests and8 ordinary unit tests;
+they are not19 real-window tests or a full Kit/package gate. No consumer/UI/OS
+acceptance is claimed. Earlier unchecked/red sections below retain their
+historical source assignments. Base is the announced e1b73c9e line.
+The source bytes are copied with current timestamps from
 G1's owned C3 control files only; no View/Link/app or root runtime is included.
 No new dependency, lock edit or ratchet exemption is introduced.
 
@@ -231,12 +240,16 @@ original unnamed15/1 loop. The old red result stays red. Complete source/ref/log
 SHA manifests are in the track's external control-producer-413 packet.
 
 The ordinary existing code_editor::syntax::tests case was not included in the19
-filter. Its separate exact413 selection163829 is queued; no already executed
-fixture is rerun and no whole gate is added. Until its result, do not claim all
+filter. Its separate exact413 selection163829 passed1/0/0,198 filtered, with
+actual Base/gpui-component/Kit compilation, both stages0/no skips. The test is
+colours_runs_across_lines_and_reuses_what_an_edit_did_not_reach. No already
+executed fixture was rerun and no whole gate was added; this does not cover all
 legacy editor regressions. The isolated source still has no C3 View/Link/app or
 node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
 semicolon/collapsible-if issues, so this is not App integration acceptance.
 
-V1 source/narrow adoption remains pending. Real header alignment/selection path
+V1 has cleared the exact bounded source and requested Clippy/diff19 selection;
+the same-row final bounded adoption receipt closes the ordinary-syntax hold.
+No new run is requested by that review. Real header alignment/selection path
 visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
 audit example is unbuilt/unrun and the split full-width-header/copy gap remains.
