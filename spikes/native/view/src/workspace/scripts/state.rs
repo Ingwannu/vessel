@@ -181,7 +181,12 @@ impl Model {
             .ready()
             .filter(|_| self.writing.is_none())
             .ok_or(PreviewProblem::Stale)?;
-        let ports = snapshot.ports.as_ref().map_err(|_| PreviewProblem::Stale)?;
+        // The original scan failure stays in Snapshot for its own notice;
+        // opening a browser additionally requires a fresh successful scan.
+        let ports = snapshot
+            .ports
+            .as_ref()
+            .map_err(|_scan_failure| PreviewProblem::Stale)?;
         let run = snapshot
             .scripts
             .runs

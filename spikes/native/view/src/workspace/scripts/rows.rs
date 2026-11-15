@@ -7,7 +7,7 @@ use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptName};
 use vessel_proto::terminals::{ServiceState, TerminalInfo, TerminalKind, TerminalPlace};
 use vessel_proto::workspace::{ProjectCommand, RelPath};
 
-/// Complete native projection; the node's reviewed ScriptEntryView replaces
+/// Complete native projection; the node's reviewed `ScriptEntryView` replaces
 /// this adapter at Step 0 without spreading wire-field access across drawing.
 #[derive(Debug, Clone, Copy)]
 pub struct Entry<'a> {
