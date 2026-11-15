@@ -239,3 +239,17 @@ Only an unsent ask or protocol preflight remains a no-dispatch refusal; an
 explicit user cancellation keeps its existing stop behavior. This conservative
 difference avoids blind duplication without claiming receipt recovery for the
 legacy path. Pure transition tests cover both classes.
+
+Blank-shell planning reserves the trailing CR within the node's existing
+SendTerminal byte cap. An otherwise valid maximal Prompt must be refused
+before provisioning rather than creating a shell whose initial input would
+then exceed the transport limit. Boundary tests compare the complete encoded
+input length against the same protocol constant.
+
+The workspace renderer now delegates Chat to W6's scoped card with the exact
+DraftKey and owner editability, including attachment/context pills and captured
+paste/drop handlers. Background or attachment-blocked owners make the same
+retained field read-only. Blank/profile terminal targets retain the plain field
+and suppress agent attachment affordances. B2's font/send/fullscreen policy is
+a separate pending producer; no global New field is substituted. The scoped
+card's two temporary unused-item expectations are removed with this real caller.

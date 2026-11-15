@@ -59,13 +59,6 @@ use vessel_app_view::composer::sent::Pictures as SentPictures;
 use vessel_app_view::composer::trays::Trays;
 use vessel_app_view::offers::Offers;
 use vessel_proto::SessionId;
-#[cfg_attr(
-    not(test),
-    expect(
-        unused_imports,
-        reason = "W3 scoped panel renderer adopts this producer next"
-    )
-)]
 pub(crate) use workspace::workspace_card;
 
 /// The composer's own state.
