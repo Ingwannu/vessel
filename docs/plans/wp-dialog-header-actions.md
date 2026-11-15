@@ -32,3 +32,8 @@ actual-opener focus on close and exercise retained caller-context refusal before
 redraw. These new tests are not yet compiled or executed. Source formatting and
 budgets are not a runtime or V1 approval. The producer stays isolated atop the
 reviewed base8 dialog/popover range; then remote narrow, V1, and lead landing.
+The exact4c9 first suite passed formatting and structural checks, then stopped
+at one unused test import and six primitive float comparisons. Gap helpers now
+return typed Pixels and compare literal pixel units; no lint allowance, default
+or product behavior changes. Tests have not executed yet. The next suite uses
+the ordinary lane under the shared-seam build rule.

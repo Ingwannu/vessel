@@ -5,7 +5,7 @@ use crate::{DialogSize, DialogState, Scheme, SchemeChoice, TextField, Tokens, di
 use gpui::prelude::*;
 use gpui::{
     Bounds, Context, Entity, InputEvent as _, Modifiers, MouseButton, MouseDownEvent, MouseUpEvent,
-    Pixels, Render, TestAppContext, VisualTestContext, Window, div, point, px, size,
+    Pixels, Render, TestAppContext, VisualTestContext, Window, div, px, size,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -130,8 +130,8 @@ fn mount(
     (probe, cx)
 }
 
-fn distance(from: Pixels, to: Pixels) -> f32 {
-    f32::from(from).mul_add(-1.0, f32::from(to))
+fn distance(from: Pixels, to: Pixels) -> Pixels {
+    px(f32::from(from).mul_add(-1.0, f32::from(to)))
 }
 
 #[gpui::test]
@@ -144,8 +144,8 @@ fn optional_title_controls_use_paseos_24_16_8_rails_and_keep_legacy_literals(
             let header = cx.debug_bounds("dialog-header").unwrap();
             let title = cx.debug_bounds("dialog-title").unwrap();
             let close = cx.debug_bounds("dialog-close").unwrap();
-            assert_eq!(distance(header.left(), title.left()), 24.0);
-            assert_eq!(distance(close.right(), header.right()), 24.0);
+            assert_eq!(distance(header.left(), title.left()), px(24.0));
+            assert_eq!(distance(close.right(), header.right()), px(24.0));
             assert_eq!(close.size.height, px(if narrow { 44.0 } else { 28.0 }));
             match mode {
                 Mode::Legacy => {
@@ -154,12 +154,15 @@ fn optional_title_controls_use_paseos_24_16_8_rails_and_keep_legacy_literals(
                 }
                 Mode::Actions => {
                     let actions = cx.debug_bounds("dialog-header-actions").unwrap();
-                    assert_eq!(distance(title.right(), actions.left()), 8.0);
-                    assert_eq!(distance(actions.right(), close.left()), 8.0);
-                    assert_eq!(distance(header.top(), actions.top().min(close.top())), 16.0);
+                    assert_eq!(distance(title.right(), actions.left()), px(8.0));
+                    assert_eq!(distance(actions.right(), close.left()), px(8.0));
+                    assert_eq!(
+                        distance(header.top(), actions.top().min(close.top())),
+                        px(16.0)
+                    );
                     assert_eq!(
                         distance(actions.bottom().max(close.bottom()), header.bottom()),
-                        17.0
+                        px(17.0)
                     );
                     assert_eq!(actions.size.height, px(32.0));
                     assert!(title.size.width > px(0.0));
