@@ -45,17 +45,37 @@ pub(crate) fn admit(cx: &mut App) -> bool {
         return true;
     };
     crate::desktop::with_focused_shell(cx, |shell, _window, cx| {
-        let words = shell.words.local_node();
-        shell.notice = Some(
-            match blocked {
-                DocumentReadiness::Ready => return,
-                DocumentReadiness::Dirty => words.documents_dirty(),
-                DocumentReadiness::Pending => words.documents_pending(),
-                DocumentReadiness::Failed => words.documents_failed(),
-            }
-            .to_owned(),
-        );
-        cx.notify();
+        if admit_shell(shell, cx) {
+            report(shell, blocked, cx);
+        }
     });
     false
 }
+
+/// The same owner guards additional-window/macOS close before removal.
+pub(crate) fn admit_shell(shell: &mut Shell, cx: &mut gpui::Context<'_, Shell>) -> bool {
+    let readiness = cx
+        .try_global::<Documents>()
+        .map_or(DocumentReadiness::Ready, |documents| (documents.0)(shell));
+    report(shell, readiness, cx)
+}
+
+fn report(
+    shell: &mut Shell,
+    readiness: DocumentReadiness,
+    cx: &mut gpui::Context<'_, Shell>,
+) -> bool {
+    let words = shell.words.local_node();
+    let message = match readiness {
+        DocumentReadiness::Ready => return true,
+        DocumentReadiness::Dirty => words.documents_dirty(),
+        DocumentReadiness::Pending => words.documents_pending(),
+        DocumentReadiness::Failed => words.documents_failed(),
+    };
+    shell.notice = Some(message.to_owned());
+    cx.notify();
+    false
+}
+
+#[cfg(test)]
+mod tests;

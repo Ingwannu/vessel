@@ -221,3 +221,10 @@ C5 confirms no recovery journal exists. Forced OS/process exit can lose unsaved
 edits; on_app_quit's node/prefs backstop cannot veto it or provide document
 recovery. This limitation remains explicit and is not covered by ordinary quit
 admission or any process-lifecycle test result.
+
+`app::quit::admit_shell(&mut Shell,&mut Context<Shell>)->bool` is the same
+read-only guard/notice adapter for additional-window and macOS window closes.
+The desktop-shell owner must call it before removing that particular window;
+last non-macOS close still uses whole-app request_quit. The guard state test
+covers Dirty/Pending/Failed refusal and Ready admission without preference edits;
+it does not claim C5's buffer mapping or OS hard-exit recovery is implemented.
