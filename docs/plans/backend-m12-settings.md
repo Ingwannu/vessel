@@ -1094,3 +1094,40 @@ actual result, not cancelled or relabelled. The original log remains in
 SHA prefix943ce885e0818a55). The correction is one named trait import;
 product behavior and every assertion remain unchanged. A new exact
 changed-source check/export is owed; no successful repair is claimed.
+
+### Executed same-row correction and affected scenes
+
+Exact385dc0950763cbb53450a3438e6d73d544a9b049 passed the changed-source
+named checks in settings2-20261115T161139Z-385dc095:
+fonts, native quality, whole all-target Clippy, normal app build and native
+tests each returned zero; tests were1421/0/2. The actual new
+editing_after_a_failed_answer_clears_the_displayed_error_and_retries_the_exact_draft
+case is explicitly ok. Original five logs/digests and supported app export
+are retained in `/tmp/work/m12-settings4/rg-selection-repair2`.
+This is a named changed-source receipt, not a relabelled six-step whole;
+the original0a full gate and the5344 compile failure remain unchanged.
+The exported normal app SHA256 is
+9727f41b907e22ef3186ee4cab7bc88683e8b6524b24822977acec8045f31a1c.
+
+Both affected real flows completed on that exact binary:1280x900 light EN
+and390x844 dark KO. In each, the actual failed-save sentence is visible
+before editing and absent immediately after typing; held-draft-retry is
+retained and committed exactly. Opening selection, blank refusal,
+pending typing/Backspace/Escape refusal, failure preservation and retry
+also retain their recorded outcomes. Fourteen new original PNGs live in
+`/tmp/work/m12-settings4/shots/selection-repair`; their SHA/dimensions,
+the eight personally opened pending/failure/edit/saved originals and
+limits are in selection-repair-capture-manifest.json. Old56 original
+hashes were rechecked and preserved; they remain evidence of the old
+error-clearing defect. No full matrix was rerun or reclassified.
+
+The thirteen Kit field files are byte-identical0a to385. Actual App
+Checking/Compiling appears in all three changed-source compiler/test logs.
+Capture export, PID/exe/inode/hash and UID1000 checks were completed before
+launch; its shared-root source remains explicitly different. The driver
+restored original book bytes,0600 and parent0700. Its app had stopped;
+only the verified owned node and display were then stopped after their
+PID/executable/UID/start-time checks. No production/service permissions
+changed. All existing physicalIME/OS/GPU/accessibility/latest-union and
+inherited Saving/Meta/footer/sibling-policy limits remain separate.
+Same V4 row239 review closure is requested; no approval is inferred here.
