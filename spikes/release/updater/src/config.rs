@@ -196,7 +196,11 @@ mod tests {
         let slot = unwritten_slot();
         assert_eq!(slot.len(), FEED_SLOT_LEN);
         assert!(slot.starts_with(FEED_SLOT_HEADER));
-        assert!(slot[FEED_SLOT_HEADER.len()..].iter().all(|&byte| byte == FEED_SLOT_FILL));
+        assert!(
+            slot[FEED_SLOT_HEADER.len()..]
+                .iter()
+                .all(|&byte| byte == FEED_SLOT_FILL)
+        );
         assert!(!slot.contains(&0));
         assert_eq!(FEED_SLOT, slot);
     }
@@ -213,7 +217,10 @@ mod tests {
         let slot = written(address);
         assert_eq!(slot_text(&slot).unwrap(), Some(address));
         let longest = "h".repeat(FEED_SLOT_LEN - 1);
-        assert_eq!(slot_text(&written(&longest)).unwrap(), Some(longest.as_str()));
+        assert_eq!(
+            slot_text(&written(&longest)).unwrap(),
+            Some(longest.as_str())
+        );
     }
 
     #[test]
@@ -223,7 +230,10 @@ mod tests {
         twice[100] = b'x';
         assert!(matches!(slot_text(&twice), Err(SettingsError::FeedSlot)));
         // No text at all.
-        assert!(matches!(slot_text(&[0; FEED_SLOT_LEN]), Err(SettingsError::FeedSlot)));
+        assert!(matches!(
+            slot_text(&[0; FEED_SLOT_LEN]),
+            Err(SettingsError::FeedSlot)
+        ));
         // Not UTF-8.
         let mut bytes = written("https://a.example.test/");
         bytes[3] = 0xff;
