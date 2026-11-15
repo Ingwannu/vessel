@@ -115,8 +115,7 @@ impl CallbackFleet {
             self._member_root.path()
         };
         let token = DataDir::new(root.join("data")).read_token().unwrap();
-        let credential =
-            vessel_client::local::LocalCredential::Token(token.expose().parse().unwrap());
+        let credential = vessel_client::LocalCredential::Token(token.expose().parse().unwrap());
         vessel_client::NodeClient::connect_local(
             node.local_endpoint(),
             &credential,

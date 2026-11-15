@@ -1048,3 +1048,11 @@ keyed by the negotiated NodeId; no installed node exposes it. The remaining
 fixture lives beside export cleanup and uses existing guards, Origins,
 CloseTransfer and actual transfer-store ownership. The raw fixture is a test
 edge, not an authenticated production peer or an assigned fleet proof.
+
+The wiring regression now drives both actual refusal arms through a raw peer,
+checking exact Unsupported text and a separate retained cleanup task. It holds
+CloseTransfer, aborts the caller, uses a normal request as a cancellation-order
+barrier, releases close and verifies exact transfer settlement and original
+Origin/scopes. The real callback fixture remains separate transport evidence.
+The shared cache helper is cfg(test)-only and will be called out explicitly at
+integration. New regression execution is still owed.

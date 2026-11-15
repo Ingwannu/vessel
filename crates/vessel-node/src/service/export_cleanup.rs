@@ -26,3 +26,8 @@ impl NodeService {
 
 #[cfg(test)]
 mod runtime_tests;
+
+#[cfg(test)]
+mod envelope_tests;
+#[cfg(test)]
+mod fixture_peer;
