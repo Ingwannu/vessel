@@ -123,6 +123,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::LspDiagnostics
         | Method::ListModels
         | Method::HarnessOptions
+        | Method::GetDraftCommands
         | Method::SessionOptions
         | Method::SetSessionOption
         | Method::RenameSession

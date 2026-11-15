@@ -32,3 +32,12 @@ Old/unassigned metadata projection covers direct conversations, events and neste
 - No TypeScript refresh, whole root/native gate, capture or final V3/V4 review has passed for this package.
 
 Native custom prompt files, filesystem fallback and compact/goal execution remain explicit capability gaps. ClaudeStream/OpenCodeHttp native drivers remain unavailable. W22 owns model/config/provider coverage; no duplicate registry or guessed provider behavior is introduced here.
+
+Gate44 merge67c kept the shared optional AgentEvent protocol projection and B2
+command metadata masking; exact older d9 strict5crate and cache4tests remain prior
+source evidence. TS regeneration67c compiled the root dependencies but failed at
+vessel-web's exhaustive forwardability match, before generation (wire.patch empty).
+The draft command query is now explicitly forwardable beside HarnessOptions:
+node Operate/workspace validation and NodeClient's pending-version gate remain
+authoritative. The bridge grants no scopes or path authority. Its existing full
+refused-method fixture covers the new decision. Corrected TS generation is owed.
