@@ -870,3 +870,10 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Settings Overview keeps its page and book-edit commands in
+`app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
+rename/removal dialogs and delegates actions to that parent. The browser
+demo's fixed agent and ACP-option catalog is `link/src/demo/catalog.rs`;
+`demo.rs` retains session state and event generation. These boundaries do
+not add another edit rule or another node implementation.

@@ -23,6 +23,7 @@
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::settings::{self, switch};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
@@ -230,8 +231,8 @@ fn title(shell: &Shell, tokens: &Tokens, compact: bool) -> AnyElement {
     let state = &shell.areas.settings.host_agents;
     let tip = div()
         .id("settings-idle-release-info")
-        .p(px(4.0))
-        .ml(px(-4.0))
+        .p(px(spacing::S1))
+        .ml(px(-spacing::S1))
         .child(glyph(Glyph::Info, 16.0, tokens.neutral.foreground_muted));
     let tip = state
         .tips
@@ -240,7 +241,7 @@ fn title(shell: &Shell, tokens: &Tokens, compact: bool) -> AnyElement {
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .child(
             div()
                 .type_(Type::Body)
@@ -264,7 +265,7 @@ fn refusal(problem: Problem, shell: &Shell) -> &'static str {
 fn unavailable(text: &'static str, tokens: &Tokens) -> gpui::Div {
     settings::card(tokens).child(
         div()
-            .p(px(16.0))
+            .p(px(spacing::S4))
             .flex()
             .justify_center()
             .type_(Type::Body)

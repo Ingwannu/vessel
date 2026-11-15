@@ -559,6 +559,13 @@ new set of routes by pairing it again through the CLI.
 
 - Saved baseline: Connections and the shared outline-with-glyph Remove
   control are committed; their inherited captures have not been re-reviewed.
-- Next: apply the two module extractions and run the complete native gate
-  on the committed tree. After that, consume the shared rename control and
-  verify its actual input bounds. No select-all change is included.
+- Done: extracted Overview dialog drawing and the browser demo catalog;
+  the demo allowance shrank from 591 to 528 and the link entry records 1082.
+- Next: run the complete native gate on this committed tree. After that,
+  consume the shared rename control and verify its actual input bounds.
+  No select-all change is included.
+
+The size check previously stopped before the token check. Its next check
+exposed seven existing `px` literals in Overview, host Agents and Diagnostics.
+They now use the existing equal-valued spacing tokens, including the
+negative info-tip inset; no measurement or behaviour changes.

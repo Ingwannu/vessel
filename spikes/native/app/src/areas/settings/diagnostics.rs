@@ -15,6 +15,7 @@
 //!   have nothing to show here, as nothing is waited for.
 
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, ClipboardItem, Context, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -136,7 +137,7 @@ pub(crate) fn dialogs(
     // The report as Paseo's sheet shows it: one block of code text that
     // wraps, on the code surface, selectable by copying the whole.
     let body = div()
-        .p(px(12.0))
+        .p(px(spacing::S3))
         .rounded(px(vessel_app_kit::theme::radius::R2))
         .bg(tokens.neutral.surface1)
         .border_1()
