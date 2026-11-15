@@ -1,6 +1,6 @@
 //! A historical session read is only a candidate for the shared live opener.
 //! It never allocates a resident, follows a session or resolves an alias again.
-use super::*;
+use super::{ConnectionContext, Failure, Reader, RunNumber, SessionLink, Ticket, Visit};
 use vessel_proto::{GetSession, SessionInfo};
 
 /// One original run/session lookup, bound to the same physical admission/visit.

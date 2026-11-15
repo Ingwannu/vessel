@@ -15,6 +15,7 @@ impl Area {
         let clock = self.data.clock.as_ref().unwrap_or(&fallback);
         let rows = presentation::rows(&self.data.page, fleet, chrono::Utc::now(), clock, catalog);
         let body = self.data.page.body();
+        let can_create = self.data.page.can_create();
         let host_errors: Vec<SharedString> = self
             .data
             .page
@@ -57,6 +58,7 @@ impl Area {
         });
         let editor = vessel_app_view::schedules::editor::presentation::prepare(
             &self.data.editor,
+            fleet,
             clock,
             catalog,
         )
@@ -64,7 +66,8 @@ impl Area {
             label: error.label(catalog).into(),
             variant: vessel_app_view::alert::Variant::Info,
         });
-        let changed = self.data.editor_cache != editor
+        let changed = self.data.can_create != can_create
+            || self.data.editor_cache != editor
             || self.data.history_cache != history
             || self.data.rows != rows
             || self.data.body != body
@@ -75,6 +78,7 @@ impl Area {
         self.data.history_cache = history;
         self.data.rows = rows;
         self.data.body = body;
+        self.data.can_create = can_create;
         self.data.host_errors = host_errors;
         self.data.blocking = blocking;
         self.data.local = local;

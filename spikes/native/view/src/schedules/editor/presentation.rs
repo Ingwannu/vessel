@@ -38,6 +38,8 @@ pub struct Form {
     pub submit: Arc<str>,
     /// Empty for cadence-only heartbeat edits; source name/prompt/max order.
     pub text: Vec<Text>,
+    /// Immutable existing-chat target, resolved only on its admitted machine.
+    pub target: Option<Arc<str>>,
     /// Current rule description uses the accepted legacy cadence table once.
     pub cadence: Option<Arc<str>>,
     /// Cached grammar failure, not a raw parser diagnostic.
@@ -74,6 +76,7 @@ pub enum OperationProblem {
 /// Preserve calendar/catalog failures rather than silently replacing a zone.
 pub fn prepare(
     model: &Model,
+    fleet: &crate::Fleet,
     clock: &Clock,
     catalog: &Translator,
 ) -> Result<Option<Form>, ClockError> {
@@ -122,6 +125,43 @@ pub fn prepare(
         })
         .collect()
     });
+    let target = if draft.fields().is_none() {
+        draft
+            .opened()
+            .map(|opened| {
+                let session = match opened.definition.target {
+                    vessel_proto::automation::ScheduleTarget::Session { session } => Some(session),
+                    vessel_proto::automation::ScheduleTarget::NewSession { .. }
+                    | vessel_proto::automation::ScheduleTarget::Unknown => None,
+                };
+                let card = model
+                    .connection()
+                    .and_then(|connection| {
+                        fleet.machines.iter().find(|machine| {
+                            machine.connection_context().as_ref() == Some(connection)
+                        })
+                    })
+                    .and_then(|machine| {
+                        machine
+                            .sessions
+                            .iter()
+                            .find(|card| Some(card.session) == session)
+                    });
+                let target =
+                    crate::schedules::target::resolve(&opened.definition.target, card, None, None);
+                match crate::schedules::presentation::target_line(&target.line, catalog) {
+                    crate::schedules::presentation::TargetLine::Text(label)
+                    | crate::schedules::presentation::TargetLine::Path(label) => Ok(label),
+                    crate::schedules::presentation::TargetLine::Project { name, dir } => words
+                        .form_target_project(&dir, &name)
+                        .map(Into::into)
+                        .map_err(ClockError::from),
+                }
+            })
+            .transpose()?
+    } else {
+        None
+    };
     let (cadence, cadence_error) = match draft.cadence.checked() {
         Ok(value) => (Some(lang.schedule_cadence(value).into()), None),
         Err(error) => (None, Some(lang.cadence_error(error).into())),
@@ -171,6 +211,7 @@ pub fn prepare(
         }
         .into(),
         text,
+        target,
         cadence,
         cadence_error,
         next_runs,

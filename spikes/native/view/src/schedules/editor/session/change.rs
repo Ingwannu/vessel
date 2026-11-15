@@ -1,5 +1,5 @@
 //! Input transitions are checked against the original form visit before parse.
-use super::*;
+use super::{Draft, Model, State, Visit, io};
 use crate::schedules::editor::{cadence, definition::NewTarget};
 use vessel_proto::workspace::SessionPlace;
 use vessel_proto::{HarnessRef, SessionMode, SessionSpec};

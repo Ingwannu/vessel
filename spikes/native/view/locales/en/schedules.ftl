@@ -305,7 +305,7 @@ schedules-history-missed = Missed { NUMBER($count, useGrouping: "false") } sched
 # Forward-compatible reason in run history.
 schedules-history-reason-unknown = Update the app to read this run’s reason.
 
-# Historical InvalidRequest; no wire diagnostic.
+# Historical `InvalidRequest`; no wire diagnostic.
 schedules-history-run-invalid = The machine rejected the run’s input.
 
 # Historical Unauthorized; no wire diagnostic.
@@ -314,10 +314,10 @@ schedules-history-run-unauthorized = The credential used for this run was not ac
 # Historical Forbidden, not a claim about current viewer scopes.
 schedules-history-run-forbidden = The identity that created this schedule could not perform the run.
 
-# Historical ProtocolMismatch.
+# Historical `ProtocolMismatch`.
 schedules-history-run-protocol = The run used an incompatible protocol.
 
-# Historical NotFound, not guessed target deletion now.
+# Historical `NotFound`, not guessed target deletion now.
 schedules-history-run-not-found = A resource needed by this run could not be found.
 
 # Historical Conflict.
@@ -326,10 +326,10 @@ schedules-history-run-conflict = Another operation prevented this run from start
 # Historical Unsupported.
 schedules-history-run-unsupported = The machine did not support an operation needed by this run.
 
-# Historical HarnessNotInstalled.
+# Historical `HarnessNotInstalled`.
 schedules-history-run-agent-missing = The required agent was not installed.
 
-# Historical SpawnFailed.
+# Historical `SpawnFailed`.
 schedules-history-run-spawn = The agent could not start.
 
 # Historical Unavailable.
@@ -426,3 +426,15 @@ schedules-form-interval = Interval
 
 # One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
 schedules-form-next-at = { DATETIME($at) }
+
+# New-rule bootstrap when the viewer cannot report its own zone; never silently infer UTC.
+schedules-form-viewer-unknown = Your time zone is unavailable. Choose a time zone for this rule.
+
+# A rule zone has been explicitly selected but the display viewer zone is still unknown.
+schedules-form-viewer-display-utc = Your time zone is unavailable. Preview times are shown in UTC.
+
+# Read-only existing-session target, schedule-form-sheet.tsx909.
+schedules-form-target-label = Target
+
+# Project identity plus its node-authored directory, if a form target uses both; $dir/$project are display text, never local path joins.
+schedules-form-target-project = { $project } · { $dir }

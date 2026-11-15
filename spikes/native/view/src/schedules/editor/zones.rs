@@ -1,5 +1,5 @@
 //! Searchable rule-zone choices from the same pinned bundled database as the
-//! node. Explicit bundled() avoids system-database filesystem discovery in View.
+//! node. Explicit `bundled()` avoids system-database filesystem discovery in View.
 use vessel_proto::automation::{InvalidAutomationText, TimeZoneName};
 
 /// A bundled choice list cannot silently become an empty successful picker.

@@ -1,6 +1,6 @@
 //! Per-slot response correlation and canonical-preview save preparation.
 use super::super::definition::{Issue, Save};
-use super::*;
+use super::{Draft, Failure, Model, ScheduleInfo, State, Visit, io};
 use chrono::{DateTime, Utc};
 use vessel_proto::HarnessOptions;
 use vessel_proto::automation::{PreviewCount, PreviewSchedule, SchedulePreview};
@@ -14,7 +14,9 @@ pub enum Received {
     Changed,
     /// Authoritative node result; the app ACKs actual UI dismissal for this visit.
     Saved {
+        /// Actual form visit whose authoritative save settled.
         visit: Visit,
+        /// Unmodified node receipt; never a synthesized local definition.
         info: Box<ScheduleInfo>,
     },
 }

@@ -23,6 +23,7 @@ pub(super) struct Data {
     pub(super) blocking: Vec<Notice>,
     pub(super) local: Option<Notice>,
     pub(super) body: Body,
+    pub(super) can_create: bool,
     pub(super) clock: Result<Clock, ViewerClockError>,
 }
 impl Default for Data {
@@ -38,6 +39,7 @@ impl Default for Data {
             blocking: Vec::new(),
             local: None,
             body: Body::Loading,
+            can_create: false,
             clock: Err(ViewerClockError::Unavailable),
         }
     }

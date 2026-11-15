@@ -171,7 +171,7 @@ fn target_for<'a>(row: &'a Row<'_>, fleet: &'a Fleet) -> target::Target<'a> {
         row.worktrees.as_deref().ok(),
     )
 }
-fn target_line(line: &Line<'_>, catalog: &Translator) -> TargetLine {
+pub(super) fn target_line(line: &Line<'_>, catalog: &Translator) -> TargetLine {
     let words = catalog.schedules();
     let text = match line {
         Line::Chat(title) => (*title).to_owned(),

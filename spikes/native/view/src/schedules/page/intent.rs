@@ -3,7 +3,7 @@
 //! [Decision Log]
 //! - Purpose: delayed menu/confirmation callbacks must not target a replacement.
 //! - Existing seam: the canonical `ConnectionContext` and node-authored revision.
-//! - Choice: capture both with the composite row key, validate before Page::act.
+//! - Choice: capture both with the composite row key, validate before `Page::act`.
 //! - Alternative: look up only the key at activation and silently use new facts.
 //! - Why/cost: reconnect and edits retire old intent without adding a registry;
 //!   a person must reopen the action after that change.

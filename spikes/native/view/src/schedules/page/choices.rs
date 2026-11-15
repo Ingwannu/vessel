@@ -13,6 +13,19 @@ pub struct MachineChoice {
     pub checked: bool,
 }
 impl Page {
+    /// New definitions require an admitted host and honest Operate evidence.
+    /// Unknown self-scopes keep the action; a row-specific refusal is not a
+    /// fabricated device-wide scope denial for another resource.
+    #[must_use]
+    pub fn can_create(&self) -> bool {
+        self.caches
+            .values()
+            .filter_map(|cache| cache.connection.as_ref())
+            .any(|connection| {
+                self.authority_for(connection, None)
+                    .is_some_and(|authority| authority.allows_actions())
+            })
+    }
     /// Label of the selected machine filter.
     #[must_use]
     pub fn machine_label<'a>(&'a self, catalog: &'a Translator) -> &'a str {
@@ -44,6 +57,34 @@ impl Page {
             .collect()
     }
 }
+
+impl Page {
+    /// Grant evidence for this exact admission. New forms reuse the host's
+    /// self-report; edits also keep any actual refusal recorded for that row.
+    #[must_use]
+    pub fn authority_for(
+        &self,
+        connection: &crate::connection::ConnectionContext,
+        schedule: Option<vessel_proto::ScheduleId>,
+    ) -> Option<super::super::authority::Authority> {
+        let cache = self.caches.get(connection.machine().as_str())?;
+        if cache.connection.as_ref() != Some(connection) {
+            return None;
+        }
+        if let Some(row) = schedule.and_then(|id| cache.rows.get(&id)) {
+            return Some(row.authority.clone());
+        }
+        Some(
+            cache
+                .scopes
+                .as_ref()
+                .map_or(super::super::authority::Authority::Unknown, |scopes| {
+                    super::super::authority::Authority::Scopes(scopes.clone())
+                }),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::tests::key;
@@ -78,32 +119,5 @@ mod tests {
         page.machine = MachineFilter::One(key("Laptop"));
         assert_eq!(page.machine_label(ko()), "Laptop");
         assert!(page.machine_choices(en(), "not-here").is_empty());
-    }
-}
-
-impl Page {
-    /// Grant evidence for this exact admission. New forms reuse the host's
-    /// self-report; edits also keep any actual refusal recorded for that row.
-    #[must_use]
-    pub fn authority_for(
-        &self,
-        connection: &crate::connection::ConnectionContext,
-        schedule: Option<vessel_proto::ScheduleId>,
-    ) -> Option<super::super::authority::Authority> {
-        let cache = self.caches.get(connection.machine().as_str())?;
-        if cache.connection.as_ref() != Some(connection) {
-            return None;
-        }
-        if let Some(row) = schedule.and_then(|id| cache.rows.get(&id)) {
-            return Some(row.authority.clone());
-        }
-        Some(
-            cache
-                .scopes
-                .as_ref()
-                .map_or(super::super::authority::Authority::Unknown, |scopes| {
-                    super::super::authority::Authority::Scopes(scopes.clone())
-                }),
-        )
     }
 }

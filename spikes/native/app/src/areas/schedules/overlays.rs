@@ -97,6 +97,9 @@ pub(super) fn menu(
             }
             if let Some(action) = actions.get(index) {
                 match *action {
+                    Choice::Write(Action::Edit) => {
+                        super::editor::open_edit(shell, &selected, window, cx)
+                    }
                     Choice::Write(Action::Delete) => {
                         shell.schedule_delete_prompt(&selected, window, cx)
                     }

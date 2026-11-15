@@ -1031,3 +1031,61 @@ cover both themes/layouts; their execution and real heartbeat target field
 remain part of final F1 proof, not an extra whole control gate or an existing
 isolated-field pass. G3 still owns shared field files until its SearchField
 handoff; no such file is touched here.
+
+
+### Editor UI source checkpoint — execution and parity still unverified
+
+New/Edit now delegate to the one pure form owner, shared Dialog/Field/select/
+combobox/button/textarea controls and the original admitted Link hub. Reference
+basis is pinned schedule-form-sheet.tsx409–537 (footer and field order),706–813
+(target/model/options/archive),889–919 (immutable heartbeat target),1040–1086
+(prompt minimum96/footer geometry), cadence-editor.tsx (presets/raw rule), and
+schedules-screen.tsx268–320 (outline+Plus create actions in filter/empty states,
+not the header). Edits preserve the opened full definition/revision. Input
+engines are fresh per actual form/host visit and per explicit rule reset; the
+static callbacks compare their actual FieldId with the retained current engine
+before consulting that original visit. Pending saves freeze those real engines
+before dispatch and reject close/duplicate save; actual matching Saved closes
+the pure owner, then the next UI frame ACKs the same mounted dialog dismissal.
+Retained close, bootstrap-zone and option callbacks check original identities
+before any focus/state mutation. One cancellable300ms preview task coalesces
+input, with a private Rc/Weak admission and the node-only next-three result.
+
+A new rule uses the viewer's known zone; if unknown, an explicit zone selection
+precedes constructing it. This does not turn the selected rule zone into a
+claimed viewer zone: preview fallback remains explicitly UTC. The searchable
+zone list is built once from the bundled typed database, never a text input.
+The accepted legacy interval path retains its number/unit/phase and seconds
+choice policy; presets precede that path and raw custom selection is last.
+Known scope insufficiency disables creation and edits, unknown self-scopes do
+not invent denial, and a refused read is not a fabricated Operate denial.
+No installable fixture/route switch or fake RPC node is added.
+
+This checkpoint has NOT compiled or run. Headless source cases, current-window
+binding/late callback/pending/ReturnFocus tests, exact node integration and the
+full F1 package gate/captures remain owed. Native focused-field F5 is still a
+historical HOLD. Raw cron still uses Body until G3 hands off checked SearchField
+and G2 adds the coordinator-assigned next Code profile on that SAME engine; this
+is a remaining source gap, not a claimed parity exception. Session metadata
+remains an unopened candidate until W12's checked real live opener/delivery
+capability. Per-run worktree isolation remains hidden pending the real W11/W3/
+W21 runtime seam; it is in scope, not a stated difference.
+
+Exact c79d06c2 run schedules-narrow-20261115T132021Z-c79d06c2 ended fonts0 and
+View Clippy101/no tests. Its complete batch identified Result error docs and
+redundant must_use, three production wildcard imports, a unit semicolon, code
+identifiers in Rust/Fluent comments, two missing receipt-field docs, by-reference
+private read/test helpers, a misplaced test module and an unused test pop. These
+are repaired without an allow/expect or weakened assertion. The already queued
+ordinary715 checkpoint predates this batch and UI source; it is preserved and
+cannot be called later-source proof. No additional run is started at this point.
+
+### User docs are a known gap
+
+Coordinator b9690786 explicitly defers See docs: Vessel user docs do not exist
+yet. A single typed docs-links schedules destination is to be None and its
+Some branch uses G3's checked ExternalLink; it must never point to Paseo's docs
+or a fabricated/dead Vessel URL. TRACKER's own F1 screen row records this gap.
+This is a missing product dependency, not a parity exception. Exact selected
+ExternalLink source is already in the announced base8, so reuse that canonical
+line at the next clean merge rather than importing a moving G3 branch.

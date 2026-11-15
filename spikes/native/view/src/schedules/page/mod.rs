@@ -10,7 +10,7 @@
 //!   holds every unresolved ticket, including obsolete reads, until its reply
 //!   arrives; refresh/reconnect cannot bypass the shared request bound.
 //! - Cost: refreshes happen only while the screen is visited. New chats and
-//!   histories are later slices; their unwired menu items are not returned.
+//!   history and editor actions retain their own typed read/form owners.
 
 mod choices;
 mod connection;
@@ -226,14 +226,14 @@ impl Page {
             .collect();
         wanted
             .into_iter()
-            .filter_map(|machine| self.read(machine))
+            .filter_map(|machine| self.read(&machine))
             .collect()
     }
 
-    fn read(&mut self, machine: MachineKey) -> Option<Request> {
-        let context = self.caches.get(&machine)?.connection.clone()?;
+    fn read(&mut self, machine: &MachineKey) -> Option<Request> {
+        let context = self.caches.get(machine)?.connection.clone()?;
         let ticket = self.issue()?;
-        self.caches.get_mut(&machine)?.read.begin(ticket);
+        self.caches.get_mut(machine)?.read.begin(ticket);
         Some(self.track(Request::on(context, ticket, Ask::List)))
     }
 

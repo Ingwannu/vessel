@@ -36,7 +36,12 @@ fn status_color(variant: vessel_app_view::badge::Variant, tokens: &Tokens) -> ki
         vessel_app_view::badge::Variant::Muted => tokens.neutral.foreground_muted,
     }
 }
-pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+pub(super) fn toolbar(
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let area = &shell.areas.schedules;
     let page = &area.data.page;
     let mut controls = div().flex().flex_wrap().items_center().gap(px(spacing::S3));
@@ -87,7 +92,19 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
             })),
         );
     }
-    controls.child(status)
+    div()
+        .flex()
+        .items_center()
+        .justify_between()
+        .gap(px(spacing::S3))
+        .child(controls.child(status).flex_shrink(1.0))
+        .child(super::draw::new_action(
+            shell,
+            "schedules-new",
+            tokens,
+            touch,
+            cx,
+        ))
 }
 pub(super) fn popup(
     shell: &Shell,

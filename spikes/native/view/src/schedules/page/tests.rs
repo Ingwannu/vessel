@@ -123,7 +123,7 @@ fn authoritative_mutation_invalidates_old_reads() {
     ));
     assert_eq!(
         page.row(&row).unwrap().actions(),
-        [Action::Resume, Action::RunNow, Action::Delete]
+        [Action::Edit, Action::Resume, Action::RunNow, Action::Delete]
     );
     let delete = page.act(&row, Action::Delete).unwrap();
     page.written(&delete, Ok(WriteValue::Deleted));
@@ -256,6 +256,10 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
         row.menu_entries(),
         [
             MenuEntry {
+                action: Action::Edit,
+                state: EntryState::Disabled
+            },
+            MenuEntry {
                 action: Action::Pause,
                 state: EntryState::Pending
             },
@@ -274,6 +278,10 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
     assert_eq!(
         page.row(&key).unwrap().menu_entries(),
         [
+            MenuEntry {
+                action: Action::Edit,
+                state: EntryState::Enabled
+            },
             MenuEntry {
                 action: Action::Resume,
                 state: EntryState::Enabled

@@ -133,6 +133,17 @@ impl std::error::Error for Issue<'_> {
     }
 }
 impl Issue<'_> {
+    /// One shared Alert meaning for a definition that cannot be opened/built.
+    #[must_use]
+    pub fn notice(
+        &self,
+        catalog: &crate::localization::Translator,
+    ) -> crate::schedules::presentation::Notice {
+        crate::schedules::presentation::Notice {
+            label: self.label(catalog).into(),
+            variant: crate::alert::Variant::Error,
+        }
+    }
     /// Use the accepted cadence/edit table and new form catalog once each.
     #[must_use]
     pub fn label(&self, catalog: &crate::localization::Translator) -> String {

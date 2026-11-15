@@ -305,7 +305,7 @@ schedules-history-missed = 머신에 연결할 수 없는 동안 예약된 실�
 # Forward-compatible reason in run history.
 schedules-history-reason-unknown = 이 실행의 사유를 보려면 앱을 업데이트하세요.
 
-# Historical InvalidRequest; no wire diagnostic.
+# Historical `InvalidRequest`; no wire diagnostic.
 schedules-history-run-invalid = 머신에서 이 실행의 입력을 거절했습니다.
 
 # Historical Unauthorized; no wire diagnostic.
@@ -314,10 +314,10 @@ schedules-history-run-unauthorized = 이 실행에 사용한 인증 정보를 �
 # Historical Forbidden, not a claim about current viewer scopes.
 schedules-history-run-forbidden = 예약을 만든 주체에게 이 실행을 수행할 권한이 없었습니다.
 
-# Historical ProtocolMismatch.
+# Historical `ProtocolMismatch`.
 schedules-history-run-protocol = 이 실행에서 호환되지 않는 통신 규약을 사용했습니다.
 
-# Historical NotFound, not guessed target deletion now.
+# Historical `NotFound`, not guessed target deletion now.
 schedules-history-run-not-found = 이 실행에 필요한 리소스를 찾지 못했습니다.
 
 # Historical Conflict.
@@ -326,10 +326,10 @@ schedules-history-run-conflict = 다른 작업 때문에 이 실행을 시작하
 # Historical Unsupported.
 schedules-history-run-unsupported = 머신에서 이 실행에 필요한 작업을 지원하지 않았습니다.
 
-# Historical HarnessNotInstalled.
+# Historical `HarnessNotInstalled`.
 schedules-history-run-agent-missing = 필요한 에이전트가 설치되어 있지 않았습니다.
 
-# Historical SpawnFailed.
+# Historical `SpawnFailed`.
 schedules-history-run-spawn = 에이전트를 시작하지 못했습니다.
 
 # Historical Unavailable.
@@ -426,3 +426,15 @@ schedules-form-interval = 시간 간격
 
 # One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
 schedules-form-next-at = { DATETIME($at) }
+
+# New-rule bootstrap when the viewer cannot report its own zone; never silently infer UTC.
+schedules-form-viewer-unknown = 현재 시간대를 확인할 수 없습니다. 이 규칙에 사용할 시간대를 선택하세요.
+
+# A rule zone has been explicitly selected but the display viewer zone is still unknown.
+schedules-form-viewer-display-utc = 현재 시간대를 확인할 수 없어 미리보기 시각을 UTC로 표시합니다.
+
+# Read-only existing-session target, schedule-form-sheet.tsx909.
+schedules-form-target-label = 대상
+
+# Project identity plus its node-authored directory, if a form target uses both; $dir/$project are display text, never local path joins.
+schedules-form-target-project = { $project } · { $dir }

@@ -318,7 +318,7 @@ impl Model {
             Authority::Unknown => {}
             Authority::Scopes(scopes) => active.authority.reported(Some(scopes)),
             Authority::OperationForbidden => {
-                active.authority.refused(vessel_proto::ErrorCode::Forbidden)
+                active.authority.refused(vessel_proto::ErrorCode::Forbidden);
             }
         }
         active.authority != before

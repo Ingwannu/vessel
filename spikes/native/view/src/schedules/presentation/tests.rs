@@ -57,6 +57,7 @@ fn exact_target_metadata_and_menu_are_prepared_for_each_language() {
             .map(|entry| entry.label.as_ref())
             .collect::<Vec<_>>(),
         [
+            "Edit recurring prompt",
             "Pause recurring prompt",
             "Run now",
             "Delete recurring prompt"
@@ -65,7 +66,7 @@ fn exact_target_metadata_and_menu_are_prepared_for_each_language() {
     assert_eq!(english, rows(&page, &Fleet::default(), now, &clock, en));
 }
 #[test]
-fn pending_identity_and_forbidden_have_one_signal_and_no_edit_item() {
+fn pending_identity_and_forbidden_have_one_signal_and_disable_edit() {
     let mut page = setup();
     let en = Translator::get(ENGLISH).unwrap();
     let now = DateTime::UNIX_EPOCH;
@@ -73,8 +74,10 @@ fn pending_identity_and_forbidden_have_one_signal_and_no_edit_item() {
     let request = page.act(&row, Action::Pause).unwrap();
     assert!(matches!(request.ask, Ask::Pause(_)));
     let prepared = rows(&page, &Fleet::default(), now, &Clock::unknown(), en);
+    assert_eq!(prepared[0].menu[0].action, Action::Edit);
+    assert_eq!(prepared[0].menu[0].state, EntryState::Disabled);
     assert_eq!(
-        prepared[0].menu[0],
+        prepared[0].menu[1],
         MenuEntry {
             action: Action::Pause,
             state: EntryState::Pending,

@@ -34,17 +34,17 @@ fn response(request: &Request) -> SchedulePreview {
         .to_vec(),
     }
 }
-fn accepts(request: Request, value: SchedulePreview) -> State {
+fn accepts(request: &Request, value: SchedulePreview) -> State {
     let mut state = State::default();
     state.begin(request.clone());
-    assert!(state.settle(&request, Ok(value)));
+    assert!(state.settle(request, Ok(value)));
     state
 }
 #[test]
 fn only_matching_complete_node_projection_supplies_the_anchor_for_saving() {
     let request = request();
     let value = response(&request);
-    let state = accepts(request.clone(), value.clone());
+    let state = accepts(&request, value.clone());
     assert_eq!(state.times(), value.runs);
     assert_eq!(
         state.canonical_for(request.connection(), &request.input.cadence),
@@ -75,7 +75,7 @@ fn malformed_partial_unordered_or_different_cadence_never_shows_partial_times() 
     wrong.after = at("2026-11-15T00:00:01Z");
     cases.push(("different-after", wrong));
     let mut wrong = value.clone();
-    wrong.runs.pop();
+    let _removed = wrong.runs.pop();
     cases.push(("partial", wrong));
     let mut wrong = value.clone();
     wrong.runs.push(at("2026-11-15T00:04:00Z"));
@@ -102,7 +102,7 @@ fn malformed_partial_unordered_or_different_cadence_never_shows_partial_times() 
     wrong.cadence = crate::schedules::cadence::cron("* * * * *", "UTC".parse().unwrap()).unwrap();
     cases.push(("different-kind", wrong));
     for (id, wrong) in cases {
-        let state = accepts(request.clone(), wrong);
+        let state = accepts(&request, wrong);
         assert!(state.times().is_empty(), "{id}");
         assert!(matches!(state.problem(), Some(Problem::Mismatched)), "{id}");
         assert!(
@@ -120,10 +120,10 @@ fn typed_cron_expression_and_zone_must_both_match() {
         crate::schedules::cadence::cron("* * * * *", "Asia/Seoul".parse().unwrap()).unwrap();
     let mut value = response(&request);
     value.cadence = request.input.cadence.clone();
-    assert!(!accepts(request.clone(), value.clone()).times().is_empty());
+    assert!(!accepts(&request, value.clone()).times().is_empty());
     for (expression, zone) in [("* * * * *", "UTC"), ("0 * * * *", "Asia/Seoul")] {
         value.cadence = crate::schedules::cadence::cron(expression, zone.parse().unwrap()).unwrap();
-        assert!(accepts(request.clone(), value.clone()).times().is_empty());
+        assert!(accepts(&request, value.clone()).times().is_empty());
     }
 }
 #[test]

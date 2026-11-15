@@ -3,6 +3,7 @@
 mod controller;
 mod data;
 mod draw;
+mod editor;
 mod filters;
 mod history;
 mod overlays;
@@ -35,6 +36,7 @@ pub(crate) struct Area {
 }
 #[derive(Debug)]
 pub(super) struct Ui {
+    editor: editor::Ui,
     picker: ComboboxState,
     anchor: Anchor,
     menu: MenuState,
@@ -68,6 +70,7 @@ impl Area {
         Self {
             data: Data::default(),
             ui: Ui {
+                editor: editor::Ui::new(window, cx),
                 picker: ComboboxState::new(window, cx),
                 anchor: Anchor::default(),
                 menu: MenuState::new(cx),

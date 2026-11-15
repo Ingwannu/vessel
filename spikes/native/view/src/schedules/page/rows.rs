@@ -59,16 +59,13 @@ impl Row<'_> {
         }
         self.mutation.failure().map(Feedback::Failed)
     }
-    /// Only wired actions for the list slice. Editing arrives with its screen.
+    /// Wired actions in reference order; editing opens the pure form owner.
     #[must_use]
     pub fn actions(&self) -> Vec<Action> {
         if self.connection.is_none() || self.mutation.blocks_actions() {
             return Vec::new();
         }
         super::super::actions(self.schedule, self.authority)
-            .into_iter()
-            .filter(|action| *action != Action::Edit)
-            .collect()
     }
 }
 
@@ -178,6 +175,7 @@ impl Row<'_> {
         let allowed = super::super::actions(self.schedule, self.authority);
         let pending = self.mutation.progress();
         [
+            Action::Edit,
             Action::Pause,
             Action::Resume,
             Action::RunNow,

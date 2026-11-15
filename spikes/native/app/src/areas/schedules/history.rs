@@ -24,7 +24,10 @@ pub(super) fn open(
     cx: &mut Context<'_, Shell>,
 ) {
     let area = &mut shell.areas.schedules;
-    if !intent.is_current(&area.data.page) || area.ui.deleting.is_some() {
+    if !intent.is_current(&area.data.page)
+        || area.ui.deleting.is_some()
+        || area.ui.editor.is_mounted()
+    {
         return;
     }
     let Some(row) = area.data.page.row(intent.key()) else {

@@ -1,6 +1,6 @@
 //! Route and action wiring. The timer updates cached words only, never polls
 //! schedule/list; reads follow arrival, reconnect and explicit invalidation.
-use super::{DeletePrompt, Popup, Tick};
+use super::{DeletePrompt, Popup, Tick, editor};
 use crate::{routes::Route, shell::Shell};
 use std::rc::Rc;
 use vessel_app_kit::{
@@ -9,7 +9,8 @@ use vessel_app_kit::{
 };
 use vessel_app_link::{Command, schedules::Message};
 use vessel_app_view::schedules::{Action, load::MachineKey, page::Intent};
-pub(crate) fn arrive(shell: &mut Shell, _window: &mut Window, cx: &mut Context<'_, Shell>) {
+pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    editor::arrive(shell, window, cx);
     shell.schedules_fleet(cx);
     shell.schedules_due();
     let _changed = shell.schedules_changed(cx);
@@ -53,12 +54,16 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         let editor_changed = self.areas.schedules.data.message(message);
+        if editor_changed {
+            editor::ready_choices(self);
+        }
         self.schedules_due();
         let list_changed = self.route == Route::Schedules && self.schedules_changed(cx);
         (self.route == Route::Schedules && editor_changed) || list_changed
     }
     pub(crate) fn schedules_changed(&mut self, cx: &mut Context<'_, Self>) -> bool {
         let changed = self.areas.schedules.rebuild(&self.fleet, self.words);
+        editor::hold(self, cx);
         self.schedules_clock(cx);
         changed
     }
@@ -99,6 +104,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        editor::frame(self, window, cx);
         let ui = &mut self.areas.schedules.ui;
         for popup in std::mem::take(&mut ui.pending_focus) {
             match popup {
@@ -207,6 +213,7 @@ pub(crate) fn leaving(
     cx: &mut Context<'_, Shell>,
 ) {
     if route != Route::Schedules {
+        editor::leaving(shell, window, cx);
         if let Some(tick) = shell.areas.schedules.tick.take() {
             tick.cancel();
         }

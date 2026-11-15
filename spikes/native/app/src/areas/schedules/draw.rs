@@ -32,7 +32,7 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if !shell.areas.schedules.ui.pending_focus.is_empty() {
+    if !shell.areas.schedules.ui.pending_focus.is_empty() || super::editor::needs_frame(shell) {
         cx.defer_in(window, Shell::schedules_overlay_frame);
     }
     let touch = kit::breakpoint::phone(window);
@@ -59,12 +59,15 @@ pub(crate) fn render(
         .bg(tokens.neutral.surface0)
         .text_color(tokens.neutral.foreground)
         .child(header);
+    if let Some(notice) = shell.areas.schedules.ui.editor.opening_error() {
+        root = root.child(row_notice(notice, tokens));
+    }
     if shell.areas.schedules.data.page.filters_visible() {
         root = root.child(
             div()
                 .px(inset(touch))
                 .pt(px(spacing::S4))
-                .child(super::filters::toolbar(shell, tokens, cx)),
+                .child(super::filters::toolbar(shell, tokens, touch, cx)),
         );
     }
     root = root.child(body(shell, tokens, touch, cx));
@@ -79,6 +82,12 @@ pub(crate) fn render(
     }
     if let Some(history) = super::history::render(shell, tokens, window, touch, cx) {
         root = root.child(history);
+    }
+    if let Some(editor) = super::editor::render(shell, tokens, window, touch, cx) {
+        root = root.child(editor);
+    }
+    if let Some(picker) = super::editor::popup(shell, tokens, window, cx) {
+        root = root.child(picker);
     }
     root.into_any_element()
 }
@@ -98,7 +107,7 @@ fn body(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>
                 (!data.host_errors.is_empty())
                     .then(|| kit::alert::host_errors(data.host_errors.iter().cloned(), tokens)),
             )
-            .child(empty(shell, tokens))
+            .child(empty(shell, tokens, touch, cx))
             .into_any_element(),
         Body::Empty | Body::Content => content(shell, tokens, touch, cx),
     }
@@ -168,7 +177,7 @@ fn content(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, She
         }
         content = content.child(div().px(inset(touch)).child(card));
     } else {
-        content = content.child(centered().child(empty(shell, tokens)));
+        content = content.child(centered().child(empty(shell, tokens, touch, cx)));
     }
     div()
         .id("schedules-scroll")
@@ -196,7 +205,7 @@ pub(super) fn notice(message: &Notice, tokens: &Tokens) -> Div {
         tokens,
     )
 }
-fn empty(shell: &Shell, tokens: &Tokens) -> Div {
+fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>) -> Div {
     let bucket = shell.areas.schedules.data.page.bucket;
     let hint = locale::empty_hint(bucket, shell.words);
     let mut words = div()
@@ -238,8 +247,47 @@ fn empty(shell: &Shell, tokens: &Tokens) -> Div {
             tokens.neutral.foreground_muted,
         ))
         .child(words)
+        .children(
+            (bucket == vessel_app_view::schedules::Bucket::Active)
+                .then(|| new_action(shell, "schedules-empty-new", tokens, touch, cx)),
+        )
 }
 
 pub(super) fn row_notice(message: &Notice, tokens: &Tokens) -> Div {
     div().mt(px(spacing::S3)).child(notice(message, tokens))
+}
+
+pub(super) fn new_action(
+    shell: &Shell,
+    id: &'static str,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let expected = shell.areas.schedules.data.editor.visit();
+    kit::button_control(
+        id,
+        kit::ButtonContent::IconAndLabel {
+            icon: kit::ButtonIcon::new(kit::assets::Glyph::Plus),
+            label: shell.words.schedules().form_new_title().into(),
+        },
+        kit::ButtonConfig::new(
+            ButtonKind::Outline,
+            if shell.areas.schedules.data.can_create
+                && !shell.areas.schedules.ui.editor.is_mounted()
+            {
+                ButtonState::Enabled
+            } else {
+                ButtonState::Disabled
+            },
+            ControlSizing::from_compact(touch),
+        ),
+        tokens,
+    )
+    .on_click(
+        cx.listener(move |shell, _, window, cx| {
+            super::editor::open_new(shell, expected, window, cx)
+        }),
+    )
+    .into_any_element()
 }

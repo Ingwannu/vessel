@@ -2,7 +2,7 @@ use super::*;
 use crate::schedules::history::reader::tests::{list, run};
 use crate::schedules::page::tests::loaded;
 use vessel_proto::automation::RunOutcome;
-use vessel_proto::{SessionMode, SessionSpec};
+use vessel_proto::{SessionId, SessionMode, SessionSpec};
 fn ready() -> (Reader, SessionId) {
     let (page, key) = loaded();
     let mut reader = Reader::default();

@@ -166,7 +166,8 @@ impl Draft {
         }
     }
     /// Validated rule, never a raw expression string sent to the node.
-    #[must_use]
+    /// # Errors
+    /// Returns the cached grammar/range failure from the last input edge.
     pub fn checked(&self) -> Result<&Cadence, &CadenceError> {
         self.checked.as_ref()
     }

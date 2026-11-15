@@ -23,7 +23,7 @@ fn new_form_words_and_feedback_are_cached_without_pristine_errors() {
     let cadence = super::super::cadence::initial(zone).unwrap();
     let visit = model.create(cadence, TimeZoneName::utc()).unwrap().unwrap();
     for (catalog, title) in catalogs() {
-        let form = prepare(&model, &Clock::unknown(), catalog)
+        let form = prepare(&model, &crate::Fleet::default(), &Clock::unknown(), catalog)
             .unwrap()
             .unwrap();
         assert_eq!(&*form.title, title);
@@ -38,7 +38,7 @@ fn new_form_words_and_feedback_are_cached_without_pristine_errors() {
     }
     assert!(model.field(visit, FieldChange::Limit("bad".into())));
     for (catalog, _) in catalogs() {
-        let form = prepare(&model, &Clock::unknown(), catalog)
+        let form = prepare(&model, &crate::Fleet::default(), &Clock::unknown(), catalog)
             .unwrap()
             .unwrap();
         assert!(form.text[1].error.is_none());
@@ -80,7 +80,9 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
     ));
     let clock = Clock::known("Asia/Seoul".parse().unwrap()).unwrap();
     for (catalog, _) in catalogs() {
-        let form = prepare(&model, &clock, catalog).unwrap().unwrap();
+        let form = prepare(&model, &crate::Fleet::default(), &clock, catalog)
+            .unwrap()
+            .unwrap();
         assert!(form.text.is_empty());
         assert_eq!(&*form.title, catalog.schedules().form_heartbeat_title());
         assert_eq!(form.next_runs.len(), 3);
@@ -91,7 +93,9 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
         draft.preset(super::super::cadence::Preset::Daily)
     }));
     for (catalog, _) in catalogs() {
-        let form = prepare(&model, &clock, catalog).unwrap().unwrap();
+        let form = prepare(&model, &crate::Fleet::default(), &clock, catalog)
+            .unwrap()
+            .unwrap();
         assert!(form.next_runs.is_empty());
         assert!(!form.can_save);
     }
@@ -100,7 +104,9 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
         &Authority::Scopes(vec![vessel_proto::Scope::Read])
     ));
     for (catalog, _) in catalogs() {
-        let form = prepare(&model, &clock, catalog).unwrap().unwrap();
+        let form = prepare(&model, &crate::Fleet::default(), &clock, catalog)
+            .unwrap()
+            .unwrap();
         assert!(form.read_only.is_some());
         assert!(form.blocked);
     }

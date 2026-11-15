@@ -34,7 +34,7 @@ fn portable_run_limits_never_silently_discard_invalid_nonblank_input() {
         match case.expected {
             Expected::Unlimited => assert!(fields.values().unwrap().max_runs.is_none()),
             Expected::Value { value } => {
-                assert_eq!(fields.values().unwrap().max_runs.unwrap().get(), value)
+                assert_eq!(fields.values().unwrap().max_runs.unwrap().get(), value);
             }
             Expected::Number => assert!(
                 matches!(fields.error(), Some(FieldError::Number(_))),
