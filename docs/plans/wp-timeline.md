@@ -1,13 +1,13 @@
 # Conversation stream parity
 
-Status: A7 native rendering is on official app base8 `91407173`, with the
-shared body kernel and owner adapters prepared. Current actual bounded evidence:
-view1157 tests at9ec; App102/Kit185 atcfa, all passing. Later shared-kernel draw
-source is unexecuted; current strict awaits S2's canonical glyph inventory seam.
-Canonical fields/echo/receipts still await W23 checked+integrator-adopted values;
-product resident storage/follow/Seat cutover remains W12's coordinated union.
-A8 approvals/questions belong to W4. No whole gate, captures or V4 package pass.
-Updated 2026-11-15T14:58Z.
+Status: A7 source is on announced app head `c3429952` (mergedf5783cb63),
+with shared bodies, owner adapters and mounted-row text pacing implemented in
+source. Bounded prior evidence remains view1157 at9ec and App102/Kit185 atcfa;
+new pacing/kernel/base-union execution is pending its own immutable runs.
+Current full App/Kit strict is held for S2's canonical glyph inventory. W23 rich
+fields/echo/receipts, W12 live resident cutover, K syntax and B2 Markdown actions
+still await their owners' checked handoffs. A8 approvals/questions belong to W4.
+No whole gate, captures or V4 package pass. Updated 2026-11-15T15:42Z.
 
 ## Reference and asset check
 
@@ -1256,3 +1256,18 @@ uses the existing managed shown identity, without creating a child SessionId.
 A GPUI regression folds an intentionally open readonly snapshot and verifies full
 fragment visibility. The eventual resident hydration still owns managed identity;
 no selected-session or guessed-provider fallback is added by this phase rule.
+
+The body draw run wp-timeline-state-tests-20261115T151424Z-3304d050 failed before
+compilation because the author incorrectly selected --lib for the vessel-app
+binary package. No tests ran and no kernel result can be inferred. Its retained
+logs are preserved. Corrected App/Kit all-target selection on exactbab3c11cc is
+submitted once as wp-timeline-state-tests-20261115T153700Z-bab3c11c, covering the
+kernel, new pacing and canonical base union; results remain pending.
+
+W18 owns durable finish subscriptions/existing ADR0033 notice watching; A7 owns
+the notification item body, and W7 retains OS/Inbox. W23/W18 agree that the body
+stays TimelineNotification{level,message} and canonical EventRecord.seq remains
+its entry identity. Trusted NoticeKey/source, captured parent/grant lifetime and
+internal receipt admission remain their node contract. A7 adds neither a body-id
+field, label parser, parallel event union nor duplicate user bubble. Positive
+notice runtime and event activation still await that reviewed producer.
