@@ -293,3 +293,21 @@ can authorize an action. The dock's whole-card height cap remains because it
 shares vertical space with the composer; duplicate private Markdown/chevron
 rendering and the old inner-plan cap are removed. Approved/rejected/canceled
 stream outcomes remain A7-owned and no receipt is fabricated as a timeline log.
+
+
+Snapshot reconciliation skeleton reuses the existing Live form list and EventSeq
+without inventing an event or maintaining a second pending-request registry.
+responses::retain_request keeps a record unless a snapshot's exclusive through
+watermark covers its sequence and omits the exact typed request. None (old peer),
+a boundary equal to the request sequence and older snapshots are conservative.
+The helper is not wired until W23's checked Conversation.through arrives; the
+owner must also refuse replacing a newer snapshot with an older one. Table tests
+cover both request kinds and covered/uncovered/retained/successor identities.
+
+W23 explicitly confirmed native Codex plan collaboration/implement/resume plus
+provider-owned follow-up remains an unimplemented node prerequisite. DTO action
+fixtures and card removal do not close it. Native will preserve offered option
+ids and never infer an implementation prompt from a label. W23 is coordinating
+that prerequisite; A8 remains incomplete until it is implemented or explicitly
+scoped by the operator. W12 producer1720 was withdrawn before adoption; no pane
+or resident producer has been brought into this branch.

@@ -120,3 +120,6 @@ mod tests;
 
 mod failures;
 pub use failures::Failures;
+
+mod projection;
+pub use projection::retain_request;
