@@ -275,3 +275,26 @@ was started. C3 remains skeleton; C4 has not started.
 - Node6e workspace tests67/0/0 stay valid for their exact source; values194
   V3 scoped PASS stays valid. No unchanged rerun, C3 whole gate, captures, body
   mount or full authority/ABA/OS approval. C3 skeleton/C4 unstarted.
+
+## 15:50 UTC: prepared wheel delta and canonical retirement dependency
+
+- The optional wheel source proposal is EXTERNAL only: suppress incidental x
+  drift for mapped+readonly+no vertical overflow+vertical-dominant packets.
+  V1 source precheck found no blocker; lead requires actual0813 reproduction
+  FIRST. If no starvation reproduces, do not install. If reproduced, retain the
+  failing vertical zero/drift fixture, add horizontal-dominant inner-x/outer-
+  unchanged and ordinaryNone preservation proof, then the same-row correction.
+  No second scroller, engine or API; hover/menu cleanup stays. Frozen0813 has
+  no wheel production change. Its source remains immutable while queued.
+- W12's portable retirement97d29b55 (parentc3429952) has bounded source/narrow
+  review, with equivalent executed9982 tree qualification. Prefer the lead's
+  announced checked union. Hook fields/calls remain staged until a real owner
+  explicitly registers and enables them. W12 recommends one Git startup call
+  after Areas construction, matching actual-owner test initialization; retain
+  empty Owners::new for mechanism marker tests. Registration errors must stay
+  typed/failclosed, no overwrite or second table. No hook source is installed
+  here yet. The callback will retire exact pane UI/tickets only; sent actor tasks
+  and any pending/uncertain write payloads must survive with their owner.
+- Patch7 carry README now distinguishes actual08b1 13/3 result from pending0813
+  corrections and explicitly excludes full-width split header/source-copy.
+  Isolated faa0a9931 and app f4089666f are docs-only; no gate replay is needed.
