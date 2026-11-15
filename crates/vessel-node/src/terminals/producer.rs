@@ -123,7 +123,7 @@ mod tests {
                 chrono::DateTime::UNIX_EPOCH,
             ),
             spec: vessel_proc::CommandSpec::new("/synthetic-not-executable"),
-            leftover: vessel_proc::Leftover::default(),
+            leftover: vessel_session::terminals::Leftover::default(),
             service: false,
             approved: || true,
             scrollback: Scrollback::DEFAULT,

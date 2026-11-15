@@ -250,3 +250,13 @@ The generator's exact Untracked enum patch is applied after checking source
 commit/status/all artifact hashes. Proto/web generator inputs are byte-unchanged
 between4d7 and the current node source. This records generated-byte provenance
 and the passing declaration test, not a whole TS/strict/runtime PASS.
+
+The coordinator classified the sole TS failure as the known base LimitPercent
+alias defect, fixed centrally by 9dfdf0a1 (with ee43fee2) in the pending gate49
+batch. This run counts with that named defect; no head assertion is edited and
+no unchanged TS rerun is requested. Adopt the announced green node head later.
+
+Exact acf19 strict/unit runs both stopped before executing tests because the
+extracted fixture named Leftover in vessel-proc instead of its existing owner,
+vessel_session::terminals. The path is corrected; no product/admission behavior
+or assertion changes. Replacement narrow checks remain owed.
