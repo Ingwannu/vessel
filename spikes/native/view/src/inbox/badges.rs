@@ -33,20 +33,38 @@ pub enum LatestRoot {
     /// Membership, role or current attention could not be established.
     Unknown,
 }
+/// A terminal's contribution, distinct from the row's own activity indicator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalState {
+    /// A known plain shell has no semantic producer/activity; no row dot and
+    /// no contribution to workspace priority. This never means terminal Done.
+    Untracked,
+    /// Explicit supported activity or failure contributes this bucket.
+    Known(Bucket),
+    /// Missing, unavailable, future or incomplete facts cannot become neutral.
+    Unknown,
+}
 /// Combine the latest eligible root with terminal statuses, never all historical
 /// roots. The workspace owner preserves attentionTimestamp/updatedAt ordering.
 #[must_use]
 pub fn workspace(
     latest: LatestRoot,
-    terminals: impl IntoIterator<Item = Option<Bucket>>,
+    terminals: impl IntoIterator<Item = TerminalState>,
 ) -> Option<Bucket> {
     let mut best = match latest {
+        // Paseo session.ts:5714/5811 seeds the descriptor as Done;
+        // workspace-directory.ts:424-429 skips uninstrumented terminals and
+        // :478-493 explicitly retains the empty-workspace Done state.
         LatestRoot::Absent => Bucket::Done,
         LatestRoot::Known(state) => state,
         LatestRoot::Unknown => return None,
     };
     for state in terminals {
-        best = best.min(state?);
+        match state {
+            TerminalState::Untracked => {}
+            TerminalState::Known(state) => best = best.min(state),
+            TerminalState::Unknown => return None,
+        }
     }
     Some(best)
 }
@@ -93,13 +111,19 @@ mod tests {
         ]
         .map(Some);
         assert_eq!(
-            workspace(LatestRoot::Known(Bucket::NeedsInput), states),
+            workspace(
+                LatestRoot::Known(Bucket::NeedsInput),
+                states.map(|state| TerminalState::Known(state.unwrap()))
+            ),
             Some(Bucket::NeedsInput)
         );
         assert_eq!(icon(states), Some(Icon::Running));
         assert_eq!(
             dock_count([
-                workspace(LatestRoot::Known(Bucket::NeedsInput), states),
+                workspace(
+                    LatestRoot::Known(Bucket::NeedsInput),
+                    states.map(|state| TerminalState::Known(state.unwrap()))
+                ),
                 Some(Bucket::Done),
                 Some(Bucket::Working)
             ])
@@ -118,16 +142,58 @@ mod tests {
     #[test]
     fn unknown_membership_or_attention_is_neither_done_nor_zero() {
         assert_eq!(
-            workspace(LatestRoot::Unknown, [Some(Bucket::NeedsInput)]),
+            workspace(
+                LatestRoot::Unknown,
+                [TerminalState::Known(Bucket::NeedsInput)]
+            ),
             None
         );
         for states in [
             [Some(Bucket::Working), None],
             [None, Some(Bucket::NeedsInput)],
         ] {
-            assert_eq!(workspace(LatestRoot::Absent, states), None);
+            assert_eq!(
+                workspace(
+                    LatestRoot::Absent,
+                    states.map(|state| state.map_or(TerminalState::Unknown, TerminalState::Known))
+                ),
+                None
+            );
             assert_eq!(icon(states), None);
             assert_eq!(dock_count(states), None);
         }
+    }
+}
+
+#[cfg(test)]
+mod terminal_projection_tests {
+    use super::*;
+    #[test]
+    fn untracked_plain_shell_is_neutral_but_unavailable_attention_is_not() {
+        for state in [Bucket::Working, Bucket::NeedsInput] {
+            assert_eq!(
+                workspace(LatestRoot::Known(state), [TerminalState::Untracked]),
+                Some(state)
+            );
+        }
+        assert_eq!(
+            workspace(LatestRoot::Known(Bucket::Done), [TerminalState::Unknown]),
+            None
+        );
+        // Source-backed empty-workspace rule, not a claim that the shell ended:
+        // Paseo workspace-directory.test.ts:525-530 explicitly expects Done
+        // for no agent plus an uninstrumented terminal with null activity.
+        assert_eq!(
+            workspace(LatestRoot::Absent, [TerminalState::Untracked]),
+            Some(Bucket::Done)
+        );
+        assert_eq!(
+            workspace(LatestRoot::Unknown, [TerminalState::Untracked]),
+            None
+        );
+        assert_eq!(
+            workspace(LatestRoot::Absent, [TerminalState::Unknown]),
+            None
+        );
     }
 }

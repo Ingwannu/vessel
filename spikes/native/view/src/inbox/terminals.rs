@@ -19,12 +19,32 @@ pub struct Row {
     pub terminal: TerminalId,
     /// User-visible local list label, never an OS payload.
     pub title: Option<SessionTitle>,
+    /// Known shell kind from canonical terminal metadata. Future/managed kinds
+    /// cannot be classified as an uninstrumented plain shell.
+    pub plain_shell: bool,
     /// Explicit node state; absence remains unknown.
     pub attention: Option<TerminalAttention>,
     /// Process failure, distinct from whether its attention was read.
     pub failed: bool,
 }
 impl Row {
+    /// Preserve no-dot plain shells separately from unavailable source facts.
+    #[must_use]
+    pub fn workspace_state(&self) -> super::badges::TerminalState {
+        use super::badges::TerminalState;
+        match self.bucket() {
+            Some(state) => TerminalState::Known(state),
+            None if self.plain_shell
+                && self
+                    .attention
+                    .is_some_and(|state| state.activity == TerminalActivity::Unknown) =>
+            {
+                TerminalState::Untracked
+            }
+            None => TerminalState::Unknown,
+        }
+    }
+
     /// The same priority buckets used by sessions and workspace rollups.
     #[must_use]
     pub fn bucket(&self) -> Option<Bucket> {
@@ -97,10 +117,15 @@ mod tests {
         let mut row = Row {
             terminal,
             title: None,
+            plain_shell: true,
             attention: None,
             failed: false,
         };
         assert_eq!(row.bucket(), None);
+        assert_eq!(
+            row.workspace_state(),
+            super::super::badges::TerminalState::Unknown
+        );
         row.failed = true;
         assert_eq!(row.bucket(), Some(Bucket::Failed));
         let mut state = TerminalAttention {
@@ -123,5 +148,38 @@ mod tests {
         assert!(!announces(state));
         state.activity = TerminalActivity::Unknown;
         assert!(!announces(state));
+    }
+}
+
+#[cfg(test)]
+mod workspace_tests {
+    use super::super::badges::TerminalState;
+    use super::*;
+    #[test]
+    fn only_explicit_unknown_on_a_known_shell_is_untracked() {
+        let terminal = TerminalId::random();
+        let mut row = Row {
+            terminal,
+            title: None,
+            plain_shell: true,
+            failed: false,
+            attention: Some(TerminalAttention {
+                terminal,
+                revision: vessel_proto::notifications::TerminalAttentionRevision::default(),
+                activity: TerminalActivity::Unknown,
+                changed_at: chrono::DateTime::UNIX_EPOCH,
+            }),
+        };
+        assert_eq!(row.bucket(), None);
+        assert_eq!(row.workspace_state(), TerminalState::Untracked);
+        row.plain_shell = false;
+        assert_eq!(row.workspace_state(), TerminalState::Unknown);
+        row.plain_shell = true;
+        row.attention.as_mut().unwrap().activity = TerminalActivity::Attention {
+            reason: TerminalAttentionReason::Unknown,
+        };
+        assert_eq!(row.workspace_state(), TerminalState::Unknown);
+        row.attention = None;
+        assert_eq!(row.workspace_state(), TerminalState::Unknown);
     }
 }

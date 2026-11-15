@@ -436,6 +436,7 @@ fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
     fake.snapshot.terminals = Some(vec![terminals::Row {
         terminal,
         title: None,
+        plain_shell: true,
         attention: Some(state),
         failed: false,
     }]);

@@ -248,3 +248,18 @@ mark access, while retained failed/offline snapshots cannot launch it. Answers
 recheck the existing may_answer policy at the action boundary too; node scope
 and original G4 admission remain final authorities. A regression retains the
 stale entry while verifying read-only/failed/recovered/disconnected transitions.
+
+## Explicit untracked terminal projection
+
+The row retains whether canonical TerminalKind is a known Shell. Its own
+indicator remains None for explicit Unknown. Workspace TerminalState separates
+Untracked (only that known plain-shell case), Known(Bucket), and Unknown
+(missing/unavailable/managed-or-future kind/future reason). Untracked is neutral
+only in aggregation; it never means a terminal completed or may be archived.
+Known root Working/NeedsInput survives an Untracked shell; Done+Unknown stays
+Unknown. Confirmed Absent root + only Untracked uses the source's explicit empty
+workspace Done rule, not an inferred terminal lifecycle: Paseo server
+session.ts:5714,5811 seeds Done; workspace-directory.ts:424-429 skips null/no-bucket
+terminal activity and :478-493 defines empty Done; its test :525-530 explicitly
+covers no agent plus unknown terminal => Done. Unknown membership/root remains
+Unknown. This policy is agreed with W11; checked/reviewed handoff is still owed.

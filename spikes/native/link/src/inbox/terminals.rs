@@ -45,6 +45,10 @@ pub(super) async fn list(client: &Client) -> Result<Option<Vec<Row>>, Problem> {
             Ok(Row {
                 terminal: info.id,
                 title: info.title,
+                plain_shell: matches!(
+                    info.kind,
+                    vessel_proto::terminals::TerminalKind::Shell { .. }
+                ),
                 attention: info.attention,
                 failed: matches!(info.status, vessel_proto::SessionStatus::Failed { .. }),
             })
