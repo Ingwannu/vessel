@@ -26,7 +26,10 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
             SessionMode::Structured {
                 model: None,
                 resume: None,
-                options: Vec::new(),
+                options: vec![vessel_proto::OptionChoice {
+                    id: vessel_proto::OptionId::new("fast"),
+                    value: vessel_proto::ChoiceValue::Toggle { on: true },
+                }],
             },
         ),
         chrono::DateTime::UNIX_EPOCH,
@@ -100,12 +103,25 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
         ));
         let snapshot = Snapshot::capture(residents, &context).unwrap();
         assert_eq!(snapshot.info().id, context.resident.address.session);
-        assert!(snapshot.choices().is_empty());
+        assert_eq!(snapshot.choices().len(), 1);
+        assert_eq!(snapshot.choices(), snapshot.info().spec.mode.options());
         owner.hydrate(snapshot).unwrap();
         assert_eq!(owner.readiness(), OwnerReadiness::Ready);
         let clean = owner.take_clean_snapshot().unwrap();
         assert_eq!(clean.resident(), context.resident);
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
+        residents
+            .resources_mut(&context)
+            .unwrap()
+            .conversation
+            .info
+            .as_mut()
+            .unwrap()
+            .id = SessionId::random();
+        assert!(matches!(
+            Snapshot::capture(residents, &context),
+            Err(Problem::WrongResource)
+        ));
         residents.resources_mut(&context).unwrap().conversation.info = None;
         assert!(matches!(
             Snapshot::capture(residents, &context),
