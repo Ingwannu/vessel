@@ -188,6 +188,8 @@ pub enum Type {
     Title,
     /// `--t-body`: 14 / 21 / 400.
     Body,
+    /// Chat prose: absolute content units and a rounded1.4 line; UI face.
+    Content,
     /// `--t-label`: 14 / 20 / 500, sidebar rows.
     Label,
     /// `--t-meta`: 12 / 16 / 400, secondary chrome.
@@ -206,7 +208,7 @@ pub enum Type {
 
 impl Type {
     /// Size and line height in pixels, and weight, at the chosen sizes
-    /// ([`ui`], [`code`]).
+    /// ([`ui`], [`code`]); Content uses its independent absolute units.
     #[must_use]
     pub fn metrics(self) -> (f32, f32, FontWeight) {
         self.metrics_with(ui, code)
@@ -219,7 +221,9 @@ impl Type {
         interface: fn(f32) -> f32,
         code: fn(f32) -> f32,
     ) -> (f32, f32, FontWeight) {
-        let (size, line, weight) = self.written();
+        let Some((size, line, weight)) = self.written() else {
+            return (content_size(), content_line_height(), FontWeight::NORMAL);
+        };
         if matches!(self, Self::Mono | Self::MonoBody) {
             (code(size), code(line), weight)
         } else {
@@ -228,18 +232,20 @@ impl Type {
     }
 
     /// Size, line height and weight as written (the interface at 14, code
-    /// at 12).
-    const fn written(self) -> (f32, f32, FontWeight) {
+    /// at 12). Content has no authored scale-relative step; None resolves
+    /// its current absolute units without duplicating a default size here.
+    const fn written(self) -> Option<(f32, f32, FontWeight)> {
         match self {
-            Self::Title => (16.0, 20.0, FontWeight::SEMIBOLD),
-            Self::Body => (14.0, 21.0, FontWeight::NORMAL),
-            Self::Label => (14.0, 20.0, FontWeight::MEDIUM),
-            Self::Meta => (12.0, 16.0, FontWeight::NORMAL),
-            Self::Kicker => (11.0, 16.0, FontWeight::MEDIUM),
-            Self::Card => (11.5, 14.4, FontWeight::SEMIBOLD),
-            Self::Tiny => (10.5, 14.0, FontWeight::NORMAL),
-            Self::Mono => (12.0, 20.0, FontWeight::NORMAL),
-            Self::MonoBody => (14.0, 20.0, FontWeight::NORMAL),
+            Self::Title => Some((16.0, 20.0, FontWeight::SEMIBOLD)),
+            Self::Content => None,
+            Self::Body => Some((14.0, 21.0, FontWeight::NORMAL)),
+            Self::Label => Some((14.0, 20.0, FontWeight::MEDIUM)),
+            Self::Meta => Some((12.0, 16.0, FontWeight::NORMAL)),
+            Self::Kicker => Some((11.0, 16.0, FontWeight::MEDIUM)),
+            Self::Card => Some((11.5, 14.4, FontWeight::SEMIBOLD)),
+            Self::Tiny => Some((10.5, 14.0, FontWeight::NORMAL)),
+            Self::Mono => Some((12.0, 20.0, FontWeight::NORMAL)),
+            Self::MonoBody => Some((14.0, 20.0, FontWeight::NORMAL)),
         }
     }
 
@@ -250,6 +256,7 @@ impl Type {
             Self::Mono | Self::MonoBody => Typeface::Code,
             Self::Title
             | Self::Body
+            | Self::Content
             | Self::Label
             | Self::Meta
             | Self::Kicker
@@ -266,6 +273,7 @@ impl Type {
             Self::Mono | Self::MonoBody => active(Typeface::Code).family(),
             Self::Title
             | Self::Body
+            | Self::Content
             | Self::Label
             | Self::Meta
             | Self::Kicker
@@ -431,5 +439,27 @@ mod elide_tests {
     #[test]
     fn nothing_fits_but_the_mark_itself() {
         assert_eq!(elide_middle_by("abcdef", at_most(1)), "…");
+    }
+}
+
+#[cfg(test)]
+mod content_tests {
+    use super::*;
+    fn forbidden_scale(_: f32) -> f32 {
+        panic!("content cannot use a UI or code multiplier");
+    }
+    #[test]
+    fn content_is_absolute_while_existing_body_and_code_scales_remain_distinct() {
+        let expected = (content_size(), content_line_height(), FontWeight::NORMAL);
+        assert_eq!(
+            Type::Content.metrics_with(forbidden_scale, forbidden_scale),
+            expected
+        );
+        assert_eq!(
+            Type::Content.metrics_with(forbidden_scale, forbidden_scale),
+            expected
+        );
+        assert_eq!(Type::Content.family(), Type::Body.family());
+        assert_eq!(Type::Content.fallbacks(), Type::Body.fallbacks());
     }
 }

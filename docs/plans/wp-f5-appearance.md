@@ -412,3 +412,14 @@ words to shrink/wrap naturally beside the control. They do not inherit the
 other Settings pages' compact160-word minimum/wrapping geometry. Syntax's
 trigger still uses the shared touch hit target, and its list uses the source
 200-point short-option width. No private row renderer is added.
+
+Content-size source audit found plain prompt text still inherited UI Body,
+which would leave the new preference ineffective outside Markdown. The kit
+therefore adds Type::Content: the existing interface face/fallbacks with
+absolute content units and rounded1.4 line height. Old Body/Mono/MonoBody
+metrics and their inherited tests remain unchanged. No duplicate default15
+is authored in kit: Content has no relative-written step and reads the one
+content unit owner. A regression passes forbidden UI/code scale functions to
+prove those multipliers are never used. Two consumer calls in conversation
+bubbles are coordinated with the timeline owner (source message.tsx:325–328,
+1247–1248); this is a typography-only seam, not another message renderer.
