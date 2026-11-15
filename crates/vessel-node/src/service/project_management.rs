@@ -2,10 +2,22 @@
 
 use super::{Connection, NodeService};
 use vessel_proto::{
-    WireError, project_management::RegisterProjectDirectory, workspace::ProjectInfo,
+    WireError,
+    project_management::{
+        CreateProjectDirectory, ProjectDirectoryOutcome, RegisterProjectDirectory,
+    },
+    workspace::ProjectInfo,
 };
 
 impl NodeService {
+    pub(crate) async fn create_project_directory(
+        &self,
+        _: &Connection,
+        request: CreateProjectDirectory,
+    ) -> Result<ProjectDirectoryOutcome, WireError> {
+        self.workspaces.create_project_directory(request).await
+    }
+
     pub(crate) async fn register_project_directory(
         &self,
         _: &Connection,

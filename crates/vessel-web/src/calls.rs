@@ -136,7 +136,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::WriteUpload
         | Method::FinishUpload
         | Method::ReadAttachment
-        | Method::RegisterProjectDirectory | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
+        | Method::CreateProjectDirectory | Method::RegisterProjectDirectory | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::ListProjects
         | Method::GetProject
         | Method::AddProject

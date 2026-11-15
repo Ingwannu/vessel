@@ -217,6 +217,7 @@ impl Reply {
             | Self::PinWorkspace(_)
             | Self::ReleaseWorkspaceAutomation(_)
             | Self::RegisterProjectDirectory(_)
+            | Self::CreateProjectDirectory(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)

@@ -48,7 +48,7 @@ without placeholder tables in the registry dependency. Native view/link/app use
 these requests only once the node implementation exists; in-memory fakes model
 unavailable/loading/stale/partial outcomes meanwhile.
 
-Outstanding: selected-root registration, plain directory creation and rollback,
+Outstanding: verification of selected-root registration and plain directory creation/rollback,
 custom names/equivalence/icons, history suggestions, revision-aware vessel.toml,
 editor targets and automatic archive. Root/native full gates and UI captures are
 owed. No real provider, editor, live node or filesystem outside isolated tests
@@ -65,3 +65,21 @@ caller disconnects. Tests compare nested-root behavior with the legacy call,
 concurrent deduplication, and a closed store that must leave no visible ghost.
 Current source has passed format/size/boundary checks only; compilation, tests,
 TS regeneration and full C1 validation remain owed. No native caller was wired.
+
+## Empty-directory source checkpoint (unverified)
+
+The pending `project.create_directory` call uses the existing validated
+`DirectoryName` and selected-root registration. It requires an existing absolute
+parent, checks root/Git-internal policy before nonrecursive mkdir, and does not
+initialize Git. The node task tracker retains creation through persistence and
+compensation when the RPC waiter disappears. Registration failure returns a typed
+`RegistrationFailed` outcome with `Removed` or `Retained { path, error }`;
+compensation uses only remove_dir and preserves concurrently added contents. A
+node process crash can still leave an unregistered directory; an existing target
+is refused on a fresh request rather than adopted or deleted automatically.
+
+Tests cover a new non-Git project, absent parents, pre-existing targets, closed
+store rollback, and nonempty-directory preservation. No test has run at this
+checkpoint. The existing framed test handler fakes now explicitly refuse both
+C1 calls and the separate registry methods. New project-family capability test
+entries await the integrator's announced method-table/family-test base.

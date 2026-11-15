@@ -2,6 +2,12 @@
 
 use super::Fixture;
 use crate::workspace::WorkspaceError;
+use vessel_proto::{
+    ErrorCode,
+    project_management::{
+        CreateProjectDirectory, ProjectDirectoryCleanup, ProjectDirectoryOutcome,
+    },
+};
 
 #[tokio::test]
 async fn a_nested_selected_root_is_independent_while_legacy_add_still_uses_git_top() {
@@ -67,6 +73,89 @@ async fn failed_durable_registration_never_leaves_a_visible_ghost_project() {
         matches!(result, Err(WorkspaceError::Store(_))),
         "{result:?}"
     );
+    assert!(fixture.workspaces.list_projects().await.projects.is_empty());
+    fixture.stop.cancel();
+}
+
+#[tokio::test]
+async fn creating_a_plain_directory_registers_it_without_initializing_git_or_a_workspace() {
+    let fixture = Fixture::new().await;
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: fixture.path(),
+            name: "plain-project".to_owned().try_into().unwrap(),
+        })
+        .await
+        .unwrap();
+    let ProjectDirectoryOutcome::Created { project } = result else {
+        panic!("{result:?}")
+    };
+    assert_eq!(project.root, fixture.path().join("plain-project"));
+    assert!(!project.git);
+    assert!(std::fs::read_dir(&project.root).unwrap().next().is_none());
+    let stored = fixture.store.workspace().await.unwrap();
+    assert_eq!(stored.projects, [project]);
+    assert!(stored.worktrees.is_empty());
+    fixture.stop.cancel();
+}
+
+#[tokio::test]
+async fn new_directory_requires_an_existing_parent_and_never_adopts_an_existing_target() {
+    let fixture = Fixture::new().await;
+    let parent = fixture.path().join("absent");
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: parent.clone(),
+            name: "child".to_owned().try_into().unwrap(),
+        })
+        .await;
+    assert!(result.is_err());
+    assert!(!parent.exists());
+    let existing = fixture.path().join("existing");
+    std::fs::create_dir(&existing).unwrap();
+    std::fs::write(existing.join("keep"), "keep").unwrap();
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: fixture.path(),
+            name: "existing".to_owned().try_into().unwrap(),
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(result.code, ErrorCode::Conflict);
+    assert_eq!(
+        std::fs::read_to_string(existing.join("keep")).unwrap(),
+        "keep"
+    );
+    assert!(fixture.workspaces.list_projects().await.projects.is_empty());
+    fixture.stop.cancel();
+}
+
+#[tokio::test]
+async fn registration_failure_removes_only_the_new_empty_directory() {
+    let fixture = Fixture::new().await;
+    fixture.store.close().await;
+    let result = fixture
+        .workspaces
+        .create_project_directory(CreateProjectDirectory {
+            parent: fixture.path(),
+            name: "failed-registration".to_owned().try_into().unwrap(),
+        })
+        .await
+        .unwrap();
+    assert!(
+        matches!(
+            result,
+            ProjectDirectoryOutcome::RegistrationFailed {
+                cleanup: ProjectDirectoryCleanup::Removed,
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert!(!fixture.path().join("failed-registration").exists());
     assert!(fixture.workspaces.list_projects().await.projects.is_empty());
     fixture.stop.cancel();
 }

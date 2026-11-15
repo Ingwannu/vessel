@@ -179,6 +179,7 @@ impl Call {
             | Self::RenameWorkspace(_)
             | Self::PinWorkspace(_)
             | Self::RegisterProjectDirectory(_)
+            | Self::CreateProjectDirectory(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)

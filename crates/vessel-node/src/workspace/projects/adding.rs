@@ -221,7 +221,7 @@ impl Workspaces {
     /// inside one, or a bare repository): ADR 0030, wave 1's review
     /// finding 17. Asked of git when the node has one, and by its files
     /// either way.
-    async fn refuse_git_dir(&self, folder: &Path) -> Result<(), WorkspaceError> {
+    pub(super) async fn refuse_git_dir(&self, folder: &Path) -> Result<(), WorkspaceError> {
         let refused = || {
             Err(WorkspaceError::Invalid(
                 "this folder cannot be a project: it is git's own folder (a `.git` folder or a \
@@ -315,7 +315,7 @@ impl Workspaces {
 }
 
 /// `path`, resolved, when it is an absolute folder.
-async fn existing_folder(path: PathBuf) -> Result<PathBuf, WorkspaceError> {
+pub(super) async fn existing_folder(path: PathBuf) -> Result<PathBuf, WorkspaceError> {
     if !path.is_absolute() {
         return Err(WorkspaceError::Invalid(
             "the folder must be an absolute path".to_owned(),

@@ -6,6 +6,7 @@
 
 mod adding;
 mod commands;
+mod directory;
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
