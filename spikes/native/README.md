@@ -318,6 +318,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -762,9 +766,10 @@ Environment:
   frame before the renderer rasterises (on a software renderer the
   process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
-  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
-  updates itself; without them it never does.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_KEY` too and
+  the feed's address written into the built executable afterwards (track
+  R's `build.sh` does both; ADR 0099), the build updates itself; without
+  them it never does.
 
 ## Composed sections in one bounded viewport
 

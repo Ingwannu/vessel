@@ -8,6 +8,8 @@ use tokio::sync::oneshot;
 pub(super) enum Kind {
     /// Bind observations to the selected node identity.
     Identity,
+    /// Only an authenticated directory may supply a service observation.
+    ServiceFile,
     /// Opening a lock or its owner must not delay runtime shutdown.
     Preflight,
     /// Preserve the existing OS-lock waiter's thread name.
@@ -17,6 +19,7 @@ pub(super) enum Kind {
 impl Kind {
     const fn name(self) -> &'static str {
         match self {
+            Self::ServiceFile => "node-service-reader",
             Self::Identity => "node-identity-reader",
             Self::Preflight => "node-preflight-reader",
             Self::LockRelease => "node-lock-release",
