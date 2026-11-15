@@ -391,3 +391,13 @@ https://ajv.js.org/json-schema.html#draft-07-default and
 https://ajv.js.org/guide/formats.html. Ajv-specific OpenAPI extensions (e.g. nullable)
 still need explicit parity assessment before runtime promotion; staged standard
 validation tests do not prove those extensions or full Ajv equivalence.
+
+
+### W17 proposed public host-read boundary (security review before code)
+
+The coordinator selected node-wide authenticated Read of display-only host
+fields for local agents, not Agent→Owner source inheritance. The feature ADR
+field allowlist, denied private fields, direct/Delegated admission and tests are
+in docs/plans/wp-w17.md, “Host registry local-agent read policy — security ADR
+addendum”. V3 must review that design before handler/DTO/authorization code.
+No store/dependency/source-cache change is proposed; management remains scoped.

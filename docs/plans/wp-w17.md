@@ -647,3 +647,85 @@ Clippy across CLI/proto/RPC/client/store/session/node/web, run
 wp-cli-narrow-20261115T111143Z-cd1a12d7, /tmp/work/wp-cli/main-clippy-head42.
 No result yet. Latest actor/CLI/schema/process tests, reviewed external contracts,
 shared-core consumption and the final whole root gate remain owed.
+
+
+### Host registry local-agent read policy — security ADR addendum (PROPOSED)
+
+Status: coordinator ruling adopted for design; V3 security review is required
+**before any authorization, DTO, method-table or handler code is changed**.
+This section is W17's feature ADR (the initial package instructions allow an
+ADR section in the plan). It supersedes only the earlier blanket Agent read
+refusal; existing source-bound management and Admin writes remain unchanged.
+
+[Decision Log]
+- Purpose: Paseo MCP list_hosts serves all agents of its daemon, acting for the
+  node owner. W18 needs the same inventory without inventing an Agent→Owner
+  source mapping or copying a client book.
+- Existing assets/constraints: HostRegistration persists destination references
+  and display annotations; HostSource controls Owner/Device management.
+  service/host_registry.rs currently rejects Agent/Delegated at source(). The
+  existing HostDirectory/HostRegistration response exposes source/revision and
+  must not be reused wholesale as a public agent response. All W17 calls remain
+  behind CLI_PARITY_PROTOCOL=None; this registry is not a released writable API.
+- Alternatives: inherit a root source by walking Creator/attachment ancestry
+  (ambiguous foreign/deleted chains, unnecessary auth storage); treat Agent as
+  Owner (incorrect authority); expose complete records (needless private data).
+- Choice: an explicit node-wide authenticated Read projection for local agents.
+  No source inheritance or parent/creator traversal. New read projection policy
+  is independent of source ownership; it does not manufacture HostSource::Owner.
+- Reason/tradeoff: intentionally share display inventory while leaving mutable
+  management scoped. Agents learn only the approved public fields, never gain
+  transport credentials or the ability to register/rebind/remove destinations.
+
+**Proposed allowed fields (explicit projection; no flatten/full-record serde):**
+
+| Field | Why shareable / source |
+| --- | --- |
+| registration ID | Non-secret stable inventory identity; not an authentication token. |
+| destination NodeId + Fleet/Paired kind | Existing typed address/reference only, not a new route or trust grant. |
+| destination display name (optional) | Bounded public name from existing destination observations. |
+| registration label (optional) | Admin-authored public display text. |
+| bounded annotations | The draft contract's display-only/public annotations. CLI/API docs must explicitly say local agents can read them; credentials must never be placed in this field. |
+
+The projection contains **no** HostSource/DeviceId, optimistic revision, private
+configuration path, credential/token/key, pairing link/material, credential file
+reference, raw connection object, or whole NodeInfo. Enabled/connectivity status
+is not added to this field list: W18 may retain its existing fleet observations.
+No raw endpoint URL is introduced: this registry currently stores NodeId/kind
+references, so address sharing means those typed public references. A future
+human endpoint projection must separately exclude URL userinfo/query secrets
+and use its owning typed transport API, not a second book/resolver here.
+
+Annotations are deliberately public display input from this unreleased feature.
+The implementation must not inspect or copy credential/config stores and must
+not claim heuristic redaction can make arbitrary private records shareable.
+If legacy/private metadata ever exists outside this unreleased contract, it
+requires an explicit migration/visibility decision before projection.
+
+**Proposed admission and delivery:**
+- Existing RPC Read-scope enforcement applies first. Direct authenticated
+  Owner/Device callers may use the same public projection; a direct local
+  Principal::Agent (credential issued for this node) may read it node-wide.
+- Principal::Delegated stays refused, including foreign/forwarded agents. Keep
+  the new read non-forwardable, as current registry management already is.
+  Eligibility comes from authenticated principal kind, never loopback address,
+  caller-supplied IDs, an alias, Creator ancestry or current attachment.
+- The query has no source-selector argument. Return the public projection of
+  records across sources, including retained disabled records; it is inventory,
+  not a claim that a route is currently enabled/connected. It starts no connection
+  and returns no new authority. Source-scoped full management reads are separate.
+- Do not widen current ListHostRegistrations's full response. After approval,
+  add a separately typed public Read request/response/client adapter as a pending
+  table row at its end, using the existing package Option protocol constant None.
+  Exact Rust/wire names await implementation/review, not invented by W18.
+- Reuse the existing bounded directory actor and limits. No second store, source
+  cache, credential ancestry record or route resolver; no writes on this path.
+
+**Required tests after design review (not yet executed/implemented):** direct
+local Agent+Read sees public entries from Owner/Device sources; missing Read and
+all Delegated callers refuse; full source-private management and all Admin writes
+remain denied to agents. Explicit typed serialization probes reject extra fields
+(source/revision/credential/config); foreign refs do not become routes. Cover
+retained disabled/unreachable entries without connectivity claims, pending/older
+SDK refusal before frames, and W18's real MCP listing adapter after a reviewed
+node head. No current CLI/MCP/runtime PASS is implied by this design.
