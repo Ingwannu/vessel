@@ -1,5 +1,5 @@
 //! Bundled orchestration skills: values only, with no access to agent homes.
-//! Admin-only local requests use the shared pending table until MCP_PARITY is numbered.
+//! Admin-only local requests use the shared pending table until `MCP_PARITY` is numbered.
 
 mod name;
 

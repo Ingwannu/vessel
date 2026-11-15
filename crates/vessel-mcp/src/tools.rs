@@ -8,7 +8,7 @@
 //!   are refused before mutation. Names that identify several nodes require
 //!   an explicit ID rather than a guessed destination.
 //! - A frozen exact-provider policy controls listing and direct invocation
-//!   through the shared ToolId. Browser identities delegate to their owner's
+//!   through the shared `ToolId`. Browser identities delegate to their owner's
 //!   catalogue; availability still needs the browser producer's admission.
 //! - Session agents receive finish/permission/error notifications and do not
 //!   advertise a wait tool. Direct legacy `wait_turn` and readiness reads

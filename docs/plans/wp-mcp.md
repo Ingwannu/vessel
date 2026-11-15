@@ -344,7 +344,7 @@ There are no native UI changes/captures or operator-home/service mutations.
 | cb836083a | MCP suite stopped compiling a borrowed ID assertion; fixed c7f0; no MCP tests executed | mcp-tests-cb836 |
 | 7bfc7f72e | TS failed three unclassified aliases; fixed 146c83 | ts-7bfc7 |
 | 9e2be4d25 | TS generators 4 passed; stale file diff keeps step rc1; six artifact hashes verified and exact generated patch applied | ts-9e2be |
-| c7f0c5df1 | Changed-crate strict and functional suite queued, not passed | strict-c7f0, functional-c7f0 |
+| c7f0c5df1 | Strict stopped on a new module-doc backtick lint; fixed with the matching ToolId doc spelling; functional suite still running | strict-c7f0, functional-c7f0 |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
 StoredTool remain plain names validated at the Rust boundary. Generated TS was applied from the verified remote artifact after confirming
