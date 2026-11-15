@@ -408,3 +408,27 @@ expectations are unchanged. The bounded-reader integer conversion now
 keeps its TryFromIntError as a typed source; it never carries file bytes.
 No suppression or relaxed limit is introduced. New strict and the eight
 route/nine private-file executions are still owed.
+
+## Strict check receipt, runtime debt kept separate
+
+The correction `e98896f1a73b3f59015a9df09b6640c29dc4f6aa` actually passed
+client all-target Clippy with warnings denied. Run
+`settings2-narrow-20261115T151932Z-e98896f1`, retained in
+`/tmp/work/m12-settings4/e1-clippy-e988`, records the client Checking line,
+Finished10.45seconds, cargo step11seconds/rc0 and SHA prefix
+9742fc043dd63dba. This closes the reported strict errors, not execution of
+the eight route/legacy or nine private-file tests. No format decoder,
+production file API, writer/lock/admission or secure upsert is published.
+Those two fixed library test selections remain sequential checks after
+the returned native input package's changed-source verification.
+
+The independent public-value producer's nine tests did execute in the
+node integrator's whole gates48 and49b: each named book_route/book_values/
+managed_alias test is explicitly ok. Their test logs are retained in
+`/tmp/work/int-node/gate48/test.log` and `gate49b/test.log`; source/test
+blobs are byte-identical to7becce7f. Gate48's missing session.detach
+forwarding-list expectation and gate49b's worker stack overflow still
+leave their whole outcomes red. No combined head was announced, and no
+app adoption or seven native compatibility tests are inferred. The
+individual test receipt neither waives those failures nor authorizes a
+parallel root-value definition or duplicate own test run.
