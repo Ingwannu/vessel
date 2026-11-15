@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: optional image activation shares both existing image render paths.
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -29,7 +30,6 @@ use crate::{
         inline_flow::{InlineFlow, InlineFlowItem, slice_ranges},
         range_highlight::{RangeHighlightFrame, RevealAt, RevealRequest},
         stream_fade::{StreamFadeFrame, TextLeafKey},
-        text_view::handle_link_click,
     },
     theme::ActiveTheme as _,
 };
@@ -777,6 +777,16 @@ pub struct LinkMark {
     /// Optional identifier for footnotes.
     pub identifier: Option<SharedString>,
     pub title: Option<SharedString>,
+    pub(crate) source: super::LinkSource,
+}
+
+impl LinkMark {
+    pub(crate) fn target(&self) -> super::LinkTarget {
+        super::LinkTarget {
+            href: self.url.clone(),
+            source: self.source,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -1076,7 +1086,9 @@ pub(crate) fn wrap_with_mark(text: &str, mark: &TextMark) -> String {
     if mark.highlight.is_some() {
         out = format!("=={}==", out);
     }
-    if let Some(link) = &mark.link {
+    if let Some(link) = &mark.link
+        && link.source == super::LinkSource::Authored
+    {
         out = match &link.title {
             Some(title) => format!("[{}]({} \"{}\")", out, link.url, title),
             None => format!("[{}]({})", out, link.url),
@@ -1097,6 +1109,21 @@ struct MarkdownSource {
 }
 
 impl MarkdownSource {
+    fn into_code(self) -> super::code_selection::CodeSelection {
+        use super::code_selection::CodeSelection;
+        if self.pieces.is_empty() {
+            return CodeSelection::Unselected;
+        }
+        if self.has_objects
+            || self
+                .pieces
+                .iter()
+                .any(|(_, layers)| !layers.iter().any(|mark| mark.code))
+        {
+            return CodeSelection::Mixed;
+        }
+        CodeSelection::Code(self.pieces.into_iter().map(|(text, _)| text).collect())
+    }
     fn push_str(&mut self, source: &str) {
         self.push_marked(source, &TextMark::default());
     }
@@ -1108,7 +1135,9 @@ impl MarkdownSource {
         // Outer-to-inner order for equally extensive marks. When a mark spans
         // more neighboring pieces, serialize it outside the shorter marks.
         let mut layers = Vec::new();
-        if let Some(link) = &mark.link {
+        if let Some(link) = &mark.link
+            && link.source == super::LinkSource::Authored
+        {
             layers.push(TextMark {
                 link: Some(link.clone()),
                 ..Default::default()
@@ -1857,6 +1886,10 @@ impl Paragraph {
     /// How many styles the selection within this paragraph takes in.
     pub(super) fn selection_styles(&self) -> SelectionStyles {
         self.selected_markdown().styles()
+    }
+
+    pub(super) fn code_selection(&self) -> super::code_selection::CodeSelection {
+        self.selected_markdown().into_code()
     }
 
     /// The selection as Markdown pieces, before their marks are serialized;
@@ -2657,6 +2690,7 @@ impl CodeBlock {
 /// A context for rendering nodes, contains link references.
 #[derive(Default, Clone)]
 pub(crate) struct NodeContext {
+    pub(crate) inline_link_scope: super::inline_links::InlineLinkScope,
     /// The byte offset of the node in the original markdown text.
     /// Used for incremental updates.
     pub(crate) offset: usize,
@@ -2667,6 +2701,7 @@ pub(crate) struct NodeContext {
     pub(crate) table_actions: Option<Arc<TableActionsFn>>,
     pub(crate) image_source: Option<Arc<super::text_view::ImageSourceFn>>,
     pub(crate) link_click_handler: Option<Arc<LinkClickHandlerFn>>,
+    pub(crate) image_click_handler: Option<Arc<super::image_activation::ImageClickHandlerFn>>,
     pub(crate) markdown_extensions: Arc<MarkdownExtensions>,
     /// This frame's streamed fade-in, when any text is still fading.
     pub(crate) stream_fade: Option<Arc<StreamFadeFrame>>,
@@ -2680,6 +2715,18 @@ pub(crate) struct NodeContext {
 }
 
 impl NodeContext {
+    fn image_activation(
+        &self,
+        image: &ImageNode,
+    ) -> Option<super::image_activation::ImageActivation> {
+        self.image_click_handler
+            .as_ref()
+            .map(|handler| super::image_activation::ImageActivation {
+                uri: image.url.clone(),
+                handler: Arc::clone(handler),
+            })
+    }
+
     fn image_source(&self, image: &ImageNode) -> ImageSource {
         match &self.image_source {
             Some(resolve) => resolve(&image.url),
@@ -2900,42 +2947,19 @@ impl Paragraph {
                         .into_any_element(),
                     );
                 }
-                let link_click_handler = node_cx.link_click_handler.clone();
+                let element = img(node_cx.image_source(image))
+                    .id(ix)
+                    .object_fit(ObjectFit::Contain)
+                    .max_w(relative(1.))
+                    .when_some(image.width, |this, width| this.w(width));
                 child_nodes.push(
-                    img(node_cx.image_source(image))
-                        .id(ix)
-                        .object_fit(ObjectFit::Contain)
-                        .max_w(relative(1.))
-                        .when_some(image.width, |this, width| this.w(width))
-                        .when_some(image.link.clone(), |this, link| {
-                            let link_click_handler = link_click_handler.clone();
-                            let aux_link = link.clone();
-                            let aux_link_click_handler = link_click_handler.clone();
-                            this.cursor_pointer()
-                                .on_click(move |event, window, cx| {
-                                    crate::TextSelection::end(window, cx);
-                                    cx.stop_propagation();
-                                    handle_link_click(
-                                        &link_click_handler,
-                                        link.url.clone(),
-                                        event.clone(),
-                                        window,
-                                        cx,
-                                    );
-                                })
-                                .on_aux_click(move |event, window, cx| {
-                                    crate::TextSelection::end(window, cx);
-                                    cx.stop_propagation();
-                                    handle_link_click(
-                                        &aux_link_click_handler,
-                                        aux_link.url.clone(),
-                                        event.clone(),
-                                        window,
-                                        cx,
-                                    );
-                                })
-                        })
-                        .into_any_element(),
+                    super::image_activation::activate(
+                        element,
+                        node_cx.image_activation(image),
+                        image.link.clone(),
+                        node_cx.link_click_handler.clone(),
+                    )
+                    .into_any_element(),
                 );
 
                 consumed += text.len();
@@ -3125,6 +3149,7 @@ impl Paragraph {
 
                 items.push(InlineFlowItem::Image {
                     source: node_cx.image_source(image),
+                    activation: node_cx.image_activation(image),
                     link: image.link.clone(),
                     title: image.title(),
                     width: image.width,
