@@ -69,9 +69,9 @@ fn keyboard_end_and_shift_selection_reveal_the_real_document_owner(cx: &mut Test
     cx.run_until_parked();
     owner.read_with(cx, |owner, cx| {
         let state = owner.editor.editor.editor.state.read(cx);
-        assert!(!state.selected_text().is_empty());
+        assert!(!state.selected_text().to_string().is_empty());
         assert_eq!(state.value(), source);
-        assert!(state.is_readonly());
+        assert!(state.presentation().is_readonly());
     });
 }
 

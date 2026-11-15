@@ -751,3 +751,9 @@ patch7 and Kit profile/tests/example; only its README is narrowed to that scope.
 It is unchecked, not a consumer handoff. No extra build was launched while the
 approved0af App/Kit source batch is still queued. Its plan is
 wp-c3-diff-control.md on that isolated branch; current package proof remains owed.
+
+The fa1 four-crate Clippy reached the updated Kit and returned four concrete
+issues: a partial doc-code span, redundant Render qualification and two test API
+spellings (RopeSlice has no is_empty; readonly is queried through presentation).
+They are corrected in both package and isolated control bytes without lint
+suppression or an engine API change. No window test ran in that Clippy check.
