@@ -84,25 +84,11 @@ fn edit(shell: &Shell) -> Vec<Row> {
 
 fn view(shell: &Shell) -> Vec<Row> {
     let w = shell.words.desktop_shell();
-    let mut rows = vec![
-        Row::new(Item::Desktop(DesktopAction::ZoomIn), w.zoom_in()),
-        Row::new(Item::Desktop(DesktopAction::ZoomOut), w.zoom_out()),
-        Row::new(Item::Desktop(DesktopAction::ActualSize), w.actual_size()),
+    vec![
         Row::new(Item::Reload, w.reload()).grouped(),
         Row::new(Item::ForceReload, w.force_reload()),
         Row::new(Item::Desktop(DesktopAction::Fullscreen), w.fullscreen()).grouped(),
-    ];
-    for row in &mut rows {
-        if matches!(
-            row.item,
-            Item::Desktop(
-                DesktopAction::ZoomIn | DesktopAction::ZoomOut | DesktopAction::ActualSize
-            )
-        ) {
-            row.view.disabled = shell.areas.shortcuts.page.recording();
-        }
-    }
-    rows
+    ]
 }
 
 fn context(shell: &Shell) -> Vec<Row> {

@@ -116,8 +116,12 @@ restores before dispatch; a replaced app-menu cycle refuses old row actions.
 The separate strong saved opener was removed. Real-field action tests remain
 part of the pending combined evidence.
 
-Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Zoom uses
-pure half-level rules and is refused during shortcut recording. W22 owns the sole
+Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Pure
+half-level zoom rules remain modeled, but production Zoom is unsupported and
+hidden from menus under the coordinator ruling: set_scale_factor is test-only,
+and set_rem_size cannot scale the kit’s px geometry. The lead owns a future
+per-window viewport zoom seam covering layout, paint, hit testing and native DPI.
+W22 uses desktop_shortcut_supported to avoid advertising these actions and owns the sole
 matcher/default table; CloseTab falls back to CloseWindow only after layout is
 Unhandled, and opening/refusing a close confirmation counts as handled.
 

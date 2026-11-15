@@ -31,8 +31,6 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     menu_cycle: std::rc::Rc<()>,
     #[cfg(not(target_arch = "wasm32"))]
-    zoom: actions::Zoom,
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) preferences: Option<vessel_app_link::desktop::preferences::Client>,
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) receipts: std::cell::RefCell<crate::desktop::preferences::ReceiptCapture>,
@@ -57,8 +55,6 @@ impl DesktopArea {
             edit: vessel_app_view::desktop::EditContext::default(),
             #[cfg(not(target_arch = "wasm32"))]
             menu_cycle: std::rc::Rc::new(()),
-            #[cfg(not(target_arch = "wasm32"))]
-            zoom: actions::Zoom::default(),
             #[cfg(not(target_arch = "wasm32"))]
             preferences: None,
             #[cfg(not(target_arch = "wasm32"))]
