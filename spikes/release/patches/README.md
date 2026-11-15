@@ -347,5 +347,6 @@ and `Vessel patch` at each change.
   keeps the zoom; a press at 150 platform points lands on a 100-point
   target at zoom 2 and misses it unzoomed; the zoom stays within its
   bounds and ignores a non-number. The IME's rectangles and the window
-  menu reach the platform only in a real session; they are checked in the
-  app on Linux.
+  menu reach the platform only in a real session and are not checked yet:
+  an IME's candidate window and the window menu at a zoom other than 1 are
+  still to be looked at in the app on Linux.
