@@ -221,3 +221,41 @@ fn stopped_native_constructor_never_discovers_or_opens_a_physical_device() {
         Err(DeviceFailure::Interrupted)
     ));
 }
+
+#[tokio::test]
+async fn generated_cue_uses_the_speech_callback_reference_and_physical_receipt_path() {
+    let mut fixture = setup();
+    let cue = crate::audio::playback::cue::Cue::new().unwrap();
+    let played = fixture.streams.submit(cue.packet().unwrap()).unwrap();
+    let mut audible = false;
+    for block in 0..298 {
+        fixture.input.accept(&[0_i16; 160]);
+        let captured = tokio::time::timeout(TEST_WAIT, fixture.streams.receive())
+            .await
+            .unwrap()
+            .unwrap();
+        drop(captured);
+        assert_eq!(*played.status().borrow(), State::Rendering);
+        let mut output = [0_i16; 960];
+        fixture.output.render(&mut output, &timestamp());
+        audible |= output.iter().any(|sample| *sample != 0);
+        if block == 297 {
+            assert_eq!(*played.status().borrow(), State::Rendering);
+        }
+    }
+    assert!(audible);
+    fixture.input.accept(&[0_i16; 160]);
+    let captured = tokio::time::timeout(TEST_WAIT, fixture.streams.receive())
+        .await
+        .unwrap()
+        .unwrap();
+    drop(captured);
+    assert!(matches!(
+        *played.status().borrow(),
+        State::Draining | State::Played
+    ));
+    if let Some(deadline) = fixture.streams.pump.next_deadline() {
+        fixture.streams.pump.advance(deadline);
+    }
+    assert_eq!(*played.status().borrow(), State::Played);
+}

@@ -472,3 +472,13 @@ watch transition; only the worker/UI uses watch state. This preserves failure
 fencing without a potentially blocked callback read. The finite child probe
 now deliberately holds the watch write lock while the failed reader must stop
 and refuse its next block. New source and fakes have not executed yet.
+
+### Independently generated waiting cue
+
+[Decision Log]
+- Purpose: finish the waiting cue without copying Paseo's embedded audio asset.
+- Existing assets: view::voice owns its2980ms duration/scheduling and shared Packet/Pump owns all output/AEC references/receipts.
+- Alternatives: reuse the reference waveform (excluded); embed another licensed recording; generate a small original waveform.
+- Choice: generate three quiet sine notes with smooth envelopes at startup,24kHz PCM16 mono for exactly the existing duration, retaining one immutable Bytes buffer for repeated packets.
+- Why: independent synthesis needs no asset licence/download/decoder and travels through exactly the same playback cancellation/reference path as speech.
+- Difference: the melody/waveform is newly authored, while purpose, duration and wait/repeat policy match the reference. Perceptual loudness/taste and actual device quality remain unverified. No separate speaker/engine or cue timer is activated.

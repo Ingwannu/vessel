@@ -1320,3 +1320,9 @@ wait handles actual output references/completions and receipt deadlines before
 capture; partial startup failure/Drop closes the shared local fence. This is
 test-only source pending controller wiring and checks. It does not enable the
 public Conversation acquisition path or attest any physical device/AEC quality.
+
+Waiting-cue PCM is generated independently in `link::audio::playback::cue`,
+with the shared view duration and ordinary speech Packet/Pump path. It has no
+copied recording, decoder or separate audio engine. The new quiet three-note
+waveform differs from the reference asset; actual perceptual/device validation
+and controller/timer activation are still owed.
