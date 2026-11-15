@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn stale_nonsettings_choices_keep_other_agents_and_remove_only_the_named_agent() {
         let claude = Kept {
-            agent: "claude".parse().unwrap(),
+            agent: "claude-code".parse().unwrap(),
             choices: Vec::new(),
         };
         let codex = Kept {
@@ -265,7 +265,7 @@ mod tests {
         use vessel_app_view::prefs::{AgentKind, Choices};
         use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, ProfileName};
         let node = NodeId::random();
-        let kind = AgentKind(HarnessKind::Claude);
+        let kind = AgentKind(HarnessKind::ClaudeCode);
         let profile: ProfileName = "work".parse().unwrap();
         let choices = Choices::try_from(BTreeMap::from([(
             OptionId::new("fast"),
@@ -285,7 +285,7 @@ mod tests {
             }
             let mut current = before.clone();
             let machine = current.settings.defaults.entry(node).or_default();
-            machine.agent = Some(HarnessKind::Claude);
+            machine.agent = Some(HarnessKind::ClaudeCode);
             machine.agents.entry(kind).or_default().profile = Some(profile.clone());
             let mut after = before.clone();
             after
@@ -300,7 +300,7 @@ mod tests {
             let next = apply(&current, &before, &after).unwrap();
             let machine = next.settings.defaults.get(&node).unwrap();
             let agent = machine.agents.get(&kind).unwrap();
-            assert_eq!(machine.agent, Some(HarnessKind::Claude));
+            assert_eq!(machine.agent, Some(HarnessKind::ClaudeCode));
             assert_eq!(agent.profile.as_ref(), Some(&profile));
             assert_eq!(agent.choices, choices);
         }
