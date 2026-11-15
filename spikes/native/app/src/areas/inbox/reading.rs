@@ -25,13 +25,24 @@ impl Shell {
     /// Pin an explicit open to the shared welcome identity. Reusing a route
     /// name for a different node can never retarget a passive read operation.
     pub(crate) fn inbox_read_open(&mut self, machine: &str, session: vessel_proto::SessionId) {
-        self.areas.inbox.read_open = self
+        // Settle the departing view using its original admission before
+        // installing the explicitly opened source. Never rebind a deferred read.
+        let leaving = self.areas.inbox.reading.observe(None).leaving;
+        if let Some(action) = leaving {
+            self.inbox_read_send(action);
+        }
+        self.areas.inbox.read_source = self
             .fleet
             .machines
             .iter()
             .find(|item| item.name == machine)
-            .and_then(|item| item.node)
-            .map(|node| Target { node, session });
+            .and_then(|item| item.connection_context())
+            .and_then(|context| vessel_app_view::inbox::Source::new(context).ok());
+        self.areas.inbox.read_open = self.areas.inbox.read_source.as_ref().map(|source| Target {
+            node: source.node(),
+            session,
+        });
+        self.areas.inbox.read_last = None;
     }
     fn inbox_read_observation(&self, window: &Window) -> Option<Observation> {
         if self.route != Route::Session {
@@ -48,21 +59,16 @@ impl Shell {
             .inbox
             .read_open
             .filter(|target| target.session == open.session)?;
-        let source = &self
-            .areas
-            .inbox
-            .store
-            .nodes()
-            .iter()
-            .find(|node| node.source.node() == target.node)?
-            .source;
-        if self
-            .fleet
-            .machines
-            .iter()
-            .find(|machine| machine.name == open.machine)
-            .and_then(|machine| machine.node)
-            != Some(source.node())
+        let source = self.areas.inbox.read_source.as_ref()?;
+        if source.node() != target.node
+            || self
+                .fleet
+                .machines
+                .iter()
+                .find(|machine| machine.name == open.machine)
+                .and_then(|machine| machine.connection_context())
+                .as_ref()
+                != Some(source.context())
         {
             return None;
         }
@@ -103,32 +109,34 @@ impl Shell {
         self.route == Route::Session && self.areas.session.open.is_some()
     }
     pub(crate) fn inbox_hold_read(&mut self, machine: &str, session: vessel_proto::SessionId) {
-        if let Some(node) = self
+        if let Some(source) = self
             .areas
             .inbox
-            .store
-            .nodes()
-            .iter()
-            .find(|node| node.source.name().as_str() == machine)
+            .read_source
+            .as_ref()
+            .filter(|source| source.name().as_str() == machine)
         {
             self.areas.inbox.reading.hold(
                 Target {
-                    node: node.source.node(),
+                    node: source.node(),
                     session,
                 },
                 self.areas.conversation.timeline.next(),
             );
         }
     }
+
     fn inbox_read_send(&mut self, action: Action) {
         let Some(source) = self
             .areas
             .inbox
-            .store
-            .nodes()
-            .iter()
-            .find(|node| node.source.node() == action.target.node)
-            .map(|node| node.source.clone())
+            .read_source
+            .as_ref()
+            .filter(|source| {
+                self.areas.inbox.read_open == Some(action.target)
+                    && source.node() == action.target.node
+            })
+            .cloned()
         else {
             return;
         };

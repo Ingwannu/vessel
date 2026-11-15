@@ -8,6 +8,17 @@ impl Shell {
     pub(crate) fn inbox_retired(&mut self, tag: &ConnectionTag) -> bool {
         let area = &mut self.areas.inbox;
         let mut changed = false;
+        if area
+            .read_source
+            .as_ref()
+            .is_some_and(|source| source.context().tag() == *tag)
+        {
+            area.read_source = None;
+            area.read_open = None;
+            area.read_last = None;
+            let _retired = area.reading.observe(None);
+            changed = true;
+        }
         for target in &mut area.targets {
             if let Target::Online(source) = target
                 && source.context().tag() == *tag

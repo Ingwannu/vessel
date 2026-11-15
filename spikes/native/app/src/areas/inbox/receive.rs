@@ -62,13 +62,7 @@ impl Shell {
                     session,
                 };
                 if self.areas.inbox.read_last == Some((request, target))
-                    && self
-                        .areas
-                        .inbox
-                        .store
-                        .nodes()
-                        .iter()
-                        .any(|node| node.source == source)
+                    && self.areas.inbox.read_source.as_ref() == Some(&source)
                 {
                     self.areas.inbox.read_problem = result.err();
                     self.inbox_refresh();

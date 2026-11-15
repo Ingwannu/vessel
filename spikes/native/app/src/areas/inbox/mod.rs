@@ -37,6 +37,7 @@ pub(crate) struct InboxArea {
     pub(crate) presence: vessel_app_view::inbox::presence::Presence,
     pub(crate) reading: vessel_app_view::inbox::reading::Reader,
     pub(crate) read_open: Option<vessel_app_view::inbox::reading::Target>,
+    pub(crate) read_source: Option<vessel_app_view::inbox::Source>,
     pub(crate) read_last: Option<(
         vessel_app_view::inbox::Request,
         vessel_app_view::inbox::reading::Target,
@@ -71,6 +72,7 @@ impl InboxArea {
             presence_problems: Vec::new(),
             reading: vessel_app_view::inbox::reading::Reader::default(),
             read_open: None,
+            read_source: None,
             read_last: None,
             read_problem: None,
             test_notice: vessel_app_view::inbox::settings::TestNotice::Idle,

@@ -376,3 +376,10 @@ not double-count shared rows or reset hydration on every poll. This selection is
 only for new reads/presence. An already-issued mark, answer, claim or clear keeps
 its original admission and never retries through the replacement. A regression
 covers duplicate aliases and rejection of a ticket from the retired read route.
+
+Passive session reads now pin the explicit open's full shared connection context,
+not just NodeId. A deferred leave is settled before that binding changes;
+retirement removes it and its receipt ticket. A replacement connection cannot
+receive the old view's automatic mark even when it authenticates as the same
+node. The pure Reader still owns watermark/focus/deferred-input semantics and
+node ingress remains responsible for current pending-request vetoes.
