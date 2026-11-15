@@ -54,6 +54,7 @@ impl NodeService {
         connection: &Connection,
         request: CreatePrompt,
     ) -> Result<SavedPrompt, WireError> {
+        crate::label_ingress::template(request.session.as_deref())?;
         let principal = connection.principal();
         writer(principal)?;
         if let Some(project) = request.project {
@@ -74,6 +75,7 @@ impl NodeService {
         connection: &Connection,
         request: UpdatePrompt,
     ) -> Result<SavedPrompt, WireError> {
+        crate::label_ingress::template(request.session.as_deref())?;
         let principal = connection.principal();
         writer(principal)?;
         let current = self

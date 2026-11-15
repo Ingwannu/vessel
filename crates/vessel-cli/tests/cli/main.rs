@@ -21,9 +21,13 @@ mod devices;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod inbox;
+#[cfg(test)]
 mod init;
 #[cfg(test)]
 mod mcp;
+#[cfg(test)]
+mod node_stop;
 mod nodes;
 #[cfg(test)]
 mod reconnect;
