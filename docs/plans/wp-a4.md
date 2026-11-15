@@ -115,3 +115,20 @@ W11 owns background/workspace membership and W12 pane targets; no workspace nume
 The track/header, adaptive kit dialogs, managed child navigation/current-parent lookup, explicit detach confirmation and uncertain-result refresh boundary, provider local hide and correlated canonical child paging are now wired to the pending typed methods. Current parentage is accepted only from a capable authenticated node; a reused book alias refuses before read/mutation. The main timeline ignores ProviderChild wrappers. ChildPane validates requested cursor windows, immutable overlaps and aggregate retained count/bytes before publishing pages. Renderer state is an embedded ConversationArea with shown/info unset, using the existing rows/Seat API without a fabricated managed SessionId.
 
 Remaining before package acceptance: W12/W10 keyed read-only subview replaces the interim function-pointer Seat before final review; current generation checks protect asynchronous answers but old painted cosmetic toggle closures are not yet keyed. A2 canonical finished eligibility/conditional archive and W11 background/workspace projection remain dependencies; managed eligibility stays explicitly unknown, and the UI discloses partial hydration. The current bulk action hides terminal provider rows only until A2 is integrated. Nested provider navigation and the detailed status-count pill still require filling. No real provider observations have been emitted yet: driver extraction/projector execution and the full package gates/captures/review remain owed. This commit is a frame, not completed parity.
+
+## Shared projection and context intake
+
+ChildPane now transfers an accepted Timeline exactly once with take_projection,
+retaining its bounded immutable source records for the next prepend. The app
+installs this projection into its existing read-only ConversationArea rather than
+folding the same records a second time. Preserving disclosure/bookmark UI state
+across replacement still awaits W10's shared A7 projection installation and W12's
+keyed Seat; no incompatible transitional renderer is introduced here.
+
+W6's isolated checked composer-context values20ea88e2 are reused. ForkSummary
+adapts into the canonical ChatHistory/Payload with validated ContextText, preserving
+the complete bounded wrapper and no fetched URL. Caller-supplied validated id/title
+stay typed; there is no second context store. W3's Busy-protected actual draft seed
+and W12's existing-workspace DraftId integration remain required before wiring the
+user action. A top-level workspace opener is never substituted for an existing
+workspace draft target.

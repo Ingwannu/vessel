@@ -220,3 +220,31 @@ fn an_earlier_entry_changed_after_the_selected_answer_refuses_the_snapshot() {
     );
     assert!(fork_summary(&rows, None, metadata()).is_ok());
 }
+
+#[test]
+fn bounded_multibyte_summary_uses_the_canonical_chat_history_attachment() {
+    use crate::composer::context::{
+        ContextAttachment, ContextId, ContextKind, ContextText, ContextTitle, Payload,
+    };
+    let text = "한글🙂".repeat(MAX_FORK_UNITS);
+    let summary = summary(&[entry(0, message(text))]);
+    let expected = summary.as_str().to_owned();
+    let history = summary
+        .into_chat_history(
+            ContextId::parse("fixture:fork").unwrap(),
+            ContextTitle::parse("Conversation history").unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        history.into_attachment(),
+        ContextAttachment::Snapshot {
+            kind: ContextKind::ChatHistory,
+            payload: Payload {
+                id: ContextId::parse("fixture:fork").unwrap(),
+                title: ContextTitle::parse("Conversation history").unwrap(),
+                text: ContextText::parse(&expected).unwrap(),
+                url: None,
+            },
+        }
+    );
+}

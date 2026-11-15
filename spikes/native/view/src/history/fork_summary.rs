@@ -91,6 +91,23 @@ impl ForkSummary {
     pub fn as_str(&self) -> &str {
         &self.text
     }
+    /// Adapt once into the canonical composer payload; this owns no attachment store.
+    /// # Errors
+    /// Refuses a snapshot outside the composer's validated text budget.
+    pub fn into_chat_history(
+        self,
+        id: crate::composer::context::ContextId,
+        title: crate::composer::context::ContextTitle,
+    ) -> Result<crate::composer::context::ChatHistory, crate::composer::context::ContextProblem>
+    {
+        use crate::composer::context::{ChatHistory, ContextText, Payload};
+        Ok(ChatHistory::new(Payload {
+            id,
+            title,
+            text: ContextText::parse(&self.text)?,
+            url: None,
+        }))
+    }
     /// Preserve missing source history separately from budget truncation.
     #[must_use]
     pub const fn history(&self) -> SummaryHistory {
