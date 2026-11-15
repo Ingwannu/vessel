@@ -467,7 +467,10 @@ pub(super) const SUBAGENT_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
 const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt TEXT;";
 
 /// Provisional next migration; integration re-points this one constant.
-pub(super) const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+
+/// Schema 21 (`super::listing`), appended after the registry at the node-line merge.
+pub(super) const BACKGROUND_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
@@ -492,6 +495,7 @@ pub(super) const MIGRATIONS: &[&str; super::creation::OWNER_SCHEMA] = &[
     TITLE_ORIGIN,
     SUBAGENT_RELATIONS,
     super::workspace_registry::SQL,
+    super::listing::SQL,
     super::creation::CREATION,
     super::creation::OWNER,
 ];

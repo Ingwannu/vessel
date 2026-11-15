@@ -675,6 +675,9 @@ async fn sessions_from_schema_3_have_no_origin() {
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
+    connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);
@@ -708,6 +711,9 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
@@ -754,6 +760,9 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     drop(store);
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();

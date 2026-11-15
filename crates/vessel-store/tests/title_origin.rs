@@ -107,8 +107,8 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection
-        .execute_batch("DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts;")
+    // Keep the fixture's original title-origin predecessor after later appends.
+    connection.execute_batch("DROP TABLE terminal_profile_settings; DROP TABLE creation_claims; DROP TABLE creation_receipts; ALTER TABLE sessions DROP COLUMN listing;")
         .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection

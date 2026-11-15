@@ -1,7 +1,7 @@
 //! Creation receipts and resource claims share the database's transaction authority.
 
 /// Integration repoints this one assignment when another package lands first.
-pub(super) const RECEIPTS_SCHEMA: usize = super::migrations::REGISTRY_SCHEMA.saturating_add(1);
+pub(super) const RECEIPTS_SCHEMA: usize = super::migrations::BACKGROUND_SCHEMA.saturating_add(1);
 pub(super) const OWNER_SCHEMA: usize = RECEIPTS_SCHEMA.saturating_add(1);
 
 pub(super) const CREATION: &str = "

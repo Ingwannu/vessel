@@ -58,6 +58,8 @@ pub enum Column {
     TitleOrigin,
     /// Durable managed-child detach receipt (ADR 0090).
     DetachReceipt,
+    /// `sessions.listing` (a `SessionListing`, ADR 0063).
+    Listing,
 }
 
 /// Anything that can go wrong in the store.

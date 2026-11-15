@@ -8,7 +8,10 @@
 
 mod creation;
 #[cfg(test)]
+mod background;
+#[cfg(test)]
 mod labels;
+mod listing;
 mod migrations;
 mod workspace_registry;
 
