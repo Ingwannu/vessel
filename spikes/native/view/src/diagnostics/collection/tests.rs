@@ -349,7 +349,7 @@ fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect
     let mut epochs = ConnectionEpochs::default();
     let old = epochs.admit(machine.clone(), id).unwrap();
     let next = epochs.admit(machine.clone(), id).unwrap();
-    let mut tickets = crate::devices::Tickets::default();
+    let mut tickets = Tickets::default();
     let ticket = tickets.next_ticket().unwrap();
     let mut run = Collection::default();
     run.start(
@@ -364,12 +364,12 @@ fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect
     // A stale retirement for another epoch cannot retire the selected one.
     run.retired(&next.tag());
     assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
-    let mut snapshot = crate::Machine::unreachable("epoch-host".into(), "private test reason");
+    let mut snapshot = Machine::unreachable("epoch-host".into(), "private test reason");
     snapshot.node = Some(id);
     snapshot.connection_epoch = Some(old.epoch());
     run.reconcile(&[snapshot.clone()]);
     assert_eq!(run.rows().first().unwrap().progress, Progress::Running);
-    snapshot.reach = crate::Reach::Online;
+    snapshot.reach = Reach::Online;
     snapshot.connection_epoch = Some(next.epoch());
     run.reconcile(&[snapshot]);
     run.answer_connection(ticket, &old, Err(Problem::Failed));

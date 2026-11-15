@@ -98,3 +98,11 @@ follow-up removes the wire version from user-facing copy and replaces generic
 contexts with each explanation's actual purpose. It adds no variables or
 privacy/security approval. Whole-sentence EN/KO assertions track these final
 sentences. Compilation and UI verification remain pending.
+
+View checkpoint: run `wp-onboarding-view-20261115T173141Z-c69df8e3` completed
+fonts and the selected diagnostics tests,28 passed/0 failed/0 ignored on exact
+`c69df8e3`. This does not cover the later wording/semantic correction or staged
+app/link adapter. View all-target Clippy on `07ea44bd` then found three redundant
+test qualifications; these are removed without weakening any assertion/lint.
+Its failed run remains evidence, not a compile/test success. No full consumer
+validation is claimed before the guarded adapter lands.
