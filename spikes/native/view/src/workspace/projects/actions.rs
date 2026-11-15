@@ -158,16 +158,16 @@ impl ProjectActions {
     /// Every reply settles remote activity even after its form was detached.
     #[must_use]
     pub fn finish(&mut self, key: &ProjectActionKey, result: ProjectSettlement) -> ProjectReply {
-        if let Some(index) = self
-            .activities
-            .iter()
-            .position(|activity| &activity.key == key)
-        {
-            match result {
-                ProjectSettlement::Succeeded => {
-                    self.activities.remove(index);
+        match result {
+            ProjectSettlement::Succeeded => self.activities.retain(|activity| &activity.key != key),
+            ProjectSettlement::Failed => {
+                if let Some(activity) = self
+                    .activities
+                    .iter_mut()
+                    .find(|activity| &activity.key == key)
+                {
+                    activity.state = ActivityState::Failed;
                 }
-                ProjectSettlement::Failed => self.activities[index].state = ActivityState::Failed,
             }
         }
         if self.pending.as_ref() == Some(key) {

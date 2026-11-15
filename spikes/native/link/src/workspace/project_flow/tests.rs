@@ -146,7 +146,7 @@ fn unsent_dispatch_preserves_correlation_and_never_reports_removal_success() {
     assert_eq!(
         tracker.finish(
             &returned,
-            vessel_app_view::workspace::projects::actions::ProjectSettlement::Succeeded
+            vessel_app_view::workspace::projects::actions::ProjectSettlement::Failed
         ),
         ProjectReply::Current
     );
