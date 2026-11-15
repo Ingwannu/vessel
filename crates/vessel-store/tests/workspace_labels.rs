@@ -184,6 +184,51 @@ async fn workspace_labels_watch_silence_and_collision_rollback_use_the_real_writ
 }
 
 #[tokio::test]
+async fn workspace_labels_failed_real_revision_bump_rolls_back_both_tables_and_wake() {
+    let (_temporary, directory, store) = opened().await;
+    let record = record();
+    let workspace = record.descriptor.id;
+    store.put_registry_workspace(record, None).await.unwrap();
+    let original = store.workspace_registry().await.unwrap().revision;
+    let connection = rusqlite::Connection::open(directory.database_path()).unwrap();
+    let _changed = connection
+        .execute(
+            "UPDATE workspace_registry_meta SET revision=?1 WHERE singleton=1",
+            [i64::MAX],
+        )
+        .unwrap();
+    let before = store.workspace_registry().await.unwrap();
+    let changes = store.registry_changes();
+    assert!(matches!(
+        store
+            .assign_workspace_label(assign(workspace, "Ready"))
+            .await,
+        Err(StoreError::RegistryRevisionExhausted)
+    ));
+    assert!(store.workspace_label_catalog().await.unwrap().is_empty());
+    assert_eq!(store.workspace_registry().await.unwrap(), before);
+    assert!(!changes.has_changed().unwrap());
+    let _reset = connection
+        .execute(
+            "UPDATE workspace_registry_meta SET revision=?1 WHERE singleton=1",
+            [i64::try_from(original.get()).unwrap()],
+        )
+        .unwrap();
+    drop(connection);
+    let committed = store
+        .assign_workspace_label(assign(workspace, "Ready"))
+        .await
+        .unwrap();
+    assert!(committed.delta.is_some());
+    assert!(changes.has_changed().unwrap());
+    assert_eq!(
+        names(&store.workspace_registry().await.unwrap(), workspace),
+        ["Ready"]
+    );
+    store.close().await;
+}
+
+#[tokio::test]
 async fn workspace_labels_rename_delete_order_and_snapshot_survive_real_reopen() {
     let (_temporary, dir, store) = opened().await;
     let first = record();

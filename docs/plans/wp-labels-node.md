@@ -154,3 +154,10 @@ Authored verification now includes three real Store tests, one real actor/Store
 reopen test, typed direct/nested capability/projection tests and an in-memory SDK
 no-request-frame test. These new tests and current strict compilation have NOT
 executed yet. No A6 whole gate or reviewer acceptance is claimed.
+
+A fourth real Store regression exhausts only the isolated fixture's registry
+revision, forcing failure after catalog/assignment SQL has already run. It checks
+savepoint rollback, unchanged snapshot and silent watch, then restores the fixture
+revision and proves a later write still succeeds. This complements the planner
+collision test and scripted actor failure; it remains unexecuted with the new
+adapter checks.
