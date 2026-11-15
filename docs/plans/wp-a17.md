@@ -380,3 +380,13 @@ lints and the dispatch function's 101/100-line budget. The pending/older-peer
 tests use is_none_or with the same refusal semantics. SavePrefs persistence is
 extracted unchanged into a private dispatch helper; no raised size record,
 call list, retry, error behavior or scope change. A new union narrow is owed.
+
+The app tree still carries earlier A5 root runtime source from before the
+separate node-tree rule. Values adoption therefore also requires a root union
+check before any line handoff: native compilation does not compile vessel-node.
+The existing terminal reducer explicitly accepts canonical Untracked in its
+non-attention arms, and the existing store rollup projects marked_unread from
+the same read transaction as the counts. These small carrier adaptations match
+the node tree; no whole node branch/runtime merge, wire registration, protocol
+number, recipient capability or new authority is introduced. Root build/tests
+on this app tree remain owed and cannot be inferred from native checks.

@@ -38,9 +38,10 @@ pub(super) fn clear(
     }
     match current.activity {
         TerminalActivity::Attention { .. } => replace(current, TerminalActivity::Idle, now),
-        TerminalActivity::Unknown | TerminalActivity::Idle | TerminalActivity::Working => {
-            Ok(current)
-        }
+        TerminalActivity::Untracked
+        | TerminalActivity::Unknown
+        | TerminalActivity::Idle
+        | TerminalActivity::Working => Ok(current),
     }
 }
 
@@ -82,7 +83,8 @@ fn next_activity(current: TerminalActivity, signal: TerminalActivitySignal) -> T
             TerminalActivity::Attention {
                 reason: TerminalAttentionReason::Finished,
             } => current,
-            TerminalActivity::Unknown
+            TerminalActivity::Untracked
+            | TerminalActivity::Unknown
             | TerminalActivity::Idle
             | TerminalActivity::Attention {
                 reason: TerminalAttentionReason::NeedsInput | TerminalAttentionReason::Unknown,

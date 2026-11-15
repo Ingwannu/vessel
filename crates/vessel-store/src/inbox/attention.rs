@@ -12,7 +12,7 @@ pub(crate) fn read(
     sessions: &[SessionId],
 ) -> Result<Vec<SessionAttention>, StoreError> {
     let mut query = connection.prepare_cached(
-        "SELECT s.id, COALESCE(SUM(i.seen=0),0), COALESCE(SUM(i.waiting=1),0), COALESCE(SUM(json_extract(i.item,'$.kind')='failed'),0)
+        "SELECT s.id, COALESCE(SUM(i.seen=0),0), COALESCE(SUM(i.waiting=1),0), COALESCE(SUM(json_extract(i.item,'$.kind')='failed'),0), s.marked_unread
          FROM sessions s LEFT JOIN inbox i ON i.session=s.id
          WHERE s.id=?1 GROUP BY s.id",
     )?;
@@ -30,6 +30,7 @@ pub(crate) fn read(
                 unread: count(row.get(1)?)?,
                 waiting: count(row.get(2)?)?,
                 failed: count(row.get(3)?)?,
+                explicit_unread: row.get(4)?,
             });
         }
     }
