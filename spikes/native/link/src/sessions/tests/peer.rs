@@ -105,6 +105,12 @@ pub(super) async fn connect_as(behavior: Behavior, node: NodeId) -> Peer {
                     Behavior::Accept => {
                         if let Call::GetSession(request) = call {
                             Outcome::Ok(Reply::GetSession(info(request.session)))
+                        } else if let Call::ReadEvents(request) = call {
+                            Outcome::Ok(Reply::ReadEvents(vessel_proto::EventPage {
+                                records: Vec::new(),
+                                next: request.from,
+                                at_end: true,
+                            }))
                         } else if let Call::MarkSession(request) = call {
                             let mut current = info(request.session);
                             if request.mark == vessel_proto::Mark::Archive {

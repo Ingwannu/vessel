@@ -54,13 +54,19 @@ impl crate::shell::Shell {
     }
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        // Admit the terminal owner before any metadata/log read can use an alias.
+        if !self.terminal_follow(&open, cx) {
+            return;
+        }
+        self.follow_ready(open, cx);
+    }
+
+    // The caller has already admitted and applied the terminal presentation.
+    fn follow_ready(&mut self, open: Open, cx: &mut Context<'_, Self>) {
         self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
-        if !self.terminal_follow(&open, cx) {
-            return;
-        }
         self.command(open.binding.clone().map_or_else(
             || Command::Open {
                 machine: open.machine.clone(),
@@ -103,6 +109,9 @@ impl crate::shell::Shell {
                 },
             });
         }
+        let Some(terminal) = self.terminal_admit(&open, cx) else {
+            return;
+        };
         self.cancel_session_navigation();
         // Track P: the session composer swaps the draft it holds.
         self.composer_switched(open.session, window, cx);
@@ -112,7 +121,8 @@ impl crate::shell::Shell {
         self.areas.session.pending = None;
         self.areas.session.resuming = None;
         self.areas.session.resume_error = None;
-        self.follow(open, cx);
+        self.terminal_follow_admitted(terminal, cx);
+        self.follow_ready(open, cx);
         let placeholder = self
             .t
             .composer_placeholder(&crate::areas::settings::send_key_words(self));

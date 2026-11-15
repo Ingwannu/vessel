@@ -2,6 +2,7 @@
 //! adapts the view's one parser/grid to the kit's one renderer (ADR 0073).
 //! Reads and replays carry one opening token; no parsing runs in a UI update.
 
+mod admission;
 #[cfg(test)]
 mod binding_tests;
 mod body;
@@ -32,7 +33,8 @@ use std::time::Duration;
 use chrono::Utc;
 use gpui::{AppContext as _, FocusHandle, Subscription, Task};
 use vessel_app_kit::ui::{Bounds, Context, Entity, Pixels, px};
-use vessel_app_link::{Act, Command, NodeName, TerminalOpening};
+use vessel_app_link::sessions::{Access, Binding};
+use vessel_app_link::{Command, NodeName, TerminalOpening};
 use vessel_app_view::terminal::{GridSize, ScrollbackLines, TerminalLog, TerminalModel, Viewport};
 use vessel_app_view::timeline::Until;
 use vessel_proto::{EventRecord, SessionEvent, SessionId, TerminalSize};
@@ -137,38 +139,39 @@ impl TerminalArea {
 }
 
 impl Shell {
-    /// Adapt the legacy session area's raw book name once, before any terminal work.
-    pub(crate) fn terminal_follow(
-        &mut self,
-        open: &crate::areas::session::Open,
-        cx: &mut Context<'_, Self>,
-    ) -> bool {
-        if open.structured {
-            self.terminal_closed();
-        } else {
-            let Ok(machine) = open.machine.parse::<NodeName>() else {
-                self.notice = Some(self.t.terminal_unread.to_owned());
-                return false;
-            };
-            self.terminal_opened(machine, open.session, TerminalSize::default(), cx);
-        }
-        true
-    }
-
-    /// A new opening invalidates every outstanding read and replay, even
-    /// if this machine/session pair was shown earlier.
-    pub(crate) fn terminal_opened(
+    #[cfg(test)]
+    fn terminal_opened(
         &mut self,
         machine: NodeName,
         session: SessionId,
         size: TerminalSize,
         cx: &mut Context<'_, Self>,
     ) {
+        let binding = Binding {
+            host: vessel_app_view::machine_book::Name::parse(machine.as_str()).unwrap(),
+            address: vessel_app_view::sessions::SessionAddress {
+                node: vessel_proto::NodeId::random(),
+                session,
+            },
+        };
+        self.terminal_opened_bound(machine, binding, size, cx);
+    }
+
+    /// A new opening invalidates every outstanding read and replay, even
+    /// if this machine/session pair was shown earlier.
+    fn terminal_opened_bound(
+        &mut self,
+        machine: NodeName,
+        binding: Binding,
+        size: TerminalSize,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let session = binding.address.session;
         let area = &mut self.areas.terminal;
         let size = area
             .fit
             .unwrap_or_else(|| GridSize::within(size.cols, size.rows).unwrap_or_default());
-        let opening = TerminalOpening::new(machine, session);
+        let opening = TerminalOpening::for_node(machine, session, binding.address.node);
         area.shown = Some(opening.clone());
         area.phase = Phase::Loading;
         area.model = Some(TerminalModel::new(size, area.scrollback));
@@ -182,14 +185,11 @@ impl Shell {
         area.blink = Blink::On;
         area.viewport = Viewport::default();
         area.wheel = Wheel::default();
-        self.command(Command::Act {
-            machine: opening.machine().to_string(),
-            session,
-            act: Act::TerminalLog {
-                opening,
-                until: Until::Time(Utc::now()),
-            },
-        });
+        self.command(Command::SessionAccess(Access::ReadTerminal {
+            binding,
+            opening,
+            until: Until::Time(Utc::now()),
+        }));
         self.terminal_draw(cx);
     }
 

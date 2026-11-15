@@ -185,3 +185,33 @@ mode and modified-Enter protocol. This is byte-codec evidence only; actual
 GPUI key input, IME, node delivery and physical keyboards remain unverified.
 No new external API or dependency is needed for this reuse. The shared screen
 engine choice is still pending its independent two-candidate comparison.
+
+## Bound history read security cutover
+
+[Decision Log]
+- Purpose: a saved alias can be replaced after navigation authenticates a node;
+  terminal history must remain with the original destination.
+- Existing asset: checked W21 `f3c7db5f` provides required `Binding` and
+  `Access::ReadTerminal`, validates the live NodeClient synchronously and captures
+  that exact client before spawning. The old terminal area bypassed this path.
+- Alternatives: recover authority from current Fleet, trust a bare alias, or carry
+  the admitted binding/opening through the existing command. Only the last is used.
+- Choice: an opaque frontend `Admission` validates host/session metadata before
+  draft switching or hydration. It is consumed once to begin the presentation.
+  `TerminalOpening` retains expected NodeId and its existing Arc identity; the
+  link also requires that node to match Binding before looking up/capturing a client.
+  Missing/mismatched bindings produce the shared translated navigation refusal.
+- Why: one owner performs admission without a second connection cache or pane
+  manager. Refused navigation preserves the previously admitted screen/draft.
+- Cost and limits: this repairs passive history reads. It does not establish
+  G4 live lease/resident-stream safety. Legacy Records/SessionLost still carry
+  only SessionId; queued cross-node stream fencing was reported to W21 separately.
+
+The two original app refusal regressions actually fail at line head `20b24af24`
+(0 passed/2 failed, `/tmp/work/m12-conv-c2/binding-line-red.log`). Extra regressions
+cover retained expected node, preserving an existing opening/draft on refusal,
+matching node/binding in link, and a read accepted on A still using A when the
+saved alias is replaced by B before the asynchronous task runs. Peer RPC tests
+use the real typed NodeClient over in-memory framed transport, no process/agent.
+No transport/hardware/whole-D1 pass is inferred. Per-commit security review is
+owed after exact changed-source narrow checks.

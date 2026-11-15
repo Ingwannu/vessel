@@ -137,3 +137,58 @@ async fn terminal_receipt_cannot_be_reused_for_another_authenticated_session() {
     assert!(answer.result.is_err());
     assert!(peer.calls.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn terminal_opening_requires_the_same_retained_node_as_its_binding() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let (mut state, mut events) = state(peer.client.clone());
+    let target = binding(peer.client.node().id);
+    for opening in [
+        crate::TerminalOpening::new("renamed".parse().unwrap(), target.address.session),
+        crate::TerminalOpening::for_node(
+            "renamed".parse().unwrap(),
+            target.address.session,
+            NodeId::random(),
+        ),
+    ] {
+        state.session_access(Access::ReadTerminal {
+            binding: target.clone(),
+            opening: opening.clone(),
+            until: vessel_app_view::timeline::Until::Record(vessel_proto::EventSeq::ZERO),
+        });
+        let Event::Acted(answer) = next(&mut events).await else {
+            panic!("wrong event")
+        };
+        assert_eq!(answer.terminal, Some(opening));
+        assert!(answer.result.is_err());
+        assert!(peer.calls.try_recv().is_err());
+    }
+}
+
+#[tokio::test]
+async fn terminal_read_captures_the_checked_client_before_an_alias_is_replaced() {
+    let mut admitted = peer::connect(peer::Behavior::Accept).await;
+    let mut replacement = peer::connect(peer::Behavior::Accept).await;
+    let (mut state, mut events) = state(admitted.client.clone());
+    let target = binding(admitted.client.node().id);
+    let opening = crate::TerminalOpening::for_node(
+        "renamed".parse().unwrap(),
+        target.address.session,
+        target.address.node,
+    );
+    state.session_access(Access::ReadTerminal {
+        binding: target.clone(),
+        opening: opening.clone(),
+        until: vessel_app_view::timeline::Until::Record(vessel_proto::EventSeq::ZERO),
+    });
+    state.clients.get_mut("renamed").unwrap().client = replacement.client.clone();
+    let Event::Acted(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.terminal, Some(opening));
+    assert!(matches!(answer.result,Ok(Acted::Log(records)) if records.is_empty()));
+    assert!(
+        matches!(admitted.calls.recv().await,Some(Call::ReadEvents(request)) if request.session==target.address.session)
+    );
+    assert!(replacement.calls.try_recv().is_err());
+}

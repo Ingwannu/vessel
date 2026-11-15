@@ -120,6 +120,7 @@ impl crate::State {
             } => {
                 binding.host.as_str() == opening.machine().as_str()
                     && binding.address.session == opening.session()
+                    && opening.expected_node() == Some(binding.address.node)
             }
             Access::Read { .. } | Access::Follow(_) => true,
         };

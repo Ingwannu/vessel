@@ -57,3 +57,40 @@ fn terminal_binding_must_match_both_requested_host_and_session(cx: &mut TestAppC
         }
     });
 }
+
+#[gpui::test]
+fn admitted_terminal_retains_node_and_refusal_preserves_its_opening(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let session = SessionId::random();
+        let node = NodeId::random();
+        let binding = Binding {
+            host: Name::parse("laptop").unwrap(),
+            address: SessionAddress { node, session },
+        };
+        assert!(shell.terminal_follow(&shown(session, Some(binding)), cx));
+        let opening = shell.areas.terminal.shown.clone().unwrap();
+        assert_eq!(opening.expected_node(), Some(node));
+        assert!(!shell.terminal_follow(&shown(SessionId::random(), None), cx));
+        assert_eq!(shell.areas.terminal.shown, Some(opening));
+    });
+}
+
+#[gpui::test]
+fn rejected_terminal_open_never_switches_draft_or_hydrates_conversation(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        shell
+            .areas
+            .session
+            .composer
+            .set_text("retained draft", window, cx);
+        assert!(shell.areas.conversation.shown.is_none());
+        shell.open_session(shown(SessionId::random(), None), window, cx);
+        assert!(shell.areas.conversation.shown.is_none());
+        assert!(shell.areas.session.open.is_none());
+        assert_eq!(shell.areas.session.composer.text(cx), "retained draft");
+    });
+}

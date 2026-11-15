@@ -3,13 +3,14 @@
 
 use std::sync::Arc;
 use vessel_client::book::NodeName;
-use vessel_proto::SessionId;
+use vessel_proto::{NodeId, SessionId};
 
 /// One presentation of one terminal. Reopening the same session is new work.
 #[derive(Debug, Clone)]
 pub struct TerminalOpening {
     machine: NodeName,
     session: SessionId,
+    node: Option<NodeId>,
     ticket: Arc<()>,
 }
 
@@ -20,8 +21,26 @@ impl TerminalOpening {
         Self {
             machine,
             session,
+            node: None,
             ticket: Arc::new(()),
         }
+    }
+
+    /// Bind a new opening to the node authenticated during navigation.
+    #[must_use]
+    pub fn for_node(machine: NodeName, session: SessionId, node: NodeId) -> Self {
+        Self {
+            machine,
+            session,
+            node: Some(node),
+            ticket: Arc::new(()),
+        }
+    }
+
+    /// Original authenticated node; a legacy receipt alone never authorizes a bound read.
+    #[must_use]
+    pub const fn expected_node(&self) -> Option<NodeId> {
+        self.node
     }
 
     /// The validated book identity which owns the work.
@@ -42,6 +61,7 @@ impl PartialEq for TerminalOpening {
         Arc::ptr_eq(&self.ticket, &other.ticket)
             && self.machine == other.machine
             && self.session == other.session
+            && self.node == other.node
     }
 }
 
