@@ -107,6 +107,12 @@ executing tests. The single-parameter pattern now explicitly matches the outer
 slice reference as well; acceptance and golden expectations remain unchanged.
 That compiler failure is not reported as the expected semantic regression.
 
+The next executed source passed ten tests, including actual real-output/cat,
+query oracle/bursts, independent attributes, bounded refusals and snapshots.
+The synthetic resize corpus still failed on a retained-history count. The
+assertion now includes its checkpoint and actual rows so the next diagnostic
+run identifies the precise state; no expected value or assertion is weakened.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure

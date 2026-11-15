@@ -165,7 +165,13 @@ fn check_corpus(input: &str, count: usize) {
                         screen.buffer_kind() == BufferKind::Alternate,
                         expected.alternate
                     );
-                    assert_eq!(screen.history_len().get(), expected.history);
+                    assert_eq!(
+                        screen.history_len().get(),
+                        expected.history,
+                        "{} {checkpoint}, rows: {:?}",
+                        program.name,
+                        screen.capture(CaptureRange::default())
+                    );
                     assert_eq!(
                         screen.capture(CaptureRange::default()).unwrap().lines,
                         expected.lines,
