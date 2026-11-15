@@ -45,6 +45,8 @@ mod origin;
 mod outline;
 mod permission;
 mod plan;
+mod plan_types;
+mod plan_words;
 mod question;
 mod question_step;
 mod rewind;
@@ -73,6 +75,7 @@ pub use origin::{Until, origin_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
 pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
 pub use plan::{PlanActivity, all_pending, plan_activities};
+pub use plan_types::{PlanExpansion, PlanOutcome};
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
