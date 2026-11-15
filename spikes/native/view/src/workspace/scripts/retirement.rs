@@ -32,6 +32,16 @@ impl RetiredWrite {
     pub const fn action(&self) -> &Action {
         &self.action
     }
+    /// Original local correlation; it grants no remote permission.
+    #[must_use]
+    pub const fn key(&self) -> RequestKey {
+        self.key
+    }
+    /// Identify a retained response without copying its potentially large value.
+    #[must_use]
+    pub fn matches(&self, target: &Target, key: RequestKey) -> bool {
+        &self.target == target && self.key == key
+    }
     /// An error receipt can still mean an unknown remote outcome.
     #[must_use]
     pub const fn receipt(&self) -> Option<&Result<Option<ScriptRunOutcome>, Problem>> {
@@ -44,7 +54,7 @@ impl RetiredWrite {
         key: RequestKey,
         result: Result<Option<ScriptRunOutcome>, Problem>,
     ) -> bool {
-        if &self.target != target || self.key != key || self.receipt.is_some() {
+        if !self.matches(target, key) || self.receipt.is_some() {
             return false;
         }
         self.receipt = Some(result);

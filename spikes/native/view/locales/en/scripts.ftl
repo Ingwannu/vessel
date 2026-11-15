@@ -13,7 +13,13 @@ scripts-retired = This tab changed while a request was in flight. Its original r
 scripts-reload-retired = Reload current status
 
 # Owner-local retention limit refuses another panel without dropping requests.
-scripts-retained-limit = Too many script panels retain requests. Existing requests remain intact; another panel cannot be opened yet.
+scripts-retained-limit = Too many script views retain requests. Dismiss received results to free space; pending requests are kept.
+
+# Local history only; dismissing must never cancel or replay a remote request.
+scripts-retained-results = Earlier script requests are retained. A failed reply can still mean an unknown remote outcome. Dismissing clears received local notices only; pending requests are kept and no request is replayed.
+
+# Explicit acknowledgement of exactly the received results shown now.
+scripts-dismiss-received = Dismiss received results
 
 # Project scripts: short action/status, or complete explanatory notice.
 scripts-loading = Reading scripts…

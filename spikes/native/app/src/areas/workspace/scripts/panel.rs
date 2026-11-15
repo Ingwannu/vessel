@@ -13,7 +13,7 @@ use vessel_app_kit::{TextField, Tokens};
 use vessel_app_link::workspace::{Ask, ScriptAnswer, ScriptAsk};
 use vessel_app_view::layout::{LayoutKey, TabId};
 use vessel_app_view::workspace::scripts::{
-    Action, ActionTicket, Issue, Model, Preview, REFRESH_EVERY, Surface, Target,
+    Action, ActionTicket, Issue, Model, Preview, REFRESH_EVERY, RetiredWrite, Surface, Target,
 };
 
 pub(super) struct Controls {
@@ -21,9 +21,38 @@ pub(super) struct Controls {
     host: TextField,
     surface: Surface,
     retired: bool,
-    last_write: Option<vessel_app_view::workspace::scripts::RetiredWrite>,
+    last_write: Option<RetiredWrite>,
 }
 impl Controls {
+    pub(super) fn outstanding(&self) -> Option<&Target> {
+        self.model.writing.as_ref().and(self.model.target.as_ref())
+    }
+    pub(super) fn pending_write(&self) -> Option<&RetiredWrite> {
+        self.last_write
+            .as_ref()
+            .filter(|write| write.receipt().is_none())
+    }
+    pub(super) fn returned_write(&self) -> Option<&RetiredWrite> {
+        self.last_write
+            .as_ref()
+            .filter(|write| write.receipt().is_some())
+    }
+    /// Only an explicitly acknowledged, returned record may release its retired UI.
+    pub(super) fn acknowledge(
+        &mut self,
+        target: &Target,
+        key: vessel_app_view::workspace::git::RequestKey,
+    ) -> bool {
+        if self
+            .returned_write()
+            .is_some_and(|write| write.matches(target, key))
+        {
+            self.last_write = None;
+            self.retired
+        } else {
+            false
+        }
+    }
     fn new(surface: Surface, window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             model: Model::default(),
@@ -85,7 +114,11 @@ pub(crate) fn render(
     }
     let inserted = {
         let mut states = shell.areas.workspace.scripts.panels.borrow_mut();
-        if !states.contains_key(&address) && states.len() >= retirement::MAX_PANEL_STATES {
+        let scripts = &shell.areas.workspace.scripts;
+        let held = states.len()
+            + scripts.retired_projects.len()
+            + usize::from(scripts.model.writing.is_some());
+        if !states.contains_key(&address) && held >= super::MAX_RETAINED_SURFACES {
             return super::ports::notice(shell.words.scripts().retained_limit(), tokens)
                 .into_any_element();
         }
@@ -302,7 +335,9 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let expected = &ticket.target;
-        if !self.script_panel_admits(expected, window) {
+        if !self.script_panel_admits(expected, window)
+            || self.areas.workspace.scripts.has_pending(expected)
+        {
             return;
         }
         let Some((workspace, tab)) = key(&expected.surface) else {
@@ -340,7 +375,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.script_panel_admits(expected, window) {
+        if !self.script_panel_admits(expected, window)
+            || self.areas.workspace.scripts.has_pending(expected)
+        {
             return;
         }
         let Some((workspace, tab)) = key(&expected.surface) else {

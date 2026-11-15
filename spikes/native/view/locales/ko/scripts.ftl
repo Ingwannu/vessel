@@ -13,7 +13,13 @@ scripts-retired = 요청을 처리하는 동안 탭이 바뀌었습니다. 원�
 scripts-reload-retired = 현재 상태 다시 읽기
 
 # Owner-local retention limit refuses another panel without dropping requests.
-scripts-retained-limit = 결과를 보존 중인 스크립트 패널이 너무 많습니다. 기존 요청을 유지하며 새 패널은 아직 열 수 없습니다.
+scripts-retained-limit = 요청을 보존 중인 스크립트 화면이 너무 많습니다. 받은 결과를 닫아 공간을 확보할 수 있으며, 응답 대기 중인 요청은 유지합니다.
+
+# 로컬 기록만 닫으며 원격 요청을 취소하거나 다시 실행하지 않습니다.
+scripts-retained-results = 이전 스크립트 요청을 보존하고 있습니다. 응답이 실패해도 원격 실행 결과는 알 수 없을 수 있습니다. 받은 로컬 결과만 닫을 수 있으며, 응답 대기 중인 요청은 유지하고 어떤 요청도 다시 실행하지 않습니다.
+
+# 지금 표시된 수신 결과만 명시적으로 확인하고 닫습니다.
+scripts-dismiss-received = 받은 결과 닫기
 
 # Project scripts: short action/status, or complete explanatory notice.
 scripts-loading = 스크립트를 읽는 중…

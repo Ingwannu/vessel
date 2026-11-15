@@ -78,6 +78,11 @@ pub(super) fn content(card: &Card<'_>, tokens: &Tokens, cx: &mut Context<'_, She
         }));
     }
     let mut body = div().flex().flex_col().gap(px(spacing::S3));
+    if card.surface == &vessel_app_view::workspace::scripts::Surface::Project
+        && let Some(history) = super::history::render(shell, tokens, cx)
+    {
+        body = body.child(history);
+    }
     if model.target.is_none() {
         body = body.child(ports::notice(words.read_failed(), tokens));
     }

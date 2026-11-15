@@ -146,6 +146,8 @@ pub enum Issue {
     Preview(PreviewProblem),
     /// Monotonic request identities must never wrap.
     Exhausted,
+    /// Existing sent requests must be retained before another view can write.
+    Retention,
 }
 
 /// Request correlation belongs to the area's lifetime, beyond detail recreation.

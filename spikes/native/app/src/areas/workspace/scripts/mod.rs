@@ -1,6 +1,7 @@
 //! Project script controls reuse the workspace channel and approval card.
 //! The node owns all processes; leaving this screen never stops a service.
 mod draw;
+mod history;
 mod panel;
 mod ports;
 use crate::routes::Route;
@@ -19,6 +20,9 @@ use vessel_app_view::workspace::scripts::{
     Action, ActionTicket, Issue, Model, Preview, REFRESH_EVERY, Surface, Target,
 };
 use vessel_proto::ProjectId;
+
+// One bound owns both retained panel controls and retired project intentions.
+const MAX_RETAINED_SURFACES: usize = 128;
 
 /// Both destinations pass the same final owner/publication/socket check.
 #[derive(Clone, Copy)]
@@ -43,6 +47,7 @@ pub(super) struct Scripts {
     pub(super) host: TextField,
     polling: bool,
     retirement_ready: bool,
+    retired_projects: Vec<vessel_app_view::workspace::scripts::RetiredWrite>,
     panel_keys: std::cell::RefCell<vessel_app_view::workspace::git::RequestKeys>,
     panels: std::cell::RefCell<
         std::collections::BTreeMap<
@@ -68,6 +73,7 @@ impl Scripts {
             ),
             polling: false,
             retirement_ready: false,
+            retired_projects: Vec::new(),
             panel_keys: std::cell::RefCell::default(),
             panels: std::cell::RefCell::default(),
             selection: None,
@@ -92,7 +98,7 @@ impl Shell {
             cx,
         );
         self.areas.workspace.scripts.selection = Some((machine, project));
-        self.areas.workspace.scripts.model.select(None);
+        self.areas.workspace.scripts.retire_project();
         self.read_scripts(window, cx);
         if !self.areas.workspace.scripts.polling {
             self.areas.workspace.scripts.polling = true;
@@ -143,6 +149,7 @@ impl Shell {
         let current = self.selected_scripts_target();
         let scripts = &mut self.areas.workspace.scripts;
         if scripts.model.target != current {
+            scripts.retire_project();
             scripts.host.clear(window, cx);
             scripts.model.select(current);
         }
@@ -187,6 +194,9 @@ impl Shell {
             self.script_panel_answer(answer, cx);
             return;
         }
+        if self.retired_project_answer(&answer, cx) {
+            return;
+        }
         if !self.scripts_target_is_current(returned) {
             return;
         }
@@ -224,8 +234,15 @@ impl Shell {
         action: Action,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.scripts_target_is_current(&ticket.target) {
+        if !self.scripts_target_is_current(&ticket.target)
+            || self.areas.workspace.scripts.has_pending(&ticket.target)
+        {
             tracing::debug!("script action ignored after its view changed");
+            return;
+        }
+        if !self.areas.workspace.scripts.admits_project_write() {
+            self.areas.workspace.scripts.model.issue = Some(Issue::Retention);
+            cx.notify();
             return;
         }
         let model = &mut self.areas.workspace.scripts.model;
@@ -254,7 +271,9 @@ impl Shell {
         action: UrlAction,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.scripts_target_is_current(expected) {
+        if !self.scripts_target_is_current(expected)
+            || self.areas.workspace.scripts.has_pending(expected)
+        {
             return;
         }
         let scripts = &mut self.areas.workspace.scripts;
@@ -287,6 +306,9 @@ impl Shell {
 
 impl Shell {
     fn script_card_is_current(&self, target: &Target) -> bool {
+        if self.areas.workspace.scripts.has_pending(target) {
+            return false;
+        }
         match target.surface {
             Surface::Project => self.scripts_target_is_current(target),
             Surface::Panel { .. } => self.script_panel_is_current(target),

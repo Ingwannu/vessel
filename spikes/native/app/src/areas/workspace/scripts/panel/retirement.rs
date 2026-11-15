@@ -10,10 +10,6 @@ use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind};
 use vessel_app_link::workspace::ScriptAnswer;
 use vessel_app_view::layout::{LayoutKey, TabId};
 
-// Closed tabs can retain an uncertain detached write. Bound this owner-local
-// presentation history independently of the node's process and tab limits.
-pub(super) const MAX_PANEL_STATES: usize = 128;
-
 pub(crate) fn start(shell: &mut Shell, _cx: &mut Context<'_, Shell>) {
     if shell.areas.workspace.scripts.retirement_ready {
         return;

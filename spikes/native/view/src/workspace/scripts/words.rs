@@ -27,6 +27,7 @@ pub fn issue<'a>(words: &'a Translator, issue: &Issue) -> &'a str {
         Issue::Call(_) => words.call_failed(),
         Issue::Approval => words.approval(),
         Issue::Exhausted => words.exhausted(),
+        Issue::Retention => words.retained_limit(),
         Issue::Preview(problem) => match problem {
             PreviewProblem::MissingHost => words.missing_host(),
             PreviewProblem::InvalidHost => words.invalid_host(),

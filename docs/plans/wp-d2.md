@@ -426,10 +426,11 @@ execution behavior changes; complete executable-field display/refusal is shared.
   surface instance, clears the host override and obtains a fresh scoped read.
   The last original receipt survives that reload until a new explicit mutation.
 - Effects and limits: an idle retired panel is removed immediately. A panel with
-  a sent write retains its owner record even when closed. MAX_PANEL_STATES (128)
+  a sent write retains its owner record even when closed. MAX_RETAINED_SURFACES (128)
   bounds owner-local display/receipt retention independently of server resources;
-  exceeding it refuses a new panel without dropping existing requests. A closed
-  uncertain record has no discard UI yet. Error receipts remain uncertainty, not
+  exceeding it refuses a new panel or project mutation without dropping existing
+  requests. Received local records have an explicit acknowledgement control;
+  pending requests cannot be dismissed. Error receipts remain uncertainty, not
   completion or process death. Canonical Workspace execution is still unavailable
   pending registry/generation/runtime contracts.
 
@@ -440,3 +441,22 @@ retargets twice before any poll, original command queue preservation, independen
 unknown receipts, new-instance stale-read refusal and this connection gap. These
 are scoped UI/queue cases, not a claim that a physical network write was killed
 or that a canonical workspace runtime exists.
+
+
+## Project navigation and retained results
+
+The same RetiredWrite now preserves a pending project-card mutation across
+selection, connection retirement or navigation before its reply. Original
+Target/RequestKey/Action and the eventual receipt remain separate from a
+successor's model; late receipts never start reads or replay mutations. A pending
+request to the same typed connection/place blocks another local mutation or
+preview. Scope is never inferred from an equal directory.
+
+One MAX_RETAINED_SURFACES owner charges active project mutations before dispatch,
+retired project records and panel controls. Moving a pending project intention
+into history conserves that slot. The Settings card can acknowledge only the
+received identities drawn with that control, clearing local records without
+stopping remote work. Pending and later unseen responses survive a stale
+acknowledgement. Acknowledging a retired panel's received record can release its
+UI slot; an active successor keeps its model and tickets. An error receipt still
+has an unknown remote outcome and never supplies process or bootstrap authority.
