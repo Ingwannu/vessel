@@ -157,3 +157,16 @@ This establishes compilation and lint acceptance on Linux, not runtime or
 whole-package acceptance. Focused tests, generated TypeScript freshness and
 the package gate remain pending. The pending method still refuses on the wire;
 an assigned-protocol successful request requires the integrator's assignment.
+
+The focused product checkpoint passed 53 selected tests (52 in diagnostic
+namespaces and one existing diagnostic-named dictation test), including the
+real collector, actual generated authority guard, two-node source separation,
+queued source cancellation/deadline lifetime, CLI privacy and pending wire
+refusal. This run predates the subsequent shared node-head merge and canonical
+PID reuse; it is not evidence for the later merged tree. The standalone Proc
+decoder cases and full package gate remain to run on that tree.
+
+The newer shared node head preserves protocol 23, minimum 2 and schema 18.
+Its process owner now supplies the canonical ProcessId, so the diagnostic
+self-process edge removes its duplicate identifier and reuses the checked
+root value. No lifetime/guard, process carrier or signal behavior changes.

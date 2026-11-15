@@ -8,6 +8,7 @@
 //! query. Reading this process's bounded kernel metadata needs no child,
 //! credentials or environment. Other targets explicitly refuse until an
 //! owned safe source exists; no shell command or arbitrary pid/path is used.
+use crate::{InvalidProcessId, ProcessId};
 #[cfg(any(target_os = "linux", test))]
 use std::io::Read as _;
 use std::{
@@ -18,15 +19,12 @@ use std::{
 /// Maximum bytes read from the fixed self-status source.
 pub const MAX_STATUS_BYTES: usize = 16 * 1024;
 /// Minimum valid process id.
-pub const MIN_PROCESS_ID: u32 = 1;
+pub const MIN_PROCESS_ID: u32 = ProcessId::MIN.get();
 /// Maximum representable kernel process id.
 pub const MAX_PROCESS_ID: u32 = u32::MAX;
 #[cfg(any(target_os = "linux", test))]
 const BYTES_PER_KIB: u64 = 1024;
 
-/// A nonzero operating-system process identity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ProcessId(u32);
 /// A checked byte count from kernel memory metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MemoryBytes(u64);
@@ -118,8 +116,14 @@ pub enum SnapshotError {
         source: TryFromIntError,
     },
     /// A typed source or contract failure, without source contents.
-    #[error("{0} must be at least {MIN_PROCESS_ID}")]
-    ZeroId(Field),
+    #[error("{field} must be at least {MIN_PROCESS_ID}")]
+    ZeroId {
+        /// The allowlisted field category.
+        field: Field,
+        /// The canonical process-id constructor's typed failure.
+        #[source]
+        source: InvalidProcessId,
+    },
     /// A typed source or contract failure, without source contents.
     #[error("self-process memory has an invalid unit for {0}")]
     Unit(Field),
@@ -143,10 +147,7 @@ fn id(raw: &str, field: Field) -> Result<ProcessId, SnapshotError> {
         .map_err(|source| SnapshotError::Number { field, source })?;
     let parsed =
         u32::try_from(parsed).map_err(|source| SnapshotError::IdRange { field, source })?;
-    if parsed < MIN_PROCESS_ID {
-        return Err(SnapshotError::ZeroId(field));
-    }
-    Ok(ProcessId(parsed))
+    ProcessId::try_from(parsed).map_err(|source| SnapshotError::ZeroId { field, source })
 }
 #[cfg(any(target_os = "linux", test))]
 fn parent(raw: &str) -> Result<Option<ProcessId>, SnapshotError> {
@@ -233,7 +234,10 @@ fn decode(reader: impl io::Read, expected: ProcessId) -> Result<Snapshot, Snapsh
 /// Read, size, decoding and consistency failures; raw source lines are omitted.
 #[cfg(target_os = "linux")]
 pub fn observation() -> Result<Snapshot, SnapshotError> {
-    let pid = ProcessId(std::process::id());
+    let pid = ProcessId::try_from(std::process::id()).map_err(|source| SnapshotError::ZeroId {
+        field: Field::Pid,
+        source,
+    })?;
     decode(std::fs::File::open("/proc/self/status")?, pid)
 }
 /// This target has no owned self-process source yet.
@@ -245,13 +249,6 @@ pub fn observation() -> Result<Snapshot, SnapshotError> {
     Err(SnapshotError::Unsupported)
 }
 
-impl ProcessId {
-    /// The checked operating-system id.
-    #[must_use]
-    pub const fn get(self) -> u32 {
-        self.0
-    }
-}
 impl MemoryBytes {
     /// Checked bytes; never a parsed unit string.
     #[must_use]
@@ -264,16 +261,18 @@ impl MemoryBytes {
 mod tests {
     use super::*;
     const PRIVATE: &str = "PRIVATE-PROCESS-DIAGNOSTIC-CANARY";
-    const EXPECTED: ProcessId = ProcessId(42);
+    fn expected() -> ProcessId {
+        ProcessId::try_from(42).unwrap()
+    }
     fn input(extra: &str) -> String {
         format!("Name:\t{PRIVATE}\nPid:\t42\nPPid:\t7\n{extra}")
     }
     #[test]
     fn returns_only_identity_and_typed_memory_without_private_fields() {
         let source = input("VmRSS:\t3 kB\nVmSize:\t9 kB\n");
-        let got = decode(source.as_bytes(), EXPECTED).unwrap();
-        assert_eq!(got.pid, EXPECTED);
-        assert_eq!(got.parent, Some(ProcessId(7)));
+        let got = decode(source.as_bytes(), expected()).unwrap();
+        assert_eq!(got.pid, expected());
+        assert_eq!(got.parent, Some(ProcessId::try_from(7).unwrap()));
         assert_eq!(
             got.memory,
             MemoryObservation::Available(Memory {
@@ -285,11 +284,11 @@ mod tests {
     }
     #[test]
     fn unavailable_memory_and_no_parent_are_not_healthy_zero_metrics() {
-        let got = decode(b"Pid: 42\nPPid: 0\n".as_slice(), EXPECTED).unwrap();
+        let got = decode(b"Pid: 42\nPPid: 0\n".as_slice(), expected()).unwrap();
         assert_eq!(got.parent, None);
         assert_eq!(got.memory, MemoryObservation::NotProvided);
         assert!(matches!(
-            decode(input("VmRSS: 0 kB\n").as_bytes(), EXPECTED),
+            decode(input("VmRSS: 0 kB\n").as_bytes(), expected()),
             Err(SnapshotError::IncompleteMemory)
         ));
     }
@@ -300,27 +299,30 @@ mod tests {
             input(&format!("VmRSS: 1 {PRIVATE}\nVmSize: 2 kB\n")),
             input("Pid: 42\n"),
         ] {
-            let error = decode(raw.as_bytes(), EXPECTED).unwrap_err();
+            let error = decode(raw.as_bytes(), expected()).unwrap_err();
             assert!(!error.to_string().contains(PRIVATE));
             assert!(!format!("{error:?}").contains(PRIVATE));
         }
         assert!(matches!(
-            decode(b"Pid: 41\nPPid: 7\n".as_slice(), EXPECTED),
+            decode(b"Pid: 41\nPPid: 7\n".as_slice(), expected()),
             Err(SnapshotError::WrongProcess)
         ));
         assert!(matches!(
-            decode(b"Pid: 0\nPPid: 7\n".as_slice(), EXPECTED),
-            Err(SnapshotError::ZeroId(Field::Pid))
+            decode(b"Pid: 0\nPPid: 7\n".as_slice(), expected()),
+            Err(SnapshotError::ZeroId {
+                field: Field::Pid,
+                ..
+            })
         ));
         assert!(matches!(
-            decode(b"PPid: 7\n".as_slice(), EXPECTED),
+            decode(b"PPid: 7\n".as_slice(), expected()),
             Err(SnapshotError::Missing(Field::Pid))
         ));
     }
     #[test]
     fn bound_is_checked_before_decoding_and_overflow_keeps_a_typed_failure() {
         let source = vec![b'x'; MAX_STATUS_BYTES.saturating_add(1)];
-        let error = decode(source.as_slice(), EXPECTED).unwrap_err();
+        let error = decode(source.as_slice(), expected()).unwrap_err();
         assert!(matches!(error, SnapshotError::TooLarge));
         assert!(error.to_string().contains(&MAX_STATUS_BYTES.to_string()));
         assert!(matches!(
@@ -335,7 +337,7 @@ mod tests {
     #[test]
     fn real_self_metadata_matches_the_test_process_without_running_a_child() {
         let got = observation().unwrap();
-        assert_eq!(got.pid, ProcessId(std::process::id()));
+        assert_eq!(got.pid.get(), std::process::id());
         assert!(matches!(got.memory, MemoryObservation::Available(_)));
     }
     #[cfg(not(target_os = "linux"))]

@@ -1894,4 +1894,3 @@ client send and server dispatch refuses it through required_protocol while
 unassigned. Protocol maximum/minimum and store schema are unchanged here.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
-

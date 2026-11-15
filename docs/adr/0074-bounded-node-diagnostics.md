@@ -222,3 +222,10 @@ The CLI now has a bounded text/JSON renderer and a safe error boundary.
 Assigned-protocol successful wire execution, compilation of this correction,
 full package tests and review remain unverified. Provider diagnostics belongs to
 A9/W22 and is not implemented or registered by E4.
+
+The self-process decoder reuses the canonical root `vessel_proc::ProcessId`
+from the process-observation owner. It keeps the checked kernel u64-to-u32
+conversion cause and the canonical nonzero constructor cause. A numeric PID
+is an observation, not a lifetime or signalling authority; collection neither
+issues nor changes a ProcessLifetime guard. The wire process id remains a
+separate validated protocol value.
