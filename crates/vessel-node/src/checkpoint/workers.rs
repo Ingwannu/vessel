@@ -27,7 +27,7 @@ impl Workers {
 
 /// The tracker keeps polling actual work after cancellation; the RPC waiter may
 /// return at its own deadline without joining this future or its filesystem I/O.
-pub(super) async fn cancel_at<F: std::future::Future>(
+pub(super) async fn cancel_at<F: Future>(
     deadline: tokio::time::Instant,
     cancellation: &tokio_util::sync::CancellationToken,
     work: F,

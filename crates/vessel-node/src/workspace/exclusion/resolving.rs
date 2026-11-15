@@ -111,7 +111,8 @@ pub(super) fn resolve(
     deadline: Instant,
     state: &mut State,
 ) -> Result<(), RootRefusal> {
-    match held(&root, token, deadline, state)?.purpose {
+    let purpose = held(&root, token, deadline, state)?.purpose;
+    match purpose {
         Purpose::Recovering(id) if id == restore => {}
         Purpose::Resolved(id) if id == restore => return Ok(()),
         Purpose::Writer if state.recovering.has(&root, &restore) => {}

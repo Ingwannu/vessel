@@ -121,6 +121,8 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         assert!(controller.restore(CheckpointOwner::LocalOwner, restore).await.is_err());
         assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"checkpoint bytes\n", "a projection failure does not replay or undo a durable file success");
         assert!(workspaces.admit_start(&worktree.path).await.is_err(), "uncertain completion retains its recovery fence");
+        let status = vessel_proto::checkpoint::CheckpointRestoreStatus { session: session.id, restore: restore.restore };
+        assert_eq!(controller.status(CheckpointOwner::LocalOwner, status).await.unwrap(), vessel_proto::checkpoint::RestoreOutcome::InProgress { restore: restore.restore }, "file success cannot acknowledge missing durable metadata");
         fault.execute_batch("DROP TRIGGER deny_restore_projection").unwrap();
         drop(fault);
         let result = controller.restore(CheckpointOwner::LocalOwner, restore).await.unwrap();
@@ -128,6 +130,7 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         drop(released);
 
         assert!(matches!(result, vessel_proto::checkpoint::RestoreOutcome::Restored { changed } if changed.get() == 1));
+        assert_eq!(controller.status(CheckpointOwner::LocalOwner, status).await.unwrap(), result);
         assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"checkpoint bytes\n");
         let after = fixture.store.session(session.id).await.unwrap().unwrap();
         assert_eq!(before.status, after.status);

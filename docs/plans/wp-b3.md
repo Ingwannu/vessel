@@ -1210,3 +1210,19 @@ classifies checkpoint metadata with the other records a terminal must never
 emit; it does not silently accept or synthesize those records. The other
 terminal output-size projection already counts checkpoint metadata as zero.
 No selected runtime tests or normal runtime proof follow from this compile fix.
+
+### Root-seam compile corrections and truthful status (unverified)
+
+Run wp-checkpoints-node-narrow-20261115T163938Z-4f74c616 failed at library
+compilation (cargo101): an unnecessary Future qualification, production recovery
+refusal arms incorrectly limited to tests, and a mutable purpose borrow spanning
+a recovery lookup. The corrections preserve typed errors and copy the small
+purpose value before consulting the other actor-owned state. No root-admission
+unit tests ran in that run; the ordinary checkpoint suite remains queued.
+
+The status reader now reports InProgress after durable file success until the
+atomic FilesRestored marker exists. Returning Restored earlier could make a
+reconnecting client stop its metadata retry while the recovery fence remained
+held. The private real-worktree fixture checks both the failed-marker status and
+the successful same-id metadata retry; status itself never reapplies files.
+These new assertions and the implementation remain unverified by execution.

@@ -73,12 +73,28 @@ impl Controller {
             .get(request.session)
             .await
             .map_err(|_missing| CheckpointError::NotFound)?;
-        self.context
+        let operation = self
+            .context
             .store
             .checkpoint_operation(request.session, request.restore, owner)
             .await
-            .map(|operation| operation.outcome)
-            .map_err(reason)
+            .map_err(reason)?;
+        // File success alone cannot tell a reconnecting client that its result
+        // was published. A retry finishes metadata without reapplying files.
+        if matches!(operation.outcome, RestoreOutcome::Restored { .. })
+            && self
+                .context
+                .store
+                .checkpoint_event_seq(operation.clone())
+                .await
+                .map_err(reason)?
+                .is_none()
+        {
+            return Ok(RestoreOutcome::InProgress {
+                restore: operation.id,
+            });
+        }
+        Ok(operation.outcome)
     }
 }
 

@@ -140,7 +140,7 @@ impl WorkspaceError {
             Self::RootAdmission(
                 super::exclusion::RootRefusal::TimedOut | super::exclusion::RootRefusal::Closed,
             ) => ErrorCode::Unavailable,
-            #[cfg(all(test, target_os = "linux"))]
+            #[cfg(target_os = "linux")]
             Self::RootAdmission(
                 super::exclusion::RootRefusal::NotRecovering
                 | super::exclusion::RootRefusal::StaleLease,
