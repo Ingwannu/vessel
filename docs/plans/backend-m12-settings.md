@@ -976,3 +976,22 @@ be passed into the node integrator's gate as an app-tree dependency.
 The client file-safety staging, format/upsert implementation, native
 appearance compatibility tests and ManagedLocal all-writer enforcement
 remain separate unfinished work. No production permissions were changed.
+
+
+### Queued-only correction before the final native run
+
+The first final request settings2-20261115T130924Z-0610958f was formally
+superseded while still queued. The supported queued-only cancellation
+verified its process group and reached cancelled143 before replacement;
+no compiler or test step had started. Its original records remain intact.
+This is an authorized source amendment, not a compiler failure or a pass.
+
+The search owner supplied00ebfdeafaac650462d73853b54050ac57ca2f84:
+only the two cfg(test) counters inside ordinary cache methods change
+from +=1 to saturating_add. Native arithmetic_side_effects is denied;
+no actual lint failure on061 was observed. There is no production,
+expectation, threshold or public API change. The coordinator authorized
+this exact queued-only amendment to avoid spending a whole gate on the
+known strict-lint issue. Freeze the corrected source and register the
+same complete native gate with supported app export once, in the ordinary
+lane and a fresh output directory. Captures still await that actual export.
