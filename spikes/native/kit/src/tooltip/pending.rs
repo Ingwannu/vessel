@@ -1,6 +1,6 @@
 //! At most one owned hover timer in the existing controller. Task drop cancels;
 //! the timer holds only a weak controller reference and cannot keep a screen alive.
-use super::{Place, Tip};
+use super::{Configuration, Content, Place, Tip};
 use gpui::{App, Task, Window};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -19,17 +19,27 @@ pub(super) struct State {
     pending: Option<Pending>,
 }
 impl State {
-    pub fn keep_trigger(&mut self, place: &Place, trigger: &Rc<()>) {
+    pub fn refresh_trigger(
+        &mut self,
+        place: &Place,
+        trigger: &Rc<()>,
+        content: &Content,
+        configuration: Configuration,
+    ) {
         if let Some(pending) = &mut self.pending
             && Rc::ptr_eq(&pending.place, place)
             && let Some(tip) = &mut pending.tip
         {
             tip.trigger = Rc::downgrade(trigger);
+            tip.content = content.clone();
+            tip.configuration = configuration;
         }
         if let Some(tip) = &mut self.shown
             && Rc::ptr_eq(&tip.place, place)
         {
             tip.trigger = Rc::downgrade(trigger);
+            tip.content = content.clone();
+            tip.configuration = configuration;
         }
     }
     pub fn dismiss(&mut self) {
