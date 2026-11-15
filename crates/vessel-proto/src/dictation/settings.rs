@@ -93,49 +93,49 @@ pub struct SetDictation {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub switch: Option<DictationChange<DictationSwitch>>,
     /// `local` or `endpoint`.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub provider: Option<DictationChange<DictationProvider>>,
     /// A language code.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub language: Option<DictationChange<Language>>,
     /// A catalog id.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub local_model: Option<DictationChange<LocalModelId>>,
     /// The endpoint's model.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub endpoint_model: Option<DictationChange<EndpointModel>>,
     /// The endpoint's base URL.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub endpoint_base: Option<DictationChange<EndpointBase>>,
     /// The secret reference to set or explicitly clear, never its value.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "super::patch::present"
+        deserialize_with = "super::deserialize_change"
     )]
     pub key: Option<DictationChange<SecretReference>>,
 }

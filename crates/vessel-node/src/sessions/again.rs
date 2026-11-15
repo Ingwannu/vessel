@@ -8,8 +8,11 @@
 //!   marks and held queue) under a new run of its agent; readers find it
 //!   in one place throughout, and retention never prunes it mid-start.
 //! - Who may: a session the store serves; one the runtime still has is
-//!   live (`conflict`) or ended with its log on its way to the store
-//!   (`conflict`, a retry works). Structured, its agent able to resume and
+//!   live (`conflict`). One that has just ended, its log on its way to the
+//!   store, is waited for, at most `HAND_OVER_WAIT`, as `session.delete`
+//!   waits (2026-11-15: an agent archiving then resuming met `conflict` in
+//!   that gap); past it, `conflict` as before (a retry works). Structured,
+//!   its agent able to resume and
 //!   a conversation to resume (`unsupported` otherwise), read from its
 //!   stored row before any process starts. Its folder still there
 //!   (`conflict` otherwise, `FolderGone`): a worktree goes when the
@@ -47,6 +50,7 @@ use vessel_proto::{EventSeq, SessionId, SessionInfo, SessionStatus};
 use vessel_session::{Created, Ended, Relaunch, Reopening, SessionError, SessionHandle};
 use vessel_store::EndedSession;
 
+use super::side_questions::HAND_OVER_WAIT;
 use super::{Found, Sessions};
 use crate::error::ServiceError;
 
@@ -113,6 +117,7 @@ impl Sessions {
     /// terminal session, an agent that cannot resume, or no conversation
     /// to resume (`unsupported`).
     pub(crate) async fn ended(&self, id: SessionId) -> Result<EndedSession, ServiceError> {
+        self.handed_over(id).await?;
         match self.find(id).await? {
             Found::Live { handle, .. } if handle.has_ended() => {
                 return Err(ServiceError::LogWriting(id));
@@ -178,10 +183,10 @@ impl Sessions {
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
             let durability = self.track(&handle, next);
-            let reopened = self.store.reopen(id, next).await;
-            if let Ok(kept) = &reopened {
-                handle.set_marks(*kept);
-            }
+            let reopened = match self.store.reopen(id, next).await {
+                Ok(kept) => self.restore_metadata(&handle, kept).await,
+                Err(error) => Err(error),
+            };
             (durability, reopened)
         };
         if let Err(error) = reopened {
@@ -199,6 +204,34 @@ impl Sessions {
 
     /// Whether `id` has a durability entry: the runtime has it, or is
     /// handing it over to the store.
+    /// Wait, at most [`HAND_OVER_WAIT`], while `id` has just ended and its
+    /// hand-over is under way: the runtime still has it, or the store
+    /// serves it while its last run's entry is still held. `hand_over`
+    /// publishes the end after both are gone, so each end rechecks. A live
+    /// session or one fully handed over returns at once; past the wait the
+    /// caller's own checks answer `conflict`, as before.
+    async fn handed_over(&self, id: SessionId) -> Result<(), ServiceError> {
+        let mut ends = self.ends();
+        let settled = async {
+            loop {
+                match self.find(id).await? {
+                    Found::Live { handle, .. } if !handle.has_ended() => return Ok(()),
+                    Found::Stored(_) if !self.visible(id) => return Ok(()),
+                    Found::Live { .. } | Found::Stored(_) => {}
+                }
+                match ends.recv().await {
+                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        return Err(ServiceError::Draining);
+                    }
+                }
+            }
+        };
+        tokio::time::timeout(HAND_OVER_WAIT, settled)
+            .await
+            .unwrap_or(Ok(()))
+    }
+
     fn visible(&self, id: SessionId) -> bool {
         self.durability
             .read()
