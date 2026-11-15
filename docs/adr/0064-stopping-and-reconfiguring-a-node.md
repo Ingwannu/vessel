@@ -1068,3 +1068,35 @@ unverified by Linux fixtures.
   admission/join. No sleeps or replacement fake writer are used. Actual service
   managers, other operating systems and service-account permissions remain
   separate from these isolated fixtures.
+
+## Proposed queued settings ownership and recovery settlement
+
+[Decision Log]
+- Purpose and intent: accepted settings work must remain node-owned before lock
+  acquisition as well as during real file I/O, publication and policy cleanup.
+  A caller leaving must not let a later On bypass an accepted Off obligation.
+- Existing implementation and constraints: the retained writer protects an
+  acquired saved guard; the new recovery field also needs bounded queued
+  ownership, same-value cleanup retry and one pre-Store boot snapshot. A second
+  FIFO/disk model would split order and responsibility.
+- Alternatives considered: caller-owned mutex wait, an outer field queue,
+  independent compatibility writer or callback trait. These abandon accepted
+  work, duplicate capacity/ordering, split disk ownership or add an unnecessary
+  open extension point.
+- Selected approach: one finite non-waiting admission channel and independent
+  consumer within the canonical owner. A concrete RecoveryApply over Policy and
+  Store runs inside the same saved guard at before-mutation, before-write,
+  failure, saved-publication and actual cleanup/no-op points. The opaque Document
+  keeps the typed recovery patch without becoming a wire serialization model.
+- Why this approach: one admission linearization, one resource-bound owner and
+  one file/publication order serve all settings namespaces. Startup hands the
+  same validated snapshot to Store candidate capture and the settings owner.
+  Shutdown seals effects/admission, then joins accepted settlement before final
+  runtime/Store close; no dropped caller or reply pretends cleanup completed.
+- Advantages, costs and effects: overflow is a typed non-admission; failed cleanup
+  can block later mutations and shutdown. Off preserves its saved/effective
+  state while debt remains, On stays paused until actual apply, and unchanged
+  explicit operations retry debt without another file replacement. New lifecycle
+  fences/order and recovery policy behavior require their joint tests/gate; this
+  proposal approves no activation by itself. The named bound, concrete seam,
+  diagnostics and required tests are in shared-settings-operation-owner.md.
