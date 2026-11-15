@@ -1192,3 +1192,27 @@ The assigned node quality base is merged without conflicts. All incoming
 non-document changed blobs are preserved exactly, including generated
 types and their formatting; both existing README and architecture texts
 are retained. This page package adds no method, protocol or schema number.
+
+### Additional short-phone acceptance boundary
+
+The immutable `1a8a63ab` whole run passes every selected stage: 2,267 Rust
+tests with twelve ignored, four TypeScript checks, 451 web units, 76
+browser cases and four forge fixtures. Its local nine focus/toast cases
+and twelve capture cases also pass. All 24 original normal-state images
+were opened; their 2,644 selected inputs match before and after, and all
+2,475 tracked contents match that commit. Its ten recorded fleet processes
+and two observer/runner identities are gone; private fixture data is empty.
+
+That evidence does not close the package. A subsequent actual 390 by 600
+page probe finds the eight-toast stack intercepting the question's collapse
+button at x328/y170 despite leaving Next clear. The earlier cases checked
+Next and did not cover this shorter phone. The retained hit test fails on
+that immutable product. The host now follows the actual prompt dock's
+boundary, and new resize/fold/click cases guard the missed interaction.
+Changed-source browser, captures and whole evidence remain pending.
+
+The shared package base is merged after the earlier whole run completes;
+all incoming changed blobs except the auto-merged architecture document
+remain exact, including the incoming native base. This page correction
+authors no native change or native approval. No earlier failure or normal
+matrix is relabelled as evidence of the new clearance behavior.

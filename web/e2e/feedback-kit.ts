@@ -1,8 +1,8 @@
 // Actual controls and geometry shared by the feedback regressions/captures.
 import { expect, type Locator, type Page } from "@playwright/test";
 
-const STACK_FIXTURE_COUNT = 8;
-const FOCUS_FRAME_MS = 120;
+export const STACK_FIXTURE_COUNT = 8;
+export const FOCUS_FRAME_MS = 120;
 
 async function rectangle(element: Locator) {
   const value = await element.boundingBox();

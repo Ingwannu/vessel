@@ -174,3 +174,14 @@ unpanned card. Shadow padding can make a normal card look clear while
 scrolling reveals content inside the header. A browser regression checks
 the host's top edge as well as its lower boundary; the existing larger
 spacing token provides that clearance without a second positioning model.
+
+A viewport fraction alone is insufficient when a question grows into a
+short phone screen. The existing prompt dock is the boundary for the whole
+composer, including queued prompts, permissions and questions. The toast
+host therefore caps its viewport by that dock's actual top edge as well as
+the quarter-viewport limit. Browser-native resize observations follow
+folding and input growth; a filtered mount observer rebinds only when a
+prompt/menu enters or leaves. Listeners are owned by the visible host and
+released with its last message. The timeline observer is intentionally not
+reused: it owns reading intent and row anchors, which feedback must not
+change. No timer polling or second notification store is introduced.

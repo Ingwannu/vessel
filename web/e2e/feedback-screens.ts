@@ -10,6 +10,7 @@ import { shot } from "./shot";
 const SIZES = [
   { width: 1280, height: 900 },
   { width: 390, height: 844 },
+  { width: 390, height: 600 },
   { width: 800, height: 600 },
 ] as const;
 

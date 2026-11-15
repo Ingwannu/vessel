@@ -9,7 +9,11 @@
   left: 50%;
   width: min(calc(var(--toast-card-width) + var(--s-3) * 2), 100vw);
   padding: var(--s-3);
-  max-height: 25dvh;
+  padding-block: min(
+    var(--s-3),
+    calc(var(--toast-available-height, 100dvh) / 2)
+  );
+  max-height: min(25dvh, var(--toast-available-height, 100dvh));
   overflow-y: auto;
   transform: translateX(-50%);
   display: flex;
