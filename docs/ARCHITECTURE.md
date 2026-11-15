@@ -1781,3 +1781,10 @@ The existing worktree creator accepts the caller's reserved identity only throug
 the admitted Skip path, with in-flight duplicate exclusion. This adds no crate
 edge, wire call or second registry. It does not attest config approval, physical
 root continuity or process lifetime; see `docs/plans/project-admission.md`.
+
+Standalone tool body values live in vessel-proto::timeline: a closed eleven-kind
+ToolCallDetail vocabulary, validated display identities and measurement units.
+The portable body kernel has no event/RPC attachment or execution path; native
+renderers borrow it without creating a competing provider model. No dependency
+edge changes. See docs/plans/timeline-body-values.md for exact source provenance
+and pending consumer-adoption checks.

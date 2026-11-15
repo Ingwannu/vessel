@@ -12,6 +12,7 @@
 //!   share types without an I/O/UI edge. They add no RPC/version/TS field.
 
 mod agent;
+pub mod timeline;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
