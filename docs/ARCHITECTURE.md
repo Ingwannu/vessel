@@ -1656,3 +1656,10 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+`vessel-proto::BookRouteId` is a client-minted, entry-scoped nonzero u32
+for the shared client-book model (ADR 0097). It is local data, not an RPC
+connection id or wire field; its lower-crate home lets the client and
+native view share it without a dependency between those layers. Checked
+allocation exposes exhaustion. This additive value changes no method,
+protocol version, book format or current consumer.
