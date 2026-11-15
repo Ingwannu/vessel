@@ -198,3 +198,20 @@ root validation is historical evidence for its original candidate. Both
 whole root and native gates validate the final combined candidate after
 the allocation refusal adapter and its lint-only correction are included.
 No newer package-line changes are consumed by this integration.
+
+### Follow-up node prerequisites
+
+After the preceding frozen candidate's two whole gates completed, the
+announced node head `d432ef0f` is retained as a separate merge parent. It
+brings the runner-issued process lifetime carrier, the shared connection
+call preflight, read-only lock observation prerequisites and transient
+agent setup context. These remain owned by their root crates; the native
+link continues to use its typed client rather than duplicate admission,
+process observation or provider setup logic.
+
+Native sources have no `AgentSetup` construction and remain identical to
+the preceding validated native candidate. The node's internal setup
+literals carry its new system-prompt field. `NodeSettings` still has no
+metadata field, so the conditional metadata fixture patch remains
+inapplicable. Both workspaces must validate the new combined committed
+head; earlier gate outcomes remain identified with their original SHAs.

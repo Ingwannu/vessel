@@ -20,6 +20,14 @@ fn device() -> DeviceInfo {
 fn page() -> Page {
     let mut page = Page::default();
     page.target(Target::Online(MachineKey::from_book("fixture")));
+    let mut epochs = crate::devices::ConnectionEpochs::default();
+    let context = epochs
+        .admit(
+            MachineKey::from_book("fixture"),
+            "00000000-0000-4000-8000-000000000099".parse().unwrap(),
+        )
+        .unwrap();
+    let _change = page.bind(Some(context));
     page.listing = Listing::Ready(vec![device()]);
     page
 }
@@ -104,7 +112,9 @@ fn details_are_read_only_and_a_confirmation_is_required_before_one_revoke() {
         Err(SelectionError::ConfirmationOpen)
     );
     let ticket = page.tickets.next_ticket().unwrap();
-    assert_eq!(page.revoking.confirm(ticket), Some(id));
+    let context = page.context().unwrap().clone();
+    let intent = page.revoke_intent().unwrap();
+    assert_eq!(page.revoking.confirm(&context, intent, ticket), Some(id));
     assert_eq!(
         page.inspect_device(id),
         Err(SelectionError::RevocationPending)
@@ -113,7 +123,7 @@ fn details_are_read_only_and_a_confirmation_is_required_before_one_revoke() {
         page.choose_revoke(id),
         Err(SelectionError::RevocationPending)
     );
-    assert_eq!(page.revoking.confirm(ticket), None);
+    assert_eq!(page.revoking.confirm(&context, intent, ticket), None);
     assert_eq!(page.revoking.confirmation(), Some(&device()));
 }
 

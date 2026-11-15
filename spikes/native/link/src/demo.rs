@@ -182,13 +182,11 @@ impl Demo {
         };
         // The two reachable machines differ only by name.
         let online = |name: &str| Machine {
-            node: None,
-            name: name.to_owned(),
             reach: Reach::Online,
             sessions: on(name),
             agents: agents(),
             protocol: Some(PROTOCOL_VERSION),
-            version: None,
+            ..Machine::unreachable(name.to_owned(), "")
         };
         Fleet {
             machines: vec![
