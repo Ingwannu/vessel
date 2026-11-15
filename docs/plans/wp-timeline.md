@@ -1020,3 +1020,31 @@ that returned projection and keeps its installed revision unchanged until an
 actual install; the helper never updates W2 metadata. A staged regression checks
 the returned prefix plus exact old rows/disclosure/anchor under a navigation Hold.
 This is a source amendment, not a checked W1 scoped finder implementation.
+
+Executed exact189652504 view all-target tests completed 13:31 UTC:
+1153 passed, 0 failed, 0 ignored; run
+wp-timeline-models-20261115T124844Z-18965250, evidence
+/tmp/work/wp-timeline/provenance-plan-models/native-cargo.log. This includes the
+Plan/provenance additions after fcdd. App/kit/owner-body successors remain queued;
+this is neither the later app API source nor a whole/native/capture/V4 pass.
+
+[Decision Log: remaining diff and code presentation — 수정 사용]
+- Purpose: the source edit renderer marks changed words and syntax in read/write/
+  edit content (tool-call-parsers.ts:55-203 and diff-highlight.ts).
+- Existing assets/constraints: bounded timeline DiffLine and similar line edits;
+  kit output's existing virtual list, line tones, copy and scroll; view workspace
+  lexer/catalog; shared kit range sanitizer. Existing Line/Lines callers stay valid.
+- Alternatives: another diff/editor control or a language/color catalog would
+  duplicate existing behavior. Reuse the virtual renderer with opt-in decorations.
+- Choice: bounded adjacent remove/add word-range computation matching the source's
+  ASCII word/nonword runs, plus optional output emphasis. Reuse existing range
+  validation. Syntax consumes W13/K's existing lexer and reserved mapping/resolver
+  packet when checked, with no new filesystem operation or path authority.
+- Reason: state, virtualization, scrolling and copy stay in the existing control;
+  semantic ranges/styles are added at the presentation boundary. Standard Rust
+  vectors/slices and existing similar suffice, with no external dependency.
+- Effects/tradeoffs: intraline matching has a named finite token/work budget and
+  leaves ordinary whole-line diff available when that budget is exhausted. Syntax
+  adapter consumption remains pending K's checked source; no duplicate seven-arm
+  mapping/color table is added. This section records the design, not implemented
+  or tested intraline/syntax parity.
