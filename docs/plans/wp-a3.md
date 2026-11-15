@@ -1,8 +1,10 @@
 # Search, chat find and prompt outline
 
-Status: message search and expanded find/outline implemented; narrow checks and
-prompt-index integration remain. Extends ADR 0037; the prompt-index node slice
-lives in docs/plans/wp-a3-node.md on the node track. No new dependency or crate edge.
+Status: message search, expanded find/outline and the typed prompt-index consumer
+are implemented. New regression execution, final gates, captures and review remain.
+The new RPC is pending protocol assignment; the complete followed-log outline is
+the compatibility path. Extends ADR 0037; the node slice lives in
+docs/plans/wp-a3-node.md on the node track. No new dependency or crate edge.
 
 ## Reference behaviour
 
@@ -84,14 +86,8 @@ At package end: one complete native gate on the exact commit and fake-fleet
 captures in both themes/languages at desktop and compact sizes. Review includes
 the evidence and all unverified surfaces. No production node or real agent.
 
-## Resume point
-
-Done: typed scope/cursor, palette wiring, immediate invalidation, prepared
-destination, EN/KO labels and language refresh. Narrow palette tests: app 5
-passed and view 31 passed. Compile warnings were corrected afterward; lint and
-the full package gate remain pending.
-Next: expanded find/outline and server prompt-index contract; narrow checks;
-then one combined capture matrix, whole gate and review.
+The initial Messages slice passed five app and 31 view tests before the expanded
+find/outline work. That result is scoped evidence, not the complete package gate.
 
 
 ## Expanded search and outline contract
@@ -109,14 +105,10 @@ between slices, marks occurrences and reveals folded entries. `timeline::outline
 and the existing rail derive prompts from the subscribed log. Reuse these rather
 than introduce another timeline. Differences needing work: find shortcut observer
 must not bypass overlay/IME/rebinding policy; closing should restore focus; outline
-must honour the Chat setting and its hover intent. The server prompt-index call
-is absent from the actual node method table; that boundary awaits the central
-node contract or a ruling on deriving the full index from the complete log.
-No fictional call is registered.
-
-Current state: global Messages implementation and regressions drafted; narrow
-checks queued. Find/outline parity audit started; full-history prompt index
-boundary reported. Final captures and whole gate cover the expanded package.
+must honour the Chat setting and its hover intent. The new metadata-only node
+call is now registered through Quality B with an unassigned protocol constant,
+so it is refused before I/O until integration. No fictional wire version is used.
+Final captures and whole gates cover the expanded package.
 
 
 ### Find/outline skeleton checkpoint
