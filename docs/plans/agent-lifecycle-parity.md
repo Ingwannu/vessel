@@ -287,6 +287,8 @@ No row of the crate table changes.
   and pin one future before the loop, polling interruption first. Keep script
   detach, port revisions, rendering, reconnects and watched resources intact.
   A shared controller or a new dependency would add no needed behavior.
+- The existing owned-child cleanup and executable-checked SIGINT helper are
+  first shared by the tests, with existing log assertions unchanged.
 - This is a separate corrective slice from log follow. Tests use owned CLI
   children and real signals against temporary fakes/scripts. A claimed
   signal-during-write case must acknowledge that write deterministically;
