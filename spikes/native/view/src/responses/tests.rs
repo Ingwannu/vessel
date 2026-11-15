@@ -80,17 +80,49 @@ fn capacity_and_exhaustion_do_not_reuse_or_release_other_tickets() {
 #[test]
 fn reconnects_and_aliases_cannot_double_submit_the_same_node_request() {
     let mut registry = Registry::default();
-    let first = target();
-    let request = Request::Permission(PermissionId::random());
-    let _pending = registry.begin(first.clone(), request).unwrap();
-    let changed = Target {
-        connection: ConnectionEpochs::default()
-            .admit(
-                MachineKey::from_book("other-alias"),
-                first.connection.node(),
-            )
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let first = Target {
+        connection: epochs
+            .admit(MachineKey::from_book("scratch"), node)
             .unwrap(),
-        session: first.session,
+        session: SessionId::random(),
     };
-    assert_eq!(registry.begin(changed, request), Err(Problem::Busy));
+    let request = Request::Permission(PermissionId::random());
+    let pending = registry.begin(first.clone(), request).unwrap();
+    for connection in [
+        epochs
+            .admit(MachineKey::from_book("scratch"), node)
+            .unwrap(),
+        epochs
+            .admit(MachineKey::from_book("other-alias"), node)
+            .unwrap(),
+    ] {
+        assert_ne!(connection.epoch(), first.connection.epoch());
+        let changed = Target {
+            connection,
+            session: first.session,
+        };
+        assert_eq!(registry.begin(changed.clone(), request), Err(Problem::Busy));
+        let wrong = Pending {
+            target: changed,
+            ..pending.clone()
+        };
+        assert!(!registry.settle(&wrong));
+    }
+    assert!(registry.settle(&pending));
+    let retry = registry
+        .begin(
+            Target {
+                connection: epochs
+                    .admit(MachineKey::from_book("scratch"), node)
+                    .unwrap(),
+                session: first.session,
+            },
+            request,
+        )
+        .unwrap();
+    assert_ne!(retry.ticket, pending.ticket);
+    assert!(!registry.settle(&pending));
+    assert!(registry.settle(&retry));
 }

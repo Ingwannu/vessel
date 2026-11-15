@@ -534,3 +534,11 @@ keyboard evidence. Lead and G2 received the immutable producer/evidence packet.
 G2 is the next reserved field writer for multiline source callbacks and its
 FormMinimum; W4 makes no concurrent field.rs edit. This shared prerequisite pass
 is separate from the A8 package's latest still-pending all-target native checks.
+
+
+The reconnect admission regression now uses one real ConnectionEpochs producer
+to mint actual successive epochs for the same alias and a second alias. It tests
+both node/session/request single-flight and refusal to settle with a changed
+context, followed by a distinct retry ticket only after original settlement.
+The previous alias-only fixture did not actually exercise a reconnect despite
+its test name. This strengthens scoped evidence without changing product logic.
