@@ -944,6 +944,10 @@ wire change or new external dependency is included in this move.
   downgrade-tolerant settings reader is unchanged; this does not establish a
   universal file-read limit. Unset/reload registration remains a later step.
 
+Paseo config.ts also treats a value that fails JSON.parse as a literal string,
+even without --string. This typed command refuses that fallback as well: the
+submitted complete JSON must represent the selected setting's canonical type.
+
 The tests owe strict byte boundaries, unknown/nested/null input, safe Display/
 Debug/source chains, per-key version admission, live CLI output and persisted
 mutation. Existing settings cases remain unchanged. Real agents, remote service
