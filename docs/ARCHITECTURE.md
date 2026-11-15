@@ -1862,3 +1862,10 @@ the named logical reservation ceilings. These values register no method and
 create no alternate receipt store or watcher. Public submission/observation
 cannot select NoticeKey. Positive private admission still requires a real atomic
 execution/parentage/grant fence, rather than serialized intent or liveness reads.
+
+Retained receipt target metadata shares timeline_admissions and its existing
+worst-case reservation. Only the fresh receipt owner's private binding token can
+advance it through the single Store writer after canonical persistence; read-only
+observation cannot mint that token. Acceptance stays immutable. Startup rejects
+invalid target pairing or envelope accounting. RPC serving and actual actor-ticket
+production remain staged separately from this metadata implementation.

@@ -50,6 +50,11 @@ pub(crate) enum TimelineWrite {
         accepted: vessel_proto::timeline::SubmissionAcceptedKind,
         done: Done<vessel_proto::timeline::PromptReceipt>,
     },
+    BindPrompt {
+        token: crate::ReceiptBindingToken,
+        target: vessel_proto::timeline::PromptReceiptBinding,
+        done: Done,
+    },
 }
 
 pub(super) enum TimelineAnswer {
@@ -96,6 +101,16 @@ impl TimelineAnswer {
 
 pub(super) fn apply(transaction: &mut Transaction<'_>, write: TimelineWrite) -> TimelineAnswer {
     match write {
+        TimelineWrite::BindPrompt {
+            token,
+            target,
+            done,
+        } => TimelineAnswer::Done(
+            done,
+            isolated(transaction, |connection| {
+                crate::timeline_admission::binding::record(connection, token, target)
+            }),
+        ),
         TimelineWrite::OfferQuestion {
             session,
             source,

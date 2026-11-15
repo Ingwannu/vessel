@@ -12,6 +12,28 @@ use crate::{
 };
 
 impl Store {
+    /// Commit an actual actor-ticket target under its fresh owner's private token.
+    /// Exact repeated targets are idempotent; settled targets cannot be replaced.
+    /// The caller must first prove the target's canonical persistence watermark.
+    ///
+    /// # Errors
+    /// A non-accepted/changed reservation, incompatible target, oversized state or
+    /// failed transaction leaves the prior binding intact.
+    pub async fn bind_prompt_receipt(
+        &self,
+        token: crate::ReceiptBindingToken,
+        target: vessel_proto::timeline::PromptReceiptBinding,
+    ) -> Result<(), StoreError> {
+        let (done, committed) = oneshot::channel();
+        self.send(Write::Timeline(TimelineWrite::BindPrompt {
+            token,
+            target,
+            done,
+        }))
+        .await?;
+        committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+
     /// Read the original retained outcome without reserving, dispatching or loading
     /// attachments. Session authorization and authenticated Creator come from the caller.
     /// Direct turn bindings remain unobserved until their actor fact is retained.

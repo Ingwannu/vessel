@@ -1,6 +1,9 @@
 //! Retained receipt admission (ADR 0084), owned by the one store writer.
 //! Question claims stay staged until the actor/provider bridge is connected.
 
+pub(crate) mod binding;
+#[cfg(test)]
+mod binding_tests;
 mod fingerprint;
 pub(crate) mod observation;
 #[cfg(test)]
@@ -25,7 +28,7 @@ pub use question::{
     AnswerAdmission as QuestionAnswerAdmission, AnswerNotSent as QuestionAnswerNotSent,
     AnswerTarget as QuestionAnswerTarget, AnswerToken as QuestionAnswerToken, QuestionAdmission,
 };
-pub use receipt::{ReceiptAdmission, ReceiptToken};
+pub use receipt::{ReceiptAdmission, ReceiptBindingToken, ReceiptToken};
 use receipt::{admit_receipt, finish_receipt};
 
 pub(crate) fn lookup_input(
@@ -65,6 +68,7 @@ CREATE TABLE timeline_admissions (
     fingerprint BLOB NOT NULL,
     reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes > 0),
     state TEXT NOT NULL,
+    binding TEXT,
     PRIMARY KEY(session, kind, identity)
 ) STRICT, WITHOUT ROWID;
 CREATE UNIQUE INDEX timeline_question_request ON timeline_admissions
@@ -174,7 +178,7 @@ fn reserve(
 pub(crate) fn verify(connection: &Connection) -> Result<(), StoreError> {
     let bad: i64 = connection.query_row(
         "SELECT count(*) FROM timeline_admissions WHERE
-         (kind='receipt' AND (reserved_bytes<>?1 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?3)) OR
+         (kind='receipt' AND (reserved_bytes<>?1 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)+coalesce(length(CAST(binding AS BLOB)),0)>?3)) OR
          (kind='question' AND (reserved_bytes<>?2 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?4))",
         params![sql_bytes(AdmissionKind::Receipt.reserved_bytes())?, sql_bytes(AdmissionKind::Question.reserved_bytes())?,
             sql_bytes(AdmissionBytes::new(vessel_proto::timeline::admission::MAX_RECEIPT_STATE_BYTES))?,
@@ -209,6 +213,7 @@ pub(crate) fn verify(connection: &Connection) -> Result<(), StoreError> {
     if bad_sessions != 0 || missing != 0 {
         return Err(StoreError::AdmissionIntegrity);
     }
+    binding::verify(connection)?;
     Ok(())
 }
 

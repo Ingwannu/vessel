@@ -4,10 +4,7 @@
 
 use rusqlite::Connection;
 use vessel_proto::Creator;
-use vessel_proto::timeline::{
-    ObservePromptReceiptReply, PromptDisposition, PromptReceiptBinding, SubmissionAcceptedKind,
-    SubmitPrompt, SubmitPromptReply,
-};
+use vessel_proto::timeline::{ObservePromptReceiptReply, SubmitPrompt, SubmitPromptReply};
 
 use crate::StoreError;
 
@@ -17,39 +14,38 @@ pub(crate) fn observe_input(
     creator: &Creator,
 ) -> Result<ObservePromptReceiptReply, StoreError> {
     let message = request.message.clone();
-    Ok(match super::lookup_input(connection, request, creator)? {
-        None => ObservePromptReceiptReply::Unobserved { message },
-        Some(SubmitPromptReply::OutcomeUnknown { message }) => {
+    let Some(known) = super::receipt::read_receipt(connection, request.session, &message)? else {
+        return Ok(ObservePromptReceiptReply::Unobserved { message });
+    };
+    let fingerprint = super::ReceiptFingerprint::for_prompt(request, creator)?;
+    let reply = super::receipt::replay(
+        request.session,
+        message,
+        fingerprint,
+        known.fingerprint,
+        &known.state,
+    )?;
+    Ok(match reply {
+        SubmitPromptReply::OutcomeUnknown { message } => {
             ObservePromptReceiptReply::OutcomeUnknown { message }
         }
-        Some(SubmitPromptReply::KeyConflict { message }) => {
+        SubmitPromptReply::KeyConflict { message } => {
             ObservePromptReceiptReply::KeyConflict { message }
         }
-        Some(SubmitPromptReply::Refused { message, reason }) => {
+        SubmitPromptReply::Refused { message, reason } => {
             ObservePromptReceiptReply::Refused { message, reason }
         }
-        Some(SubmitPromptReply::Accepted { receipt }) => {
-            let binding = initial_binding(receipt.accepted);
+        SubmitPromptReply::Accepted { receipt } => {
+            let binding = super::binding::decode(
+                request.session,
+                receipt.accepted,
+                known.binding.as_deref(),
+            )?;
             ObservePromptReceiptReply::Accepted { receipt, binding }
         }
         // Read lookup cannot manufacture either fresh-admission outcome.
-        Some(SubmitPromptReply::Capacity { .. } | SubmitPromptReply::NotAdmitted { .. }) => {
+        SubmitPromptReply::Capacity { .. } | SubmitPromptReply::NotAdmitted { .. } => {
             return Err(StoreError::AdmissionIntegrity);
         }
     })
-}
-
-fn initial_binding(accepted: SubmissionAcceptedKind) -> PromptReceiptBinding {
-    match accepted {
-        SubmissionAcceptedKind::Prompt {
-            disposition: PromptDisposition::Queued { entry },
-        } => PromptReceiptBinding::Queued { entry },
-        SubmissionAcceptedKind::Command { echo, .. } => PromptReceiptBinding::Command { echo },
-        SubmissionAcceptedKind::Prompt {
-            disposition:
-                PromptDisposition::Started
-                | PromptDisposition::Steered
-                | PromptDisposition::InterruptedAndStarted { .. },
-        } => PromptReceiptBinding::Unobserved,
-    }
 }

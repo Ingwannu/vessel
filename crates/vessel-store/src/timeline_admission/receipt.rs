@@ -13,7 +13,7 @@ use crate::{Column, StoreError, codec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
-enum ReceiptState {
+pub(super) enum ReceiptState {
     Pending,
     Accepted { accepted: SubmissionAcceptedKind },
     Refused { reason: SubmissionRefusal },
@@ -34,6 +34,55 @@ pub struct ReceiptToken {
     session: SessionId,
     message: ClientMessageId,
     fingerprint: ReceiptFingerprint,
+}
+
+/// Only a fresh receipt owner can retain this capability for actor-ticket settlement.
+/// Public identities and read-only observation cannot construct one.
+#[derive(Debug)]
+pub struct ReceiptBindingToken {
+    pub(super) session: SessionId,
+    pub(super) message: ClientMessageId,
+    pub(super) fingerprint: ReceiptFingerprint,
+}
+
+impl ReceiptToken {
+    /// Retain before acceptance consumes the fresh reservation token. This grants
+    /// no provider work; it can only settle this already accepted receipt's target.
+    #[must_use]
+    pub fn binding_token(&self) -> ReceiptBindingToken {
+        ReceiptBindingToken {
+            session: self.session,
+            message: self.message.clone(),
+            fingerprint: self.fingerprint,
+        }
+    }
+}
+
+pub(super) struct ReceiptRecord {
+    pub(super) fingerprint: Vec<u8>,
+    pub(super) state: String,
+    pub(super) binding: Option<String>,
+}
+
+pub(super) fn read_receipt(
+    connection: &Connection,
+    session: SessionId,
+    message: &ClientMessageId,
+) -> Result<Option<ReceiptRecord>, StoreError> {
+    Ok(connection
+        .query_row(
+            "SELECT fingerprint,state,binding FROM timeline_admissions
+         WHERE session=?1 AND kind='receipt' AND identity=?2",
+            params![session.to_string(), message.as_str()],
+            |row| {
+                Ok(ReceiptRecord {
+                    fingerprint: row.get(0)?,
+                    state: row.get(1)?,
+                    binding: row.get(2)?,
+                })
+            },
+        )
+        .optional()?)
 }
 
 pub(super) fn admit_receipt(
@@ -63,7 +112,7 @@ pub(super) fn admit_receipt(
         }));
     }
     let pending = codec::encode(&ReceiptState::Pending)?;
-    check_envelope(&message, &fingerprint, &pending)?;
+    check_envelope(&message, &fingerprint, &pending, None)?;
     let _inserted = connection.execute(
         "INSERT INTO timeline_admissions(session,kind,identity,fingerprint,reserved_bytes,state)
          VALUES (?1,'receipt',?2,?3,?4,?5)",
@@ -88,22 +137,20 @@ pub(super) fn lookup_receipt(
     message: ClientMessageId,
     fingerprint: ReceiptFingerprint,
 ) -> Result<Option<SubmitPromptReply>, StoreError> {
-    let known: Option<(Vec<u8>, String)> = connection
-        .query_row(
-            "SELECT fingerprint,state FROM timeline_admissions
-         WHERE session=?1 AND kind='receipt' AND identity=?2",
-            params![session.to_string(), message.as_str()],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()?;
-    if let Some((known_fingerprint, state)) = known {
-        let reply = replay(session, message, fingerprint, known_fingerprint, &state)?;
+    if let Some(known) = read_receipt(connection, session, &message)? {
+        let reply = replay(
+            session,
+            message,
+            fingerprint,
+            known.fingerprint,
+            &known.state,
+        )?;
         return Ok(Some(reply));
     }
     Ok(None)
 }
 
-fn replay(
+pub(super) fn replay(
     session: SessionId,
     message: ClientMessageId,
     fingerprint: ReceiptFingerprint,
@@ -149,7 +196,7 @@ fn settle_receipt(
         return Err(StoreError::AdmissionIntegrity);
     }
     let state = codec::encode(state)?;
-    check_envelope(&token.message, &token.fingerprint, &state)?;
+    check_envelope(&token.message, &token.fingerprint, &state, None)?;
     let pending = codec::encode(&ReceiptState::Pending)?;
     let changed = connection.execute(
         "UPDATE timeline_admissions SET state=?1 WHERE session=?2 AND kind='receipt'
@@ -168,16 +215,18 @@ fn settle_receipt(
     Ok(token.message)
 }
 
-fn check_envelope(
+pub(super) fn check_envelope(
     message: &ClientMessageId,
     fingerprint: &ReceiptFingerprint,
     state: &str,
+    binding: Option<&str>,
 ) -> Result<(), StoreError> {
     let size = message
         .as_str()
         .len()
         .checked_add(fingerprint.bytes().len())
         .and_then(|size| size.checked_add(state.len()))
+        .and_then(|size| size.checked_add(binding.map_or(0, str::len)))
         .ok_or(StoreError::AdmissionIntegrity)?;
     let encoded = u64::try_from(size).map_err(|_too_large| StoreError::AdmissionIntegrity)?;
     if !AdmissionKind::Receipt.fits(vessel_proto::timeline::admission::AdmissionBytes::new(

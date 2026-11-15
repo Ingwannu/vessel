@@ -108,3 +108,15 @@ echo already in acceptance; direct/joined turn targets remain explicitly
 Unobserved until actual ticket metadata is wired. Query-only SQLite regressions
 are authored to catch accidental fresh admission and original-content conflicts.
 The RPC remains staged/Unsupported and no node handler or actor binding is claimed.
+
+The same migration's receipt row now has optional binding metadata, covered by its
+existing worst-case receipt reservation. A fresh ReceiptToken can mint a private
+binding token before acceptance consumes it; neither lookup nor replay can mint
+one. The single writer only binds accepted rows, validates receipt/target pairing,
+and permits unobserved-to-turn or exact queued-to-turn/withdrawn transitions.
+Settled duplicate targets are idempotent; different settled targets refuse.
+Acceptance state is unchanged. Startup checks target decoding, pairing and the
+combined envelope instead of clearing bad metadata. No second table/store/schema
+migration is introduced. Transaction rollback/reopen, stale targets, Creator
+conflict, wrong queue identity and pending-row refusal fixtures are authored.
+The actual ticket producer and node handler remain separate, unimplemented work.
