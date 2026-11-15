@@ -1,5 +1,8 @@
 //! Top-level workspace intake precedes navigation and never overwrites a draft.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     routes::{self, Route},
     shell::Shell,
