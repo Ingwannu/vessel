@@ -400,3 +400,13 @@ R's evidence is limited: Linux is built on Ubuntu24.04 without a claimed
 minimum glibc; Windows is static-CRT, Windows10 1703+/11 build/system-DLL proof,
 not real plugin/node execution proof. Test-only labels imply no platform
 qualification, download, installation or successful helper start.
+
+Source spelling is a staged input boundary, not an acquisition capability.
+Native-compatible registry configuration is explicit; no public Vessel registry
+or compatibility with unchanged Paseo published packages is invented. Bare npm
+selectors keep npm's own resolution grammar with finite input bounds. Registry
+transport is HTTPS except actual loopback HTTP, stricter than Paseo's
+unauthenticated public HTTP option. URI userinfo/query/fragment refuse before
+any future credential/fetch adapter. Directory/Git spellings remain unresolved
+input and must not be passed to launch or storage without their real node-owned
+canonical/pin/authorization adapter. No source install is enabled by parsing.

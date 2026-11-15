@@ -251,3 +251,34 @@ b5e1830b6 match prior2ecf5ef7c exactly. The only carried process prerequisite is
 portableb37 onede20014. No local-node crate, local_launch DTO, desktop store/bin
 support or Released/Releasable proc state is introduced. Public supervisor spawn
 has its own checked live-reactor admission, so it needs none of those APIs.
+
+## Source reference spelling stage
+
+Node::plugins::source is test-only source-input admission, not acquisition.
+Paseo protocol/plugin-source-reference.ts and its fixture table, plugin-registry.ts,
+managed-source/npm.ts and managed-source.ts438-490 define the observed precedence:
+explicit directory shape; original host:port registry reference; registry slug;
+explicit npm or bare npm package; otherwise unresolved explicit Git input.
+Colon package subpaths must not consume URI ports, SCP's separator or Windows
+roots. Native uses canonical RelPath for portable subpaths (including dot-root),
+so control/metadata-directory/wildcard filesystem semantics are not invented.
+Bracketed SCP IPv6 separators are handled as one host, correcting the reference
+lexer's first-colon corner rather than claiming it worked there.
+
+These are input types, deliberately named DirectoryInput/GitInput. No stat,
+canonical containment, absolute-node path, Git URL/SSH/auth/ref validation,
+revision/artifact pin, build or process capability is minted. Those adapters
+remain unsupported. Npm selector grammar is bounded literal data; npm owns
+semver/range/tag resolution. Resource bounds are source4096 bytes, package214,
+selector256; no new regex or hand-written semver dependency. Diagnostics and
+Debug seal private source/path/credential-bearing text.
+
+Registry origins use the existing URL library and reject userinfo (including
+empty @), query/fragment, malformed authority and non-HTTPS except standard
+loopback HTTP. This is stricter than Paseo's unauthenticated public HTTP registry
+rule, to keep native artifact provenance transport secure. No fetch, redirect,
+credential lookup/header or child environment is performed at this stage.
+There is intentionally no fabricated/public default native registry: a bare
+owner/slug requires explicit native-compatible registry configuration, while a
+host/owner/slug reference can identify its own HTTPS origin. Paseo's published
+TS/React packages are not silently treated as native author-port artifacts.
