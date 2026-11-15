@@ -198,8 +198,8 @@ impl Conversation {
         };
         self.next = next;
         match &record.event {
-            SessionEvent::Agent { event } => self.agent(event),
-            SessionEvent::Status { status } => self.status(status),
+            SessionEvent::Agent { event, .. } => self.agent(event),
+            SessionEvent::Status { status, .. } => self.status(status),
             SessionEvent::Terminal(_)
             | SessionEvent::ProfileChanged { .. }
             | SessionEvent::ModelCall(_)
@@ -207,19 +207,26 @@ impl Conversation {
             | SessionEvent::Renamed { .. }
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
-            | SessionEvent::UsageChanged { .. } => {}
+            | SessionEvent::UsageChanged { .. }
+            // Parking (protocol 12, ADR 0038) is not drawn yet.
+            | SessionEvent::Parked { .. }
+            | SessionEvent::Woken
+            // Protocol 14's fork and rewind records: taken, not drawn yet
+            // (the app's rewind and fork are a later slice).
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Rewound { .. } => {}
         }
     }
 
     fn agent(&mut self, event: &AgentEvent) {
         match event {
-            AgentEvent::TurnStarted { content } | AgentEvent::Steered { content } => {
+            AgentEvent::TurnStarted { content, .. } | AgentEvent::Steered { content, .. } => {
                 self.turn_running = true;
                 self.push(Speaker::Person, text_of(content));
             }
-            AgentEvent::UserMessageChunk { content } => self.extend(Speaker::Person, content),
-            AgentEvent::MessageChunk { content } => self.extend(Speaker::Agent, content),
-            AgentEvent::ThoughtChunk { content } => self.extend(Speaker::Thought, content),
+            AgentEvent::UserMessageChunk { content, .. } => self.extend(Speaker::Person, content),
+            AgentEvent::MessageChunk { content, .. } => self.extend(Speaker::Agent, content),
+            AgentEvent::ThoughtChunk { content, .. } => self.extend(Speaker::Thought, content),
             AgentEvent::ToolCall(call) => {
                 let index = self.entries.len();
                 self.entries.push(Entry {
@@ -263,7 +270,7 @@ impl Conversation {
                 self.turn_running = false;
                 self.asked.clear();
             }
-            AgentEvent::TurnFailed { message } => {
+            AgentEvent::TurnFailed { message, .. } => {
                 self.turn_running = false;
                 self.asked.clear();
                 self.notify(Notice::TurnFailed(message.clone()));
@@ -280,7 +287,7 @@ impl Conversation {
         let notice = match status {
             SessionStatus::Starting | SessionStatus::Running => return,
             SessionStatus::Exited { .. } => Notice::Ended,
-            SessionStatus::Failed { message } => Notice::Failed(message.clone()),
+            SessionStatus::Failed { message, .. } => Notice::Failed(message.clone()),
             SessionStatus::Interrupted => Notice::Interrupted,
         };
         self.turn_running = false;
@@ -322,7 +329,7 @@ fn text_of(content: &[ContentBlock]) -> String {
     let mut text = String::new();
     for block in content {
         match block {
-            ContentBlock::Text { text: part } => text.push_str(part),
+            ContentBlock::Text { text: part, .. } => text.push_str(part),
             ContentBlock::ResourceLink { name, .. } => text.push_str(name),
             ContentBlock::Opaque { .. } | ContentBlock::Attachment { .. } => {
                 text.push_str("[attachment]");
