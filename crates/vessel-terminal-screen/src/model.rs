@@ -232,7 +232,7 @@ impl Snapshot {
     }
 }
 
-fn cursor(screen: &vt100::Screen) -> Cursor {
+pub(crate) fn cursor(screen: &vt100::Screen) -> Cursor {
     let (row, column) = screen.cursor_position();
     Cursor {
         row: Row(row),
@@ -244,7 +244,7 @@ fn cursor(screen: &vt100::Screen) -> Cursor {
         },
     }
 }
-fn buffer_kind(screen: &vt100::Screen) -> BufferKind {
+pub(crate) fn buffer_kind(screen: &vt100::Screen) -> BufferKind {
     if screen.alternate_screen() {
         BufferKind::Alternate
     } else {

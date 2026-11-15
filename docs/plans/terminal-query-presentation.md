@@ -180,3 +180,10 @@ latent alternate right columns remain available to capture but never leak into
 visible frame columns. Program cursor shape, CLI rendering and UI validation
 remain separate unfinished D1 work; this projection exposes the prerequisite's
 position/visibility contract only.
+
+FrameRows selects a prefix height from the reference viewport origin, not a
+PTY resize or a different terminal size. A complete renderer asks for the
+current terminal row count. Smaller bounded reads retain the same explicit
+first-row coordinate. The live path borrows Screen directly, avoiding a full
+grid Snapshot clone just to select a small viewport. Wire minimum-size/cell
+preflight and exact encoded-byte refusal stay with the node DTO owner.

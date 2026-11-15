@@ -207,7 +207,7 @@ impl Snapshot {
         resolve(&self.state, &self.identity, self.epochs, anchor)
     }
 }
-fn resolve(
+pub(crate) fn resolve(
     state: &vt100::Screen,
     identity: &ScreenIdentity,
     epochs: Epochs,
