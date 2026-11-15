@@ -203,6 +203,9 @@ rustls-native-certs = "0.8"
 serde = { version = "1", features = ["derive", "rc"] }
 # Reported cost must retain its finite value through wire and store JSON (ADR 0042).
 serde_json = { version = "1", features = ["raw_value", "float_roundtrip"] }
+# The field path of a frame that did not decode (vessel-rpc's DecodeFailure);
+# already in the lock through another dependency.
+serde_path_to_error = "0.1"
 # HMAC-SHA256 for relay registration tickets (vessel-relay, protocol 6's
 # `fleet.callback`): a fleet's home mints them with the relay's token and
 # the relay checks them with it. RustCrypto, the same family as `sha2`.
