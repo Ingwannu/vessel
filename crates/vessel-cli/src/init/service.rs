@@ -302,8 +302,7 @@ fn launchd_plist(node: &Node, undo: &str) -> String {
          \x20 <key>StandardErrorPath</key>{}\n\
          </dict>\n\
          </plist>\n",
-        // A comment expands no entities and may not hold `--`.
-        undo.replace("--", "- -"),
+        xml_comment(undo),
         string(LABEL),
         string(&node.exe.display().to_string()),
         string("--data-dir"),
@@ -314,6 +313,23 @@ fn launchd_plist(node: &Node, undo: &str) -> String {
         string(&log.display().to_string()),
         string(&log.display().to_string()),
     )
+}
+
+/// Comment syntax differs from XML text: overlapping runs can survive a
+/// pair replacement and close the comment. Separate adjacent hyphens as
+/// they are emitted, and keep the result valid even without a closing space.
+fn xml_comment(text: &str) -> String {
+    let mut escaped = String::new();
+    for ch in text.chars() {
+        if ch == '-' && escaped.ends_with('-') {
+            escaped.push(' ');
+        }
+        escaped.push(ch);
+    }
+    if escaped.ends_with('-') {
+        escaped.push(' ');
+    }
+    escaped
 }
 
 fn xml_escaped(text: &str) -> String {
@@ -483,5 +499,100 @@ mod tests {
         ));
         assert_eq!(std::fs::read(file).unwrap(), original);
         assert!(!same_content(std::io::repeat(b'x'), "x").unwrap());
+    }
+}
+
+#[cfg(all(test, unix))]
+mod plist_comment_tests {
+    use super::*;
+    use tokio::io::AsyncWriteExt as _;
+
+    const HYPHEN_RUNS: std::ops::RangeInclusive<usize> = 2..=6;
+    const PLIST_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(60);
+
+    #[derive(serde::Serialize)]
+    struct Case<'a> {
+        plist: &'a str,
+        exe: &'a Path,
+        directory: &'a Path,
+        search: &'a str,
+        log: PathBuf,
+    }
+
+    async fn parse_and_check(plist: &str, node: &Node) {
+        // Isolated Python imports standard library only and starts no child;
+        // kill_on_drop bounds this direct parser to the regression's deadline.
+        let mut child = tokio::process::Command::new("python3")
+            .args([
+                "-I",
+                "-S",
+                "-c",
+                include_str!("../../tests/fixtures/service_plist.py"),
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
+            .unwrap();
+        let payload = serde_json::to_vec(&Case {
+            plist,
+            exe: &node.exe,
+            directory: &node.data_dir,
+            search: &node.path,
+            log: node.data_dir.join("logs/vessel-service.log"),
+        })
+        .unwrap();
+        let mut input = child.stdin.take().unwrap();
+        input.write_all(&payload).await.unwrap();
+        drop(input);
+        let output = child.wait_with_output().await.unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[tokio::test]
+    async fn comment_delimiters_in_home_paths_cannot_add_or_change_plist_keys() {
+        vessel_testkit::within(PLIST_TEST_BUDGET, async {
+            let temp = tempfile::tempdir().unwrap();
+            for count in HYPHEN_RUNS {
+                let run = "-".repeat(count);
+                for name in [
+                    format!("a{run}b"),
+                    format!("x{run}><key>y"),
+                    format!("x{run}!><key>y"),
+                ] {
+                    let home = temp.path().join(name);
+                    let file = paths::Manager::Launchd.file(&home, None).unwrap();
+                    let undo = paths::Manager::Launchd.undo(&file).unwrap();
+                    let node = Node {
+                        exe: home.join("vessel"),
+                        data_dir: home.join("data"),
+                        path: home.join("bin").to_str().unwrap().to_owned(),
+                    };
+                    paths::validate_paths(&node.exe, &node.data_dir).unwrap();
+                    paths::validate_search(&node.path).unwrap();
+                    let plist = launchd_plist(&node, undo.as_str());
+                    let comment = plist
+                        .split_once("<!--")
+                        .unwrap()
+                        .1
+                        .split_once("-->")
+                        .unwrap()
+                        .0;
+                    assert!(!comment.contains("--"), "{comment}");
+                    assert!(!comment.ends_with('-'), "{comment}");
+                    parse_and_check(&plist, &node).await;
+                }
+                let terminal = xml_comment(&format!("x{run}"));
+                assert!(!terminal.contains("--"));
+                assert!(!terminal.ends_with('-'));
+            }
+        })
+        .await
+        .unwrap_or_else(|error| panic!("plist regression exceeded {PLIST_TEST_BUDGET:?}: {error}"));
     }
 }

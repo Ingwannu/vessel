@@ -25,11 +25,12 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
   push. The next slice's gate covers this merged tree, including the
   explicit forge-fixture clippy and test steps.
-- Gated: 2f service path fidelity, exclusive file creation and byte-stream
-  preservation. The final quoting correction,
-  focused checks and the whole gate passed (2,066 Rust tests, no failures,
-  12 ignored; forge 4, web unit 417 and e2e 62). Review is pending.
-- Next: gate 2f, then deadline-safe local reads, service
+- Returned: 2f passed its whole gate (2,066 Rust tests, no failures,
+  12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
+  hyphens in the launchd comment encoder. The revision uses single-pass
+  character emission and an independent XML/plist parsing regression; its
+  focused checks and whole gate are pending.
+- Next: gate the 2f revision, then deadline-safe local reads, service
   observation/finalization, force/restart and slices 3/4. Actual service
   managers and real agents remain unverified.
 
@@ -386,14 +387,15 @@ through the existing fake service tools. Windows still skips installation.
 The larger stop-time observer draft is deliberately separate: it must not
 expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
 bounded reads and loaded-manager authority validation follow in separate
-reviewable changes. Compilation and whole-gate evidence are still pending.
+reviewable changes. The original whole gate passed; its returned XML-comment
+encoding finding is being corrected and will have a new whole gate.
 
 
 Move file I/O off the async worker while preserving both platform reports.
 Exclusive file creation makes the existing no-overwrite promise hold when two initializers run concurrently; a barrier-based test
-checks that one wins and its content survives. The earlier path-only draft's
-focused clippy result predates these changes. Initial focused clippy passed. The final quoting correction and tests must
-be checked before the whole gate; no completed-gate claim is made here.
+checks that one wins and its content survives. Those checks passed in the
+original whole gate; the comment-encoding revision adds independent XML
+parsing over longer hyphen runs and delimiter-bearing home paths.
 
 
 Existing service files are compared as byte streams with bounded buffering,

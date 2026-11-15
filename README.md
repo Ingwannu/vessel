@@ -1209,6 +1209,11 @@ for Clippy and its launcher tests. Normal product/release builds never enable
 that feature. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
 and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
 
+On Unix, the generated-service plist regression test also uses `python3`
+with its standard-library XML/plist parser. It runs in isolated, no-site
+mode and reads only synthetic test data from stdin; Python is not used by
+the installed service or product binary.
+
 ## License
 
 Vessel is **source-available, not open source.** It is licensed under the

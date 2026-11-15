@@ -807,3 +807,32 @@ move; CLI-to-proc is added only with the real caller. No external dependency
 or wire change is proposed. The separate descriptor/generation/namespace
 verification phase must not grant signal authority from a kernel PID alone.
 The documents-only contract adds neither an edge nor process-control code.
+
+
+## XML comment delimiter safety
+
+[Decision Log]
+- Purpose and intent: a home path must never close a generated plist comment
+  or introduce another plist key.
+- Existing implementation and constraints: the undo hint is present in the
+  plist and CLI output. Non-overlapping pair replacement leaves adjacent
+  hyphens when input contains longer runs; XML comments cannot contain such
+  a pair or end with a hyphen ([XML rules](https://www.w3.org/TR/xml/#sec-comments)).
+- Alternatives considered: omit the hint from every plist, refuse otherwise
+  valid paths, or replace pairs repeatedly. Omitting changes every existing
+  plist's comparison; refusing paths narrows valid OS paths; repeated passes
+  obscure the invariant.
+- Selected approach: emit comment characters once, inserting a space before
+  a hyphen that would follow another, and after a final hyphen. Already valid
+  hints remain byte-identical. XML text values still use their separate encoder.
+- Why this approach: neither adjacency nor a terminal hyphen can survive
+  emission, independently of the length or surrounding input. Existing head
+  assertions and normal service files need no expectation or format change.
+- Advantages, costs and effects: no new Rust dependency, wire call or edge.
+  The Unix regression test uses Python's standard-library `plistlib` in
+  isolated, no-site mode to parse generated XML and compare the complete
+  expected keys and values. This is a test-only interpreter prerequisite;
+  no interpreter or Python code ships in the product. The test fixture uses
+  the Python distribution's standard library, not an added package.
+  Systemd comments cannot be ended by a hyphen sequence; their line boundary
+  is protected by the existing control-character refusal before rendering.
