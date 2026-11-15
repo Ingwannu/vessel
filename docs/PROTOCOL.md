@@ -77,6 +77,15 @@ requires Force. Already archived is Conflict, and the acknowledged response is
 `ArchivedSession { session, archived_at }` with the committed store timestamp.
 Scope, ownership and forwarding follow session.mark; no new agent tool is implied.
 
+`session.archive_child` takes full parent and child `SessionRef` values. The child
+node serves this person-only Operate call, retaining the current-parent admission
+lock through its finished-state check, final actor IfIdle stop and archive commit.
+It returns the exact child and committed time or a typed skipped reason. Missing
+activity facts never prove idle; a detached or reparented child is skipped. This
+call requires both A2's pending threshold and `subagents::SUBAGENT_RELATIONS`, so
+assigning only one feature cannot enable it. Routing to remote children does not
+create distributed atomicity across the parent and child nodes.
+
 Workspace recovery DTOs distinguish recoverable action, unavailable reason, typed
 stage/source failure and uncertain completion. Future values remain Unknown so a
 client cannot infer a restore from a path. The inspect/restore methods await the
