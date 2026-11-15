@@ -337,6 +337,7 @@ fn listed(
         digest: digest.to_string().repeat(64).parse().unwrap(),
         approved,
         scripts,
+        terminals: Vec::new(),
         last_approved: last.map(Box::new),
     }
 }
@@ -347,6 +348,7 @@ fn approved_set(setup: &[&str], scripts: Vec<ScriptEntry>) -> ApprovedCommands {
             setup: setup.iter().map(|text| command(text)).collect(),
             teardown: Vec::new(),
             scripts,
+            terminals: Vec::new(),
         },
         digest: "a".repeat(64).parse().unwrap(),
         approved_at: Utc.with_ymd_and_hms(2026, 11, 12, 9, 30, 0).unwrap(),
@@ -480,4 +482,40 @@ fn says_every_case_in_korean_too() {
     );
     let problem = branch_name_problem("what?").unwrap();
     assert!(Ko.branch_name(problem).contains("\u{201c}?\u{201d}"));
+}
+
+#[test]
+fn refuses_approval_of_unshown_terminal_commands() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::FileTerminal;
+    let mut asked = listed(&[], false, 'c', vec![], None);
+    assert_eq!(Listed::of(&asked).unwrap().approval(), Ok(()));
+    if let ProjectCommands::Listed { terminals, .. } = &mut asked {
+        terminals.push(FileTerminal {
+            name: None,
+            command: command("npm run watch"),
+        });
+    }
+    assert_eq!(
+        Listed::of(&asked).unwrap().approval(),
+        Err(ApprovalRefusal::Terminals)
+    );
+    assert!(!En.labels().approval_unseen.is_empty());
+    assert!(!Ko.labels().approval_unseen.is_empty());
+}
+
+#[test]
+fn refuses_comparison_that_would_hide_removed_terminal_commands() {
+    use crate::workspace::command_changes::ApprovalRefusal;
+    use vessel_proto::workspace::FileTerminal;
+    let mut previous = approved_set(&[], vec![]);
+    previous.commands.terminals.push(FileTerminal {
+        name: None,
+        command: command("npm run watch"),
+    });
+    let asked = listed(&[], false, 'c', vec![], Some(previous));
+    assert_eq!(
+        Listed::of(&asked).unwrap().approval(),
+        Err(ApprovalRefusal::Terminals)
+    );
 }

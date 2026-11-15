@@ -15,7 +15,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::command_changes::{
-    Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
+    ApprovalRefusal, Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
 };
 use vessel_app_view::workspace::words::{Labels, Local, WorkspaceWords};
 use vessel_proto::workspace::ProjectCommand;
@@ -123,7 +123,11 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
-    let buttons = buttons(id, busy, actions, labels, tokens, cx);
+    let approval = asked.approval();
+    if let Err(ApprovalRefusal::Terminals) = approval {
+        card = card.child(banner(labels.approval_unseen, true, None, tokens));
+    }
+    let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))
         .child(
             div()
@@ -138,6 +142,7 @@ pub(super) fn render(
 fn buttons(
     id: &str,
     busy: bool,
+    approval: Result<(), ApprovalRefusal>,
     actions: Actions,
     labels: &'static Labels,
     tokens: &Tokens,
@@ -168,6 +173,9 @@ fn buttons(
             )
             .on_click(cx.listener(move |this, _event, window, cx| skip(this, window, cx))),
         );
+    }
+    if approval.is_err() {
+        return buttons;
     }
     buttons = buttons.child(
         button(
