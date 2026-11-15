@@ -1,5 +1,6 @@
 //! Identity-scoped reads and stream opens cannot follow a replaced saved alias.
-use crate::{Act, ActAnswer, ActFailed, Event};
+use crate::{Act, ActAnswer, ActFailed, ActKind, Event, TerminalOpening};
+use vessel_app_view::timeline::Until;
 use vessel_app_view::{machine_book::Name, sessions::SessionAddress};
 
 /// An authenticated destination retained after deep-link lookup.
@@ -38,12 +39,23 @@ pub enum Access {
     },
     /// Follow the existing log without starting a provider.
     Follow(Binding),
+    /// Read terminal history while preserving its opaque opening receipt.
+    ReadTerminal {
+        /// Originally admitted node/session identity; required even when offline.
+        binding: Binding,
+        /// The exact retained frontend opening, echoed on success and refusal.
+        opening: TerminalOpening,
+        /// The existing bounded log cutoff.
+        until: Until,
+    },
 }
 impl Access {
     #[cfg(not(target_arch = "wasm32"))]
     fn binding(&self) -> &Binding {
         match self {
-            Self::Read { binding, .. } | Self::Follow(binding) => binding,
+            Self::Read { binding, .. }
+            | Self::ReadTerminal { binding, .. }
+            | Self::Follow(binding) => binding,
         }
     }
     /// Queue/transport refusal still settles the exact screen read or stream.
@@ -51,6 +63,7 @@ impl Access {
     pub fn refused(self, failure: ActFailed) -> Event {
         match self {
             Self::Read { binding, read } => Event::Acted(ActAnswer {
+                terminal: None,
                 machine: binding.host.as_str().to_owned(),
                 session: binding.address.session,
                 kind: read.act().kind(),
@@ -60,25 +73,20 @@ impl Access {
                 session: binding.address.session,
                 why: failure.message,
             },
+            Self::ReadTerminal { opening, .. } => Event::Acted(ActAnswer {
+                machine: opening.machine().as_str().to_owned(),
+                session: opening.session(),
+                terminal: Some(opening),
+                kind: ActKind::Log,
+                result: Err(failure),
+            }),
         }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) fn session_access(&mut self, access: Access) {
-        let binding = access.binding();
-        let failure = match self.clients.get(binding.host.as_str()) {
-            Some(connected) if connected.client.node().id == binding.address.node => None,
-            Some(_) => Some(ActFailed {
-                code: Some(vessel_proto::ErrorCode::Conflict),
-                message: "The authenticated session destination changed".to_owned(),
-            }),
-            None => Some(ActFailed {
-                code: None,
-                message: crate::LinkError::NotConnected(binding.host.as_str().to_owned())
-                    .to_string(),
-            }),
-        };
+        let failure = self.session_access_failure(&access);
         if let Some(failure) = failure {
             let events = self.events.clone();
             drop(tokio::spawn(async move {
@@ -93,6 +101,47 @@ impl crate::State {
                 self.act(binding.host.as_str(), binding.address.session, read.act());
             }
             Access::Follow(binding) => self.open(binding.host.as_str(), binding.address.session),
+            Access::ReadTerminal {
+                binding,
+                opening,
+                until,
+            } => self.act(
+                binding.host.as_str(),
+                binding.address.session,
+                Act::TerminalLog { opening, until },
+            ),
+        }
+    }
+    fn session_access_failure(&self, access: &Access) -> Option<ActFailed> {
+        let binding = access.binding();
+        let receipt_matches = match access {
+            Access::ReadTerminal {
+                binding, opening, ..
+            } => {
+                binding.host.as_str() == opening.machine().as_str()
+                    && binding.address.session == opening.session()
+            }
+            Access::Read { .. } | Access::Follow(_) => true,
+        };
+        if !receipt_matches {
+            Some(ActFailed {
+                code: Some(vessel_proto::ErrorCode::Conflict),
+                message: "The terminal opening does not match its authenticated destination"
+                    .to_owned(),
+            })
+        } else {
+            match self.clients.get(binding.host.as_str()) {
+                Some(connected) if connected.client.node().id == binding.address.node => None,
+                Some(_) => Some(ActFailed {
+                    code: Some(vessel_proto::ErrorCode::Conflict),
+                    message: "The authenticated session destination changed".to_owned(),
+                }),
+                None => Some(ActFailed {
+                    code: None,
+                    message: crate::LinkError::NotConnected(binding.host.as_str().to_owned())
+                        .to_string(),
+                }),
+            }
         }
     }
 }

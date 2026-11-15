@@ -165,3 +165,12 @@ The existing per-machine refresh body moves into `read_machine` to keep the
 new publication boundary short. It still uses the same connection, list, failure
 and authenticated Machine.node projection. Deterministic tests cover a full UI
 channel during archive acknowledgement so a queued stale snapshot cannot follow it.
+
+
+Base4 terminal integration preserves C2's terminal_follow, focus and render
+presentation hooks in the extracted session opener. Conversation hydration takes
+&Open and does not ask a terminal for Conversation. Access::ReadTerminal carries
+link::TerminalOpening (not a fabricated view type), verifies its machine/session
+against the retained Binding, and preserves its opaque receipt on every refusal
+or log result. C2 owns propagation of retained node/connection authority at its
+terminal entry; a missing binding must not trigger alias fallback.

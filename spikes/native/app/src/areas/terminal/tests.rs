@@ -26,6 +26,8 @@ fn open(shell: &mut Shell, session: SessionId, cx: &mut Context<'_, Shell>) {
         agent: "fake".into(),
         structured: false,
         live: true,
+        archived_at: None,
+        binding: None,
     });
 }
 
@@ -170,6 +172,8 @@ fn unread_history_is_not_repeated_as_a_conversation_failure(cx: &mut TestAppCont
             agent: "fake".into(),
             structured: false,
             live: true,
+            archived_at: None,
+            binding: None,
         };
         shell.conversation_opened(&shown, cx);
         open(shell, a, cx);

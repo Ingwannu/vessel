@@ -50,14 +50,13 @@ impl Projection {
     }
     pub(crate) fn after(&self, kind: ActKind) {
         match kind {
-            ActKind::Info | ActKind::Conversation | ActKind::Log => {}
+            ActKind::Info | ActKind::Conversation | ActKind::Log | ActKind::Terminal => {}
             ActKind::Rename
             | ActKind::Mark
             | ActKind::StartAgain
             | ActKind::Delete
             | ActKind::Kill
             | ActKind::MoveProfile
-            | ActKind::Terminal
             | ActKind::Queue
             | ActKind::Answer
             | ActKind::Permit

@@ -95,3 +95,45 @@ async fn bound_archive_refuses_alias_replacement_before_issuing_any_mutation() {
     assert_eq!(answer.ticket, request.ticket);
     assert!(peer.calls.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn terminal_read_refusal_retains_opaque_opening_receipt_and_never_contacts_replacement() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let (mut state, mut events) = state(peer.client.clone());
+    let target = binding(NodeId::random());
+    let opening = crate::TerminalOpening::new("renamed".parse().unwrap(), target.address.session);
+    state.session_access(Access::ReadTerminal {
+        binding: target.clone(),
+        opening: opening.clone(),
+        until: vessel_app_view::timeline::Until::Record(vessel_proto::EventSeq::ZERO),
+    });
+    let Event::Acted(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.terminal, Some(opening));
+    assert_eq!(answer.session, target.address.session);
+    assert_eq!(answer.kind, crate::ActKind::Log);
+    assert!(answer.result.is_err());
+    assert!(peer.calls.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn terminal_receipt_cannot_be_reused_for_another_authenticated_session() {
+    let mut peer = peer::connect(peer::Behavior::Accept).await;
+    let (mut state, mut events) = state(peer.client.clone());
+    let target = binding(peer.client.node().id);
+    let actual = SessionId::random();
+    let opening = crate::TerminalOpening::new("renamed".parse().unwrap(), actual);
+    state.session_access(Access::ReadTerminal {
+        binding: target,
+        opening: opening.clone(),
+        until: vessel_app_view::timeline::Until::Record(vessel_proto::EventSeq::ZERO),
+    });
+    let Event::Acted(answer) = next(&mut events).await else {
+        panic!("wrong event")
+    };
+    assert_eq!(answer.terminal, Some(opening));
+    assert_eq!(answer.session, actual);
+    assert!(answer.result.is_err());
+    assert!(peer.calls.try_recv().is_err());
+}
