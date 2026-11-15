@@ -1249,3 +1249,19 @@ now borrows its literal; expected output and assertions are unchanged. The old
 queued191 functional source shares this compiler error and must be superseded
 only after terminal queued cancellation. The191 TS source is unchanged by these
 MCP/CDP test corrections and keeps its separate exact job.
+
+The announced gate53 head93970acbb5c44cfc9649e2e93c3889575592f0cd is now
+merged as1acdc04b92c6e10f526c1ceb5c85b40c21c76d28, with no conflicts or rebase.
+Schema21 belongs to lifecycle; browser adds no migration or protocol number.
+No own browser fixture uses the old unit ListSessions constructor. The older191
+TS job was subsequently superseded because this canonical base and its listing
+shape changed: terminal queued cancellation/143 was verified before replacement.
+Its receipt is retained and supplies no execution result. The known-red191
+functional job was likewise cancelled while queued and terminal143 was verified.
+
+The ignored candidate diagnostic uses the execution wrapper's fresh private
+short TMPDIR, with a short nonce prefix and the existing profile-path guard.
+It keeps private fixture files for inspection rather than deleting uncertain
+process storage. The wrapper places temporary/runtime data on its approved
+artifact volume; no host-specific scratch path is hard-coded in source. It is
+still uncompiled/unexecuted and enables no browser API or product supervisor.

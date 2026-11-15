@@ -27,8 +27,8 @@ async fn fixture() -> Fixture {
     let parent = scope
         .run(|| {
             tempfile::Builder::new()
-                .prefix("vessel-browser-pipe-")
-                .tempdir_in("/tmp")
+                .prefix("vp-")
+                .tempdir()
                 .unwrap()
                 .keep()
         })
