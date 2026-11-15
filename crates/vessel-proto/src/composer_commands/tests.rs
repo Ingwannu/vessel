@@ -11,6 +11,7 @@ fn command() -> AgentCommand {
         description: "Review changes".to_owned(),
         hint: None,
         kind: Some(CommandKind::Skill),
+        native_command: None,
     }
 }
 
@@ -31,6 +32,7 @@ fn old_reports_decode_without_kind_and_future_kinds_stay_ineligible() {
     let old: AgentCommand =
         serde_json::from_str(r#"{"name":"review","description":"review","hint":null}"#).unwrap();
     assert_eq!(old.kind, None);
+    assert_eq!(old.native_command, None);
     let future: AgentCommand =
         serde_json::from_str(r#"{"name":"review","description":"review","kind":"future"}"#)
             .unwrap();
@@ -137,4 +139,35 @@ fn draft_command_call_is_pending_operate_unary_and_nested_calls_remain_pending()
     }
     .into_call();
     assert_eq!(forwarded.required_protocol(), None);
+}
+
+#[test]
+fn native_metadata_alone_is_masked_in_snapshots_events_and_nested_envelopes() {
+    use crate::native_commands::NativeCommandKind;
+    let peer = crate::PROTOCOL_VERSION;
+    for kind in [None, Some(CommandKind::Command)] {
+        let mut native = command();
+        native.name = "compact".parse().unwrap();
+        native.kind = kind;
+        native.native_command = Some(NativeCommandKind::Compact);
+        let projected = commands_for(&[native.clone()], peer, None).unwrap();
+        assert_eq!(projected[0].kind, None);
+        assert_eq!(projected[0].native_command, None);
+        assert_eq!(commands_for(&[native.clone()], peer, Some(peer)), None);
+        let mut snapshot = conversation();
+        snapshot.commands = vec![native.clone()];
+        let reply = Reply::Forward(Forwarded {
+            reply: Box::new(Reply::GetConversation(snapshot)),
+        });
+        let encoded = serde_json::to_value(reply.for_protocol(peer).unwrap()).unwrap();
+        assert!(!encoded.to_string().contains("native_command"));
+        let event = SessionEvent::CommandsChanged {
+            commands: vec![native],
+        };
+        let projected = event.for_protocol(peer).unwrap();
+        let SessionEvent::CommandsChanged { commands } = projected else {
+            panic!("commands");
+        };
+        assert_eq!(commands[0].native_command, None);
+    }
 }

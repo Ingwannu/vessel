@@ -286,6 +286,7 @@ mod tests {
                 description: String::new(),
                 hint: None,
                 kind: None,
+                native_command: None,
             }],
         });
         seen.observe(&SessionEvent::Status {

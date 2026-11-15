@@ -30,6 +30,7 @@ mod tests {
             description: String::new(),
             hint: None,
             kind,
+            native_command: None,
         }
     }
 

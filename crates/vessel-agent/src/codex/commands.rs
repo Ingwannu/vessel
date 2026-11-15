@@ -75,6 +75,7 @@ impl Catalog {
                         description,
                         hint: None,
                         kind: Some(CommandKind::Skill),
+                        native_command: None,
                     },
                     path: skill.path,
                 })

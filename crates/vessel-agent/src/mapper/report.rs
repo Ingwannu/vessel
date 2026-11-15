@@ -60,6 +60,7 @@ fn command(command: acp::AvailableCommand) -> Option<AgentCommand> {
         description: cut(command.description, AgentCommand::MAX_DESCRIPTION),
         hint: hint.filter(|hint| !hint.is_empty()),
         kind,
+        native_command: None,
     })
 }
 

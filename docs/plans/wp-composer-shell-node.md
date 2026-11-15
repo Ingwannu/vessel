@@ -41,3 +41,14 @@ The draft command query is now explicitly forwardable beside HarnessOptions:
 node Operate/workspace validation and NodeClient's pending-version gate remain
 authoritative. The bridge grants no scopes or path authority. Its existing full
 refused-method fixture covers the new decision. Corrected TS generation is owed.
+
+Agreed with W22/W23: AgentCommand.native_command is additive optional typed
+NativeCommandKind metadata. It is independently masked beside kind under the
+unassigned COMPOSER_COMMANDS gate, including native-only/missing-kind reports,
+conversation snapshots, events and forwarded envelopes. Existing ACP and skills
+producers explicitly leave itNone; names/labels never infer availability. Only
+W22's proven current-run transport may fill it, after W23 receipt acceptance is
+checked. The composer/actor still compare canonical name and the shared parser.
+Goals additionally require launchflag plus autonomous root-turn proof. Dormant
+valuesdd06 are merged for NODE-side preparation; no app activation/source-pass
+claim. Metadata and corrected browser policy need combined check/TS generation.

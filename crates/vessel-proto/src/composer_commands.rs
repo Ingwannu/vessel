@@ -68,17 +68,20 @@ pub(crate) fn commands_for(
     protocol: ProtocolVersion,
     assigned: Option<ProtocolVersion>,
 ) -> Option<Vec<AgentCommand>> {
-    (!visible(assigned, protocol) && commands.iter().any(|command| command.kind.is_some())).then(
-        || {
-            commands
-                .iter()
-                .map(|command| AgentCommand {
-                    kind: None,
-                    ..command.clone()
-                })
-                .collect()
-        },
-    )
+    (!visible(assigned, protocol)
+        && commands
+            .iter()
+            .any(|command| command.kind.is_some() || command.native_command.is_some()))
+    .then(|| {
+        commands
+            .iter()
+            .map(|command| AgentCommand {
+                kind: None,
+                native_command: None,
+                ..command.clone()
+            })
+            .collect()
+    })
 }
 
 impl crate::SessionEvent {
