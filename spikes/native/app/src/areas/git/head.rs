@@ -228,6 +228,17 @@ fn actions(
         PrimaryState::Ready
     };
     let label = match chosen {
+        Some(vessel_app_view::workspace::git::Action::Quick(action))
+            if matches!(
+                vessel_app_view::workspace::git::menu_feedback(
+                    vessel_app_view::workspace::git::Action::Quick(action),
+                    &git.writing,
+                ),
+                vessel_app_view::workspace::git::MenuFeedback::Success(_)
+            ) =>
+        {
+            shell.words.git_panel().quick_success(action)
+        }
         Some(action) => lang.git_primary_label(action, status),
         None => "",
     };
@@ -252,7 +263,7 @@ fn actions(
     let handlers = SplitHandlers {
         primary: Rc::new(move |shell: &mut Shell, window, cx| {
             if let Some((target, entry)) = &captured {
-                let _dispatched = shell.run_git_command(target, entry, window, cx);
+                let _dispatched = shell.run_git_primary(target, entry, window, cx);
             } else if chosen.is_none() {
                 shell.git_open_menu_at_trigger(window, cx);
             }

@@ -89,3 +89,15 @@ git-panel-problem-file = 머신에서 다른 파일의 변경 사항을 보냈�
 
 # Neutral recovery for different stored/requested base refs; both identities are separate code detail.
 git-panel-problem-base = 저장된 기준 브랜치와 요청한 기준 브랜치가 다릅니다. 두 브랜치를 확인하고 비교 기준을 다시 선택하세요.
+
+# Brief commit acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-commit-success = 커밋됨
+
+# Brief push acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-push-success = 푸시됨
+
+# Brief pull acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-pull-success = 가져옴
+
+# Brief fetch acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-fetch-success = 원격 변경 가져옴

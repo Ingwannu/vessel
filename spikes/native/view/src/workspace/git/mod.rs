@@ -20,6 +20,7 @@ mod destination;
 mod dialog;
 mod discard;
 mod drop_stash;
+mod feedback;
 mod file_menu;
 mod form;
 mod header;
@@ -48,6 +49,7 @@ pub use destination::{CommitDestination, names_default, project_default};
 pub use dialog::Dialog;
 pub use discard::{DiscardDecision, DiscardEffect};
 pub use drop_stash::DropStash;
+pub use feedback::{MenuClose, MenuFeedback, menu_close, menu_feedback};
 pub use file_menu::{FileAction, FileMenu, file_menu};
 pub use form::{
     ChangedFiles, CommitForm, IndexAction, StatusCoverage, commit_files, commit_request,

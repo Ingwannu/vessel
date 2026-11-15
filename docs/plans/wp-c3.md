@@ -313,3 +313,39 @@ unchanged. menu_right/TopRight/QUICK/fill_in and the new named placement stay in
 one renderer. G2's module/export additions and the single kit focus helper are
 retained. Current union source requires its own combined narrow check; old506
 and producer tests remain assigned to their immutable sources.
+
+
+## Shared menu first consumer (source only)
+
+The Git menu now opts into the isolated producer's Regular16 leading glyphs,
+Pending/Success, Muted and KeepOpen policies. Pure menu_feedback uses only the
+keyed pending intention or original success receipt, never refreshed branch
+counts. Direct writes remain open; unavailable choices remain selectable and
+explain with the existing Info clock without a node write. The owner adapter
+checks MenuItem::selectable as well as its current captured authority, so a
+command-center callback cannot bypass pending/success feedback. The primary
+retains its established explain-on-busy path through the same target check.
+
+Paseo actions-split-button.tsx/use-actions.tsx and EN/KO resource rows supply
+Commit/Pull/Push acknowledgement captions. Fetch and manual branch/stash entries
+are Vessel additions: Fetch has a brief data-file caption, while other additional
+entries retain their exact outcome notice. Manual dialogs/choosers close the menu
+as previously approved; default direct quick commit generation is still missing.
+Merge/create rows use shared pending feedback but their complete C4 keyed-success
+and forge-brand integration remain pending. Existing kit glyphs are retained until
+the logo owner supplies its accepted forge consumer. This does not approve any
+actual pending/error/success/Info lifetime/keyboard/touch/F5 captures. New view and
+consumer source requires its combined narrow checks and execution.
+
+V1 supplemented the exact8158 producer packet with its same-source App all-target
+clippy pass (schedules-narrow-20261115T091044Z-8158be6d); its actual spec was short,
+not ordinary. That closes the producer compile-pending note above but does not
+prove this union consumer, App tests or UI. No unchanged producer gate is rerun.
+
+
+Combined View/App all-target clippy at506bf244 passed in
+wp-git-narrow-20261115T092254Z-506bf244 (View compiled, App checked). It covers the
+neutral base mismatch and must-use command API before the074/8158 integration;
+it does not cover the new shared-menu consumer. The adapter's pure execution
+cases are still unexecuted. W12 withdrew1720 pending a self-contained successor
+and changed-source check; G1 has NOT adopted it or any plugin framework.

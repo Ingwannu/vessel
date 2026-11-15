@@ -11,7 +11,7 @@
 
 use vessel_app_kit::menu::MenuItem;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_view::workspace::git::{Action, RequestKey, primary};
+use vessel_app_view::workspace::git::{Action, MenuFeedback, RequestKey, menu_feedback, primary};
 use vessel_app_view::workspace::pull::{MenuEntry, PullEntry};
 use vessel_proto::SessionId;
 
@@ -66,6 +66,33 @@ impl Shell {
         Some(menu::item(self, entry, status))
     }
 
+    /// A primary keeps its established explain-on-busy behaviour, while using
+    /// the same captured authority. A menu acknowledgement remains inert.
+    #[must_use]
+    pub(super) fn run_git_primary(
+        &mut self,
+        target: &GitCommandTarget,
+        entry: &MenuEntry,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let Some(live) = self.git_command_entries() else {
+            return false;
+        };
+        let Some(MenuEntry::Git(row)) = current_entry(target, &live, entry) else {
+            return false;
+        };
+        let action = row.action;
+        if matches!(
+            menu_feedback(action, &self.areas.git.writing),
+            MenuFeedback::Success(_)
+        ) {
+            return false;
+        }
+        self.git_choose(action, window, cx);
+        true
+    }
+
     /// Revalidate the captured contribution and delegate the current owner path.
     /// False means no callback was dispatched, so a palette may retain itself.
     #[must_use]
@@ -85,7 +112,7 @@ impl Shell {
         let Some(item) = self.git_command_item(&entry) else {
             return false;
         };
-        if item.disabled {
+        if !item.selectable() {
             return false;
         }
         match entry {

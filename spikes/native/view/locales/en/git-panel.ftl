@@ -90,3 +90,15 @@ git-panel-problem-file = The machine returned another file’s changes. Refresh 
 
 # Neutral recovery for different stored/requested base refs; both identities are separate code detail.
 git-panel-problem-base = The stored and requested base branches differ. Check both branches and choose the comparison again.
+
+# Brief commit acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-commit-success = Committed
+
+# Brief push acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-push-success = Pushed
+
+# Brief pull acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-pull-success = Pulled
+
+# Brief fetch acknowledgement inside the same git menu row; exact facts remain in the success notice.
+git-panel-fetch-success = Fetched

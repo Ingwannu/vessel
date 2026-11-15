@@ -1,14 +1,14 @@
 //! The split button's menu (Paseo's `GitActionMenuItem` rows in
 //! `git/actions-split-button.tsx`) and the failure shown under the row.
 //!
-//! The kit's menu does not yet draw Paseo's leading glyph, muted row,
-//! pending spinner or success check (G2's menu controls, on the lead's
-//! merge list). Until they land the rows keep Paseo's behaviour: an
-//! unavailable row is chosen and explains itself in an Info toast; a row
-//! running says so in its words; all rows wait while a write is out.
+//! Shared leading/pending/success/muted rows and dismissal come from the kit.
+//! The view chooses keyed feedback and the action's surface policy; callbacks
+//! recheck the captured repository before delegating any write.
 
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::menu::{MenuHandlers, MenuItem, menu_right};
+use vessel_app_kit::menu::{
+    Dismissal, LeadingSize, MenuHandlers, MenuItem, Presentation, menu_right,
+};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, IntoElement as _, ParentElement as _, Pixels, Point,
@@ -17,7 +17,10 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ButtonKind, ButtonState, Tokens, Type, TypeExt as _, alert, button_with_kind,
 };
-use vessel_app_view::workspace::git::{Action, Issue, Unavailable, rows, step};
+use vessel_app_view::workspace::git::{
+    Action, ActionRow, Issue, MenuClose, MenuFeedback, Unavailable, menu_close, menu_feedback,
+    rows, step,
+};
 use vessel_app_view::workspace::git_quick::GitAction;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::pull::{MenuEntry, PullEntry, merge_label, with_pull};
@@ -61,22 +64,44 @@ fn items(shell: &Shell) -> Vec<MenuItem> {
 /// Menu and command center use the same labels and current busy gates.
 pub(super) fn item(shell: &Shell, entry: &MenuEntry, status: &GitStatus) -> MenuItem {
     match entry {
-        MenuEntry::Git(row) => {
-            let label = match shell.areas.git.writing.intent() {
-                Some(intent) if intent.action() == Some(row.action) => {
-                    shell.t.lang.git_pending(intent)
-                }
-                Some(_) | None => shell.t.lang.git_action_label(row.action, status),
-            };
-            MenuItem {
-                tone: vessel_app_kit::menu::Tone::Plain,
-                disabled: row.unavailable == Some(Unavailable::Writing),
-                starts_group: row.starts_group,
-                ..MenuItem::new(label)
-            }
-        }
+        MenuEntry::Git(row) => git_item(shell, *row, status),
         MenuEntry::Pull(pull) => pull_item(shell, pull),
         MenuEntry::Merge(method) => merge_item(shell, *method),
+    }
+}
+
+/// Map the view phase to one shared row; no area spinner or success paint.
+fn git_item(shell: &Shell, row: ActionRow, status: &GitStatus) -> MenuItem {
+    let lang = shell.t.lang;
+    let item = MenuItem {
+        disabled: row.unavailable == Some(Unavailable::Writing),
+        starts_group: row.starts_group,
+        ..MenuItem::new(lang.git_action_label(row.action, status))
+    }
+    .with_leading_at(glyph(row.action), LeadingSize::Regular)
+    .with_presentation(if row.unavailable.is_some() {
+        Presentation::Muted
+    } else {
+        Presentation::Normal
+    })
+    .with_dismissal(match menu_close(row) {
+        MenuClose::KeepOpen => Dismissal::KeepOpen,
+        MenuClose::OpenSurface => Dismissal::Close,
+    });
+    match menu_feedback(row.action, &shell.areas.git.writing) {
+        MenuFeedback::Idle => item,
+        MenuFeedback::Pending(intent) => item.pending(lang.git_pending(intent)),
+        MenuFeedback::Success(receipt) => {
+            let caption = match row.action {
+                Action::Quick(action) => shell.words.git_panel().quick_success(action).to_owned(),
+                Action::SwitchBranch
+                | Action::CreateBranch
+                | Action::RenameBranch
+                | Action::SaveStash(_)
+                | Action::Stashes => lang.git_success(receipt).message,
+            };
+            item.success(caption)
+        }
     }
 }
 
@@ -98,11 +123,15 @@ fn merge_item(shell: &Shell, method: MergeMethod) -> MenuItem {
         Some(running) if running.method == method => shell.words.pulls().merging(),
         Some(_) | None => merge_label(method, shell.words),
     };
-    MenuItem {
-        tone: vessel_app_kit::menu::Tone::Plain,
+    let item = MenuItem {
         disabled: shell.areas.git.writing.busy() || merging.is_some(),
-        starts_group: false,
         ..MenuItem::new(label)
+    }
+    .with_leading_at(Glyph::GitMerge, LeadingSize::Regular)
+    .with_dismissal(Dismissal::KeepOpen);
+    match merging {
+        Some(running) if running.method == method => item.pending(shell.words.pulls().merging()),
+        Some(_) | None => item,
     }
 }
 
@@ -124,11 +153,24 @@ fn pull_item(shell: &Shell, entry: &PullEntry) -> MenuItem {
         }
         PullEntry::Create | PullEntry::Unavailable(_) | PullEntry::Hidden => words.create(),
     };
-    MenuItem {
-        tone: vessel_app_kit::menu::Tone::Plain,
+    let item = MenuItem {
         disabled: shell.areas.git.writing.busy() || sending,
         starts_group: true,
         ..MenuItem::new(label)
+    }
+    .with_leading_at(Glyph::PullRequest, LeadingSize::Regular)
+    .with_presentation(match entry {
+        PullEntry::Unavailable(_) => Presentation::Muted,
+        PullEntry::View { .. } | PullEntry::Create | PullEntry::Hidden => Presentation::Normal,
+    })
+    .with_dismissal(match entry {
+        PullEntry::Unavailable(_) => Dismissal::KeepOpen,
+        PullEntry::View { .. } | PullEntry::Create | PullEntry::Hidden => Dismissal::Close,
+    });
+    if sending {
+        item.pending(words.creating())
+    } else {
+        item
     }
 }
 

@@ -6,6 +6,7 @@ use crate::workspace::problem::Problem;
 use vessel_proto::ErrorCode;
 
 use super::{ComparisonMode, EmptyAction, ReadFailure};
+use crate::workspace::git_quick::GitAction;
 
 /// Honest recovery after a failed read, independent of diagnostic language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,6 +100,17 @@ impl<'a> GitPanel<'a> {
             ComparisonMode::All => self.mode_all(),
             ComparisonMode::Uncommitted => self.mode_uncommitted(),
             ComparisonMode::Committed => self.mode_committed(),
+        }
+    }
+
+    /// Paseo's brief action acknowledgement, separate from the full notice.
+    #[must_use]
+    pub fn quick_success(self, action: GitAction) -> &'a str {
+        match action {
+            GitAction::Commit => self.commit_success(),
+            GitAction::Push => self.push_success(),
+            GitAction::Pull => self.pull_success(),
+            GitAction::Fetch => self.fetch_success(),
         }
     }
 
@@ -235,6 +247,27 @@ mod tests {
                 requested,
             };
             assert_eq!(ReadIssue::for_failure(&failure), ReadIssue::BaseMismatch);
+        }
+    }
+
+    #[test]
+    fn quick_acknowledgements_match_the_reference_in_both_languages() {
+        let en = Translator::get(ENGLISH).unwrap().git_panel();
+        let ko = Translator::get(resolve_language(
+            LanguagePreference::System,
+            Some("ko"),
+            None,
+        ))
+        .unwrap()
+        .git_panel();
+        for (action, english, korean) in [
+            (GitAction::Commit, "Committed", "커밋됨"),
+            (GitAction::Push, "Pushed", "푸시됨"),
+            (GitAction::Pull, "Pulled", "가져옴"),
+            (GitAction::Fetch, "Fetched", "원격 변경 가져옴"),
+        ] {
+            assert_eq!(en.quick_success(action), english);
+            assert_eq!(ko.quick_success(action), korean);
         }
     }
 }
