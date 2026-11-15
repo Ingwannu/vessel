@@ -17,7 +17,7 @@ const SIZES = [
 for (const locale of ["en-US", "ko-KR"]) {
   for (const scheme of ["light", "dark"] as const) {
     for (const size of SIZES) {
-      test(`feedback ${locale} ${scheme} ${String(size.width)}`, async ({
+      test(`feedback ${locale} ${scheme} ${String(size.width)}x${String(size.height)}`, async ({
         browser,
       }) => {
         const context = await browser.newContext({
