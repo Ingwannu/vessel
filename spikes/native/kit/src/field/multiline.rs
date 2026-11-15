@@ -11,7 +11,7 @@ use super::{
     Callbacks, FormMinimum, Handlers, Kind, Known, MultilineStyle, TextField, TextareaState,
     listen, register,
 };
-use gpui::{Context, Window};
+use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
 /// The existing composer's maximum visible complete lines.
 const COMPOSER_LINES: usize = 12;
