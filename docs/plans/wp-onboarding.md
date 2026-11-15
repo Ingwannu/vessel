@@ -228,3 +228,8 @@ now states its requested host count explicitly, independently of the saved-book
 count, so a one-host retry cannot look like a missing host in an all-host report.
 A scope-count regression preserves private label exclusion and zero-host
 report/clipboard identity.
+
+The next changed-crate narrow compiled the updated typed consumer/UI and found
+one redundant Hub qualification in the new in-memory lifecycle test. Corrected
+without changing that test's assertions or protocol. No functional runtime
+failure is implied by that lint result; scoped execution is still queued.

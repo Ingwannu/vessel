@@ -155,7 +155,7 @@ async fn a_fresh_framed_connection_notifies_before_an_identical_fleet() {
         agents: crate::agents::Hub::default(),
         device_calls: crate::devices::Hub::default(),
         sync_calls: crate::sync::Hub::default(),
-        diagnostic_calls: crate::diagnostics::Hub::default(),
+        diagnostic_calls: Hub::default(),
         offers: Arc::default(),
     };
     let book_name = "laptop".parse::<vessel_client::book::NodeName>().unwrap();
