@@ -1068,3 +1068,9 @@ Staged source regressions cover reference word grouping/tie-break, Korean/emoji
 byte boundaries, exact adjacent-pair behavior, insertion/deletion, shared work
 exhaustion and malformed/stale cache ranges preserving text/copy. These new tests
 have not executed yet; the preceding 1153-view pass predates this implementation.
+The public word-highlights boundary independently caps annotation rows to the
+existing MAX_LINES and stops tokenization when its shared work budget reaches
+zero. An oversized caller keeps its original text/rows; annotation lookup past
+the cap returns no emphasis. This does not rely only on the current diff_lines
+caller already being bounded. The additional cap regression is source only and
+postdates the queued9ec word-model run.

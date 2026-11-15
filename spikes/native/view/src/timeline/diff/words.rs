@@ -1,7 +1,7 @@
 //! The source's adjacent remove/add word diff, bounded independently of line count.
 //! ASCII word/nonword runs match JavaScript's non-Unicode `\w` behavior. Ranges
 //! refer to UTF-8 bytes of the original line; text itself is never reconstructed.
-use super::{DiffLine, Side};
+use super::{DiffLine, MAX_LINES, Side};
 use std::ops::Range;
 
 /// One long generated line keeps its ordinary diff without a costly word table.
@@ -25,9 +25,16 @@ impl WordHighlights {
 /// alignment of every line in a replacement block. Exhaustion retains line tones.
 #[must_use]
 pub fn word_highlights(lines: &[DiffLine<'_>]) -> WordHighlights {
-    let mut highlights = vec![Vec::new(); lines.len()];
+    let mut highlights = vec![Vec::new(); lines.len().min(MAX_LINES)];
     let mut budget = MAX_WORD_CELLS;
-    for (index, pair) in lines.windows(2).enumerate() {
+    for (index, pair) in lines
+        .windows(2)
+        .take(MAX_LINES.saturating_sub(1))
+        .enumerate()
+    {
+        if budget == 0 {
+            break;
+        }
         let Some((old, new)) = pair.first().zip(pair.get(1)) else {
             continue;
         };

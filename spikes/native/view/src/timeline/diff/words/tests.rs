@@ -1,7 +1,8 @@
 use super::{
-    MAX_WORD_BYTES, MAX_WORD_CELLS, MAX_WORD_TOKENS, changed_pair, word_highlights, words,
+    MAX_LINES, MAX_WORD_BYTES, MAX_WORD_CELLS, MAX_WORD_TOKENS, changed_pair, word_highlights,
+    words,
 };
-use crate::timeline::diff_lines;
+use crate::timeline::{DiffLine, Side, diff_lines};
 use std::ops::Range;
 
 fn changed(old: &str, new: &str) -> (Vec<String>, Vec<String>) {
@@ -14,6 +15,22 @@ fn changed(old: &str, new: &str) -> (Vec<String>, Vec<String>) {
             .collect()
     };
     (text(old, old_ranges), text(new, new_ranges))
+}
+
+#[test]
+fn the_public_annotation_boundary_caps_rows_even_for_an_oversized_caller() {
+    let lines = vec![
+        DiffLine {
+            side: Side::Removed,
+            number: None,
+            text: "kept"
+        };
+        MAX_LINES.saturating_add(1)
+    ];
+    let marks = word_highlights(&lines);
+    assert_eq!(marks.0.len(), MAX_LINES);
+    assert!(marks.for_line(MAX_LINES).is_empty());
+    assert_eq!(lines.last().unwrap().text, "kept");
 }
 
 #[test]
