@@ -127,7 +127,7 @@ fn workspace_draft_keys_isolate_tabs_workspaces_and_nodes_and_round_trip() {
     };
     assert_ne!(key, other);
     let mut drafts = Drafts::default();
-    let at = chrono::Utc::now();
+    let at = Utc::now();
     assert_eq!(drafts.keep(key, "first", at), Kept::Kept);
     assert_eq!(drafts.keep(other, "second", at), Kept::Kept);
     assert_eq!(drafts.text(key), "first");
