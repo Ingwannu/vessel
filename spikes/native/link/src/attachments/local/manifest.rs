@@ -36,6 +36,10 @@ impl Manifest {
         if files.len() > Self::MAX {
             return Err(LocalFailure::Manifest);
         }
+        let drafts: HashSet<_> = files.iter().map(|file| file.draft).collect();
+        if drafts.len() > vessel_app_view::composer::trays::Trays::MAX {
+            return Err(LocalFailure::Manifest);
+        }
         let mut distinct = HashSet::new();
         for file in &files {
             if !distinct.insert((file.draft, file.record.key.clone())) {
