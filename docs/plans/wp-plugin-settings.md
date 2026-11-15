@@ -98,6 +98,26 @@ tracked persistence/application task. Caller cancellation drops a waiter, not
 the guard, write or runtime application. Shutdown closes admission and joins it.
 No separately acquired plugin lock becomes another writer or a deadlock cycle.
 
+The accepted retained-writer repair currently permits a late park/driver apply
+after session runtime shutdown because those setters cannot spawn a process.
+That result does not qualify plugin start callbacks. The existing node teardown
+order stays owned by nodectl; W16 does not reorder it independently. PluginHost
+uses the node Lifecycle stopping token and its own serialized admission/owned
+child registration fence. A late persisted enable after that fence closes must
+never start a helper or republish a live catalog. Existing Supervisor refusal
+for an already-cancelled parent is necessary, but is not by itself proof against
+a check/start race or complete host shutdown.
+
+The application result distinguishes saved desired intent from current effective
+runtime state. A writer that completed after stop may retain saved On for a
+later validated startup, while the current effective result is Stopping or
+NotApplied; it cannot acknowledge Running. Disable/remove still require owned
+cleanup evidence before acknowledging their lifecycle effect. The actual join
+must exercise held file I/O plus caller cancellation plus node shutdown, late
+enable refusal, admitted-start cleanup and disable acknowledgement. Both the
+settings writer and plugin owner remain tracked until their admitted work joins
+before Store close. AA's scoped pass is not borrowed as plugin runtime proof.
+
 Installation, source/registry edits, update apply, reload, disable and remove
 have dedicated human local-owner/paired Admin admission. The safe global toggle
 also requires human Admin admission, including when carried by the generic
