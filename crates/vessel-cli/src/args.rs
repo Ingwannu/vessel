@@ -43,7 +43,9 @@ pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
 #[derive(Debug, Parser)]
-#[command(name = "vessel", version, about)]
+#[command(name = "vessel", version, about, disable_version_flag = true,
+    arg(clap::Arg::new("version").short('v').visible_short_alias('V').long("version")
+        .action(clap::ArgAction::Version).help("Print version")))]
 pub(crate) struct Cli {
     #[command(flatten)]
     pub(crate) output: parity::OutputOptions,

@@ -1114,3 +1114,13 @@ actual recipient receipt AND recorded TurnStarted content. It fails under the in
 order. The fixture now clears inherited VESSEL_AGENT_SESSION in its CHILD process, so
 an unrelated caller environment cannot steer default policy. These are unexecuted
 changed-source tests; earlier134 units and queued8545 strict do not validate this fix.
+
+### Version short flag (2026-11-15 14:23 UTC)
+
+Paseo cli.ts53 declares lowercase -v/--version; native clap generated uppercase -V.
+Reuse clap's existing Version action with one explicit root argument: -v is primary,
+-V is a visible compatibility alias, and --version/metadata stay unchanged. Disable
+only the duplicate generated flag, not version handling, and add no argv scanner or
+runtime version path. Root clap and actual process exit regressions now cover all
+three spellings (source only; execution owed). This uses the already pinned builder
+API, without a new dependency or node interaction.

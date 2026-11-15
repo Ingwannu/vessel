@@ -8,6 +8,13 @@ fn complete_command_graph_has_no_duplicate_flags_or_invalid_groups() {
     Cli::command().debug_assert();
 }
 #[test]
+fn version_keeps_paseo_lowercase_and_native_uppercase_short_flags() {
+    for flag in ["-v", "-V", "--version"] {
+        let error = Cli::try_parse_from(["vessel", flag]).unwrap_err();
+        assert_eq!(error.kind(), clap::error::ErrorKind::DisplayVersion);
+    }
+}
+#[test]
 fn prompt_sources_keep_the_agent_id_first_and_unambiguous() {
     for args in [
         vec!["vessel", "agent", "send", "ab12", "hello"],

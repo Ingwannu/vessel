@@ -25,7 +25,7 @@ struct Inspected {
 async fn help_version_parse_and_dependency_exits_match_the_cli_contract_without_node_work() {
     within(async {
         let root = tempfile::tempdir().unwrap();
-        for args in [vec!["--help"], vec!["--version"]] {
+        for args in [vec!["--help"], vec!["--version"], vec!["-v"], vec!["-V"]] {
             let result = crate::support::vessel_in(root.path(), &args, b"").await;
             assert_eq!(result.status.code(), Some(0), "{}", result.stderr);
             assert!(!result.stdout.is_empty());
@@ -564,11 +564,9 @@ async fn assert_started_content(
             event: vessel_proto::AgentEvent::TurnStarted { content },
         } = record.event
         {
-            assert!(
-                content
-                    .iter()
-                    .any(|block| matches!(block, ContentBlock::Text { text } if text == message))
-            );
+            assert!(content.iter().any(
+                |block| matches!(block, ContentBlock::Text { text } if text.as_str() == message)
+            ));
             break;
         }
     }
