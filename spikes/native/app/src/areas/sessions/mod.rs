@@ -6,7 +6,7 @@ mod tests;
 pub(crate) use lifecycle::{error as lifecycle_error, overlay as lifecycle_overlay};
 mod navigation;
 #[cfg(test)]
-pub(crate) mod resident;
+pub(crate) use super::session_lifecycle as resident;
 mod rows;
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing;

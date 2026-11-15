@@ -1,22 +1,7 @@
 //! Correlated lifecycle requests prevent double actions and late navigation.
 use crate::machine_book::Name;
+pub use crate::session_lifecycle::{LifecycleAction, LifecycleTicket};
 use vessel_proto::SessionId;
-/// A lifecycle result is correlated independently from navigation lookups.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LifecycleTicket(u64);
-impl LifecycleTicket {
-    /// First local UI decision; this is never a resident operation capability.
-    pub const FIRST: Self = Self(1);
-
-    /// Never recycle a decision after exhaustion: a delayed callback can survive.
-    #[must_use]
-    pub const fn next(self) -> Option<Self> {
-        match self.0.checked_add(1) {
-            Some(next) => Some(Self(next)),
-            None => None,
-        }
-    }
-}
 /// One target keeps the saved host and session together at every boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LifecycleTarget {
@@ -34,22 +19,6 @@ impl LifecycleTarget {
     pub fn matches_node(&self, node: Option<vessel_proto::NodeId>) -> bool {
         self.node.is_none_or(|expected| node == Some(expected))
     }
-}
-/// The user's intended effect after the authoritative node result arrives.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LifecycleAction {
-    /// Keep the conversation available in history.
-    Archive,
-    /// Restore visibility without starting a provider.
-    Unarchive,
-    /// Continue the same provider conversation.
-    Resume,
-    /// Permanently delete an ended session, behind confirmation.
-    Delete,
-    /// Archive before removing the visible session.
-    Exit,
-    /// Archive before opening a new draft with the same launch configuration.
-    Fresh,
 }
 /// A second action cannot overwrite an in-flight destructive request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -74,7 +43,7 @@ pub struct PendingLifecycle {
 /// One operation per window avoids duplicate archive/delete clicks.
 #[derive(Debug, Default)]
 pub struct Lifecycle {
-    issued: u64,
+    issued: Option<LifecycleTicket>,
     pending: Option<PendingLifecycle>,
 }
 impl Lifecycle {
@@ -89,10 +58,13 @@ impl Lifecycle {
         if self.pending.is_some() {
             return Err(LifecycleBusy::Pending);
         }
-        let next = self.issued.checked_add(1).ok_or(LifecycleBusy::Exhausted)?;
-        self.issued = next;
+        let ticket = match self.issued {
+            None => LifecycleTicket::FIRST,
+            Some(previous) => previous.next().ok_or(LifecycleBusy::Exhausted)?,
+        };
+        self.issued = Some(ticket);
         let pending = PendingLifecycle {
-            ticket: LifecycleTicket(next),
+            ticket,
             target,
             action,
         };
