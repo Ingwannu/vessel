@@ -40,3 +40,26 @@ Source/format/size/boundary preparation only so far. Narrow compile/test,
 V3 review and the one final isolated root package gate are pending. No real
 relay, preview node, account, service configuration or permission changed.
 Remote service-account/numeric UID/GID verification is not claimed.
+
+
+## First narrow result and correction
+
+Exact7d32d2bf Clippy returned three source lints: NodeLink documentation
+needed code markup, two admission arms had the same empty body, and the
+unit-valued pending.open statement needed its semicolon. The correction
+changes no production decision or budget and suppresses no lint. No tests
+ran. The actual changed vessel-relay library was checked; no Node success
+is claimed from that failed predecessor.
+
+The callback race regression now holds the actual open() accept callback
+across stop, after a real loopback websocket upgrade, rather than simulating
+a final callback inside a generic child. Its same five-second phase and
+thirty-second outer budgets remain; cleanup owns every pending task. This
+stronger test is new source, with no pass inferred from its predecessor.
+
+The socket resolver implementation remains unchanged. Joining these async
+children proves their final callback decision, not termination of an OS DNS
+worker inside Tokio/tungstenite. Loopback tests do not prove physical DNS
+cancellation or resolver-work bounds across repeated control enable/disable;
+that full-consent limitation was sent to V3, not silently treated as a pass.
+The existing accepted secure-carrier lifetime remains the handoff boundary.

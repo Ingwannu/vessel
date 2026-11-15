@@ -1,4 +1,4 @@
-//! Pending data opens belong to one NodeLink run until accept or discard.
+//! Pending data opens belong to one `NodeLink` run until accept or discard.
 //!
 //! [Decision Log]
 //! - Purpose: stopping registration must not acknowledge before a late dial
@@ -98,9 +98,8 @@ impl DataOpens {
             }
         });
         match admitted {
-            Admission::Accepted => {}
             Admission::Full => tracing::debug!("pending relay data-open capacity is full"),
-            Admission::Stopping => {}
+            Admission::Accepted | Admission::Stopping => {}
         }
     }
 

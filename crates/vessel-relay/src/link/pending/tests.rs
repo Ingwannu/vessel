@@ -196,27 +196,50 @@ async fn an_actual_websocket_upgrade_is_dropped_before_stop_returns() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn stop_waits_for_a_final_callback_already_in_progress() {
+async fn stop_waits_for_the_actual_accept_callback_already_in_progress() {
     within(async {
+        use tokio::net::TcpListener;
         let registration = CancellationToken::new();
         let mut data = DataOpens::new(&registration);
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let route: RouteUrl = format!("ws://{}", listener.local_addr().unwrap())
+            .parse()
+            .unwrap();
         let (entered, entry) = oneshot::channel();
         let (release, wait) = std::sync::mpsc::sync_channel::<()>(CALLBACK_RELEASE_CAPACITY);
+        let gate = std::sync::Mutex::new((Some(entered), wait));
         let finished = Arc::new(AtomicUsize::new(0));
         let completed = Arc::clone(&finished);
-        assert_eq!(
-            data.start(move |_| async move {
-                // Only the test holds a synchronous callback open. block_in_place
-                // releases the executor worker; production's callback only hands off.
-                tokio::task::block_in_place(|| {
-                    entered.send(()).unwrap();
-                    wait.recv_timeout(PHASE).expect("release final callback");
-                    completed.fetch_add(1, Ordering::SeqCst);
-                });
-            }),
-            Admission::Accepted
+        // This is the real open() callback, not a stand-in child future. Only
+        // the test holds it open; block_in_place releases its executor worker.
+        let accept = Arc::new(move |_carrier: WsCarrier| {
+            tokio::task::block_in_place(|| {
+                let (entered, wait) = &mut *gate.lock().unwrap();
+                entered.take().unwrap().send(()).unwrap();
+                wait.recv_timeout(PHASE)
+                    .expect("release actual accept callback");
+                completed.fetch_add(1, Ordering::SeqCst);
+            });
+        });
+        data.open(
+            &route,
+            &TlsConfig::with_roots(rustls::RootCertStore::empty()).unwrap(),
+            Reach::Any,
+            ConnId::from_bytes([9; 16]),
+            accept,
         );
-        phase("final callback entered", entry).await.unwrap();
+        let (socket, _) = phase("actual callback dial reaches peer", listener.accept())
+            .await
+            .unwrap();
+        let peer = phase(
+            "actual callback websocket upgrade",
+            tokio_tungstenite::accept_async(socket),
+        )
+        .await
+        .unwrap();
+        phase("actual accept callback entered", entry)
+            .await
+            .unwrap();
         registration.cancel();
         let mut stopping = Box::pin(data.stop());
         let pending = std::future::poll_fn(|cx| {
@@ -230,12 +253,13 @@ async fn stop_waits_for_a_final_callback_already_in_progress() {
         assert_eq!(finished.load(Ordering::SeqCst), 0);
         release.try_send(()).unwrap();
         phase(
-            "final callback joined before stop acknowledgement",
+            "actual callback joined before stop acknowledgement",
             stopping,
         )
         .await;
         assert_eq!(finished.load(Ordering::SeqCst), 1);
         assert!(data.tasks.is_empty());
+        drop(peer);
     })
     .await;
 }

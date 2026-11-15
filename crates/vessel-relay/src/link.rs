@@ -297,7 +297,7 @@ impl NodeLink {
             match message {
                 Message::Text(text) => match serde_json::from_str::<RelayToNode>(&text) {
                     Ok(RelayToNode::Incoming { conn }) => {
-                        pending.open(&self.relay, &self.tls, self.reach, conn, Arc::clone(accept))
+                        pending.open(&self.relay, &self.tls, self.reach, conn, Arc::clone(accept));
                     }
                     Ok(other) => {
                         tracing::debug!(?other, "unexpected relay message");

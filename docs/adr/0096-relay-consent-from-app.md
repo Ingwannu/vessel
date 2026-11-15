@@ -165,3 +165,11 @@ or CLI preparation, assign a field version, or prove the full consent flow.
 Its tests and requested narrow check are pending; V3 and the final isolated
 package gate remain required. The original queued370 settings check remains
 predecessor source evidence and cannot cover these child dials.
+
+
+Scope qualification: the isolated child join covers NodeLink-created async
+children and their accept/discard decisions. Its unchanged transport may
+use Tokio's internal OS resolver workers. It does not prove termination of
+such a worker or bound retained resolver work across rapid control changes.
+That full-consent gap remains explicit for V3/integration; no second resolver
+or transport was introduced under the small lifetime seam.
