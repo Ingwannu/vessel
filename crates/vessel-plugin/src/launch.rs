@@ -152,3 +152,36 @@ mod tests {
         assert_eq!(prepared.0.environment, Environment::Clear);
     }
 }
+
+#[cfg(test)]
+mod runtime_entry_tests {
+    use super::*;
+    use crate::{RuntimeError, SharedLogs, Supervisor};
+    use tokio_util::sync::CancellationToken;
+    use vessel_proto::{
+        NodeId,
+        plugins::{PluginAddress, RuntimeGeneration},
+    };
+
+    #[test]
+    fn launch_without_a_reactor_refuses_before_process_spawn() {
+        let executable = std::env::current_exe().expect("test executable");
+        let spec = CommandSpec::new(executable.clone())
+            .env_clear()
+            .cwd(executable.parent().expect("parent"));
+        let address = PluginAddress {
+            node: NodeId::random(),
+            plugin: "test".parse().expect("id"),
+            generation: RuntimeGeneration::random(),
+        };
+        assert!(matches!(
+            Supervisor::spawn(
+                PreparedCommand::new(spec).expect("prepared"),
+                address,
+                SharedLogs::default(),
+                &CancellationToken::new()
+            ),
+            Err(RuntimeError::Runtime(_))
+        ));
+    }
+}

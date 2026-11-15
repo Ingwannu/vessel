@@ -26,6 +26,9 @@ pub enum RuntimeError {
     /// Shutdown already revoked new helper starts.
     #[error("plugin helper owner is stopping")]
     Stopping,
+    /// The public synchronous launch entry must refuse without a live reactor.
+    #[error("plugin helper launch requires a Tokio runtime")]
+    Runtime(#[source] tokio::runtime::TryCurrentError),
     /// Process runner retains platform/group cause.
     #[error("plugin helper could not start")]
     Spawn(#[source] vessel_proc::SpawnError),
@@ -93,6 +96,7 @@ impl RuntimeError {
         match self {
             Self::ReadyTimeout | Self::CallTimeout | Self::WriteTimeout => CallError::Timeout,
             Self::Stopping
+            | Self::Runtime(_)
             | Self::Spawn(_)
             | Self::Read(_)
             | Self::Write(_)

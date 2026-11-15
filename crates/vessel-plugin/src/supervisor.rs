@@ -46,6 +46,9 @@ impl Supervisor {
         if parent.is_cancelled() {
             return Err(RuntimeError::Stopping);
         }
+        // Ordinary proc on the shared node head has no release-runtime guard.
+        // Refuse here before Tokio's process API can panic or spawn a child.
+        let runtime = tokio::runtime::Handle::try_current().map_err(RuntimeError::Runtime)?;
         let spec = command.into_spec();
         let spawned = vessel_proc::spawn(&spec).map_err(RuntimeError::Spawn)?;
         let (requests, receive) = mpsc::channel(MAX_PENDING_CALLS);
@@ -68,7 +71,7 @@ impl Supervisor {
             stop: stop.clone(),
             published,
         };
-        let task = tokio::spawn(actor.run());
+        let task = runtime.spawn(actor.run());
         Ok(Self { handle, stop, task })
     }
 
