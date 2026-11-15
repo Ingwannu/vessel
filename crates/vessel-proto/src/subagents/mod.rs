@@ -5,6 +5,7 @@ mod activity;
 pub mod bounds;
 mod collections;
 pub(crate) mod compat;
+mod identity;
 mod older;
 mod parentage;
 mod provider;
@@ -15,13 +16,14 @@ pub use collections::{
     ChildDescriptors, ChildRecords, ChildScanBudget, InvalidChildCollection, ProviderChildPage,
     ProviderChildren,
 };
+pub use identity::ProviderChildRef;
 
 pub use parentage::{
     DetachDisposition, DetachReceipt, DetachSession, DetachedSession, InvalidParentage, Parentage,
 };
 pub use provider::{
     ChildCursor, ChildDescriptor, ChildGap, ChildHistory, ChildLimit, ChildStatus,
-    InvalidChildLimit, ListProviderChildren, ProviderChildRef, ReadProviderChild,
+    InvalidChildLimit, ListProviderChildren, ReadProviderChild,
 };
 pub use values::{ProviderChildId, ProviderText, SubagentValueError};
 

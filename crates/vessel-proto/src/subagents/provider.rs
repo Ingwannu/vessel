@@ -5,17 +5,6 @@ use crate::{EventSeq, SessionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Fleet-wide identity of a provider-owned child, independent of a book alias.
-/// It cannot be used as a managed-session lifecycle target.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ProviderChildRef {
-    /// Managed parent that owns the durable provider observations.
-    pub parent: crate::SessionRef,
-    /// Actual provider task/thread identity within that parent.
-    pub child: ProviderChildId,
-}
-
 /// An actual provider lifecycle report; absent status remains unknown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
