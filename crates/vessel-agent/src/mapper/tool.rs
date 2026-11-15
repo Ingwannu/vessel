@@ -12,6 +12,11 @@ use super::{content, opaque, raw_json};
 
 /// Map an announced tool call.
 pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
+    let detail = call
+        .raw_input
+        .as_ref()
+        .and_then(|input| crate::canonical::for_kind(tool_kind(call.kind), input))
+        .or_else(|| Some(crate::canonical::unknown(call.raw_input.as_ref(), None)));
     ToolCall {
         scope: None,
         id: ToolCallId::new(call.tool_call_id.0),
@@ -22,7 +27,7 @@ pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
         locations: call.locations.into_iter().map(location).collect(),
         raw_input: call.raw_input.as_ref().and_then(raw_json),
 
-        detail: None,
+        detail: detail.map(Box::new),
         failure: None,
         agent_message: None,
     }
@@ -31,6 +36,12 @@ pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
 /// Map a tool call update.
 pub(crate) fn tool_call_update(update: acp::ToolCallUpdate) -> ToolCallUpdate {
     let fields = update.fields;
+    let detail = fields.kind.and_then(|kind| {
+        fields
+            .raw_input
+            .as_ref()
+            .and_then(|input| crate::canonical::for_kind(tool_kind(kind), input))
+    });
     ToolCallUpdate {
         scope: None,
         id: ToolCallId::new(update.tool_call_id.0),
@@ -46,7 +57,7 @@ pub(crate) fn tool_call_update(update: acp::ToolCallUpdate) -> ToolCallUpdate {
         raw_input: fields.raw_input.as_ref().and_then(raw_json),
         raw_output: fields.raw_output.as_ref().and_then(raw_json),
 
-        detail: None,
+        detail: detail.map(Box::new),
         failure: None,
         agent_message: None,
     }
@@ -71,6 +82,9 @@ pub(crate) fn permission_tool_call(update: acp::ToolCallUpdate, known: bool) -> 
         return changed.then_some(AgentEvent::ToolCallUpdate(update));
     }
     let fields = update.fields;
+    let detail = fields.raw_input.as_ref().and_then(|input| {
+        crate::canonical::for_kind(fields.kind.map_or(ToolKind::Other, tool_kind), input)
+    });
     Some(AgentEvent::ToolCall(ToolCall {
         scope: None,
         id: ToolCallId::new(update.tool_call_id.0),
@@ -91,7 +105,7 @@ pub(crate) fn permission_tool_call(update: acp::ToolCallUpdate, known: bool) -> 
             .collect(),
         raw_input: fields.raw_input.as_ref().and_then(raw_json),
 
-        detail: None,
+        detail: detail.map(Box::new),
         failure: None,
         agent_message: None,
     }))

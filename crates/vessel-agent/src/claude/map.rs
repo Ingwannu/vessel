@@ -218,10 +218,7 @@ fn tool_call(id: &str, name: &str, input: &Value) -> ToolCall {
             .collect(),
         raw_input: RawJson::from_text(input.to_string()).ok(),
 
-        detail: matches!(name, "Task" | "Agent")
-            .then(|| crate::canonical::sub_agent_input(input))
-            .flatten()
-            .map(|detail| Box::new(vessel_proto::timeline::ToolCallDetail::SubAgent(detail))),
+        detail: Some(Box::new(crate::canonical::named(name, input))),
         failure: None,
         agent_message: None,
     }
@@ -253,6 +250,9 @@ fn settled(id: &str, content: &ToolResultContent, failed: bool) -> ToolCallUpdat
         } else {
             ToolCallStatus::Completed
         }),
+        failure: failed.then(|| vessel_proto::timeline::ToolFailure {
+            message: text.clone(),
+        }),
         content: (!text.is_empty()).then(|| {
             vec![ToolCallContent::Content {
                 content: text_block(text),
@@ -265,7 +265,6 @@ fn settled(id: &str, content: &ToolResultContent, failed: bool) -> ToolCallUpdat
         raw_output: None,
 
         detail: None,
-        failure: None,
         agent_message: None,
     }
 }

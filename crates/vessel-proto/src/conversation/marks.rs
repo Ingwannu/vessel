@@ -103,8 +103,8 @@ impl SessionEvent {
             Self::Agent { event } => match event {
                 AgentEvent::TurnEnded { .. }
                 | AgentEvent::TurnFailed { .. }
-                | AgentEvent::PermissionRequested(_)
-                | AgentEvent::QuestionAsked(_) => true,
+                | AgentEvent::PermissionRequested(_) => true,
+                AgentEvent::QuestionAsked(question) => question.delivery_state.is_pending(),
                 AgentEvent::Ready { .. }
                 | AgentEvent::TurnStarted { .. }
                 | AgentEvent::UserMessageChunk { .. }

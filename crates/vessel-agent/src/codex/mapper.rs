@@ -143,7 +143,7 @@ pub(super) fn tool_call(item: &ThreadItem) -> Option<ToolCall> {
         locations: locations(item),
         raw_input: raw_input.as_ref().and_then(raw),
 
-        detail: None,
+        detail: super::details::detail(item),
         failure: None,
         agent_message: None,
     })
@@ -202,13 +202,14 @@ pub(super) fn tool_call_done(item: &ThreadItem) -> Option<ToolCallUpdate> {
                 ToolCallStatus::Completed
             }
             ItemStatus::Failed | ItemStatus::Declined => ToolCallStatus::Failed,
+            ItemStatus::Canceled => ToolCallStatus::Canceled,
         }),
         content: (!content.is_empty()).then_some(content),
         locations: None,
         raw_input: None,
         raw_output: None,
 
-        detail: None,
+        detail: super::details::detail(item),
         failure: None,
         agent_message: None,
     })
@@ -329,6 +330,7 @@ const fn status_of(status: ItemStatus) -> ToolCallStatus {
         ItemStatus::InProgress | ItemStatus::Other => ToolCallStatus::InProgress,
         ItemStatus::Completed => ToolCallStatus::Completed,
         ItemStatus::Failed | ItemStatus::Declined => ToolCallStatus::Failed,
+        ItemStatus::Canceled => ToolCallStatus::Canceled,
     }
 }
 

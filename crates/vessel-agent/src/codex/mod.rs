@@ -25,6 +25,7 @@
 
 mod asks;
 mod async_questions;
+mod details;
 mod mapper;
 mod mode;
 mod protocol;

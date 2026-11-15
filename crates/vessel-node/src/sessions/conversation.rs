@@ -159,8 +159,27 @@ impl Sessions {
         id: SessionId,
         request: vessel_proto::inbox::InboxRequest,
     ) -> Result<Option<vessel_proto::inbox::InboxItem>, ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.inbox_request(request)?),
+        let found = self.find(id).await?;
+        if let vessel_proto::inbox::InboxRequest::Question { id: question_id } = request {
+            if let Some(question) = self
+                .store
+                .pending_questions(id)
+                .await?
+                .into_iter()
+                .find(|question| question.id == question_id)
+            {
+                return Ok(Some(vessel_proto::inbox::InboxItem::Question { question }));
+            }
+        }
+        match found {
+            Found::Live { handle, .. } => {
+                let item = handle.inbox_request(request)?;
+                if matches!(&item, Some(vessel_proto::inbox::InboxItem::Question { question }) if question.lifetime == vessel_proto::timeline::QuestionLifetime::Session)
+                {
+                    return Ok(None);
+                }
+                Ok(item)
+            }
             Found::Stored(_) => Ok(None),
         }
     }

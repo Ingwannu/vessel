@@ -1,6 +1,12 @@
 //! Typed provider input decoding shared by canonical tools and child routing.
 //! JSON trees stay at this decoder edge; consumers receive only dedicated bodies.
 
+mod inputs;
+mod snapshots;
+
+pub(crate) use inputs::{for_kind, named, unknown};
+pub(crate) use snapshots::Snapshots;
+
 use serde::Deserialize;
 use serde_json::Value;
 use vessel_proto::timeline::{SubAgentDetail, TimelineName};

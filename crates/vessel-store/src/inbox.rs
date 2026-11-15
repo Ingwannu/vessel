@@ -118,6 +118,9 @@ fn agent(
                 },
             )
         }
+        AgentEvent::QuestionAsked(question) if !question.delivery_state.is_pending() => {
+            remove_request(connection, session, &format!("q{}", question.id))
+        }
         AgentEvent::QuestionAsked(question) => insert(
             connection,
             session,

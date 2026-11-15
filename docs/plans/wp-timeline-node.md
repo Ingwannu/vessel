@@ -285,3 +285,22 @@ provider question id; custom-only answers cannot become a spurious extra provide
 field. Secret forms and unrepresentable complete forms still refuse before being
 shown. The existing wire-response regression is updated to prove that behavior;
 no passing provider/runtime test result is claimed yet.
+
+### Provider mapping and runtime regression slice
+
+Known native Claude tool names now select typed argument decoders at the provider
+edge; ACP categories decode only matching argument structures, and native Codex
+items map their command, diff and search fields directly. Unrecognized inputs stay
+opaque. A finite output-only snapshot enricher retains at most 128 entries / 512
+KiB, with 64 KiB per canonical body; it never evicts identity associations or
+merges a reused unscoped id across turns. Generic output remains present even
+when canonical enrichment cannot fit. No new dependency is needed: existing serde
+codecs and dedicated protocol types provide the boundary.
+
+Private fake Codex scenarios now cover asynchronous session-lifetime questions
+while active or idle, including repeated native source identity. Node regression
+fixtures use the actual store callback and session actor, and check prompt replay,
+canonical echo count, durable question resolution and the exclusive conversation
+watermark. These tests are added, not yet passing evidence. Plan action capabilities
+and opaque provider outputs must continue to be reported according to actual
+native support; no text label grants a permission or substitutes a selected id.

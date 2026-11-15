@@ -161,7 +161,11 @@ impl Tracker {
                 self.waits(Waiting::Permission(request.id), QuestionLifetime::Turn, at);
             }
             AgentEvent::QuestionAsked(question) => {
-                self.waits(Waiting::Question(question.id), question.lifetime, at)
+                if question.delivery_state.is_pending() {
+                    self.waits(Waiting::Question(question.id), question.lifetime, at);
+                } else {
+                    self.resolved(Waiting::Question(question.id), at);
+                }
             }
             AgentEvent::PermissionResolved { id, .. } => {
                 self.resolved(Waiting::Permission(*id), at);

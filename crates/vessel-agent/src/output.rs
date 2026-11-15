@@ -41,16 +41,26 @@ pub enum AgentOutput {
 /// writes. Nothing is dropped. (What the SDK reads regardless is listed in
 /// the `transport` module and ADR 0003.)
 #[derive(Debug)]
-pub struct AgentOutputs(mpsc::Receiver<AgentOutput>);
+pub struct AgentOutputs {
+    receiver: mpsc::Receiver<AgentOutput>,
+    details: crate::canonical::Snapshots,
+}
 
 impl AgentOutputs {
-    pub(crate) const fn new(receiver: mpsc::Receiver<AgentOutput>) -> Self {
-        Self(receiver)
+    pub(crate) fn new(receiver: mpsc::Receiver<AgentOutput>) -> Self {
+        Self {
+            receiver,
+            details: crate::canonical::Snapshots::default(),
+        }
     }
 
     /// The next output, or `None` once the driver and the stderr pump have
     /// both finished. Cancel-safe.
     pub async fn next(&mut self) -> Option<AgentOutput> {
-        self.0.recv().await
+        let mut output = self.receiver.recv().await?;
+        if let AgentOutput::Event(event) = &mut output {
+            self.details.observe(event);
+        }
+        Some(output)
     }
 }

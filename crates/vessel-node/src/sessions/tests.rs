@@ -2,6 +2,7 @@
 //! cannot record one; what a session looks like once handed over.
 
 mod handover;
+mod timeline;
 
 use std::sync::Arc;
 
@@ -43,22 +44,29 @@ impl Fixture {
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Terminal, &tui).unwrap());
         let acp = Fake::Acp.path().unwrap();
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
-        let runtime = Arc::new(SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: Lookup::new([bin.path().to_path_buf()]),
-                harness_env: vessel_harness::HarnessEnv::new(data.path().to_owned()),
-                ring_capacity: DEFAULT_RING_CAPACITY,
-                durable_capacity: DEFAULT_DURABLE_CAPACITY,
-                agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
-                park_after: None,
-                private_dir: None,
-            },
-            CancellationToken::new(),
-        ));
         let store = Store::open(&DataDir::new(data.path()), StoreConfig::default())
             .await
             .unwrap()
             .store;
+        let codex = Fake::CodexAppServer.path().unwrap();
+        drop(install(bin.path(), HarnessKind::Codex, Role::Structured, &codex).unwrap());
+        let runtime = Arc::new(
+            SessionRuntime::new(
+                RuntimeConfig {
+                    harness_lookup: Lookup::new([bin.path().to_path_buf()]),
+                    harness_env: vessel_harness::HarnessEnv::new(data.path().to_owned()),
+                    ring_capacity: DEFAULT_RING_CAPACITY,
+                    durable_capacity: DEFAULT_DURABLE_CAPACITY,
+                    agent_handshake_timeout: DEFAULT_HANDSHAKE_TIMEOUT,
+                    park_after: None,
+                    private_dir: None,
+                },
+                CancellationToken::new(),
+            )
+            .with_questions(Arc::new(crate::question_bridge::Questions::new(
+                store.clone(),
+            ))),
+        );
         let tasks = TaskTracker::new();
         let sessions = Arc::new(Sessions::new(
             Arc::clone(&runtime),

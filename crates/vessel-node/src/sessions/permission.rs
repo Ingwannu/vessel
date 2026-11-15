@@ -57,10 +57,19 @@ impl Sessions {
             }
             Err(error) => return Err(error.into()),
         };
-        let observed = tokio::time::timeout(
-            RESOLUTION_TIMEOUT,
-            self.permission_resolution(request.session, permission, from),
-        )
+        let observed = tokio::time::timeout(RESOLUTION_TIMEOUT, async {
+            let Some((seq, resolved)) = self
+                .permission_resolution(request.session, permission, from)
+                .await?
+            else {
+                return Ok(None);
+            };
+            let Some(next) = seq.next() else {
+                return Ok(None);
+            };
+            persist::wait_until(request.session, &mut durability, next).await?;
+            Ok::<_, ServiceError>(Some((seq, resolved)))
+        })
         .await;
         let (seq, resolved) = match observed {
             Ok(Ok(Some(record))) => record,
@@ -69,10 +78,6 @@ impl Sessions {
             }
             Ok(Err(error)) => return Err(error),
         };
-        let Some(next) = seq.next() else {
-            return Ok(RespondPermissionReply::OutcomeUnknown { permission });
-        };
-        persist::wait_until(request.session, &mut durability, next).await?;
         if resolved != outcome {
             return Ok(RespondPermissionReply::Conflict { permission });
         }

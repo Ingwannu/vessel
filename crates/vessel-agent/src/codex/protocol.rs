@@ -368,6 +368,8 @@ pub(super) enum ThreadItem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) enum ItemStatus {
+    #[serde(alias = "cancelled")]
+    Canceled,
     InProgress,
     Completed,
     Failed,
