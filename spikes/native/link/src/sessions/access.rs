@@ -90,7 +90,7 @@ impl crate::State {
         // refresh can replace the validated client between these two operations.
         match access {
             Access::Read { binding, read } => {
-                self.act(binding.host.as_str(), binding.address.session, read.act())
+                self.act(binding.host.as_str(), binding.address.session, read.act());
             }
             Access::Follow(binding) => self.open(binding.host.as_str(), binding.address.session),
         }

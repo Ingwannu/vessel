@@ -36,13 +36,14 @@ async fn replaced_alias_refuses_all_passive_access_without_contacting_replacemen
         Access::Follow(target.clone()),
     ] {
         state.session_access(access);
-        match next(&mut events).await {
-            Event::Acted(answer) => {
-                assert_eq!(answer.session, target.address.session);
-                assert!(answer.result.is_err());
-            }
-            Event::SessionLost { session, .. } => assert_eq!(session, target.address.session),
-            other => panic!("unexpected event: {other:?}"),
+        let event = next(&mut events).await;
+        if let Event::Acted(answer) = event {
+            assert_eq!(answer.session, target.address.session);
+            assert!(answer.result.is_err());
+        } else if let Event::SessionLost { session, .. } = event {
+            assert_eq!(session, target.address.session);
+        } else {
+            panic!("unexpected event: {event:?}");
         }
         assert!(peer.calls.try_recv().is_err());
     }
