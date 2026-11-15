@@ -1,8 +1,12 @@
 # Session prompt index
 
-Status: contract, snapshot projection and pending RPC row implemented; validation
-is pending. Node head 40 (ba45a6e3), including Quality B, is merged. The pending
-row is appended to rpc/table.rs. No protocol number is assigned here.
+Status: contract, snapshot projection and pending RPC row implemented. Node head
+44 (`ede20014`) is merged; the wire remains unassigned. Five-library tests on
+`13149bdaf` passed all owned cases; raw 592/1 includes one named base TypeScript
+alias defect, explicitly accepted by the coordinator. Durable integration and
+20,000-record measurement are queued on `59c2e95ce`; final root gate, V3 review
+and integrator protocol assignment remain pending. No active new-RPC runtime or
+large-history latency claim is made.
 
 ## Reference and asset check
 
@@ -90,3 +94,31 @@ regression covers both sources. Store integration/measurement test names share
 the `prompt_index` prefix so one targeted suite covers all A3 store boundaries.
 Next: narrow checks, TS generation, scan latency measurement, root gate and node
 review; then integrator protocol assignment and native consumption.
+
+## Validation receipts (2026-11-15)
+
+- `wp-search-node-narrow-20261115T115158Z-18fd8000` stopped while compiling
+  tests: two own rewind fixtures used FromStr on HarnessSessionId. Source
+  `13149bdaf` switches all three own occurrences, including the integration
+  fixture, to the existing canonical constructor. The original red is retained.
+- `wp-search-node-narrow-20261115T124346Z-13149bda`, immutable source
+  `13149bdafef60369f669bdd913feed0f7920af63`, executed Client 80, Proto 321,
+  RPC 54, Store 81 and Web 56 passing tests; one Web test failed (raw 592/1).
+  All owned fold/preview/budget/admission/client tests and TS writer tests passed.
+- The sole failure is `wire::ts::tests::every_primitive_alias_is_classified_and_every_entry_still_declared`:
+  LimitPercent aliases FiniteNumber, but the base's primitive-only registry
+  lists it. The coordinator and integrator confirmed that the base gate's TS
+  filter had not executed this case. The bundle counts with that named base
+  defect. Integrator fix `9dfdf0a11` removes the stale registry entry in batch 12;
+  this package does not edit the head's registry entry or its test, and does not
+  replay the unchanged bundle.
+- Generated TS was retrieved from that verified remote source, not hand edited.
+  Commit `59c2e95ce` records the generated ordering change; the bridge is unchanged.
+  Proto SHA-256 `96f5f0d76d7654f1bd8cfebd5c6ebeb37c4687fb19cfa2561e46be1cb8547c12`;
+  bridge SHA-256 `aac2f47064fb6f343e2c73588f6405f8cb32fc9c864dec3d23f3c03903e5734a`.
+- Durable integration and the explicitly ignored 20,001-record measurement run
+  once together using `cargo test -p vessel-store prompt_index -- --include-ignored --nocapture`.
+  Its immutable source is `59c2e95ce`; it has not finished at this receipt.
+
+These scoped results do not constitute the final root gate, V3 approval,
+assigned wire admission or native app/capture approval.
