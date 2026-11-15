@@ -52,6 +52,7 @@ fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
         vessel_proto::checkpoint::CheckpointId::random(),
     )
     .unwrap();
+    super::quota::model_without_worker(connection, key).unwrap();
     Plan {
         id: RestorePlanId::random(),
         key,

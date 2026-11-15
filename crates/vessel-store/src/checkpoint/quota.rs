@@ -71,7 +71,7 @@ pub(crate) fn capture_settled(
         return Err(CheckpointError::StorageFull.into());
     }
     let charged = i64::try_from(charged).map_err(|_large| CheckpointError::StorageFull)?;
-    let updated = connection.execute("UPDATE checkpoint_captures SET reserved_bytes=?1 WHERE id=?2 AND generation=?3 AND boundary=?4 AND state=?5 AND reserved_bytes=?6",params![charged,key.capture.to_string(),generation,boundary,state,i64::try_from(reserved).map_err(|_large|CheckpointError::StorageFull)?])?;
+    let updated = connection.execute("UPDATE checkpoint_captures SET reserved_bytes=?1,worker='settled' WHERE id=?2 AND generation=?3 AND boundary=?4 AND state=?5 AND reserved_bytes=?6",params![charged,key.capture.to_string(),generation,boundary,state,i64::try_from(reserved).map_err(|_large|CheckpointError::StorageFull)?])?;
     if updated != 1 {
         return Err(CheckpointError::StaleCapture.into());
     }
@@ -105,4 +105,22 @@ fn ready_charge(
         }
     }
     Ok(bytes)
+}
+
+/// Pure SQL/accounting fixtures have no filesystem worker. This is deliberately
+/// not a product escape hatch around the fixed capture escrow/cleanup contract.
+#[cfg(test)]
+pub(super) fn model_without_worker(
+    connection: &Connection,
+    key: vessel_proto::checkpoint::CaptureKey,
+) -> Result<(), Error> {
+    use rusqlite::params;
+    let affected = connection.execute(
+        "UPDATE checkpoint_captures SET worker='settled' WHERE id=?1 AND session=?2 AND worktree=?3 AND generation=?4 AND boundary=?5",
+        params![key.capture.to_string(), key.session.to_string(), key.worktree.to_string(), serde_json::to_string(&key.generation)?, serde_json::to_string(&key.boundary)?],
+    )?;
+    if affected != 1 {
+        return Err(CheckpointError::StaleCapture.into());
+    }
+    Ok(())
 }

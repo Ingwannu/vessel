@@ -805,8 +805,45 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
         .await
         .unwrap();
     store
+        .append(
+            info.id,
+            vec![std::sync::Arc::new(vessel_proto::EventRecord {
+                seq: EventSeq::new(1),
+                at: DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Status {
+                    status: vessel_proto::SessionStatus::Exited { code: Some(0) },
+                },
+            })],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        store.delete_session(info.id).await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::Busy
+        )))
+    ));
+    assert!(store.checkpoint_garbage().await.unwrap().is_empty());
+    // This acknowledgement models actual cleanup returning, not actor timeout.
+    store
         .checkpoint_write(CheckpointWrite::CaptureSettled { key: unavailable })
         .await
         .unwrap();
+    store.delete_session(info.id).await.unwrap();
+    let garbage = store.checkpoint_garbage().await.unwrap();
+    assert_eq!(garbage.len(), 2);
+    let unavailable_object = super::GarbageObject::Capture {
+        worktree: unavailable.worktree,
+        capture: unavailable.capture,
+    };
+    let retained = garbage
+        .iter()
+        .find(|item| item.object == unavailable_object)
+        .unwrap();
+    assert!(
+        retained.reserved.get() > 0,
+        "terminal metadata remains charged"
+    );
+    assert!(retained.reserved.get() < super::quota::CAPTURE_BYTES.get());
     store.close().await;
 }

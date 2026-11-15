@@ -31,6 +31,7 @@ fn capture(db: &Connection) -> super::super::records::Plan {
     )
     .unwrap();
     publication::activate(db, plan.key, CheckpointId::random()).unwrap();
+    super::super::quota::model_without_worker(db, plan.key).unwrap();
     plan
 }
 
@@ -115,6 +116,13 @@ fn checkpoint_startup_fences_candidates_and_pins_prepared_restores_before_retent
         RestoreOutcome::RecoveryRequired { restore }
     );
     let transaction = db.transaction().unwrap();
+    assert!(
+        prune(&transaction, &cap(), Utc::now()).unwrap().is_empty(),
+        "startup invalidation cannot pretend orphan storage cleanup is complete"
+    );
+    transaction.commit().unwrap();
+    super::super::quota::model_without_worker(&db, candidate.key).unwrap();
+    let transaction = db.transaction().unwrap();
     assert_eq!(
         prune(&transaction, &cap(), Utc::now()).unwrap(),
         vec![other.id]
@@ -138,12 +146,7 @@ fn checkpoint_success_waits_for_metadata_even_after_its_preview_expired() {
     journal::put_plan(&db, &plan, DateTime::UNIX_EPOCH).unwrap();
     let operation = journal::admit(&db, &plan, RestoreId::random(), DateTime::UNIX_EPOCH).unwrap();
     paths::prepare(&db, &operation).unwrap();
-    super::super::super::staging::commit(
-        &db,
-        &operation,
-        &super::super::super::tests::staged(&plan),
-    )
-    .unwrap();
+    super::super::staging::commit(&db, &operation, &super::super::tests::staged(&plan)).unwrap();
     paths::advance(
         &db,
         &operation,
@@ -163,7 +166,7 @@ fn checkpoint_success_waits_for_metadata_even_after_its_preview_expired() {
     end(&db, operation.session);
     let transaction = db.transaction().unwrap();
     assert!(prune(&transaction, &cap(), Utc::now()).unwrap().is_empty());
-    super::super::super::metadata::append_ended(&transaction, &operation, Utc::now()).unwrap();
+    super::super::metadata::append_ended(&transaction, &operation, Utc::now()).unwrap();
     assert_eq!(
         prune(&transaction, &cap(), Utc::now()).unwrap(),
         vec![operation.session]

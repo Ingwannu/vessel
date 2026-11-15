@@ -5,6 +5,7 @@ CREATE TABLE checkpoint_captures (
     generation INTEGER NOT NULL CHECK(generation > 0),
     boundary TEXT NOT NULL,
     state TEXT NOT NULL CHECK(state IN ('candidate','ready','unavailable')),
+    worker TEXT NOT NULL DEFAULT 'active' CHECK(worker IN ('active','settled')),
     image TEXT,
     evidence TEXT,
     checkpoint TEXT UNIQUE,

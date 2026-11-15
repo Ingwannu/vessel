@@ -173,7 +173,8 @@ pub(crate) fn apply(
         CheckpointWrite::CaptureSettled { key } => super::quota::capture_settled(connection, key),
         #[cfg(test)]
         CheckpointWrite::Reserve { key, bytes, at } => {
-            journal::candidate(connection, key, bytes, at)
+            journal::candidate(connection, key, bytes, at)?;
+            super::quota::model_without_worker(connection, key)
         }
         CheckpointWrite::Candidate { key, snapshot } => {
             journal::keep_candidate(connection, key, &snapshot)

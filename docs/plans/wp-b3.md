@@ -741,3 +741,15 @@ actually created storage, and never changes the parent/service umask. The helper
 is intentionally ignored in normal runs and explicitly executed by its parent.
 These tests are unrun; chmodat/no-follow behavior on supported kernels remains a
 VM/platform obligation. No live permissions or runtime configuration changed.
+
+### Capture cleanup is independent of publication (source; checks pending)
+
+An unavailable capture may still own blocked read I/O and private writes. The
+same migration now records active/settled worker cleanup independently of the
+candidate/ready/unavailable state. Session deletion and retention refuse active
+workers; only CaptureSettled after actual cleanup reduces escrow and permits
+garbage transfer. Startup invalidation cannot manufacture cleanup completion.
+Pure SQL fixtures explicitly model no worker; there is no production bypass.
+The writer regression covers timeout, refused deletion/no garbage, cleanup
+acknowledgement, then successful deletion with retained metadata accounting.
+This is source evidence until the next immutable remote test completes.
