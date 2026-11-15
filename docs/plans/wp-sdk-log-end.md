@@ -48,10 +48,15 @@ insufficient evidence. Expected-end ledger and Window changes are separate.
 
 Four actual framed client tests exercise normal End after a preceding record,
 the original Unsubscribed error before fatal None, MAX sequence while the peer
-subscription deliberately remains open with no End frame, and nonfatal Missing
+producer retains its sink without sending normal End, and nonfatal Missing
 followed by its held record. Repeated None must retain the distinct reason.
 The final-sequence fixture releases its reporting task and waits for its completion notice explicitly.
 Tests and strict checks run on the build VM, not as local Cargo invocations:
+
+Sequence exhaustion still drops the client's live Subscription, whose existing
+Drop may issue best-effort unsubscribe. The fixture does not claim that the
+remote registry entry remains open after that client action. It establishes
+that MAX caused exhaustion without observing a normal SessionEnded frame.
 
 ```sh
 cargo clippy -p vessel-client --all-targets -- -D warnings

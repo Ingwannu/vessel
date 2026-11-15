@@ -48,7 +48,7 @@ pub(super) async fn subscribe(
             Mode::Normal => sink.end(SubscriptionEnd::SessionEnded).await,
             Mode::Fatal => sink.end(SubscriptionEnd::Unsubscribed).await,
             Mode::Exhausted => {
-                // Keep the actual subscription open: MAX is not a peer End.
+                // Retain the sink without sending End; MAX is not a peer End.
                 probe.release.notified().await;
                 drop(sink);
             }
@@ -104,7 +104,7 @@ async fn fatal_error_keeps_its_original_error_and_never_becomes_normal_end() {
 }
 
 #[tokio::test]
-async fn final_sequence_without_any_end_frame_reports_only_exhaustion() {
+async fn final_sequence_without_a_normal_end_reports_only_exhaustion() {
     bounded(async {
         let last = EventSeq::new(u64::MAX);
         let (mut stream, probe) = open_probe(Mode::Exhausted, last).await;
