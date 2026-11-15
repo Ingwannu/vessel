@@ -62,6 +62,7 @@ mod meter;
 mod motion;
 mod origin;
 mod outline;
+mod overlays;
 mod permission;
 mod place;
 mod plan;
@@ -81,8 +82,9 @@ pub(crate) use area::ConversationArea;
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
 pub(crate) use meter::meter;
+pub(crate) use overlays::overlays;
 pub(crate) use place::{Answer, Place, Seat, SessionPlace};
-pub(crate) use timeline::{overlays, timeline};
+pub(crate) use timeline::timeline;
 
 #[cfg(test)]
 mod connection_tests;
