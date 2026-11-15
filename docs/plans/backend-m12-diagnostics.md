@@ -64,7 +64,7 @@ These are source-only observations; no real Paseo daemon was exercised.
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
 | D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
 | D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; source-reviewed/staged accepted at `5235023a` / `9ef6f31c`; remains private on this branch |
-| D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
+| D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Shared accessor consumed at `ec1e4121`; common envelope/observation metadata still blocks product plumbing |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
 
@@ -466,3 +466,51 @@ Resume point: run the merged-tree gate through the approved remote runner
 before adding product code. That result is separate from the earlier D3
 gates. `DIAGNOSTICS_PROTOCOL` remains `None`; no diagnostic field, request,
 client call, CLI command or native screen is added by this merge.
+
+
+### Merged-head gate and remaining metadata prerequisite
+
+Merge commit `ec1e41211802ae51724e1214197a079850c95084` has parents
+`7ba48530` and `f453ec2e`. The narrow all-target Clippy check of the five
+staged owners passed first (42 seconds). Approved whole run
+`diagnostics-20261115T034929Z-ec1e4121` then passed all 18 executed steps,
+including actual forge-feature checks: no step was skipped.
+
+The raw logs independently total 114 Rust result summaries, 2,234 passed,
+zero failed and twelve ignored. All 29 staged D3 cases and twelve D2 cases
+passed again, with the same diagnostic test names. All 22 workspace crates
+compiled. The separate forge fixture ran four cases successfully; those four
+are not added to the workspace total. Web lint/typecheck/build/fonts, 442
+unit cases and all 65 E2E cases passed (E2E 2.8 minutes). The TS selection
+passed four cases: two declaration-freshness cases and two representation
+cases; generated differences were zero. Both prescribed prebuilds preceded
+the workspace tests. There was no failed case, replay or deadline waiver.
+
+The whole run used eight compiler jobs and eight Rust test threads, after a
+708-second queue wait. Execution from admission took thirteen minutes
+35 seconds. Front/back one-minute load was 11.72/11.95; workspace tests were
+10.72/4.41. The selected 1,899 input files match immutable Git and pre/post
+checks, with manifest SHA-256
+`c4ef9ac1f483feb4da90400679ad820054d0bc60707c0218e266005c18d43ad9`.
+Result notes change only this plan; environment and historical cleanup are
+outside that input attestation.
+
+The full merge whitespace check returned status two with 87 warnings, all
+in the node head's unchanged canonical generated declaration file. Authored
+paths excluding that file passed. The generator output was not hand-edited;
+the official freshness and web checks passed. No head case, migration or
+method-table entry was changed to obtain the gate result.
+
+Review confirmed that this head satisfies shared compatibility admission and
+the existing scope/since facts, but does not supply common envelope-category
+metadata for observation exclusion. D4's common-metadata/Quality B boundary
+therefore remains unmet. A local Method match, second table or numeric
+placeholder for an unassigned call would violate the single-owner contract.
+Only the canonical table owner supplies that fact, with its reviewed gate;
+this does not require expanding the task to all unrelated quality work.
+
+Resume point: the merged tree is gated. Retain the accepted private D3 code
+and wait for the required metadata head before product assembly, observation
+or call registration. The diagnostic feature number remains `None`. The
+actual report, five-second response budget and other D4/D5 obligations remain
+unimplemented; this merge gate is not diagnostic feature completion.
