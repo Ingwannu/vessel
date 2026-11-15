@@ -19,6 +19,7 @@ vessel-proto.workspace = true
 serde_json.workspace = true
 similar.workspace = true
 unicode-normalization.workspace = true
+unicode-segmentation.workspace = true
 # The terminal's parser (ADR 0073); only this crate may use it.
 vte.workspace = true
 unicode-width.workspace = true

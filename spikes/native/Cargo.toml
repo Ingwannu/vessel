@@ -157,6 +157,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # NFD for find's folding of accents (MIT or Apache-2.0).
 unicode-normalization = "0.1"
+# Conformant streamed-text grapheme boundaries; already locked through GPUI.
+unicode-segmentation = "=1.13.3"
 # VT parser only (ADR 0073), Apache-2.0 OR MIT. Without default features:
 # the `std` build keeps an OSC string in a Vec with no bound; without it
 # the parser's own buffer is capped (`terminal::parse::OSC_LIMIT`).
