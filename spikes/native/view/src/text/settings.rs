@@ -29,6 +29,9 @@ pub struct SettingsText {
     pub machine: &'static str,
     pub no_machines: &'static str,
     pub switch_machine: &'static str,
+    /// Sidebar's copy-path toast still reads this shared legacy word. General
+    /// has an owned catalog notice; retain this until the sidebar migrates.
+    pub path_copied: &'static str,
     // Appearance.
     pub appearance_lead: &'static str,
     pub theme: &'static str,
@@ -75,6 +78,7 @@ const EN: SettingsText = SettingsText {
     machine: "Machine",
     no_machines: "No machines yet.",
     switch_machine: "Switch machine",
+    path_copied: "The path was copied.",
     appearance_lead: "How Vessel looks on this computer.",
     theme: "Theme",
     colour_scheme: "Colour scheme",
@@ -127,6 +131,7 @@ const KO: SettingsText = SettingsText {
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
     switch_machine: "머신 바꾸기",
+    path_copied: "경로를 복사했습니다.",
     appearance_lead: "이 컴퓨터에서 Vessel이 보이는 방식.",
     theme: "테마",
     colour_scheme: "색 구성",
