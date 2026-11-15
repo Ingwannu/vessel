@@ -265,6 +265,27 @@ No row of the crate table changes.
   and a bad `--since` fail before connect. Follow's first print is the
   last 10 matching records when `--tail` is omitted.
 
+## Background value staging
+
+- Existing asset check: `DirListing` describes a directory, and `UsageScope`
+  chooses usage aggregation. Neither models session discovery. The existing
+  session listing merges live and stored information; that service and its
+  ordering will be extended when the shared admission accessor is integrated.
+- Decision: new value types, using the existing serde and TypeScript derives,
+  with no dependency. `SessionListing` separates shown/background discovery
+  from run state; `ListingScope` separates default/inclusive reads. A generic
+  boolean would lose that distinction at a module boundary.
+- Paseo's source remains the reviewed background contract:
+  `docs/agent-lifecycle.md:186-203`, CLI `ls.ts:138-151`, MCP
+  `server/agent/tools/paseo-tools.ts:1396-1401,2133`, and
+  `server/workspace-registry.ts:106,684-687` (durable default false).
+  The stated difference remains session metadata rather than workspace
+  visibility, because a shared project is not one agent workspace.
+- These are values only. No request, reply, event, field, migration, filter
+  service, caller inheritance or CLI/MCP input is added here. A future creation
+  field must be optional; the value's default does not erase an omitted
+  override. Exact-id operations will continue to bypass discovery filtering.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
@@ -343,6 +364,9 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
+- Background value slice 3a is prepared, not compiled: closed shown/background
+  and shown/all enums with explicit defaults, exhaustive inclusion and serde
+  refusal tests. It does not make background sessions available yet.
 - Next: finish selection slice 5b's complete gate, then run the separate
   complete gate for follow slice 5c while
   label call wiring awaits the shared accessor. No new wire call or dependency
