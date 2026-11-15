@@ -53,13 +53,16 @@ impl Shell {
                 {
                     let cwd = (!self.areas.draft.folder.is_empty())
                         .then(|| std::path::PathBuf::from(&self.areas.draft.folder));
-                    self.areas.import.choose(Scope {
+                    if !self.areas.import.choose(Scope {
                         context,
                         machine: MachineKey::from_book(&machine.name),
                         harness,
                         profile: None,
                         cwd,
-                    });
+                    }) {
+                        cx.notify();
+                        return;
+                    }
                     self.areas.import.profiles = Ok(Vec::new());
                     self.history_profiles();
                     self.history_refresh();
@@ -142,13 +145,14 @@ impl Shell {
             if self.areas.import.profile_request.as_ref() == Some(&(scope, ticket)) {
                 self.areas.import.profiles = result;
                 self.areas.import.profile_request = None;
-                self.areas.import.advance_visit();
+                let _actions_available = self.areas.import.advance_visit();
                 cx.notify();
             }
             return;
         }
         if self.areas.import.model.answer(reply) {
-            self.areas.import.advance_visit();
+            // Exhaustion records failure and disables captures; accepted data stays visible.
+            let _actions_available = self.areas.import.advance_visit();
             self.areas.import.reproject();
         }
         // Receipt installation never navigates or reloads an alias. A later
@@ -173,7 +177,6 @@ impl Shell {
             }
             Selection::Available | Selection::Selected => {
                 self.areas.import.model.toggle(id);
-                self.areas.import.advance_visit();
                 cx.notify();
             }
         }
@@ -185,7 +188,9 @@ impl Shell {
         }
         if let Some(mut scope) = self.areas.import.model.scope().cloned() {
             scope.cwd = None;
-            self.areas.import.choose(scope);
+            if !self.areas.import.choose(scope) {
+                return;
+            }
             self.areas.import.reproject();
             self.history_refresh();
         }

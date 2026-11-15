@@ -67,16 +67,13 @@ impl ImportArea {
 
     /// One persistent ticket source prevents close/reopen and scope ABA.
     fn advance_visit(&mut self) -> bool {
-        match self.tickets.next_ticket() {
-            Ok(ticket) => {
-                self.visit = Some(ticket);
-                true
-            }
-            Err(_) => {
-                self.visit = None;
-                self.failure = Some(Problem::Exhausted);
-                false
-            }
+        if let Ok(ticket) = self.tickets.next_ticket() {
+            self.visit = Some(ticket);
+            true
+        } else {
+            self.visit = None;
+            self.failure = Some(Problem::Exhausted);
+            false
         }
     }
 
