@@ -31,14 +31,26 @@ that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
 Unassigned protocol numbers use `Option<ProtocolVersion>`, not a numeric
-stand-in. A connection admits calls through `Call::required_protocol()`;
-the existing numeric `since()` API is unchanged. Assigned requests default
-to `Some(self.since())`, and fleet envelopes propagate the inner requirement.
-The client refuses `None` before allocating an id or queuing a frame with
-`CallError::UnassignedProtocol { method }` (code `Unsupported`); the server
-refuses before dispatch. Each future feature supplies its optional
-threshold, assigned by integration only after its clients can read or
-approve the new data. No pending feature is registered by this foundation.
+stand-in. A connection admits calls through `Call::required_protocol()`,
+which is `Call::since()`: both return `Option<ProtocolVersion>`, the
+method's number raised by any later field it uses, and for a fleet envelope
+by the call it carries. The client refuses `None` before allocating an id
+or queuing a frame with `CallError::UnassignedProtocol { method }` (code
+`Unsupported`); the server refuses before dispatch. Each future feature
+supplies its optional threshold, assigned by integration only after its
+clients can read or approve the new data.
+
+A pending method has a row in the method table like any other (Quality B):
+`Variant / handler / "wire.name" [Scope, (pending FEATURE), shape]:
+Request => Response;`, where `FEATURE` is the feature's
+`Option<ProtocolVersion>` constant. `Method::since()` is that constant, so
+the method is refused on every connection while it is None, and assigning
+the number is a one-line change to the constant. The row's last column is
+the method's shape (`Method::shape()`): `unary` (one reply), `stream` (the
+reply opens a stream of frames: `session.subscribe`, `terminal.subscribe`)
+or `envelope` (`fleet.forward`, `fleet.relay`, `fleet.deliver`: answered
+once with the carried call's reply, whose outcome it is). No pending method
+is registered by this foundation.
 
 ## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
 

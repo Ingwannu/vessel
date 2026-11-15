@@ -1,0 +1,22 @@
+[package]
+name = "vessel-local-node"
+description = "Owned local node launch, authenticated readiness and desktop finalization"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+vessel-client.workspace = true
+vessel-proto.workspace = true
+vessel-store.workspace = true
+vessel-proc.workspace = true
+tokio = { workspace = true, features = ["io-util", "process", "rt", "sync", "time"] }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

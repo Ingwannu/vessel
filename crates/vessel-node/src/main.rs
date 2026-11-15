@@ -17,6 +17,9 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::Duration;
 
+#[path = "bin_support/local_launch.rs"]
+mod local_launch;
+
 use clap::{Parser, Subcommand};
 use tokio_util::sync::CancellationToken;
 use vessel_harness::HarnessEnv;
@@ -111,10 +114,8 @@ struct Run {
         value_delimiter = ','
     )]
     trusted_proxies: Vec<vessel_relay::TrustedProxy>,
-    /// Started in the background by `vesseld attach`: announce readiness
-    /// on stdout and keep running when the SSH session hangs up.
-    #[arg(long, hide = true)]
-    detached: bool,
+    #[command(flatten)]
+    launch: local_launch::Mode,
 }
 
 #[derive(Debug, Subcommand)]
@@ -461,7 +462,7 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
 
     // Before the node starts, so a hang-up during start-up cannot kill it.
     #[cfg(unix)]
-    let _hangups = if args.detached {
+    let _hangups = if args.launch.survives_hangup() {
         ignore_hangups()
     } else {
         None
@@ -473,12 +474,10 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if args.detached {
-        let _written = print(&format!(
-            "{} {}\n",
-            vessel_node::attach::READY,
-            std::process::id()
-        ));
+    if let Err(error) = args.launch.announce(node.info().id) {
+        tracing::error!(%error, "cannot announce local node readiness");
+        let _stopped = node.stop().await;
+        return ExitCode::FAILURE;
     }
     tokio::select! {
         () = vessel_node::signal() => {}
