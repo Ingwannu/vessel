@@ -258,8 +258,8 @@ fn changes_are_tagged_by_setting_with_their_value() {
         PreferenceChange::InspectorPanel(Panel::Hidden)
     );
     for refused in [
-        r#"{"set":"interface_size","value":21}"#,
-        r#"{"set":"code_size","value":9}"#,
+        r#"{"set":"interface_size","value":22}"#,
+        r#"{"set":"code_size","value":8}"#,
         r#"{"set":"theme","value":"sepia"}"#,
         r#"{"set":"delivery","value":"start"}"#,
         r#"{"set":"shortcuts","value":{"edits":[{"action":"palette","to":{"kind":"bindings","keys":["Mod+K","/","N"]}}]}}"#,
@@ -448,4 +448,16 @@ fn animations_are_kept_changed_alone_and_lenient() {
     let unknown: Preferences =
         serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
     assert_eq!(unknown.appearance.animations, Animations::On);
+}
+
+/// Newly supported Paseo endpoints stay accepted through the real change edge.
+#[test]
+fn appearance_source_endpoints_are_valid_preference_changes() {
+    let ui = apply(
+        &Preferences::default(),
+        r#"{"set":"interface_size","value":21}"#,
+    );
+    assert_eq!(ui.appearance.interface_size.get(), 21);
+    let code = apply(&Preferences::default(), r#"{"set":"code_size","value":9}"#);
+    assert_eq!(code.appearance.code_size.get(), 9);
 }
