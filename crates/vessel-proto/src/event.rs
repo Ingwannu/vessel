@@ -62,9 +62,9 @@ use crate::title::SessionTitle;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SessionEvent {
-    /// The process changed state. A final `Status` is the last event of
-    /// every run of a session: `session.resume` (protocol 10) starts
-    /// another run, which continues the same log after it.
+    /// The process changed state. A final `Status` is the last runtime-produced
+    /// lifecycle record of a run; checkpoint metadata may follow an ended run.
+    /// `session.resume` (protocol 10) starts another run in the same log.
     Status {
         /// New state.
         status: SessionStatus,

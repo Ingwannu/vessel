@@ -977,3 +977,11 @@ frames used by forwarding, relay and callback selection. The frame fixture is
 not an assigned three-node fleet or a live callback transport proof; those remain
 explicitly unverified until runtime coverage is added. No old assertion or budget
 is changed. Narrow compilation and the complete package gate remain owed.
+
+### Event-log boundary wording
+
+The shared Status documentation now distinguishes a run's last runtime-produced
+lifecycle record from checkpoint metadata appended after that run. This permits
+a separately implemented ended-session file restore to report its checkpoint
+without starting an agent. No event, accessor, stream implementation or assertion
+changes here; log follow still has its previously reviewed run-EOF behavior.
