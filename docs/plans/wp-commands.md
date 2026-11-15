@@ -444,7 +444,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Source be31d4d65, checks pending; no second writer or duplicate failure toast |
 | Messages mode | W1 existing Searching controller | Initial source665d preserved; window-lifetime successor not checked/adopted yet |
 
-All rows remain skeleton. View/Kit/App source and behavioral tests must pass on
+Owner-integration rows above remain skeleton. View/Kit/App source and behavioral tests must pass on
 the combined actual head before the final frozen gate/captures/V4 submission.
 
 
@@ -706,3 +706,5 @@ are byte-for-byte unchanged. Both consumers now trim with that one predicate.
 Existing behavior tables add BOM around/inside valid searches and NEL refusal
 cases. No copied whitespace helper or borrowed B2 test pass is introduced;
 these later changes require the next immutable narrow check.
+
+Tracker674(default table),675(help),689(native editing/IME) now built with explicit a675 scoped-check and remaining union/gate/capture/V4 qualifiers. Both repository and live working trackers agree. Other owned rows retain skeleton; none is passed. These three implemented mechanics do not imply every feature owner/action or actual OS layout has been verified.

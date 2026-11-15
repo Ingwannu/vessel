@@ -677,8 +677,8 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 671 | F4 | S2+W22 | What the user sees | C.md | skeleton |
 | 672 | F4 | S2+W22 | How it works | C.md | skeleton |
 | 673 | F4 | S2+W22 | Binding to action routing (`routeKeyboardShortcut`) | C.md | skeleton |
-| 674 | F4 | S2+W22 | Default shortcut table (binding id, action, combo; `when` summary) | C.md | skeleton |
-| 675 | F4 | S2+W22 | Shortcut help dialog | C.md | skeleton |
+| 674 | F4 | S2+W22 | Default shortcut table (binding id, action, combo; `when` summary) | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
+| 675 | F4 | S2+W22 | Shortcut help dialog | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
 | 676 | F4 | S2+W22 | Settings > Shortcuts (rebinding) | C.md | skeleton |
 | 677 | F4 | S2+W22 | Keyboard shift (mobile on-screen keyboard) | C.md | unknown |
 | 678 | F4 | S2+W22 | Command center | C.md | skeleton |
@@ -692,7 +692,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 686 | F4 | S2+W22 | Project action menus and metadata status rows | C.md | unknown |
 | 687 | F4 | S2+W22 | Sidebar setup/changelog/host-permission callouts | C.md | unknown |
 | 688 | F4 | S2+W22 | Keyboard binding scopes, contexts and override persistence | C.md | skeleton |
-| 689 | F4 | S2+W22 | Reserved/native editing and IME shortcut exclusions | C.md | skeleton |
+| 689 | F4 | S2+W22 | Reserved/native editing and IME shortcut exclusions | C.md | built (a675 scoped Clippy + App/Kit; current union, gate/captures/V4 pending) |
 | 690 | F4 | S2+W22 | Shortcut help and rebinding conflict/reset states | C.md | skeleton |
 | 691 | F4 | S2+W22 | Mobile keyboard shift behavior | C.md | unknown |
 | 692 | F4 | S2+W22 | Command center search ranking, group navigation and nested pages | C.md | skeleton |
