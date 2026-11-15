@@ -249,6 +249,59 @@ impl FeedClient {
             .map_err(FetchError::unreachable)?;
         ok(response)
     }
+
+    /// Start downloading an artifact from byte `from` on: the rest of a
+    /// download that broke off. Returns the response and the offset its
+    /// body starts at. That is `from` when the server sent the range (206
+    /// with a matching `Content-Range`), and 0 when it sent the whole file
+    /// instead (200, a server without ranges): the caller then starts
+    /// over. `from` 0 is a plain request.
+    ///
+    /// # Errors
+    /// [`FetchError`] for every way the request can fail, including a 416
+    /// (the server holds less than `from`: the caller starts over) and a
+    /// 206 for another range than the one asked.
+    pub(crate) async fn artifact_from(
+        &self,
+        feed: &FeedUrl,
+        path: &ArtifactPath,
+        from: u64,
+    ) -> Result<(reqwest::Response, u64), FetchError> {
+        if from == 0 {
+            return Ok((self.artifact(feed, path).await?, 0));
+        }
+        let response = self
+            .client
+            .get(feed.artifact(path))
+            .header(reqwest::header::RANGE, format!("bytes={from}-"))
+            .send()
+            .await
+            .map_err(FetchError::unreachable)?;
+        match response.status() {
+            reqwest::StatusCode::OK => Ok((response, 0)),
+            reqwest::StatusCode::PARTIAL_CONTENT => {
+                let start = response
+                    .headers()
+                    .get(reqwest::header::CONTENT_RANGE)
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(range_start);
+                if start == Some(from) {
+                    Ok((response, from))
+                } else {
+                    Err(FetchError::Status {
+                        status: reqwest::StatusCode::PARTIAL_CONTENT,
+                    })
+                }
+            }
+            status => Err(FetchError::Status { status }),
+        }
+    }
+}
+
+/// The first byte of a `Content-Range: bytes <first>-<last>/<size>`.
+fn range_start(value: &str) -> Option<u64> {
+    let (first, _rest) = value.strip_prefix("bytes ")?.split_once('-')?;
+    first.parse().ok()
 }
 
 fn ok(response: reqwest::Response) -> Result<reqwest::Response, FetchError> {
@@ -263,6 +316,15 @@ fn ok(response: reqwest::Response) -> Result<reqwest::Response, FetchError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_content_range_gives_its_first_byte() {
+        assert_eq!(range_start("bytes 1000-1999/51643904"), Some(1000));
+        assert_eq!(range_start("bytes 0-0/1"), Some(0));
+        assert_eq!(range_start("bytes */51643904"), None);
+        assert_eq!(range_start("items 1-2/3"), None);
+        assert_eq!(range_start("bytes x-2/3"), None);
+    }
 
     #[test]
     fn a_base_is_https_or_loopback_http() {

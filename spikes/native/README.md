@@ -755,9 +755,10 @@ Environment:
   frame before the renderer rasterises (on a software renderer the
   process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
-  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
-  updates itself; without them it never does.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_KEY` too and
+  the feed's address written into the built executable afterwards (track
+  R's `build.sh` does both; ADR 0099), the build updates itself; without
+  them it never does.
 
 ## Composed sections in one bounded viewport
 
@@ -1290,3 +1291,9 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.

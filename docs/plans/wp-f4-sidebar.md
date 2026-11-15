@@ -747,3 +747,10 @@ and exact old snapshot, then the same producer plus the five F4-only glyphs and
 the pre-change100 snapshot in this union. No exemption, fallback, glyph
 promotion or vector/path/order change; source approval of that registry refactor
 is separate from the still-incomplete F4 package.
+
+The isolated glyph producer e7f3a244 is based on announced e1b73c9e (95 glyphs).
+Consume that exact producer/base by merge, preserving the five already-present
+F4 declarations and its frozen pre-change100 snapshot. The macro bytes are
+identical; all100 paths/order and every prior drawing-source hash independently
+match the before capture. This does not approve the five glyphs, nor claim the
+queued producer Kit check passed. No withdrawn W11 value carrier is adopted.
