@@ -7,7 +7,8 @@ buffers use NodeId/root/path, original serialized write tickets, and sticky
 uncertain effects. Existing-engine input is mirrored before admission and
 projection, including input whose owner notification is queued.
 
-Current native source is merge3c40b386c. Strict28 on earlier4fbbe4d8 passed
+The current owner source includes the base10 union and the later toolbar and
+engine-revision corrections below. Strict28 on earlier4fbbe4d8 passed
 all-target locked Clippy for Kit/View/Link/App with warnings denied. Actual
 four-package tests10 stopped after App149 passed,2 failed,2 ignored; later
 package suites were not executed. Both failures were fixture assumptions:
@@ -15,12 +16,14 @@ the tree lacked an observable test selector, and Explorer is a valid file
 placement. The correction adds observable tree/legacy-Back controls and tests
 a genuinely removed pane, preserving the owner-restoration assertions.
 
-Strict29 run wp-files-narrow-20261115T181725Z-9305a08d is checking the earlier
-base9b union and actual-engine readiness change. Tests12 run
-wp-files-query-values-20261115T183328Z-3c40b386 checks the base10 union and
-corrected fixtures. The superseded queued tests11 was cancelled before
-execution (143). These newer checks have no result yet. Strict28 and older
-0df7abd9 evidence do not qualify the current union or live owner admission.
+Strict29 run wp-files-narrow-20261115T181725Z-9305a08d passed all four
+crates' all-target locked Clippy on the earlier base9b readiness source.
+Strict30 on the later toolbar union failed App compilation because the tree
+selector lacked its existing InteractiveElement trait import; that import is
+corrected. Queued tests11 and the known-red tests12 were cancelled before
+execution (143), with their records retained. Tests13 checks the latest owner
+union, including the equal-text revision and toolbar cases; no result is
+claimed. Prior strict results do not qualify this latest union or live admission.
 
 Actual-engine readiness now receives the same readonly App reference: a
 cached Clean model cannot hide accepted editor text whose mirror is queued.
