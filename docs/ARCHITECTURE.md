@@ -65,6 +65,9 @@ The CLI also provides graceful `vessel node stop` (`node_ctl`, ADR 0064),
 using the existing Admin-scoped RPC, authenticated local identity binding
 (`node_ctl/observe`) and an OS-lock completion event (`lock_wait`) under a
 bounded command deadline.
+Service-file observations (`node_ctl/service_probe`) reuse the installer's
+bounded template decoder (`init/service/matching`); they supply warnings,
+never manager execution or authority inferred from editable file text.
 
 The dependency direction is fixed by ADR 0001; adding an edge means updating
 that ADR and this table, in the same commit. `scripts/check-boundaries.mjs`
@@ -1193,6 +1196,17 @@ dependency (ADR 0075).
 
 
 ## Native app localization (milestone 12, staged)
+
+### Plugin value boundary (ADR 0079, staged)
+
+`vessel-proto::plugins` owns validated plugin/contribution/method identities,
+captured node/runtime-generation addresses and the small semantic theme
+palette. Its constructors and serde boundary refuse malformed identifiers,
+resource paths masquerading as ids and executable paint content. These
+values do no I/O and add no dependency edge. `PLUGINS` remains unassigned;
+no plugin method is registered and no helper is started by these types.
+Later native registry and supervised node-runtime layers consume this one
+contract rather than defining their own plugin identities.
 
 The separate `spikes/native` workspace keeps UI and I/O out of
 `vessel-app-view`. Its localization build script reads the Fluent source
