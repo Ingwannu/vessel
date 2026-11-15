@@ -214,10 +214,14 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// A usage dial, on the shared24-unit line grid.
+    Gauge,
+    /// A catalog package with its add action.
+    PackagePlus,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 85] = [
+const ALL: [Glyph; 87] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -303,6 +307,8 @@ const ALL: [Glyph; 85] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::Gauge,
+    Glyph::PackagePlus,
 ];
 
 impl Glyph {
@@ -395,6 +401,8 @@ impl Glyph {
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
+            Self::Gauge => "kit/gauge.svg",
+            Self::PackagePlus => "kit/package-plus.svg",
         }
     }
 }
@@ -699,3 +707,6 @@ mod settings_nav_glyph_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod added_navigation_tests;
