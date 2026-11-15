@@ -388,12 +388,9 @@ impl Shell {
                 self.areas.palette.search.clear(window, cx);
                 self.palette_searched(String::new(), cx);
             }
-            PaletteTarget::NewSession(machine) => {
-                self.go(Route::Draft, window, cx);
-                if let Some(machine) = machine {
-                    self.choose_machine(machine, window, cx);
-                }
-            }
+            // Retained legacy rows cannot bypass A1's admitted opener even
+            // after the speculative creation row disappears from projection.
+            PaletteTarget::NewSession(_) => self.command_unavailable(cx),
             PaletteTarget::AddMachine => self.go(Route::Pair, window, cx),
             PaletteTarget::Board => self.go(Route::Board, window, cx),
             PaletteTarget::Settings(section) => self.open_settings(Some(section), window, cx),

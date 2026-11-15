@@ -923,3 +923,10 @@ terminal composition from phase/focus/session or add a false stub as proof.
 A real future terminal owner must expose its scoped composition seam before
 terminal-specific IME acceptance. No parser/clipboard/terminal edits or build
 were added for this owner status; current App source check remains unchanged.
+
+Creation audit also found the retained Legacy(NewSession) activation arm still
+had an old global Draft/choose_machine effect, despite its row being omitted.
+It now refuses through the existing unavailable notice. A retained-target
+regression checks route, draft machine and unsent text all remain unchanged.
+Thus neither current projection nor an old typed legacy callback can bypass
+A1's admitted opener. No new handler, creation route or machine resolver is added.

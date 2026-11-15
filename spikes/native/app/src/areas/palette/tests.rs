@@ -489,6 +489,28 @@ fn first_root_enter_opens_settings_without_an_unowned_creation_row(cx: &mut Test
 }
 
 #[gpui::test]
+fn retained_legacy_creation_target_cannot_open_or_retarget_a_draft(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    update(&view, cx, |shell, window, cx| {
+        shell.route = Route::Settings;
+        shell
+            .areas
+            .draft
+            .composer
+            .set_text("unsent draft", window, cx);
+        let machine = shell.areas.draft.machine.clone();
+        shell.activate_command(
+            Activate::Legacy(PaletteTarget::NewSession(Some("two".to_owned()))),
+            window,
+            cx,
+        );
+        assert_eq!(shell.route, Route::Settings);
+        assert_eq!(shell.areas.draft.machine, machine);
+        assert_eq!(shell.areas.draft.composer.text(cx), "unsent draft");
+    });
+}
+
+#[gpui::test]
 fn nested_backspace_uses_reference_blank_query_semantics(cx: &mut TestAppContext) {
     let (view, cx) = harness(cx);
     update(&view, cx, |shell, window, cx| {
