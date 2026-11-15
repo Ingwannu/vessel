@@ -338,16 +338,27 @@ impl SessionRuntime {
         }
 
         let (begin, notices) = record.begin(spec);
+        let (screen, authority) = crate::terminal_screen::ScreenAuthority::channel(
+            vessel_proto::terminals::TerminalAddress::Session(begin.info.id),
+            size,
+        );
         let parts = self.parts(
             begin,
             notices,
-            (Input::Terminal(pty.input()), pty.lifetime()),
+            (
+                Input::Terminal {
+                    pty: pty.input(),
+                    screen,
+                },
+                pty.lifetime(),
+            ),
             (None, Driver::Acp),
         );
         let actor = TerminalActor {
             pty,
             output,
             life: parts.life,
+            screen: authority,
             _mcp_file: mcp_file,
         };
         Ok(self.start(parts.shared, actor.run(), parts.durable))

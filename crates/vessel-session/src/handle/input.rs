@@ -28,20 +28,27 @@ impl SessionHandle {
     /// session's mode, [`SessionError::Ended`] once the session has ended,
     /// [`SessionError::Input`] when the agent refuses it (for example a
     /// second answer to a permission request).
+    /// [`SessionError::TerminalScreen`] when the bounded resize queue cannot admit it.
     pub async fn send(&self, input: SessionInput) -> Result<(), SessionError> {
         if !self.0.info.borrow().status.is_live() {
             return Err(SessionError::Ended);
         }
         match (&self.0.input, input) {
-            (Input::Terminal(pty), SessionInput::Terminal { input }) => {
+            (Input::Terminal { pty, screen }, SessionInput::Terminal { input }) => {
                 let sent = match input {
                     TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
                     TerminalInput::Resize { size } => {
-                        pty.resize(WindowSize {
-                            cols: size.cols,
-                            rows: size.rows,
-                        })
-                        .await
+                        screen.resize(size)?;
+                        let resized = pty
+                            .resize(WindowSize {
+                                cols: size.cols,
+                                rows: size.rows,
+                            })
+                            .await;
+                        if resized.is_err() {
+                            screen.invalidate();
+                        }
+                        resized
                     }
                 };
                 sent.map_err(|vessel_pty::PtyClosed| SessionError::Ended)
@@ -75,7 +82,7 @@ impl SessionHandle {
                 Ok(current(route)?.answer_question(id, answer).await?)
             }
             (
-                input_path @ Input::Terminal(_),
+                input_path @ Input::Terminal { .. },
                 input @ (SessionInput::Prompt { .. }
                 | SessionInput::CancelTurn { .. }
                 | SessionInput::AnswerPermission { .. }
@@ -187,7 +194,7 @@ impl SessionHandle {
             return Err(SessionError::Ended);
         }
         match &self.0.input {
-            Input::Terminal(_) => Err(terminal.into()),
+            Input::Terminal { .. } => Err(terminal.into()),
             Input::Structured(route) => Ok(route),
         }
     }
@@ -201,7 +208,7 @@ impl SessionHandle {
             return Err(SessionError::Ended);
         }
         match &self.0.input {
-            Input::Terminal(_) => Err(SessionError::Terminal(what)),
+            Input::Terminal { .. } => Err(SessionError::Terminal(what)),
             Input::Structured(route) => Ok(route),
         }
     }
@@ -237,7 +244,7 @@ impl SessionHandle {
     /// [`SessionError::Ended`] once its agent's connection has closed.
     pub async fn turn_running(&self) -> Result<bool, SessionError> {
         match &self.0.input {
-            Input::Terminal(_) => Ok(false),
+            Input::Terminal { .. } => Ok(false),
             // A parked agent runs no turn (protocol 12).
             Input::Structured(route) if matches!(*route.borrow(), Route::Parked) => Ok(false),
             Input::Structured(route) => Ok(current(route)?.turn_running().await?),

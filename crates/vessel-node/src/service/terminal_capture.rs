@@ -1,11 +1,10 @@
 //! Screen capture uses the same terminal ownership gate as input and event reads.
-//! Registration is intentionally pending until Quality B assigns `CLI_PARITY_PROTOCOL`.
+//! The method remains pending until the integrator assigns `CLI_PARITY_PROTOCOL`.
 use super::{Connection, NodeService};
 use vessel_proto::{
-    ErrorCode, WireError,
+    WireError,
     terminals::{CaptureTerminal, TerminalCapture},
 };
-use vessel_session::terminals::CaptureError;
 impl NodeService {
     pub(crate) async fn capture_terminal(
         &self,
@@ -19,14 +18,6 @@ impl NodeService {
             .handle
             .capture(request.options)
             .await
-            .map_err(|error| {
-                let code = match error {
-                    CaptureError::Geometry | CaptureError::TooLarge | CaptureError::WrongTarget => {
-                        ErrorCode::InvalidRequest
-                    }
-                    CaptureError::Unavailable | CaptureError::Timeout => ErrorCode::Unavailable,
-                };
-                WireError::new(code, error.to_string())
-            })
+            .map_err(|error| WireError::new(error.code(), error.to_string()))
     }
 }

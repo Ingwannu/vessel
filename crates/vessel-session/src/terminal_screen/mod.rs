@@ -33,6 +33,19 @@ pub enum CaptureError {
     WrongTarget,
 }
 
+impl CaptureError {
+    /// Keep terminal and session adapters on the same typed wire classification.
+    #[must_use]
+    pub const fn code(self) -> vessel_proto::ErrorCode {
+        match self {
+            Self::Geometry | Self::TooLarge | Self::WrongTarget => {
+                vessel_proto::ErrorCode::InvalidRequest
+            }
+            Self::Unavailable | Self::Timeout => vessel_proto::ErrorCode::Unavailable,
+        }
+    }
+}
+
 impl From<ScreenError> for CaptureError {
     fn from(error: ScreenError) -> Self {
         match error {

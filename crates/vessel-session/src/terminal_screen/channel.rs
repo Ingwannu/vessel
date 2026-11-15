@@ -92,3 +92,6 @@ enum Validity {
     Valid,
     Invalid,
 }
+
+#[cfg(test)]
+mod tui;

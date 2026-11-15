@@ -103,7 +103,10 @@ impl Shared {
 /// output pump or `kill`.
 #[derive(Debug)]
 pub(crate) enum Input {
-    Terminal(PtyInput),
+    Terminal {
+        pty: PtyInput,
+        screen: crate::terminal_screen::CaptureEndpoint,
+    },
     /// Where the current agent's input goes: to it, nowhere while it is
     /// replaced (a move, a park), or to the actor while it is parked
     /// (protocol 12).
@@ -113,7 +116,7 @@ pub(crate) enum Input {
 impl Input {
     const fn mode(&self) -> ModeKind {
         match self {
-            Self::Terminal(_) => ModeKind::Terminal,
+            Self::Terminal { .. } => ModeKind::Terminal,
             Self::Structured(_) => ModeKind::Structured,
         }
     }
@@ -284,7 +287,7 @@ impl SessionHandle {
     /// runs its own interface.
     pub fn conversation(&self) -> Result<Conversation, SessionError> {
         match &self.0.input {
-            Input::Terminal(_) => Err(SessionError::Terminal("a conversation")),
+            Input::Terminal { .. } => Err(SessionError::Terminal("a conversation")),
             Input::Structured(_) => Ok(self
                 .0
                 .seen
@@ -303,7 +306,7 @@ impl SessionHandle {
         request: vessel_proto::inbox::InboxRequest,
     ) -> Result<Option<vessel_proto::inbox::InboxItem>, SessionError> {
         match &self.0.input {
-            Input::Terminal(_) => Err(SessionError::Terminal("an inbox request")),
+            Input::Terminal { .. } => Err(SessionError::Terminal("an inbox request")),
             Input::Structured(_) => Ok(self
                 .0
                 .seen
@@ -349,7 +352,7 @@ impl SessionHandle {
             return Err(SessionError::Ended);
         }
         match &self.0.input {
-            Input::Terminal(_) => Err(SessionError::NoOptions),
+            Input::Terminal { .. } => Err(SessionError::NoOptions),
             Input::Structured(route) => current(route),
         }
     }

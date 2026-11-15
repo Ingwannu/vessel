@@ -22,6 +22,9 @@ pub enum SessionError {
     /// The program could not be started in a PTY.
     #[error("cannot start the session")]
     Spawn(#[source] vessel_pty::PtyError),
+    /// The bounded common screen actor could not admit a terminal operation.
+    #[error(transparent)]
+    TerminalScreen(#[from] crate::terminal_screen::CaptureError),
     /// A terminal session's MCP configuration file could not be written.
     #[error("cannot write the session's MCP configuration file")]
     McpFile(#[source] std::io::Error),
@@ -230,6 +233,7 @@ impl SessionError {
     )]
     pub const fn code(&self) -> ErrorCode {
         match self {
+            Self::TerminalScreen(error) => error.code(),
             // An added agent's program not found is its "not installed"
             // (ADR 0032).
             Self::Launch(HarnessError::NotInstalled { .. } | HarnessError::AgentMissing { .. }) => {

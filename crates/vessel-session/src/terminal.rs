@@ -28,6 +28,7 @@ pub(crate) struct TerminalActor {
     pub(crate) pty: PtyProcess,
     pub(crate) output: PtyOutput,
     pub(crate) life: Lifecycle,
+    pub(crate) screen: crate::terminal_screen::ScreenAuthority,
     /// The session's MCP configuration file, removed when the actor ends
     /// (the program has exited by then).
     pub(crate) _mcp_file: Option<WrittenMcpFile>,
@@ -48,11 +49,12 @@ impl TerminalActor {
             tokio::select! {
                 biased;
                 step = self.life.stop.next() => self.life.apply(&mut self.pty, step),
+                Some(command) = self.screen.next() => self.screen.command(command),
                 code = self.pty.wait() => break code,
                 chunk = self.output.next(), if output_open => match chunk {
                     Some(bytes) => {
                         quiet.output();
-                        self.life.publish(&mut self.pty, terminal(bytes)).await;
+                        self.publish(bytes).await;
                     }
                     None => output_open = false,
                 },
@@ -70,6 +72,7 @@ impl TerminalActor {
             self.drain().await;
         }
         self.life.drain_model_calls(&mut self.pty).await;
+        self.screen.finish();
 
         let status = if self.life.stop.interrupted() {
             SessionStatus::Interrupted
@@ -79,13 +82,19 @@ impl TerminalActor {
         self.life.status(&mut self.pty, status).await;
     }
 
+    async fn publish(&mut self, bytes: Bytes) {
+        self.screen.output(&bytes);
+        self.life.publish(&mut self.pty, terminal(bytes)).await;
+    }
+
     /// Publish what the PTY still has after the exit, for a bounded time.
     async fn drain(&mut self) {
         let deadline = drain_deadline();
         loop {
             tokio::select! {
+                Some(command) = self.screen.next() => self.screen.command(command),
                 chunk = self.output.next() => match chunk {
-                    Some(bytes) => self.life.publish(&mut self.pty, terminal(bytes)).await,
+                    Some(bytes) => self.publish(bytes).await,
                     None => return,
                 },
                 () = tokio::time::sleep_until(deadline) => {

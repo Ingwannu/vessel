@@ -1352,3 +1352,23 @@ ticket-based proof is made, and no unreviewed engine extension has been adopted.
 Added adversarial tagged-identity wire and session-capture refusal regressions.
 They are source only; queued5738 checks the preceding host fixture correction,
 not this new extraction. Latest changed-source strict/unit/CLI checks remain owed.
+
+### Session TUI consumes the same Silent actor helper
+
+The terminal-mode session now constructs the helper with Session(begin.info.id),
+retains its endpoint in the typed terminal input route, feeds output before the
+unchanged raw event publication, processes its bounded commands in the same actor,
+and stores final immutable state before publishing the ended status. Standalone
+shell/script actors use the same helper; no parser/copy or SessionId conversion.
+Resize queues the screen change before the existing ordered PTY write and invalidates
+capture on PTY failure. Queue pressure is a typed SessionError::TerminalScreen with
+its source preserved and the helper's shared wire classification. Structured routes
+remain without a terminal screen. NodeAuthority is OFF and no output is suppressed.
+
+An actual fake-tui unit fixture uses private lookup/home/work paths and a two-record
+ring. It resizes, observes an echoed marker, exits, removes the runtime/ring, and
+inspects the endpoint's retained same-session snapshot and geometry. Its private
+channel-module location needs no production test accessor. This tests the common
+actor connection; it is not a frame RPC, restore/checkpoint or runner-quiescence
+proof. It and the typed-target refusal fixtures still require remote execution.
+No unreviewed frame/mode/marker API or D1 row has been introduced.
