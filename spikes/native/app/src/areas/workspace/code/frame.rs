@@ -145,7 +145,39 @@ pub(crate) fn code_beside(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let Some(panel) = code_panel(shell, tokens, window, cx) else {
+    code_beside_using(
+        shell,
+        screen,
+        tokens,
+        window,
+        cx,
+        crate::areas::workspace::render_explorer,
+    )
+}
+
+/// Staged body injection into the ONE existing dock. The typed caller must also
+/// join canonical header selection/visibility before promoting this entry point.
+#[cfg(test)]
+pub(crate) fn code_beside_with_explorer(
+    shell: &Shell,
+    screen: Div,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+    render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
+) -> Div {
+    code_beside_using(shell, screen, tokens, window, cx, render)
+}
+
+fn code_beside_using(
+    shell: &Shell,
+    screen: Div,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+    render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
+) -> Div {
+    let Some(panel) = code_panel(shell, tokens, window, cx, render) else {
         return screen;
     };
     let row = Rc::clone(&shell.areas.workspace.code.row);
@@ -198,6 +230,7 @@ fn code_panel(
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
+    render: impl FnOnce(&Shell, &Tokens, &mut Window, &mut Context<'_, Shell>) -> AnyElement,
 ) -> Option<AnyElement> {
     let panel = &shell.areas.workspace.code;
     if !panel.open || shell.areas.session.open.is_none() {
@@ -267,7 +300,7 @@ fn code_panel(
             .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted))
             .on_click(cx.listener(|this, _event, window, cx| this.toggle_code(window, cx))),
     );
-    let body = crate::areas::workspace::render_explorer(shell, tokens, window, cx);
+    let body = render(shell, tokens, window, cx);
     let frame = div()
         .flex()
         .flex_col()

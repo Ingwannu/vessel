@@ -3,7 +3,7 @@ use super::*;
 use crate::areas::layout::registry::PanelFocus;
 use crate::areas::workspace::code::{editing, files, io_tests};
 use gpui::{AppContext as _, TestAppContext};
-use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, Render, Styled as _, div, px};
+use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, Render, Styled as _, div};
 use vessel_app_view::layout::{PaneId, Placement};
 
 struct Probe {
@@ -16,6 +16,8 @@ impl Probe {
         let mut address = None;
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
+            shell.areas.workspace.code.open = true;
+            shell.route = crate::routes::Route::Session;
             let root = io_tests::root();
             let (origin, workspace) = tests::opening(&mut shell, root);
             let tab = shell
@@ -73,20 +75,15 @@ impl Render for Probe {
                 target: &target,
                 focus: PanelFocus::Focused,
             };
-            let explorer = files::render(shell, &tokens, window, cx);
             let pane = render_file_panel(shell, &panel, &tokens, window, cx);
-            div()
-                .size_full()
-                .flex()
-                .child(
-                    div()
-                        .w(px(400.0))
-                        .h_full()
-                        .flex()
-                        .flex_col()
-                        .child(explorer),
-                )
-                .child(div().flex_1().h_full().flex().flex_col().child(pane))
+            super::super::frame::code_beside_with_explorer(
+                shell,
+                div().flex_1().h_full().flex().flex_col().child(pane),
+                &tokens,
+                window,
+                cx,
+                files::render,
+            )
         })
     }
 }

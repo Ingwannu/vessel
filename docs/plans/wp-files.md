@@ -930,3 +930,14 @@ renderers remain shared. A synthetic GPUI composition fixture paints both paths,
 checks tree controls and absence of legacy Back, then types through the actual
 editor and checks the same retained model. This source is later than strict24;
 no executed result, capture or typed Explorer mount is inferred from it.
+
+
+The existing code_beside now delegates its same legacy content function through
+one lazy dock-body callback. A test-staged code_beside_with_explorer exercises
+that callback using the actual host and the file-pane composition fixture. It
+runs only after the existing host's open/session check, retaining its width,
+scrim, tabs, edge and close controls. This is an independent host extension;
+its current header remains legacy, so it is NOT an actual typed Explorer mount.
+W12's future original PanelContext projection must supply selected target,
+canonical visibility and captured header selection/hide actions together before
+the staged extension is promoted. No common registry or tab allocator changes.
