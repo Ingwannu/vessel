@@ -335,6 +335,7 @@ fn body(
             .into_any_element();
     }
     let paint = Paint {
+        catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
@@ -344,7 +345,7 @@ fn body(
         agent: None,
         rewinds: None,
         forks: None,
-        fleet: &shell.fleet,
+        fork_headers: &shell.areas.conversation.forking.headers,
         above: super::origin::Above::Nothing,
         files: crate::areas::composer::SentFiles::new(shell, None),
     };

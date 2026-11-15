@@ -124,10 +124,15 @@ impl StructuredActor {
                     match control {
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
+                        Some(Control::SideQuestion(order)) => self.side_question(order).await,
                         Some(Control::Queue(order)) => self.change_queue(order).await,
                         Some(Control::Cancel(order)) => self.cancel(order).await,
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
+                        #[cfg(test)]
+                        Some(Control::PrivateDir(reply)) => {
+                            drop(reply.send(self.launch.setup.private_dir.clone()));
+                        }
                         None => control_open = false,
                     }
                 },
@@ -246,7 +251,15 @@ impl StructuredActor {
             // What the agent said of itself is `agent.status`'s, read from
             // probes; a session has nothing to keep of it.
             AgentOutput::Introduced(_) => {}
-            AgentOutput::Usage(usage) => {
+            AgentOutput::Usage(mut usage) => {
+                // Moves, wakes and rewinds consume their Ready event. A
+                // context report during that load is useful, but must not
+                // charge historical cost under the previous account.
+                usage.observation = if self.move_state.replaying {
+                    vessel_proto::conversation::UsageObservation::Replayed
+                } else {
+                    vessel_proto::conversation::UsageObservation::Current
+                };
                 self.life
                     .publish(&mut self.agent, SessionEvent::UsageChanged { usage })
                     .await;
@@ -296,7 +309,9 @@ impl StructuredActor {
                     .publish(&mut self.agent, SessionEvent::Agent { event })
                     .await;
                 if let Some(title) = title {
-                    self.life.rename(&mut self.agent, title).await;
+                    self.life
+                        .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)
+                        .await;
                 }
                 if became_ready {
                     self.ready = true;

@@ -105,12 +105,11 @@ async fn opener_is_private_and_removed_on_termination() {
             };
             let stub = bin.join(name);
             // A pipe acknowledgement avoids sleeping/racing the opener.
-            std::fs::write(
+            vessel_testkit::write_executable(
                 &stub,
                 "#!/bin/sh\nprintf '%s\\n' \"$1\" > \"$XDG_RUNTIME_DIR/opened\"\n",
             )
             .unwrap();
-            std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o700)).unwrap();
             let fifo = dir.path().join("opened");
             assert!(
                 std::process::Command::new("mkfifo")

@@ -32,14 +32,15 @@ vessel-rpc      -> proto
 vessel-proc     (process spawning, process groups, kill tree)
 vessel-harness  -> proto, proc
 vessel-pty      -> proc
-vessel-agent    -> proto, proc
+vessel-agent    -> proto, harness, proc   (harness: milestone 12)
 vessel-lsp      -> proto, proc            (milestone 6)
 vessel-workspace -> proto, proc           (milestone 11)
 vessel-session  -> proto, harness, pty, agent, proc (milestone 11)
 vessel-store    -> proto
 vessel-node     -> proto, rpc, harness, session, store, secure, relay,
                    fleet, client (milestone 4), lsp (milestone 6),
-                   llm (milestone 5), workspace, forge, proc (milestone 11)
+                   llm (milestone 5), workspace, forge, proc (milestone 11),
+                   agent (milestone 12)
 vessel-client   -> proto, rpc, secure, relay
 vessel-remote   -> proto, rpc, client      (milestone 2)
 vessel-secure   -> proto                   (milestone 3)
@@ -50,7 +51,8 @@ vessel-llm      -> proto                   (milestone 5)
 vessel-forge    -> proto, proc             (milestone 11)
 vessel-web      -> proto, client           (milestone 7)
 vessel-cli      -> proto, client, node, remote, mcp, harness, web
-vessel-testkit  (fake harness binaries for tests; dev-dependency only)
+vessel-testkit  -> proto (feature `authority-fixtures`, milestone 12)
+                (fake harness binaries for tests; dev-dependency only)
 ```
 
 Milestone 2 (2026-11-06) added `vessel-remote`, which runs the system
@@ -191,3 +193,144 @@ this type; preserving it avoids replacing the source with a string. The
 edge adds no external crate, protocol operation, or runtime subsystem.
 Its authoritative workspace table is `spikes/native/README.md`; ADR 0025
 and `docs/plans/wp-a8.md` describe the preview contract.
+
+Milestone 12 (recorded 2026-11-14, when `scripts/check-boundaries.mjs`
+began comparing `docs/ARCHITECTURE.md`'s table with the manifests; the
+first two edges had been in the manifests without this record):
+
+- `vessel-agent -> harness` (ADR 0057): a direct driver's private launch
+  file is written by `vessel-harness` (`claude_mcp_file`, `McpFile`), the
+  one owner of that format and of the file's checks.
+- `vessel-node -> agent` (2026-11-12, protocol 11's `agent.status`, ADR
+  0032): what a probe's handshake said of an agent reaches the node as the
+  agent crate's typed outcomes (`ProbeError`, `Disconnect`, `Refusal`)
+  instead of a string; the history, forking and side-question calls name
+  its inputs (`HistoryFrom`, `ForkFrom`, `PromptContext`). The node still
+  speaks no ACP: the session runtime runs the agent.
+- `vessel-testkit -> proto` (protocol 20): typed caller-authority fixtures,
+  optional behind the `authority-fixtures` feature, so the fake binaries
+  keep no wire dependency.
+
+From here the check holds the map: a manifest edge missing from the table,
+or a table edge missing from the manifests, fails the gate.
+
+
+## Node-control process mechanisms (proposed amendment)
+
+Status: proposed. This contract changes no manifest or active crate-map row.
+The dependency changes below belong to their respective implementation commits.
+
+[Decision Log]
+- Purpose and intent: keep selected-file kernel observations and later process
+  verification beside the existing process mechanisms, with one decoder and
+  no signal authority inferred from a kernel PID alone.
+- Existing implementation and constraints: `vessel-store::NodeLock` owns the
+  data-directory lock and owner record. Its private Linux module observes
+  `/proc/locks`. `vessel-proc` already owns process groups, process inspection
+  and the workspace's existing Nix signal calls. The CLI currently consumes
+  the lock observation through the node/store facade; it sends no signal.
+- Alternatives considered:
+  - Keep kernel lookup in store and hand proc only identifiers. This leaves
+    the relationship between the selected file, the kernel row and the live
+    descriptor split between crates, and encourages exporting PID getters
+    before there is a verified process. Passing a bare PID is not the proof.
+    FDinfo uses the same `lock_get_status` line decoder as `/proc/locks`,
+    so retaining it in store would require a duplicate decoder in proc or
+    the rejected reverse dependency.
+  - Add another small crate. That adds a process-mechanism owner and more
+    edges beside an existing owner; it would also split the existing Nix
+    ownership or move it without a separate need.
+  - Make proc depend on store. That gives a general OS primitive knowledge
+    of node data layouts and persistence, reversing the current layering.
+    Adding the forward edge later would also make a cycle.
+- Selected approach: first move the generic selected-file kernel query into
+  proc without changing behavior, adding `vessel-store -> vessel-proc`.
+  `NodeLock::kernel_holder` and the existing re-export paths remain the
+  store/node-facing API. Add `vessel-cli -> vessel-proc` only with the real
+  force/restart caller, not with a placeholder or an unused wrapper.
+- Why this approach: proc owns OS mechanisms without owning the meaning of
+  a node's directory. Store supplies the selected lock path and maps the
+  original I/O cause as before. The CLI owns authenticated target binding,
+  live-session consent, deadlines and the choice of lifecycle operation.
+- Advantages, costs and effects: two deliberate edges at separate phases,
+  more focused tests, and a single process-inspection owner. There is no new
+  crate or external dependency. The moved module remains read-only and uses
+  the invoking account's permissions. No extra credential, environment or
+  arbitrary command from an owner record is introduced.
+
+What must stay in store: `DataDir`, the lock filename and owner-file format,
+`NodeOwner`, record reads/writes, lock acquisition and SQLite. Proc receives
+an OS path or file, never a node identity, principal, database or settings.
+Node/client authentication and live-session policy must not migrate there.
+
+A `/proc/locks` match remains an observation. Linux can retain a dead
+creator's PID while an inherited open file description still holds a flock.
+A later capture of the reused PID's start generation cannot establish the
+missing initial ownership. Neither a matching owner record nor an executable
+name alone may turn this observation into a signal target.
+
+The subsequent verification must relate the candidate's current descriptor
+of the selected locked file description to its process generation and PID
+namespace, recheck before use, and refuse ambiguity. Linux
+[`fs/proc/fd.c`](https://github.com/torvalds/linux/blob/master/fs/proc/fd.c)
+looks up the task's actual descriptor before `show_fd_locks`;
+[`fs/locks.c`](https://github.com/torvalds/linux/blob/master/fs/locks.c)
+compares the open file description and owner before printing that FD's lock.
+An open proc directory does not reserve a numeric PID
+([kernel proc documentation](https://docs.kernel.org/filesystems/proc.html)).
+A remaining final-check-to-numeric-signal race must stay explicit unless an
+implemented primitive removes it; this contract does not claim to do so.
+
+Implementation and verification sequence:
+
+1. Behavior-preserving move, its own commit and whole gate. Keep the
+   `NodeLock` API, typed I/O sources, bounds, selected-file-first decoding,
+   duplicate-writer refusal and `NotVisible` fallback unchanged. Move private
+   decoder tests with their rules. Keep store's data-directory and preserved
+   owner-byte assertions there; relocate the private PID assertion beside the
+   OS fixture in proc without removing or weakening it. Do not expose a getter
+   solely for a test, change head cases, or mix in parser cleanup.
+2. Descriptor/generation/namespace proof, a separate commit and whole gate.
+   Owe a real held-file case, an unrelated live candidate that lacks that
+   locked description, stale/disappeared and replaced generations, namespace
+   disagreement, unreadable/oversized observations, and typed refusal without
+   record mutation. An absent row or missing process is never a free lock.
+   Unavailable platform fixtures are reported as unverified, not inferred
+   from Linux decoding tests. No signal is added in this phase.
+3. Actual CLI force caller, another commit and whole gate. Owe consent and
+   remote/drain refusals before signals, reserved/self-PID protection,
+   record/executable disagreement, rechecks before each single-process signal,
+   command/kill deadlines and real OS-lock completion. Signal tests use an
+   external isolated child, never the in-process test node or a process name.
+   Windows and unconfirmed macOS paths retain ADR 0064's explicit refusals.
+
+Paseo `packages/server/src/server/daemon-instance.ts` 197–218 refuses
+reserved/self PIDs and checks instance replacement. Its Unix graceful path
+sends SIGTERM to the PID (149); its escalation uses the imported `tree-kill`
+wrapper (15–24, 215–218). Vessel targets only the verified node process,
+not a name or arbitrary process tree; this narrower target avoids harming
+unverified descendants. Its descriptor and namespace proof is an additional
+safety floor, not a claim that Paseo performs it.
+This amendment is reviewed before implementation; the active map changes
+only in the commit that adds each manifest edge.
+
+
+### Binding implementation conditions
+
+The contract has passed review; the dependency implementation still awaits
+its integration decision. Before the move starts, these conditions bind it:
+
+- The move adds only `proc` to store's active dependency cell; proc's cell
+  remains `-`. The manifest, table and the following name restriction land
+  in the same behavior-preserving commit.
+- Add a `Names only some files may use` row restricting `vessel_proc` in
+  `vessel-store` to its lock module (`src/lock/`). That module may delegate
+  only the lock query, not spawn a child or reach a signal/group/session
+  cleanup operation. Store retains its data layout and owner-record policy.
+- When the real CLI caller lands, add a name rule restricting proc's signal
+  entry point in `vessel-cli` to the force module. The graph edge does not
+  grant other CLI modules a second signalling path.
+- The move must remain readable as a move with `git diff -M`: no parser
+  cleanup, API change, changed bound or error source, weakened assertion,
+  different duplicate-writer handling, or changed `NotVisible` fallback.
+  A kernel PID alone continues to grant no signal authority.
