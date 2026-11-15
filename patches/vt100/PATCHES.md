@@ -61,3 +61,10 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
 10. Expose retained-row outgoing wrap metadata. Why: authoritative frames must
     preserve hard/soft line boundaries for selection and reflow without a second
     row tracker, mutable reads or synthesized ANSI restoration.
+
+11. Preserve independent program cursor blink overrides from the same decoded
+    DECSCUSR callback (including explicit u32 parameters), clear overrides on
+    DECSTR, and inherit the primary cursor on1049 alternate entry. Why: the
+    pinned headless metadata oracle exposed lost blink-only state and a wrong
+    alternate starting position. Soft reset resets modes/saved presentation
+    without erasing live cells; no raw scanner or second interpretation added.

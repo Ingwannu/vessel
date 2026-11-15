@@ -15,11 +15,19 @@ struct Dimensions {
 }
 #[derive(Deserialize)]
 struct Program {
-    name: String,
+    name: ProgramName,
     rows: u16,
     cols: u16,
     events: Vec<Event>,
     snapshots: Vec<Expected>,
+}
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum ProgramName {
+    CursorOverrides,
+    PhysicalWraps,
+    SoftResetRetainsCells,
+    AlternatePendingWrap,
 }
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -44,6 +52,15 @@ struct Expected {
     shape: Option<Shape>,
     blink: Option<bool>,
     wraps_next: Vec<bool>,
+    cursor: ExpectedCursor,
+    lines: Vec<String>,
+    foreground: Vec<Vec<Option<u8>>>,
+}
+#[derive(Deserialize)]
+struct ExpectedCursor {
+    row: u16,
+    column: u16,
+    hidden: bool,
 }
 impl Expected {
     fn appearance(&self) -> CursorAppearance {
@@ -72,6 +89,25 @@ fn check_frame(frame: &crate::FrameView<'_>, expected: &Expected) {
         "{}",
         expected.checkpoint
     );
+    let cursor_line = expected
+        .history
+        .checked_add(u32::from(expected.cursor.row))
+        .unwrap();
+    let cursor = cursor_line
+        .checked_sub(frame.first().0)
+        .filter(|row| *row < u32::from(frame.rows().get()))
+        .map_or(crate::FrameCursor::OutsideViewport, |row| {
+            crate::FrameCursor::Present(crate::Cursor {
+                row: Row(u16::try_from(row).unwrap()),
+                column: crate::Column(expected.cursor.column),
+                visibility: if expected.cursor.hidden {
+                    crate::Visibility::Hidden
+                } else {
+                    crate::Visibility::Shown
+                },
+            })
+        });
+    assert_eq!(frame.cursor(), cursor, "{}", expected.checkpoint);
     for row in 0..frame.rows().get() {
         let line = frame.first().0.checked_add(u32::from(row)).unwrap();
         let expected_soft = expected
@@ -89,8 +125,34 @@ fn check_frame(frame: &crate::FrameView<'_>, expected: &Expected) {
             "{} row {line}",
             expected.checkpoint
         );
+        check_row(frame, Row(row), expected, usize::try_from(line).unwrap());
     }
     assert!(frame.row_break(Row(expected.rows)).is_none());
+}
+fn check_row(frame: &crate::FrameView<'_>, row: Row, expected: &Expected, line: usize) {
+    let mut text = String::new();
+    let colors = expected.foreground.get(line).unwrap();
+    for column in 0..frame.columns() {
+        let cell = frame.cell(row, crate::Column(column)).unwrap();
+        if cell.width() != crate::Width::Continuation {
+            text.push_str(if cell.text().is_empty() {
+                " "
+            } else {
+                cell.text()
+            });
+        }
+        let color = colors.get(usize::from(column)).copied().unwrap();
+        assert_eq!(
+            cell.attributes().foreground(),
+            color.map_or(crate::Color::Default, crate::Color::Indexed)
+        );
+    }
+    assert_eq!(
+        text.trim_end(),
+        expected.lines.get(line).unwrap(),
+        "{} row{line}",
+        expected.checkpoint
+    );
 }
 fn check(program: &Program) {
     let mut engine = Screen::new(
@@ -116,7 +178,7 @@ fn check(program: &Program) {
             }
             Event::Checkpoint { checkpoint } => {
                 let expected = snapshots.next().unwrap();
-                assert_eq!(checkpoint, &expected.checkpoint, "{}", program.name);
+                assert_eq!(checkpoint, &expected.checkpoint, "{:?}", program.name);
                 let rows = FrameRows::new(expected.rows).unwrap();
                 let snapshot = engine.snapshot();
                 let live = engine.frame(ViewportRequest::FollowLive, rows).unwrap();
@@ -141,11 +203,25 @@ fn check(program: &Program) {
 }
 #[test]
 fn cursor_overrides_match_pinned_headless_controls() {
-    let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();
-    check(corpus.programs.first().unwrap());
+    check(&program(ProgramName::CursorOverrides));
 }
 #[test]
 fn physical_row_wraps_match_pinned_headless_history_and_resize() {
+    check(&program(ProgramName::PhysicalWraps));
+}
+#[test]
+fn soft_reset_retains_cells_and_resets_saved_presentation_like_paseo() {
+    check(&program(ProgramName::SoftResetRetainsCells));
+}
+#[test]
+fn alternate_entry_inherits_the_pending_wrap_column_and_restores_primary() {
+    check(&program(ProgramName::AlternatePendingWrap));
+}
+fn program(name: ProgramName) -> Program {
     let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();
-    check(corpus.programs.last().unwrap());
+    corpus
+        .programs
+        .into_iter()
+        .find(|program| program.name == name)
+        .unwrap()
 }

@@ -41,27 +41,23 @@ impl CursorAppearance {
         self.blink
     }
     pub(crate) fn of(screen: &vt100::Screen) -> Self {
-        match screen.cursor_style() {
-            vt100::CursorStyle::Default => Self::default(),
-            vt100::CursorStyle::BlinkBlock => {
-                Self::new(Some(CursorShape::Block), Some(CursorBlink::On))
+        let shape = match screen.cursor_style() {
+            vt100::CursorStyle::Default => None,
+            vt100::CursorStyle::BlinkBlock | vt100::CursorStyle::SteadyBlock => {
+                Some(CursorShape::Block)
             }
-            vt100::CursorStyle::SteadyBlock => {
-                Self::new(Some(CursorShape::Block), Some(CursorBlink::Off))
+            vt100::CursorStyle::BlinkUnderline | vt100::CursorStyle::SteadyUnderline => {
+                Some(CursorShape::Underline)
             }
-            vt100::CursorStyle::BlinkUnderline => {
-                Self::new(Some(CursorShape::Underline), Some(CursorBlink::On))
+            vt100::CursorStyle::BlinkVerticalBar | vt100::CursorStyle::SteadyVerticalBar => {
+                Some(CursorShape::Bar)
             }
-            vt100::CursorStyle::SteadyUnderline => {
-                Self::new(Some(CursorShape::Underline), Some(CursorBlink::Off))
-            }
-            vt100::CursorStyle::BlinkVerticalBar => {
-                Self::new(Some(CursorShape::Bar), Some(CursorBlink::On))
-            }
-            vt100::CursorStyle::SteadyVerticalBar => {
-                Self::new(Some(CursorShape::Bar), Some(CursorBlink::Off))
-            }
-        }
+        };
+        let blink = screen.cursor_blink_override().map(|blink| match blink {
+            vt100::CursorBlink::On => CursorBlink::On,
+            vt100::CursorBlink::Off => CursorBlink::Off,
+        });
+        Self::new(shape, blink)
     }
 }
 /// Whether the physical row continues onto the next row, not its predecessor.

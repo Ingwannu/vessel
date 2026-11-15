@@ -121,3 +121,20 @@ implementation exposes existing engine state without changing its control
 interpretation, so the new regression can reveal unsupported cursor/reset cases
 before any parity repair. Golden JSON is copied unchanged from the actual oracle.
 No measured cursor/wrap parity or actual display consumer is claimed yet.
+
+Exact3666 baseline compiled and passed strict Clippy, then executed44 tests
+successfully with2 new semantic failures. The original26 metadata checkpoints
+are preserved unchanged. The failures expose independent blink-only overrides
+and alternate1049 entry using the wrong initial cursor. Minimal engine changes
+use the SAME decoded CSI parameter metadata, a typed optional blink override,
+soft-reset mode/saved-presentation reset without erasing/moving live cells, and
+physical alternate cursor inheritance including a pending-wrap column.
+
+The oracle is strengthened to34 checkpoints with full projected ASCII text,
+foreground cells and cursor position/visibility, including soft reset after
+origin/scroll-region/style changes and alternate entry/exit at pending wrap.
+Every original26 field/value was independently compared unchanged before adding
+the new fields/programs. The original oracle and failing run remain retained.
+Readonly snapshots must preserve the same metadata/cell cut. No new parser,
+ANSI feedback, dependency/runtime/I/O or actual terminal consumer is introduced.
+This pending repair has not changed frozen2d5 or its whole; checks remain owed.
