@@ -74,6 +74,9 @@ and commit diffs are ephemeral. Renderer/cursor are panel-owned state.
 - Rename captures expected NodeId and checks the actual client before effects;
   retries allocate fresh tickets. Legacy alias-only rename stays hidden until its
   lifecycle owner supplies the original admitted binding, never latest Fleet data.
+- Host forget drops clean legacy presentation; modified records keep their exact
+  key/tab/target for recovery. Retained display metadata cannot authorize I/O and
+  always requires the original node binding before any future operation.
 - Device format one is a typed Rust format, not an importer for Paseo JSON.
   Split fractions reject NaN/infinity and are clamped to the shared minimum.
 
