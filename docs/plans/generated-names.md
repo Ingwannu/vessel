@@ -179,14 +179,25 @@ that already uses `..` is left alone.
   metadata patches stay disabled until assignment; unsupported replies omit
   metadata, while a supported empty provider list means Automatic. No method
   is added. Existing title constructors and the person's rename remain in force.
-- **Validation:** integrated changed-crate Clippy and TypeScript freshness pass.
-  Full Rust tests and the web unit suite pass. The package's final E2E/forge
-  completion and combined source review are still pending; this is not a
-  package or integration pass.
-- **Next:** finish the frozen package's remaining gate evidence, obtain its
-  source review and hand it over. Real providers, credentials, native execution
+- **Validation:** the previous executable snapshot completed the full gate,
+  including Rust, TypeScript and web E2E/forge. Source review returned the
+  physical preparation lifetime: logical cancellation released admission
+  before a blocking closure finished. Green tests did not prove that boundary.
+- **Next:** retain the original admission and node hard-drain token through
+  actual style/secret completion, add held-real-closure regressions, and obtain
+  the returned source review and validation before handover. No unchanged
+  whole-gate replay is requested. Real providers, credentials, native execution
   and other platforms remain unverified. Branch, commit-message and pull-request
   generation are later slices and have not started.
+
+The physical-lifetime correction reuses Sessions' existing hard-drained task
+tracker through the approved `metadata_work` token accessor. Forwarders'
+bounded grace cannot settle file work. A shared admission lease goes into the
+style closure and a tracked, non-aborted operation awaiting the one existing
+secret reader. Late results remain discarded. No replacement quota, tracker,
+secret reader or Teardown policy is added. After this return is closed, the
+separate Models-owned workspace metadata seam belongs here; G1 owns its
+commit/PR callers and ADR 0087 amendment. That seam is not part of this fix.
 
 ### Earlier checkpoints
 

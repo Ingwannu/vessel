@@ -935,6 +935,37 @@ it never hides Automatic from a supported peer. Runtime tasks read the settings
 owner's policy directly, independently of that wire projection. The nullable
 lenient view is shared by file and reply decoding; patches remain strict.
 
+### Physical preparation outlives cancellation
+
+[Decision Log]
+- Purpose and intent: cancelling an obsolete title must suppress its result
+  without admitting replacement file work before the original read finishes.
+- Existing constraints: dropping a `spawn_blocking` join handle does not stop
+  its closure. The first controller held model permits only in the async
+  caller, and subscription forwarders have a bounded shutdown grace. Neither
+  proves physical preparation has ended.
+- Alternatives considered: abort a join handle, release capacity on logical
+  cancellation, allocate a separate quota, or duplicate the secret reader.
+  These respectively fail to stop running file work, over-admit replacements,
+  split the existing budget, or split credential policy.
+- Choice: share the original session/node admission through an owned lease.
+  Borrow a token from the node's hard-drained task tracker, already held by
+  Sessions. The style closure retains that lease and is tracked until actual
+  completion. A non-aborted tracked key operation retains the same lease
+  while awaiting the existing `Models::key` worker to its real completion.
+  Dropping the caller's join handle discards the result; it does not abort
+  this settling operation. No second secret reader or quota is introduced.
+- Why this choice: capacity and shutdown now follow physical completion,
+  independently of the original title future. The existing key policy and
+  sealed failures remain the credential boundary. HTTP and actor application
+  stay in the cancellable caller, so a late file result cannot start a call
+  or overwrite a title.
+- Effects: ordinary shutdown waits for already admitted file work to settle.
+  The HTTP deadline is not claimed to stop filesystem work. Held-real-closure
+  tests must cover style and keyed secret reads, actual title/park/node
+  cancellation, retained capacity and drain, saturation and no late effects.
+  This adds no wire field, call, dependency, model attempt or provider stack.
+
 
 Generated titles retain SessionTitle's existing normalization, including
 Rust's whitespace class, after the raw UTF-16 check. Paseo trims its model
