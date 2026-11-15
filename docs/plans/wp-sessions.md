@@ -67,11 +67,14 @@ No live preview, real agent invocation, push or production mutation is authorize
 
 ## Current implementation limits
 
-The first history implementation searches case-insensitive metadata terms locally
-and pages the already fetched fleet fifty rows at a time. Paseo searches history on
-the host with typo tolerance and server cursors. This is a deliberate initial
-compatibility path because the existing node directory lists complete local rows;
-server-side history querying remains a later implementation step, not claimed parity.
+History searches title and branch metadata through the shared matcher with
+opt-in per-token typo tolerance, then retains activity chronology and grows the
+visible window fifty rows at a time. Default command/catalog matching is unchanged.
+The canonical registry must still contribute workspace/project display names; host
+labels, provider names, directory paths and transcripts are not surrogate fields.
+Paseo performs this search on the host with server cursors. The current node lists
+complete rows, so local paging is a compatibility path; bounded host history
+querying remains unfinished and is not claimed as cursor parity.
 The current host failures are explicit; offline hosts do not contribute invented rows.
 Fresh conversation refuses before archiving when a separate new-chat draft already
 exists or when a named profile cannot be carried by the current draft contract.
@@ -91,5 +94,20 @@ framed fake-peer link tests and narrow clippy. The first link clippy exposed hel
 test-cfg lint handling and a dispatcher function at its length boundary; repairs
 retain the original results and do not weaken the lint configuration.
 Ownership: final single-owner table assigns A2 here; subagents/detach, labels
-and OS deep-link delivery remain their respective packages. No node edits exist.
-Next: tests, typed link boundary, history UI, then integration and package evidence.
+and OS deep-link delivery remain their respective packages. The separate node
+worktree stages ownership-fenced workspace archive/recovery behind a typed fake;
+its reviewed registry/store dependency is not yet consumer-ready.
+Next: narrow checks, current-parent relation and pane close integration, registry
+adapter plus pending workspace calls, then package capture/gate evidence.
+
+
+## History matcher decision
+
+Existing `view::matcher` already implements the reference exact/subsequence tiers
+and UTF-16 ranking with UTF-8 marks. Modify it with an additive opt-in constructor
+and isolated bounded-edit module instead of copying the matcher or adding a
+third-party fuzzy library. Budgets follow `protocol/src/search/text-match.ts`: no
+typos through three UTF-16 units, adjacent swaps only at four, one edit through
+seven, two above seven. ASCII words and leading slices are the typo candidates;
+whole-word highlights identify a typo match. Existing picker defaults and tests
+remain the compatibility contract.

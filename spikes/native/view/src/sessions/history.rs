@@ -76,7 +76,7 @@ impl HistoryPage {
 /// Search only directory metadata and keep chronology with deterministic ties.
 #[must_use]
 pub fn history<'a>(fleet: &'a Fleet, scope: &HostScope, query: &str) -> Vec<&'a Card> {
-    let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
+    let query = crate::matcher::Query::typo_tolerant(query);
     let mut rows: Vec<&Card> = fleet
         .machines
         .iter()
@@ -85,7 +85,7 @@ pub fn history<'a>(fleet: &'a Fleet, scope: &HostScope, query: &str) -> Vec<&'a 
             HostScope::Host(name) => machine.name == name.as_str(),
         })
         .flat_map(|machine| &machine.sessions)
-        .filter(|card| matches(card, &terms))
+        .filter(|card| matches(card, &query))
         .collect();
     rows.sort_by(|one, two| {
         two.detail
@@ -96,26 +96,12 @@ pub fn history<'a>(fleet: &'a Fleet, scope: &HostScope, query: &str) -> Vec<&'a 
     });
     rows
 }
-fn matches(card: &Card, terms: &[String]) -> bool {
-    if terms.is_empty() {
-        return true;
-    }
+fn matches(card: &Card, query: &crate::matcher::Query) -> bool {
+    // Workspace/project display names join these fields through the canonical
+    // registry projection; neither host labels nor transcripts are history names.
     let fields = [
-        card.title.to_lowercase(),
-        card.machine.to_lowercase(),
-        card.agent.to_lowercase(),
-        card.detail
-            .branch
-            .as_deref()
-            .unwrap_or_default()
-            .to_lowercase(),
-        card.detail
-            .cwd
-            .as_deref()
-            .unwrap_or_default()
-            .to_lowercase(),
+        card.title.as_str(),
+        card.detail.branch.as_deref().unwrap_or_default(),
     ];
-    terms
-        .iter()
-        .all(|term| fields.iter().any(|field| field.contains(term)))
+    query.score(&fields, None).is_some()
 }

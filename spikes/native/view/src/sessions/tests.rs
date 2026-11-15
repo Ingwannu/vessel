@@ -88,9 +88,10 @@ fn history_keeps_archived_rows_and_sorts_activity_across_hosts() {
         ["Fresh title", "Archived title"]
     );
     assert!(rows.last().unwrap().detail.marks.archived_at.is_some());
-    let matched = super::history(&fleet, &super::HostScope::All, "ARCHIVED older");
+    let matched = super::history(&fleet, &super::HostScope::All, "ARCHIVED");
     assert_eq!(matched.len(), 1);
     assert_eq!(matched.first().unwrap().machine, "older-host");
+    assert!(super::history(&fleet, &super::HostScope::All, "older-host").is_empty());
     assert!(
         super::history(
             &fleet,
@@ -114,6 +115,20 @@ fn metadata_query_preserves_chronology_and_requires_every_term() {
     assert_eq!(rows.len(), 2);
     assert_eq!(rows.first().unwrap().title, "Login fix followup");
     assert!(super::history(&fleet, &super::HostScope::All, "fix absent").is_empty());
+}
+
+#[test]
+fn history_forgives_title_typos_without_relevance_reordering() {
+    let fleet = crate::Fleet {
+        machines: vec![
+            machine("work", "2026-11-01T09:00:00Z", "Stripe billing", true),
+            machine("work", "2026-11-15T09:00:00Z", "Fix stripe billing", false),
+        ],
+        read_at: None,
+    };
+    let rows = super::history(&fleet, &super::HostScope::All, "stripe bulling");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.first().unwrap().title, "Fix stripe billing");
 }
 
 #[test]
