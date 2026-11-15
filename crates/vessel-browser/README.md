@@ -77,3 +77,9 @@ launcher/pipe/process lifecycle, every operation, credential/profile separation,
 General/Preview policies, IPv4/IPv6 TCP/UDP/ICE and QUIC/WebTransport controls,
 revocation, frame decoding/input fencing and platform behavior pass qualification.
 Windows remains unsupported by these Linux-only profile/launch primitives.
+
+The independently authored script's document-envelope semantics also have a
+source-only fixture: `node --test crates/vessel-browser/src/snapshot/document.test.mjs`
+from the repository root. Its minimal DOM checks synchronous descriptor capture
+and UTF-8 bounds. It does not emulate or qualify a browser, isolated world,
+navigation, network policy or the Rust/CDP decoding path.

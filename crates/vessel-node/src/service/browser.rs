@@ -25,8 +25,8 @@ impl NodeService {
         _: BrowserCall,
     ) -> Result<BrowserResult, WireError> {
         let _session = local_agent(connection.principal(), self.lifecycle.info().id)?;
-        // No browser setting or session-start offer exists in this staged
-        // implementation, so guessing the pending method cannot enable it.
+        // Persisted On is only a preference. No session-start tool offer or
+        // qualified engine exists here, so guessing a pending method cannot enable it.
         Err(wire(BrowserFailure::Disabled))
     }
 
