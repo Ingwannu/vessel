@@ -146,6 +146,7 @@ impl Shell {
                 self.areas.import.profiles = result;
                 self.areas.import.profile_request = None;
                 self.areas.import.advance_visit();
+                cx.notify();
             }
             return;
         }
