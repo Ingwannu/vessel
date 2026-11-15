@@ -462,3 +462,11 @@ settings set-aside regressions and later proto/store targets did not complete
 in that run. Therefore the old two settings failures are not yet called fixed
 by execution. Remaining tests move to the ordinary lane on the latest union,
 which also includes the signal base, startup flags and positive import test.
+
+Reset integration invariant: a future whole-MCP configuration reset must
+persist explicit Injection::Off plus an empty provider policy, rather than
+remove the inject marker. Missing inject on an existing identity denotes a
+legacy upgrade and would enable injection on the next start. An empty patch
+means preserve, not reset; ordinary toggle sends only inject and keeps policy.
+The typed reset shape and restart reason were sent to the config owner for
+planning, without offering an unassigned method or claiming its implementation.
