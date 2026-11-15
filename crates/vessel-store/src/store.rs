@@ -7,6 +7,7 @@ mod conversation;
 mod forge;
 mod inbox;
 mod push;
+mod registry;
 mod search;
 mod usage;
 

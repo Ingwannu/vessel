@@ -115,3 +115,23 @@ Narrow validation: local proto test cancelled while still queued (no compiler
 ran) to move the dependency-critical contract check to the build machine.
 The contract is staged until its narrow test and Clippy complete; no native or
 root whole-gate/capture/consumer-ready claim yet.
+
+## Registry persistence implementation
+
+The SQLite append follows the base's newest migration through one local constant.
+The public Store handle uses its existing writer savepoints/read pool. Descriptor
+CAS, resource admission and global revision are committed together. Admission also
+advances the descriptor revision, so an archive claim made from an older member
+snapshot fails. Archiving blocks further admission. Creation uses fixed backing
+reservations and a descriptor+reservation completion transaction; these are not
+the create package's user operation/subscribe receipts.
+
+Regression cases: shared cwd stays distinct, stale CAS rollback, unique ownership,
+archive/member race, changed provision intent, corrupt rows and counter exhaustion.
+Existing inbox rollback fixture gains only this migration's DROP statements before
+its original rollback; no production migration runner or head assertion is changed.
+
+Resume: staged contract 702277bd passed 5 proto registry tests; its narrow Clippy
+is queued. Store persistence and Archiving/root adapter are implemented locally,
+awaiting narrow store checks. No node RPC is registered, no app wire integration,
+no full gate or captures yet. Shared registry types are not called reviewed.

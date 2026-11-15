@@ -124,6 +124,11 @@ pub(crate) enum Write {
         write: crate::push::PushWrite,
         done: Done,
     },
+    /// Change independent workspace lifecycle/ownership in one savepoint.
+    Registry {
+        mutation: crate::registry::RegistryWrite,
+        done: Done,
+    },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
         write: crate::workspace::WorkspaceWrite,

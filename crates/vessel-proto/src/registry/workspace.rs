@@ -31,6 +31,12 @@ impl RegistryRevision {
     }
 }
 
+impl From<u64> for RegistryRevision {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 /// A background workspace remains durable but is hidden by default lists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -92,6 +98,11 @@ pub enum WorkspaceBacking {
 pub enum WorkspaceLifecycle {
     /// Resources can be launched in this workspace.
     Active,
+    /// Lifecycle claim blocks launches while owned resources are being drained.
+    Archiving {
+        /// Kept durably so interrupted cleanup can be inspected and resumed.
+        at: DateTime<Utc>,
+    },
     /// Mutations cannot launch resources until authoritative recovery completes.
     Archived {
         /// Host timestamp used for history ordering.
@@ -121,6 +132,21 @@ pub struct WorkspaceDescriptor {
     pub created_at: DateTime<Utc>,
     /// Revision permits stale response rejection without comparing timestamps.
     pub revision: RegistryRevision,
+}
+
+impl WorkspaceDescriptor {
+    /// Existing typed IO boundary; the node still revalidates this root on every call.
+    #[must_use]
+    pub const fn root(&self) -> crate::workspace::WorkspaceRoot {
+        match self.backing {
+            WorkspaceBacking::Local => crate::workspace::WorkspaceRoot::Project {
+                project: self.project,
+            },
+            WorkspaceBacking::Managed { worktree } => {
+                crate::workspace::WorkspaceRoot::Worktree { worktree }
+            }
+        }
+    }
 }
 
 /// Creation receipt identity is retained to recover an uncertain connection result.

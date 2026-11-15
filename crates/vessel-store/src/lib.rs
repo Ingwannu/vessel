@@ -68,6 +68,7 @@ mod push;
 mod push_key;
 mod reader;
 mod recovery;
+mod registry;
 mod schema;
 mod search;
 mod settings_file;
@@ -98,3 +99,8 @@ pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
+
+/// Explicit workspace registry records shared by create/lifecycle services.
+pub use registry::{
+    RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry, WorkspaceProvision,
+};

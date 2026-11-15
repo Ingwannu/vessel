@@ -101,6 +101,9 @@ pub(super) fn apply(
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
+        Write::Registry { mutation, done } => write_answer(transaction, done, |connection| {
+            crate::registry::apply(connection, &mutation)
+        }),
         Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
             crate::workspace::apply(connection, &write)
         }),
