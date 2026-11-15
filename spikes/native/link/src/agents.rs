@@ -15,7 +15,7 @@ use vessel_app_view::agent_status::install::{Completion, OutputProblem};
 use vessel_proto::agents::{AgentReadiness, InstallAgent, InstallJob, InstallOutput};
 
 /// What the Agents page asks of its selected machine.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Ask {
     /// Definitions, discovery and cached status; starts no login check.
     List,
@@ -23,13 +23,27 @@ pub enum Ask {
     Check(vessel_proto::HarnessRef),
     /// The node runs its offered installer, then the link follows output.
     Install(InstallAgent),
+    /// One consumed confirmation; use [`crate::Command::remove_agent`].
+    Remove(Removal),
 }
+
+mod removal;
+pub use removal::Removal;
+#[cfg(not(target_arch = "wasm32"))]
+pub use removal::RemovalError;
 
 pub use vessel_app_view::agent_status::pages::{Administration, Inventory, MachineKey};
 
 /// Facts, progress or completion from a request.
 #[derive(Debug)]
 pub enum Answer {
+    /// The node acknowledged forgetting this definition on this connection.
+    Removed {
+        /// The node whose response was received.
+        node: vessel_proto::NodeId,
+        /// The exact confirmed definition.
+        name: vessel_proto::agents::AgentName,
+    },
     /// A fresh snapshot.
     List(Inventory),
     /// The explicit status check's results.
@@ -45,6 +59,10 @@ pub enum Answer {
 /// Failures stay typed until the screen presents them beside the action.
 #[derive(Debug, thiserror::Error)]
 pub enum AgentsError {
+    /// A removal-specific refusal or an explicitly uncertain outcome.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Removal(#[from] RemovalError),
     /// The selected node disconnected.
     #[error("the machine is not connected")]
     Disconnected,
@@ -77,16 +95,28 @@ impl Ask {
             Self::List => Operation::Discovery,
             Self::Check(agent) => Operation::Check(agent.clone()),
             Self::Install(install) => Operation::Install(*install),
+            Self::Remove(target) => target.operation(),
         }
     }
 }
 
 impl AgentsError {
+    /// Only a possibly applied mutation requires a new definition snapshot.
+    #[must_use]
+    pub fn removal_uncertain(&self) -> bool {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Self::Removal(error) = self {
+            return error.is_uncertain();
+        }
+        false
+    }
     /// Plain-language category, while this error keeps the complete source.
     #[must_use]
     pub const fn problem(&self) -> vessel_app_view::agent_status::problem::Problem {
         use vessel_app_view::agent_status::problem::Problem;
         match self {
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Removal(error) => error.problem(),
             Self::Disconnected => Problem::Disconnected,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,

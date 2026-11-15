@@ -45,6 +45,9 @@ words! {
     busy, "Inline operation failure when all request slots are occupied. No values.", "Settings is busy. Try again when the current operation finishes.", "설정 작업이 진행 중입니다. 현재 작업이 끝난 뒤 다시 시도하세요.";
     no_transport, "Inline operation failure in the browser without a node transport. No values.", "This browser cannot connect to a machine yet.", "이 브라우저에서는 아직 머신에 연결할 수 없습니다.";
     output_invalid, "Install card after a malformed output cursor; no exit outcome is inferred. No values.", "The machine returned inconsistent installation output. Refresh its connection before trying again.", "머신이 올바르지 않은 설치 출력을 보냈습니다. 연결을 새로 고친 뒤 다시 시도하세요.";
+    remove_older_node, "Provider removal refused before dispatch on an old peer. No values.", "Update Vessel on this machine to remove providers.", "프로바이더를 제거하려면 이 머신의 Vessel을 업데이트하세요.";
+    remove_permission, "Provider removal refused by the node for lack of administration rights. No values.", "This device cannot remove providers on this machine. Ask the machine’s administrator to grant access.", "이 기기에는 이 머신의 프로바이더를 제거할 권한이 없습니다. 머신 관리자에게 접근 권한을 요청하세요.";
+    remove_in_use, "Provider removal refused because an account profile extends it. No values.", "A profile uses this provider. Change or remove that profile on the machine before removing the provider.", "프로필에서 이 프로바이더를 사용 중입니다. 머신에서 해당 프로필을 변경하거나 제거한 뒤 프로바이더를 제거하세요.";
 }
 
 impl AgentsWords {
@@ -64,14 +67,34 @@ impl AgentsWords {
     }
     /// Inline failure beside its action; diagnostics follow separately.
     #[must_use]
-    pub const fn problem(&self, problem: crate::agent_status::problem::Problem) -> &'static str {
+    pub fn problem(&self, problem: crate::agent_status::problem::Problem) -> String {
         use crate::agent_status::problem::Problem;
+        let refresh = self.refresh();
         match problem {
-            Problem::Disconnected => self.disconnected(),
-            Problem::Busy => self.busy(),
-            Problem::NoTransport => self.no_transport(),
-            Problem::InvalidOutput => self.output_invalid(),
-            Problem::Call => self.call_failed(),
+            Problem::NodeChanged => match self.lang {
+                Lang::En => format!(
+                    "The machine behind this name changed. Select “{refresh}” to read its providers, then confirm again."
+                ),
+                Lang::Ko => format!(
+                    "이 이름이 가리키는 머신이 변경되었습니다. “{refresh}”을 선택해 프로바이더 목록을 읽은 뒤 다시 확인하세요."
+                ),
+            },
+            Problem::RemovalUnknown => match self.lang {
+                Lang::En => format!(
+                    "The removal result is not known. Select “{refresh}” to read the provider list before trying again."
+                ),
+                Lang::Ko => format!(
+                    "제거 결과를 확인하지 못했습니다. 다시 시도하기 전에 “{refresh}”을 선택해 프로바이더 목록을 읽으세요."
+                ),
+            },
+            Problem::OlderNode => self.remove_older_node().to_owned(),
+            Problem::Permission => self.remove_permission().to_owned(),
+            Problem::ProviderInUse => self.remove_in_use().to_owned(),
+            Problem::Disconnected => self.disconnected().to_owned(),
+            Problem::Busy => self.busy().to_owned(),
+            Problem::NoTransport => self.no_transport().to_owned(),
+            Problem::InvalidOutput => self.output_invalid().to_owned(),
+            Problem::Call => self.call_failed().to_owned(),
         }
     }
     /// Label before one exact argv value; ordinal starts at one.

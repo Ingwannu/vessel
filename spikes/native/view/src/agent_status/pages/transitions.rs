@@ -3,10 +3,28 @@
 
 use super::{
     AgentReadiness, Completion, InstallJob, InstallLog, InstallOutput, InstallProgress, Inventory,
-    Issue, MachineKey, Operation, Pages, RequestId, Transcript,
+    Issue, MachineKey, Operation, Pages, RemovalFreshness, RequestId, Transcript,
 };
 
 impl<E> Pages<E> {
+    /// Keep the facts visible but require a successful discovery before another
+    /// removal. An interrupted mutation may already have changed the node.
+    #[must_use]
+    pub fn removal_uncertain(&mut self, machine: &MachineKey, id: RequestId, source: E) -> bool {
+        let Some(page) = self.pending(machine, id) else {
+            return false;
+        };
+        if !matches!(
+            page.pending.as_ref().map(|ticket| &ticket.operation),
+            Some(Operation::Remove { .. })
+        ) {
+            return false;
+        }
+        page.removal = RemovalFreshness::RefreshRequired;
+        self.failed(machine, id, source);
+        true
+    }
+
     /// Forget only the acknowledged definition on its own pending page.
     /// A failure instead retains the entire snapshot through [`Self::failed`].
     #[must_use]
@@ -52,8 +70,22 @@ impl<E> Pages<E> {
                 Some(Operation::Discovery)
             )
         {
+            // A recheck can establish that the unacknowledged removal took
+            // effect. Do not leave details open for facts that no longer exist.
+            if page.removal == RemovalFreshness::RefreshRequired
+                && page.selected.as_ref().is_some_and(|selected| {
+                    !inventory.agents.iter().any(|info| &info.agent == selected)
+                        && !inventory
+                            .harnesses
+                            .iter()
+                            .any(|found| &found.kind == selected)
+                })
+            {
+                page.selected = None;
+            }
             page.inventory = Some(inventory);
             page.pending = None;
+            page.removal = RemovalFreshness::Current;
         }
     }
     /// Apply a check by agent/profile identity, never by the visible selection.

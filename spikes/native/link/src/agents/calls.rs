@@ -11,10 +11,13 @@ use vessel_proto::{ProtocolVersion, RequestId};
 use super::{Administration, AgentsError, Answer, Ask, Inventory, MachineKey};
 use crate::Event;
 
+/// One hub bound shared by construction and saturation regressions.
+pub(super) const MAX_TASKS: usize = 4;
+
 pub(crate) struct Hub(Arc<Semaphore>);
 impl Default for Hub {
     fn default() -> Self {
-        Self(Arc::new(Semaphore::new(4)))
+        Self(Arc::new(Semaphore::new(MAX_TASKS)))
     }
 }
 
@@ -67,6 +70,7 @@ async fn run(
     events: &mpsc::Sender<Event>,
 ) -> Result<(), AgentsError> {
     let answer = match ask {
+        Ask::Remove(target) => super::removal::remove(client, target).await?,
         Ask::List => {
             let harnesses = client.harnesses().await?;
             let (agents, readiness, administration) =

@@ -8,6 +8,8 @@ use crate::agent_status::row::Activity;
 use vessel_proto::agents::{AgentInfo, AgentSource, Installed, SignedIn, UnknownReason};
 use vessel_proto::{Harness, HarnessKind, StructuredSupport, TerminalSupport};
 
+mod uncertainty;
+
 fn agent() -> HarnessRef {
     HarnessRef::Added("example".parse().unwrap())
 }

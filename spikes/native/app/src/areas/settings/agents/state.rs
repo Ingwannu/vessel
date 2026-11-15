@@ -144,6 +144,21 @@ impl Shell {
     ) {
         let pages = &mut self.areas.settings.agents.pages;
         match answer {
+            Ok(Answer::Removed { node, name }) => {
+                let was_selected = pages.get(machine.as_str()).and_then(|page| page.selected())
+                    == Some(&HarnessRef::Added(name.clone()));
+                if pages.removed(machine, request, node, &name) {
+                    if was_selected && self.areas.settings.agents.machine.as_ref() == Some(machine)
+                    {
+                        self.areas.settings.agents.defaults.close();
+                        self.areas.settings.agents.default_id = None;
+                    }
+                    self.command(Command::Reload);
+                    if self.areas.settings.agents.machine.as_ref() == Some(machine) {
+                        self.agent_load(true, cx);
+                    }
+                }
+            }
             Ok(Answer::List(inventory)) => pages.loaded(machine, request, inventory),
             Ok(Answer::Checked(ready)) => pages.checked(machine, request, ready),
             Ok(Answer::Installing(job)) => pages.installing(machine, request, job),
@@ -155,6 +170,9 @@ impl Shell {
                         self.agent_load(true, cx);
                     }
                 }
+            }
+            Err(error) if error.removal_uncertain() => {
+                let _accepted = pages.removal_uncertain(machine, request, error);
             }
             Err(error) => pages.failed(machine, request, error),
         }

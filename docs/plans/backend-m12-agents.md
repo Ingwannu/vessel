@@ -1,5 +1,14 @@
 # Native Settings: Agents and Models
 
+## Current slice: removal call wiring
+
+The accepted confirmation rules now feed the existing Agents command/hub
+and ACK/error consumer. See [the removal slice](backend-m12-agents-removal.md)
+for its decision, exact boundaries and validation. The shared Remove control
+is not yet handed off, so no removal screen or complete feature is claimed.
+The previous 40-image baseline packet received V1's scoped visual pass for
+normal/list/detail and the four returned layout/refresh fixes only.
+
 ## Resume point: provider removal rules
 
 The resumed branch includes the published baseline `56a7cbd3`; all earlier

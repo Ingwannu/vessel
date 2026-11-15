@@ -134,6 +134,16 @@ pub enum InstallProgress {
     Unavailable(InstallLog),
 }
 
+/// Whether retained definitions can support a new removal decision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RemovalFreshness {
+    /// No unacknowledged mutation invalidates the listed definitions.
+    #[default]
+    Current,
+    /// A dispatched removal may have taken effect; read definitions again.
+    RefreshRequired,
+}
+
 /// State on one machine, independent of whichever machine is visible.
 #[derive(Debug)]
 pub struct Page<E> {
@@ -147,6 +157,8 @@ pub struct Page<E> {
     issue: Option<Issue<E>>,
     /// This machine's install output survives selecting another machine.
     install: InstallProgress,
+    /// An uncertain mutation cannot be repeated from retained facts.
+    removal: RemovalFreshness,
 }
 impl<E> Default for Page<E> {
     fn default() -> Self {
@@ -156,10 +168,16 @@ impl<E> Default for Page<E> {
             pending: None,
             issue: None,
             install: InstallProgress::None,
+            removal: RemovalFreshness::Current,
         }
     }
 }
 impl<E> Page<E> {
+    /// A failed read or unrelated status check cannot settle a mutation.
+    #[must_use]
+    pub const fn removal_freshness(&self) -> RemovalFreshness {
+        self.removal
+    }
     /// The last successful facts, including during a refresh.
     #[must_use]
     pub const fn inventory(&self) -> Option<&Inventory> {

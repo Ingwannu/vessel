@@ -71,7 +71,14 @@ exact node-provided command without inventing a login flow.
 Provider-removal preparation stays in `view::agent_status::removal` and
 reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
-The prepared request is not yet connected to a destructive call or control.
+`Command::remove_agent` consumes the prepared request into the existing
+Agents hub. Its worker checks the actual connection's identity/protocol
+before sending, bounds the unary removal and never resends it. Typed
+refusals keep their wire source; an uncertain result requires successful
+discovery before fresh confirmation while retaining the previous facts.
+The original page ticket/ACK path applies the result. The Remove UI producer
+is still absent pending its shared control, not a second area trigger.
+See `docs/plans/backend-m12-agents-removal.md` for the contract and test scope.
 
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log

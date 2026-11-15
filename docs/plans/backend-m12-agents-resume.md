@@ -1,5 +1,23 @@
 # Native Agents: resume after the redraw slice
 
+## Latest checkpoint
+
+`69cef4f1` records the fresh 40-image packet. V1 opened every final image,
+matched all image hashes and passed the submitted normal/list/detail and
+four returned-fix matrix (EN/KO, dark/light, 1280/390). This does not approve
+complete Providers, profiles, Add/Remove, installs, loading/empty, registry,
+intermediate widths/scales, actual IME, other operating systems or Light300
+font selection. The capture app, fleet children and authenticated Xvfb were
+stopped by verified UID/executable/arguments and PID.
+
+The next slice wires confirmed removal through the existing link. Its final
+local narrow checks passed (link Clippy, nine RPC cases, 41 view cases).
+Exact-commit remote verification and V1 source review are next; details in
+`backend-m12-agents-removal.md`. Do not draw a duplicate Remove trigger.
+The coordinator's fixture fix `d30804b2` is to be taken at the clean slice
+boundary. S2 separately proved its full fleet and shell guard with the same
+root binaries; the older capture fleet's red result remains red.
+
 ## Start here
 
 Resumed on the published `56a7cbd3` baseline. The requested merge was a

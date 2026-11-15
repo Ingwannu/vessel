@@ -131,11 +131,15 @@ pub(crate) fn render(
 }
 
 /// The machine-scoped failure the page says once, above the list or the
-/// details: the machine's refresh (discovery) that failed. An agent's own
+/// details: a refresh or removal that failed. An agent's own
 /// check failure is said in its details, beside its button.
 pub(super) fn machine_alert<E>(page: &Page<E>) -> Option<&Issue<E>> {
-    page.issue()
-        .filter(|issue| issue.operation == Operation::Discovery)
+    page.issue().filter(|issue| {
+        matches!(
+            issue.operation,
+            Operation::Discovery | Operation::Remove { .. }
+        )
+    })
 }
 
 pub(super) fn note(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> Div {
@@ -338,6 +342,29 @@ mod alert_tests {
     use vessel_proto::{HarnessKind, HarnessRef};
 
     use super::machine_alert;
+
+    #[test]
+    fn a_removal_failure_is_visible_above_the_list_and_an_unrelated_detail() {
+        let mut pages: Pages<&str> = Pages::default();
+        let machine = MachineKey::from_book("one");
+        let request = pages
+            .begin(
+                machine.clone(),
+                Operation::Remove {
+                    node: vessel_proto::NodeId::random(),
+                    name: "added".parse().unwrap(),
+                },
+            )
+            .unwrap();
+        assert!(pages.removal_uncertain(&machine, request, "outcome unknown"));
+        for selection in [None, Some(HarnessRef::Known(HarnessKind::Codex))] {
+            pages.select("one", selection);
+            assert_eq!(
+                machine_alert(pages.get("one").unwrap()).map(|issue| issue.source),
+                Some("outcome unknown")
+            );
+        }
+    }
 
     /// Refresh, open an agent's details, the refresh fails: the failure is
     /// the page's alert while the details stay open.

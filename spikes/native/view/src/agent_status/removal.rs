@@ -10,7 +10,9 @@
 //! - Cost: changes by another client after dispatch remain the node's policy;
 //!   this snapshot prevents stale local intent, not a distributed transaction.
 
-use super::pages::{Administration, Inventory, MachineKey, Operation, Pages, StartProblem};
+use super::pages::{
+    Administration, Inventory, MachineKey, Operation, Page, Pages, RemovalFreshness, StartProblem,
+};
 use vessel_proto::agents::{AddedAgent, AgentDetail, AgentName};
 use vessel_proto::{HarnessRef, NodeId, RequestId};
 
@@ -48,6 +50,9 @@ pub struct Confirmation {
 /// A refusal before deletion is sent; no node or file changed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
+    /// The previous mutation's result is unknown; discovery must settle it.
+    #[error("refresh the provider list before confirming another removal")]
+    RefreshRequired,
     /// A builtin, an unlisted definition, or an older node cannot be removed here.
     #[error("this provider is not an added definition on this machine")]
     Unavailable,
@@ -98,7 +103,7 @@ impl Confirmation {
         if page.pending().is_some() {
             return Err(StartProblem::Busy.into());
         }
-        let inventory = page.inventory().ok_or(Refused::Unavailable)?;
+        let inventory = current_inventory(page)?;
         let definition = definition(agent, inventory).ok_or(Refused::Unavailable)?;
         let name = match agent {
             HarnessRef::Added(name) => name.clone(),
@@ -125,10 +130,10 @@ impl Confirmation {
             return Err(Refused::MachineChanged);
         }
         let agent = HarnessRef::Added(self.name.clone());
-        let inventory = pages
+        let page = pages
             .get(self.machine.as_str())
-            .and_then(|page| page.inventory())
             .ok_or(Refused::Unavailable)?;
+        let inventory = current_inventory(page)?;
         if inventory.node != self.node {
             return Err(Refused::NodeChanged);
         }
@@ -149,6 +154,13 @@ impl Confirmation {
             name: self.name,
             ticket,
         })
+    }
+}
+
+fn current_inventory<E>(page: &Page<E>) -> Result<&Inventory, Refused> {
+    match page.removal_freshness() {
+        RemovalFreshness::Current => page.inventory().ok_or(Refused::Unavailable),
+        RemovalFreshness::RefreshRequired => Err(Refused::RefreshRequired),
     }
 }
 
