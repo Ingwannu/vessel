@@ -382,3 +382,13 @@ now use that same command representation (the three-code-hunk producer
 c59242bb2), without changing preferences or dispatch timing. This closes a
 mechanical union incompatibility; earlier309 compilation does not validate
 the new base or these adapters.
+
+The corrected8d execution passed App118/0/2 and reached Link113/4/0. Four
+creation cases used a duplex peer that closed transport immediately after a
+success or known refusal reply. The selected-connection post-await guard
+correctly classified that retirement as uncertain, making the fixture race
+its own success/refusal assertion. The peer now stays open until the client
+closes, rejects any extra request, and closes early only for the explicit
+disconnect scenario. Product liveness checks, retry assertions and the hard
+test deadline are unchanged. The failed execution remains evidence; the new
+fixture and receiving-base union require their own check.
