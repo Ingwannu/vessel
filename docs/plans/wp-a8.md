@@ -510,3 +510,11 @@ with rc101 after actual dependency compilation. Its only reported source error
 was duplicate must_use on pending_permissions' Iterator return; Iterator already
 carries the contract, so the redundant attribute is removed. The failure stopped
 view compilation and is not app/link execution or a package pass.
+
+
+The typed link Response port now redacts answer/option payloads in Debug while
+retaining exact request correlation. Ask and the enclosing Command derive Debug,
+so redacting only reply errors would still expose private question text through
+actor diagnostics. A regression formats the actual Command::Respond for both an
+opaque permission option and a typed text answer with a private canary. The typed
+payload remains available to the wire call; only diagnostics are reduced.

@@ -10,7 +10,7 @@ mod native;
 pub(crate) use native::Hub;
 
 /// Existing typed answer paths, without unrelated prompt-message fallbacks.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Response {
     /// Preserve the provider's exact selected option id.
     Permission {
@@ -26,6 +26,17 @@ pub enum Response {
         /// Validated field values, or the person's explicit decline.
         answer: QuestionAnswer,
     },
+}
+
+// Answers may contain credentials or private prose. Keep useful correlation in
+// actor diagnostics without printing their payload, even via Command::Debug.
+impl std::fmt::Debug for Response {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Response")
+            .field("request", &self.request())
+            .finish_non_exhaustive()
+    }
 }
 
 impl Response {
@@ -89,3 +100,6 @@ impl crate::State {
         self.responses.ask(selected, ask, self.events.clone()).await;
     }
 }
+
+#[cfg(test)]
+mod tests;
