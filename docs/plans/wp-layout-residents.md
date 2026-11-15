@@ -96,8 +96,9 @@ The public app seam is:
 - `set_visibility(claim, Visible | RetainedHidden)`, `focus_claim(claim)` and
   `release_claim(claim, reason)` update the single owner. At most one claim in
   a window has keyboard/composer focus; several panes may be visible.
-- `receive(token, response)` rejects stale generations before touching text,
-  timeline, errors, attachments or lifecycle. Session id alone is insufficient.
+- `receive_local(token, event)` admits only synchronous owner-local events. Link
+  events use `receive(binding, response)` and operation replies also require their
+  admitted operation ticket, as specified below. Session id alone is insufficient.
 
 Only the central event dispatcher routes link events. Timeline `Seat` becomes
 an explicit keyed context; its read/mutate paths must resolve the same resource.
@@ -151,9 +152,41 @@ the desktop owner. No registry eviction signals a backend process.
 `NodeClient` and typed session stream. Registration is one command/event arm in
 the extracted shared files. No node RPC or protocol number is added.
 
-Attach reports its authenticated node binding before records on the same bounded
-app channel. Every record, error and action reply carries the token. Cancelling
-one resource cannot replace another follow. Backpressure uses the existing bounded
+The resident epoch protects resource lifetime; it is deliberately not the transport
+fence. A same-node reconnect retains protected input and the resident epoch while
+retiring its old transport admission **before** starting another attach. Layout's
+registry owns a monotonic `FollowGeneration` per resident and admits exactly one
+`FollowBinding { resident: ResidentToken, follow: FollowGeneration }`. The counter
+is checked for exhaustion and is never reset while the resident epoch remains
+live. Every explicit reattach, disconnect, cancellation, observed locator identity
+change, and replacement of the underlying authenticated connection invalidates
+that admission and all outstanding operation admissions. A new attempt gets a
+new generation even when the same NodeId reappears (including alias A→B→A).
+
+`link::residents` captures the binding together with the actual authenticated
+`NodeClient` connection lease used for that attempt. It never re-resolves the
+alias into another client after admission. The lease is a transport instance fence,
+not a metadata/identity cache: the shared connection owner retires it before a
+reconnect or client replacement and reports that retirement to the dispatcher.
+An adapter checks both that its lease is still live and that that client's welcome
+NodeId equals `ExpectedNode` before admitting each read, follow or mutation.
+Layout checks the current binding before accepting attach metadata, records,
+errors or replies; a queued old binding event cannot create or replace admission.
+Attach reports its authenticated binding before records on the same bounded app
+channel. Reordered or queued old events fail the binding check without changing
+loading/error state, timeline, input, focus or lifecycle.
+
+Every operation additionally captures an opaque `OperationTicket` allocated by
+its owning adapter and admitted against that exact binding and operation kind.
+An action reply must match both the current binding and its outstanding ticket;
+completion consumes the ticket once. Timeline/composer/attachments/permissions/
+lifecycle owners own their tickets; layout owns binding validation and retirement,
+and link owns connection-lease validity. No owner may route a network event through
+`receive_local` or recreate admission from a received reply. Retiring admission
+marks an already-sent mutation uncertain and preserves protected input; a late
+success cannot close a tab or clear a draft, and no mutation is retried automatically.
+An authoritative subsequent read may resolve that uncertainty under a fresh binding.
+Cancelling one resource cannot replace another follow. Backpressure uses the existing bounded
 channel and cancellation; there is no unbounded per-session queue or silent event
 loss. Attach/request waits are finite; disconnect and retry use the existing gap
 recovery. There is no automatic retry of an uncertain mutation.
@@ -189,5 +222,6 @@ background streaming into the correct visible pane; hidden input preserved witho
 focus/read claims; move/split retains the same resident token; archive one pane
 leaves the other unchanged. Adversarial tests cover alias replacement after deep
 link resolution, a stale epoch after eviction/recreation, handoff to another node,
-pending upload/send/IME eviction holds, hard-cap refusal, cancelled attach and
-stale close acknowledgement. Tests use typed fakes and no real agent or live node.
+same-node reconnect with queued old attach metadata/error/action replies, observed
+alias A→B→A, duplicate operation replies, pending upload/send/IME eviction holds,
+hard-cap refusal, cancelled attach and stale close acknowledgement. Tests use typed fakes and no real agent or live node.
