@@ -38,13 +38,16 @@ use vessel_app_kit::{
     CardLook, CardState, Start, Tokens, Type, TypeExt as _, breakpoint, card_button, chat_markdown,
     output_box, version_of,
 };
-use vessel_app_link::{Act, ActKind};
+use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
-use vessel_app_view::timeline::{AnswerMark, CardTitle, PermissionCard, ToolView, permission_card};
+use vessel_app_view::timeline::{
+    AnswerMark, CardTitle, Permission, PermissionCard, ToolView, permission_card,
+};
 use vessel_proto::{PermissionId, PermissionOptionId};
 
 use super::entries::Paint;
 use super::look::Look;
+use super::{Answer, ConversationArea, Place, Seat};
 use crate::shell::Shell;
 
 /// The tallest the card stands over the composer before its content
@@ -62,38 +65,66 @@ const PLAN: f32 = 320.0;
 pub(crate) type Sending = (PermissionId, PermissionOptionId);
 
 impl Shell {
-    /// Answer the waiting request `id` with `option`.
-    fn permit(&mut self, id: PermissionId, option: PermissionOptionId, cx: &mut Context<'_, Self>) {
-        let area = &mut self.areas.conversation;
+    /// Answer the waiting request `id` of the conversation at `P` with
+    /// `option`, the place's way.
+    fn permit<P: Place>(
+        &mut self,
+        id: PermissionId,
+        option: PermissionOptionId,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(area) = (P::SEAT.get_mut)(self) else {
+            return;
+        };
         area.permit_sending = Some((id, option.clone()));
         area.refused = None;
-        self.act(Act::Permit(id, option));
+        P::answer(self, Answer::Permit(id, option), cx);
         cx.notify();
     }
 
     /// Fold or unfold a plan request's plan.
-    fn permit_plan_toggle(&mut self, cx: &mut Context<'_, Self>) {
-        let area = &mut self.areas.conversation;
-        area.plan_folded = !area.plan_folded;
-        cx.notify();
+    fn permit_plan_toggle(&mut self, seat: Seat, cx: &mut Context<'_, Self>) {
+        if let Some(area) = (seat.get_mut)(self) {
+            area.plan_folded = !area.plan_folded;
+            cx.notify();
+        }
     }
 }
 
-/// The card for the first request waiting, when one waits.
-pub(super) fn card(
+/// The card for the first request waiting in the conversation at `P`,
+/// when one waits: the log's, else one the node says waits whose record
+/// the log no longer holds (drawn from the node's word, with no entry
+/// made for it).
+pub(crate) fn card<P: Place>(
     shell: &Shell,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let area = &shell.areas.conversation;
-    let (_entry, permission) = area.timeline.pending()?;
+    let seat = P::SEAT;
+    let area = (seat.get)(shell)?;
+    let unseen = area.timeline.unseen_permissions(&area.live);
+    let live;
+    let permission = if let Some((_entry, permission)) = area.timeline.pending() {
+        permission
+    } else {
+        let request = *unseen.first()?;
+        live = Permission {
+            request: request.clone(),
+            // Named as the fold names a request: its tool call's title.
+            title: P::tool(shell, &request.tool_call).map(|tool| tool.title.clone()),
+            outcome: None,
+        };
+        &live
+    };
     let words = shell.t.lang.conversation();
-    let tool = area.timeline.tool_call(&permission.request.tool_call);
+    let tool = P::tool(shell, &permission.request.tool_call);
     let card = permission_card(
         permission,
         tool,
-        area.timeline.waiting_permissions(),
+        area.timeline
+            .waiting_permissions()
+            .saturating_add(unseen.len()),
         |kind| words.permission_kind(kind),
     );
     let neutral = tokens.neutral;
@@ -116,7 +147,16 @@ pub(super) fn card(
         CardTitle::Required => words.permission_required().to_owned(),
     };
     let head = head(title, card.count, *words, tokens);
-    let answers = answers(&card, sending.as_ref(), id, narrow, *words, tokens, cx);
+    let holding = P::busy(shell);
+    let answers = answers::<P>(
+        &card,
+        (sending.as_ref(), holding),
+        id,
+        narrow,
+        *words,
+        tokens,
+        cx,
+    );
     let footer = div()
         .flex()
         .flex_col()
@@ -134,7 +174,7 @@ pub(super) fn card(
                 .text_color(neutral.destructive)
                 .child(words.question_refused(&why))
         }));
-    let body = body(shell, &card, tool, head, tokens, window, cx);
+    let body = body((shell, area, seat), &card, tool, head, tokens, window, cx);
     Some(
         div()
             .id("permit-card")
@@ -190,9 +230,9 @@ fn head(
 
 /// The answers: the kit's card buttons, in a wrapping row (a column on a
 /// phone); while one goes, it spins and none answers.
-fn answers(
+fn answers<P: Place>(
     card: &PermissionCard<'_>,
-    sending: Option<&PermissionOptionId>,
+    (sending, held): (Option<&PermissionOptionId>, bool),
     id: PermissionId,
     narrow: bool,
     words: ConversationWords,
@@ -210,6 +250,7 @@ fn answers(
         let state = match sending {
             Some(going) if *going == option => CardState::Sending,
             Some(_) => CardState::Waiting,
+            None if held => CardState::Waiting,
             None => CardState::Ready,
         };
         let mark = match answer.mark {
@@ -231,7 +272,7 @@ fn answers(
         )
         .when(state == CardState::Ready, |button| {
             button.on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.permit(id, option.clone(), cx);
+                shell.permit::<P>(id, option.clone(), cx);
             }))
         });
         row = row.child(button);
@@ -242,7 +283,7 @@ fn answers(
 /// The card's body: a plan's head and Markdown, or the head and the
 /// tool's detail (a shell call's `$ command`, an edit's diff).
 fn body(
-    shell: &Shell,
+    (shell, area, seat): (&Shell, &ConversationArea, Seat),
     card: &PermissionCard<'_>,
     tool: Option<&ToolView>,
     head: Div,
@@ -252,9 +293,9 @@ fn body(
 ) -> AnyElement {
     let column = div().flex().flex_col().gap(px(8.0));
     if let Some(plan) = &card.plan {
-        let folded = shell.areas.conversation.plan_folded;
+        let folded = area.plan_folded;
         return column
-            .child(head_with_chevron(head, folded, tokens, cx))
+            .child(head_with_chevron(head, (seat, folded), tokens, cx))
             .when(!folded, |body| {
                 // Paseo's plan card scrolls with the conversation; over the
                 // composer the plan scrolls inside the card instead, so the
@@ -287,6 +328,13 @@ fn body(
         tokens,
         look: Look::of(tokens),
         find: None,
+        seat,
+        entries: &[],
+        agent: None,
+        rewinds: None,
+        forks: None,
+        fleet: &shell.fleet,
+        above: super::origin::Above::Nothing,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(
@@ -313,7 +361,7 @@ fn body(
 /// before the title, folding the plan.
 fn head_with_chevron(
     head: Div,
-    folded: bool,
+    (seat, folded): (Seat, bool),
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -329,7 +377,9 @@ fn head_with_chevron(
         .gap(px(8.0))
         .min_h(px(24.0))
         .cursor_pointer()
-        .on_click(cx.listener(|shell, _event, _window, cx| shell.permit_plan_toggle(cx)))
+        .on_click(cx.listener(move |shell, _event, _window, cx| {
+            shell.permit_plan_toggle(seat, cx);
+        }))
         .child(vessel_app_kit::glyph(
             chevron,
             16.0,

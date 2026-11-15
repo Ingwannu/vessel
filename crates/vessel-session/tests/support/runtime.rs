@@ -204,7 +204,8 @@ impl Log {
                 SessionEvent::Agent {
                     event: AgentEvent::TurnEnded {
                         reason: StopReason::EndTurn | StopReason::Cancelled,
-                        usage: None
+                        usage: None,
+                        ..
                     }
                 }
             )

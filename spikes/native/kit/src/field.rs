@@ -58,6 +58,8 @@ use gpui::prelude::*;
 use gpui::{AnyElement, App, Context, Entity, Focusable as _, Window, div, px};
 use gpui_base::input::{Input, InputEditorStyle, InputEvent, InputState, Textarea, TextareaState};
 
+pub mod composer_hooks;
+
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -382,6 +384,21 @@ impl TextField {
                 state.marked_text_range(window, cx).is_some()
             }),
         }
+    }
+
+    /// Whether this field has the keys with its caret at the very start and
+    /// nothing selected (track S2's Alt+Up, Paseo's edit-the-last-queued
+    /// prompt, acts only there, so the key still moves the caret anywhere
+    /// else). A field without the keys answers no.
+    pub fn at_start(&self, window: &Window, cx: &App) -> bool {
+        if !self.focus_handle(cx).is_focused(window) {
+            return false;
+        }
+        let range = match &self.kind {
+            Kind::Line(state) => state.read(cx).selected_range(),
+            Kind::Lines(state, _) => state.read(cx).selected_range(),
+        };
+        range.start == 0 && range.end == 0
     }
 
     /// Whether any kit text field in this window has the keys and an input
@@ -769,6 +786,12 @@ mod composing_tests {
                 unmark(focused, window, cx);
                 assert!(!focused.composing(window, cx), "committed");
                 assert!(!TextField::focused_composing(window, cx), "committed");
+                // The caret after the committed syllable is not at the
+                // start; emptied, it is, and only for the field with keys.
+                assert!(!focused.at_start(window, cx), "after 하");
+                focused.clear(window, cx);
+                assert!(focused.at_start(window, cx), "empty, focused");
+                assert!(!other.at_start(window, cx), "no keys");
                 unmark(other, window, cx);
             }
         });

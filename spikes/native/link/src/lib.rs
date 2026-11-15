@@ -15,23 +15,38 @@
 //!   commands in through a bounded channel, events out through another.
 //!   Both ends are plain tokio channels, which any executor can await, so
 //!   the UI side needs no tokio of its own and the link no UI.
-//! - Full channels: a command waits for room (a person cannot type faster
-//!   than the link drains); the events channel is drained by the UI as
-//!   fast as it draws, and a sender waits for room, so a burst of records
-//!   slows the stream, never grows memory.
+//! - Full channels: a command is offered without waiting (the UI thread
+//!   must not block), and one the link does not take comes back typed
+//!   ([`Link::submit`], [`Unsent`]) so what waits on its answer can
+//!   settle; the events channel is drained by the UI as fast as it draws,
+//!   and a sender waits for room, so a burst of records slows the stream,
+//!   never grows memory.
 
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+// The agents' lists kept between runs (owner word 28); a browser keeps
+// none yet (no files).
+#[cfg(not(target_arch = "wasm32"))]
+mod offers;
+// The composers' drafts kept between runs (track P's row e).
+#[cfg(not(target_arch = "wasm32"))]
+pub mod drafts;
+#[cfg(not(target_arch = "wasm32"))]
+mod pairing;
 mod prefs;
 mod session;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
+pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod node_settings;
+pub mod search;
+pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
@@ -46,18 +61,18 @@ use chrono::Utc;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::{Agent, Machine, Reach};
+use vessel_app_view::{Agent, Machine, NodeVersion, Reach};
 use vessel_app_view::{Card, Fleet};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
+use vessel_proto::{
+    AgentCommand, EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId,
+    SessionId, SessionOption,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::{
     ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
     SessionMode, SessionSpec,
-};
-use vessel_proto::{
-    EventRecord, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
-    SessionOption,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -76,6 +91,63 @@ const REFRESH: Duration = Duration::from_secs(2);
 /// Room in each channel. Records come in pages of up to a few hundred; a
 /// screen drains them every frame.
 const CHANNEL: usize = 256;
+
+/// Why the link did not take a command ([`Link::submit`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Rejected {
+    /// Its queue is full: the link's task is behind (only a stuck link
+    /// fills 256 commands).
+    #[error("the link's queue is full")]
+    Full,
+    /// The link stopped: the app is closing, or its task ended.
+    #[error("the link has stopped")]
+    Closed,
+}
+
+/// A command the link did not take, given back with why: nothing of it
+/// reached a machine, so no answer will come for it.
+///
+/// [Decision Log]
+/// - Purpose: [`Link::send`] offers a command with `try_send` and only
+///   logged a full or closed queue, so a screen that set a key pending
+///   (a card's act, a pairing, a workspace ask) waited for an answer that
+///   never came: a spinner that stays (track G1's review, 2026-11-13).
+/// - Constraint: the UI must not wait for room (it runs on the UI
+///   thread), and the existing callers that wait on nothing keep
+///   [`Link::send`].
+/// - Alternatives: an awaiting send (blocks or needs every caller async);
+///   a boolean (the caller then still holds a moved command and cannot
+///   tell full from stopped).
+/// - Choice: [`Link::submit`] returns the command with a typed reason;
+///   the caller settles what waits on it in its own words.
+/// - Cost: the command is boxed on the failure path only.
+#[derive(Debug)]
+pub struct Unsent {
+    /// Why.
+    pub why: Rejected,
+    /// The command, as it was given.
+    pub command: Box<Command>,
+}
+
+impl Unsent {
+    /// `command`, not taken for `why`.
+    #[must_use]
+    pub fn new(why: Rejected, command: Command) -> Self {
+        Self {
+            why,
+            command: Box::new(command),
+        }
+    }
+}
+
+/// Offer `command` on `commands` without waiting.
+#[cfg(not(target_arch = "wasm32"))]
+fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsent> {
+    commands.try_send(command).map_err(|error| match error {
+        mpsc::error::TrySendError::Full(command) => Unsent::new(Rejected::Full, command),
+        mpsc::error::TrySendError::Closed(command) => Unsent::new(Rejected::Closed, command),
+    })
+}
 
 /// Something the link could not do.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -112,9 +184,6 @@ pub enum LinkError {
     /// An SSH node (not in this build).
     #[error("SSH routes are not in this build yet; pair the node instead")]
     SshNotYet,
-    /// The pasted text is not a pairing link.
-    #[error("not a pairing link: {0}")]
-    PairingLink(String),
     /// The name is not a valid machine name.
     #[error("the name: {0}")]
     Name(String),
@@ -129,6 +198,16 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// A request for one machine’s Agents settings.
+    Agents {
+        /// Validated book key.
+        machine: agents::MachineKey,
+        /// Correlation ticket.
+        request: vessel_proto::RequestId,
+        /// The operation.
+        ask: agents::Ask,
+    },
+
     /// Read or edit the saved machine book.
     Machines(machines::Ask),
     /// Read the book again and connect to every node in it.
@@ -141,6 +220,15 @@ pub enum Command {
         ticket: vessel_app_view::devices::Ticket,
         /// The device operation.
         ask: devices::Ask,
+    },
+    /// Read or change a machine's own settings.
+    NodeSettings(node_settings::Ask),
+    /// Read-only sharing status for one selected machine.
+    Sync {
+        /// Its parsed node-book identity.
+        machine: vessel_app_view::devices::MachineKey,
+        /// Correlation identity reserved by the page.
+        ticket: vessel_app_view::devices::Ticket,
     },
     /// Show a session's conversation: its records from the start, then as
     /// they arrive. Replaces the session followed before.
@@ -185,6 +273,20 @@ pub enum Command {
         machine: String,
         /// The agent.
         harness: HarnessRef,
+    },
+    /// Keep the composers' drafts on this device (written on the blocking
+    /// pool; nothing is answered). A browser keeps none.
+    SaveDrafts(vessel_app_view::composer::drafts::Drafts),
+    /// Keep `harness`'s `/` commands, as a session of it on `machine`
+    /// reported them, on this device for the next run (its options' file;
+    /// nothing is answered). A browser keeps none.
+    KeepCommands {
+        /// The machine.
+        machine: String,
+        /// The agent.
+        harness: HarnessRef,
+        /// Its commands, in its order.
+        commands: Vec<AgentCommand>,
     },
     /// Start an ended or interrupted session again with its conversation
     /// (`session.resume`, protocol 10), then send it `text`; answered
@@ -233,8 +335,9 @@ pub enum Command {
         offer: Offer,
         /// The machine's name in the book.
         name: String,
-        /// The name is the one the app filled in: use the node's own name
-        /// instead when it makes a free book name.
+        /// The person left the name empty (`name` is then a free name the
+        /// app chose): use the node's own name instead when it makes a free
+        /// book name.
         prefer_node_name: bool,
     },
     /// Ask a machine about its projects, worktrees, git or files; answered
@@ -245,17 +348,34 @@ pub enum Command {
         /// What is asked.
         ask: workspace::Ask,
     },
+    /// Search one machine's messages (`session.search`); answered by
+    /// [`Event::Searched`].
+    Search(search::Ask),
 }
 
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// An Agents response, including background install progress.
+    Agents {
+        /// Originating machine.
+        machine: agents::MachineKey,
+        /// Original request ticket.
+        request: vessel_proto::RequestId,
+        /// Facts or typed failure.
+        answer: Result<agents::Answer, agents::AgentsError>,
+    },
+
     /// A saved-machine operation completed.
     Machines(machines::Answer),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.
     Devices(devices::Answer),
+    /// Safe, correlated sharing status.
+    Sync(sync::Answer),
+    /// A machine's settings in force, after a read or a change.
+    NodeSettings(node_settings::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
@@ -280,7 +400,7 @@ pub enum Event {
         address: String,
     },
     /// Pairing failed; the words to show beside the form.
-    PairFailed(String),
+    PairFailed(vessel_app_view::pairing::PairProblem),
     /// A session act's answer.
     Acted(ActAnswer),
     /// An ended session runs again, and the prompt was sent to it.
@@ -304,6 +424,16 @@ pub enum Event {
         /// Its options in its order, or the words of the failure.
         outcome: Result<Vec<SessionOption>, String>,
     },
+    /// A machine connected: the lists its agents gave last time, kept on
+    /// this device (newest first), to show until they answer again. Sent
+    /// before the fleet that has the machine online, only when there are
+    /// any.
+    OptionsKept {
+        /// The machine.
+        machine: String,
+        /// Each agent's lists.
+        lists: Vec<KeptLists>,
+    },
     /// Something failed; the words to show.
     Failed(String),
     /// The session's machine is not connected any more (its records
@@ -326,6 +456,20 @@ pub enum Event {
         /// The answer, with what was asked.
         answer: workspace::Answer,
     },
+    /// A machine answered a search ([`Command::Search`]).
+    Searched(search::Answer),
+}
+
+/// What an agent on a machine said last time, kept on this device
+/// ([`Event::OptionsKept`]): either half may be unknown.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeptLists {
+    /// The agent.
+    pub harness: HarnessRef,
+    /// Its options (`harness.options`), when it answered.
+    pub options: Option<Vec<SessionOption>>,
+    /// Its `/` commands, when a session of it reported them.
+    pub commands: Option<Vec<AgentCommand>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -359,7 +503,11 @@ impl Link {
             follow_machine: None,
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
+            agents: agents::Hub::default(),
+
             device_calls: devices::Hub::default(),
+            sync_calls: sync::Hub::default(),
+            offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
         Ok((
@@ -371,12 +519,41 @@ impl Link {
         ))
     }
 
-    /// Ask for something; returns at once (a full queue drops the command
-    /// and says so, which only a stuck link would cause).
+    /// Ask for something and say whether the link took it; returns at
+    /// once. A caller that waits on the answer settles what it set
+    /// pending when the command comes back.
+    ///
+    /// # Errors
+    /// The link's queue is full, or the link stopped: the command, given
+    /// back.
+    pub fn submit(&self, command: Command) -> Result<(), Unsent> {
+        offer(&self.commands, command)
+    }
+
+    /// Ask for something nothing waits on; returns at once (a command the
+    /// link does not take is dropped and logged).
     pub fn send(&self, command: Command) {
-        if let Err(error) = self.commands.try_send(command) {
-            tracing::warn!(%error, "the link is not taking commands");
+        if let Err(unsent) = self.submit(command) {
+            tracing::warn!(why = %unsent.why, "the link is not taking commands");
         }
+    }
+
+    /// A link with no task behind its queue, `room` commands deep, and
+    /// the queue's other end: for a test that fills the queue.
+    ///
+    /// # Errors
+    /// The runtime could not be started.
+    #[cfg(feature = "testing")]
+    pub fn detached(room: usize) -> std::io::Result<(Self, mpsc::Receiver<Command>)> {
+        let (commands, inbox) = mpsc::channel(room);
+        let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+        Ok((
+            Self {
+                commands,
+                _runtime: runtime,
+            },
+            inbox,
+        ))
     }
 }
 
@@ -390,7 +567,14 @@ struct State {
     follow_machine: Option<String>,
     book_path: machines::BookPath,
     workspace: workspace::Hub,
+    agents: agents::Hub,
+
     device_calls: devices::Hub,
+    sync_calls: sync::Hub,
+    /// The agents' lists kept between runs, by node: read before the first
+    /// connection, written when an answer differs (on the blocking pool;
+    /// the lock is held only there and for a lookup at connect).
+    offers: std::sync::Arc<std::sync::Mutex<offers::Store>>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -405,6 +589,16 @@ struct Connected {
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
     async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
+        // The kept lists first, so the first connection hands them over.
+        let path = offers::Store::default_path();
+        match tokio::task::spawn_blocking(move || offers::Store::load(path)).await {
+            Ok(store) => {
+                if let Ok(mut kept) = self.offers.lock() {
+                    *kept = store;
+                }
+            }
+            Err(error) => tracing::warn!(%error, "the kept agent lists were not read"),
+        }
         self.reload().await;
         let mut tick = tokio::time::interval(REFRESH);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -422,7 +616,23 @@ impl State {
     async fn handle(&mut self, command: Command) {
         match command {
             Command::Reload => self.reload().await,
+            Command::Agents {
+                machine,
+                request,
+                ask,
+            } => {
+                let client = self
+                    .clients
+                    .get(machine.as_str())
+                    .map(|connected| connected.client.clone());
+                self.agents
+                    .ask(client, machine, request, ask, self.events.clone())
+                    .await;
+            }
+
             Command::Machines(ask) => self.machine_book(ask).await,
+            Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
+            Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -445,6 +655,12 @@ impl State {
                 self.start(&machine, harness, folder, prompt, options).await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
+            Command::KeepCommands {
+                machine,
+                harness,
+                commands,
+            } => self.keep_commands(&machine, harness, commands),
+            Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
             Command::Resume {
                 machine,
                 session,
@@ -476,7 +692,7 @@ impl State {
                     self.reload().await;
                 }
                 Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
-                Err(error) => self.emit(Event::PairFailed(error.to_string())).await,
+                Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
             },
             Command::Act {
                 machine,
@@ -484,6 +700,7 @@ impl State {
                 act,
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
+            Command::Search(ask) => self.search(ask),
             Command::SavePrefs(prefs) => {
                 let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
                 match saved {
@@ -523,9 +740,14 @@ impl State {
         let mut machines = Vec::with_capacity(book.len());
         for (name, entry) in book {
             let name = name.as_str().to_owned();
-            let reach = match self.clients.get(&name) {
-                Some(connected) => Ok(connected.clone()),
-                None => self.connect(&entry).await,
+            let reach = if let Some(connected) = self.clients.get(&name) {
+                Ok(connected.clone())
+            } else {
+                let reach = self.connect(&entry).await;
+                if let Ok(connected) = &reach {
+                    self.hand_kept(&name, &connected.client).await;
+                }
+                reach
             };
             let machine = match reach {
                 Ok(connected) => match connected.client.sessions().await {
@@ -537,6 +759,7 @@ impl State {
                                 .collect(),
                             agents: connected.agents.clone(),
                             protocol: Some(connected.client.protocol()),
+                            version: Some(NodeVersion::new(&connected.client.node().version)),
                             name: name.clone(),
                             reach: Reach::Online,
                         };
@@ -546,10 +769,10 @@ impl State {
                     Err(error) => {
                         // A dropped connection: dial again next time.
                         let _gone = self.clients.remove(&name);
-                        unreachable(name, &error.to_string())
+                        Machine::unreachable(name, &error.to_string())
                     }
                 },
-                Err(error) => unreachable(name, &error.to_string()),
+                Err(error) => Machine::unreachable(name, &error.to_string()),
             };
             machines.push(machine);
         }
@@ -586,6 +809,49 @@ impl State {
             Agent::all(&harnesses)
         };
         Ok(Connected { client, agents })
+    }
+
+    /// A machine just connected: the lists its agents gave last time, if
+    /// any are kept ([`Event::OptionsKept`]).
+    async fn hand_kept(&self, machine: &str, client: &NodeClient) {
+        let node = &client.node().id;
+        let lists: Vec<KeptLists> = match self.offers.lock() {
+            Ok(store) => store
+                .for_node(node)
+                .into_iter()
+                .filter(|kept| kept.profile.is_none())
+                .map(|kept| KeptLists {
+                    harness: kept.agent.clone(),
+                    options: kept.options.clone(),
+                    commands: kept.commands.clone(),
+                })
+                .collect(),
+            Err(_poisoned) => Vec::new(),
+        };
+        if !lists.is_empty() {
+            self.emit(Event::OptionsKept {
+                machine: machine.to_owned(),
+                lists,
+            })
+            .await;
+        }
+    }
+
+    /// Keep a session's reported commands for `harness` on `machine`'s
+    /// node (by its id, as its options are); a machine not connected has no
+    /// id to keep them under, and they are dropped (its next session
+    /// reports them again).
+    fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
+        let Ok(client) = self.client(machine) else {
+            return;
+        };
+        drop(tokio::spawn(offers::keep_answer(
+            std::sync::Arc::clone(&self.offers),
+            client.node().id,
+            harness,
+            offers::Said::Commands(commands),
+            Utc::now(),
+        )));
     }
 
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
@@ -648,13 +914,26 @@ impl State {
     fn options(&self, machine: String, harness: HarnessRef) {
         let client = self.client(&machine).cloned();
         let events = self.events.clone();
+        let store = std::sync::Arc::clone(&self.offers);
         drop(tokio::spawn(async move {
             let outcome = match client {
-                Ok(client) => client
-                    .harness_options(harness.clone(), None)
-                    .await
-                    .map(|offered| offered.options)
-                    .map_err(|error| error.to_string()),
+                Ok(client) => {
+                    let answer = client.harness_options(harness.clone(), None).await;
+                    // Kept beside the answer, not before it: the disk
+                    // never delays what the app shows.
+                    if let Ok(offered) = &answer {
+                        drop(tokio::spawn(offers::keep_answer(
+                            store,
+                            client.node().id,
+                            harness.clone(),
+                            offers::Said::Options(offered.options.clone()),
+                            offered.probed_at,
+                        )));
+                    }
+                    answer
+                        .map(|offered| offered.options)
+                        .map_err(|error| error.to_string())
+                }
                 Err(error) => Err(error.to_string()),
             };
             let _closed = events
@@ -768,17 +1047,6 @@ impl State {
             ))
             .await;
         }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn unreachable(name: String, why: &str) -> Machine {
-    Machine {
-        name,
-        reach: Reach::Unreachable(why.to_owned()),
-        sessions: Vec::new(),
-        agents: Vec::new(),
-        protocol: None,
     }
 }
 

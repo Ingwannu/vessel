@@ -1,6 +1,6 @@
 # G2 resume: schedules and the shared controls
 
-Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read the strict/common/app/overnight briefs and current kit ledger before changing anything. Finish the current menu runtime validation; do not install the prepared next controls or start another merge in this session.
+Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read the strict/common/app briefs and current kit ledger before changing anything. The published desktop base `56a7cbd3` is now being integrated; see `backend-m12-g2-published-integration.md` for conflict decisions and verification limits. The schedules list is the next feature slice. Earlier stop-only instructions below are historical, not a ban on the resumed work.
 
 ## Committed and reviewed
 

@@ -23,7 +23,13 @@ pub(crate) fn status(status: &SessionStatus) -> String {
         SessionStatus::Running => "running".to_owned(),
         SessionStatus::Exited { code: Some(code) } => format!("exited ({code})"),
         SessionStatus::Exited { code: None } => "exited (killed)".to_owned(),
-        SessionStatus::Failed { message } => format!("failed: {message}"),
+        // A fork that never held a conversation (protocol 14): nothing to
+        // resume, only to remove.
+        SessionStatus::Failed {
+            message,
+            empty_fork: true,
+        } => format!("failed: {message} (an empty fork: `vessel session delete` removes it)"),
+        SessionStatus::Failed { message, .. } => format!("failed: {message}"),
         SessionStatus::Interrupted => "interrupted".to_owned(),
     }
 }
@@ -96,7 +102,7 @@ pub(crate) fn mode(mode: &SessionMode) -> String {
 
 pub(crate) fn node(node: &NodeInfo) -> String {
     format!(
-        "node      {} ({})\nhost      {} {}/{}\nversion   {} (protocol {}..={})\nstarted   {}\n",
+        "node      {} ({})\nhost      {} {}/{}\nversion   {} (protocol {}..={})\nstarted   {}\ntimezone  {}\n",
         node.name,
         node.id,
         node.hostname,
@@ -106,11 +112,25 @@ pub(crate) fn node(node: &NodeInfo) -> String {
         node.protocol.min,
         node.protocol.max,
         node.started_at.to_rfc3339(),
+        node.timezone
+            .as_ref()
+            .map_or("unknown", |zone| zone.as_str()),
     )
 }
 
 /// `vessel node status`: the node, whether it takes new sessions, how many
 /// are live, and whether it runs this client's version.
+/// `vessel node settings`: the settings in force (protocol 12).
+pub(crate) fn node_settings(settings: vessel_proto::settings::NodeSettings) -> String {
+    use vessel_proto::parking::ParkAfter;
+    let park_after = match settings.park_after {
+        ParkAfter::Never => String::from("never"),
+        ParkAfter::Idle { minutes } => format!("after {} minutes idle", minutes.get()),
+        ParkAfter::Unknown => String::from("a newer node's choice"),
+    };
+    format!("park an idle agent: {park_after}\n")
+}
+
 pub(crate) fn node_status(node: &NodeInfo, sessions: &[SessionInfo], client: &str) -> String {
     let state = match node.state {
         NodeState::Serving => "serving",

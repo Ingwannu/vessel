@@ -10,6 +10,7 @@
 
 mod cron;
 mod hook;
+mod preview;
 mod prompt;
 mod run;
 mod schedule;
@@ -21,6 +22,7 @@ pub use hook::{
     HookDelivery, HookInfo, HookList, HookListener, HookSecret, InvalidHookSecret, ListDeliveries,
     ListHooks, Rejection, RotateHook, UpdateHook,
 };
+pub use preview::{PreviewCount, PreviewSchedule, SchedulePreview, SchedulePreviewError};
 pub use prompt::{CreatePrompt, DeletePrompt, ListPrompts, PromptList, SavedPrompt, UpdatePrompt};
 pub use run::{
     ListRuns, RunEnd, RunError, RunErrorCode, RunList, RunNumber, RunOutcome, RunTrigger,

@@ -1,7 +1,7 @@
 //! The page's `data/prefs.test.ts`, `compose-keys.test.ts` and the
 //! bridge's own tests of the same document (`wire/prefs.rs`,
 //! `wire/prefs/keys.rs`, `wire/prefs/change.rs`): the same JSON, the
-//! same rules.
+//! same rules, plus the app-only language preference.
 
 use std::collections::BTreeMap;
 
@@ -15,7 +15,7 @@ use crate::prefs::{
     Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme, TurnDelivery,
 };
 
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
 
 fn change(json: &str) -> PreferenceChange {
     serde_json::from_str(json).unwrap()
@@ -28,7 +28,22 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    assert_eq!(serde_json::to_string(&values).unwrap(), DEFAULT);
+    // Keep the page/bridge fixture unchanged. The native document adds two
+    // explicit fields (the language, and Appearance's Animations, word 39);
+    // every byte of its other defaults still comes from that fixture, and
+    // both old and extended documents must read identically.
+    let native_default = DEFAULT
+        .replacen('{', r#"{"language":"system","#, 1)
+        .replacen(
+            r#""conversation":"full""#,
+            r#""conversation":"full","animations":"on""#,
+            1,
+        );
+    assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
+    assert_eq!(
+        serde_json::from_str::<Preferences>(&native_default).unwrap(),
+        values
+    );
     assert_eq!(
         serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
         values
@@ -383,4 +398,24 @@ fn action_ids_are_the_pages_own_shape() {
     ] {
         assert_eq!(bad.parse::<ActionId>(), Err(InvalidActionId), "{bad:?}");
     }
+}
+
+/// Word 39: Animations is kept, changed alone, and an unknown value reads
+/// as the default (on) rather than failing the whole document.
+#[test]
+fn animations_are_kept_changed_alone_and_lenient() {
+    use crate::prefs::Animations;
+    let values = Preferences::default();
+    assert_eq!(values.appearance.animations, Animations::On);
+    let off = values
+        .changed(&PreferenceChange::Animations(Animations::Off))
+        .unwrap();
+    assert_eq!(off.appearance.animations, Animations::Off);
+    assert!(!off.appearance.animations.on());
+    assert_eq!(off.appearance.theme, values.appearance.theme);
+    let read: Preferences = serde_json::from_str(r#"{"appearance":{"animations":"off"}}"#).unwrap();
+    assert_eq!(read.appearance.animations, Animations::Off);
+    let unknown: Preferences =
+        serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
+    assert_eq!(unknown.appearance.animations, Animations::On);
 }

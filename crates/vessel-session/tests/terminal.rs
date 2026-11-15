@@ -240,7 +240,9 @@ mod support {
                 | SessionEvent::CommandsChanged { .. }
                 | SessionEvent::UsageChanged { .. }
                 | SessionEvent::Parked { .. }
-                | SessionEvent::Woken) => {
+                | SessionEvent::Woken
+                | SessionEvent::Forked { .. }
+                | SessionEvent::Rewound { .. }) => {
                     panic!("last record is not a status: {other:?}")
                 }
             }
@@ -589,7 +591,7 @@ async fn launch_problems_are_typed_errors() {
 
 #[tokio::test]
 async fn an_ended_session_can_be_removed_and_its_holders_carry_on() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::new(DEFAULT_RING_CAPACITY, DEFAULT_DURABLE_CAPACITY);
         let created = fixture
             .runtime
@@ -643,7 +645,7 @@ async fn an_ended_session_can_be_removed_and_its_holders_carry_on() {
             SessionStatus::Exited { code: Some(4) }
         );
         assert_eq!(late.records, stored);
-    })
+    }))
     .await;
 }
 
@@ -695,7 +697,7 @@ async fn a_process_that_escaped_the_group_does_not_keep_the_session_open() {
 /// has ended.
 #[tokio::test]
 async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::new(DEFAULT_RING_CAPACITY, DEFAULT_DURABLE_CAPACITY);
         let created = fixture
             .runtime
@@ -772,7 +774,7 @@ async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
             ))
         );
         drop(stored.await.unwrap());
-    })
+    }))
     .await;
 }
 
@@ -782,7 +784,7 @@ async fn a_terminal_is_working_while_it_prints_and_idle_when_quiet() {
 /// publisher's pure `place`.
 #[tokio::test]
 async fn output_alone_does_not_wake_info_watchers() {
-    within(async {
+    within(Box::pin(async {
         let fixture = Fixture::new(DEFAULT_RING_CAPACITY, DEFAULT_DURABLE_CAPACITY);
         let created = fixture
             .runtime
@@ -821,6 +823,6 @@ async fn output_alone_does_not_wake_info_watchers() {
         handle.kill();
         let _end = handle.ended().await;
         drop(stored.await.unwrap());
-    })
+    }))
     .await;
 }

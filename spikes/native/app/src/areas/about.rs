@@ -28,6 +28,8 @@
 //!   page, then Vessel's licence and the parts the app is built from with
 //!   theirs, as the page's About; its own screen and route are gone.
 
+mod marks;
+
 use std::path::PathBuf;
 
 use crate::update::UpdateState;
@@ -39,7 +41,8 @@ use vessel_app_kit::ui::{
     div, px,
 };
 use vessel_app_kit::{
-    Tokens, Type, TypeExt as _, button, glyph, markdown, outline_button, settings,
+    ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, button_with_kind, glyph, markdown,
+    outline_button, settings,
 };
 
 use crate::shell::Shell;
@@ -147,7 +150,10 @@ pub(crate) fn content(
         .flex_col()
         // The page's name for it: the page's title says About already.
         .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
+        // Paseo's "Connected hosts", Settings' (`settings/connected.rs`).
+        .children(crate::areas::settings::connected::section(shell, tokens, compact))
         .child(settings::section(about.software, licences, tokens))
+        .child(marks::section(shell, tokens, compact, cx))
         .into_any_element()
 }
 
@@ -304,24 +310,33 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
     if !busy {
         check = check.on_click(cx.listener(|this, _event, _window, cx| this.check_for_updates(cx)));
     }
-    let mut update = button(
+    // Paseo's `DesktopAppUpdateRow`: the update button is always there,
+    // filled, and disabled unless a build is ready to install (the kit's
+    // disabled state: half opacity, no hover, no handler); before, an
+    // enabled button was faded by hand and still lit on hover.
+    let label = ready
+        .as_deref()
+        .map_or_else(|| words.update.to_owned(), |label| words.update_to(label));
+    let installable = if ready.is_some() && !busy {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
+    let mut update = button_with_kind(
         "about-update",
-        ready
-            .as_deref()
-            .map_or_else(|| words.update.to_owned(), |label| words.update_to(label)),
-        true,
+        label,
+        ButtonKind::Primary,
+        installable,
         tokens,
     )
     .flex_shrink_0();
-    update = if ready.is_some() {
-        update.on_click(cx.listener(|this, _event, window, cx| {
+    if installable == ButtonState::Enabled {
+        update = update.on_click(cx.listener(|this, _event, window, cx| {
             this.areas.about.confirm = true;
             this.areas.about.confirm_dialog.focus(window, cx);
             cx.notify();
-        }))
-    } else {
-        update.opacity(0.5).cursor_default()
-    };
+        }));
+    }
     let controls = div()
         .flex()
         .flex_row()
@@ -414,6 +429,10 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
     )
 }
 
+/// The tallest the banner's notes are drawn before they scroll, points:
+/// about five lines of meta text.
+const NOTES_MOST: f32 = 96.0;
+
 /// The note shown once after an update, at the top of the frame.
 pub(crate) fn updated(
     shell: &Shell,
@@ -433,8 +452,15 @@ pub(crate) fn updated(
         .bg(tokens.bg_well)
         .border_b_1()
         .border_color(tokens.border_faint)
+        // `min_w` 0 on the words: GPUI measures a text's least width
+        // unwrapped, so a long line of notes widened the banner past a
+        // window that was not maximised and the frame cut it, Dismiss
+        // with it (the owner's word 40); now the notes wrap and Dismiss
+        // keeps its width.
         .child(
             div()
+                .flex_1()
+                .min_w_0()
                 .flex()
                 .flex_col()
                 .gap(px(4.0))
@@ -444,20 +470,25 @@ pub(crate) fn updated(
                         .text_color(tokens.text_primary)
                         .child(words.updated_to(&updated.label)),
                 )
-                .children(
-                    updated
-                        .notes
-                        .clone()
-                        .map(|notes| line(notes, tokens.text_secondary)),
-                ),
+                // At most a few lines tall, scrolled past that: in a small
+                // window the whole notes pushed the composer below the
+                // frame (About keeps them in full).
+                .children(updated.notes.clone().map(|notes| {
+                    div()
+                        .id("updated-notes")
+                        .max_h(px(NOTES_MOST))
+                        .overflow_y_scroll()
+                        .child(line(notes, tokens.text_secondary))
+                })),
         )
         .child(
-            button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
+            div().flex_none().child(
+                button("dismiss-updated", words.dismiss, false, tokens).on_click(cx.listener(
                 |this, _event, _window, cx| {
                     this.updated = None;
                     cx.notify();
                 },
-            )),
+            ))),
         )
 }
 

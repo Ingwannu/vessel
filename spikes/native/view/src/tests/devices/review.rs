@@ -20,11 +20,11 @@ fn exact_hover_uses_the_viewers_offset_to_seconds_without_storage_fractions() {
     };
     assert_eq!(
         exact(Lang::En, &device, offset),
-        "Paired: 2026-11-11 21:28:27 (UTC+9)\nLast seen: 2026-11-12 09:00:00 (UTC+9)"
+        "Paired: 2026-11-11 21:28:27 (UTC+9)\nLast seen: 2026-11-12 09:00:00 (UTC+9)\nAccess: Read information, Run sessions"
     );
     assert_eq!(
         exact(Lang::Ko, &device, offset),
-        "페어링: 2026-11-11 21:28:27 (UTC+9)\n마지막 접속: 2026-11-12 09:00:00 (UTC+9)"
+        "페어링: 2026-11-11 21:28:27 (UTC+9)\n마지막 접속: 2026-11-12 09:00:00 (UTC+9)\n권한: 정보 읽기, 세션 실행"
     );
     let west = FixedOffset::west_opt(5 * 3600 + 30 * 60).unwrap();
     assert_eq!(
@@ -54,11 +54,11 @@ fn older_calendar_dates_are_the_viewers_date_in_both_languages() {
     );
     assert_eq!(
         details(Lang::En, &device, now, offset),
-        "Can read, run sessions\nLast seen on Nov 2\nPaired on Nov 2"
+        "Run sessions · seen on Nov 2"
     );
     assert_eq!(
         details(Lang::Ko, &device, now, offset),
-        "권한: 읽기, 세션 실행\n마지막 접속: 11월 2일\n페어링: 11월 2일"
+        "세션 실행 · 11월 2일 접속"
     );
 }
 

@@ -105,7 +105,13 @@ test("a kind the agent does not take is refused, and Send says so", () => {
   tray.add([file("shot.png", "image/png")]);
   tray.target({
     calls: node().calls,
-    abilities: { steer: false, resume: false, image: false, audio: false },
+    abilities: {
+      steer: false,
+      resume: false,
+      image: false,
+      audio: false,
+      fork: false,
+    },
     limits: LIMITS,
     agent: "Codex",
   });
@@ -127,7 +133,13 @@ test("an image whose first bytes are not its type's is not sent", async () => {
   const fake = node();
   tray.target({
     calls: fake.calls,
-    abilities: { steer: false, resume: false, image: true, audio: false },
+    abilities: {
+      steer: false,
+      resume: false,
+      image: true,
+      audio: false,
+      fork: false,
+    },
     limits: LIMITS,
     agent: "Codex",
   });

@@ -112,13 +112,98 @@ start to `start_in_place` (a start without a project is the lead's
 (`link/src/workspace/start.rs`) runs a project's folder as it is
 (`SessionPlace::Project`) as well as a new worktree.
 
-The code panel's seams: `code_panel(shell, tokens, window, cx)` beside
-the conversation column in the lead's `session.rs`, `code_toggle(shell,
+The code panel's seams: `code_beside(shell, screen, tokens, window, cx)`
+in the lead's `session.rs` (the session screen comes back with the panel
+beside its conversation column when the panel is out; the row is this
+track's so a drag at the panel's edge measures the row and leaves the
+conversation 480, and a narrower window takes the panel's width first,
+down to 320), `code_toggle(shell,
 tokens, narrow, cx)` in track C's bar; track G1's git actions at the head
 of the Changes tab through `code::changes::git_head(shell, machine, root,
 tokens, window, cx) -> Option<AnyElement>` (its body is G1's one call).
 The panel reads where the session runs with `session.get` (the card has
-no root) and says so when the session is in no project.
+no root) and says so when the session is in no project. After a git
+write of G1's succeeds, G1 calls `Shell::code_git_changed(machine, root,
+cx)`: when the panel shows that root, the open tab is read again and
+what it shows stays until the answers replace it; the tab not shown,
+or the whole panel while it is closed, is marked stale and read again
+when it is next shown (G1's finding: a closed panel was being read,
+and a hidden tab kept what was true before the write). The Changes
+tab's refresh button reads the open tab again.
+
+A file opened at a desktop's width is edited in place (Paseo's Source
+panel, `file-panels/source/`): the model is `view::workspace::editor`
+(Paseo's `FileEditorModel` as a state machine with its test cases: the
+800 ms autosave, a save guarded by the hash the edit started from,
+Overwrite, Reload asked first when the buffer has changes, a re-read
+after a git write that a clean buffer follows and a modified one meets
+as "Changed on disk", a file gone as "File deleted on disk", the write
+made when the file is left). The control is the kit's `code_editor`
+(the engine's code-editor kind in the kit's colours, the code face with
+Pretendard behind it, syntax from the view's lexer through
+`LineSyntax`, its kinds coloured by the current theme on every draw;
+code keeps each line on one row and scrolls sideways, Markdown wraps,
+Paseo's `WRAPPED_EXTENSIONS`, `view::workspace::editor::wraps`).
+Paseo's toolbar sits over it (size and lines; the dot, "Saving..." or
+"Save failed"; "Ln, Col" and "Add lines … to chat" in a small view of
+their own, since the editor redraws on every blink of its caret).
+Paseo's rules for what is editable are kept: at most 1 MiB (read whole
+in one page, the node's largest), never at a phone's width; anything
+else is shown read-only as before. Difference, named: the node has no
+watch of a file, so a change on disk shows at the next save or re-read,
+not at once.
+
+Motion (the owner's word 39): what the person's own action brings in
+comes in once, as a fade on the kit's tokens (`code/appear.rs`): the
+dot, "Saving..." and "Save failed" and the selection's "Add lines … to
+chat" over `QUICK`, the conflict bar as a surface over `STANDARD`. Each
+is keyed by an id naming the mark, not its text, so it does not play
+again while it stays (a wider selection, Overwrite coming and going); a
+mark that leaves is gone at once. While motion is held the end is drawn
+at once (GPUI's one-shot transitions under `reduce_motion`).
+
+Track P's seams (the composer): a selection or a file handed to the
+composer is a value, `view::workspace::reference::FileReference` (root,
+path, an optional `LineRange`, the text sent), keyed, titled and
+subtitled as Paseo's `WorkspaceFileComposerAttachment`
+(`attachments/workspace-file.ts`); P's `Shell::composer_add_reference`
+shows it as a chip and sends its text. Until that entry exists the panel
+puts the text in the draft as before. `@` in the composer finds files
+through `Shell::code_find_files(key, query, limit)` (P's own search key;
+the open session's root is read once per session and kept, a find asked
+before it is known waits for it and says `FindRefused::Reading`); an
+answer under a key that is not the panel's goes to
+`code::elsewhere::found_elsewhere`, P's slot. The node's find returns
+files only (its index is `git ls-files`), so `@` offers no folders.
+
+The Files tab searches: a file by its name as it is typed (`file.find`,
+keyed so a newer search stops an older one) or lines inside files on
+Enter (`file.grep`, literal, smart case), the two chosen by a segmented
+control beside the field; a hit opens the file at its line. An answer
+to any query but the one last sent is dropped: the node replaces an
+older find only when a newer one is sent, so after the field is
+emptied, refused as typed or switched, a late answer would otherwise
+show results the field no longer asks for. A line
+over the results says how many were found, and when the machine
+stopped early (a find over part of a large folder, a search in files
+past its 200 lines) it says so and asks for a narrower search. What
+made a result match is marked as Paseo's `components/ui/highlighted-text.tsx`
+marks it (the surface3 tint, the text in the foreground): a name's
+matched characters (the node counts them over the whole path, so the
+name and its folder are marked apart) and the words on a line (moved
+by the indent the row takes off). Paseo's explorer has no search
+inside files; the count line is this panel's own. In a file
+shown, a click on a line's number chooses it, Shift-click extends the
+choice, and "Add lines 12–20 to chat" puts agent-orchestrator's
+reference (the page's `reference.ts`) at the end of the session's
+draft. At a phone's width, where the panel covers the conversation, the
+panel closes after it (and after the tree's "Add to chat") so the draft
+is seen with what was added, as Paseo's compact layout closes its
+Explorer sheet. The panel is resized by dragging its left edge with the
+kit's resize handle, the sidebar's too (the owner's word 29; 320 at least,
+the conversation keeps 480 of the row, whatever the sidebar's width); the
+width is kept across restarts and a double-click on the edge returns to
+440 (`docs/plans/backend-m12-spike.md`, "Resizable side panels").
 
 ### Checked against the fake fleet
 
@@ -152,9 +237,11 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   폴더에서" / "새 워크트리에서"), and the branch pill carries "Start from"
   ("시작 브랜치") before the branch, where Paseo's badge shows the branch
   alone. Each also has a tooltip.
-- The code panel is 440 wide (Paseo's Explorer: 320, resizable) because
-  a file's diff is drawn in it (Paseo opens a diff in the main pane);
-  it does not resize yet. A diff's lines wrap (Paseo scrolls them by
+- The code panel starts 440 wide and is dragged no narrower than 320
+  (Paseo's Explorer: 320 and 240) because a file's diff is drawn in it
+  (Paseo opens a diff in the main pane).
+- A search inside files runs on Enter (Paseo's runs as typed, after a
+  pause): the node's grep has no key to stop an older one. A diff's lines wrap (Paseo scrolls them by
   default, wrapping on request): a row of a long list cannot scroll
   sideways on its own.
 - A sidebar project row starts a new chat in the project; Paseo's folds
@@ -178,3 +265,15 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   of this track passes.
 - `ProjectId` and `WorktreeId` are `Copy` UUIDs (not the opaque string ids
   the page's fixtures suggest): the tests use fixed UUIDs.
+- The editor's first captures (2026-11-14) showed two rows of the file:
+  the engine's editor is as tall as its parent, and the editing body sat
+  in the viewer's plain block with `flex_1`, which only a flex parent
+  honours, so the body was as tall as its content. The body now takes
+  its slot's whole size. The engine also wraps lines unless told not
+  to; the kit's editor now keeps code's lines unwrapped.
+
+## Where this track stands (2026-11-14 17:30 UTC, paused for budget)
+
+- Done: the landing 232717df (in 0.0.0.0.13); P's seams 46ed5a7f; the editor's model 91d79ec6; the kit's code editor 97b41744 and d129faf3 (code unwrapped, Paseo's padding, no current-line fill); the Files tab's editor 363802d5 and 6922382b (fills its slot, wraps only Markdown, its marks fade in on the motion tokens); the try-out fleet paired as a person pairs fe2becce; the lead's df74c3e0 merged as 894ea4f9. Whole gate green at 6922382b: fmt, clippy, 727 tests. Words 26 and 27 checked in this panel at 1.25 and 1.5 (menu, delete sheet, match marks, editor selection): fills stay inside their rounded shapes, and the kit's menu and dialog occlude what is under them.
+- Measured (release, virtual display, software renderer, the 2,500-line file open and focused): 20.5 % of a core idle with motion held; with motion on, 393 %, which includes the conversation's waiting spinner on the same screen: the editor's own share is not yet separated.
+- Next, in order: the Changes list following changes made outside the app (Paseo's behaviour first, then one hook with G1b's refresh, `code_git_changed`); a paragraph here on how the approval card draws a set's terminal commands when the node adds them (every one shown, or a typed refusal; never approved unseen); the audit's rows for this track; open by name from anywhere; reading past a file's first page.

@@ -26,8 +26,14 @@
 //!   Codex's shell wrapper is read as its script; the primary answer is the
 //!   one Approve would take (the first "once" allow, else the first allow,
 //!   the page's and GOAT's rule).
+//! - Reading the tool's input: the input is the agent's own JSON, of any
+//!   shape. The card reads two fields of it through types of their own
+//!   ([`PlanInput`], [`CommandInput`]), each read on its own, so a field of
+//!   another shape leaves the other readable and nothing else of the input
+//!   is taken; no untyped tree is walked.
 
-use vessel_proto::{PermissionOption, PermissionOptionKind, ToolKind};
+use serde::Deserialize;
+use vessel_proto::{PermissionOption, PermissionOptionKind, PermissionRequest, RawJson, ToolKind};
 
 use super::approval::{AnswerWords, allows, answer_words, answers_of};
 use super::entry::{Permission, ToolView};
@@ -92,19 +98,16 @@ pub fn permission_card<'a>(
 ) -> PermissionCard<'a> {
     let input = tool
         .and_then(|tool| tool.input.as_ref())
-        .and_then(|input| serde_json::from_str::<serde_json::Value>(input.as_text()).ok());
+        .map(RawJson::as_text);
     let plan = input
-        .as_ref()
-        .and_then(|input| input.get("plan"))
-        .and_then(serde_json::Value::as_str)
-        .filter(|plan| !plan.trim().is_empty())
-        .map(str::to_owned);
+        .and_then(|input| serde_json::from_str::<PlanInput>(input).ok())
+        .map(|input| input.plan)
+        .filter(|plan| !plan.trim().is_empty());
     let shell = tool.is_none_or(|tool| tool.kind == ToolKind::Execute);
     let command = input
-        .as_ref()
-        .and_then(|input| input.get("command"))
         .filter(|_| shell)
-        .and_then(command_text);
+        .and_then(|input| serde_json::from_str::<CommandInput>(input).ok())
+        .and_then(|input| input.command.text());
     let own = permission
         .title
         .as_deref()
@@ -120,20 +123,39 @@ pub fn permission_card<'a>(
             Some(_) | None => CardTitle::Required,
         }
     };
-    let options = &permission.request.options;
+    // Every field named on purpose, no `..` (unlike the other wire
+    // patterns, README "Rules every screen follows"): a person approves
+    // what this card shows, so a field the node adds must break the build
+    // here until the card shows it or refuses it by type. `id` is where
+    // the answer goes, not something shown; `tool_call` is `tool`, read by
+    // the caller (its title, command or plan are shown above).
+    let PermissionRequest {
+        id: _,
+        tool_call: _,
+        options,
+    } = &permission.request;
     let primary = answers_of(options).approve;
     let answers = options
         .iter()
         .zip(answer_words(options, say))
-        .map(|(option, words)| CardAnswer {
-            option,
-            words,
-            mark: if allows(option.kind) {
-                AnswerMark::Allow
-            } else {
-                AnswerMark::Reject
-            },
-            primary: primary.is_some_and(|primary| std::ptr::eq(primary, option)),
+        .map(|(option, words)| {
+            // The same guard for each answer: `name` is said by
+            // `answer_words`, `id` is what the answer sends.
+            let PermissionOption {
+                id: _,
+                name: _,
+                kind,
+            } = option;
+            CardAnswer {
+                option,
+                words,
+                mark: if allows(*kind) {
+                    AnswerMark::Allow
+                } else {
+                    AnswerMark::Reject
+                },
+                primary: primary.is_some_and(|primary| std::ptr::eq(primary, option)),
+            }
         })
         .collect();
     PermissionCard {
@@ -145,20 +167,41 @@ pub fn permission_card<'a>(
     }
 }
 
-/// A command as the agent gave it: a line, or the words of a call
-/// (`["bash", "-lc", "script"]` reads as its script).
-fn command_text(command: &serde_json::Value) -> Option<String> {
-    if let Some(line) = command.as_str() {
-        return Some(line.trim_end().to_owned()).filter(|line| !line.is_empty());
-    }
-    let words: Vec<&str> = command
-        .as_array()?
-        .iter()
-        .map(serde_json::Value::as_str)
-        .collect::<Option<_>>()?;
-    match words.as_slice() {
-        [_, flag, script] if matches!(*flag, "-c" | "-lc") => Some((*script).to_owned()),
-        [] => None,
-        words => Some(words.join(" ")),
+/// The plan a tool's input carries (Claude Code leaving plan mode puts its
+/// Markdown under `plan`); the input's other fields are not read.
+#[derive(Deserialize)]
+struct PlanInput {
+    plan: String,
+}
+
+/// The command a shell call's input carries; the input's other fields are
+/// not read.
+#[derive(Deserialize)]
+struct CommandInput {
+    command: Command,
+}
+
+/// A command as the agent gives it.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum Command {
+    /// A line for a shell (Claude Code's).
+    Line(String),
+    /// The words of a call (Codex's `["bash", "-lc", "script"]`).
+    Words(Vec<String>),
+}
+
+impl Command {
+    /// What the card's box says: the line, a shell wrapper's script, or
+    /// the call's words joined.
+    fn text(self) -> Option<String> {
+        match self {
+            Self::Line(line) => Some(line.trim_end().to_owned()).filter(|line| !line.is_empty()),
+            Self::Words(words) => match words.as_slice() {
+                [_, flag, script] if matches!(flag.as_str(), "-c" | "-lc") => Some(script.clone()),
+                [] => None,
+                words => Some(words.join(" ")),
+            },
+        }
     }
 }
