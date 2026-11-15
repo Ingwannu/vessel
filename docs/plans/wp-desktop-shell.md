@@ -397,14 +397,18 @@ and 85%/90% fitting caps remain unchanged. Captured open cycles protect close an
 reveal callbacks; actual close alone acknowledges ReturnFocus and clears snap
 state. Configured bounds and snap/scroll handoff have regression tests.
 
-The complete available release-owner notes 0.4 through 0.20 are bundled newest first,
+The complete available release-owner notes 0.4 through 0.21 are bundled newest first,
 including historical known problems/unchecked flows and Korean-only early notes.
 CHANGELOG.sources retains source hashes. Notes19/20 additionally match the supplied
 signed-manifest hashes: 98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae
 and f5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e.
-Running signed-feed notes supplement that history. No published Vessel changelog
+Release21 was published on2026-11-15 at14:02:47Z. Its exact2356-byte owner text
+was checked against signed-manifest hash
+3e610b0d0dd856bc970a10ae6bfdd2d74124d8ddb96c1aa6523aa8ecca5fb00c
+and added without changing any older note bytes or dropping its known-problem /
+not-checked lines. Running signed-feed notes supplement that history. No published Vessel changelog
 endpoint exists; never fetch Paseo releases. Reveal is 1 immediately, 5 after yield,
-then 10 more; 17 real releases make the paging controls meaningful.
+then 10 more; 18 real releases make the paging controls meaningful.
 
 ## Remaining integrations and deliberate differences
 

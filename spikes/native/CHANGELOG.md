@@ -1,5 +1,21 @@
 # Vessel native app
 
+## 0.0.0.0.21
+
+메뉴를 다시 열거나 대화상자 위에 메뉴를 겹쳐 연 뒤에도, 앞서 열렸던 메뉴로 보낸 키가 새 메뉴를 바꾸지 않습니다. 대화상자 안에서 연 메뉴를 Esc로 닫으면 그 메뉴만 닫히고 대화상자는 그대로 남습니다.
+대화상자를 닫으면 포커스가 그 대화상자를 연 자리로 돌아갑니다.
+창 크기를 바꾸면 대화 옆 개요 레일이 바로 따라옵니다(좁아지면 숨고 다시 넓히면 나타남).
+업데이트 다운로드가 끊기면 다음 시도에서 받은 데까지 확인한 뒤 나머지만 받습니다. 업데이트 파일은 압축본으로 받습니다(Windows 실행 파일 기준 약 52MB가 20MB 남짓). 두 가지 모두 이 빌드가 다음 빌드를 받을 때부터 적용됩니다. 0.0.0.0.20 이하에서 이 빌드로 올 때는 예전처럼 받습니다.
+알려진 문제: 이번 확인(Linux, 실제 노드에 릴레이로 연결)에서 새로 찾은 문제는 없습니다.
+화면으로 확인하지 못한 것: 대화상자 위에서 연 메뉴의 Esc 동작과 대화상자를 닫을 때 포커스 복귀(자동 시험으로만 확인), Windows 빌드 실행, 끊긴 업데이트의 이어받기와 압축본 받기(Linux에서 자동 시험으로만 확인), Windows에서의 이어받기.
+
+Menus: keys sent to a menu that was already replaced no longer change the newer menu, also when a menu opens above a dialog. Esc in such a menu closes only the menu; the dialog stays.
+Closing a dialog returns focus to what opened it.
+The outline rail beside a conversation follows window resizes (it hides when narrow and comes back when wide again).
+When an update download breaks off, the next attempt checks what arrived and fetches only the rest. Updates are downloaded as a compressed copy (the Windows executable's 52 MB becomes about 20 MB). Both apply from the next update this build downloads; coming to this build from 0.0.0.0.20 or earlier works as before.
+Known problems: none new found in this check (Linux, connected to a real node over the relay).
+Not checked on screen: Esc in a menu opened above a dialog and focus returning when a dialog closes (automated tests only), running the Windows build, resuming a broken-off update and downloading the compressed copy (shown by automated tests on Linux only), resuming on Windows.
+
 ## 0.0.0.0.20
 
 Ctrl+Alt+T로 테마를 차례로 바꿀 수 있습니다.
