@@ -289,3 +289,28 @@ immutable commit; a later source commit is not evidence for a queued old run.
 Capture executables must be exact-source remote exports with checked ABI,
 manifest and file hashes, using the assigned read-only shared root binaries
 when exporting only the app. A build/export is not a UI or whole-package pass.
+
+## Exact connection producer adoption
+
+G4's isolated074ade16..95c256bc producer was adopted only after V1's same-row
+source/narrow closure (8dfd5e01; Link78/0 and Clippy0). Its complete minimal
+range is required:95c2 alone is only its final test correction. No moving G4
+branch, external node head, Kit or HostErrors delta was merged. Canonical
+Machine.node plus the nonreused epoch now provide connection_context; one
+actor admission/retirement registry and selected_connection/call fence exist.
+This does not yet bind the old F1 requests: that repair is the next delta.
+
+Integration seams retain both Schedules and RetireConnection command/event/
+unsent registrations and both actor hubs/admissions. The producer's demo515
+record wins; G2's already lower picker644/slider711 records are retained.
+The old duplicate machine-book peer is removed in favour of G4's shared
+framed peer; its additive same-NodeId constructor supports the existing G2
+reconnect test. The notice still follows hand_kept before final Fleet.
+
+The reconnect regression now explicitly expects a new admission epoch, while
+comparing every other Machine field byte-for-value after normalizing only that
+one field. Calling the new Fleet wholly identical would be false. It uses the
+producer's outer/named in-memory deadlines and peer cleanup. This combined
+integration has source/format/size inspection only: neither producer's earlier
+narrow result is relabelled as a combined F1 compile/test/UI result. Final
+physical-context binding, security regressions and package checks remain owed.

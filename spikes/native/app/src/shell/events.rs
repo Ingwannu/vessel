@@ -18,6 +18,11 @@ impl Shell {
                 }
             }
             Event::Devices(answer) => self.devices_answer(answer, cx),
+            Event::DeviceRetired(context) => {
+                if !self.devices_retired(&context) {
+                    return;
+                }
+            }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
@@ -33,6 +38,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.devices_fleet();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;

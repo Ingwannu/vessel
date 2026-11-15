@@ -1,7 +1,6 @@
 //! Actor regressions use isolated book files and real framed RPC clients.
+mod connection_notices;
 mod edits;
 mod errors;
 mod fixtures;
-mod peer;
-
-mod connection_notices;
+use crate::testing::peer;
