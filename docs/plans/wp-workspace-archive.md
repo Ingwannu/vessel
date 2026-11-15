@@ -317,8 +317,13 @@ merge resolution. The VM generator must regenerate the combined A2 table before
 wire freshness or a final gate is claimed; no generated declaration is invented
 by hand. The current union has not passed its changed-source checks.
 
-The registry's six metadata RPCs remain unassigned and do not implement archive
-or restore effects. Restoring still requires canonical generation, actual backing
+The registry's six metadata RPCs are assigned protocol 25 on announced
+`1c762ccf`; they do not implement archive or restore effects. Restoring still requires canonical generation, actual backing
 postconditions and retained physical admission. Session logical archive receipts,
 terminal ended status, process revocation and `OwnedGroupExit` are not substitutes
 for the stronger cleanup evidence required before backing mutation.
+
+The node union also merges announced `1c762ccf` after its gate 52 passed. The A2
+feature constant stays None. The generated wire baseline is unchanged between
+`9c150c6e` and `1c762ccf`; combined A2 TypeScript generation and changed-source
+checks remain required. The unannounced listing/schema-21 candidate is excluded.
