@@ -96,9 +96,11 @@ through that same caller. Its options-only queued A13 was cancelled under A14; t
 package receives the required whole gate. No Models
 screen, loader or registry behavior is included in this move/registration.
 
-## A16 package boundary and remaining dispatcher headroom
+## Earlier package boundary and remaining dispatcher headroom
 
-Under A14, Models is the user-visible feature package. The extra queued
+Models was first prepared as a separate user-visible slice. It now belongs
+to the coordinator-assigned A9 package, whose final gate and review are
+combined with Providers and the registry under A14. The extra queued
 options-only whole gate was cancelled before acquiring a slot (exit 143,
 not a pass). The registered move did pass local narrow link Clippy and all
 65 link tests. Final Models source, one A13 gate and first-use captures are

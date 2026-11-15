@@ -38,7 +38,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use vessel_app_view::prefs::{self, PreferenceChange, Preferences, Refused};
+use vessel_app_view::prefs::{self, MAX_CHOICE_BYTES, PreferenceChange, Preferences, Refused};
 use vessel_proto::{ChoiceValue, HarnessRef, OptionChoice};
 
 use crate::LinkError;
@@ -100,9 +100,6 @@ pub struct Kept {
 
 /// The most choices kept for an agent (the page's `MAX_CHOICES`).
 const MAX_CHOICES: usize = 8;
-
-/// The longest id or value kept, in UTF-8 bytes (`MAX_CHOICE_BYTES`).
-const MAX_CHOICE_BYTES: usize = 64;
 
 fn fits(choice: &OptionChoice) -> bool {
     choice.id.as_str().len() <= MAX_CHOICE_BYTES
@@ -330,6 +327,8 @@ pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+
+    mod choice_limits;
 
     fn scratch(name: &str) -> std::io::Result<PathBuf> {
         let dir =

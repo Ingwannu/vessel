@@ -73,6 +73,9 @@ existing kept-choice writer. It reuses `prefs::Choices` bounds and option
 eligibility: an oversized or stale selection is a typed translated refusal,
 with previous preferences preserved, rather than a silently filtered save.
 This preflight does not acknowledge a later disk save.
+Saved option ids/select values share `view::prefs::MAX_CHOICE_BYTES` (256
+UTF-8 bytes) across validation and the existing Link writer. Model ids are
+opaque and may exceed 64 bytes; neither path truncates them.
 
 Provider-removal preparation stays in `view::agent_status::removal` and
 reuses the existing machine-page tickets. Agent snapshots retain the

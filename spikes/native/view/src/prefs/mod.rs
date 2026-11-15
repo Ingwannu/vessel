@@ -53,8 +53,10 @@ pub const MAX_ACTIONS: usize = 64;
 pub const MAX_MACHINES: usize = 32;
 /// The most choices kept for one agent on one machine.
 pub const MAX_CHOICES: usize = 8;
-/// The longest choice id or value kept, in UTF-8 bytes.
-pub const MAX_CHOICE_TEXT: usize = 64;
+/// Maximum UTF-8 bytes per saved option id or select value. Provider model
+/// ids are opaque strings and real ones exceed 64 bytes; Paseo stores them
+/// as given. Both validation and the file writer use this bound, never truncate.
+pub const MAX_CHOICE_BYTES: usize = 256;
 
 /// A value as the input says, or something this build does not read.
 #[derive(Deserialize)]
@@ -365,7 +367,7 @@ pub struct AgentDefaults {
     /// The profile; `None` is the agent's default.
     pub profile: Option<ProfileName>,
     /// The agent's own options and their values (at most
-    /// [`MAX_CHOICES`], each id and value at most [`MAX_CHOICE_TEXT`]).
+    /// [`MAX_CHOICES`], each id and value at most [`MAX_CHOICE_BYTES`] bytes).
     pub choices: Choices,
 }
 
@@ -390,9 +392,9 @@ impl TryFrom<BTreeMap<OptionId, ChoiceValue>> for Choices {
 
     fn try_from(choices: BTreeMap<OptionId, ChoiceValue>) -> Result<Self, TooMany> {
         let fits = |(id, value): (&OptionId, &ChoiceValue)| {
-            id.as_str().len() <= MAX_CHOICE_TEXT
+            id.as_str().len() <= MAX_CHOICE_BYTES
                 && match value {
-                    ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_TEXT,
+                    ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_BYTES,
                     ChoiceValue::Toggle { .. } => true,
                 }
         };

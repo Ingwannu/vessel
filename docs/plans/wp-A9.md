@@ -102,9 +102,12 @@ the node does not give individual omitted entries or per-entry reasons.
 ## Resume point and verification
 
 The configured-route Models candidate and protocol-admission compatibility
-repair are committed. Narrow compiler/runtime checks are still in progress;
-there is no A9 whole-gate, Models capture or completed-package claim.
-The comparator/source extraction is prepared for its narrow checks.
+repair are committed. Exact-source narrow compiler/runtime results and
+exploratory Models checks are recorded below; the new delegated shared
+limit still needs its changed-head checks. There is no A9 whole-gate,
+final capture matrix or completed-package claim. The canonical comparator
+has matching-source narrow runtime/compiler evidence and was handed off
+for reuse without claiming final package review.
 The isolated shared connection-ready producer is consumed without a menu
 dependency. Models adds one typed book-key/physical-node notice to that
 bounded fan-out. It clears current cached facts and pending reads on every
@@ -159,12 +162,14 @@ bound. The page now prepares the complete proposed choices in
 `view::agent_status::defaults` before touching preferences. It reuses the
 existing option eligibility function (the only shared-code seam is its
 private-to-crate visibility), Picks/choices_for behavior, and
-`view::prefs::Choices` validator. No new dependency, preference store, bound
-or change to the global writer is introduced.
+`view::prefs::Choices` validator. The original preflight introduced no dependency, preference store or
+writer change. The delegated shared bound update below now aligns validation
+and persistence without changing other preference behavior.
 
 The private Prepared vector exposes only its checked slice. Unknown,
 wrong-kind or ambiguous choices are refused before the writer; ids/values
-at 64 UTF-8 bytes and lists at eight entries retain the existing contract.
+at the shared 256 UTF-8-byte limit and lists at eight entries retain the
+current contract. The prior 64-byte guard was too short for real model ids.
 The area closes the picker and draws the shared error Alert on refusal,
 keeps previous preferences, and sends no SavePrefs command on that branch.
 A successful choice/reset clears the error; changing machine/agent or
@@ -173,11 +178,10 @@ sentences use generated `agent-defaults.ftl`.
 
 Tests cover a long but actually offered model, unchanged prior choices,
 default-value omission, byte/count edges (including Korean UTF-8), stale or
-wrong-kind choices, repeated ids and every whole translated sentence. The
-actual callback, disk persistence and captures still owe execution; no
-writer fix, saved-success acknowledgement or storage-contract change is
-claimed. This explicit refusal is a safety difference from the old silent
-filtering path, not a claim of larger model-id persistence support.
+wrong-kind choices, repeated ids and every whole translated sentence.
+The initial preflight left the writer's limit unchanged and made refusal
+visible. Its exploratory callback/file evidence and the later delegated
+shared limit update are recorded below; neither is full A9 UI approval.
 
 The first defaults Clippy run returned documentation-markup and explicit
 test-constructor lints. The correction quotes the existing type path and
@@ -212,3 +216,46 @@ README retains both sets of module notes; the size list keeps slider 711
 and the base's lower demo 517. The root source is the assigned base's,
 not a node change from this app package. Narrow checks below still need
 to cover this new merged tree before any current-source claim.
+
+## Delegated shared choice-byte limit
+
+[Decision Log]
+- Purpose: a real offered 67-byte model id must save without truncation.
+- Existing constraint: View and Link separately limited saved option ids and
+  select values to 64 bytes. The visible refusal guard prevented silent loss,
+  but did not make a valid long model persistable.
+- Alternatives: silently truncate opaque ids, maintain per-area storage, or
+  let the validator and writer keep separate limits.
+- Choice: the coordinator delegated one `prefs::MAX_CHOICE_BYTES` constant,
+  set to 256 UTF-8 bytes and used by both the validator and existing writer.
+  Paseo stores provider ids as given; real ids exceed 64 bytes.
+- Why and effects: the same representability contract covers Settings and
+  ordinary saved choices. The count of eight, file format, writer filtering,
+  atomic save, permissions and every other preference remain unchanged.
+
+The real-file regression follows the actual fake agent's 67-byte offered
+model through production preflight, keep_choices, atomic save and reload.
+A separately offered 257-byte value produces the existing translated error
+Alert meaning and leaves the prior preferences/file unchanged. Byte-edge
+fixtures cover 256/257 for both identifiers and values, including Korean
+UTF-8; count and stale-option rules remain intact. Narrow checks for this
+changed head are pending; no UI capture on this new bound is claimed.
+
+Earlier exact-source evidence remains attributed to `76557b9b`: changed-crate
+Clippy passed, then test run `agents-narrow-20261115T084535Z-76557b9b` passed
+1,215 tests with zero failures and two inherited ignores, including two doc
+cases. View, Kit, Link and App actually compiled. The local debug app then
+built after preparing the three already-required code faces. Exploratory
+EN/dark images at 1280 and 390 were opened personally: true empty and actual
+lists differ, query filtering works, and an actual narrow copy returns the
+complete 133-byte model identifier. A short default saved as `large`; the
+old 67-byte refusal visibly retained that prior value/file (0600). That last
+image documents the old limit, not the new 256-byte behavior or final A9 UI
+approval. Final whole-package gate, complete matrix and V1 review are owed.
+
+The first changed-source local Clippy returned 101 on the new test helper's
+`unwrap()` outside a `#[test]` body. The helper now returns its IO error;
+assertion sites inside the two tests keep the original checks. That red run
+is retained. The narrow check on this corrected commit will run remotely,
+as required by the operator's 10:3x build-only-on-VM rule; no whole A9 gate
+or new UI proof is claimed here.

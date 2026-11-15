@@ -2,8 +2,8 @@
 //!
 //! [Decision Log]
 //! - Purpose: selecting a long offered model must not silently discard it.
-//! - Constraint: the legacy writer filters oversized choices. Its storage
-//!   contract already exists in `prefs::Choices`; this area cannot raise it.
+//! - Constraint: the legacy writer filters oversized choices. Its shared
+//!   storage contract belongs to `prefs::Choices`, not to this area.
 //! - Choice: reuse option eligibility/picks and the canonical saved-choice
 //!   validator, then expose the unchanged validated slice to the writer.
 //! - Alternatives: truncate identifiers, add another store, or duplicate the

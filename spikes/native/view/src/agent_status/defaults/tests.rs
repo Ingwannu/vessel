@@ -31,8 +31,8 @@ fn model(values: &[&str]) -> SessionOption {
 }
 
 #[test]
-fn a_long_but_offered_model_is_refused_without_replacing_previous_defaults() {
-    let long = "m".repeat(65);
+fn an_offered_id_past_the_shared_bound_is_refused_without_replacing_previous_defaults() {
+    let long = "m".repeat(257);
     let options = [model(&["default", "old", &long])];
     let previous = [choice("model", "old")];
     let before = previous.clone();
@@ -55,11 +55,13 @@ fn a_long_but_offered_model_is_refused_without_replacing_previous_defaults() {
 
 #[test]
 fn saved_choice_byte_and_count_boundaries_match_the_existing_contract() {
+    assert_eq!(prefs::MAX_CHOICE_BYTES, 256);
     for (value, accepted) in [
-        ("v".repeat(64), true),
-        ("v".repeat(65), false),
-        (format!("{}a", "한".repeat(21)), true),
-        (format!("{}ab", "한".repeat(21)), false),
+        ("v".repeat(67), true),
+        ("v".repeat(256), true),
+        ("v".repeat(257), false),
+        (format!("{}a", "한".repeat(85)), true),
+        (format!("{}ab", "한".repeat(85)), false),
     ] {
         let proposed = vec![choice("model", &value)];
         assert_eq!(
@@ -69,9 +71,9 @@ fn saved_choice_byte_and_count_boundaries_match_the_existing_contract() {
             value.len()
         );
     }
-    assert!(checked(vec![choice(&"i".repeat(64), "v")]).is_ok());
+    assert!(checked(vec![choice(&"i".repeat(256), "v")]).is_ok());
     assert!(matches!(
-        checked(vec![choice(&"i".repeat(65), "v")]),
+        checked(vec![choice(&"i".repeat(257), "v")]),
         Err(SaveProblem::Storage(_))
     ));
     let choices: Vec<_> = (0..8)
