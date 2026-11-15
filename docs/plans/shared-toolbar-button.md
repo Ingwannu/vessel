@@ -1,7 +1,7 @@
 # Shared small toolbar icon chrome
 
-Status: source preparation; no compile, runtime, source-adoption or header parity
-claim. This adds the coordinator-assigned shared control, not a second ordinary
+Status: bounded source and affected narrow tests passed; header consumption and
+surface parity remain unverified. This is the shared control, not another ordinary
 Button renderer or a change to ButtonContent/Small/Medium sizing.
 
 ## Pinned reference
@@ -48,3 +48,18 @@ The requested checks cover literal20/32/14/18 values, selected/open/hover/presse
 paint, fixed disabled opacity and actual GPUI bounds/click refusal/re-enable.
 Header consumption, correct restore glyph/label choice, real menu ownership,
 keyboard/focus, inspected captures and surface parity require their own union.
+
+## Bounded split receipt
+
+Run `wp-layout-core-union-20261115T164427Z-36c8de04` passed strict all-target
+Kit/App Clippy. Runtime `wp-layout-core-union-20261115T170907Z-36c8de04`
+executed Kit206/0/0 and App108/1/2 ignored: the whole run is **red**. Its sole
+failure is an Explorer cold-cache fixture's initial-state assumption. Both
+literal toolbar cases and its actual GPUI bounds/disabled/re-enable case passed.
+The reviewed toolbar files equal the selected isolated a982e195 + 7ec5f81e
+source. This is affected-source evidence from that executed union, not separate
+execution of those leaf commits, Explorer approval or a whole-package pass.
+
+The lead selected only the toolbar and File guard sources for its next union.
+That newer line still needs its own gate; do not infer header, tooltip, physical
+keyboard/accessibility or latest-line approval from this bounded receipt.
