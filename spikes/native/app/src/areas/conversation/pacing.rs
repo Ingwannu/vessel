@@ -1,6 +1,7 @@
 //! Mounted-row presentation only: the canonical text, identity and copy stay with
 //! Timeline. No task/timer lives in a hidden session or crosses a resident epoch.
 use super::ConversationArea;
+use super::area::Shown;
 use std::time::{Duration, Instant};
 use vessel_app_kit::ui::{App, ElementId, Window};
 use vessel_app_view::timeline::{Entry, RevealClock, TextPhase, TextReveal};
@@ -78,25 +79,54 @@ pub(super) fn phase(area: &ConversationArea, entry: &Entry) -> TextPhase {
     }
 }
 
+/// Source-scoped local presentation, not input or transport authority.
+#[derive(Clone, Copy)]
+pub(super) struct Presentation<'a> {
+    pub(super) phase: TextPhase,
+    shown: Option<&'a Shown>,
+}
+
+pub(super) fn presentation<'a>(area: &'a ConversationArea, entry: &Entry) -> Presentation<'a> {
+    Presentation {
+        phase: phase(area, entry),
+        shown: area.shown.as_ref(),
+    }
+}
+
+fn scope(shown: &Shown) -> ElementId {
+    // Structured components avoid alias/session delimiter ambiguity. W12's
+    // admitted renderer still owns actual node/context/lease authorization.
+    (
+        ElementId::Name(shown.machine.clone().into()),
+        shown.session.to_string(),
+    )
+        .into()
+}
+
 /// A displayed prefix over the SAME target, cached only while this row is drawn.
 /// First sight is full; target growth waits for a frame, and completion is instant.
 pub(super) fn visible_end(
     id: ElementId,
     text: &str,
     version: u32,
-    phase: TextPhase,
+    presentation: Presentation<'_>,
     window: &mut Window,
     cx: &mut App,
 ) -> usize {
-    visible_end_with_clock(
-        id,
-        text,
-        version,
-        phase,
-        |kept| kept.epoch.elapsed(),
-        window,
-        cx,
-    )
+    let Some(shown) = presentation.shown else {
+        return text.len();
+    };
+    window.with_id(scope(shown), |window| {
+        visible_end_with_clock(
+            id,
+            text,
+            version,
+            presentation.phase,
+            |kept| kept.epoch.elapsed(),
+            window,
+            cx,
+        )
+    })
 }
 
 // The same renderer accepts a deterministic frame clock in its GPUI fixture;

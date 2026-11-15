@@ -65,7 +65,7 @@ pub(super) fn entry(
     index: usize,
     entry: &Entry,
     open: bool,
-    phase: TextPhase,
+    presentation: super::pacing::Presentation<'_>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -89,12 +89,12 @@ pub(super) fn entry(
             div().into_any_element()
         }
         EntryKind::Message { text } => {
-            let text = paced(paint, index, entry, text, phase, window, cx);
+            let text = paced(paint, index, entry, text, presentation, window, cx);
             bubbles::message(paint, index, text, entry.rev, window, cx)
         }
         EntryKind::Thought { text } => {
             let text = if open {
-                paced(paint, index, entry, text, phase, window, cx)
+                paced(paint, index, entry, text, presentation, window, cx)
             } else {
                 text
             };
@@ -163,23 +163,21 @@ fn paced<'a>(
     index: usize,
     entry: &Entry,
     text: &'a str,
-    phase: TextPhase,
+    mut presentation: super::pacing::Presentation<'_>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> &'a str {
-    let phase = if paint
+    if paint
         .find
         .is_some_and(|find| find.current_in(index).is_some())
     {
-        TextPhase::Complete
-    } else {
-        phase
-    };
+        presentation.phase = TextPhase::Complete;
+    }
     let end = super::pacing::visible_end(
         ElementId::NamedInteger("text-reveal".into(), entry.seq.get()),
         text,
         entry.rev,
-        phase,
+        presentation,
         window,
         cx,
     );

@@ -33,6 +33,7 @@ use std::rc::Rc;
 use vessel_app_kit::ui::{IntoElement as _, ParentElement as _, div};
 
 struct Probe {
+    scope: ElementId,
     text: String,
     revision: u32,
     phase: TextPhase,
@@ -46,15 +47,17 @@ impl Render for Probe {
         cx: &mut Context<'_, Self>,
     ) -> impl gpui::IntoElement {
         let now = self.now;
-        let end = visible_end_with_clock(
-            "pace-probe".into(),
-            &self.text,
-            self.revision,
-            self.phase,
-            |_| now,
-            window,
-            cx,
-        );
+        let end = window.with_id(self.scope.clone(), |window| {
+            visible_end_with_clock(
+                "pace-probe".into(),
+                &self.text,
+                self.revision,
+                self.phase,
+                |_| now,
+                window,
+                cx,
+            )
+        });
         let prefix = self.text.get(..end).unwrap();
         self.shown.borrow_mut().push(prefix.to_owned());
         div().child(prefix.to_owned()).into_any_element()
@@ -76,6 +79,7 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     let shown = Rc::new(RefCell::new(Vec::new()));
     let observed = Rc::clone(&shown);
     let (view, cx) = cx.add_window_view(move |_, _| Probe {
+        scope: "source-a".into(),
         text: "a".to_owned(),
         revision: 0,
         phase: TextPhase::Streaming,
@@ -130,6 +134,64 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     });
     draw(cx);
     assert_eq!(observed.borrow().last().unwrap().len(), 308);
+    assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
+}
+
+#[gpui::test]
+fn equal_entry_numbers_and_revisions_in_a_new_session_do_not_reuse_a_paced_prefix(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    cx.update(|cx| cx.set_reduce_motion(false));
+    let shown = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&shown);
+    let source_a = Shown {
+        machine: "same-route".to_owned(),
+        session: vessel_proto::SessionId::random(),
+    };
+    let source_b = Shown {
+        machine: source_a.machine.clone(),
+        session: vessel_proto::SessionId::random(),
+    };
+    assert_ne!(scope(&source_a), scope(&source_b));
+    let (view, cx) = cx.add_window_view(move |_, _| Probe {
+        scope: scope(&source_a),
+        text: "a".to_owned(),
+        revision: 0,
+        phase: TextPhase::Streaming,
+        shown,
+        now: Duration::ZERO,
+    });
+    draw(cx);
+    let _startup = cx.update(|window, cx| window.simulate_next_frame(cx));
+    view.update_in(cx, |probe, _, cx| {
+        probe.text.push_str(&"b".repeat(300));
+        probe.revision = 1;
+        cx.notify();
+    });
+    draw(cx);
+    assert_eq!(observed.borrow().last().unwrap(), "a");
+    let next_text = "새 세션".repeat(70);
+    view.update_in(cx, |probe, _, cx| {
+        probe.scope = scope(&source_b);
+        probe.text.clone_from(&next_text);
+        // A different source may reuse this revision and the same row number.
+        probe.revision = 1;
+        cx.notify();
+    });
+    draw(cx);
+    assert_eq!(observed.borrow().last().unwrap(), &next_text);
+    let draws = observed.borrow().len();
+    let callbacks = cx.update(|window, cx| window.simulate_next_frame(cx));
+    assert!(
+        callbacks <= 1,
+        "only the old source's bounded callback may drain"
+    );
+    assert_eq!(
+        observed.borrow().len(),
+        draws,
+        "old weak callback cannot wake the new row"
+    );
     assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
 }
 

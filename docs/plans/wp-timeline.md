@@ -1371,3 +1371,26 @@ scoped host/root/image authority and final UI acceptance remain separate.
   will consume the shared helper only after a checked union. Local tests cover
   source identity, assistant examples, hidden instruction terms, find offsets,
   optional legacy suffix, invalid XML and exact whitespace. Execution is owed.
+
+### Mounted pacing source isolation
+
+[Decision Log — 수정 사용]
+- Purpose: a local EventSeq/revision is not unique across sessions. Reusing a
+  mounted row's keyed reveal state could display an old session's partial length
+  on the first render of another session with the same numeric row key.
+- Existing assets and constraints: GPUI use_keyed_state retains state only across
+  consecutive frames, and its existing with_id scopes keyed children structurally.
+  The managed Area already has Shown route/session identity; readonly projections
+  always display Complete and need no reveal state.
+- Choice: pass one borrowed Presentation (phase plus existing Shown) from the
+  actual Area into both row renderers. Scope the same keyed helper under distinct
+  route and SessionId components; do not concatenate delimiters, hash identity,
+  allocate a session map/counter or rewrite canonical entries. Readonly bodies
+  return their full byte length before allocating mounted reveal state.
+- Why: a source switch drops the previous mounted state and its weak frame
+  callback cannot wake the new row. A GPUI regression switches between equal row
+  numbers/revisions while the old source has backlog and one callback outstanding.
+- Effects: display identity grants no input/network authority. W12 still owns
+  admission, authenticated node/resident/claim, lazy visible rendering and transport
+  retirement. This patch is not the live resident cutover. Its new source-switch
+  regression is not covered by the earlier e879322-pass run; execution is owed.
