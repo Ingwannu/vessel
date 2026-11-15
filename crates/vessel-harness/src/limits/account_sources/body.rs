@@ -44,11 +44,14 @@ impl AccountUsageProbe {
                 authorization.set_sensitive(true);
                 let endpoint =
                     endpoint(source, credential.region).ok_or((LimitFailure::Unsupported, None))?;
-                client
-                    .get(endpoint, &authorization, None)
-                    .await
-                    .map(http::Body::into_bytes)
-                    .map_err(|error| http::safe(&error))
+                cancellable(stop, async {
+                    client
+                        .get(endpoint, &authorization, None)
+                        .await
+                        .map(http::Body::into_bytes)
+                        .map_err(|error| http::safe(&error))
+                })
+                .await
             }
             Self::Recorded {
                 root,
@@ -97,6 +100,18 @@ impl AccountUsageProbe {
         }
     }
 }
+// Match the saved-login path: a cancelled capability must not poll a queued
+// HTTP operation, and cancellation during HTTP must drop that operation too.
+async fn cancellable<T>(
+    stop: &CancellationToken,
+    reading: impl Future<Output = Result<T, (LimitFailure, Option<DateTime<Utc>>)>>,
+) -> Result<T, (LimitFailure, Option<DateTime<Utc>>)> {
+    tokio::select! {
+        biased;
+        () = stop.cancelled() => Err((LimitFailure::Unsupported, None)),
+        result = reading => result,
+    }
+}
 fn endpoint(source: BuiltinUsageSource, region: Region) -> Option<Endpoint> {
     Some(match source {
         BuiltinUsageSource::Copilot => Endpoint::Copilot,
@@ -111,4 +126,56 @@ fn endpoint(source: BuiltinUsageSource, region: Region) -> Option<Endpoint> {
         BuiltinUsageSource::Zai => Endpoint::Zai,
         BuiltinUsageSource::Claude | BuiltinUsageSource::Codex => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    const CANCELLATION_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
+    struct Dropped(Arc<AtomicBool>);
+    impl Drop for Dropped {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::SeqCst);
+        }
+    }
+    #[tokio::test]
+    async fn revoked_http_capability_does_not_poll_the_request() {
+        let stop = CancellationToken::new();
+        stop.cancel();
+        let polled = AtomicBool::new(false);
+        let result = cancellable(&stop, async {
+            polled.store(true, Ordering::SeqCst);
+            Ok(())
+        })
+        .await;
+        assert_eq!(result, Err((LimitFailure::Unsupported, None)));
+        assert!(!polled.load(Ordering::SeqCst));
+    }
+    #[tokio::test]
+    async fn revocation_drops_an_already_polled_http_operation() {
+        let stop = CancellationToken::new();
+        let dropped = Arc::new(AtomicBool::new(false));
+        let record = Arc::clone(&dropped);
+        let (started, ready) = tokio::sync::oneshot::channel();
+        let reading = async move {
+            let _finished = Dropped(record);
+            started.send(()).unwrap();
+            std::future::pending::<Result<(), (LimitFailure, Option<DateTime<Utc>>)>>().await
+        };
+        let revoke = async {
+            ready.await.unwrap();
+            stop.cancel();
+        };
+        let (result, ()) = tokio::time::timeout(CANCELLATION_TEST_BUDGET, async {
+            tokio::join!(cancellable(&stop, reading), revoke)
+        })
+        .await
+        .unwrap();
+        assert_eq!(result, Err((LimitFailure::Unsupported, None)));
+        assert!(dropped.load(Ordering::SeqCst));
+    }
 }

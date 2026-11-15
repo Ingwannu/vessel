@@ -347,3 +347,16 @@ node base did not change this generated file before application. Freshness of
 the committed result, current-head strict and the complete package gate remain
 owed. Protocol numbers still come only from actual integration merge order;
 neither feature constant is assigned here.
+
+### Cancel the live HTTP future, not only its publication
+Self-audit found the additional-source live body checked cancellation before HTTP
+but did not select cancellation while awaiting it. Publication was fenced by the
+owner, yet Off could leave the admitted HTTP future active. The existing saved-login
+path already uses a biased cancellation select. The additional path now uses the
+same policy around the actual HTTP operation: already-revoked capabilities cannot
+poll it, and later revocation drops it. The existing blocking certificate/credential
+steps still retain their real permits until completion. Two network-free regressions
+exercise this exact production wrapper: zero operation polls when already revoked,
+and a barrier-started pending operation's Drop on revocation. No endpoint or real
+credential is used. This new correction requires changed-source checks; the earlier
+strict and functional snapshots do not prove it.
