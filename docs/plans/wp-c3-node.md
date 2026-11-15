@@ -4,8 +4,11 @@ Status: unadmitted runtime implementation. No new method has an assigned protoco
 number. ADR0087 defines the contract. Current merge0e2d8bea7 brings announced
 1c762ccf (Gate52); registry metadata is protocol25/schema20, while GIT_PANEL
 remainsNone. The previous34bb9f843 merges announced9c150c6e. Its sole registered
-TS generation run162346 remains
-queued; no replacement or current merged-source compile/test pass is claimed.
+TS generation run162346 is terminal RED101; its primitive alias inventory
+refuses unclassified CommitAbbreviation before writing a declaration. No generated
+patch is available (wire.patch empty). The successor classifies this observed
+abbreviation as Content, never a handle or operation identity. A whole-declaration
+regression is added; merged-source TS freshness still requires execution.
 The incoming generated comparison declarations stay byte-exact to9c150c6e;
 own history generation remains owed. The shared values-only leaf194/3fde is
 reviewed and integrated, distinct from this pending runtime implementation.
@@ -20,8 +23,10 @@ below retain their original queue/result source assignments.
 The1c merge is NODE-only and conflict-free; own pending comparison/history rows
 and empty WORKSPACE_FAMILIES_LATER are preserved. Only pinned standalone
 rustfmt, pure file-size and diff checks were run locally. The base's whole-green
-result is not this union's result. The existing34bb TS run stays in its queue;
-do not duplicate or relabel it as the new merge's TS/compile proof. App remains
+result is not this union's result. The original34bb TS run remains RED and is not relabeled as the new merge's
+TS/compile proof. It actually compiled Node/Proto/Web/Workspace/Client product
+source, but executed only Proto3 tests (2 passed/1 failed) before stopping. No
+Node library tests, web generator success or wire freshness follow from it. App remains
 on its separately announced native line until the native lead's base merge.
 
 ## Structure and decisions
@@ -560,3 +565,13 @@ Only pure size/standalone pinned rustfmt/text/diff preflight ran locally. Exact
 merged compilation, tests and generated TS freshness for own history are still
 owed. Prior67/0/0 and af78 Clippy keep their original source assignments. No
 whole package, V3 runtime acceptance, app merge or product availability claim.
+
+## TS alias classification correction
+
+The primitive alias table is the existing single TypeScript classification
+authority. CommitAbbreviation is observed display text, like ProcessName, not
+the full CommitId accepted by an operation and not an opaque node handle. It is
+therefore Content (plain string); no assertion, inventory guard or branding rule
+is weakened. Exact34bb's failed generator and empty artifact remain preserved.
+One changed-source TS generation on this current announced-base union is needed;
+never hand-edit a declaration or call an empty patch a successful regeneration.
