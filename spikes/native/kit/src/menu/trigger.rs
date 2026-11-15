@@ -169,7 +169,7 @@ impl TriggerPresentation {
         matches!(self, Self::Open(_))
     }
 }
-const PROVIDER_VISUAL: Pixels = px(crate::theme::spacing::S8);
+const PROVIDER_VISUAL: Pixels = px(spacing::S8);
 const PROVIDER_RADIUS: Pixels = px(crate::theme::radius::R2);
 
 struct Frame {

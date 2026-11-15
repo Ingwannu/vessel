@@ -55,7 +55,7 @@ pub enum Layer {
     AboveDialog,
 }
 impl Layer {
-    const fn priority(self) -> usize {
+    pub(super) const fn priority(self) -> usize {
         match self {
             Self::Screen => 1,
             Self::AboveDialog => 3,
@@ -87,7 +87,7 @@ impl<'a> Content<'a> {
     }
     /// Choose the containing surface without another menu renderer.
     #[must_use]
-    pub const fn with_layer(self, layer: Layer) -> Self {
+    pub fn with_layer(self, layer: Layer) -> Self {
         Self { layer, ..self }
     }
     /// Set the menu's reference width, without affecting the legacy entry.
