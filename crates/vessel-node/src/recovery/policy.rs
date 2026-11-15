@@ -1,17 +1,14 @@
-//! Admission policy shared by settings and the bounded startup owner.
+//! Effective recovery settings, unresolved Store debt and irreversible stop seal.
 //!
-//! Settings invalidation and the final effect enqueue hold the same short
-//! lock. Preparation may await without holding authority; it must return
-//! through this gate before it can create a process or submit a prompt.
+//! This producer owns one real policy state used by the canonical settings
+//! operation. Engine-only watching and effect admission extend this same type
+//! in the later consumer; no launch, prompt, task or fallback lives here.
 use std::sync::{Mutex, MutexGuard, PoisonError};
-use tokio::sync::watch;
 use vessel_proto::restart::RestartRecovery;
-use vessel_proto::{ErrorCode, WireError};
 
 #[derive(Debug)]
 pub(crate) struct Policy {
     state: Mutex<State>,
-    changed: watch::Sender<()>,
 }
 #[derive(Debug)]
 struct State {
@@ -44,32 +41,38 @@ impl Policy {
                 generation: Generation(0),
                 admission: Admission::Open,
             }),
-            changed: watch::channel(()).0,
         }
     }
     fn lock(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
     }
-    pub(crate) fn watch(&self) -> watch::Receiver<()> {
-        self.changed.subscribe()
-    }
-    pub(crate) fn snapshot(&self) -> (RestartRecovery, Generation) {
-        let state = self.lock();
-        (state.value.clone(), state.generation)
+    /// The same successfully saved value used by the real settings response.
+    pub(crate) fn current(&self) -> RestartRecovery {
+        self.lock().value.clone()
     }
     /// Shutdown shares the final effect mutex and is irreversible. A queued
     /// settings On may still settle on disk but cannot reopen this owner.
     pub(crate) fn seal_effect_admission(&self) {
-        self.lock().admission = Admission::Sealed;
-        self.changed.send_replace(());
+        let mut state = self.lock();
+        if state.admission == Admission::Sealed {
+            return;
+        }
+        state.admission = Admission::Sealed;
     }
     pub(crate) fn begin_write(&self, next: &RestartRecovery) {
-        self.lock().off_saving = !next.enabled;
-        self.changed.send_replace(());
+        let mut state = self.lock();
+        let off_saving = !next.enabled;
+        if state.off_saving == off_saving {
+            return;
+        }
+        state.off_saving = off_saving;
     }
     pub(crate) fn write_failed(&self) {
-        self.lock().off_saving = false;
-        self.changed.send_replace(());
+        let mut state = self.lock();
+        if !state.off_saving {
+            return;
+        }
+        state.off_saving = false;
     }
     pub(crate) fn apply(&self, next: RestartRecovery) {
         let mut state = self.lock();
@@ -83,57 +86,17 @@ impl Policy {
         }
         state.value = next;
         state.off_saving = false;
-        drop(state);
-        self.changed.send_replace(());
     }
     pub(crate) fn needs_cleanup(&self) -> bool {
         self.lock().pending == Pending::OffCleanup
     }
     pub(crate) fn cleaned(&self) {
         self.lock().pending = Pending::Clean;
-        self.changed.send_replace(());
     }
     pub(crate) fn needs_sync(&self) -> bool {
         self.lock().pending != Pending::Clean
     }
-    pub(crate) fn check(&self, generation: Generation) -> Result<bool, WireError> {
-        let state = self.lock();
-        Self::check_state(&state, generation)
-    }
-    fn check_state(state: &State, generation: Generation) -> Result<bool, WireError> {
-        if state.admission == Admission::Sealed {
-            return Err(WireError::new(
-                ErrorCode::Unavailable,
-                "the node is stopping; startup recovery admission is closed",
-            ));
-        }
-        if !state.value.enabled || state.generation.0 == u64::MAX || generation != state.generation
-        {
-            return Err(WireError::new(
-                ErrorCode::Conflict,
-                "startup recovery was disabled or superseded before admission",
-            ));
-        }
-        Ok(!state.off_saving && state.pending == Pending::Clean)
-    }
-    pub(crate) fn admit<T, F>(
-        &self,
-        generation: Generation,
-        effect: &mut Option<F>,
-    ) -> Result<Option<T>, WireError>
-    where
-        F: FnOnce(&RestartRecovery) -> Result<T, WireError>,
-    {
-        let state = self.lock();
-        if !Self::check_state(&state, generation)? {
-            return Ok(None);
-        }
-        let effect = effect.take().ok_or_else(|| {
-            WireError::new(
-                ErrorCode::Internal,
-                "startup recovery effect was already consumed",
-            )
-        })?;
-        effect(&state.value).map(Some)
-    }
 }
+
+#[cfg(test)]
+mod tests;
