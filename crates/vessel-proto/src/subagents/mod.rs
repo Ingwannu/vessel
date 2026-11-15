@@ -21,7 +21,7 @@ pub use parentage::{
 };
 pub use provider::{
     ChildCursor, ChildDescriptor, ChildGap, ChildHistory, ChildLimit, ChildStatus,
-    InvalidChildLimit, ListProviderChildren, ReadProviderChild,
+    InvalidChildLimit, ListProviderChildren, ProviderChildRef, ReadProviderChild,
 };
 pub use values::{ProviderChildId, ProviderText, SubagentValueError};
 

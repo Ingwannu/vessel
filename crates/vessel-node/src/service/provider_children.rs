@@ -122,7 +122,11 @@ fn window(cursor: Option<ChildCursor>, end: EventSeq) -> Result<(EventSeq, Event
                 "provider cursor is ahead of the parent log",
             ));
         }
-        Some(ChildCursor::After(seq)) => seq,
+        // A continuation still needs retained descriptors/support before the
+        // cursor. An empty new range must not claim the child disappeared.
+        Some(ChildCursor::After(seq)) => {
+            seq.min(EventSeq::new(upper.get().saturating_sub(records)))
+        }
         Some(ChildCursor::Before(_)) | None => EventSeq::new(upper.get().saturating_sub(records)),
     };
     Ok((start, upper))
