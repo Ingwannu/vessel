@@ -1047,3 +1047,7 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
 
 mod approvals;
 mod git_apart;
+
+#[cfg(unix)]
+#[path = "tests/setup_observation.rs"]
+mod setup_observation;

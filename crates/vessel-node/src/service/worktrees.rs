@@ -193,3 +193,39 @@ impl NodeService {
         info
     }
 }
+
+impl NodeService {
+    /// Structured setup state. Agent callers are refused by workspace policy;
+    /// delegated readers never hold a long-poll slot.
+    pub(crate) async fn setup_progress(
+        &self,
+        connection: &Connection,
+        mut request: vessel_proto::workspace::ReadSetupProgress,
+    ) -> Result<vessel_proto::workspace::SetupProgressReply, WireError> {
+        if matches!(connection.principal(), Principal::Delegated { .. }) {
+            request.wait = None;
+        }
+        let here = self.links.node();
+        let shares = Waiter::of(connection.principal(), here).shares(here);
+        let _slot = self.wait_slot(connection, shares, &mut request.wait);
+        self.workspaces
+            .setup_progress(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
+    /// A stale generation cannot stop the current setup or teardown.
+    #[expect(
+        clippy::unused_async,
+        reason = "uniform handler signature in the generated method table"
+    )]
+    pub(crate) async fn cancel_setup(
+        &self,
+        _: &Connection,
+        request: vessel_proto::workspace::CancelSetup,
+    ) -> Result<vessel_proto::workspace::CancelSetupOutcome, WireError> {
+        self.workspaces
+            .cancel_setup(request)
+            .map_err(|error| wire(&error))
+    }
+}

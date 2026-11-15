@@ -74,3 +74,28 @@ Runner slice validation on the assigned 29eebb8b base: focused
 `cargo test -p vessel-workspace --lib commands::` passed 5/0. Size and
 crate-boundary checks passed. This is runner evidence, not a public RPC,
 durable blocked-source or native UI claim.
+
+## Additive node contract (pending)
+
+The single method table registers `worktree.setup_progress` (Read) and
+`worktree.cancel_setup` (Operate) with WORKTREE_SETUP_OBSERVATION=None.
+Both ends refuse pending methods before dispatch. Agent callers are refused
+by the workspace policy; forwarded calls retain destination scope/principal
+checks, and delegated readers do not hold a long poll. Existing worktree
+resources are node-global person-managed resources, as `worktree.setup`;
+these methods do not grant a browser service Preview or infer workspace owner.
+
+Progress uses an invocation UUID plus checked revision cursor. A stale cancel
+returns Stale and never signals a newer setup or teardown. Requested is a
+signal receipt, not completion; only the runner's terminal snapshot reports
+Cancelled. Logs are separately bounded per command at 64 KiB with a typed
+truncation flag and an inserted middle marker; the legacy combined 1 MiB log
+remains unchanged. Observations are volatile like Paseo's runner snapshots;
+a restarted node returns absence, never reconstructed command boundaries.
+Durable blocked-source observation and trust release remain behind W11's
+registry boundary and are not advertised by these worktree-only methods.
+
+Consumed exactly W11's source-reviewed e45a5d89 identity-only commit in
+merge 0d536c6b. Registry/store/trust ownership remains unconsumed. The
+pending node integration is awaiting changed-crate Clippy/tests and wire
+generation; it is not consumer-ready.

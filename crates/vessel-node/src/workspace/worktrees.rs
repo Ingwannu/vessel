@@ -49,6 +49,7 @@ impl Workspaces {
                     info.id,
                     WorktreeEntry {
                         info,
+                        observation: None,
                         written: Arc::new(written),
                         running: None,
                         starting: 0,

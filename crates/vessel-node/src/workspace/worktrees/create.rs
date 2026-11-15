@@ -146,6 +146,7 @@ impl Workspaces {
                 id,
                 WorktreeEntry {
                     info: info.clone(),
+                    observation: None,
                     written: Arc::new(written),
                     running: None,
                     starting: 0,

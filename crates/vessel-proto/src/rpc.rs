@@ -298,6 +298,10 @@ macro_rules! method_table {
             SetupOutput / setup_output / "worktree.output" [Read, 10, unary]: $crate::workspace::ReadSetupOutput => $crate::workspace::SetupOutput;
             /// Run a worktree's setup again (protocol 10).
             RunSetup / run_setup / "worktree.setup" [Operate, 10, unary]: $crate::workspace::RunSetup => $crate::workspace::WorktreeInfo;
+            /// Observe actual setup command results and bounded output.
+            SetupProgress / setup_progress / "worktree.setup_progress" [Read, (pending $crate::workspace::WORKTREE_SETUP_OBSERVATION), unary]: $crate::workspace::ReadSetupProgress => $crate::workspace::SetupProgressReply;
+            /// Signal cancellation only for the observed setup generation.
+            CancelSetup / cancel_setup / "worktree.cancel_setup" [Operate, (pending $crate::workspace::WORKTREE_SETUP_OBSERVATION), unary]: $crate::workspace::CancelSetup => $crate::workspace::CancelSetupOutcome;
             /// Remove a worktree (protocol 10).
             RemoveWorktree / remove_worktree / "worktree.remove" [Operate, 10, unary]: $crate::workspace::RemoveWorktree => $crate::workspace::RemoveWorktreeOutcome;
             /// A project's worktree snapshots (protocol 10).

@@ -495,6 +495,8 @@ const FORWARDABLE: &[&str] = &[
     "worktree.create",
     "worktree.output",
     "worktree.setup",
+    "worktree.setup_progress",
+    "worktree.cancel_setup",
     "worktree.remove",
     "worktree.snapshots",
     "worktree.drop_snapshot",

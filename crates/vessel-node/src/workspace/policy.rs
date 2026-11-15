@@ -104,6 +104,8 @@ const fn refused(method: Method) -> bool {
         | Method::RemoveProject
         | Method::ApproveCommands
         | Method::RunSetup
+        | Method::SetupProgress
+        | Method::CancelSetup
         | Method::RemoveWorktree
         | Method::ListSnapshots
         | Method::DropSnapshot
@@ -388,6 +390,8 @@ mod tests {
         for refused in [
             Method::ApproveCommands,
             Method::RunSetup,
+            Method::SetupProgress,
+            Method::CancelSetup,
             Method::RemoveWorktree,
             Method::ListSnapshots,
             Method::ReadFile,

@@ -151,7 +151,9 @@ async fn one(
             chunk = receiver.recv() => match chunk {
                 Some(chunk) => {
                     observe(CommandEvent::Output { index, bytes: &chunk });
-                    log.write(&chunk).await?;
+                    if let Err(error) = log.write(&chunk).await {
+                        break Ended::Io(error);
+                    }
                 },
                 None => break Ended::Closed,
             },
@@ -169,7 +171,7 @@ async fn one(
             () = tokio::time::sleep_until(deadline) => Exit::Stopped(Ended::TimedOut),
             () = run.cancel.cancelled() => Exit::Stopped(Ended::Cancelled),
         },
-        stopped @ (Ended::TimedOut | Ended::Cancelled) => Exit::Stopped(stopped),
+        stopped @ (Ended::TimedOut | Ended::Cancelled | Ended::Io(_)) => Exit::Stopped(stopped),
     };
     let (ended, code) = match ended {
         Exit::Code(code) => (Ended::Closed, code),
@@ -184,6 +186,7 @@ async fn one(
     pumps.abort();
     remove(script).await;
     Ok(match ended {
+        Ended::Io(error) => return Err(error),
         Ended::TimedOut => {
             log.line("vessel: stopped at the time limit").await?;
             CommandOutcome::TimedOut
@@ -208,6 +211,7 @@ enum Ended {
     Closed,
     TimedOut,
     Cancelled,
+    Io(std::io::Error),
 }
 
 /// How waiting for a command's exit ended.

@@ -124,6 +124,8 @@ struct ProjectEntry {
 #[derive(Debug)]
 struct WorktreeEntry {
     info: WorktreeInfo,
+    /// Structured setup facts of this node process; never rebuilt from log text.
+    observation: Option<setup::Observation>,
     /// The setup log's length, for `worktree.output` to wait on.
     written: Arc<watch::Sender<u64>>,
     /// Stops its setup or teardown, while one runs.
