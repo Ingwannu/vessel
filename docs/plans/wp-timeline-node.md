@@ -98,3 +98,17 @@ Paseo's permissive number payload. Search durations use the existing DurationMs
 unit; the provider decoder will normalize seconds rather than expose two units.
 Compaction retains Paseo's Loading/Completed contract; ACP failed/canceled
 compaction needs an explicit failure-notice mapping before advertising support.
+
+## Retained receipt service staging
+
+`vessel-store/src/timeline_admission` is registered under cfg(test) until the
+shared pending-method wiring exists. Its actual SQLite operations enforce
+writer-transaction admission, fingerprint canonicalization, exact-key replay
+before capacity, fixed envelope reservation and accepted-result CAS. SQL
+triggers own per-session/node accounting; startup checks it against retained
+rows and encoded envelopes. The SQL is not in production migrations yet.
+Tests are written for replay/conflict, authenticated creator and nested JSON
+canonicalization, session byte saturation, each count/byte predicate, retained
+state after log pruning, committed session deletion, restart/corruption and
+concurrent same-key/final-slot admissions. They have not yet run. Durable
+question and node/provider dispatch work remain unimplemented.

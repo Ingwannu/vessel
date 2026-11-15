@@ -73,6 +73,9 @@ mod search;
 mod settings_file;
 mod side_context;
 mod store;
+// Staged until the shared pending-method wiring activates ADR 0084.
+#[cfg(test)]
+mod timeline_admission;
 mod token;
 mod usage;
 mod usage_lookup;

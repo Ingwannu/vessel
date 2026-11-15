@@ -22,6 +22,8 @@ pub enum Quantity {
 /// A stored column whose value failed to decode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Column {
+    /// Retained prompt/question admission state (ADR 0084).
+    Admission,
     /// `sessions.spec` (a `SessionSpec`).
     Spec,
     /// `sessions.status` (a `SessionStatus`).
@@ -61,6 +63,9 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Retained admission state or its transaction/accounting invariant is corrupt.
+    #[error("retained admission integrity check failed")]
+    AdmissionIntegrity,
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -280,7 +285,8 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::Io { .. }
+            Self::AdmissionIntegrity
+            | Self::Io { .. }
             | Self::NotPrivate { .. }
             | Self::Locked { .. }
             | Self::Random(_)
