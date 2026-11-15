@@ -30,7 +30,7 @@ async fn payload_waits_for_proof_and_revocation_wakes_pending_io() {
         stream.write_all(b"request").await.unwrap();
         stream.flush().await.unwrap();
         let mut bytes = [0; b"request".len()];
-        peer.read_exact(&mut bytes).await.unwrap();
+        assert_eq!(peer.read_exact(&mut bytes).await.unwrap(), bytes.len());
         assert_eq!(&bytes, b"request");
         {
             let mut buffer = [0];
