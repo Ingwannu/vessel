@@ -1645,3 +1645,11 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+### Saved-settings diagnostic boundary
+
+The store's settings-file decoder owns safe parse diagnostics: only the file
+path, category and bounded path shape leave it; the raw serde cause is private.
+The node's startup recovery logger uses that diagnostic while retaining the
+existing set-aside behavior. It reuses serde_path_to_error already in the
+workspace; no workspace-crate edge changes (ADR 0038).

@@ -335,3 +335,16 @@ commit, without changing any old value or assertion. Do not split the shared
 guard; the common plumbing refactor owns its structure. Local engines and
 microphone capture remain deferred. The CLI file client follows the node service
 and still needs its file-format contract amendment.
+
+## Settings-file diagnostic prerequisite
+
+The central file reader is being hardened separately from the pending dictation
+field. Invalid existing blocks can quote a mistaken credential in serde errors;
+the store must keep that cause private and publish category/path metadata only.
+ADR 0038 records the reuse decision and cost. No Paseo behavior is claimed for
+this security floor. Narrow store/node tests and strict Clippy remain owed; no
+product dictation wiring or whole-package evidence is established by this fix.
+
+Resume: implement the safe parse diagnostic on the designated node head, retain
+all current file recovery and write behavior, and submit its marker/log tests
+for security review before merging it into the feature package.
