@@ -68,12 +68,15 @@ The node needs a durable monotonic session mutation timestamp, updated by the
 canonical append/mark/metadata mutation sources and read in the same transaction
 as attention. It must not use read time, file mtime, a client timestamp or a
 pruned head-page maximum. A nullable legacy value preserves Unknown rather than
-inventing historical updatedAt. If stored in the A5 pending migration, it must
-remain one append after the announced head, and protocol projections must gate
-any optional timestamp with the eventual canonical feature constant.
+inventing historical updatedAt. The lifecycle owner keeps its own append after the announced head; protocol
+projections must gate any optional timestamp with that owner's eventual
+canonical feature constant.
 
-Clock ownership and all mutation producers must be agreed with the lifecycle
-owner before installing this shared field. This is a proposed data contract,
+Coordinator ruling: the session-record lifecycle owner supplies ONE durable
+clock, the canonical append/mark/metadata producer updates and its own appended
+migration in merge order. A5 consumes that checked/reviewed field and adds no
+clock or migration for it. Exact consumer requirements were sent to lifecycle.
+This is a proposed consumer data contract,
 not a claim that such a clock or a compatible native workspace adapter exists.
 
 ## Required behavioral verification
