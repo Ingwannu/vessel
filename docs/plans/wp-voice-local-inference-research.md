@@ -53,3 +53,23 @@ licenses; pin source plus native artifacts/notices/digests; verify model file
 allowlist/layout/hash and bounded download/extraction; amend ADR0080 for V3
 before adding an inference dependency. Linux/Windows linking, model loading,
 ASR/TTS output and physical AEC/audio quality require separate evidence.
+
+## Follow-up source inspection (2026-11-15)
+
+Pinned sherpa2.0.1 source commitaf2d8d81dbfa61c4cea4c568da78f3982edca005
+selects ONNX Runtime1.28.2 in its Linux/Windows CMake recipes. This source pin
+is not yet a binary-level attestation of the bundled shared libraries, and their
+full third-party notices are still absent from the inspected native archives.
+
+The official external lexicon asset6305773B (SHA256
+8b67ae549a465eee78f92ecb74644ad90c3c58ce65f19c68baf85878a10ef73a)
+uses `word(s) || phones`, and its header identifies build_lexicon.py with
+CMUDict+en_list+compounds. It must not be attributed to the older Kokoro v1.0
+Misaki gold/silver generator merely because that script also produces an English
+lexicon. Exact asset-source and notices remain owed. Misaki's current pinned
+fba1236595f2d2bf21d414ba6e57d25256afada3 Apache2 LICENSE and JSON data were
+read separately; they do not establish this release asset's provenance.
+
+No inference dependency/model was selected, linked or executed. The coordinator
+was asked to confirm ownership/slicing of this prerequisite while endpoint and
+fake-driven capture/playback/UI work continues. LocalNotBuilt remains explicit.
