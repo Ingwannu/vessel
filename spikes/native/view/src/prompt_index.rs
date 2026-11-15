@@ -243,10 +243,11 @@ impl PromptIndex {
             }
         };
         let failure = if self.epoch.is_some_and(|epoch| epoch != page.epoch())
-            || self
-                .rewound
-                .is_some_and(|seq| page.epoch().rewound_at() != Some(seq))
-        {
+            || self.rewound.is_some_and(|seq| {
+                // Once retention passes the observed marker, it is absent from
+                // the retained log. That is not an older pre-rewind snapshot.
+                page.epoch().retained_from() <= seq && page.epoch().rewound_at() != Some(seq)
+            }) {
             Some(IndexProblem::HistoryChanged)
         } else if page.session() != ask.target.session
             || page
