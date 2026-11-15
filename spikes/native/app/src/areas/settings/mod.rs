@@ -46,6 +46,7 @@ pub(crate) mod page;
 mod prefer;
 mod sections;
 mod theme;
+mod typography;
 
 pub(crate) use sections::drawn;
 mod sync;
@@ -309,12 +310,7 @@ pub(crate) fn apply_composer(shell: &Shell, window: &mut Window, cx: &mut App) {
 /// The interface's and code's text sizes, drawn everywhere (the kit's
 /// type scale); the conversation's rows measured again at them.
 pub(crate) fn apply_text_sizes(shell: &Shell, cx: &mut App) {
-    let appearance = &shell.prefs.settings.appearance;
-    vessel_app_kit::set_text_sizes(
-        cx,
-        appearance.interface_size.get(),
-        appearance.code_size.get(),
-    );
+    typography::apply(shell, cx);
     let list = &shell.areas.conversation.list;
     list.changed(0..list.rows());
     shell.areas.session.entries.remeasure();

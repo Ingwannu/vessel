@@ -202,3 +202,29 @@ physical-edge snapping. The correction keeps the same tight tolerance and
 uses independently calculated snapped bounds for scales 1, 1.25, 1.5 and 2,
 including pre-layout snapping of the two-point border at 125%; no product
 geometry changes. The new four-scale expectations still require execution.
+
+### Current form and typography seam
+
+The form's pure `edit`/`commit`/`saved_text` functions return parsed preview
+axis deltas, filtered input text and at most one PreferenceChange. The old
+generic draft-state prototype is removed: the TextField engine remains the
+sole live owner of raw text, caret/IME/history, with no second form editor.
+Size fields filter ASCII digits; width deliberately retains exponent/radix
+notation as the source does. Invalid input restores CURRENT saved values,
+not an opening snapshot. Legacy Full width has a typed translated-display
+case until edited/reset; it is never guessed from a label string.
+
+`fonts::{FontSize,TextSizes}` adds nonzero generic committed units and
+independent content/code size/line-height accessors. View owns source ranges
+and defaults. The app's sole typography adapter resolves decoded names
+against the platform's available faces on hydration/commit, never in paint.
+Unknown names fall through to embedded defaults; generic aliases resolve to
+actual embedded faces, so the kit receives no generic-font/file request.
+Its new size/family projection is partial until the shared field style
+handoff and chat/code/preview consumers are connected.
+
+Focused kit run `themes-20261115T072159Z-9f0ff80f` is green: native-fonts0,
+selected kit library tests121/0/0, changed kit actually compiled. It covers
+the four-scale tile frame, earlier stack/syntax/contributed paints, not the
+later text-size/form/app adapter edits. No whole native package gate or
+screen capture is inferred from this focused result.
