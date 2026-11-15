@@ -402,3 +402,43 @@ can combine them into one row per provider as Paseo does. This is a deliberate,
 temporary parity difference, not a fabricated compatibility/account table.
 Protocol24 is reserved for the provider package but is not callable until its
 integrator announces assignment and the canonical app base carries it.
+
+
+### Registry, Add and legacy Remove consumer wiring
+
+Source follows `components/provider-catalog-list.tsx:40–105,166–232` and
+`providers-section.tsx:100–173,399–437`. Registry tiles use the node's resolved
+commands, the shared matcher/alphabetic comparator, measured300-point columns
+(max4), source PackagePlus20/frame36 and checked Small28 outline/loading buttons.
+The shared ExternalLink is only provisionally consumed after V1's bounded source
+and exact Kit narrow pass on c40714c1; its first-use pixels are not approved yet.
+
+Necessary differences: the legacy protocol records a provider without running it,
+so Add opens an editable-name confirmation and a literal program/arguments form,
+then sends exactly one existing agent.add. Registry ids are never truncated into
+names. Arguments are one per line without shell parsing. The confirmation shows
+the actual launch argv and public registry environment separately. No installation,
+status/options read or reload follows its ACK. Missing package runners remain
+recordable with the machine's explicit help; archives have an actual Download
+link instead of an invented install URL. Already-added entries remain visible and
+marked, rather than being filtered as in Paseo, following the owner's requirement.
+
+Only returned legacy Added definitions get a Remove menu, using G2's reviewed
+ProviderRow trigger and Regular16 trash glyph,220-point menu, then the existing
+adaptive confirm dialog. No passive gap is reserved for builtin rows. Every
+callback retains its exact decision; the non-cloneable view confirmation is
+consumed once. Cancel/close cannot affect a newer dialog. No package uninstaller
+is invoked; node Admin/profile-in-use refusals remain authoritative. The node's
+ACK settles only its correlated page ticket; uncertainty still requires discovery.
+
+The registry and mutation forms use new English/Korean Fluent messages, with whole
+refusal tables. Shared search ownership was assigned to this track after the
+preceding field writers. The installed consumer temporarily uses ordinary TextField
+while that exact shared SearchField handoff is pending. This is an acknowledged
+source-parity gap, not a visual pass or an area-owned search skin. Prepared shared
+SearchField code remains outside the tree until the required writer handoff.
+
+All this consumer source is unverified until the changed-head remote narrow and
+final A9 gate/captures. Earlier039c runtime evidence excludes these new controls,
+messages and tests. Modern provider24 remains uncallable pending canonical base;
+no profile/account binding is inferred and A10 remains unstarted.

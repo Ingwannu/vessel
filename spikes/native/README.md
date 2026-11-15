@@ -1344,3 +1344,17 @@ AboveDialog/priority3 through the same renderer. Its transparent viewport
 input boundary consumes only the nested menu's outside press, preserving
 its host dialog; no second scrim or area popup is drawn. See
 `docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
+
+
+A9's Providers area keeps the existing per-machine Pages/ticket store for legacy
+agent definitions. Registry reads and record-only Add reuse its bounded Agents
+hub; a successful Add appends the authoritative definition and starts no agent,
+installer, option read or reload. Its editable name and program/argv inputs use
+the shared field engine; validation is in view::agent_status::addition. Remove
+uses view::agent_status::removal's one-shot confirmation, the shared ProviderRow
+menu/Regular16 leading and adaptive dialog. Machine/context changes close local
+forms; stale callbacks cannot submit or dismiss a newer form. Modern provider
+snapshots must remain separate from legacy account/default/install/remove facts
+until the node supplies an explicit actor-owned binding. The registry's temporary
+ordinary search field is pending the assigned shared SearchField producer; this
+source registration is not visual-parity approval.

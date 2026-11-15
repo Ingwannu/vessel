@@ -348,3 +348,15 @@ fn a_registry_ack_keeps_the_exact_id_and_version_not_just_the_name() {
     }
     assert!(pages.added(&machine, ticket, node, ack(&call).unwrap()));
 }
+
+#[test]
+fn suggested_registry_names_keep_the_whole_valid_id_and_never_truncate() {
+    let mut entry = registry().unwrap();
+    assert!(suggested_name(&entry).is_none());
+    entry.id = "my-provider".parse().unwrap();
+    assert_eq!(suggested_name(&entry).unwrap().as_str(), "my-provider");
+    for kind in vessel_proto::HarnessKind::ALL {
+        entry.id = kind.name().parse().unwrap();
+        assert!(suggested_name(&entry).is_none());
+    }
+}

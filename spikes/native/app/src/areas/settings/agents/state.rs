@@ -14,6 +14,9 @@ use vessel_app_view::agent_status::{
 use vessel_proto::{HarnessRef, OptionId, RequestId};
 
 pub(crate) struct AgentSettings {
+    pub(super) catalogue: super::catalogue::State,
+    pub(super) addition: super::add::State,
+    pub(super) removal: super::removal::State,
     pub(super) machine: Option<MachineKey>,
     pub(super) pages: Pages<AgentsError>,
     pub(super) refused: Option<StartProblem>,
@@ -35,6 +38,9 @@ pub(crate) struct AgentSettings {
 impl AgentSettings {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            catalogue: super::catalogue::State::new(window, cx),
+            addition: super::add::State::new(cx),
+            removal: super::removal::State::new(cx),
             machine: None,
             pages: Pages::default(),
             refused: None,
@@ -60,6 +66,8 @@ impl Shell {
     ) {
         let state = &mut self.areas.settings.agents;
         if state.pages.connected(machine, node) && state.machine.as_ref() == Some(machine) {
+            state.addition.close_later();
+            state.removal.reset();
             state.defaults.close();
             state.default_id = None;
             state.defaults_problem = None;
@@ -78,10 +86,13 @@ impl Shell {
             && self.areas.settings.section == vessel_app_view::settings::Section::Providers
             && shown.is_some()
             && self.areas.settings.agents.machine.as_ref() == shown
+            && super::super::choices::chosen_machine(self)
+                .is_some_and(|machine| shown.is_some_and(|shown| machine.name == shown.as_str()))
     }
 
     pub(super) fn agent_back(&mut self, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.settings.agents;
+        state.removal.reset();
         if let Some(machine) = &state.machine {
             state.pages.select(machine.as_str(), None);
         }
@@ -93,6 +104,8 @@ impl Shell {
 
     pub(crate) fn agent_load(&mut self, again: bool, cx: &mut Context<'_, Self>) {
         if self.areas.settings.section != vessel_app_view::settings::Section::Providers {
+            self.areas.settings.agents.addition.close_later();
+            self.areas.settings.agents.removal.reset();
             self.areas.settings.agents.defaults.close();
             self.areas.settings.agents.defaults_problem = None;
             self.areas.settings.agents.tips = vessel_app_kit::tooltip::Tooltips::new();
@@ -101,10 +114,17 @@ impl Shell {
         let Some(machine) = super::super::choices::chosen_machine(self)
             .map(|machine| MachineKey::from_book(machine.name.as_str()))
         else {
+            let state = &mut self.areas.settings.agents;
+            state.addition.close_later();
+            state.removal.reset();
+            state.machine = None;
             return;
         };
         let state = &mut self.areas.settings.agents;
         if state.machine.as_ref() != Some(&machine) {
+            state.addition.close_later();
+            state.removal.reset();
+            state.catalogue.changed_machine();
             state.defaults.close();
             state.tips = vessel_app_kit::tooltip::Tooltips::new();
             state.default_id = None;
@@ -151,6 +171,7 @@ impl Shell {
                     ready.agent == agent && readiness::offers_defaults(&ready.installed)
                 })
             });
+        state.removal.reset();
         state.pages.select(machine.as_str(), Some(agent.clone()));
         state.defaults_problem = None;
         state.defaults.close();
@@ -170,7 +191,9 @@ impl Shell {
         let pages = &mut self.areas.settings.agents.pages;
         match answer {
             Ok(Answer::Added { node, info }) => {
-                let _accepted = pages.added(machine, request, node, info);
+                if pages.added(machine, request, node, info) {
+                    self.agent_add_settled(machine, request, super::add::Settlement::Accepted, cx);
+                }
             }
             Ok(Answer::Removed { node, name }) => {
                 let was_selected = pages.get(machine.as_str()).and_then(|page| page.selected())
@@ -190,7 +213,10 @@ impl Shell {
             Ok(Answer::Catalogue { node, catalogue }) => {
                 let _accepted = pages.catalogue_loaded(machine, request, node, catalogue);
             }
-            Ok(Answer::List(inventory)) => pages.loaded(machine, request, inventory),
+            Ok(Answer::List(inventory)) => {
+                pages.loaded(machine, request, inventory);
+                self.agent_initial_catalogue(cx);
+            }
             Ok(Answer::Checked(ready)) => pages.checked(machine, request, ready),
             Ok(Answer::Installing(job)) => pages.installing(machine, request, job),
             Ok(Answer::Output(output)) => pages.output(machine, request, &output),
@@ -204,11 +230,15 @@ impl Shell {
             }
             Err(error) if error.addition_uncertain() => {
                 let _accepted = pages.addition_uncertain(machine, request, error);
+                self.agent_add_settled(machine, request, super::add::Settlement::Failed, cx);
             }
             Err(error) if error.removal_uncertain() => {
                 let _accepted = pages.removal_uncertain(machine, request, error);
             }
-            Err(error) => pages.failed(machine, request, error),
+            Err(error) => {
+                pages.failed(machine, request, error);
+                self.agent_add_settled(machine, request, super::add::Settlement::Failed, cx);
+            }
         }
         cx.notify();
     }

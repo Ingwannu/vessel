@@ -35,15 +35,38 @@ impl CommandShell {
     /// The node expanded home-relative values before returning this definition.
     #[must_use]
     pub fn command(self, added: &AddedAgent) -> Option<String> {
+        self.combined(added.program.as_str(), &added.args)
+    }
+    fn combined(self, program: &str, args: &[String]) -> Option<String> {
         match self {
             Self::Unix => Some(
-                std::iter::once(added.program.as_str())
-                    .chain(added.args.iter().map(String::as_str))
+                std::iter::once(program)
+                    .chain(args.iter().map(String::as_str))
                     .map(quote)
                     .collect::<Vec<_>>()
                     .join(" "),
             ),
             Self::Unspecified => None,
+        }
+    }
+    /// Program/argv preview only. Unspecified shells keep separate copyable
+    /// values instead of guessing PowerShell or command-interpreter syntax.
+    #[must_use]
+    pub fn registry_arguments(self, entry: &vessel_proto::agents::CatalogueEntry) -> Vec<String> {
+        match &entry.runs {
+            vessel_proto::agents::CatalogueRun::Command { program, args, .. } => {
+                self.combined(program.as_str(), args).map_or_else(
+                    || {
+                        std::iter::once(program.as_str().to_owned())
+                            .chain(args.iter().cloned())
+                            .collect()
+                    },
+                    |command| vec![command],
+                )
+            }
+            vessel_proto::agents::CatalogueRun::Known { .. }
+            | vessel_proto::agents::CatalogueRun::Download { .. }
+            | vessel_proto::agents::CatalogueRun::Unavailable => Vec::new(),
         }
     }
 }
@@ -73,6 +96,29 @@ mod tests {
         );
         assert_eq!(CommandShell::Unspecified.command(&added), None);
     }
+    #[test]
+    fn registry_preview_uses_literal_argv_and_never_adds_environment_shell_syntax() {
+        let mut catalogue: vessel_proto::agents::Catalogue =
+            serde_json::from_str(include_str!("catalogue/fixtures/catalogue.json")).unwrap();
+        let entry = catalogue.entries.first_mut().unwrap();
+        let vessel_proto::agents::CatalogueRun::Command { program, args, .. } = &mut entry.runs
+        else {
+            panic!("fixture has a command")
+        };
+        *program = "fake-acp".parse().unwrap();
+        *args = vec!["two words".into(), "$(never-run)".into(), "it's".into()];
+        assert_eq!(
+            CommandShell::Unix.registry_arguments(entry),
+            ["'fake-acp' 'two words' '$(never-run)' 'it'\"'\"'s'"]
+        );
+        assert_eq!(
+            CommandShell::Unspecified.registry_arguments(entry),
+            ["fake-acp", "two words", "$(never-run)", "it's"]
+        );
+        entry.runs = vessel_proto::agents::CatalogueRun::Unavailable;
+        assert!(CommandShell::Unix.registry_arguments(entry).is_empty());
+    }
+
     #[test]
     fn the_remote_os_determines_whether_a_shell_command_can_be_shown() {
         for os in [

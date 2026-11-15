@@ -2,8 +2,11 @@
 //! state transitions are UI-free; details and the retained install log draw
 //! independently so changing the selected agent cannot hide an active job.
 use vessel_app_kit::theme::spacing;
+mod add;
+mod catalogue;
 mod detail;
 mod progress;
+mod removal;
 mod rows;
 mod state;
 pub(crate) use state::AgentSettings;
@@ -71,6 +74,10 @@ pub(crate) fn render(
             tokens,
         ));
     }
+    if let Some(notice) = add::notice(shell, tokens) {
+        body = body.child(notice);
+    }
+    body = body.children(removal::notice(shell, tokens));
     // The machine's failed refresh, above the list or an agent's details,
     // whichever is open (only the list showed it: a refresh that failed
     // while the details were open was not said anywhere, track V1's
@@ -126,6 +133,14 @@ pub(crate) fn render(
             cx,
         )),
     };
+    if page.is_some_and(|page| {
+        page.selected().is_none()
+            && page
+                .inventory()
+                .is_some_and(|inventory| inventory.administration == Administration::Supported)
+    }) {
+        body = body.child(catalogue::render(shell, tokens, compact, window, cx));
+    }
     body = body.children(progress::render(shell, tokens, window, cx));
     body.into_any_element()
 }
@@ -193,6 +208,14 @@ pub(crate) fn dialogs(
 ) -> Vec<AnyElement> {
     detail::defaults::list(shell, tokens, window, cx)
         .into_iter()
+        .chain(add::dialog(shell, tokens, window, cx))
+        .chain(removal::menu(
+            shell,
+            tokens,
+            vessel_app_kit::breakpoint::phone(window),
+            cx,
+        ))
+        .chain(removal::dialog(shell, tokens, window, cx))
         .chain(shell.areas.settings.agents.tips.render(tokens))
         .collect()
 }

@@ -168,3 +168,6 @@ fn recorded_status_uses_registry_id_not_name_version_or_program_similarity() {
     }];
     assert_eq!(offer(entry, &known), Offer::Add(Runner::Found));
 }
+
+mod addition_words;
+mod resources;

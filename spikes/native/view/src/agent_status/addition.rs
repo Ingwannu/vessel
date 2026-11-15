@@ -67,6 +67,12 @@ pub struct AdditionRequest {
     ticket: RequestId,
 }
 impl AdditionRequest {
+    /// Existing page identity, for the form's pending/ACK presentation.
+    #[must_use]
+    pub const fn ticket(&self) -> RequestId {
+        self.ticket
+    }
+
     /// Route and call are inseparable after consuming this intent.
     #[must_use]
     pub fn into_parts(self) -> (MachineKey, NodeId, AddAgent, RequestId) {
@@ -279,4 +285,11 @@ impl Failure {
             | Self::NoTransport => crate::alert::Variant::Error,
         }
     }
+}
+
+/// A default name is offered only when the whole id satisfies the node rule.
+/// Longer or reserved registry ids stay editable/blank, never truncated.
+#[must_use]
+pub fn suggested_name(entry: &CatalogueEntry) -> Option<vessel_proto::agents::AgentName> {
+    entry.id.as_str().parse().ok()
 }

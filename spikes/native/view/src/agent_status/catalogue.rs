@@ -17,6 +17,7 @@ use vessel_proto::{HarnessKind, HarnessRef, HttpUrl};
 
 use crate::{alphabetical, matcher::Query};
 
+pub mod grid;
 mod presentation;
 pub use presentation::{Activity, Body, Presentation, Read, present};
 
@@ -102,3 +103,36 @@ mod problem;
 mod tests;
 mod words;
 pub use problem::Problem;
+
+/// A real link the node supplied, never an app-constructed installation URL.
+#[derive(Debug, Clone, Copy)]
+pub enum Resource<'a> {
+    /// The public site given by this registry entry.
+    Website(&'a HttpUrl),
+    /// A source repository when the entry supplied no site.
+    Repository(&'a HttpUrl),
+    /// Its explicitly offered platform archive, installed outside this app.
+    Archive(&'a HttpUrl),
+}
+impl<'a> Resource<'a> {
+    /// Preserve the original typed HTTP(S) URL at the opener boundary.
+    #[must_use]
+    pub const fn url(self) -> &'a HttpUrl {
+        match self {
+            Self::Website(url) | Self::Repository(url) | Self::Archive(url) => url,
+        }
+    }
+}
+/// The wire has no installLink field. Name its actual site/source/archive
+/// accurately rather than manufacture a vendor-specific documentation URL.
+#[must_use]
+pub fn resource(entry: &CatalogueEntry) -> Option<Resource<'_>> {
+    if let CatalogueRun::Download { archive, .. } = &entry.runs {
+        return Some(Resource::Archive(archive));
+    }
+    entry
+        .website
+        .as_ref()
+        .map(Resource::Website)
+        .or_else(|| entry.repository.as_ref().map(Resource::Repository))
+}

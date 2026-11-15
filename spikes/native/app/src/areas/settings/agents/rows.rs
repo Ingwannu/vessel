@@ -44,6 +44,7 @@ pub(super) fn render(
             SettingsRowEdge::Following
         };
         let contents = contents(&entry.agent, edge, inventory, shell, tokens, compact);
+        let trailing = super::removal::trigger(&entry.agent, inventory, shell, tokens, compact, cx);
         let hover = tokens.neutral.surface2;
         let pressed = tokens.neutral.surface3;
         card = card.child(
@@ -61,7 +62,7 @@ pub(super) fn render(
                 .child(
                     settings::row_with_content(
                         contents.into_any_element(),
-                        None,
+                        trailing,
                         index == 0,
                         compact,
                         tokens,
