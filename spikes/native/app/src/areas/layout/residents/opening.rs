@@ -48,6 +48,18 @@ impl SessionOpening {
             workspace,
         })
     }
+    fn validate_placement(
+        &self,
+        lookup: &impl WorkspaceLookup,
+    ) -> Result<(), SessionOpeningProblem> {
+        let current = Self::resolve(lookup, self.connection.clone(), self.address.session)?;
+        if current.workspace != self.workspace {
+            return Err(SessionOpeningProblem::Resident(
+                ResidentProblem::OwnerConflict,
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Carries the exact intent into the link. A delivery capability and this binding
@@ -162,11 +174,15 @@ impl Shell {
     pub(crate) fn admit_session_open(
         &mut self,
         opening: &SessionOpening,
+        lookup: &impl WorkspaceLookup,
         build: impl FnOnce(&SessionContext, &mut Window, &mut Context<'_, Self>) -> SessionResources,
         retired: impl FnOnce(&mut SessionResources, &FollowRetirement),
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Result<SessionAdmission, SessionOpeningProblem> {
+        // A deferred user intent must not keep authority from an old membership
+        // snapshot. Refuse changed placement rather than retargeting its tab.
+        opening.validate_placement(lookup)?;
         super::super::initialized(self);
         let mut layout = self
             .areas

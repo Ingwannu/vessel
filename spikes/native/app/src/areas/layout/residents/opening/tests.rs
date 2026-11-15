@@ -59,14 +59,11 @@ fn actual_tab_claim_exists_before_factory_and_same_session_keeps_its_field(
     shell.update_in(cx, |shell, window, cx| {
         let mut epochs = ConnectionEpochs::default();
         let original = connection(&mut epochs, NodeId::random());
-        let opening = SessionOpening::resolve(
-            &Registry(WorkspaceId::random()),
-            original.clone(),
-            SessionId::random(),
-        )
-        .unwrap();
+        let registry = Registry(WorkspaceId::random());
+        let opening =
+            SessionOpening::resolve(&registry, original.clone(), SessionId::random()).unwrap();
         let first: SessionAdmission = shell
-            .admit_session_open(&opening, build, |_, _| {}, window, cx)
+            .admit_session_open(&opening, &registry, build, |_, _| {}, window, cx)
             .unwrap();
         assert_eq!(first.connection, original);
         assert_eq!(first.context.focus, PanelFocus::Focused);
@@ -84,6 +81,7 @@ fn actual_tab_claim_exists_before_factory_and_same_session_keeps_its_field(
         let again = shell
             .admit_session_open(
                 &opening,
+                &registry,
                 |_, _, _| {
                     called.set(true);
                     unreachable!("existing resources must not be reconstructed")
@@ -151,7 +149,7 @@ fn refused_switch_does_not_delay_retirement_or_clear_protected_input(cx: &mut Te
         let opening =
             SessionOpening::resolve(&registry, original.clone(), SessionId::random()).unwrap();
         let first = shell
-            .admit_session_open(&opening, build, |_, _| {}, window, cx)
+            .admit_session_open(&opening, &registry, build, |_, _| {}, window, cx)
             .unwrap();
         shell
             .areas
@@ -171,6 +169,7 @@ fn refused_switch_does_not_delay_retirement_or_clear_protected_input(cx: &mut Te
         let before = shell.areas.layout.book.borrow().clone();
         let result = shell.admit_session_open(
             &other,
+            &registry,
             |_, _, _| unreachable!(),
             |_, _| unreachable!(),
             window,
@@ -232,12 +231,19 @@ fn old_connection_notice_cannot_retire_same_node_successor(cx: &mut TestAppConte
         let session = SessionId::random();
         let first = SessionOpening::resolve(&registry, original.clone(), session).unwrap();
         let _first = shell
-            .admit_session_open(&first, build, |_, _| {}, window, cx)
+            .admit_session_open(&first, &registry, build, |_, _| {}, window, cx)
             .unwrap();
         let fresh = connection(&mut epochs, node);
         let next = SessionOpening::resolve(&registry, fresh.clone(), session).unwrap();
         let admitted = shell
-            .admit_session_open(&next, |_, _, _| unreachable!(), |_, _| {}, window, cx)
+            .admit_session_open(
+                &next,
+                &registry,
+                |_, _, _| unreachable!(),
+                |_, _| {},
+                window,
+                cx,
+            )
             .unwrap();
         assert_eq!(admitted.connection, fresh);
         shell
@@ -250,5 +256,38 @@ fn old_connection_notice_cannot_retire_same_node_successor(cx: &mut TestAppConte
             .session_residents
             .receive(admitted.binding, |_| ())
             .unwrap();
+    });
+}
+
+#[gpui::test]
+fn deferred_open_refuses_changed_membership_before_allocating_a_tab(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let mut epochs = ConnectionEpochs::default();
+        let original = connection(&mut epochs, NodeId::random());
+        let opening = SessionOpening::resolve(
+            &Registry(WorkspaceId::random()),
+            original,
+            SessionId::random(),
+        )
+        .unwrap();
+        let changed = Registry(WorkspaceId::random());
+        let result = shell.admit_session_open(
+            &opening,
+            &changed,
+            |_, _, _| unreachable!(),
+            |_, _| unreachable!(),
+            window,
+            cx,
+        );
+        assert!(matches!(
+            result,
+            Err(SessionOpeningProblem::Resident(
+                ResidentProblem::OwnerConflict
+            ))
+        ));
+        assert!(shell.areas.layout.book.borrow().is_none());
+        assert!(shell.areas.session_residents.entries.is_empty());
     });
 }

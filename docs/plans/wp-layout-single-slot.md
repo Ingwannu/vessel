@@ -138,6 +138,8 @@ cutover's checks and captures.
 The first minter extends the same `SessionResidents` owner. `SessionOpening`
 resolves original `ConnectionContext` plus session through `WorkspaceLookup`;
 loading/unavailable ownership refuses instead of falling back to a guessed key.
+Admission rechecks current authoritative membership before touching the book or
+resources, and refuses changed placement instead of retargeting a deferred intent.
 `Shell::admit_session_open` plans a real Agent tab in the existing layout book,
 claims resources before invoking the supplied scoped factory, retires the old
 attempt through concrete owner callbacks and returns `SessionAdmission` containing
