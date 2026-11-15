@@ -797,3 +797,25 @@ K owns the later additive blur factory and Appearance profiles; W12 owns
 the later composer layout/ButtonOnly policy. Neither is folded into this
 move-only change. Narrow compilation and existing field tests are owed
 before reporting the split as usable.
+
+### Selection consumer on package base 2
+
+The selection/profile experiment is reapplied after `6036eeb8`, using
+W4's sole `Editability` and `set_editability`. No E2 editability file or
+event subscription is restored. `field/selection.rs` adds only whole-value
+selection; its tests also exercise the shared editability API. Rename
+sets ReadOnly before dispatch, restores Editable on the matching answer
+or reopen, and focuses/selects the initial value. The one book-answer
+caller now passes its existing Context for the immediate state update.
+
+A shared kit-internal `field::settings_frame(&TextField)` provides only
+the I-beam cursor and padding-to-existing-editor focus bridge. Rename
+and K's later family/number/width profiles reuse it; each supplies its own
+chrome. The rename profile is surface0/padding12/radius6/border1, without
+a hover ring, density branch or extra disabled paint. Existing native
+Body14/20 is retained. Existing form/composer renderers remain unchanged.
+
+Prepared engine regressions cover selection of ASCII/Hangul/emoji before
+the first edit, keyboard/paste/IME refusal, re-enable with draft retained
+and reopen. Narrow compilation/runtime and actual dialog captures are
+still owed; prepared tests are not counted as passed.

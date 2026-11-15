@@ -33,7 +33,7 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    ButtonState, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
+    ButtonState, Editability, TextField, Tokens, Type, TypeExt as _, dot, host_rename_button,
     outline_button_with_glyph, settings,
 };
 use vessel_app_link::Command;
@@ -85,11 +85,15 @@ impl State {
 impl Shell {
     /// The book answered an edit: close a dialog whose edit succeeded, or
     /// keep its refusal. Whether the page said it.
-    pub(crate) fn overview_answer(&mut self, answer: &Answer) -> bool {
+    pub(crate) fn overview_answer(&mut self, answer: &Answer, cx: &mut Context<'_, Self>) -> bool {
         let Answer::Edited { edit, result } = answer else {
             return false;
         };
         let state = &mut self.areas.settings.overview;
+        let renamed = state
+            .rename
+            .as_ref()
+            .is_some_and(|open| open.pending.as_ref() == Some(edit));
         let mut said = false;
         for dialog in [&mut state.rename, &mut state.remove] {
             if let Some(open) = dialog.as_mut()
@@ -100,6 +104,10 @@ impl Shell {
                     *dialog = None;
                 }
             }
+        }
+        if renamed {
+            // A refusal leaves the draft for another edit; success closes it.
+            state.field.set_editability(Editability::Editable, cx);
         }
         said
     }
@@ -112,6 +120,7 @@ impl Shell {
     ) {
         let words = self.t.lang.overview();
         let state = &mut self.areas.settings.overview;
+        state.field.set_editability(Editability::Editable, cx);
         state.field.set_text(name.as_str(), window, cx);
         state
             .field
@@ -119,6 +128,7 @@ impl Shell {
         state.problem = None;
         state.rename = Some(Editing::open(name));
         state.field.focus(window, cx);
+        state.field.select_all(window, cx);
         cx.notify();
     }
 
@@ -147,6 +157,8 @@ impl Shell {
             }
             Ask::Send(edit) => {
                 open.sent(edit.clone());
+                // Refuse edits immediately, before another input event arrives.
+                state.field.set_editability(Editability::ReadOnly, cx);
                 Some(edit)
             }
         };

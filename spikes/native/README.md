@@ -1340,3 +1340,9 @@ generates the existing Glyph, ALL and const path match in their original
 module. Append future declarations there and keep the separate exhaustive
 drawing match. The frozen pre-refactor order/path snapshot guards this
 mechanical registry change; it does not approve new glyphs or consumer ink.
+
+`TextField::select_all` uses the existing engine for line and multiline
+fields. Rename consumes the shared typed `Editability` at dispatch/answer;
+its `rename_element` profile wraps the same bare editor. The kit-internal
+`field::settings_frame` shares only the inset-focus bridge with Appearance
+profiles, leaving chrome to each profile and all events in the one engine.

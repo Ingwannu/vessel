@@ -21,9 +21,13 @@ use gpui::{div, px};
 use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+mod frame;
 mod presentation;
+mod rename;
+mod selection;
 mod styles;
 
+pub(crate) use frame::settings_frame;
 pub use presentation::composer_card;
 pub(crate) use styles::apply_tokens;
 

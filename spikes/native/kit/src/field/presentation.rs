@@ -55,7 +55,7 @@ use gpui::prelude::*;
 use gpui::{AnyElement, App, div, px};
 use gpui_base::input::{Input, Textarea};
 
-use super::form_minimum::form_shell;
+use super::form_shell;
 use super::styles::project;
 use super::{COMPOSER_MIN, FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
 use crate::fonts::{self, Type};

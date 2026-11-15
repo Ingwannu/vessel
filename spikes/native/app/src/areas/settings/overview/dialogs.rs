@@ -48,7 +48,7 @@ fn rename_dialog(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .child(state.field.element(tokens, compact, cx))
+        .child(state.field.rename_element(tokens, cx))
         .children(error.map(|error| {
             div()
                 .type_(Type::Meta)
