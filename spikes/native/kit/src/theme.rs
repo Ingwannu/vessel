@@ -12,8 +12,11 @@ pub mod spacing;
 pub mod terminal;
 pub use palette::Palette;
 
-/// The desktop command panel's scrim: black at 50 % (track S3's, after
-/// Paseo's command center), as `rgba` takes it.
+/// Paseo attachment-lightbox backdrop: black at 90 percent.
+pub const IMAGE_SCRIM: u32 = 0x0000_00e6;
+
+/// The desktop command panel's scrim: black at 50 percent after Paseo's
+/// command center, as `rgba` takes it.
 pub const COMMAND_SCRIM: u32 = 0x0000_0080;
 
 /// A form summary's light fill: GOAT's zinc25 (OKLCH .992, 0, 0) at its

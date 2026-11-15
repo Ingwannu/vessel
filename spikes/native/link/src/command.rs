@@ -29,6 +29,8 @@ pub enum Command {
     Sessions(crate::sessions::Ask),
     /// A correlated lifecycle mutation through existing session RPCs.
     SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
+    /// Correlated creation distinguishes registration from first-message delivery.
+    Create(super::creation::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

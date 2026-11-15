@@ -179,6 +179,7 @@ impl Shell {
     /// runs on the next frame.
     pub(crate) fn route_to(&mut self, route: Route) {
         self.cancel_session_navigation();
+        self.creation_departing();
         self.route = route;
         self.arrive_pending = true;
     }
@@ -186,6 +187,7 @@ impl Shell {
     /// Show `route`.
     pub(crate) fn go(&mut self, route: Route, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.cancel_session_navigation();
+        self.creation_departing();
         self.route = route;
         routes::arrive(route, self, window, cx);
         cx.notify();
@@ -396,7 +398,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
-            .child(vessel_app_kit::frame_log::drawn(started));
+            .child(areas::composer::overlay(self, &tokens, window, cx, started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

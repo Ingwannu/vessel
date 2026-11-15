@@ -14,6 +14,7 @@ impl Shell {
         match event {
             Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
             Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
+            Event::Creation(answer) => self.creation_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -82,7 +83,7 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
-            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+            Event::Files(answer) => self.composer_answered(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

@@ -66,3 +66,62 @@ composer-file-changed = The file changed while it was sent
 composer-file-unreadable = The file couldn't be read
 # A pill's second line: the upload failed; a click tries it again.
 composer-file-failed = Upload failed. Click to try again
+
+# Lightbox status and accessible actions (Paseo message.attachments).
+# Image viewer action or status; a complete label.
+composer-image-loading = Loading image…
+# Image viewer action or status; a complete label.
+composer-image-failed = Failed to load image
+# Image viewer action or status; a complete label.
+composer-image-close = Close image
+# Image viewer action or status; a complete label.
+composer-image-zoom-in = Zoom in
+# Image viewer action or status; a complete label.
+composer-image-zoom-out = Zoom out
+# Image viewer action or status; a complete label.
+composer-image-reset = Reset zoom
+
+# Toast when the platform file dialog is unavailable or fails.
+composer-file-pick-failed = The file picker couldn't be opened
+
+# Resume failed before upload; the composer retains its files and restores text.
+composer-file-wake-failed = The session couldn't resume. Your attachments are still here.
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-loading = Loading files…
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-empty = No files found
+
+# File and directory autocomplete status; a complete line above the composer.
+composer-files-failed = Files could not be loaded. Try editing the mention to retry.
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-browser = Browser element
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-review = Review comments
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-history = Chat history
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-pull = Pull request context
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-issue = Issue
+
+# Attachment pill subtitle identifying the source of a context snapshot.
+composer-context-plugin = Plugin resource
+
+# A new or background session did not provide attachment capabilities in time.
+composer-file-capabilities-failed = The agent's attachment support couldn't be read. Click to retry.
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-paste-image = Paste image
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-clipboard-empty = There is no image on the clipboard
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-format-unsupported = This image format cannot be pasted yet. Choose a PNG, JPEG, GIF or WebP image.

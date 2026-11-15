@@ -40,7 +40,11 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(window, cx),
+            areas: Areas::with_drafts(
+                vessel_app_view::composer::drafts::Drafts::default(),
+                window,
+                cx,
+            ),
             prefs: Prefs::default(),
             notice: None,
             notice_detail: None,

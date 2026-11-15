@@ -11,7 +11,7 @@ use vessel_client::CallError;
 use vessel_client::NodeClient;
 use vessel_proto::{AttachmentRef, BlobChunk, ContentBlock, ErrorCode};
 
-use super::{Attach, Step};
+use super::{Answer, Attach, Step};
 use crate::Event;
 
 /// The bytes an image's type is checked by.
@@ -20,7 +20,7 @@ const HEAD: usize = 16;
 /// Send `attach` beside the link's other commands, telling each step;
 /// `client` is the machine's connection, or why there is none.
 pub(crate) fn spawn(
-    client: Result<NodeClient, String>,
+    client: Result<NodeClient, crate::LinkError>,
     attach: Attach,
     events: mpsc::Sender<Event>,
 ) {
@@ -30,7 +30,8 @@ pub(crate) fn spawn(
         let tell = |step: Step| {
             let events = events.clone();
             async move {
-                let _closed = events.send(Event::Upload { session, key, step }).await;
+                let upload = Answer::Upload { session, key, step };
+                let _closed = events.send(Event::Files(upload)).await;
             }
         };
         let step = match client {
@@ -39,7 +40,7 @@ pub(crate) fn spawn(
                 Err((problem, again)) => Step::Failed { problem, again },
             },
             Err(why) => Step::Failed {
-                problem: Problem::Node(why),
+                problem: Problem::Node(why.to_string()),
                 again: Again::Restart,
             },
         };
@@ -72,6 +73,8 @@ where
     F: Fn(Step) -> T,
     T: Future<Output = ()>,
 {
+    super::target::check(client, attach.expected_node)
+        .map_err(|why| (Problem::Node(why.to_string()), Again::Never))?;
     let source = Source::of(&attach.origin);
     if attach.resume.is_none() {
         let head = source.head().await?;

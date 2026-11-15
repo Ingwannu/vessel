@@ -65,6 +65,15 @@ pub(crate) struct Areas {
 
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        Self::with_drafts(vessel_app_link::drafts::load(), window, cx)
+    }
+
+    /// Accept decoded drafts explicitly so UI tests do not read user state.
+    pub(crate) fn with_drafts(
+        drafts: vessel_app_view::composer::drafts::Drafts,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         let mut areas = Self {
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
@@ -87,7 +96,7 @@ impl Areas {
             terminal: terminal::TerminalArea::new(cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
-        composer::keep_drafts(&mut areas, window, cx);
+        composer::keep_drafts(&mut areas, drafts, window, cx);
         areas
     }
 }

@@ -185,6 +185,15 @@ shell and the ports its trees listen on (`vessel_proc::listening`). Both
 are mechanism the crates already used through others; the node still
 decides who may open a terminal and where.
 
+## Native attachment diagnostics
+
+The native link also names `vessel-rpc` directly for `CallError` when an
+attachment read or resume fails. `vessel-client` already uses and returns
+this type; preserving it avoids replacing the source with a string. The
+edge adds no external crate, protocol operation, or runtime subsystem.
+Its authoritative workspace table is `spikes/native/README.md`; ADR 0025
+and `docs/plans/wp-a8.md` describe the preview contract.
+
 Milestone 12 (recorded 2026-11-14, when `scripts/check-boundaries.mjs`
 began comparing `docs/ARCHITECTURE.md`'s table with the manifests; the
 first two edges had been in the manifests without this record):

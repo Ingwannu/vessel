@@ -54,6 +54,7 @@ impl crate::shell::Shell {
     }
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
+        self.creation_departing();
         self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();

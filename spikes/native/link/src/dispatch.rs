@@ -14,12 +14,15 @@
 use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
 
+const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
+
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
             Command::SessionAccess(access) => self.session_access(access),
             Command::Sessions(ask) => self.session_navigation(ask),
             Command::SessionLifecycle(request) => self.session_lifecycle(&request),
+            Command::Create(ask) => self.create(ask),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
@@ -70,10 +73,7 @@ impl State {
                 session,
                 text,
             } => self.resume(&machine, session, text).await,
-            Command::Stop { machine, session } => {
-                let input = SessionInput::CancelTurn { turn: None };
-                self.input(&machine, session, input).await;
-            }
+            Command::Stop { machine, session } => self.input(&machine, session, CANCEL_TURN).await,
             Command::Answer {
                 machine,
                 session,
