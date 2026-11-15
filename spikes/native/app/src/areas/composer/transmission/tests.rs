@@ -33,12 +33,14 @@ fn uncertainty_keeps_exact_payload_and_only_matching_completion_can_consume_it(
         let _previous = shell.areas.composer.sends.insert(
             session,
             Waiting {
+                message: vessel_proto::timeline::ClientMessageId::random(),
                 machine: Name::parse("fixture").unwrap(),
                 expected_node: NodeId::random(),
                 text: String::new(),
                 context,
                 delivery: Delivery::Start,
                 creation: None,
+                local_files: Vec::new(),
                 phase: Phase::Preparing,
             },
         );

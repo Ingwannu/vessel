@@ -35,6 +35,8 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionCh
 #[cfg(not(target_arch = "wasm32"))]
 mod capabilities;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod local;
+#[cfg(not(target_arch = "wasm32"))]
 mod read;
 #[cfg(not(target_arch = "wasm32"))]
 mod submit;
@@ -175,6 +177,9 @@ pub enum Step {
 /// its text, then each file, as the CLI sends them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithFiles {
+    /// Allocated once before preparation; retained through every upload/result.
+    /// This becomes the canonical wire key only after identified RPC activation.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// The machine.
     pub machine: Name,
     /// The immutable welcome identity admitted before preparation.

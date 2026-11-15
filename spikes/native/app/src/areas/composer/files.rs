@@ -63,6 +63,11 @@ pub(crate) fn session_card(
     .children(
         shell
             .session_tray_key()
+            .and_then(|target| super::local::notice(shell, target, tokens)),
+    )
+    .children(
+        shell
+            .session_tray_key()
             .and_then(|target| super::transmission::notice(shell, target, tokens, cx)),
     )
     .children(
@@ -97,6 +102,7 @@ pub(crate) fn draft_card(
     .children(menu)
     .children(attach)
     .children(files)
+    .children(super::local::notice(shell, DraftKey::New, tokens))
     .children(super::context::tray(
         shell,
         DraftKey::New,
@@ -319,8 +325,12 @@ impl Shell {
             return;
         };
         if item.kind == AttachmentKind::Image {
-            let source = picture(self, &item.origin, &item.mime);
-            self.open_local_image(source, window, cx);
+            if let vessel_app_view::composer::tray::Origin::Stored(file) = &item.origin {
+                self.open_stored_image(std::sync::Arc::clone(file), window, cx);
+            } else {
+                let source = picture(self, &item.origin, &item.mime);
+                self.open_local_image(source, window, cx);
+            }
         }
     }
 
@@ -339,6 +349,7 @@ impl Shell {
         if let Some(item) = tray.items().get(index).map(|item| item.key) {
             let _removed = tray.remove(item);
         }
+        self.local_files_changed(cx);
         match key {
             DraftKey::Session { session } => self.composer_pump(session, cx),
             DraftKey::New => cx.notify(),

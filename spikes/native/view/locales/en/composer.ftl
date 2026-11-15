@@ -155,3 +155,9 @@ composer-file-submission-not-sent = The message was not sent. Its prepared attac
 
 # Attachment delivery status or explicit retry of a request never sent.
 composer-file-submission-retry = Retry this message
+
+# Failed local immutable-byte acquisition or durable manifest write.
+composer-file-local-failed = The attachment could not be saved on this device. Its source was not changed.
+
+# Recovered pending-byte retention never authorizes automatic replay.
+composer-file-local-recovered = These retained attachments may belong to a message sent before restart. Sending is blocked until its delivery can be reconciled.

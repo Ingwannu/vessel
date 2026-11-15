@@ -177,6 +177,7 @@ impl<'a> Source<'a> {
         match origin {
             Origin::File(path) => Self::File(path.clone()),
             Origin::Pasted(bytes) => Self::Pasted(bytes.as_ref()),
+            Origin::Stored(local) => Self::File(local.path.clone()),
         }
     }
 

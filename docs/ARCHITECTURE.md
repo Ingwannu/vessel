@@ -1618,3 +1618,14 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Canonical timeline values (ADR 0084, staged)
+
+`vessel-proto::timeline` owns canonical tool detail bodies, non-tool items,
+provenance, permission/question presentation and identified-prompt receipt
+values. The admission submodule owns finite retained-state budget constants.
+These are standalone contracts: existing events, calls and driver emissions are
+unchanged until the shared optional event/method gate is integrated. No new
+crate or dependency edge is added. Provider decoding remains in vessel-agent;
+client renderers consume typed values and never infer provider semantics from
+opaque arguments.

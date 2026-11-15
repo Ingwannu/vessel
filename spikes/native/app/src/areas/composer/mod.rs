@@ -16,6 +16,7 @@ mod context;
 mod drafts;
 mod files;
 mod lightbox;
+mod local;
 mod mentions;
 pub(crate) mod modes;
 pub(crate) mod offers;
@@ -33,6 +34,7 @@ use std::time::Instant;
 pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
+pub(crate) use local::restore_local;
 pub(crate) use prepared::{PrepareProblem, PreparedSubmission};
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
@@ -73,6 +75,8 @@ pub(crate) struct ComposerArea {
     pub(crate) contexts: vessel_app_view::composer::trays::DraftTrays<
         vessel_app_view::composer::context::ContextTray,
     >,
+    /// Local byte ownership and serialized persistence belong to this composer area.
+    local: local::LocalState,
     /// Prompts waiting for their files, per session.
     pub(crate) sends: HashMap<SessionId, attach::Waiting>,
     /// A new chat started for its files, until its session exists (set
@@ -118,6 +122,7 @@ impl ComposerArea {
             recall: Recall::default(),
             trays: Trays::default(),
             contexts: vessel_app_view::composer::trays::DraftTrays::default(),
+            local: local::LocalState::default(),
             sends: HashMap::new(),
             starting: RefCell::new(None),
             attach_menu: MenuState::new(cx),

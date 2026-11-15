@@ -58,6 +58,7 @@ pub mod side_questions;
 mod terminal;
 pub mod terminal_profiles;
 pub mod terminals;
+pub mod timeline;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]

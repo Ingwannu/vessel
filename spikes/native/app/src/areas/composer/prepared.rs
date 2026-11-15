@@ -32,6 +32,27 @@ impl Shell {
         machine: &str,
         text: &str,
     ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        self.prepare_draft_input(
+            ticket,
+            vessel_proto::timeline::ClientMessageId::random(),
+            expected_node,
+            machine,
+            text,
+        )
+    }
+
+    /// Creation retains one canonical identity before preparing its first payload.
+    pub(crate) fn prepare_draft_input(
+        &mut self,
+        ticket: Ticket,
+        message: vessel_proto::timeline::ClientMessageId,
+        expected_node: vessel_proto::NodeId,
+        machine: &str,
+        text: &str,
+    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        if self.composer_attachments_blocked(DraftKey::New) {
+            return Err(PrepareProblem::Busy);
+        }
         let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
         if !self.draft_has_files() {
@@ -53,6 +74,7 @@ impl Shell {
             .transpose()?
             .flatten();
         *held = Some(Starting {
+            message,
             context,
             machine,
             expected_node,

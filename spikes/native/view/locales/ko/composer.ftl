@@ -146,3 +146,9 @@ composer-file-submission-not-sent = 메시지를 보내지 못했습니다. 준�
 
 # Attachment delivery status or explicit retry of a request never sent.
 composer-file-submission-retry = 이 메시지 다시 보내기
+
+# Failed local immutable-byte acquisition or durable manifest write.
+composer-file-local-failed = 이 기기에 첨부를 저장하지 못했습니다. 원본은 변경하지 않았습니다.
+
+# Recovered pending-byte retention never authorizes automatic replay.
+composer-file-local-recovered = 보관된 첨부는 재시작 전에 보낸 메시지에 속할 수 있습니다. 전달 여부를 확인할 때까지 전송을 막습니다.

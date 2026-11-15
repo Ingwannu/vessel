@@ -56,6 +56,7 @@ impl Shell {
         if let Readiness::Ready(attachments) = tray.readiness() {
             super::sent::seed(&composer.sent, waiting.machine.as_str(), session, tray);
             let prompt = Arc::new(WithFiles {
+                message: waiting.message,
                 machine: waiting.machine,
                 expected_node: waiting.expected_node,
                 session,
@@ -121,6 +122,7 @@ impl Shell {
                 );
             }
         }
+        self.local_files_changed(cx);
         cx.notify();
     }
 }

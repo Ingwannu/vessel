@@ -134,6 +134,7 @@ impl Shell {
                 .contexts
                 .get(DraftKey::New)
                 .is_some_and(vessel_app_view::composer::context::ContextTray::has_retained)
+            || self.composer_attachments_blocked(DraftKey::New)
             || self.areas.composer.starting.borrow().is_some()
             || !self.areas.draft.creation.flow.may_submit()
     }
