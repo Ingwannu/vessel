@@ -84,3 +84,15 @@ only the shared Scenario and test Link accessor, never fabricate a guard.
 Those prerequisites are not on this branch yet, so these are uncompiled source
 and cannot be called execution evidence. The original two-machine residency
 case remains intact pending the approved shared fixture extension.
+
+W12 confirmed the remaining destination boundary: alias-only Open/Command::Open
+is not authority for a prepared search destination. A guard validated on the UI
+thread can still precede an actor queue that resolves a newer connection. The
+sole proposed cutover is SessionOpening::resolve with the original connection,
+then Shell::admit_session_open against the current workspace lookup, producing
+a real claim/context and FollowBinding before hydration. Its actor carrier
+selects that exact original context and returns its same delivery guard for UI
+settlement. These are staged contract names, not a checked live opener API.
+A3 navigation remains unclaimed/held until that carrier and the core's global
+removal union exist; metadata uses the canonical Timeline ticket under its exact
+binding. An open reply never mints admission. No A3 registry/open manager is added.
