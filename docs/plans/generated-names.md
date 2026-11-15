@@ -425,3 +425,23 @@ suite pass; narrow all-targets Clippy also passes. The Chat file is now
 under the product budget and its ratchet is removed; the Responses ratchet
 is lowered. HTTP, node selection, settings and automatic application are
 still unconnected. The exact-commit whole gate remains owed.
+
+### Staged route selector contract and resume point
+
+Decision: modify the existing parsed Routes catalog and reuse the typed
+metadata values; a small metadata module owns selection separately from
+TOML parsing and the proxy. Standard iterators and Unicode lowercase need
+no new dependency. Preserve the reference hint order, actual matched model
+id, manual-only order and session fallback. Equal-priority routes use the
+existing sorted catalog; route-name aliases and omitted-model small-model
+preference are the stated Vessel differences. Selection reads no secret,
+file or socket and is not the later all-candidate settings validator.
+
+Compile the selector and its borrowed catalog iterator under cfg(test)
+until the shared-accessor wiring provides their caller. Adjacent parser
+fixtures must cover every hint, matching primary versus small, alias-only
+matches, ties, manual isolation/order, catalog reload loss, disallowed
+models, future effort, no route and redacted Debug. Contract first; the
+selector code and its narrow checks are next. No setting field or model
+request is registered. Styles are source/gate PASS at row 74; their own
+TOML text deliberately keeps Rust trim rather than JavaScript's rule.

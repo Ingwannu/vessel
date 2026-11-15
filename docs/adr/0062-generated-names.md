@@ -202,12 +202,43 @@ match, which asks for low.
 No resolvable route: no call. The fallback below applies, and the node
 logs the class (`no route`), never the prompt.
 
-The model id sent upstream is the route's `small_model` when the entry
-did not name a model and the route has a small model, otherwise the
-route's model. Preferring `small_model` here is a Vessel cost choice.
+For a manual entry without a model, or the session-route fallback,
+the model id sent upstream is the route's `small_model` when it has one,
+otherwise its primary model. Preferring `small_model` here is a Vessel
+cost choice. An automatic model-id substring match instead keeps the
+actual matching model id, primary before small when both match. It must
+not substitute an unrelated small model after matching the primary id.
+A route-name-only alias match uses the same small/primary cost choice.
 Paseo's manual candidate without a model uses the default or first model
 (`selectDefaultModel`, 262–264); its automatic path uses the model that
 matched the substring, not a separate small-model field.
+
+### Route selection and staging
+
+The node reuses its parsed `Routes` snapshot and the bounded metadata
+settings. No provider SDK, discovery request, credential read or model
+request is needed to select a tuple. Paseo scans the supplied provider
+and model arrays (`structured-generation-providers.ts` 232–249). Vessel
+uses the catalog's deterministic route-name order for equal-priority
+matches; the primary/small ids take the place of that model array, and a
+route name remains the stated label substitute. This is a deliberate
+difference for a declared `models.toml` catalog, not a claim to reproduce
+provider discovery ordering. The hint order itself is unchanged.
+
+Manual selection never appends automatic choices. On reload, a vanished
+route may be skipped for the next stored manual entry, but an existing
+selected route with a now-disallowed explicit model or unknown effort is
+refused, not silently repaired or sent to another provider. Stored
+duplicates cannot change the first resolvable tuple and never authorize a
+second request. Selection is not settings validation: saving still needs
+the later all-candidate checks, including the actual encoded API budget.
+
+Before wiring, the node selector module and its borrowed catalog iterator
+are compiled only for tests. The wiring commit after the shared accessor
+removes both attributes and supplies the real caller; no public API or
+lint suppression is added to keep unused product code. Tests use the real
+catalog parser and typed settings with synthetic endpoints, opening no
+socket and reading no credential. The selector alone does not spend.
 
 ### Strict complete-response decoding
 
@@ -649,3 +680,11 @@ still costs a call here, and costs Paseo nothing.
   slice that makes the setting real, not in this commit: a document
   that describes a call the binary does not have would disagree with
   the code.
+
+### Project-file whitespace policy
+
+The project's `vessel.toml` instructions keep Rust `str::trim`, consistent
+with Vessel's own project-file text handling. Paseo uses JavaScript trim;
+their Unicode whitespace sets differ. The shared JavaScript-style trim
+helper, if present, is not applied to this own-format reader. This is a
+stated format choice, not a claim of identical whitespace classification.
