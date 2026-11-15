@@ -1420,3 +1420,28 @@ root measure (not raised to the incoming805). Row guarded logic is retained,
 with only F1's additive FormGlyph slot/tests. popup::sheet_scrim is exactly
 the incoming old rgba00000073 through the canonical helper. Combined compiler,
 F1/consumer UI and final whole proof remain owed, not borrowed from1473.
+
+
+### List row activation and source single-line text
+
+[Decision Log]
+- Purpose/source: schedule-row.tsx209–250 binds row onEdit and restricts title,
+  target and metadata each to one line; target style is base14 (not code/Meta12),
+  with surface3 pressed and pointer surface2 hover (styles411–432).
+- Existing asset: PreparedRow already owns original Intent; editor::open_edit
+  checks the same connection/id/revision/action/current route before beginning.
+  The row now captures that exact Intent, never a fresh row-index/alias lookup.
+  Existing nested kebab click containment remains; no area menu is introduced.
+- Choice: source single-line/truncate +Body14 target. View prepares one complete
+  localized target_label using the existing form_target_project formatter;
+  the typed identity parts remain intact. Errors retain the existing typed
+  ClockError/visible notice route; no formatting or error parsing during paint.
+- Why: separately styled/wrapped path pieces can change row pitch and produce
+  multiple ellipses; the source has one target text run. Fixed-width type is
+  reserved for actual code, not this ordinary source label.
+- Impact: old global authority/offline/ended guards are preserved; no available
+  Edit action means no edit handler. Actual row/kebab/long ENKO/click first-use
+  still belongs to the final F1 package, not authored code or prior shared tests.
+- The deferred docs link (typed None until Vessel docs exist) is placed inside
+  the text stack before the create button, as schedules-screen.tsx310–321.
+  Enabling its one future URL value will not put it below the action.

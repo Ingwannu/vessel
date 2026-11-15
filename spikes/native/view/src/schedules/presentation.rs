@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use vessel_proto::HarnessRef;
 
-/// A complete target label with its semantically appropriate typeface.
+/// Node-derived target identity parts, plus a separately prepared display label.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TargetLine {
     /// Identity or localized unavailable/default-folder sentence.
@@ -58,6 +58,8 @@ pub struct PreparedRow {
     pub title: Arc<str>,
     /// Reference target line.
     pub target: TargetLine,
+    /// Whole target line prepared outside paint for the source single-line label.
+    pub target_label: Arc<str>,
     /// Exact known agent identity, absent when the target cannot be resolved.
     pub agent: Option<HarnessRef>,
     /// Node-only state, for its shared badge variant and accepted words.
@@ -102,6 +104,8 @@ fn prepare(
 ) -> PreparedRow {
     let lang = Lang::from_tag(catalog.locale().tag());
     let target = target_for(row, fleet);
+    let target_line = target_line(&target.line, catalog);
+    let target_label = display_target(&target_line, catalog);
     let meta = metadata::prepare(
         row.schedule,
         row.host.as_ref().map(super::load::MachineKey::as_str),
@@ -118,17 +122,22 @@ fn prepare(
             .into(),
             variant: feedback.variant(),
         }),
-        None => meta.as_ref().err().map(|error| Notice {
-            label: error.label(catalog).into(),
-            variant: alert::Variant::Info,
-        }),
+        None => meta
+            .as_ref()
+            .err()
+            .or_else(|| target_label.as_ref().err())
+            .map(|error| Notice {
+                label: error.label(catalog).into(),
+                variant: alert::Variant::Info,
+            }),
     };
     let product = super::product(&row.schedule.definition.target);
     PreparedRow {
         key: row.key.clone(),
         intent: row.intent(),
         title: super::title(&row.schedule.definition).into(),
-        target: target_line(&target.line, catalog),
+        target: target_line,
+        target_label: target_label.unwrap_or_else(|error| error.label(catalog).into()),
         agent: target.agent.cloned(),
         status: Status::of(&row.schedule.state),
         metadata: meta.unwrap_or_default().into(),
@@ -202,6 +211,21 @@ pub(super) fn target_line(line: &Line<'_>, catalog: &Translator) -> TargetLine {
             .to_owned(),
     };
     TargetLine::Text(text.into())
+}
+
+/// One string lets the native text system ellipsize the same complete line.
+pub(super) fn display_target(
+    target: &TargetLine,
+    catalog: &Translator,
+) -> Result<Arc<str>, super::clock::ClockError> {
+    match target {
+        TargetLine::Text(label) | TargetLine::Path(label) => Ok(Arc::clone(label)),
+        TargetLine::Project { name, dir } => catalog
+            .schedules()
+            .form_target_project(dir, name)
+            .map(Into::into)
+            .map_err(Into::into),
+    }
 }
 
 /// `HostFilter` leading, independent of a schedule load/mutation failure.

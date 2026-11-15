@@ -1,14 +1,14 @@
-//! `ScheduleRow` parts in reference order. No edit click is exposed until the
-//! editor is wired; the shared menu owns the currently available actions.
+//! `ScheduleRow` source parts and edit activation; retained clicks carry the
+//! exact admitted intent, never a later row-index/alias lookup.
 use crate::shell::Shell;
 use kit::ui::FluentBuilder as _;
 use kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
+    SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use std::sync::Arc;
 use vessel_app_kit::{self as kit, Tokens, Type, TypeExt as _, theme::spacing};
-use vessel_app_view::schedules::presentation::{PreparedRow, TargetLine};
+use vessel_app_view::schedules::presentation::PreparedRow;
 
 pub(super) fn render(
     shell: &Shell,
@@ -17,7 +17,7 @@ pub(super) fn render(
     tokens: &Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> Stateful<Div> {
     let main = div()
         .flex()
         .flex_row()
@@ -33,44 +33,41 @@ pub(super) fn render(
             .map(|notice| super::draw::row_notice(notice, tokens)),
     );
     let trailing = trailing(shell, row, tokens, touch, cx);
-    kit::settings::row_with_content(
+    let row_element = kit::settings::row_with_content(
         content.into_any_element(),
         Some(trailing),
         index == 0,
         touch,
         tokens,
     )
+    .id(("schedules-row", index))
+    .active(move |style| style.bg(tokens.neutral.surface3))
     .when(!touch, |row| {
         row.hover(|style| style.bg(tokens.neutral.surface2))
-    })
+    });
+    if let Some(intent) = row.intent.as_ref().filter(|intent| {
+        intent.allows(
+            &shell.areas.schedules.data.page,
+            vessel_app_view::schedules::Action::Edit,
+        )
+    }) {
+        let intent = intent.clone();
+        row_element
+            .cursor_pointer()
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                super::editor::open_edit(shell, &intent, window, cx);
+            }))
+    } else {
+        row_element
+    }
 }
 fn target(row: &PreparedRow, tokens: &Tokens) -> Div {
-    let target = match &row.target {
-        TargetLine::Text(text) => div()
-            .type_(Type::Meta)
-            .child(SharedString::from(Arc::clone(text))),
-        TargetLine::Path(text) => div()
-            .type_(Type::Mono)
-            .child(SharedString::from(Arc::clone(text))),
-        TargetLine::Project { name, dir } => div()
-            .flex()
-            .flex_wrap()
-            .gap(px(spacing::S1))
-            .child(
-                div()
-                    .type_(Type::Meta)
-                    .child(SharedString::from(Arc::clone(name))),
-            )
-            .child(
-                div()
-                    .type_(Type::Mono)
-                    .child(SharedString::from(Arc::clone(dir))),
-            ),
-    };
-    target
+    div()
         .mt(px(spacing::S1))
+        .type_(Type::Body)
         .text_color(tokens.neutral.foreground_muted)
-        .whitespace_normal()
+        .truncate()
+        .child(SharedString::from(Arc::clone(&row.target_label)))
 }
 fn words(row: &PreparedRow, tokens: &Tokens) -> Div {
     div()
@@ -80,7 +77,7 @@ fn words(row: &PreparedRow, tokens: &Tokens) -> Div {
             div()
                 .type_(Type::Body)
                 .text_color(tokens.neutral.foreground)
-                .whitespace_normal()
+                .truncate()
                 .child(SharedString::from(Arc::clone(&row.title))),
         )
         .child(target(row, tokens))
@@ -89,7 +86,7 @@ fn words(row: &PreparedRow, tokens: &Tokens) -> Div {
                 .mt(px(spacing::S1))
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
-                .whitespace_normal()
+                .truncate()
                 .child(SharedString::from(Arc::clone(&row.metadata))),
         )
 }

@@ -204,3 +204,23 @@ fn history_is_a_read_only_entry_without_changing_write_authority() {
     assert_eq!(offline[0].history, None);
     assert!(!offline[0].has_menu());
 }
+
+#[test]
+fn whole_target_label_is_localized_once_without_losing_node_identity_parts() {
+    let target = TargetLine::Project {
+        name: "긴 프로젝트 Project".into(),
+        dir: "nested/경로".into(),
+    };
+    for tag in ["en", "ko"] {
+        let catalog = Translator::get(Locale::from_tag(tag).unwrap()).unwrap();
+        let label = display_target(&target, catalog).unwrap();
+        assert_eq!(visible(&label), "긴 프로젝트 Project · nested/경로");
+        assert_eq!(
+            target,
+            TargetLine::Project {
+                name: "긴 프로젝트 Project".into(),
+                dir: "nested/경로".into()
+            }
+        );
+    }
+}

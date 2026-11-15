@@ -244,6 +244,7 @@ fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell
     } else {
         None
     };
+    let words = words.children(docs);
     div()
         .w_full()
         .max_w(px(EMPTY_MAX_WIDTH))
@@ -265,7 +266,6 @@ fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell
             (bucket == vessel_app_view::schedules::Bucket::Active)
                 .then(|| new_action(shell, "schedules-empty-new", tokens, touch, cx)),
         )
-        .children(docs)
 }
 
 pub(super) fn row_notice(message: &Notice, tokens: &Tokens) -> Div {
