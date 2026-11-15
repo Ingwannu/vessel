@@ -95,3 +95,10 @@ Availability uses the shared authenticated connection snapshot, not the result
 of a session-list read. A semantic session-list refusal does not revoke an
 otherwise valid Admin settings connection; the actual request still checks
 its own scopes and capability. A closed transport has no admitted context.
+
+The exact 9ad30682a UI strict batch stopped at the Fluent build contract:
+individual orchestration messages lacked translator context comments (group
+comments cover only the next message). Each EN/KO message now has its own
+screen/action/recovery context. No compiler or runtime success is inferred
+from that failed batch; it never reached the app controller check. Logs are
+retained in /tmp/work/wp-mcp/app-strict-9ad3.
