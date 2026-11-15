@@ -96,7 +96,7 @@ mod tests {
                 .project_reads
                 .begin(ProjectTarget::new(host.clone(), old))
                 .unwrap();
-            let mut machine = Machine::unreachable(host.to_string(), "fixture");
+            let mut machine = Machine::unreachable(host.as_str().to_owned(), "fixture");
             machine.reach = Reach::Online;
             machine.node = Some(node);
             shell.fleet.machines = vec![machine];

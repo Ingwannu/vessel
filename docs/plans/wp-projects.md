@@ -393,3 +393,9 @@ The first strict read-provenance run (8f7bf2ee) passed view compilation, then
 stopped on the extended clone-follow map's type complexity in link. Its key
 now has one private FollowKey alias without changing its representation or
 ownership. App compilation/runtime checks remain owed on the latest source.
+
+The older c1baa native check reached app tests and found the book Name has no
+Display implementation. Tests and the new settings route now explicitly obtain
+its validated text with as_str, leaving the shared Name API unchanged. The app
+line's announced base6 (18eedad4) merged cleanly; its stale Cargo.lock is a known
+base issue and no --locked flag is used. Current combined checks remain required.

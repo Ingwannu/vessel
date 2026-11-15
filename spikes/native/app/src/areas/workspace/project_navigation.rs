@@ -55,7 +55,7 @@ impl Shell {
                 return Err(ProjectSettingsRefusal::Unavailable);
             }
         };
-        self.areas.settings.machine = Some(target.host().to_string());
+        self.areas.settings.machine = Some(target.host().as_str().to_owned());
         self.open_settings(Some(Section::Projects), window, cx);
         self.areas.workspace.page.detail = Some(super::detail::Detail::new(project));
         self.load_detail(target.host().as_str(), &info);

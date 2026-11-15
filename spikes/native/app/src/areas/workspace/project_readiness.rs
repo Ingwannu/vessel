@@ -80,7 +80,7 @@ mod tests {
             let host = Name::parse("laptop").unwrap();
             let node = NodeId::random();
             shell.fleet.machines.push(Machine {
-                name: host.to_string(),
+                name: host.as_str().to_owned(),
                 reach: Reach::Online,
                 sessions: Vec::new(),
                 agents: Vec::new(),
