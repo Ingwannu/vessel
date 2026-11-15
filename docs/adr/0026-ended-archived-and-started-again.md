@@ -166,3 +166,19 @@ The decision stands; these refine it where it said nothing.
 - **Routes.** A routed session keeps its route (ADR 0015), as a move
   does: if its profile's route changed since, starting it again is
   `unsupported`.
+
+## Amendment (2026-11-15): waiting for the hand-over
+
+- Between a session's end and the store serving it, its log is still being
+  written. `session.delete` and starting a session again were refused at
+  once in that gap (`conflict`, "try again"), which a client that has just
+  seen the end cannot avoid: an agent that archives a session and then
+  resumes it met it (the shared MCP test, on a loaded build machine).
+- Both now wait for the hand-over, at most `HAND_OVER_WAIT` (10 s, the
+  same budget a side question's reset already used): delete until the store
+  serves the session, start-again until the store serves it and its last
+  run's entry is released (`hand_over` publishes the end after both). Past
+  the wait the answer is `conflict` as before, so a store that never
+  answers still gets a typed reply rather than a hung call.
+- Reference: Paseo's delete closes the agent and flushes its queued
+  persistence before removing it, so it waits rather than refusing.

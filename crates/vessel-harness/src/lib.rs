@@ -82,7 +82,7 @@ pub use added::{
     remove_agent,
 };
 pub use direct::{Direct, DirectProtocol, Version, VersionFit, direct, version_check};
-pub use discover::{discover, discover_added};
+pub use discover::{AgentMetadata, added_metadata, builtin_metadata, discover, discover_added};
 pub use env::HarnessEnv;
 pub use error::HarnessError;
 pub use home::{home, login_check};
