@@ -141,6 +141,15 @@ impl Outbound {
     pub async fn closed(&self) {
         self.closing.cancelled().await;
     }
+
+    /// A token cancelled once the connection is closing, for something
+    /// that lives longer than the call that made it. Unlike a clone of this
+    /// outlet, it holds none of the connection's queue. Cancelling it does
+    /// not close the connection.
+    #[must_use]
+    pub fn closing_token(&self) -> CancellationToken {
+        self.closing.child_token()
+    }
 }
 
 /// A subscription's sink was closed: the client unsubscribed or the

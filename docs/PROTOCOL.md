@@ -40,6 +40,12 @@ or queuing a frame with `CallError::UnassignedProtocol { method }` (code
 supplies its optional threshold, assigned by integration only after its
 clients can read or approve the new data.
 
+Numbers are assigned at merge, in merge order (2026-11-15): the next
+feature merged takes `PROTOCOL_VERSION + 1`, and a reservation only marks
+intent. A number is never skipped: a node built while a lower number waited
+for its feature would advertise the higher one and so claim a feature it
+lacks.
+
 A pending method has a row in the method table like any other (Quality B):
 `Variant / handler / "wire.name" [Scope, (pending FEATURE), shape]:
 Request => Response;`, where `FEATURE` is the feature's
@@ -51,6 +57,60 @@ reply opens a stream of frames: `session.subscribe`, `terminal.subscribe`)
 or `envelope` (`fleet.forward`, `fleet.relay`, `fleet.deliver`: answered
 once with the carried call's reply, whose outcome it is). No pending method
 is registered by this foundation.
+
+A staged method (2026-11-15) is a pending method whose request and response
+types land before any node serves it: `[Scope, (staged FEATURE), shape]`.
+It is refused on every connection the same way (its constant is None, which
+the row's generated code asserts at compile time). Its `Handler` method has
+a default body answering `Unsupported` without the request's values, and
+the node's guard generates nothing for it, so a values-only package needs
+no runtime to compile. The package that serves the method changes `staged`
+to `pending` in the commit that adds its handler; from then on the guard
+requires the handler, as for every assigned or pending row.
+
+## Version 25 (2026-11-15, milestone 12): workspace registry metadata (W11, ADR 0082)
+
+Protocol 25 introduces the independent workspace registry's six metadata
+methods: `workspace.registry`, `workspace.list` and `workspace.get` (Read),
+and `workspace.rename`, `workspace.pin` and `workspace.release_automation`
+(Operate). Each is unary and fleet-forwardable. A person calls them: an
+agent principal, direct or delegated, is refused before any lookup, and a
+forwarded call from a person (owner or device) holds the delivering device's
+scopes intersected with its origin's. A delegated `workspace.registry` reads
+at once, without the long poll. `workspace.release_automation` clears only
+the retained blocked-source gate, by compare-and-set on the expected
+revision and the exact typed source; it approves no command and starts no
+automation.
+
+Only these six activate. Workspace creation and filesystem provisioning,
+generation, resource start and exit, archive, restore and deletion, project
+config reads and writes, editor launch and D2 effects have no method row and
+remain unavailable. The six were reviewed with
+`PROJECT_WORKSPACE_REGISTRY = None` (the pending section below) and assigned
+25 at their node-line merge, the next free number in merge order. The
+providers (W22), once reserved 24, take the next free number when they
+merge. The minimum protocol remains 2 and the store schema (20, which
+already holds the registry tables) is unchanged.
+
+## Version 24 (2026-11-15, milestone 12): node diagnostics (N1, ADR 0074)
+
+Protocol 24 introduces `node.diagnostics(GetDiagnostics {}) -> DiagnosticReport`:
+Read, unary, not fleet-forwardable (Forward, Relay and Deliver refuse it).
+It was reviewed and gated with its number unassigned (`None`), then assigned
+24 at its node-line merge. Protocol 24 had been reserved for
+`providers::PROVIDERS` (W22); by the numbering rule above, the providers take
+the next free number when they merge. The minimum protocol remains 2 and the
+store schema is unchanged.
+
+The request has no fields; unknown fields are refused. The report has node
+facts and explicit process, store, agents, sessions, listeners, relays and
+recent-failures sections, each available or unavailable for a stated reason.
+Process values are a checked process id, optional parent and JSON-safe
+resident and virtual sizes. A busy or stopping node answers the existing
+`Unavailable` code with a closed `ErrorDetail::Diagnostics` reason
+(`busy`, `stopping`). The report carries no raw log, environment, path,
+key, token, name or error text. Below 24 the client refuses before sending
+(`NotInProtocol`) and a node refuses a forced request before dispatch.
 
 ## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
 
@@ -1864,7 +1924,6 @@ approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
 
-
 The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
 (nonzero TCP port, optional/absent by default). A current or previous approval
 with one is invalid for every peer while unassigned, through every direct and
@@ -1884,3 +1943,38 @@ slots with the canonical range and approved literal program. A current or
 prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
+
+## Pending independent workspace registry (ADR 0082; assigned 25, see Version 25)
+
+The registry dependency declares workspace.registry, workspace.list,
+workspace.get, workspace.rename, workspace.pin and workspace.release_automation
+in the single method table with PROJECT_WORKSPACE_REGISTRY = None. No wire
+number is assigned here. Clients/forwarded calls refuse pending methods before
+routing; existing session/project replies are unchanged.
+
+The atomic snapshot carries node identity, a monotonic registry revision,
+independent workspace descriptors and explicit session/terminal ownership. Cwd
+and a node-book alias never identify a workspace. Empty workspaces are retained.
+Foreground/background visibility belongs to the workspace; bound session listing
+must be derived from this authority, while legacy unbound sessions remain a
+separate compatibility surface.
+
+Descriptors expose Active, Archiving, Restoring or Archived, exact local/managed
+backing, explicit title and pin, and the retained automation gate. Source release
+requires both the expected revision and exact typed external source; it changes
+only that gate. Person-only policy and Read/Operate scope checks apply. Archive,
+restoration, resource launch and create receipts are separate orchestration
+packages using the same durable registry/start-lease fence. Complete snapshots
+are bounded by the store's descriptor and retained resource budgets below the
+existing RPC frame limit. No cwd inference, implicit trust, replay or teardown
+occurs in a presentation mutation.
+
+## Diagnostics before their number (ADR 0074; assigned 24, see Version 24)
+
+At its review checkpoint `node.diagnostics {}` returned a bounded
+DiagnosticReport through a pending method-table row. It needs Read and is
+unary, not fleet-forwardable. DIAGNOSTICS_PROTOCOL was None until the
+integrator assigned 24 at the merge; while unassigned, every client send and
+server dispatch refused it through required_protocol.
+The report adds explicit own-process numeric observations, source states and
+closed resource-refusal detail; it never carries raw logs or environment.

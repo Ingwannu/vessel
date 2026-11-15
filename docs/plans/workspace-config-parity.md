@@ -574,3 +574,18 @@ workspace Read/Operate rows use the same direct rule with their exact scope.
 The contract now owes no-history snapshot/cap/expiry tests and shared plus
 node-wide waiting-read admission before runtime wiring. DTO/source remains
 unimplemented until this security correction is accepted.
+
+### Current dependency and values boundaries
+
+The announced registry metadata head is merged without changing its assigned
+protocol or schema. Its connection lifetime accessor and registry/start-lease
+primitives are available, but canonical physical incarnation, seeded run and
+accepted-peer/scheme proofs remain separate prerequisites. No real Preview
+consumer is wired, so both shared accessor dead-code expectations remain.
+
+The consumer contract correction is accepted. DTOs, staged methods and SDK
+wrappers are authored in a separate values tree; its source checks and wire
+generation do not qualify the helper/Preview stack here. The parser now uses
+the incoming shared command and configuration byte-budget owners. Existing
+immutable narrow checks keep their original commits and evidence scopes;
+the merged runtime preparation still owes its own enclosing package gate.
