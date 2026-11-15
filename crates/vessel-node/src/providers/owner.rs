@@ -332,12 +332,10 @@ where
         let Ok(provider) = semaphore.acquire_owned().await else {
             return Observation::Failed(DiscoveryFailure::Stopped);
         };
-        producer(
-            work.clone(),
-            cancel.clone(),
-            WorkLease::new(global, provider, workers),
-        )
-        .await
+        let lease = WorkLease::new(global, provider, workers);
+        // The async operation retains its lease too; producers clone it only
+        // when physical preparation must survive cancellation of this future.
+        producer(work.clone(), cancel.clone(), lease.clone()).await
     };
     let observation = tokio::select! {
         biased;
