@@ -65,6 +65,7 @@ pub struct WindowState {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct StoredState {
     position: Option<(f64, f64)>,
     width: f64,

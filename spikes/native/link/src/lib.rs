@@ -24,11 +24,11 @@
 
 mod command;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod desktop;
+#[cfg(not(target_arch = "wasm32"))]
 mod dispatch;
 mod error;
 mod event;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod desktop;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;

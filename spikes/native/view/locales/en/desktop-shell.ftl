@@ -79,3 +79,18 @@ desktop-shell-path-manual = Add the installation directory to PATH in your termi
 desktop-shell-launch-failed = The desktop launch could not be completed. Try opening Vessel again.
 # Desktop menus, CLI settings, or release history. Complete label; keep short.
 desktop-shell-window-save-failed = Window position could not be saved. Check your application settings directory.
+
+# Shown after a refused canonical settings write; no technical details.
+desktop-shell-preferences-failed = The preference change could not be saved. Your previous settings were restored.
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-cli-checking = Checking CLI installation…
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-path-ready = Open a new terminal to use Vessel on PATH.
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-cli-path = Terminal PATH
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-refresh = Refresh

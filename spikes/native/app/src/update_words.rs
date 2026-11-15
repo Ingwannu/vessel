@@ -21,7 +21,7 @@ use crate::update::{UpdateState, Updated, Updates};
 
 /// The updater's runtime and facts remain authoritative across retranslation.
 pub(crate) struct UpdateUi {
-    pub(crate) runtime: Option<Updates>,
+    pub(crate) runtime: Option<std::rc::Rc<Updates>>,
     pub(crate) state: UpdateState,
     #[cfg_attr(
         target_arch = "wasm32",

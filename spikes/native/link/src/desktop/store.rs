@@ -18,6 +18,7 @@ pub struct Store {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Document {
     version: u16,
     state: WindowState,
@@ -71,6 +72,7 @@ impl Store {
     /// # Errors
     /// Refuses serialization or OS errors and removes only its own temporary file.
     pub fn save_window(&self, state: WindowState) -> Result<(), Error> {
+        let _original = self.load_window()?;
         crate::prefs::private_dir(&self.directory)?;
         let path = self.directory.join("window-state.json");
         // A single process-level writer serializes these calls, including its final save.

@@ -79,3 +79,18 @@ desktop-shell-path-manual = 터미널 설정에서 설치 폴더를 PATH에 추�
 desktop-shell-launch-failed = 데스크톱 실행 요청을 완료하지 못했습니다. Vessel을 다시 열어 주세요.
 # Desktop menus, CLI settings, or release history. Complete label; keep short.
 desktop-shell-window-save-failed = 창 위치를 저장하지 못했습니다. 앱 설정 폴더를 확인해 주세요.
+
+# Shown after a refused canonical settings write; no technical details.
+desktop-shell-preferences-failed = 설정 변경을 저장하지 못했습니다. 이전 설정을 복원했습니다.
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-cli-checking = CLI 설치 상태 확인 중…
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-path-ready = 새 터미널을 열면 PATH에서 Vessel을 사용할 수 있습니다.
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-cli-path = 터미널 PATH
+
+# CLI settings: status or complete action label; keep short.
+desktop-shell-refresh = 새로 고침

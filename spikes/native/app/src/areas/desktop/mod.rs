@@ -3,7 +3,11 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod actions;
 #[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod cli;
+#[cfg(not(target_arch = "wasm32"))]
 mod menus;
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
 pub(crate) mod preferences;
 
 use crate::shell::Shell;
@@ -28,6 +32,10 @@ pub(crate) struct DesktopArea {
     zoom: actions::Zoom,
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) preferences: Option<vessel_app_link::desktop::preferences::Client>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) rollback: Option<vessel_app_link::Prefs>,
+    #[cfg(not(target_arch = "wasm32"))]
+    cli: cli::CliPanel,
 }
 
 impl DesktopArea {
@@ -44,12 +52,17 @@ impl DesktopArea {
             #[cfg(not(target_arch = "wasm32"))]
             zoom: actions::Zoom::default(),
             #[cfg(not(target_arch = "wasm32"))]
-            preferences:None,
+            preferences: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            rollback: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            cli: cli::CliPanel::default(),
         }
     }
 }
 
 pub(crate) fn pending(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    preferences::rollback(shell, window, cx);
     #[cfg(not(target_arch = "wasm32"))]
     crate::desktop::drain_pending(shell, window, cx);
     #[cfg(target_arch = "wasm32")]
@@ -74,4 +87,34 @@ pub(crate) fn render(
     _cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     None
+}
+
+pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    preferences::start(shell, window, cx);
+    #[cfg(not(target_arch = "wasm32"))]
+    if cx.has_global::<crate::desktop::Desktop>() {
+        native::register(shell.words, cx);
+        cli::start(shell, window, cx);
+    }
+}
+
+pub(crate) fn cli_section(
+    shell: &Shell,
+    tokens: &vessel_app_kit::Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::Div> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        cli::section(shell, tokens, cx)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _browser = (shell, tokens, cx);
+        None
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn listen(cx: &mut gpui::App) {
+    native::listen(cx);
 }

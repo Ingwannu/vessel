@@ -88,11 +88,15 @@ fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result
 }
 
 fn passthrough(arguments: Vec<OsString>) -> Result<(), Error> {
-    let binary = std::env::current_exe()?.with_file_name(if cfg!(windows) {
-        "vessel.exe"
+    let platform = if cfg!(windows) {
+        vessel_app_link::desktop::cli::path_setup::Platform::Windows
+    } else if cfg!(target_os = "macos") {
+        vessel_app_link::desktop::cli::path_setup::Platform::Mac
     } else {
-        "vessel"
-    });
+        vessel_app_link::desktop::cli::path_setup::Platform::Unix
+    };
+    let binary =
+        vessel_app_link::desktop::cli::bundled_cli_path(&std::env::current_exe()?, platform)?;
     if !binary.is_file() {
         return Err(Error::MissingCli);
     }

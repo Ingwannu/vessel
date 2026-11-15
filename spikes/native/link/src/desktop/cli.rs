@@ -1,18 +1,28 @@
 //! CLI installation owns only its exact symlink or Windows command trampoline.
 
+pub mod path_setup;
+
 use std::path::{Path, PathBuf};
 
 use super::Error;
 
-/// Ownership is checked before installation and removal, including broken links.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Status {
-    /// No entry exists at the requested user-local destination.
-    Absent,
-    /// This installation owns the entry exactly.
-    Installed,
-    /// An unrelated entry must survive install and uninstall attempts.
-    Foreign,
+pub use vessel_app_view::desktop::cli::Status;
+
+/// The GUI is Vessel.exe on Windows, so a sibling vessel.exe would recurse.
+///
+/// # Errors
+/// The host executable must have an absolute location.
+pub fn bundled_cli_path(
+    executable: &Path,
+    platform: path_setup::Platform,
+) -> Result<PathBuf, Error> {
+    if !executable.is_absolute() {
+        return Err(Error::RelativePath);
+    }
+    Ok(executable.with_file_name(match platform {
+        path_setup::Platform::Windows => "vessel-cli.exe",
+        path_setup::Platform::Mac | path_setup::Platform::Unix => "vessel",
+    }))
 }
 
 /// Both paths are supplied explicitly so onboarding cannot accidentally use root's home.
@@ -45,6 +55,12 @@ impl Installation {
     #[must_use]
     pub fn target(&self) -> &Path {
         &self.target
+    }
+
+    /// A missing bundled source disables installation while retaining safe removal.
+    #[must_use]
+    pub fn has_bundled_cli(&self) -> bool {
+        self.source.is_file()
     }
 
     /// Inspect ownership without following an installed symlink.

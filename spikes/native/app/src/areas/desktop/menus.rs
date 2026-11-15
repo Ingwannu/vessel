@@ -22,7 +22,7 @@ pub(super) enum Group {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Edit {
+pub(super) enum Edit {
     Undo,
     Redo,
     Cut,
@@ -32,7 +32,7 @@ enum Edit {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Item {
+pub(super) enum Item {
     Desktop(DesktopAction),
     Edit(Edit),
     Reload,
@@ -200,7 +200,7 @@ pub(crate) fn render(
     )
 }
 
-fn invoke(
+pub(super) fn invoke(
     shell: &mut Shell,
     item: Item,
     focus: Option<FocusHandle>,

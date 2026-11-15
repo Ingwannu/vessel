@@ -7,7 +7,8 @@ mod windows;
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Global, WeakEntity};
 use vessel_app_link::desktop::{
-    environment::ShellEnvironment, store::Store, window_writer::WindowWriter, preferences::Coordinator,
+    environment::ShellEnvironment, preferences::Coordinator, store::Store,
+    window_writer::WindowWriter,
 };
 use vessel_app_view::desktop::window::WindowState;
 
@@ -34,8 +35,11 @@ pub(crate) struct Desktop {
 impl Global for Desktop {}
 
 impl Desktop {
-    fn new(store: Store, environment: ShellEnvironment) -> Result<Self,vessel_app_link::desktop::Error> {
-        let preferences=Coordinator::start(vessel_app_link::Prefs::load())?;
+    fn new(
+        store: Store,
+        environment: ShellEnvironment,
+    ) -> Result<Self, vessel_app_link::desktop::Error> {
+        let preferences = Coordinator::start(vessel_app_link::Prefs::load())?;
         let (saved, writable) = match store.load_window() {
             Ok(saved) => (saved, true),
             Err(error) => {
@@ -143,9 +147,14 @@ pub(crate) fn environment(cx: &App) -> ShellEnvironment {
         })
 }
 
-fn install(store: Store, environment: ShellEnvironment, cx: &mut App) -> Result<(),vessel_app_link::desktop::Error> {
+fn install(
+    store: Store,
+    environment: ShellEnvironment,
+    cx: &mut App,
+) -> Result<(), vessel_app_link::desktop::Error> {
     cx.set_global(Desktop::new(store, environment)?);
     cx.set_quit_mode(gpui::QuitMode::Explicit);
+    crate::areas::desktop::listen(cx);
     cx.on_window_closed(|cx, closed| {
         cx.global_mut::<Desktop>()
             .records
@@ -157,13 +166,15 @@ fn install(store: Store, environment: ShellEnvironment, cx: &mut App) -> Result<
     .detach();
     cx.on_app_quit(|cx| {
         let desktop = cx.global::<Desktop>();
-        let flush=desktop.preferences.flush();
+        let flush = desktop.preferences.flush();
         let final_write = desktop
             .writer
             .as_ref()
             .map(|writer| writer.finalize(desktop.latest));
         async move {
-            if let Err(error)=flush.await { tracing::warn!(%error,"preferences could not finish saving before quit"); }
+            if let Err(error) = flush.await {
+                tracing::warn!(%error,"preferences could not finish saving before quit");
+            }
             if let Some(final_write) = final_write
                 && let Err(error) = final_write.await
             {
@@ -173,4 +184,30 @@ fn install(store: Store, environment: ShellEnvironment, cx: &mut App) -> Result<
     })
     .detach();
     Ok(())
+}
+
+pub(crate) fn with_focused_shell(
+    cx: &mut App,
+    run: impl FnOnce(&mut Shell, &mut gpui::Window, &mut gpui::Context<'_, Shell>),
+) {
+    let active = cx.active_window();
+    let Some(desktop) = cx.try_global::<Desktop>() else {
+        return;
+    };
+    let record = desktop
+        .records
+        .iter()
+        .find(|record| Some(record.window) == active)
+        .or_else(|| desktop.records.first())
+        .cloned();
+    if let Some(record) = record {
+        let result = record.window.update(cx, |_root, window, cx| {
+            if let Some(shell) = record.shell.upgrade() {
+                shell.update(cx, |shell, cx| run(shell, window, cx));
+            }
+        });
+        if let Err(error) = result {
+            tracing::warn!(%error,"desktop menu target is no longer available");
+        }
+    }
 }

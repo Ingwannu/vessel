@@ -44,7 +44,7 @@ impl Shell {
         cx.notify();
         // The first release renders before the rest of the initial page. This
         // yields to GPUI rather than introducing a timer or continuous animation.
-        cx.on_next_frame(window,|shell, _window, cx| {
+        cx.on_next_frame(window, |shell, _window, cx| {
             shell.areas.about.history.revealed.settled();
             cx.notify();
         });

@@ -2,6 +2,9 @@
 //! the areas' state, the link's events dispatched to them, and the frame
 //! (the title bar, the sidebar on the shell, the page framed beside it:
 //! DESIGN.md section 6).
+use crate::areas::{self, Areas};
+use crate::chrome;
+use crate::routes::{self, Route};
 use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::frame::{Lines, panel_edges};
@@ -15,9 +18,6 @@ use vessel_app_kit::ui::{
 use vessel_app_link::{Command, Event, Link, Prefs};
 use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
-use crate::areas::{self, Areas};
-use crate::chrome;
-use crate::routes::{self, Route};
 
 /// The window's state.
 pub(crate) struct Shell {
@@ -100,7 +100,7 @@ impl Shell {
             updates: crate::update_words::UpdateUi::new(words),
             sidebar_sheet: None,
         };
-        crate::areas::desktop::preferences::start(&mut shell,window,cx);
+        crate::areas::desktop::start(&mut shell, window, cx);
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);
@@ -114,13 +114,16 @@ impl Shell {
     /// answer would reach (`crate::unsent`: callers that set what waits
     /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        let Some(command)=crate::areas::desktop::preferences::submit(self,command) else {return;};
-        let taken = match &self.link {
-            Some(link) => link.submit(command),
-            None => Err(vessel_app_link::Unsent::new(
-                vessel_app_link::Rejected::Closed,
-                command,
-            )),
+        let taken = match crate::areas::desktop::preferences::submit(self, command) {
+            Ok(None) => return,
+            Err(unsent) => Err(unsent),
+            Ok(Some(command)) => match &self.link {
+                Some(link) => link.submit(command),
+                None => Err(vessel_app_link::Unsent::new(
+                    vessel_app_link::Rejected::Closed,
+                    command,
+                )),
+            },
         };
         if let Err(unsent) = taken {
             // The receiver lives as long as the shell's window.
@@ -132,6 +135,7 @@ impl Shell {
     /// app's words. Without a link at all, the foot keeps saying why the
     /// link did not start.
     pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
+        crate::areas::desktop::preferences::refused(self, &unsent);
         tracing::warn!(why = %unsent.why, "the link did not take a command");
         let words = self.t.unsent;
         match crate::unsent::settle(unsent, words) {

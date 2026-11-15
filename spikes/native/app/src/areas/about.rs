@@ -155,6 +155,7 @@ pub(crate) fn content(
         .children(crate::areas::settings::connected::section(shell, tokens, compact))
         .child(settings::section(about.software(), licences, tokens))
         .child(marks::section(shell, tokens, compact, cx))
+        .children(crate::areas::desktop::cli_section(shell,tokens,cx))
         .into_any_element()
 }
 
@@ -176,48 +177,6 @@ fn whats_new_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) ->
             this.open_changelog(window, cx);
         })),
     )
-}
-
-/// The running build's release notes, in a dialog.
-fn notes_dialog(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let about = &shell.areas.about;
-    let notes = shell.running_notes().filter(|_| about.notes)?;
-    let words = shell.words.update();
-    let body = div()
-        .flex()
-        .flex_col()
-        .gap(px(8.0))
-        .child(
-            div()
-                .type_(Type::Label)
-                .text_color(tokens.neutral.foreground)
-                .child(shell.updates.version()),
-        )
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground)
-                .child(markdown("release-notes", notes.to_owned())),
-        );
-    Some(dialog(
-        &about.notes_dialog,
-        DialogContent {
-            title: words.whats_new().into(),
-            body: body.into_any_element(),
-            footer: Vec::new(),
-            size: DialogSize::Normal,
-        },
-        tokens,
-        window,
-        crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, _cx| shell.areas.about.notes = false,
-        cx,
-    ))
 }
 
 /// Paseo's confirm before the update installs and the app restarts.
