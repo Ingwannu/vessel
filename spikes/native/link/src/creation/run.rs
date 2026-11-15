@@ -164,7 +164,11 @@ fn call_failure(error: &CallError) -> Failure {
         CallError::Remote(error) => match error.code {
             // Session persistence can fail after the process starts. A generic
             // internal error is not evidence that its side effects never ran.
-            vessel_proto::ErrorCode::Internal => Failure::OutcomeUnknown,
+            // Shutdown can return Unavailable after spawn. SpawnFailed also
+            // covers pipe/process-group setup after the OS child launched.
+            vessel_proto::ErrorCode::Internal
+            | vessel_proto::ErrorCode::Unavailable
+            | vessel_proto::ErrorCode::SpawnFailed => Failure::OutcomeUnknown,
             vessel_proto::ErrorCode::InvalidRequest
             | vessel_proto::ErrorCode::Unauthorized
             | vessel_proto::ErrorCode::Forbidden
@@ -172,9 +176,7 @@ fn call_failure(error: &CallError) -> Failure {
             | vessel_proto::ErrorCode::NotFound
             | vessel_proto::ErrorCode::Conflict
             | vessel_proto::ErrorCode::Unsupported
-            | vessel_proto::ErrorCode::HarnessNotInstalled
-            | vessel_proto::ErrorCode::SpawnFailed
-            | vessel_proto::ErrorCode::Unavailable => Failure::Refused(error.code),
+            | vessel_proto::ErrorCode::HarnessNotInstalled => Failure::Refused(error.code),
         },
         CallError::NotInProtocol { .. }
         | CallError::UnassignedProtocol { .. }
