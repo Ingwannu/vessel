@@ -19,6 +19,8 @@ mod conversation;
 #[cfg(test)]
 mod devices;
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod fleet;
 #[cfg(test)]
 mod inbox;

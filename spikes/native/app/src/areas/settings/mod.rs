@@ -37,6 +37,8 @@ mod connections;
 mod devices;
 mod diagnostics;
 mod general;
+mod general_words;
+pub(crate) use general_words::PreparedGeneral;
 mod host_agents;
 mod language;
 mod models;
@@ -45,6 +47,8 @@ mod nav;
 mod overview;
 pub(crate) mod page;
 mod prefer;
+mod prepared_refusal;
+use prepared_refusal::PreparedRefusal;
 mod sections;
 mod theme;
 
@@ -69,6 +73,8 @@ use crate::shell::Shell;
 
 /// Settings' own state.
 pub(crate) struct SettingsState {
+    /// Complete storage wording prepared before any frame.
+    pub(crate) general: PreparedGeneral,
     /// The section shown.
     pub(crate) section: Section,
     /// On a phone: the section's page is pushed over the list.
@@ -87,8 +93,8 @@ pub(crate) struct SettingsState {
     pub(crate) open: Option<List>,
     /// Where each trigger was drawn.
     pub(crate) anchors: Anchors,
-    /// The last change the store refused, in words.
-    pub(crate) refused: Option<String>,
+    /// The last refused cause and its message prepared before drawing.
+    pub(crate) refused: Option<PreparedRefusal>,
     pub(crate) agents: agents::AgentSettings,
     models: models::State,
 
@@ -105,8 +111,13 @@ pub(crate) struct SettingsState {
 }
 
 impl SettingsState {
-    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) fn new(
+        general: PreparedGeneral,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         Self {
+            general,
             section: Section::DEFAULT,
             pushed: false,
             turn: 0,
@@ -400,7 +411,7 @@ fn section_page(
                 .px(px(4.0))
                 .type_(Type::Body)
                 .text_color(tokens.neutral.destructive)
-                .child(refused.clone())
+                .child(refused.words.clone())
         }))
         .child(body);
     let body = if state.turn == 0 {
