@@ -138,3 +138,17 @@ Its37 trailing-space lines are generator output, retained byte-for-byte rather
 than manually formatting generated code. Freshness must rerun on the applied
 source; current SDK unit/changed-crate strict and final enclosing gate remain
 owed. No assigned protocol, app renderer or complete-download UI is claimed.
+
+
+### First enclosing gate correction
+
+Exactae7ed50ef run wp-files-node-20261115T140345Z-ae7ed50e completed web-ci,
+format, size and boundary steps with rc0, then strict workspace all-target
+Clippy stopped on an unchecked seek-phase increment in the owned real-file
+A→B→A fixture. The counter now saturates; all original barriers, actual file
+operations and assertions are unchanged. This is a test-helper lint correction,
+not a weakening of the executed interleaving or a product-path change. Later
+full-gate steps did not run, including freshness/current SDK tests/web checks.
+The failed whole-gate record remains failed. The source stays on the same
+announced82ae7c91 base through correction and the eventual retry; no newer
+head or new feature is merged into this frozen node package.

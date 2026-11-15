@@ -32,7 +32,9 @@ impl Read for RacingFile {
 
 impl Seek for RacingFile {
     fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
-        self.seeks += 1;
+        // This fixture only counts barrier phases; saturation avoids an
+        // unchecked counter without changing any scheduled interleaving.
+        self.seeks = self.seeks.saturating_add(1);
         if self.seeks == 3 {
             // A split hash/page/hash implementation reaches this third seek;
             // restore A before its final hash, exposing its labelled-B defect.
