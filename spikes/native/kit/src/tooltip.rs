@@ -181,7 +181,7 @@ impl Tooltips {
         *self.shown.borrow_mut() = None;
     }
 
-    /// SettingsInfoTip's explicit top-start, zero-delay explanation.
+    /// `SettingsInfoTip`'s explicit top-start, zero-delay explanation.
     /// `Press` opts a compact surface into the same shared rendering engine;
     /// the existing `on`/`on_code` touch suppression is unchanged.
     #[must_use]

@@ -1,4 +1,4 @@
-//! Paseo's SidebarHeaderRow, shared by builtin and plugin navigation.
+//! Paseo's `SidebarHeaderRow`, shared by builtin and plugin navigation.
 //! References: sidebar-header-row.tsx:47–112,124–201; density.ts:25–32.
 //!
 //! [Decision Log]

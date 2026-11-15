@@ -184,7 +184,7 @@ fn section_parts(
         .child(card)
 }
 
-/// The reference SettingsInfoTip button, including its 8-point hit slop.
+/// The reference `SettingsInfoTip` button, including its 8-point hit slop.
 /// It opts into press opening on compact surfaces through the existing
 /// tooltip engine; desktop composer tooltip behavior stays unchanged.
 #[must_use]

@@ -1,11 +1,11 @@
 //! Workspace keyboard targets from the same post-filter/pin/group projection
 //! the sidebar draws. Paseo sidebar-projection.ts + utils/sidebar-shortcuts.ts
-//! use full OPEN sections, before each section's ShowMore painting limit.
+//! use full OPEN sections, before each section's `ShowMore` painting limit.
 
 use super::Step;
 /// Source numeric badges apply to the first nine logical workspace targets.
 pub const NUMBERED_TARGETS: u8 = 9;
-/// A group excluded by collapse, independent of scroll/ShowMore painting.
+/// A group excluded by collapse, independent of scroll/`ShowMore` painting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Expansion {
     /// All logical placements participate.

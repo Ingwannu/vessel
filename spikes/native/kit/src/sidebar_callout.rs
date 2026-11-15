@@ -1,4 +1,4 @@
-//! One sidebar footer strip after Paseo's SidebarCallout.
+//! One sidebar footer strip after Paseo's `SidebarCallout`.
 //!
 //! [Decision Log]
 //! - Purpose: setup and desktop notices share one bounded action presentation.
