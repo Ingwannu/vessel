@@ -339,3 +339,10 @@ the shared validated Width constructor takes u16, whereas the local authored
 constant was f32. The constant now uses the constructor's exact input type with
 no cast or geometry override. No runtime or capture proof is inferred from that
 failed run; the next consumer suite includes the newer picker/notice admissions.
+
+The options form now uses the existing Settings switch for known external lookup
+policy and raw shared rows, avoiding a second card frame inside the popover.
+An unknown policy supplies no false unchecked switch; the existing typed read
+status/error remains visible. Either policy mutation disables another consent
+mutation, and a switch change still rereads Cached only. No external fetch follows
+opt-in. The shared lookup disclosure and all accepted EN/KO words are unchanged.

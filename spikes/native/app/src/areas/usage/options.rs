@@ -169,6 +169,11 @@ fn draw(
         .observation()
         .and_then(vessel_app_view::usage::Inventory::policy);
     let body = div()
+        .children(super::draw::read_status(
+            state.inventory.phase(),
+            shell,
+            tokens,
+        ))
         .children(state.policy_error.map(|reason| {
             notice(
                 reason.message(shell.words),

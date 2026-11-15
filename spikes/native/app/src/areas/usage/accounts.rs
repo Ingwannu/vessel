@@ -98,30 +98,36 @@ pub(super) fn policy_fields(
     let compact = matches!(density, Density::Compact);
     let text = shell.words.usage();
     let state = &shell.areas.usage;
-    let enabled = state.policy_pending.is_none();
+    let enabled = state.policy_pending.is_none() && state.source_pending.is_none();
     let machine = state.inventory.selection().cloned();
     let policy_receipt = receipt.clone();
     let action = policy.map(|policy| {
-        let (next, label) = match policy {
-            ExternalLookup::Off => (ExternalLookup::On, text.enable_lookup()),
-            ExternalLookup::On => (ExternalLookup::Off, text.disable_lookup()),
+        let next = match policy {
+            ExternalLookup::Off => ExternalLookup::On,
+            ExternalLookup::On => ExternalLookup::Off,
         };
-        outline_button("usage-lookup-policy", label, enabled, tokens)
-            .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-            .when(enabled, |button| {
-                button.on_click(cx.listener(move |shell, _, _, cx| {
-                    if !super::options::admitted(shell, &policy_receipt) {
-                        return;
-                    }
-                    if let Some(machine) = &machine {
-                        shell.usage_set_policy(machine.clone(), next);
-                    }
-                    cx.notify();
-                }))
-            })
-            .into_any_element()
+        settings::switch(
+            "usage-lookup-policy",
+            policy == ExternalLookup::On,
+            enabled,
+            compact,
+            0,
+            tokens,
+        )
+        .when(enabled, |button| {
+            button.on_click(cx.listener(move |shell, _, _, cx| {
+                if !super::options::admitted(shell, &policy_receipt) {
+                    return;
+                }
+                if let Some(machine) = &machine {
+                    shell.usage_set_policy(machine.clone(), next);
+                }
+                cx.notify();
+            }))
+        })
+        .into_any_element()
     });
-    settings::card(tokens)
+    div()
         .child(settings::row_at(
             text.lookup(),
             Some(text.lookup_disclosure().into()),
