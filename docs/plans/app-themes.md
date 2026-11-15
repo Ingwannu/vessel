@@ -268,7 +268,7 @@ existing atomic preference store, System resolution, dark-to-dark updates
 and component-layer colours. The two generic palette test fixtures keep
 their original choices, labels and assertions through the new named input.
 Fast format, size, boundary and token checks passed before integration;
-the new compiling checks and runtime evidence have not run yet.
+the compiling checks and inspected runtime evidence are recorded below.
 
 The fixed menu success colour is imported from the existing token-only
 source of `ef91b954`: `theme::palette::GREEN_500`, unchanged in name, type
@@ -284,3 +284,47 @@ net theme change submitted without the intermediate `wip:` subject in the
 lead's merge range. Earlier source/gate hashes remain historical evidence,
 not a pass for this changed base or the consumer. Both document texts and
 the lead's existing production behaviour are preserved on conflict.
+
+
+### Consumer native gate, 2026-11-15
+
+The integrated producer/consumer is `4f754b4b`, followed by the isolated
+real-registry test fix `fb711444338140ffa5a9a51ce7476daa424a5a9d`. The
+unmerged history is preserved under the integration safety reference;
+the submitted range begins at lead `d30804b2` and contains no `wip:` subject.
+Both the lead's host-rename README paragraph and the palette paragraph
+were retained. The fixed `GREEN_500` compatibility described above is
+part of this exact gated source.
+
+Full A13 run `themes-20261115T035513Z-fb711444` passed all six planned
+native steps without a skip: fonts, format, quality, Clippy, build and
+test. Their exit codes are all zero. The ten raw test summaries total
+1,181 passed, zero failed and one ignored. The ignored test is still
+`pairing_browser_words_capture`, not a runtime pass. The changed view,
+kit, link and app were actually compiled. Evidence is retained at
+`/tmp/work/gk-k-themes/consumer-native-fb711444`, with independent totals
+and log SHA-256 values in `consumer-gate-evidence.json` beside it.
+
+The first integrated narrow check failed because the new real-theme test
+called an old fake-theme-specific helper. The correction uses the real
+entry iterator directly; the old fixtures, public API and expectations
+are unchanged. The corrected narrow run
+`themes-narrow-20261115T034800Z-fb711444` and the full run above both passed.
+No root/web change or root gate is claimed.
+
+A normal local app build of this same source also passed. Its binary
+SHA-256 is `83b8c195ed54705d80f04d8ce1945acf21be33c72f6a43e802509c49852639d4`.
+Authenticated private-display captures are in progress against an isolated
+loopback fake fleet. The first calibration used the wrong scratch HOME,
+so its tilde-relative credentials could not resolve; that image is
+excluded. Correcting only the capture environment restored both fake
+connections. Initial stale frames taken before a click painted are also
+excluded. Final captures must wait for the saved preference and the actual
+painted colour, and be inspected before any UI claim.
+
+This gate does not certify live selection, restart, System following,
+fractional-scale marks or the separate shortcut registration. S2 owns the
+latter through the existing registry. ADR 0070 and the complete feature
+remain proposed pending those scoped checks and V1 review. No new tile,
+font/content/syntax setting, production service, ownership change, push or
+release was introduced.
