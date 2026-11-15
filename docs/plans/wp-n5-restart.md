@@ -5,8 +5,11 @@
 The node facet of tracker row 28 belongs to N5; W3 retains its app facet.
 The package includes the accepted R1 policy values and hidden reply projection,
 R2's typed journal, passive projection, node-owned settings and startup runtime.
-The implementation is built and its final Linux root/web package gate passed
-on `23cf77eb`. Independent source review and integration remain pending.
+The earlier Linux root/web execution on `23cf77eb` passed, but independent
+source review returned the recovery package for three ownership/privacy
+defects. Its held post-prompt Kill mechanism is now source-settled with narrow
+execution and strict evidence; the canonical settings and qualified physical
+preparation joins remain separate obligations. The package is not approved.
 Existing R1 and narrow source verdicts stay separate from that final execution. No native or page implementation belongs
 to this node package.
 
@@ -320,3 +323,42 @@ discard pattern for the already committed Copy marker; the cfg(test) observer
 and both runtime cases are unchanged. Strict success and the final joint
 package gate remain owed. The common settings producer is being validated
 separately with recovery execution unwired.
+
+
+## Held post-prompt Kill: scoped verification result
+
+The causal predecessor `d6f5fb59` failed authenticated Kill at the existing
+WAIT boundary after the actual provider response and committed Arm reply were
+held. Its test took 21.39 seconds. The two earlier fixture failures occurred
+before Kill and remain separate. The real writer was free to process durable
+suppression; no synthetic successful commit was substituted.
+
+The repaired `f1c5b42f` passed the exact held-Kill and held-Off cases: two
+passed, zero failed, 286 filtered, in 14.87 seconds. The node actually compiled
+and the test log contained no warning. The assertions retain both unresolved
+attempt slots, require durable stop before either held reply is released,
+observe the old process end before its provider response release, preserve a
+manual replacement against an old pinned target, and reject reconstructed
+restart intent. The independent source review settled this named mechanism.
+
+The following strict check exposed one non-test dummy Copy binding. Only its
+explicit discard pattern changed in `5970aec6`; the cfg(test) observer and both
+runtime cases are byte-for-byte unchanged. All-target node Clippy with warnings
+as errors then passed in 43 seconds, with an actual changed node check and no
+warning. Earlier strict failures remain red evidence; none was relabeled.
+
+Before and after that frozen strict run, all 2033 selected input files matched
+each other and their Git blobs. This selection excludes native, other plan
+documents, ignored configuration, dependencies and outputs; it does not attest
+to the entire environment. No deadline, assertion or ignore list was weakened.
+
+This is a narrow mechanism result, not a clean whole run on the corrected
+package, common producer approval, or recovery consumer qualification. The
+canonical settings producer is being checked with recovery execution unwired;
+its result cannot close physical preparation/native-helper ownership. The old
+parallel settings model on this reference branch is not a merge candidate.
+The receiving consumer source is assembled separately against the canonical
+owner and must consume the qualified shared preparation and launch fences
+before its changed-tree package gate and independent review. No live service,
+permission, real provider, other operating system or UI flow was changed or
+verified, and no repository push was made.
