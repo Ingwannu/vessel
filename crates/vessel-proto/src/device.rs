@@ -13,8 +13,8 @@ use crate::key::secret;
 use crate::node::NodeInfo;
 use crate::pairing::PairingLink;
 
-/// What a caller may do. Every RPC method declares the one it needs
-/// (`Method::scope`); the node checks it for calls from a paired device.
+/// What a caller may do. Every RPC method declares its requirement
+/// (`Method::scope`); `None` requires authentication without an extra scope.
 /// The node token and the local socket hold every scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -107,6 +107,26 @@ pub struct DeviceInfo {
     pub revoked_at: Option<DateTime<Utc>>,
 }
 
+/// Inspect this authenticated caller only. No id can be selected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct GetDeviceSelf {}
+
+/// This connection's effective grant, not a promise of resource ownership.
+/// Unavailable queries remain unknown to a client; there is no default grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct DeviceSelf {
+    /// Only the directly paired caller's id. Owner, agent and delegated
+    /// callers have none; the delivering device is never disclosed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device: Option<DeviceId>,
+    /// Canonical, duplicate-free scopes used by this call's guard. Agent
+    /// limits, ownership and profile policy still apply to later operations.
+    pub scopes: Vec<Scope>,
+}
+
 /// The first frame a client sends inside a secure channel, before `hello`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -188,6 +208,18 @@ pub struct InviteDevice {
     pub scopes: Option<Vec<Scope>>,
 }
 
+/// Why a pairing invitation could not be issued (protocol 20, ADR 0044).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum DeviceInviteError {
+    /// Configure an advertised direct address or relay before inviting.
+    NoRoutes,
+    /// A reason introduced by a newer node; retain its human message.
+    #[serde(other)]
+    Unknown,
+}
+
 /// Reply to `device.invite`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -230,6 +262,37 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&refused).unwrap(),
             r#"{"type":"refused","reason":"revoked"}"#
+        );
+    }
+}
+
+#[cfg(test)]
+mod self_tests {
+    use super::*;
+    use crate::{Call, Request as _};
+
+    #[test]
+    fn self_query_has_no_selector_and_its_response_keeps_the_whole_grant() {
+        let query = GetDeviceSelf {}.into_call();
+        let text = serde_json::to_string(&query).unwrap();
+        assert_eq!(text, r#"{"method":"device.self","params":{}}"#);
+        assert_eq!(serde_json::from_str::<Call>(&text).unwrap(), query);
+        assert!(
+            serde_json::from_str::<GetDeviceSelf>(
+                r#"{"device":"00000000-0000-4000-8000-000000000001"}"#
+            )
+            .is_err()
+        );
+        let response = DeviceSelf {
+            device: None,
+            scopes: vec![Scope::Sync],
+        };
+        let text = serde_json::to_string(&response).unwrap();
+        assert_eq!(text, r#"{"scopes":["sync"]}"#);
+        assert_eq!(serde_json::from_str::<DeviceSelf>(&text).unwrap(), response);
+        assert!(
+            serde_json::from_str::<DeviceSelf>("{}").is_err(),
+            "missing authority is never an empty grant"
         );
     }
 }

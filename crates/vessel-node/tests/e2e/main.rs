@@ -23,9 +23,15 @@ mod callback;
 #[cfg(test)]
 mod catalogue;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod crowd;
+#[cfg(test)]
+mod device_invite;
+#[cfg(test)]
+mod device_self;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
@@ -33,15 +39,22 @@ mod fleet_control;
 #[cfg(test)]
 mod fleet_control_cancel;
 #[cfg(test)]
+mod fleet_published;
+#[cfg(test)]
 mod forge;
 #[cfg(test)]
 mod forge_rules;
+// A half-open TCP path, for the keepalive tests.
+#[cfg(test)]
+mod freezer;
 #[cfg(test)]
 mod grants;
 #[cfg(test)]
 mod install;
 #[cfg(test)]
 mod isolation;
+#[cfg(test)]
+mod label_ingress;
 #[cfg(test)]
 mod local;
 #[cfg(test)]
@@ -52,6 +65,10 @@ mod marks;
 // terminals' shell is `/bin/sh`).
 #[cfg(test)]
 mod forking;
+#[cfg(test)]
+mod history;
+#[cfg(test)]
+mod inbox;
 #[cfg(test)]
 #[cfg(unix)]
 mod meeting;
@@ -95,6 +112,8 @@ mod secrets_across;
 #[cfg(test)]
 mod secure;
 #[cfg(test)]
+mod side_questions;
+#[cfg(test)]
 mod status;
 #[cfg(test)]
 mod structured;
@@ -115,3 +134,11 @@ mod transfers_across;
 mod waiting;
 #[cfg(test)]
 mod workspace;
+
+#[cfg(test)]
+mod limits;
+#[cfg(test)]
+mod usage;
+
+#[cfg(test)]
+mod usage_replay;

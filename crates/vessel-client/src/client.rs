@@ -270,8 +270,9 @@ impl NodeClient {
     /// node caps it at a day). Needs the `admin` scope.
     ///
     /// # Errors
-    /// `Unsupported` on a node before protocol 4; `Unavailable` from a node
-    /// without a key yet; otherwise see [`CallError`].
+    /// `Unsupported` on a node before protocol 4; `Conflict` when no direct
+    /// address or relay is advertised (typed `DeviceInviteError::NoRoutes`
+    /// detail since protocol 20); otherwise see [`CallError`].
     pub async fn invite_device(
         &self,
         label: Option<String>,

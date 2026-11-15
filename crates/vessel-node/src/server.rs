@@ -41,7 +41,7 @@ pub(crate) struct Gateway {
     pub(crate) rpc: Arc<Server<Guarded>>,
     pub(crate) token: Arc<NodeToken>,
     pub(crate) secure: SecureGateway,
-    /// Pings and the silence limit for `/secure` connections.
+    /// Pings and the silence limit for `/secure` and `/rpc` connections.
     pub(crate) keepalive: Keepalive,
     pub(crate) connections: TaskTracker,
     /// Where a `/secure` client counts: behind a trusted reverse proxy, by
@@ -82,7 +82,10 @@ async fn rpc(
             let _tracked = connection;
             if let Err(error) = gateway
                 .rpc
-                .serve(WsTransport::new(socket), Connection::owner)
+                .serve(
+                    WsTransport::new(socket, Some(gateway.keepalive)),
+                    Connection::owner,
+                )
                 .await
             {
                 tracing::info!(error = %error, "connection ended abnormally");
