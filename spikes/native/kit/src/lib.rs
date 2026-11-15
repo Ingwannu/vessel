@@ -230,9 +230,15 @@ pub fn set_scheme(cx: &mut App, scheme: Scheme) {
 /// Apply one concrete palette to controls and the component layer together,
 /// refreshing every window even when the light/dark scheme is unchanged.
 pub fn set_palette(cx: &mut App, palette: Palette) {
-    let tokens = Tokens::palette(palette);
-    cx.set_global(Theme { tokens });
-    field::apply_tokens(cx, &tokens);
+    set_tokens(cx, &Tokens::palette(palette));
+}
+
+/// Apply a complete concrete token set through the same global/component
+/// projection as built-ins. The boundary owner has already validated any
+/// contributed colours; no identity, parsing or I/O enters this generic kit.
+pub fn set_tokens(cx: &mut App, tokens: &Tokens) {
+    cx.set_global(Theme { tokens: *tokens });
+    field::apply_tokens(cx, tokens);
     cx.refresh_windows();
 }
 
@@ -253,3 +259,6 @@ pub fn root<V: 'static + gpui::Render>(
 ) -> gpui::Entity<gpui_component::Root> {
     cx.new(|cx| gpui_component::Root::new(view, window, cx))
 }
+
+#[cfg(test)]
+mod palette_projection_tests;

@@ -359,3 +359,11 @@ every edit. Reset/external resync clears only the changed parsed axis, so
 unrelated raw drafts and their previews remain intact. No second editor state
 is introduced. A new view regression covers independent draft axes, current
 saved fallback, single-axis resync and the documented native preview bound.
+
+The generic `kit::set_tokens(&Tokens)` projection now shares the existing
+built-in global/component update path; `set_palette` delegates to it. This
+allows the sole app adapter to apply a validated contributed paint without
+constructing kit internals or a second renderer. It accepts no plugin ids or
+wire values. The added actual-projection test covers custom alpha, same-dark
+replacement, component colours, retained typography/syntax and switching back
+to a built-in; execution remains pending the queued focused suite.
