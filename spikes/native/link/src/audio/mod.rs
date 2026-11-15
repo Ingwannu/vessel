@@ -9,6 +9,7 @@ mod device;
 mod dsp;
 mod format;
 mod owner;
+mod playback;
 mod thread;
 
 use std::num::TryFromIntError;

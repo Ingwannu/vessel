@@ -181,3 +181,27 @@ A source integration check found the staged uploader/device had independent canc
 Link clippy snapshot97523c3d passes after ALSA provisioning and own lint repairs: run wp-voice-narrow-20261115T082505Z-97523c3d, native-fonts0/native-cargo0, clippy16s (606+s queue), no tests or devices. This covers capture/DSP/Stop sources before the new shared cancel::Fence preparation; the next link test/clippy must cover that later delta. Base4 3cd0d3fc now merged as97523c3d; only README append conflict, both original voice and incoming Overview/host-rename paragraphs retained. Meter tests/kit build and product wiring remain owed.
 
 Kit clippy fe03e75e passed (run wp-voice-narrow-20261115T084955Z-fe03e75e, native86s, no device). First kit geometry run1/1: measured middle origin y8 while the test expected8.25, with height43.5 preserved. GPUI0.3.10 taffy.rs383 applies round_half_toward_zero to absolute origins; updated expected native y=[6,8,10], retaining reference heights=[48,43.5,39]. This is a native-origin pixel snapping difference, not a control geometry change. Rerun owed; both themes remain in the test matrix.
+
+### Staged speaker drain ownership
+
+The desktop audio owner now stages a separate bounded two-segment playback
+book. A segment retains its slot through the predicted last-sample device
+drain deadline, rather than acknowledging when PCM is merely queued/copied.
+Invalid/missing device time produces Failed; Stop and barge-in fence readers
+outside the data queue, and stale completion cannot rewrite terminal receipts.
+PCM is decoded in 10 ms blocks with a zero-padded final tail; packet/reader/block
+Debug never exposes samples. This is an internal fake-driven contract: CPAL
+output callback, actual timing events, AEC render reference and wire receipts
+are not connected or claimed by this commit.
+
+The second meter geometry run still failed on a guessed third-bar origin
+(10 versus native 10.5). The check now retains exact bar widths/heights/gaps
+and permits only half a native pixel of centering error against ideal source
+positions, accommodating GPUI's nested layout snapping. This changes the
+fixture only; no production geometry changed. Both failed runs remain evidence;
+a passing run is still owed.
+
+Base updates: app consumed the selected line through e5e654b4's shared dialog
+focus seam; node consumed913f05d8, including the reviewed shared codec. The
+voice consumer remains staged, so its outer test gates stay in place. Generated
+TypeScript after the table extraction passed3/0/0 before commit e91a01a44.
