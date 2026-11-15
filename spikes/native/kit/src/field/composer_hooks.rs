@@ -136,10 +136,11 @@ impl TextField {
 }
 
 impl TextField {
-    /// Call `on_edit` on the field's owner after every edit of its text,
-    /// typed or written by the screen (the composer keeps its draft as it is
-    /// typed). It runs beside the field's own handlers, which stay as they
-    /// are.
+    /// Call `on_edit` on the field's owner after every edit typed into it
+    /// (the composer keeps its draft as it is typed). Text the screen writes
+    /// (`set_text`, `clear`) is not heard: gpui-base's `set_value` turns its
+    /// events off, so an owner that writes the text follows it itself. It
+    /// runs beside the field's own handlers, which stay as they are.
     pub fn on_edit<V: 'static>(
         &self,
         on_edit: fn(&mut V, &mut Window, &mut Context<'_, V>),

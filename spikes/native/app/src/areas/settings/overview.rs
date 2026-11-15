@@ -40,10 +40,8 @@ use vessel_app_link::machines::{self, Answer};
 use vessel_app_view::machine_book::{Edit, Name};
 use vessel_app_view::machines::Transport;
 use vessel_app_view::overview::{Ask, Editing, ask};
-use vessel_app_view::settings::Section;
 use vessel_app_view::{Machine, Reach};
 
-use crate::routes::Route;
 use crate::shell::Shell;
 
 mod dialogs;
@@ -55,10 +53,6 @@ const PENCIL_RADIUS: f32 = 6.0;
 
 /// The page's state.
 pub(crate) struct State {
-    /// How the book reaches each machine, read when the page is shown.
-    book: Option<Vec<machines::Machine>>,
-    /// The machine the book was last read for.
-    read_for: Option<String>,
     rename: Option<Editing>,
     /// What is wrong with the typed name, after a press of Rename.
     problem: Option<String>,
@@ -71,8 +65,6 @@ pub(crate) struct State {
 impl State {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
-            book: None,
-            read_for: None,
             rename: None,
             problem: None,
             field: TextField::with_change(
@@ -94,56 +86,25 @@ impl State {
 }
 
 impl Shell {
-    /// Before drawing: read the book when the page is shown for a machine
-    /// it was not read for; forget it when the page is left.
-    pub(crate) fn settle_overview(&mut self, window: &Window) {
-        let shown = self.route == Route::Settings
-            && self.areas.settings.section == Section::Overview
-            && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
-        let chosen = super::choices::chosen_machine(self)
-            .filter(|_| shown)
-            .map(|machine| machine.name.clone());
-        let state = &mut self.areas.settings.overview;
-        if chosen.is_none() {
-            state.book = None;
-            state.read_for = None;
-            return;
-        }
-        if state.read_for != chosen {
-            state.read_for = chosen;
-            self.command(Command::Machines(machines::Ask::Read));
-        }
-    }
-
-    /// The book answered: keep a read for the page; close a dialog whose
-    /// edit succeeded, or keep its refusal. Whether the page said it.
+    /// The book answered an edit: close a dialog whose edit succeeded, or
+    /// keep its refusal. Whether the page said it.
     pub(crate) fn overview_answer(&mut self, answer: &Answer) -> bool {
+        let Answer::Edited { edit, result } = answer else {
+            return false;
+        };
         let state = &mut self.areas.settings.overview;
-        match answer {
-            Answer::Read(Ok(book)) => {
-                state.book = Some(book.clone());
-                false
-            }
-            Answer::Read(Err(_)) => false,
-            Answer::Edited { edit, result } => {
-                let mut said = false;
-                for dialog in [&mut state.rename, &mut state.remove] {
-                    if let Some(open) = dialog.as_mut()
-                        && open.pending.as_ref() == Some(edit)
-                    {
-                        said = true;
-                        if open.answered(edit, result) {
-                            *dialog = None;
-                        }
-                    }
+        let mut said = false;
+        for dialog in [&mut state.rename, &mut state.remove] {
+            if let Some(open) = dialog.as_mut()
+                && open.pending.as_ref() == Some(edit)
+            {
+                said = true;
+                if open.answered(edit, result) {
+                    *dialog = None;
                 }
-                // The name changed under the page: read the book again.
-                if result.is_ok() {
-                    state.read_for = None;
-                }
-                said
             }
         }
+        said
     }
 
     fn overview_open_rename(
@@ -227,23 +188,11 @@ pub(crate) fn render(
         return div().into_any_element();
     };
     let words = shell.t.lang.overview();
-    let unreachable = matches!(machine.reach, Reach::Unreachable(_));
     div()
         .flex()
         .flex_col()
         .child(badges(machine, shell, tokens))
-        .when(unreachable, |page| {
-            page.child(div().mb(px(spacing::S6)).child(alert::alert(
-                Content {
-                    title: Some(words.unreachable.into()),
-                    description: Some(shell.t.unreachable_hint.into_any_element()),
-                    action: None,
-                },
-                alert::Variant::Error,
-                alert::Size::Small,
-                tokens,
-            )))
-        })
+        .children(unreachable(machine, shell, tokens))
         .child(settings::section(
             words.appearance,
             settings::card(tokens).child(name_row(machine, shell, tokens, compact, cx)),
@@ -255,6 +204,24 @@ pub(crate) fn render(
             tokens,
         ))
         .into_any_element()
+}
+
+/// Paseo's `HostConnectionError`, on the Overview and Connections pages:
+/// while the machine does not answer, an alert in the app's words (Paseo
+/// shows the connection's last error there).
+pub(super) fn unreachable(machine: &Machine, shell: &Shell, tokens: &Tokens) -> Option<Div> {
+    matches!(machine.reach, Reach::Unreachable(_)).then(|| {
+        div().mb(px(spacing::S6)).child(alert::alert(
+            Content {
+                title: Some(shell.t.lang.overview().unreachable.into()),
+                description: Some(shell.t.unreachable_hint.into_any_element()),
+                action: None,
+            },
+            alert::Variant::Error,
+            alert::Size::Small,
+            tokens,
+        ))
+    })
 }
 
 /// Paseo's `HostStatusBadges`: the status with its dot, how the book
@@ -270,13 +237,8 @@ fn badges(machine: &Machine, shell: &Shell, tokens: &Tokens) -> Div {
     let transport = shell
         .areas
         .settings
-        .overview
         .book
-        .as_ref()
-        .and_then(|book| {
-            book.iter()
-                .find(|entry| entry.name.as_str() == machine.name)
-        })
+        .entry(&machine.name)
         .map(|entry| reach_words(shell, entry.transport));
     let version = machine
         .version

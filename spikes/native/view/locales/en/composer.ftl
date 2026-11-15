@@ -33,3 +33,36 @@ composer-commands-empty = No commands found
 # that machine has said its commands yet (the node reports commands only
 # from a running session; the menu shows the last ones kept). One sentence.
 composer-commands-unknown = This agent's commands show here once one of its sessions has run.
+
+## The composer's attachments (track P's row c). Reference: Paseo's
+## composer.attachments and message.attachments words.
+
+# The attach button's name and its menu's title. Paseo's addAttachment.
+composer-attach = Add attachment
+# The attach menu's row that picks an image. Paseo's addImage.
+composer-attach-image = Add image
+# The attach menu's row that picks any file. Paseo's addFile.
+composer-attach-file = Upload file
+# An attached file's second line when its name has no extension. Paseo's
+# message.attachments.file.
+composer-file = File
+# A pill's second line: the session's agent takes no images.
+composer-file-no-images = This agent doesn't take images
+# A pill's second line: the session's agent takes no audio.
+composer-file-no-audio = This agent doesn't take audio
+# A pill's second line: larger than the machine takes for its kind.
+composer-file-too-large = Too large to send
+# A pill's second line: an empty file.
+composer-file-empty = The file is empty
+# A pill's second line: more files than one message may carry.
+composer-file-too-many = Too many files for one message
+# A pill's second line: the message's images and audio are too large together.
+composer-file-inline-total = Too many images for one message
+# A pill's second line: an image whose bytes are not its type's.
+composer-file-not-its-type = Not the image its name says
+# A pill's second line: the file changed while it was sent.
+composer-file-changed = The file changed while it was sent
+# A pill's second line: the file could not be read on this device.
+composer-file-unreadable = The file couldn't be read
+# A pill's second line: the upload failed; a click tries it again.
+composer-file-failed = Upload failed. Click to try again

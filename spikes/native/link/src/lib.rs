@@ -32,9 +32,15 @@ mod offers;
 // The composers' drafts kept between runs (track P's row e).
 #[cfg(not(target_arch = "wasm32"))]
 pub mod drafts;
+// A composer's files sent to their session (track P's row c).
+pub mod attachments;
+// What is sent to a session: a conversation started, a prompt, its
+// files, a session started again, an input.
 #[cfg(not(target_arch = "wasm32"))]
 mod pairing;
 mod prefs;
+#[cfg(not(target_arch = "wasm32"))]
+mod sending;
 mod session;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
@@ -70,10 +76,7 @@ use vessel_proto::{
     SessionId, SessionOption,
 };
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_proto::{
-    ContentBlock, Delivery, PermissionOutcome, ProtocolVersion, SessionInfo, SessionInput,
-    SessionMode, SessionSpec,
-};
+use vessel_proto::{Delivery, PermissionOutcome, ProtocolVersion, SessionInput};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
@@ -277,6 +280,9 @@ pub enum Command {
     /// Keep the composers' drafts on this device (written on the blocking
     /// pool; nothing is answered). A browser keeps none.
     SaveDrafts(vessel_app_view::composer::drafts::Drafts),
+    /// What a composer's files ask (track P's row c): a file sent, a
+    /// conversation started for them, the prompt that names them.
+    Files(attachments::Files),
     /// Keep `harness`'s `/` commands, as a session of it on `machine`
     /// reported them, on this device for the next run (its options' file;
     /// nothing is answered). A browser keeps none.
@@ -385,6 +391,15 @@ pub enum Event {
     },
     /// A session started from the app, to open.
     Started(Card),
+    /// A step of a composer's file on its way to its session.
+    Upload {
+        /// The session.
+        session: SessionId,
+        /// The file's place in the composer's tray.
+        key: vessel_app_view::composer::tray::ItemKey,
+        /// What happened.
+        step: attachments::Step,
+    },
     /// A prompt was delivered.
     Sent {
         /// The session.
@@ -652,7 +667,8 @@ impl State {
                 prompt,
                 options,
             } => {
-                self.start(&machine, harness, folder, prompt, options).await;
+                self.start(&machine, harness, folder, Some(prompt), options)
+                    .await;
             }
             Command::Options { machine, harness } => self.options(machine, harness),
             Command::KeepCommands {
@@ -661,6 +677,7 @@ impl State {
                 commands,
             } => self.keep_commands(&machine, harness, commands),
             Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
+            Command::Files(files) => self.files(files).await,
             Command::Resume {
                 machine,
                 session,
@@ -861,53 +878,6 @@ impl State {
             .ok_or_else(|| LinkError::NotConnected(machine.to_owned()))
     }
 
-    /// Create a conversation and send its first prompt: `session.prompt`
-    /// where the node speaks protocol 10, `session.send` before it.
-    async fn start(
-        &mut self,
-        machine: &str,
-        harness: HarnessRef,
-        folder: Option<String>,
-        prompt: String,
-        options: Vec<OptionChoice>,
-    ) {
-        let started = async {
-            let client = self.client(machine)?.clone();
-            let mode = SessionMode::Structured {
-                model: None,
-                resume: None,
-                options,
-            };
-            let mut spec = SessionSpec::new(harness, mode);
-            if let Some(folder) = folder {
-                spec = spec.with_cwd(folder);
-            }
-            let info: SessionInfo = client
-                .create_session(spec)
-                .await
-                .map_err(|error| LinkError::Call(error.to_string()))?;
-            let content = vec![ContentBlock::Text { text: prompt }];
-            let sent = if client.protocol() >= ProtocolVersion::new(10) {
-                client
-                    .prompt(info.id, content, Delivery::Start)
-                    .await
-                    .map(|_delivered| ())
-            } else {
-                client.send(info.id, SessionInput::Prompt { content }).await
-            };
-            sent.map_err(|error| LinkError::Call(error.to_string()))?;
-            Ok::<_, LinkError>(Card::from_session(machine, &info))
-        }
-        .await;
-        match started {
-            Ok(card) => {
-                self.emit(Event::Started(card)).await;
-                self.refresh().await;
-            }
-            Err(error) => self.emit(Event::Failed(error.to_string())).await,
-        }
-    }
-
     /// Ask `machine` what `harness` offers, beside the other commands (the
     /// node may start the agent to answer). A machine not connected is
     /// answered at once with why.
@@ -969,56 +939,6 @@ impl State {
         self.follow_machine = Some(machine.to_owned());
         self.follow = Some(tokio::spawn(follow(client, session, events)));
     }
-
-    /// Start `session` again, then send it `text`, and list the fleet
-    /// again (its card is live once more).
-    async fn resume(&mut self, machine: &str, session: SessionId, text: String) {
-        let resumed = async {
-            let client = self.client(machine)?.clone();
-            let _info = client
-                .resume_session(session)
-                .await
-                .map_err(|error| LinkError::Call(error.to_string()))?;
-            let content = vec![ContentBlock::Text { text }];
-            client
-                .prompt(session, content, Delivery::Queue)
-                .await
-                .map(|_delivered| ())
-                .map_err(|error| LinkError::Call(error.to_string()))
-        }
-        .await;
-        match resumed {
-            Ok(()) => {
-                self.emit(Event::Resumed { session }).await;
-                self.refresh().await;
-            }
-            Err(error) => {
-                self.emit(Event::ResumeFailed {
-                    session,
-                    why: error.to_string(),
-                })
-                .await;
-            }
-        }
-    }
-
-    async fn prompt(&self, machine: &str, session: SessionId, text: String, delivery: Delivery) {
-        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            let why = LinkError::NotConnected(machine.to_owned()).to_string();
-            self.emit(Event::SessionLost { session, why }).await;
-            return;
-        };
-        let content = vec![ContentBlock::Text { text }];
-        match client.prompt(session, content, delivery).await {
-            Ok(_delivered) => self.emit(Event::Sent { session }).await,
-            Err(error) => {
-                self.emit(Event::Failed(
-                    LinkError::Call(error.to_string()).to_string(),
-                ))
-                .await;
-            }
-        }
-    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1032,20 +952,6 @@ impl State {
                 let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
                 workspace::Hub::refuse(machine, ask, problem, events);
             }
-        }
-    }
-
-    async fn input(&self, machine: &str, session: SessionId, input: SessionInput) {
-        let Some(client) = self.clients.get(machine).map(|connected| &connected.client) else {
-            let why = LinkError::NotConnected(machine.to_owned()).to_string();
-            self.emit(Event::SessionLost { session, why }).await;
-            return;
-        };
-        if let Err(error) = client.send(session, input).await {
-            self.emit(Event::Failed(
-                LinkError::Call(error.to_string()).to_string(),
-            ))
-            .await;
         }
     }
 }

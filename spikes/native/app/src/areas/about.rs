@@ -124,10 +124,10 @@ pub(crate) fn content(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let about = shell.t.lang.about();
+    let about = shell.words.about();
     let mut licences = settings::card(tokens).child(settings::row_at(
         "Vessel",
-        Some(about.licence_note.into()),
+        Some(about.licence_note().into()),
         None,
         Some(value(VESSEL_LICENCE.to_owned(), tokens)),
         true,
@@ -152,7 +152,7 @@ pub(crate) fn content(
         .child(settings::section("Vessel", card(shell, tokens, cx), tokens))
         // Paseo's "Connected hosts", Settings' (`settings/connected.rs`).
         .children(crate::areas::settings::connected::section(shell, tokens, compact))
-        .child(settings::section(about.software, licences, tokens))
+        .child(settings::section(about.software(), licences, tokens))
         .child(marks::section(shell, tokens, compact, cx))
         .into_any_element()
 }

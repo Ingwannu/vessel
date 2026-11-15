@@ -12,10 +12,12 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{CardLook, CardState, Tokens, Type, TypeExt as _, breakpoint, card_button};
 use vessel_app_link::ActKind;
+use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
-    Choice, Problem, Step, answerable, choices, picked, step_answered, step_header, step_problem,
-    step_prompt, step_ready, steps_of, text_target,
+    Choice, Problem, Step, Wrong, answerable, choices, picked, step_answered, step_header,
+    step_problem, step_prompt, step_ready, steps_of, text_target,
 };
+use vessel_proto::Question;
 
 use super::{Answering, waiting};
 use crate::areas::conversation::Place;
@@ -60,17 +62,7 @@ pub(crate) fn card<P: Place>(
         .map(|(_, message)| message.clone());
     let waiting_on_node = (answering.sent && refused.is_none()) || P::busy(shell);
     let last = answering.step.saturating_add(1) >= steps.len();
-    let ready = if last {
-        steps
-            .iter()
-            .all(|step| step_ready(*step, &answering.drafts))
-    } else {
-        step_ready(step, &answering.drafts)
-    };
-    let problem = match step_problem(step, &answering.drafts) {
-        Some(problem @ Problem::Wrong(_)) => Some(words.question_problem(&problem)),
-        Some(Problem::ChooseAnAnswer | Problem::Required) | None => None,
-    };
+    let ready = ready(&steps, step, answering);
     let block = answers::<P>(
         step,
         answering,
@@ -79,13 +71,7 @@ pub(crate) fn card<P: Place>(
         tokens,
         cx,
     );
-    let said = refused
-        .map(|message| words.question_refused(&message))
-        .or(problem)
-        .or_else(|| {
-            (!answerable(&question))
-                .then(|| words.question_wrong(&vessel_app_view::timeline::Wrong::Unanswerable))
-        });
+    let said = said(refused, &question, step, answering, *words);
     Some(
         div()
             .flex()
@@ -107,13 +93,7 @@ pub(crate) fn card<P: Place>(
                     .child(step_prompt(&question, step)),
             )
             .child(block)
-            .children(said.map(|said| {
-                div()
-                    .px(px(4.0))
-                    .text_size(px(13.0))
-                    .text_color(neutral.destructive)
-                    .child(said)
-            }))
+            .children(said.map(|said| said_row(said, tokens)))
             .child(actions::<P>(
                 words.question_dismiss(),
                 if last {
@@ -128,6 +108,47 @@ pub(crate) fn card<P: Place>(
             ))
             .into_any_element(),
     )
+}
+
+/// Whether Next (Submit on the last step) may be pressed: this step is
+/// ready, or on the last step every step is.
+fn ready(steps: &[Step<'_>], step: Step<'_>, answering: &Answering) -> bool {
+    if answering.step.saturating_add(1) >= steps.len() {
+        steps
+            .iter()
+            .all(|step| step_ready(*step, &answering.drafts))
+    } else {
+        step_ready(step, &answering.drafts)
+    }
+}
+
+/// What the card says under the answers, the first that applies: the
+/// node's refusal, what is wrong with this step's answer, or that the
+/// question cannot be answered here.
+fn said(
+    refused: Option<String>,
+    question: &Question,
+    step: Step<'_>,
+    answering: &Answering,
+    words: ConversationWords,
+) -> Option<String> {
+    let problem = match step_problem(step, &answering.drafts) {
+        Some(problem @ Problem::Wrong(_)) => Some(words.question_problem(&problem)),
+        Some(Problem::ChooseAnAnswer | Problem::Required) | None => None,
+    };
+    refused
+        .map(|message| words.question_refused(&message))
+        .or(problem)
+        .or_else(|| (!answerable(question)).then(|| words.question_wrong(&Wrong::Unanswerable)))
+}
+
+/// What the card says, in the danger colour.
+fn said_row(said: String, tokens: &Tokens) -> Div {
+    div()
+        .px(px(4.0))
+        .text_size(px(13.0))
+        .text_color(tokens.neutral.destructive)
+        .child(said)
 }
 
 /// A step's answers: its option rows (scrolling past a height), then its
@@ -233,34 +254,7 @@ fn option_row<P: Place>(
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
-    let control = div()
-        .mt(px(2.0))
-        .size(px(18.0))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .border_1()
-        .border_color(if on {
-            neutral.accent
-        } else {
-            neutral.foreground_extra_muted
-        })
-        .map(|control| {
-            if multiple {
-                control.rounded(px(4.0))
-            } else {
-                control.rounded_full()
-            }
-        })
-        .when(on && multiple, |control| {
-            control
-                .bg(neutral.accent)
-                .child(glyph(Glyph::Check, 12.0, neutral.accent_foreground))
-        })
-        .when(on && !multiple, |control| {
-            control.child(div().size(px(8.0)).rounded_full().bg(neutral.accent))
-        });
+    let control = mark(on, multiple, tokens);
     let value = choice.value;
     div()
         .id(("question-option", index))
@@ -303,6 +297,40 @@ fn option_row<P: Place>(
                         .child(description)
                 })),
         )
+}
+
+/// An option's mark: a radio (one answer) or a checkbox (several),
+/// filled in the accent when on.
+fn mark(on: bool, multiple: bool, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
+        .mt(px(2.0))
+        .size(px(18.0))
+        .flex()
+        .flex_none()
+        .items_center()
+        .justify_center()
+        .border_1()
+        .border_color(if on {
+            neutral.accent
+        } else {
+            neutral.foreground_extra_muted
+        })
+        .map(|control| {
+            if multiple {
+                control.rounded(px(4.0))
+            } else {
+                control.rounded_full()
+            }
+        })
+        .when(on && multiple, |control| {
+            control
+                .bg(neutral.accent)
+                .child(glyph(Glyph::Check, 12.0, neutral.accent_foreground))
+        })
+        .when(on && !multiple, |control| {
+            control.child(div().size(px(8.0)).rounded_full().bg(neutral.accent))
+        })
 }
 
 /// Dismiss, then Next or Submit (the accent): in a row, stacked on a

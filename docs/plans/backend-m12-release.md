@@ -904,6 +904,64 @@ never rebuilt.
     motion (software renderer) and used 0.4% of a core on its first
     screen.
 
+- **0.0.0.0.16**:
+  - Built from exactly `cb261b03`, the desktop lead's head (native gate
+    green there, 990 tests), checked out detached and run through
+    `cargo-slot` (slot 2 after 718 s in line, 5 jobs); this branch then
+    merged it.
+  - The set went into place at 17:14:45 UTC on 2026-11-14 and was
+    published to `preview` at 18:34:05 UTC, after the coordinator's
+    smoke test on the real node. The notes carry one known problem: in a
+    window about 800 wide with the right panel open, the conversation
+    column is squeezed (fixed in the next build).
+  - From outside, the public feed serves the manifest and all five files
+    with matching sums and signature; the published 0.0.0.0.15 Linux
+    build took 0.0.0.0.16 by itself at 18:35:39 UTC; the `/dl/` list (the
+    proxy's own function over the dist folder) puts 0.0.0.0.16 first.
+  - Gemini's mark is now Google's own file from Google's CDN, embedded
+    byte for byte (27,794 bytes, the SHA-256 in
+    `docs/design/agent-marks/README.md`); three slices of it are in both
+    executables and none in 0.0.0.0.15's. No Apache-2.0 artwork is
+    embedded any more; `google-Apache-2.0.txt` still ships because it
+    still sits beside the marks (harmless, removable since `7151985e`).
+  - Sizes, with the change against 0.0.0.0.15: setup 13,159,965
+    (+318,032), exe 47,844,352 (+1,351,168), zip 19,220,192 (+519,485),
+    linux 84,708,968 (+1,559,768), tar.gz 29,425,441 (+534,755).
+  - The usual checks passed (the debuglink read from a copy; the dist
+    file's mtime unchanged). The shipped Linux build on Xvfb held its
+    motion and used 0.5% of a core on its first screen.
+
+- **0.0.0.0.17**:
+  - Built from exactly `56a7cbd3`, the desktop lead's merge of the file
+    editor, checked out detached and run through `cargo-slot`'s priority
+    lane (`VESSEL_SLOT_PRIORITY=1`, 5 jobs, a slot at once); this branch
+    then merged it. Windows took 7 min 49 s, Linux 22 min 47 s.
+  - The set went into place at 23:11:14 UTC on 2026-11-14 and was
+    published to `preview` at 23:30:47 UTC, after the coordinator's
+    smoke test on the real node (by then on the node line `a365d295`).
+    The notes carry one known problem: ended (interrupted or exited)
+    sessions are hidden in the sidebar by default; the Display menu's
+    "Show ended sessions" shows them, and the next build shows them by
+    default.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, each byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.16 Linux
+    build took 0.0.0.0.17 by itself 19 s after its start (23:32:40 UTC;
+    no error, no leftover `.part`, no feed token in its log). The `/dl/`
+    page answers 200 on the proxy's loopback port with the public host
+    name (a plain GET, the unit untouched) and lists 0.0.0.0.17 first
+    with its seven files; from outside it answers 302 (sign-in).
+  - Sizes, with the change against 0.0.0.0.16: setup 13,484,447
+    (+324,482), exe 49,435,648 (+1,591,296), zip 19,698,508 (+478,316),
+    linux 86,414,936 (+1,705,968), tar.gz 29,920,176 (+494,735).
+  - The usual checks passed: icons the same as 0.0.0.0.16, the Windows
+    version resource 0.0.0.0.17, the debuglink read from a copy (CRC
+    matches, the dist file's mtime unchanged), the four licence texts in
+    both archives, no feed token or path in the build log. The updated
+    Linux build (the one that replaced 0.0.0.0.16) on Xvfb held its
+    motion (software renderer) and used 0.5% of a core on its first
+    screen, ERROR 0.
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app

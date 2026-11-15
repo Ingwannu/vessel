@@ -33,6 +33,7 @@ mod book;
 mod chat;
 mod choices;
 pub(crate) mod connected;
+mod connections;
 mod devices;
 mod diagnostics;
 mod general;
@@ -93,6 +94,8 @@ pub(crate) struct SettingsState {
     diagnostics: diagnostics::State,
     host_agents: host_agents::State,
     overview: overview::State,
+    /// The book as read for the machine pages (Overview, Connections).
+    book: book::BookRead,
     language: language::State,
     pub(crate) sync: sync::SyncState,
     /// The Animations switch's changes (its thumb slides on each).
@@ -117,6 +120,7 @@ impl SettingsState {
             diagnostics: diagnostics::State::new(cx),
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
+            book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
             animations_turns: 0,
@@ -166,12 +170,13 @@ impl Anchors {
 
 impl Shell {
     /// Each frame, the Settings pages that wait on the window settle what
-    /// came in since (devices, sync, the machine's agents, the overview).
+    /// came in since (devices, sync, the machine's agents, the book that
+    /// Overview and Connections show).
     pub(crate) fn settle_settings(&mut self, window: &Window) {
         self.settle_devices(window);
         self.settle_sync(window);
         self.settle_host_agents(window);
-        self.settle_overview(window);
+        self.settle_book(window);
     }
 
     /// Open Settings at `section` (pushed on a phone), or at its start

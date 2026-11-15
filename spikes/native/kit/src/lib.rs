@@ -25,6 +25,7 @@
 pub mod agent_mark;
 pub mod alert;
 pub mod assets;
+pub mod attachment;
 pub mod autocomplete;
 pub mod badge;
 pub mod breakpoint;
@@ -41,6 +42,7 @@ pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
+pub mod host_rename;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -77,6 +79,7 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
+pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
