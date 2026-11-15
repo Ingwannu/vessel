@@ -110,7 +110,7 @@ Do not start a second theme type in the app.
 - Done: the consumer at `fb711444` is integrated on lead `d30804b2`,
   preserves the fixed menu colour and passes the full native gate:
   1,181 passed, zero failed, one existing ignored capture. Its normal
-  local app build also passed. V1 consumer source/UI disposition is pending.
+  local app build also passed. V1 passed consumer source/native; its UI disposition is pending.
 - Half-done: private-display runtime captures now cover the existing
   Appearance chooser; the four-scale/language/window matrix, each stored
   choice restored in a new process, and System's live appearance path are
@@ -334,3 +334,20 @@ latter through the existing registry. ADR 0070 and the complete feature
 remain proposed pending those scoped checks and V1 review. No new tile,
 font/content/syntax setting, production service, ownership change, push or
 release was introduced.
+
+
+### Consumer source disposition
+
+V1 independently passed the source and native gate for exact `fb711444`
+on 2026-11-15. The review checked all 727 pinned source inputs, the four
+unchanged legacy constructor bodies against both baselines, the accepted
+tint bytes, the one public fixed menu colour, preference compatibility,
+the sole app adapter and the actual-token/component refresh path.
+The retained `steps.log` SHA-256 is
+`50667e2ef01b1045aa8486b8324b3a7535cae90688c5232325b01deb987c67a6`.
+
+That verdict explicitly excludes screen approval, live saving/restart,
+System events, same-dark visual changes, palette input, fractional marks,
+real OS/GPU behaviour and general accessibility approval. The shortcut
+registration is a separate source range, not part of this binary.
+The final runtime package and its inspected evidence are still pending.
