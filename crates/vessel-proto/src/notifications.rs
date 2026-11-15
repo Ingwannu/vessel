@@ -80,6 +80,9 @@ pub enum TerminalAttentionReason {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum TerminalActivity {
+    /// Known plain shell without semantic instrumentation. No terminal indicator;
+    /// neutral only in workspace projection, never a terminal completion claim.
+    Untracked,
     /// Producer reports idle with no outstanding attention.
     Idle,
     /// Producer reports active work.
@@ -89,7 +92,7 @@ pub enum TerminalActivity {
         /// Reason supplied by the typed activity producer.
         reason: TerminalAttentionReason,
     },
-    /// Plain shell, lost producer or newer state: no attention inferred.
+    /// Lost/missing producer or newer state; never an Untracked proof.
     #[default]
     #[serde(other)]
     Unknown,
@@ -214,6 +217,20 @@ mod tests {
     #[test]
     fn revision_exhaustion_cannot_reuse_an_identity() {
         assert_eq!(TerminalAttentionRevision::new(u64::MAX).next(), None);
+    }
+    #[test]
+    fn explicit_untracked_and_future_wire_states_remain_distinct() {
+        let untracked = serde_json::to_string(&TerminalActivity::Untracked).unwrap();
+        assert_eq!(untracked, r#"{"state":"untracked"}"#);
+        assert_eq!(
+            serde_json::from_str::<TerminalActivity>(&untracked).unwrap(),
+            TerminalActivity::Untracked
+        );
+        assert_eq!(
+            serde_json::from_str::<TerminalActivity>(r#"{"state":"future"}"#).unwrap(),
+            TerminalActivity::Unknown
+        );
+        assert_ne!(TerminalActivity::default(), TerminalActivity::Untracked);
     }
     #[test]
     fn future_claim_and_activity_never_authorize_delivery() {
