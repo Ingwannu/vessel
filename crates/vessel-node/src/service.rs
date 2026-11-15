@@ -54,6 +54,7 @@ mod conversation;
 mod agents;
 mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
+mod file_panels;
 mod files;
 mod git;
 mod projects;
@@ -95,6 +96,7 @@ mod dispatch_tests;
 /// The node's protocol implementation.
 #[derive(Debug)]
 pub(crate) struct NodeService {
+    file_panels: file_panels::FilePanelSlots,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -238,6 +240,7 @@ impl NodeService {
             store.clone(),
         );
         Self {
+            file_panels: file_panels::FilePanelSlots::default(),
             lsp,
             lsp_roots,
             lifecycle,

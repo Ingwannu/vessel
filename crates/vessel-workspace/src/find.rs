@@ -198,7 +198,7 @@ impl NameIndex {
 /// `needle`, or `None` when its characters are not all there in order.
 /// Higher is better: matches in the file name, at the start of a word, and
 /// in runs score more; long paths and gaps score less.
-fn score(needle: &[char], lower: &str, original: &str) -> Option<i64> {
+pub(crate) fn score(needle: &[char], lower: &str, original: &str) -> Option<i64> {
     if needle.is_empty() {
         return Some(0_i64.saturating_sub(i64::try_from(lower.len()).unwrap_or(i64::MAX)));
     }

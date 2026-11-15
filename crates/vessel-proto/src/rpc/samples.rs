@@ -75,6 +75,9 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetCatalogue
         | Method::ListSchedules
         | Method::ListPrompts
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
         | Method::GetNodeSettings
         | Method::SetNodeSettings
         | Method::ListInbox
@@ -85,6 +88,9 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
             json!({"workspace":id,"command":{"kind":"drive","args":{"command":"list_tabs","args":{}}}})
         }
         Method::WatchBrowser => json!({"workspace":id,"browser_id":"1700000000000-a"}),
+        Method::SaveSkillsSelection | Method::ImportSkillsSelection => {
+            json!({"selection":{"mode":"all"}})
+        }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),
@@ -179,6 +185,15 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::GitStash => json!({"root":root,"action":{"kind":"save"}}),
         Method::ReadFile | Method::CreateDir | Method::DeletePath => {
             json!({"root":root,"path":"sample.rs"})
+        }
+        Method::ReadFileBytes => {
+            json!({"root":root,"path":"sample.bin","offset":0,"expected":null})
+        }
+        Method::DuplicateFileEntry => json!({"root":root,"path":"sample.rs"}),
+        Method::ObserveFile => json!({"root":root,"path":"sample.rs","after":null}),
+        Method::InspectDirectory => json!({"root":root,"directory":"","ignored":"include"}),
+        Method::SuggestEntries => {
+            json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
         }
         Method::WriteFile => {
             json!({"root":root,"path":"sample.rs","text":"sample","expect":{"kind":"any"}})
