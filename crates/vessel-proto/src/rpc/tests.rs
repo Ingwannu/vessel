@@ -501,12 +501,6 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 const FORWARDABLE: &[&str] = &[
     "node.info",
     "harness.list",
-    "workspace.registry",
-    "workspace.list",
-    "workspace.get",
-    "workspace.rename",
-    "workspace.pin",
-    "workspace.release_automation",
     "session.list",
     "session.get",
     "session.create",
@@ -640,6 +634,12 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "workspace.registry",
+    "workspace.list",
+    "workspace.get",
+    "workspace.rename",
+    "workspace.pin",
+    "workspace.release_automation",
 ];
 
 #[test]

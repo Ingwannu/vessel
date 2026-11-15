@@ -271,3 +271,7 @@ registry append still follows the unchanged newest head migration. Architecture
 and protocol documents preserve the head's new process/service-port facts and
 append the independent registry section. Changed-head TS/narrow/full checks are
 required next, all on the remote build machine.
+
+The explicit forwardable expectation appends only this package's six names in
+their new method-table order. The head's existing entries and order are unchanged;
+this prevents the table move itself from causing an expected-order regression.
