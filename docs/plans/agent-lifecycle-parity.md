@@ -1271,3 +1271,13 @@ only after the actual durable append. Existing Created destructuring in
 resume, diagnostics and private-dir/detach fixtures gains only `..`; no
 existing assertion or deadline is changed.
 The mutation-clock and explicit label-coverage contracts remain proposed.
+
+
+### Label mutation request value
+
+Reuse the existing SessionId and validated nonempty LabelPatch in one SetLabels
+payload, with required session/labels fields and the existing serde/TypeScript
+derives. A nullable or optional patch would blur "nothing to update" with an
+empty current state, so it is not used. No external package is needed. Payload
+shape/refusal tests belong beside the RPC payload; registration, version checks,
+authorization and mutation behavior remain the later wiring step.

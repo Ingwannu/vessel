@@ -673,3 +673,19 @@ an execution-incarnation fence, and is not a revision of the current label map.
   pairs and acknowledged mutation targets. Test old Info after newer live
   event, historical replay, Unknown coverage and every older-peer nested
   projection. No current commit proves these future invariants yet.
+
+
+### Explicit label mutation payload
+
+The mutation payload is `SetLabels { session: SessionId, labels: LabelPatch }`.
+Both fields are required; there is no default, optional patch or empty-state
+conversion. This extends the existing typed session request payloads rather
+than introducing a generic metadata object. Its nonempty map is validated at
+construction/deserialization through the same bounded labels decoder. The
+combined-map cap still belongs to the current-state actor/store operation.
+
+The payload can be prepared independently of method registration. A standalone
+payload is neither a registered Request nor an available session.labels call.
+The pending lifecycle method and its SessionInfo reply will be wired only with
+the real mutation and its projection tests; this value adds no assignment,
+service, event or consumer availability.
