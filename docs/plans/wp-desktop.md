@@ -333,3 +333,8 @@ layout decision (32px pointer /44px touch). First/last omitted actions are not
 invisible keyboard targets. No private control-height override or second button
 renderer is introduced. The existing kit dialog still owns card/scroll geometry;
 actual minimum-size and compact captures remain required before parity approval.
+
+Update failure releases the app-wide finalization phase before attempting to
+notify the initiating weak Shell. A window disappearing while I/O awaits must
+not leave every surviving window permanently frozen. Notice delivery remains
+best-effort; it does not own the phase or controller cleanup authority.

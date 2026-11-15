@@ -294,8 +294,8 @@ impl Shell {
             let result = finalize.await;
             if let Err(error) = result {
                 tracing::warn!(%error, "update restart preserved the owned local node");
+                cx.update(crate::local_node::end_finalization);
                 let _closed = this.update(cx, |shell, cx| {
-                    crate::local_node::end_finalization(cx);
                     shell.local_node_update_refused(error.failure_snapshot().cloned());
                     shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
                     cx.notify();
@@ -304,8 +304,8 @@ impl Shell {
             }
             if let Err(error) = flush.await {
                 tracing::warn!(%error, "update restart could not flush canonical preferences");
+                cx.update(crate::local_node::end_finalization);
                 let _closed = this.update(cx, |shell, cx| {
-                    crate::local_node::end_finalization(cx);
                     shell.notice = Some(shell.updates.restart_failed(shell.words).to_string());
                     cx.notify();
                 });
