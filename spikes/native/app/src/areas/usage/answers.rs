@@ -70,6 +70,7 @@ impl Shell {
             .is_some_and(|context| context.machine() == machine)
         {
             state.inventory.close();
+            state.source_tips = super::source_tips::SourceTips::default();
             state.ledger.close();
         }
         if state
@@ -95,6 +96,7 @@ impl Shell {
     ) {
         let machine = request.selection;
         let state = &mut self.areas.usage;
+        let previous = state.inventory.observation_ticket();
         let next = match surface {
             InventorySurface::Accounts => {
                 state
@@ -117,6 +119,12 @@ impl Shell {
                     })
             }
         };
+        // Retire the overlay before any root render can clone its old content.
+        // A stale answer cannot change the reader's accepted observation ticket.
+        if surface == InventorySurface::Accounts && previous != state.inventory.observation_ticket()
+        {
+            state.source_tips = super::source_tips::SourceTips::default();
+        }
         if let Some(ask) = next {
             self.command(Command::Usage(ask));
         }
