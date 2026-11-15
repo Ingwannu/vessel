@@ -32,10 +32,17 @@ impl Row {
     #[must_use]
     pub fn workspace_state(&self) -> super::badges::TerminalState {
         use super::badges::TerminalState;
-        // The current app base conflates explicit Unknown and serde(other).
-        // Only the reviewed canonical Untracked DTO can enable neutrality.
-        self.bucket()
-            .map_or(TerminalState::Unknown, TerminalState::Known)
+        match self.bucket() {
+            Some(state) => TerminalState::Known(state),
+            None if self.plain_shell
+                && self
+                    .attention
+                    .is_some_and(|state| state.activity == TerminalActivity::Untracked) =>
+            {
+                TerminalState::Untracked
+            }
+            None => TerminalState::Unknown,
+        }
     }
 
     /// The same priority buckets used by sessions and workspace rollups.
@@ -149,7 +156,7 @@ mod workspace_tests {
     use super::super::badges::TerminalState;
     use super::*;
     #[test]
-    fn ambiguous_current_wire_unknown_cannot_authorize_untracked_projection() {
+    fn explicit_untracked_is_distinct_from_missing_and_future_wire_evidence() {
         let terminal = TerminalId::random();
         let mut row = Row {
             terminal,
@@ -159,15 +166,18 @@ mod workspace_tests {
             attention: Some(TerminalAttention {
                 terminal,
                 revision: vessel_proto::notifications::TerminalAttentionRevision::default(),
-                activity: TerminalActivity::Unknown,
+                activity: TerminalActivity::Untracked,
                 changed_at: chrono::DateTime::UNIX_EPOCH,
             }),
         };
         assert_eq!(row.bucket(), None);
-        assert_eq!(row.workspace_state(), TerminalState::Unknown);
+        assert_eq!(row.workspace_state(), TerminalState::Untracked);
         row.plain_shell = false;
         assert_eq!(row.workspace_state(), TerminalState::Unknown);
         row.plain_shell = true;
+        row.attention.as_mut().unwrap().activity =
+            serde_json::from_str::<TerminalActivity>(r#"{"state":"future"}"#).unwrap();
+        assert_eq!(row.workspace_state(), TerminalState::Unknown);
         row.attention.as_mut().unwrap().activity = TerminalActivity::Attention {
             reason: TerminalAttentionReason::Unknown,
         };

@@ -74,7 +74,8 @@ pub fn terminal<'a>(row: &super::terminals::Row, words: &'a Translator) -> &'a s
             reason: TerminalAttentionReason::NeedsInput,
         }) => words.waiting(),
         Some(
-            TerminalActivity::Unknown
+            TerminalActivity::Untracked
+            | TerminalActivity::Unknown
             | TerminalActivity::Attention {
                 reason: TerminalAttentionReason::Unknown,
             },

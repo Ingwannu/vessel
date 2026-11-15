@@ -246,7 +246,10 @@ mod idle_schedule_tests {
         let now = Instant::now();
         let mut presence = Presence::default();
         assert!(presence.tick(now).is_some());
-        for delay in [ACTIVITY_THROTTLE, HEARTBEAT_INTERVAL - ACTIVITY_THROTTLE] {
+        for delay in [
+            ACTIVITY_THROTTLE,
+            HEARTBEAT_INTERVAL.checked_sub(ACTIVITY_THROTTLE).unwrap(),
+        ] {
             let sample_at = now.checked_add(delay).unwrap();
             presence.system_idle(Some(IdleSample::new(IdleAge::new(0), sample_at)));
             assert!(presence.tick(sample_at).is_none());

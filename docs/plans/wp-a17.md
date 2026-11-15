@@ -299,3 +299,23 @@ it now updates only the cached sample. Ordinary heartbeat/input/focus remains
 the sole report scheduler, and the original sample continues aging. A clock-
 injected regression samples twice before the due time, checks no early report,
 and then checks one unchanged-activity report exactly at the original deadline.
+
+## Reviewed values adoption
+
+V3 row162 supplemental SOURCE PASS accepted canonical c2dcebea; the node
+integrator landed it as a5311bc2 with its next combined gate still owed. Under
+the explicit values-only exception, the app applies that one commit's diff as
+127689a9d, preserving its app base rather than merging node-head ancestry.
+Both DTO module blobs match the reviewed source exactly. Add/add conflicts in
+notifications.rs/inbox_attention.rs use those canonical blobs; proto/lib.rs
+retains the existing notifications_tests module and one declaration of each
+public module. No node runtime, new row/number or assignment is imported.
+
+Native adapters now consume explicit Untracked only for known Shell kind; real
+future wire states still decode Unknown and cannot become neutral. Both retain
+no terminal dot. Session read/group badges use explicit_unread OR current unseen
+Inbox count, preserving pending/failure/work priority. A regression covers an
+empty Inbox deliberately marked unread, then work, pending request and actual
+clear. This is source wiring; changed-source native checks and actual assigned
+node/runtime behavior remain owed. The node tree owns runtime integration;
+this app-only values adoption is not a whole-root gate claim.

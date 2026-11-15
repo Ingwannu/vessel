@@ -24,7 +24,9 @@ impl Bucket {
             Self::Failed
         } else if card.is_working() {
             Self::Working
-        } else if attention.map_or(card.detail.marks.unread, |state| state.unread.get() > 0) {
+        } else if attention.map_or(card.detail.marks.unread, |state| {
+            state.explicit_unread || state.unread.get() > 0
+        }) {
             Self::Review
         } else {
             Self::Done
@@ -120,6 +122,7 @@ mod tests {
         SessionAttention {
             session: card.session,
             unread: InboxCount::new(unread),
+            explicit_unread: false,
             waiting: InboxCount::new(waiting),
             failed: InboxCount::new(failed),
         }
@@ -199,5 +202,49 @@ mod tests {
         );
         assert_eq!(groups[0].sessions.len(), 1);
         assert_eq!(groups[0].more, 1);
+    }
+}
+
+#[cfg(test)]
+mod deliberate_tests {
+    use super::*;
+    use crate::board::Attention;
+    use vessel_proto::{
+        HarnessKind, SessionId, SessionInfo, SessionMode, SessionSpec, inbox::InboxCount,
+    };
+    #[test]
+    fn deliberate_unread_survives_empty_inbox_without_overriding_pending_or_work() {
+        let mut card = Card::from_session(
+            "node",
+            &SessionInfo::new(
+                SessionId::random(),
+                SessionSpec::new(
+                    HarnessKind::Codex,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                ),
+                chrono::DateTime::UNIX_EPOCH,
+            ),
+        );
+        card.attention = Attention::AtRest;
+        let mut attention = SessionAttention {
+            session: card.session,
+            unread: InboxCount::new(0),
+            explicit_unread: true,
+            waiting: InboxCount::new(0),
+            failed: InboxCount::new(0),
+        };
+        assert_eq!(Bucket::of(&card, Some(attention)), Bucket::Review);
+        card.attention = Attention::Working;
+        assert_eq!(Bucket::of(&card, Some(attention)), Bucket::Working);
+        attention.waiting = InboxCount::new(1);
+        assert_eq!(Bucket::of(&card, Some(attention)), Bucket::NeedsInput);
+        card.attention = Attention::AtRest;
+        attention.waiting = InboxCount::new(0);
+        attention.explicit_unread = false;
+        assert_eq!(Bucket::of(&card, Some(attention)), Bucket::Done);
     }
 }

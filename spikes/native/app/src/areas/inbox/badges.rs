@@ -31,7 +31,7 @@ impl Shell {
     pub(crate) fn inbox_unread(&self, card: &vessel_app_view::Card) -> bool {
         self.inbox_session_attention(&card.machine, card.session)
             .map_or(card.detail.marks.unread, |attention| {
-                attention.unread.get() != 0
+                attention.explicit_unread || attention.unread.get() != 0
             })
     }
     pub(crate) fn inbox_bucket(
