@@ -79,7 +79,7 @@ async fn history_uses_recorded_and_default_refs_from_one_root_snapshot() {
 }
 
 #[tokio::test]
-async fn a_history_read_revalidates_a_moved_root_and_cannot_start_after_shutdown() {
+async fn a_live_history_read_revalidates_its_root_and_shutdown_refuses_before_disk_validation() {
     let fixture = Fixture::new().await;
     let repo = fixture.repo("history-admission", None);
     let project = fixture
@@ -93,24 +93,35 @@ async fn a_history_read_revalidates_a_moved_root_and_cannot_start_after_shutdown
     let facts = fixture.workspaces.resolve_git(root).await.unwrap();
     assert_eq!(facts.pinned_base, None);
     assert_eq!(facts.project_default, Some("main".parse().unwrap()));
-    fixture.stop.cancel();
-    assert!(matches!(
-        fixture
-            .workspaces
-            .git_history(ReadGitHistory { root })
-            .await,
-        Err(WorkspaceError::ComparisonJob(
-            super::super::comparison::JobError::Closed
-        ))
-    ));
     std::fs::rename(&repo, fixture.path().join("history-moved")).unwrap();
-    assert!(matches!(
-        fixture
-            .workspaces
-            .git_history(ReadGitHistory { root })
-            .await,
-        Err(WorkspaceError::Conflict(_))
-    ));
+    let moved = fixture
+        .workspaces
+        .git_history(ReadGitHistory { root })
+        .await;
+    assert!(
+        matches!(
+            moved,
+            Err(WorkspaceError::Conflict(ref detail))
+            if detail == "the folder is gone from this machine"
+        ),
+        "{moved:?}"
+    );
+    // Shutdown admission is intentionally before queued disk resolution. A
+    // stopped node must not start I/O merely to rediscover that same bad root.
+    fixture.stop.cancel();
+    let stopped = fixture
+        .workspaces
+        .git_history(ReadGitHistory { root })
+        .await;
+    assert!(
+        matches!(
+            stopped,
+            Err(WorkspaceError::ComparisonJob(
+                super::super::comparison::JobError::Closed
+            ))
+        ),
+        "{stopped:?}"
+    );
     assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }

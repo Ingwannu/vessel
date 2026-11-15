@@ -473,3 +473,18 @@ running: its web/fake-binary/node-binary prerequisite stages passed, but no fina
 library result is available yet. It excludes later shared-project cache scope
 and fixture lint corrections. Keep those exact source assignments; neither is a
 whole root gate or a runtime review pass. No additional local Cargo was started.
+
+## Actual e103 history fixture failure
+
+The exact e103 workspace selection executed66 tests:65 passed,1 failed,0 ignored
+(run wp-git-root-fence-tests-20261115T133413Z-e103946f). All three prerequisite
+stages passed and the changed Node/Workspace crates actually compiled. The sole
+failure was the history fixture expecting a moved-folder Conflict AFTER cancelling
+shutdown. Current owned-job admission correctly refuses Closed before queueing disk
+validation; no production failure or runtime fix is inferred from this test error.
+
+The corrected fixture first moves the root while live and asserts its exact
+Conflict detail, then cancels shutdown and asserts Closed even with the root still
+missing. Both requirements remain covered without weakening an assertion or
+changing production ordering. The new source also includes the later sibling-cache
+scope and still needs execution. Prior e103 remains65/1; no red is relabeled green.
