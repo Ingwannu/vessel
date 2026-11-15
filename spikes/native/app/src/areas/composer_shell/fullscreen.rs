@@ -27,7 +27,7 @@ pub(crate) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let target = shell.composer_current_target()?;
+    let target = shell.composer_fullscreen_target()?;
     if shell.areas.composer_shell.surface(target).extent() != Extent::Fullscreen {
         return None;
     }
@@ -111,6 +111,9 @@ pub(crate) fn render(
 
 impl Shell {
     fn composer_may_submit(&self, target: DraftKey, cx: &gpui::App) -> bool {
+        if self.composer_fullscreen_target() != Some(target) {
+            return false;
+        }
         let Some(field) = self.composer_shell_field(target) else {
             return false;
         };

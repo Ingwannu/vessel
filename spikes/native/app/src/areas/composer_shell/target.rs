@@ -13,6 +13,19 @@ use vessel_app_view::prefs::SendKey;
 use crate::{routes::Route, shell::Shell};
 
 impl Shell {
+    /// A window overlay must belong to the actual selected panel, including its
+    /// top compact sheet. Legacy selected globals alone cannot prove visibility.
+    pub(super) fn composer_fullscreen_target(&self) -> Option<DraftKey> {
+        let target = self.composer_current_target()?;
+        if let DraftKey::Session { session } = target {
+            let context = self.layout_action_context()?;
+            if context.target() != Some(&vessel_app_view::layout::Target::Agent(session)) {
+                return None;
+            }
+        }
+        Some(target)
+    }
+
     pub(crate) fn composer_current_target(&self) -> Option<DraftKey> {
         match self.route {
             Route::Draft => Some(DraftKey::New),
@@ -83,6 +96,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_fullscreen_target() != Some(target) {
+            return;
+        }
         let Some(field) = self.composer_shell_field(target).cloned() else {
             return;
         };
@@ -111,6 +127,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_fullscreen_target() != Some(target) {
+            return;
+        }
         let Some(field) = self.composer_shell_field(target).cloned() else {
             return;
         };
