@@ -4,95 +4,147 @@ use super::source::Command;
 use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::Window;
-use vessel_app_view::layout::LayoutActionContext;
+use vessel_app_view::layout::{LayoutActionContext, LayoutMode};
 use vessel_app_view::palette::registration::{
     Contribution, Owner, Presentation, Rank, RegistrationError, Visibility,
 };
 use vessel_app_view::shortcuts::{Action, action_label};
 
 const SOURCE: &str = "workspace-layout";
+#[derive(Clone, Copy)]
+enum Capability {
+    Any,
+    Split,
+    Single,
+}
+impl Capability {
+    const fn allows(self, split: bool) -> bool {
+        match self {
+            Self::Any => true,
+            Self::Split => split,
+            Self::Single => !split,
+        }
+    }
+}
 // This is command-center presentation, never a second keyboard/default table.
-const COMMANDS: &[(&str, Action, i16, bool, Glyph)] = &[
-    ("tab:chooser", Action::NewTab, 0, false, Glyph::Plus),
+const COMMANDS: &[(&str, Action, i16, Capability, Glyph)] = &[
+    (
+        "tab:chooser",
+        Action::NewTab,
+        0,
+        Capability::Any,
+        Glyph::Plus,
+    ),
     (
         "tab:previous",
         Action::PreviousTab,
         30,
-        false,
+        Capability::Any,
         Glyph::ChevronLeft,
     ),
-    ("tab:next", Action::NextTab, 31, false, Glyph::ChevronRight),
+    (
+        "tab:next",
+        Action::NextTab,
+        31,
+        Capability::Any,
+        Glyph::ChevronRight,
+    ),
     (
         "tab:close-current",
         Action::CloseTab,
         32,
-        false,
+        Capability::Any,
         Glyph::Close,
     ),
     (
         "pane:split-right",
         Action::SplitRight,
         50,
-        true,
+        Capability::Split,
         Glyph::Split,
     ),
-    ("pane:split-down", Action::SplitDown, 51, true, Glyph::Split),
+    (
+        "pane:split-down",
+        Action::SplitDown,
+        51,
+        Capability::Split,
+        Glyph::Split,
+    ),
     (
         "pane:focus-left",
         Action::FocusLeft,
         52,
-        true,
+        Capability::Split,
         Glyph::ChevronLeft,
     ),
     (
         "pane:focus-right",
         Action::FocusRight,
         53,
-        true,
+        Capability::Split,
         Glyph::ChevronRight,
     ),
-    ("pane:focus-up", Action::FocusUp, 54, true, Glyph::ChevronUp),
+    (
+        "pane:focus-up",
+        Action::FocusUp,
+        54,
+        Capability::Split,
+        Glyph::ChevronUp,
+    ),
     (
         "pane:focus-down",
         Action::FocusDown,
         55,
-        true,
+        Capability::Split,
         Glyph::ChevronDown,
     ),
     (
         "pane:move-tab-left",
         Action::MoveTabLeft,
         56,
-        true,
+        Capability::Split,
         Glyph::ChevronLeft,
     ),
     (
         "pane:move-tab-right",
         Action::MoveTabRight,
         57,
-        true,
+        Capability::Split,
         Glyph::ChevronRight,
     ),
     (
         "pane:move-tab-up",
         Action::MoveTabUp,
         58,
-        true,
+        Capability::Split,
         Glyph::ChevronUp,
     ),
     (
         "pane:move-tab-down",
         Action::MoveTabDown,
         59,
-        true,
+        Capability::Split,
         Glyph::ChevronDown,
     ),
-    ("pane:close", Action::ClosePane, 60, true, Glyph::Close),
+    (
+        "pane:close",
+        Action::ClosePane,
+        60,
+        Capability::Split,
+        Glyph::Close,
+    ),
+    (
+        "workspace:toggle-focus-mode",
+        Action::ToggleFocus,
+        26,
+        Capability::Single,
+        Glyph::Maximize,
+    ),
     (
         "pane:focus-mode-toggle",
         Action::ToggleFocus,
         62,
-        true,
+        Capability::Split,
         Glyph::Maximize,
     ),
 ];
@@ -113,7 +165,7 @@ pub(super) fn refresh(shell: &mut Shell, window: &Window) {
     let next = if shell.areas.palette.is_open() {
         shell.layout_action_context().map(|context| Signature {
             context,
-            split: super::super::shortcuts::available(window),
+            split: crate::areas::layout::mode(window) == LayoutMode::SplitPanes,
             labels: COMMANDS
                 .iter()
                 .map(|(_, action, _, _, _)| action_label(*action, shell.words).to_owned())
@@ -161,7 +213,7 @@ fn contributions(signature: &Signature) -> Result<Vec<Contribution<Command>>, Re
     COMMANDS
         .iter()
         .zip(&signature.labels)
-        .filter(|((_, _, _, split, _), _)| !split || signature.split)
+        .filter(|((_, _, _, capability, _), _)| capability.allows(signature.split))
         .filter_map(|(spec, label)| {
             spec.1
                 .layout_action(None)

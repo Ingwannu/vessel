@@ -188,39 +188,6 @@ pub(super) const BINDINGS: &[Spec] = &[
         When::ANY.desktop().non_mac(),
         Extension
     ),
-    extension!(
-        98,
-        "desktop-zoom-in",
-        ZoomIn,
-        "Mod+=",
-        When::ANY.desktop(),
-        Extension
-    ),
-    Spec {
-        help: HelpVisibility::Hidden,
-        ..extension!(
-            99,
-            "desktop-zoom-in-shift",
-            ZoomIn,
-            "Mod+Shift+=",
-            When::ANY.desktop(),
-            Extension
-        )
-    },
-    extension!(
-        100,
-        "desktop-zoom-out",
-        ZoomOut,
-        "Mod+-",
-        When::ANY.desktop(),
-        Extension
-    ),
-    extension!(
-        101,
-        "desktop-actual-size",
-        ActualSize,
-        "Mod+0",
-        When::ANY.desktop(),
-        Extension
-    ),
+    // Zoom remains a typed desktop intention but has no production viewport
+    // capability yet. Do not register speculative keys/help/conflicts for it.
 ];

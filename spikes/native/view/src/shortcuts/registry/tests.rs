@@ -159,3 +159,18 @@ fn native_editing_floor_resolves_primary_aliases_in_every_text_focus() {
         }
     }
 }
+
+#[test]
+fn unsupported_native_zoom_has_no_keys_rows_or_conflicts() {
+    for platform in [Platform::Mac, Platform::Other] {
+        let context = default_context(platform);
+        let none = BTreeMap::new();
+        let rows = visible_definitions(context).unwrap();
+        let bindings = effective_bindings(&none, context).unwrap();
+        for action in [Action::ZoomIn, Action::ZoomOut, Action::ActualSize] {
+            assert!(primary_keys(action, &none, context).unwrap().is_none());
+            assert!(!rows.iter().any(|row| row.action == action));
+            assert!(!bindings.iter().any(|binding| binding.action == action));
+        }
+    }
+}

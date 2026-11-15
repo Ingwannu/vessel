@@ -99,7 +99,8 @@ rows are marked passed only after the corresponding behavior is verified.
 - W19b/E3: `shortcuts::desktop::DesktopAction`; app adapter
   `Shell::run_desktop_shortcut(action,window,cx)->bool`. Defaults include
   new window Mod+Shift+N; fullscreen Ctrl+Meta+F on macOS, F11 elsewhere;
-  zoom Mod+=/Mod+-/Mod+0. Mod+W first addresses the current workspace tab,
+  zoom is withheld until the lead's production viewport-scale capability exists.
+  Mod+W first addresses the current workspace tab,
   then falls back to closing the window only if no tab close was handled.
 - W2/A4: `Shell::open_import(window,cx)` opens a modal over the current
   route; title from `shell.words.history().title()`. Close the palette first.
@@ -550,3 +551,22 @@ focus/context GPUI regression uses the production interceptor, verifies no key
 is recorded behind the menu, then verifies recording resumes. Existing S2
 CharacterInput/composition guards remain first and unchanged. S2's hierarchy
 owner reuses the exact same marker and adds no Menu scope/cache/listener.
+
+
+## Viewport capability and unsupported zoom ruling
+
+Adopted ONLY W12's exact4-file viewport leaf f549b746 as57929abdb, not the
+staged resident/resources branch. V1 permits this bounded adoption based on
+exact-code strict3-crate Clippy and viewport1/0 evidence in producer1d93; no
+standalone f549 run is claimed. Palette pane availability now consumes owner
+layout::mode(window)==SplitPanes; no copied600/768 policy remains. The source's
+single-pane focus-mode command uses rank26, split-pane focus-mode rank62.
+
+Coordinator/W19b rule: native zoom is unsupported until a real production
+per-window viewport-scale seam exists. Removed ONLY four speculative native
+extension registrations (ZoomIn alternatives, ZoomOut, ActualSize); canonical
+76 reference bindings remain. Typed intentions/labels remain for later support,
+but no keys, help/Settings rows, chips or conflicts advertise zoom now. Future
+native dispatcher admission must use the desktop owner's supported() capability.
+No test-only scale or rem-size substitute is used. The prior Mod0 extension
+assertion is updated and a platform projection regression covers this capability.

@@ -265,7 +265,7 @@ fn primary_modifier_and_a_digit_go_to_that_workspace() {
     );
     assert_eq!(
         matched(&chord("Mod+0"), None, &none, 0, OTHER),
-        run(Action::ActualSize)
+        Matched::None
     );
 }
 
