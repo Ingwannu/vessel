@@ -87,7 +87,7 @@ pub use picker::{
 };
 pub use screen_header::{compact_header, screen_header};
 pub use sheet::{Edge, sheet};
-pub use theme::{Scheme, Tokens};
+pub use theme::{Palette, Scheme, Tokens};
 pub use toast::{
     ToastContent, ToastDismiss, ToastHandlers, ToastHover, ToastHovered, ToastLook, toast,
     toast_with, toasts,
@@ -112,7 +112,7 @@ pub mod ui {
     };
 }
 
-/// The theme in use: the tokens of one scheme.
+/// The palette in use, shared by every control and the component layer.
 #[derive(Debug, Clone, Copy)]
 pub struct Theme {
     /// The tokens.
@@ -194,7 +194,13 @@ pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
 
 /// Switch the theme, and the component layer's colours with it.
 pub fn set_scheme(cx: &mut App, scheme: Scheme) {
-    let tokens = Tokens::of(scheme);
+    set_palette(cx, Palette::from(scheme));
+}
+
+/// Apply one concrete palette to controls and the component layer together,
+/// refreshing every window even when the light/dark scheme is unchanged.
+pub fn set_palette(cx: &mut App, palette: Palette) {
+    let tokens = Tokens::palette(palette);
     cx.set_global(Theme { tokens });
     field::apply_tokens(cx, &tokens);
     cx.refresh_windows();

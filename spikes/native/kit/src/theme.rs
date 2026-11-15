@@ -7,7 +7,7 @@
 //! Overlays (hover, hairlines) keep their alpha, as the page's
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
-mod palette;
+pub mod palette;
 pub mod spacing;
 pub use palette::Palette;
 

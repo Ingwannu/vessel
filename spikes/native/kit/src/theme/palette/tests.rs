@@ -115,6 +115,33 @@ fn light_and_dark_entries_preserve_every_shipped_token() {
     assert_eq!(Tokens::palette(Palette::Dark), Tokens::of(Scheme::Dark));
 }
 
+#[gpui::test]
+fn switching_dark_palettes_updates_the_component_layer_together(cx: &mut gpui::TestAppContext) {
+    cx.update(|cx| {
+        gpui_component::init(cx);
+        for palette in [
+            Palette::Dark,
+            Palette::Zinc,
+            Palette::Midnight,
+            Palette::Claude,
+            Palette::Ghostty,
+            Palette::PureBlack,
+        ] {
+            crate::set_palette(cx, palette);
+            let expected = Tokens::palette(palette);
+            assert_eq!(crate::tokens(cx), expected);
+            let component = cx.global::<gpui_component::Theme>();
+            assert_eq!(component.colors.background, expected.bg_base);
+            assert_eq!(component.colors.foreground, expected.neutral.foreground);
+            assert_eq!(component.colors.border, expected.neutral.border);
+            assert_eq!(
+                component.colors.muted_foreground,
+                expected.neutral.foreground_muted
+            );
+        }
+    });
+}
+
 #[test]
 fn every_palette_matches_authored_bytes_before_measuring_contrast() {
     assert_eq!(samples().map(|sample| sample.palette), Palette::ALL);

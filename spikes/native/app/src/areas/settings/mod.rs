@@ -44,6 +44,7 @@ mod overview;
 pub(crate) mod page;
 mod prefer;
 mod sections;
+mod theme;
 
 pub(crate) use sections::drawn;
 mod sync;
@@ -54,10 +55,8 @@ use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _,
     Window, div, px,
 };
-use vessel_app_kit::{
-    ComboHandlers, ComboboxState, Scheme, SendOn, Tokens, Type, TypeExt as _, combobox,
-};
-use vessel_app_view::prefs::{SendKey, Theme, send_key_label};
+use vessel_app_kit::{ComboHandlers, ComboboxState, SendOn, Tokens, Type, TypeExt as _, combobox};
+use vessel_app_view::prefs::{SendKey, send_key_label};
 use vessel_app_view::settings::Section;
 
 pub(crate) use choices::{List, primary};
@@ -272,14 +271,11 @@ pub(crate) fn apply_theme(shell: &Shell, window: &Window, cx: &mut App) {
     if std::env::var_os("VESSEL_APP_THEME").is_some() {
         return;
     }
-    let scheme = match shell.prefs.settings.appearance.theme {
-        Theme::System => vessel_app_kit::scheme_of(window.appearance()),
-        Theme::Light => Scheme::Light,
-        Theme::Dark => Scheme::Dark,
-    };
-    if vessel_app_kit::tokens(cx).scheme != scheme {
-        vessel_app_kit::set_scheme(cx, scheme);
-    }
+    theme::apply(
+        shell.prefs.settings.appearance.theme,
+        window.appearance(),
+        cx,
+    );
 }
 
 /// The send shortcut as a person reads it ("Enter", "Ctrl+Enter").

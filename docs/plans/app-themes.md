@@ -107,10 +107,12 @@ Do not start a second theme type in the app.
   native gate: 1,043 passed, zero failed, one existing ignored capture.
   V1 passed this producer's source and A13 native gate on 2026-11-15;
   the full ADR and consumer/first-use evidence remain pending.
-- Half-done: no preference or app change has started.
-- Next: submit that source and its exact gate evidence to review, then
-  extend the existing theme preference, single app adapter and Appearance
-  chooser. Do not repaint Light or Dark, or add an absent token.
+- Half-done: the consumer source extends the preference, single adapter,
+  existing previews and named palette entries; its compilation, final
+  gate and runtime evidence are pending.
+- Next: integrate the current lead while preserving the fixed menu colour,
+  then finish consumer checks and captures. Do not repaint Light or Dark,
+  or add an absent token.
 
 ### Resumption, 2026-11-15
 
@@ -256,3 +258,29 @@ same-scheme global/component token changes. The full native gate runs
 remotely. The app build and authenticated display captures run locally;
 saved selection, reload, same-Dark changes and all four scales require
 their own inspected evidence. None is claimed at this contract commit.
+
+### Consumer source and integration checkpoint
+
+The eight-entry preference, canonical Settings names, named palette-entry
+input, sole app adapter and actual-token guard are written. Tests cover
+chooser/cycle order, ids, lenient compatibility, all eight labels, the
+existing atomic preference store, System resolution, dark-to-dark updates
+and component-layer colours. The two generic palette test fixtures keep
+their original choices, labels and assertions through the new named input.
+Fast format, size, boundary and token checks passed before integration;
+the new compiling checks and runtime evidence have not run yet.
+
+The fixed menu success colour is imported from the existing token-only
+source of `ef91b954`: `theme::palette::GREEN_500`, unchanged in name, type
+and value. There is one definition in the now-public palette module;
+`Palette` keeps its original re-export and builder. The tint tables stay
+private. No second renderer or duplicate fixed-colour literal is added,
+and the colour is independent of a named palette's accent. The typed menu
+itself is not imported or redrawn by this work.
+
+Integration moves onto the current lead before the consumer gate. The
+unmerged theme history will be preserved under a backup reference and its
+net theme change submitted without the intermediate `wip:` subject in the
+lead's merge range. Earlier source/gate hashes remain historical evidence,
+not a pass for this changed base or the consumer. Both document texts and
+the lead's existing production behaviour are preserved on conflict.

@@ -1,5 +1,6 @@
-//! Concrete palettes, separate from light/dark appearance and from the app's
-//! stored preference. System resolution belongs to the app, never the kit.
+//! Concrete palettes and the reference's fixed palette colours, separate
+//! from light/dark appearance and the app's stored preference. System
+//! resolution belongs to the app; a fixed success colour is not an accent.
 //!
 //! [Decision Log]
 //! - Purpose: add Paseo's named tints without repainting shipped Light/Dark.
@@ -12,6 +13,9 @@ mod tint;
 use super::{Neutrals, Scheme, Tokens};
 use gpui::rgb;
 use tint::Tint;
+
+/// Paseo palette.green[500]; menu success uses this in both themes.
+pub const GREEN_500: u32 = 0x0022_c55e;
 
 /// A concrete token set. System is a preference, not a concrete palette.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -55,6 +59,15 @@ impl Palette {
             | Self::Claude
             | Self::Ghostty
             | Self::PureBlack => Scheme::Dark,
+        }
+    }
+}
+
+impl From<Scheme> for Palette {
+    fn from(scheme: Scheme) -> Self {
+        match scheme {
+            Scheme::Light => Self::Light,
+            Scheme::Dark => Self::Dark,
         }
     }
 }
