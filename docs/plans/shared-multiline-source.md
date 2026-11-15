@@ -54,8 +54,8 @@ whole F1 proof. Source disposition remains V1-owned until its bounded review.
 The seven-path source manifest, unchanged events/identity/identity-keyboard/old
 form/editability byte checks, local exact rustfmt/doc scan, original source diff
 and all exact run file hashes are in /tmp/work/m12-g2/multiline-final-packet-20261115.
-Generate the manifest from git diff --name-only dcbdbb018 HEAD; each entry uses
-git show HEAD:PATH, byte length, SHA256 and git rev-parse HEAD:PATH. This packet
+Generate the manifest with git diff --name-only dcbdbb018 580a7781; each entry
+uses git show 580a7781:PATH, byte length, SHA256 and git rev-parse 580a7781:PATH. This packet
 uses immutable580, not today's moving F1 files. Retain the isolated parent's
 picker829 only as its historical baseline; consumers preserve their newer
 picker/glyph/exports and apply only these field/source changes. Root485 removes
