@@ -1612,7 +1612,6 @@ only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
 
-
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public
 `NodeLock` API and snapshot re-export remain unchanged. The name rule keeps
@@ -1620,6 +1619,13 @@ this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
 
+## Native search lifetime
+
+The existing cross-session Searching value belongs once to PaletteArea, outside
+the session-owned ConversationArea. Existing Shell search calls, the link and
+the renderer keep their interfaces. Replacing a conversation resident therefore
+preserves debounce, query tickets and merged cross-machine replies. The isolated
+prerequisite and test boundary are in docs/plans/wp-a3-search-residency.md.
 The staged node `speech_audio` module is shared by dictation and spoken
 conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
 fixed-provider-rate conversion and checked in-memory WAV framing. Recording
