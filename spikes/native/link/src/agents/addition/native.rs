@@ -78,7 +78,7 @@ pub(in crate::agents) async fn add(
     // is no app version table and no retry after an uncertain dispatch.
     let info = tokio::time::timeout(ADD_TIMEOUT, client.call(target.call.clone()))
         .await
-        .map_err(|_| AdditionError::Timeout)??;
+        .map_err(|_elapsed| AdditionError::Timeout)??;
     if !matches_ack(&target.call, &info) {
         return Err(AdditionError::Acknowledgement);
     }

@@ -328,3 +328,14 @@ previous remote narrow submissions were cancelled by signal at10:35:42 while
 still queued; neither ran Cargo. The cancelled runs remain143, not failures or
 passes of these newer sources. Tool owner was asked for retry disposition.
 No whole package gate, new capture family or completed Add UI is claimed.
+
+
+The first A9 source narrow on e2afa5df returned101/step1 at View: two input
+parser failures lost their typed sources and Failure::variant used a wildcard
+arm. Refused now retains AgentNameError/InvalidAgentText as sources, and the
+alert match is exhaustive. This is a source repair, not lint suppression;
+whole localized form instructions still select by typed field/category. The
+new native memory fixture is directly cfg(test) with the same native-target
+guard, keeping test-only helpers within the workspace's test lint policy.
+The old143 runs were operator-approved VM-resize interruption (T confirmation),
+not a source result; their latest replacements were not duplicated.

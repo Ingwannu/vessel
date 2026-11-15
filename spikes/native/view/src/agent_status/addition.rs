@@ -33,17 +33,17 @@ enum Source {
 }
 
 /// No administrative frame was sent for these validation failures.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
     /// Node's shared name parser rejected it, including reserved builtin names.
     #[error("choose a valid provider name")]
-    Name,
+    Name(#[source] vessel_proto::agents::AgentNameError),
     /// Replacing an existing definition was never authorized.
     #[error("a provider already has this name")]
     Taken,
     /// The program is validated as a program, not parsed as a shell command.
     #[error("enter a valid provider program")]
-    Program,
+    Program(#[source] vessel_proto::agents::InvalidAgentText),
     /// The original route no longer selects this form's machine.
     #[error("the selected machine changed")]
     MachineChanged,
@@ -122,7 +122,7 @@ impl Intent {
         }
         let name = name
             .parse::<vessel_proto::agents::AgentName>()
-            .map_err(|_| Refused::Name)?;
+            .map_err(Refused::Name)?;
         if current.agents.iter().any(|info| match &info.agent {
             HarnessRef::Added(existing) => existing.as_str().eq_ignore_ascii_case(name.as_str()),
             HarnessRef::Known(_) => false,
@@ -133,7 +133,7 @@ impl Intent {
             Source::Command => AgentToAdd::Command {
                 definition: AgentDefinition {
                     label: None,
-                    program: program.parse().map_err(|_| Refused::Program)?,
+                    program: program.parse().map_err(Refused::Program)?,
                     args: arguments.lines().map(str::to_owned).collect(),
                     env: Vec::new(),
                     inherit: Vec::new(),
@@ -261,7 +261,13 @@ impl Failure {
     pub const fn variant(self) -> crate::alert::Variant {
         match self {
             Self::Unknown | Self::Busy => crate::alert::Variant::Warning,
-            _ => crate::alert::Variant::Error,
+            Self::Changed
+            | Self::Unsupported
+            | Self::Permission
+            | Self::Conflict
+            | Self::Rejected
+            | Self::Offline
+            | Self::NoTransport => crate::alert::Variant::Error,
         }
     }
 }

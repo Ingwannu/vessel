@@ -137,13 +137,13 @@ fn invalid_fields_reserve_no_ticket_and_do_not_change_the_page() {
     for name in ["", "has spaces", "codex", &"a".repeat(65)] {
         assert!(matches!(
             intent.submit(&machine, &mut pages, name, "fake", ""),
-            Err(Refused::Name)
+            Err(Refused::Name(_))
         ));
         assert!(pages.get(machine.as_str()).unwrap().pending().is_none());
     }
     assert!(matches!(
         intent.submit(&machine, &mut pages, "good", "", ""),
-        Err(Refused::Program)
+        Err(Refused::Program(_))
     ));
     assert!(
         pages
@@ -163,7 +163,7 @@ fn registry_pin_and_editable_name_are_independent_of_runner_availability() {
     let intent = Intent::registry(&pages, machine.clone(), &entry).unwrap();
     assert!(matches!(
         intent.submit(&machine, &mut pages, entry.id.as_str(), "", ""),
-        Err(Refused::Name)
+        Err(Refused::Name(_))
     ));
     let (_, _, call, _) = intent
         .submit(&machine, &mut pages, "my-provider", "ignored", "ignored")
