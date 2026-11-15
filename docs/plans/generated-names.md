@@ -572,3 +572,14 @@ retention, redaction and sealed causes. No real provider, route/key read,
 session permit, record append or actor mutation belongs to this slice.
 The module stays cfg(test) until production wiring; that wiring and its
 whole product gate remain required before the module can land.
+
+### Shared initialized trust: contract and resume point
+
+Reuse the existing Client builder rather than introduce a second root
+loader/cache. Move constructors unchanged first (P2, no test expectation
+change), shrinking the large client file. Then retain immutable TLS config
+and add with_limits to build a separate HTTP pool with the same trust.
+The proxy's Clone/policy stays unchanged. Node ownership creates metadata's
+pool once and passes it through the existing policy-checked wrapper.
+Tests owe shared trust identity, independent limits and unchanged original
+client, with no socket or root-file access. No new dependency or wire API.

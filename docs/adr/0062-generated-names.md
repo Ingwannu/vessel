@@ -812,3 +812,27 @@ This client module remains staged under the generation module's cfg(test)
 until shared-accessor wiring installs its production caller. It does not
 choose a route, read a key, acquire session permits, record a ModelCall or
 apply a title; the later owner must do those operations in that order.
+
+### Reuse initialized TLS trust for a separate bounded pool
+
+[Decision Log]
+- Purpose and intent: construct the metadata pool once without repeating
+  operating-system certificate reads or retaining proxy connect timeouts.
+- Existing constraints: cloning vessel-llm Client shares its HTTP pool and
+  the connect bound fixed by its builder. Its current constructors already
+  load and configure trust correctly. Re-running root loading inside each
+  generation, or a cancelable lazy initializer, can duplicate blocking work.
+- Alternatives considered: clone the proxy unchanged, load roots again,
+  or add another TLS/root cache. None provides both the separate policy
+  and reuse of already initialized trust.
+- Choice: first move existing constructors unchanged into their own client
+  build module. Separately retain their immutable TLS configuration and
+  add with_limits: build a distinct existing HTTP pool with those same
+  roots and the requested limits. Ordinary Client cloning stays unchanged.
+- Why this choice: the TLS owner still owns every TLS decision and the node
+  can construct its one metadata client from the initialized proxy client.
+  Standard Arc and existing dependencies suffice; no root file is reread.
+- Effects: roots remain fixed for that client's lifetime, as before. A
+  certificate change requires the owner to rebuild it. Tests check shared
+  trust identity and independent policies without opening a socket. No
+  generation, route or credential discovery is added by the factory.
