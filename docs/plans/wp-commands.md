@@ -652,7 +652,7 @@ README retains both independent additions. This does not import S2's unready
 Main F4 branch or activate ToggleSidebars. Current F4 union checks remain owed.
 
 Lead confirmed d18bb794 is the published package base, locked native gate
-spike-20261115T125314Z-d18bb7941415/0/2. Merged the exact shared line as612b26df6:
+spike-20261115T125314Z-d18bb794:1415/0/2. Merged the exact shared line as612b26df6:
 W4 FieldId/source callbacks and the existing composition extraction auto-merged
 through the same central line/multiline factories. All engines still register
 once; no input callback or identity implementation was copied. Shared README
