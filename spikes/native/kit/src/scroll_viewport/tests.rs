@@ -202,7 +202,10 @@ fn wheel_reaches_the_last_item_and_a_fold_clamps_the_same_offset(cx: &mut TestAp
 fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mut TestAppContext) {
     for (width, height) in [(800.0, 600.0), (1280.0, 800.0)] {
         let (view, cx) = setup(cx, width, height, 11);
-        cx.update(|window, cx| view.read(cx).nav_focus.focus(window, cx));
+        cx.update(|window, cx| {
+            let focus = view.read(cx).nav_focus.clone();
+            focus.focus(window, cx);
+        });
         cx.run_until_parked();
         cx.simulate_keystrokes("tab");
         cx.run_until_parked();
