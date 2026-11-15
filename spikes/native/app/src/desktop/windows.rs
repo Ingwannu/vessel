@@ -8,6 +8,7 @@ use vessel_app_view::desktop::window::{
     MIN_HEIGHT, MIN_WIDTH, Presentation, WindowState, WorkArea,
 };
 
+#[derive(Clone, Copy)]
 enum Placement {
     Primary,
     Additional,
@@ -68,7 +69,7 @@ fn guarded_close(window: &Window, cx: &mut App) -> bool {
             let admitted = record
                 .shell
                 .upgrade()
-                .is_none_or(|shell| shell.update(cx, |shell, cx| handler(shell, cx)));
+                .is_none_or(|shell| shell.update(cx, handler));
             if admitted {
                 if !cfg!(target_os = "macos") && cx.windows().len() <= 1 {
                     super::request_quit(cx);
@@ -149,7 +150,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     }
     let primary = matches!(placement, Placement::Primary);
     match cx.open_window(options, move |window, cx| {
-        window.on_window_should_close(cx, |window, cx| may_close(window, cx));
+        window.on_window_should_close(cx, may_close);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
         cx.global_mut::<Desktop>().records.push(WindowRecord {
@@ -184,7 +185,7 @@ pub(super) fn deliver(launch: Launch, cx: &mut App) {
     match launch {
         Launch::NewWindow => open_additional(cx),
         Launch::Project(directory) => {
-            open(Placement::Additional, Some(Launch::Project(directory)), cx)
+            open(Placement::Additional, Some(Launch::Project(directory)), cx);
         }
         session @ Launch::Session(_) => {
             let active = cx.active_window();

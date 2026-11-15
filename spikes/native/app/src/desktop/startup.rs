@@ -74,7 +74,7 @@ fn start(
     let environment = resolve_environment();
     let (sender, mut requests) = mpsc::channel(OS_LAUNCH_CAPACITY);
     let application = application().with_assets(vessel_app_kit::Assets);
-    application.on_open_urls(move |urls| {
+    let _urls = application.on_open_urls(move |urls| {
         for url in urls {
             match vessel_app_view::desktop::NavigationTarget::parse(&url) {
                 Ok(target) => {
@@ -86,7 +86,7 @@ fn start(
             }
         }
     });
-    application.on_reopen(|cx| {
+    let _reopen = application.on_reopen(|cx| {
         if cx.windows().is_empty() {
             super::windows::open_primary(None, cx);
         }

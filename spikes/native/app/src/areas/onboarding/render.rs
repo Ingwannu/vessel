@@ -156,7 +156,7 @@ fn rail(shell: &Shell, open: &Open, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.setup_move(visit, Some(item), window, cx)
+                shell.setup_move(visit, Some(item), window, cx);
             })),
         );
     }
@@ -187,11 +187,9 @@ fn footer(
                 tokens,
             )
             .mr_auto()
-            .on_click(
-                cx.listener(move |shell, _event, window, cx| {
-                    shell.setup_complete(visit, window, cx)
-                }),
-            )
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.setup_complete(visit, window, cx);
+            }))
             .into_any_element(),
         );
     }
@@ -206,7 +204,7 @@ fn footer(
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, window, cx| {
-                shell.setup_move(visit, None, window, cx)
+                shell.setup_move(visit, None, window, cx);
             }))
             .into_any_element(),
         );
@@ -225,11 +223,9 @@ fn footer(
             tokens,
         )
         .when(advancing, |button| {
-            button.on_click(
-                cx.listener(move |shell, _event, window, cx| {
-                    shell.setup_continue(visit, window, cx)
-                }),
-            )
+            button.on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.setup_continue(visit, window, cx);
+            }))
         })
         .into_any_element(),
     );

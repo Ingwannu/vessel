@@ -113,7 +113,7 @@ fn apply_preferences(
         match shell.language.prepare(shell.prefs.settings.language) {
             Ok(words) => shell.apply_language(words, window, cx),
             Err(error) => {
-                tracing::error!(%error,"shared preferences language could not be prepared")
+                tracing::error!(%error,"shared preferences language could not be prepared");
             }
         }
     }

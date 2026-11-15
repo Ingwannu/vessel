@@ -194,7 +194,7 @@ impl Shell {
     }
 }
 
-pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Option<Div> {
+pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.words.desktop_shell();
     let state = shell.areas.desktop.cli.state;
     let hint = match state {
@@ -286,5 +286,5 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         false,
         tokens,
     ));
-    Some(settings::section(words.cli().to_owned(), card, tokens))
+    settings::section(words.cli().to_owned(), card, tokens)
 }

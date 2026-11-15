@@ -82,7 +82,7 @@ pub(super) fn show(kind: Kind, choice: SchemeChoice, application: fn() -> gpui::
                 ..gpui::WindowOptions::default()
             };
             match cx.open_window(options, |window, cx| {
-                let failure = cx.new(|_cx| RestartFailure { words, kind });
+                let failure = cx.new(|_cx| RestartFailure { kind, words });
                 vessel_app_kit::root(failure, window, cx)
             }) {
                 Ok(_window) => cx.activate(true),
