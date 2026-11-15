@@ -139,7 +139,51 @@ impl Model {
         } else if active.preview.failure() != Some(&Failure::Older) {
             return Err(Issue::Preview);
         }
+        // A syntactically valid spec is not evidence that the selected agent
+        // has finished offering models. Keep the full stored spec intact, but
+        // refuse a known unoffered explicit model until the user replaces it.
+        if active.draft.fields().is_some() && !self.model_ready() {
+            return Err(Issue::Target);
+        }
         Ok(Some(save))
+    }
+    fn model_ready(&self) -> bool {
+        let Some(options) = self.options() else {
+            return false;
+        };
+        let Some(target) = self.draft().and_then(Draft::target) else {
+            return false;
+        };
+        let vessel_proto::SessionMode::Structured {
+            model,
+            options: chosen,
+            ..
+        } = &target.spec().mode
+        else {
+            return false;
+        };
+        let Some(option) = options.options.iter().find(|option| {
+            option.category == vessel_proto::OptionCategory::Model
+                && matches!(option.kind, vessel_proto::OptionKind::Select { .. })
+        }) else {
+            return false;
+        };
+        let vessel_proto::OptionKind::Select { values, .. } = &option.kind else {
+            return false;
+        };
+        if let Some(choice) = chosen.iter().rev().find(|choice| choice.id == option.id) {
+            return match &choice.value {
+                vessel_proto::ChoiceValue::Select { value } => {
+                    values.iter().any(|offered| offered.id == *value)
+                }
+                vessel_proto::ChoiceValue::Toggle { .. } => false,
+            };
+        }
+        model.as_ref().is_none_or(|model| {
+            values
+                .iter()
+                .any(|offered| offered.id.as_str() == model.as_str())
+        })
     }
     /// The prepared candidate must still equal the current form before dispatch.
     /// This also rejects a captured old save callback without reparsing text.

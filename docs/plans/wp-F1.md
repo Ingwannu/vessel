@@ -863,3 +863,18 @@ OptionId/OptionValueId::new constructors, and narrowly scoped visibility for
 existing internal/test helpers. No lint policy or behavior test assertion is
 weakened. A borrowed-source regression checks the original error address.
 The later corrected head still needs its requested narrow/package proof.
+
+
+### Save waits for the selected agent's model catalog
+
+Paseo schedule-form-model.ts320–345/545–564 requires a loaded model-bearing
+provider and rejects an explicit model no longer offered. The form now refuses
+new-chat saves while its original agent-options slot is pending/failed/absent,
+or when the first offered model select no longer contains the full spec's
+explicit model/last explicit choice. It preserves the stored spec and unrelated
+future choices instead of substituting the node's current default. An absent
+explicit model keeps the reference's provider-default path once that provider
+has offered a model select; no invented model name is serialized. Recurring
+cadence-only edits retain their separate path. This reuses the typed node option
+catalog; source regression covers pending, removed opened model and explicit
+replacement. New source is not the frozen c79 narrow evidence or consumer UI.

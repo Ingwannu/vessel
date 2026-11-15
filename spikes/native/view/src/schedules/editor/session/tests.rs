@@ -59,7 +59,25 @@ fn response(request: &io::Request) -> io::Value {
         .to_vec(),
     })
 }
+fn load_options(model: &mut Model, visit: Visit) {
+    if let Some(request) = model
+        .mailbox(&io::Operation::Targets)
+        .and_then(io::Mailbox::request)
+        .cloned()
+    {
+        let _received = model.received(
+            &request,
+            Ok(io::Value::Targets(Box::new(choices::targets()))),
+        );
+    }
+    let request = model.agent(visit, "claude-code".parse().unwrap()).unwrap();
+    assert!(matches!(
+        model.received(&request, Ok(io::Value::Options(choices::options()))),
+        Received::Changed
+    ));
+}
 fn ready(model: &mut Model, visit: Visit) -> Save {
+    load_options(model, visit);
     let request = model.preview(visit, at()).unwrap().unwrap();
     assert!(matches!(
         model.received(&request, Ok(response(&request))),
@@ -152,6 +170,7 @@ fn older_preview_is_explicit_fallback_but_other_failures_never_authorize_save() 
         Failure::Older,
     ] {
         let (mut model, opened) = active();
+        load_options(&mut model, opened.visit);
         let request = model.preview(opened.visit, at()).unwrap().unwrap();
         assert!(matches!(
             model.received(&request, Err(failure.clone())),

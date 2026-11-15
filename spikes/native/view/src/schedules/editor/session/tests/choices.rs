@@ -14,7 +14,7 @@ fn project() -> ProjectInfo {
         revision: 1,
     }
 }
-fn targets() -> io::Targets {
+pub(super) fn targets() -> io::Targets {
     io::Targets {
         projects: vec![project()],
         agents: vec![],
@@ -28,7 +28,7 @@ fn targets() -> io::Targets {
         timezone: Some(TimeZoneName::utc()),
     }
 }
-fn options() -> HarnessOptions {
+pub(super) fn options() -> HarnessOptions {
     HarnessOptions { options: serde_json::from_str(r#"[
       {"id":"model","name":"Model","category":"model","kind":"select","current":"new-model","values":[{"id":"old-model","name":"Opened model"},{"id":"new-model","name":"Other model"}]},
       {"id":"custom","name":"Custom","category":"other","kind":"toggle","on":false},
@@ -195,4 +195,39 @@ fn recurring_prompt_cannot_mutate_projects_even_when_targets_were_loaded() {
             .is_none()
     );
     assert_eq!(model.project_id(), None);
+}
+
+#[test]
+fn save_waits_for_agent_models_and_never_substitutes_a_missing_opened_model() {
+    let (mut model, opened) = active();
+    let preview = model.preview(opened.visit, at()).unwrap().unwrap();
+    assert!(matches!(
+        model.received(&preview, Ok(response(&preview))),
+        Received::Changed
+    ));
+    assert!(matches!(model.prepare_save(), Err(Issue::Target)));
+    assert!(matches!(
+        model.received(&opened.request, Ok(io::Value::Targets(Box::new(targets())))),
+        Received::Changed
+    ));
+    let request = model
+        .agent(opened.visit, "claude-code".parse().unwrap())
+        .unwrap();
+    assert!(matches!(model.prepare_save(), Err(Issue::Target)));
+    let mut offered = options();
+    let vessel_proto::OptionKind::Select { values, .. } = &mut offered.options[0].kind else {
+        panic!("model select")
+    };
+    values.retain(|value| value.id.as_str() != "old-model");
+    assert!(matches!(
+        model.received(&request, Ok(io::Value::Options(offered))),
+        Received::Changed
+    ));
+    assert!(matches!(model.prepare_save(), Err(Issue::Target)));
+    assert_eq!(
+        model.draft().unwrap().target().unwrap().spec(),
+        target().spec()
+    );
+    assert!(model.option(opened.visit, choice("model", "new-model")));
+    assert!(model.prepare_save().unwrap().is_some());
 }
