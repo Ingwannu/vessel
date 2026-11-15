@@ -98,7 +98,6 @@ impl ConversationArea {
         self.lost = None;
         self.follow_parking(records);
         let rows_before = self.rows.len();
-        let turn_rows_before = self.turns.as_ref().map(|_| self.rows.clone());
         let change = self.timeline.apply(records);
         if change.is_empty(self.timeline.entries().len()) {
             return false;
@@ -121,6 +120,10 @@ impl ConversationArea {
         // left behind.
         let timeline = &self.timeline;
         self.outline.retain(|item| !timeline.rewound(item.entry));
+        let turn_rows_before = self
+            .turns
+            .as_ref()
+            .map(|_| std::mem::replace(&mut self.rows, vessel_app_view::timeline::Rows::All(0)));
         self.rows_again();
         let rows_after = self.rows.len();
         // Rows are entries less folded members, so a batch can add rows

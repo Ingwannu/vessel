@@ -309,3 +309,8 @@ Turn summary fallback copies Paseo's `turnSummary.details` whole EN/KO values
 `timeline-turns.ftl`. Prose-only folded turns never render a blank button.
 The single timeline post-entry hook delegates summary/rail rendering to
 `conversation/turns.rs`; no duplicate list or work-summary control is added.
+
+Turn projection moves the previous row map instead of cloning the full mounted
+index on each stream batch. Disclosure splices preserve already mounted tail
+rows and their bookkeeping; only a full list reset drops/rebuilds the tail.
+This avoids duplicate pending/working rows after a turn disclosure.

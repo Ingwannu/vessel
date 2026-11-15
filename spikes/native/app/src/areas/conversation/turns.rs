@@ -62,7 +62,8 @@ impl ConversationArea {
             self.at(from)..self.at(before.len()),
             self.rows.len().saturating_sub(from),
         );
-        self.tail_dropped();
+        // Splicing log rows retains and shifts the already mounted tail rows.
+        // Keep their identity; clearing only its bookkeeping would mount a second tail.
     }
 }
 
