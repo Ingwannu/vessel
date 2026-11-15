@@ -151,3 +151,17 @@ only committed authorized whole-parent-session removal does.
 
 This proposal changes no registration, provider, grant, service or process.
 V3 must accept the exact lifecycle/actor/Agents shape before shared code is added.
+
+
+## Driver replacement invalidation checkpoint
+
+The existing Agents::begin_move owner now rotates the execution under the same
+registry guard before publishing its replacement credential, also when MCP is
+absent. An already-running move or failed credential mint does not publish another
+transition. Restoring old credentials after a failed replacement does not restore
+the old incarnation. Synchronous watch fixtures cover both credential modes and
+the failed-move path without an await. This is another invalidation join only;
+it does not qualify capture, metadata lease, current-grant queue admission, or
+private notice production. The existing grant is immutable after reserve today;
+future grant mutation must invalidate under that same registry guard. Exact
+changed-source checks and review remain owed for this checkpoint.

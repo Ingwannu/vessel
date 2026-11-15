@@ -295,9 +295,17 @@ impl Agents {
             return Ok(None);
         };
         match entry.credentials.len() {
-            0 => Ok(None),
+            0 => {
+                entry
+                    .execution
+                    .invalidate(vessel_proto::timeline::ExecutionInvalidation::DriverReplaced);
+                Ok(None)
+            }
             1 => {
                 let secret = mint()?;
+                entry
+                    .execution
+                    .invalidate(vessel_proto::timeline::ExecutionInvalidation::DriverReplaced);
                 entry.credentials.push(CredentialHash::of_agent(&secret));
                 Ok(Some(secret))
             }

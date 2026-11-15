@@ -27,13 +27,12 @@ impl Execution {
         Self { changed }
     }
 
-    fn invalidate(&self, cause: ExecutionInvalidation) -> Change {
+    pub(super) fn invalidate(&self, cause: ExecutionInvalidation) {
         let next = Change {
             incarnation: ExecutionIncarnationId::random(),
             cause: Some(cause),
         };
         let _previous = self.changed.send_replace(next);
-        next
     }
 }
 
@@ -47,9 +46,10 @@ impl Agents {
         }
         let change = {
             let entries = self.lock();
-            entries
-                .get(&session)
-                .map(|entry| entry.execution.invalidate(cause))
+            entries.get(&session).map(|entry| {
+                entry.execution.invalidate(cause);
+                *entry.execution.changed.borrow()
+            })
         };
         // Diagnostics run after releasing the registry, never inside an admission callback.
         if let Some(change) = change {
@@ -64,7 +64,7 @@ impl Agents {
             };
             // The removal/final change has one current-incarnation order:
             // no capture or same-id replacement can interleave between them.
-            let _change = entry.execution.invalidate(ExecutionInvalidation::Ended);
+            entry.execution.invalidate(ExecutionInvalidation::Ended);
             entry
         };
         for closing in entry.connections.values() {
@@ -164,5 +164,40 @@ mod tests {
                 .incarnation,
             old_id
         );
+    }
+    #[test]
+    fn profile_replacement_invalidates_with_or_without_an_mcp_credential() {
+        for with_credential in [false, true] {
+            let agents = Agents::new(NodeId::random());
+            let id = SessionId::random();
+            let _secret = agents
+                .reserve(id, &Principal::Owner, with_credential)
+                .unwrap();
+            let mut watched = agents
+                .lock()
+                .get(&id)
+                .unwrap()
+                .execution
+                .changed
+                .subscribe();
+            let before = watched.borrow().incarnation;
+            let _next = agents.begin_move(id).unwrap();
+            assert!(watched.has_changed().unwrap());
+            let changed = *watched.borrow_and_update();
+            assert_ne!(changed.incarnation, before);
+            assert_eq!(changed.cause, Some(ExecutionInvalidation::DriverReplaced));
+            if with_credential {
+                assert!(matches!(
+                    agents.begin_move(id),
+                    Err(crate::error::ServiceError::MoveRunning(_))
+                ));
+                assert!(!watched.has_changed().unwrap());
+            }
+            // A failed replacement may restore its old credentials, never its
+            // old captured execution. Credential settlement cannot resurrect it.
+            agents.end_move(id, false);
+            assert_eq!(watched.borrow().incarnation, changed.incarnation);
+            assert!(!watched.has_changed().unwrap());
+        }
     }
 }
