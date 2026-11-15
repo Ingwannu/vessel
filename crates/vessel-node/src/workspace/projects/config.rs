@@ -34,14 +34,16 @@ impl Workspaces {
         self: &Arc<Self>,
         request: WriteProjectConfig,
     ) -> Result<ConfigDocument, WireError> {
-        let owner = Arc::clone(self);
+        // Reserve bounded metadata admission before detaching; cancellation
+        // while waiting must not leave a retained writer or later file effect.
+        let admission = self
+            .admit_project(request.project)
+            .await
+            .map_err(|error| error.wire())?;
         self.tasks
             .spawn(async move {
-                let admission = owner
-                    .admit_project(request.project)
-                    .await
-                    .map_err(|error| error.wire())?;
                 let root = admission.root().path().to_owned();
+                let _admission = admission;
                 project_config::write(root, request.expected, request.text)
                     .await
                     .map_err(|error| edit_error(&error))

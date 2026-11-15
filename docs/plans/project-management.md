@@ -207,3 +207,15 @@ until an actual wire declaration reaches it, matching the node integration fix;
 this changes no generated declaration. Fresh strict and TypeScript checks remain
 owed. No provisioning, config or membership adapter becomes checked by these
 source corrections.
+
+
+### Config writer cancellation before metadata admission
+
+The writer acquires the landed bounded project admission before creating a
+tracked task, then retains that same Arc through the file write acknowledgement.
+A cancelled admission waiter therefore cannot leave a detached writer which
+changes the file after the caller has gone. The regression polls an actual write
+behind a retained project hold, checks that no tracked task was added, drops the
+waiter, releases the hold and verifies the file remains missing; a subsequent
+admitted write succeeds. This test is authored but not yet executed on the merged
+source. It grants no physical-root, approval, generation or RPC activation proof.

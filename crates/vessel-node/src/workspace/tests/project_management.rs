@@ -219,3 +219,44 @@ async fn config_requires_current_registered_identity_and_two_saves_cannot_both_w
     assert!(project.root.join("vessel.toml").is_file());
     fixture.stop.cancel();
 }
+
+#[tokio::test]
+async fn cancelled_config_admission_never_detaches_or_writes_after_release() {
+    use std::{future::Future as _, task::Context};
+    use vessel_proto::registry::{ConfigRevision, ConfigText, WriteProjectConfig};
+
+    let fixture = Fixture::new().await;
+    let project = fixture.project("cancelled-config", None).await;
+    let admission = fixture.workspaces.admit_project(project.id).await.unwrap();
+    let baseline = fixture.tasks.len();
+    let request = WriteProjectConfig {
+        project: project.id,
+        expected: ConfigRevision::Missing,
+        text: ConfigText::parse("# cancelled before admission").unwrap(),
+    };
+    let mut pending = Box::pin(fixture.workspaces.write_project_config(request));
+    let mut context = Context::from_waker(std::task::Waker::noop());
+    assert!(pending.as_mut().poll(&mut context).is_pending());
+    assert_eq!(fixture.tasks.len(), baseline);
+    drop(pending);
+    drop(admission);
+
+    let after = fixture
+        .workspaces
+        .read_project_config(project.id)
+        .await
+        .unwrap();
+    assert_eq!(after.revision, ConfigRevision::Missing);
+    let saved = fixture
+        .workspaces
+        .write_project_config(WriteProjectConfig {
+            project: project.id,
+            expected: ConfigRevision::Missing,
+            text: ConfigText::parse("# admitted writer").unwrap(),
+        })
+        .await
+        .unwrap();
+    assert_ne!(saved.revision, ConfigRevision::Missing);
+    assert_eq!(fixture.tasks.len(), baseline);
+    fixture.stop.cancel();
+}
