@@ -48,12 +48,11 @@ pub(super) fn trigger(
         .on_click(cx.listener(|shell, _, window, cx| {
             let mut choices = vec![HostScope::All];
             for machine in &shell.fleet.machines {
-                match vessel_app_view::machine_book::Name::parse(&machine.name) {
-                    Ok(name) => choices.push(HostScope::Host(name)),
-                    Err(_) => {
-                        shell.notice = Some(shell.words.sessions().navigation_refused().to_owned());
-                        return;
-                    }
+                if let Ok(name) = vessel_app_view::machine_book::Name::parse(&machine.name) {
+                    choices.push(HostScope::Host(name));
+                } else {
+                    shell.notice = Some(shell.words.sessions().navigation_refused().to_owned());
+                    return;
                 }
             }
             let state = &mut shell.areas.sessions.filters;

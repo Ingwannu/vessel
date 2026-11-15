@@ -91,7 +91,7 @@ impl Shell {
                         Failure::Busy => self.words.sessions().navigation_busy(),
                     }
                     .to_owned(),
-                )
+                );
             }
         }
         cx.notify();

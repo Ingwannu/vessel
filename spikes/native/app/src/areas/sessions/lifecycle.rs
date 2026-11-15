@@ -74,7 +74,7 @@ impl Shell {
         match policy {
             Some(ClosePolicy::LayoutOnly) => self.go(Route::Draft, window, cx),
             Some(ClosePolicy::Archive) => {
-                self.prepare_session_lifecycle(LifecycleAction::Exit, window, cx)
+                self.prepare_session_lifecycle(LifecycleAction::Exit, window, cx);
             }
             None => {
                 self.notice = Some(self.words.sessions().navigation_busy().to_owned());
@@ -123,7 +123,7 @@ impl Shell {
                 self.areas.sessions.lifecycle.dialog.focus(window, cx);
             }
             LifecycleAction::Unarchive | LifecycleAction::Resume => {
-                self.send_session_lifecycle(prepared, cx)
+                self.send_session_lifecycle(prepared, cx);
             }
         }
         cx.notify();
@@ -182,20 +182,18 @@ impl Shell {
             .then_some(Problem::ProfileUnavailable)
     }
     fn lifecycle_choices(&self, seed: Option<&SessionInfo>) -> Vec<vessel_proto::OptionChoice> {
-        self.areas
-            .conversation
-            .timeline
-            .options()
-            .map(|options| {
+        self.areas.conversation.timeline.options().map_or_else(
+            || {
+                seed.map(|info| info.spec.mode.options().to_vec())
+                    .unwrap_or_default()
+            },
+            |options| {
                 options
                     .iter()
                     .filter_map(vessel_proto::SessionOption::choice)
                     .collect()
-            })
-            .unwrap_or_else(|| {
-                seed.map(|info| info.spec.mode.options().to_vec())
-                    .unwrap_or_default()
-            })
+            },
+        )
     }
     fn send_session_lifecycle(&mut self, prepared: Prepared, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.sessions.lifecycle;
