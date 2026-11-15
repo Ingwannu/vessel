@@ -73,7 +73,7 @@ async fn same_pid_new_run_and_each_connection_close_revoke_old_authority() {
 
     let rig = Rig::new(origin());
     let lease = rig.lease().await;
-    drop(rig._connection);
+    drop(rig.connection);
     lease.revoked().await;
     let _receipt = lease.revoke_and_drain().await;
 }

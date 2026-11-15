@@ -88,7 +88,7 @@ fn port_refusal_preserves_its_validating_source() {
 const TEST_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
 
 struct Rig {
-    _connection: ConnectionLife,
+    connection: ConnectionLife,
     context: PreviewContext,
     origin: PreviewOrigin,
     service: PreviewService,
@@ -101,7 +101,7 @@ impl Rig {
         let context = context(&connection);
         let (service, control) = fixtures::service(&context, origin);
         Self {
-            _connection: connection,
+            connection,
             context,
             origin,
             service,

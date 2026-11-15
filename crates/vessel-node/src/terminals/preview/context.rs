@@ -22,7 +22,7 @@ pub(crate) struct PreviewContext {
 }
 
 impl PreviewContext {
-    /// Real adapters also observe Outbound::closed while a call retains context.
+    /// Real adapters also observe `Outbound::closed` while a call retains context.
     /// Authentication, protocol and session policy remain mandatory above this API.
     pub(crate) fn from_observers(
         scope: PreviewScope,

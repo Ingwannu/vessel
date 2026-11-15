@@ -86,3 +86,10 @@ ServicePort validation. Reconstructing it from only IP and port discarded
 IPv6 scope/flow metadata, potentially aliasing different endpoints. The
 new regression preserves those values and distinguishes another scope.
 This matcher change adds no origin permission or real source backend.
+
+The first control Clippy found a doc-markdown omission, an underscore-named
+test field that is intentionally used, and an async admission function
+without an await. Admission now reuses the existing bounded lease check
+after issuance and before publication, so connection/source loss in that
+interval refuses instead of returning an unchecked newly issued lease.
+No lint suppression, placeholder wait, assertion or budget was changed.

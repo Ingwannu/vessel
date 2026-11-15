@@ -81,7 +81,10 @@ impl PreviewService {
         if binding.origin != origin {
             return Err(PreviewError::Origin);
         }
-        PreviewLease::new(self, context, binding)
+        let lease = PreviewLease::new(self, context, binding)?;
+        // Issuance may race source/connection loss; revalidate before publishing.
+        lease.check(&lease.0.context, origin).await?;
+        Ok(lease)
     }
 }
 
