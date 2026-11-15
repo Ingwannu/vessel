@@ -32,7 +32,7 @@ fn form() -> Question {
         }],
 
         lifetime: vessel_proto::timeline::QuestionLifetime::Session,
-        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
+        delivery_state: QuestionDeliveryState::Pending,
     }
 }
 

@@ -138,6 +138,7 @@ impl Running {
         let (reply, answer) = oneshot::channel();
         self.commands
             .send(Command::Prompt {
+                client_message_id: None,
                 content,
                 attachments: Attachments::new(),
                 context: side,
@@ -563,6 +564,7 @@ async fn what_this_slice_does_not_offer_is_answered_as_such() {
         session
             .commands
             .send(Command::Steer {
+                client_message_id: None,
                 content: text("also"),
                 attachments: Attachments::new(),
                 reply,

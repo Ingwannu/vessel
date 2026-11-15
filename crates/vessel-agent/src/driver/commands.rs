@@ -21,9 +21,12 @@ impl Driver {
                 content,
                 attachments,
                 context: prefix,
+                client_message_id,
                 reply,
             } => {
-                let result = self.prompt(cx, content, attachments, prefix).await;
+                let result = self
+                    .prompt(cx, content, attachments, prefix, client_message_id)
+                    .await;
                 answer(reply, result);
             }
             Command::CancelTurn { reply } => {
@@ -33,8 +36,9 @@ impl Driver {
             Command::Steer {
                 content,
                 attachments,
+                client_message_id,
                 reply,
-            } => self.steer(cx, content, attachments, reply),
+            } => self.steer(cx, content, attachments, client_message_id, reply),
             Command::Answer { id, outcome, reply } => {
                 let result = self.permissions.answer(id, &outcome);
                 if result.is_ok() {
@@ -101,6 +105,7 @@ impl Driver {
         content: Vec<ContentBlock>,
         mut attachments: Attachments,
         prefix: Option<crate::PromptContext>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<(), InputError> {
         if self.turn {
             return Err(InputError::TurnInProgress);
@@ -143,7 +148,7 @@ impl Driver {
         self.tail.reset();
         self.emit(AgentEvent::TurnStarted {
             content,
-            client_message_id: None,
+            client_message_id,
         })
         .await;
         Ok(())

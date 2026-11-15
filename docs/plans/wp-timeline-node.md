@@ -177,3 +177,22 @@ legacy event/reply enums small; serde and generated consumer shapes are
 unchanged. Strict clippy found the enum growth, ambiguous default access and
 unconsumed optional-key lookup expressions in the earlier integration; this
 follow-up corrects those source defects. Combined compilation remains owed.
+
+## Identified delivery wiring
+
+The pending session.submit_prompt method reuses Operate scope, existing session
+ownership and forwarded-call admission. The node resolves stored upload
+references, reads retained receipts even after a provider stops, validates fresh
+content through the existing provider encoders, and only then asks the store
+writer for admission. A committed fresh token permits one existing actor
+delivery. Failure after reservation remains OutcomeUnknown; there is no unkeyed
+fallback. Queue entries retain the same ClientMessageId through start, steer,
+interrupt, fallback and restart. Driver command metadata emits the id directly
+in TurnStarted/Steered; identical prompt text is never used to correlate it.
+
+Tests are written for public committed-store/restart behavior and same-text
+distinct-id echoes through fake ACP/Codex processes. They remain unverified.
+Generic question presentation now validates unique field identities and optional
+text companions of choice fields, and enforces explicit empty policies while
+retaining legacy form semantics. Provider conversion and async lifecycle work
+are still owed.

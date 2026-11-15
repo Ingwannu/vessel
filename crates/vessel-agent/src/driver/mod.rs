@@ -109,6 +109,7 @@ enum Inbound {
     },
     /// The agent answered a steer (protocol 10).
     Steered {
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         result: Result<serde_json::Value, Error>,
         reply: SteerReply,
@@ -315,10 +316,14 @@ impl Driver {
                 }
             }
             Inbound::Steered {
+                client_message_id,
                 content,
                 result,
                 reply,
-            } => self.steered(content, result, reply).await,
+            } => {
+                self.steered(content, result, client_message_id, reply)
+                    .await
+            }
         }
         None
     }

@@ -23,6 +23,19 @@ use fingerprint::ReceiptFingerprint;
 pub use receipt::{ReceiptAdmission, ReceiptToken};
 use receipt::{admit_receipt, finish_receipt};
 
+pub(crate) fn lookup_input(
+    connection: &Connection,
+    request: &vessel_proto::timeline::SubmitPrompt,
+    creator: &vessel_proto::Creator,
+) -> Result<Option<vessel_proto::timeline::SubmitPromptReply>, StoreError> {
+    receipt::lookup_receipt(
+        connection,
+        request.session,
+        request.message.clone(),
+        ReceiptFingerprint::for_prompt(request, creator)?,
+    )
+}
+
 /// All package tables will join the single integration-repointed migration.
 pub(crate) const SQL: &str = "
 CREATE TABLE timeline_admissions (

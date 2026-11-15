@@ -233,3 +233,10 @@ fn handshake_failed(message: String) -> Disconnect {
 
 #[cfg(test)]
 mod tests;
+
+/// Reuse the exact native encoder before any replay admission is reserved.
+pub(super) fn validate_prompt(
+    content: &[vessel_proto::ContentBlock],
+) -> Result<(), crate::InputError> {
+    commands::prompt_blocks(content).map(|_input| ())
+}

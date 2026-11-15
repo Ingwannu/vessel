@@ -91,8 +91,8 @@ fn question() -> Question {
             },
         ],
 
-        lifetime: crate::timeline::QuestionLifetime::Turn,
-        delivery_state: crate::timeline::QuestionDeliveryState::Pending,
+        lifetime: QuestionLifetime::Turn,
+        delivery_state: QuestionDeliveryState::Pending,
     }
 }
 

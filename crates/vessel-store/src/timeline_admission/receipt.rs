@@ -50,16 +50,8 @@ pub(super) fn admit_receipt(
     if !exists {
         return Err(StoreError::UnknownSession(session));
     }
-    let known: Option<(Vec<u8>, String)> = connection
-        .query_row(
-            "SELECT fingerprint,state FROM timeline_admissions
-         WHERE session=?1 AND kind='receipt' AND identity=?2",
-            params![session.to_string(), message.as_str()],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()?;
-    if let Some((known_fingerprint, state)) = known {
-        let reply = replay(session, message, fingerprint, known_fingerprint, &state)?;
+    if let Some(reply) = lookup_receipt(connection, session, message.clone(), fingerprint.clone())?
+    {
         return Ok(ReceiptAdmission::Existing(reply));
     }
     if let Err(capacity) = reserve(connection, session, AdmissionKind::Receipt)? {
@@ -86,6 +78,27 @@ pub(super) fn admit_receipt(
         message,
         fingerprint,
     }))
+}
+
+pub(super) fn lookup_receipt(
+    connection: &Connection,
+    session: SessionId,
+    message: ClientMessageId,
+    fingerprint: ReceiptFingerprint,
+) -> Result<Option<SubmitPromptReply>, StoreError> {
+    let known: Option<(Vec<u8>, String)> = connection
+        .query_row(
+            "SELECT fingerprint,state FROM timeline_admissions
+         WHERE session=?1 AND kind='receipt' AND identity=?2",
+            params![session.to_string(), message.as_str()],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    if let Some((known_fingerprint, state)) = known {
+        let reply = replay(session, message, fingerprint, known_fingerprint, &state)?;
+        return Ok(Some(reply));
+    }
+    Ok(None)
 }
 
 fn replay(

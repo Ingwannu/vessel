@@ -74,6 +74,8 @@ mod questions;
 mod recent;
 mod stderr;
 mod transport;
+mod validation;
+pub use validation::validate_prompt;
 
 pub use attached::{AttachmentBody, Attachments};
 pub use context::PromptContext;

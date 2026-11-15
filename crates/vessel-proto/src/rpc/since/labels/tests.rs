@@ -12,7 +12,10 @@ fn every_labelled_spec_and_envelope_is_unassigned_at_the_current_protocol() {
     ))
     .unwrap();
     for call in calls {
-        assert!(call.since() <= crate::PROTOCOL_VERSION);
+        assert!(
+            call.since()
+                .is_some_and(|since| since <= crate::PROTOCOL_VERSION)
+        );
         let forwarded = Forward {
             node: NodeId::random(),
             call: Box::new(call.clone()),

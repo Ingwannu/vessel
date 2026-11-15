@@ -268,6 +268,7 @@ const fn refused(method: Method) -> bool {
         | Method::SessionOptions
         | Method::SetSessionOption
         | Method::RenameSession
+        | Method::SubmitPrompt
         | Method::PromptSession
         | Method::ChangeQueue
         | Method::GetConversation

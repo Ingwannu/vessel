@@ -18,6 +18,18 @@ use crate::profiles::launch::creator;
 use crate::transfers::Holder;
 
 impl NodeService {
+    /// `session.submit_prompt`: keyed admission never falls back to legacy delivery.
+    pub(crate) async fn submit_prompt(
+        &self,
+        connection: &Connection,
+        request: vessel_proto::timeline::SubmitPrompt,
+    ) -> Result<vessel_proto::timeline::SubmitPromptReply, WireError> {
+        self.sessions
+            .submit_prompt(request, creator(&connection.principal))
+            .await
+            .map_err(|error| wire(&error))
+    }
+
     /// `session.prompt`: deliver a prompt as asked; who sent it is kept
     /// with it if it waits in the queue.
     pub(crate) async fn prompt_session(

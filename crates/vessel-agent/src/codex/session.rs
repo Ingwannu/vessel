@@ -91,6 +91,7 @@ enum Pending {
     TurnStart,
     Interrupt,
     Steer {
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         reply: SteerReply,
     },
@@ -299,12 +300,16 @@ impl Session {
                     tracing::info!(message = %error.message, "Codex refused to interrupt the turn");
                 }
             }
-            Pending::Steer { content, reply } => {
+            Pending::Steer {
+                content,
+                client_message_id,
+                reply,
+            } => {
                 let outcome = match answer {
                     Ok(_) => {
                         self.emit(AgentEvent::Steered {
                             content,
-                            client_message_id: None,
+                            client_message_id,
                         })
                         .await;
                         Ok(SteerOutcome::Injected)

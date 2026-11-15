@@ -161,6 +161,7 @@ impl Reply {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
+            | Self::SubmitPrompt(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)
             | Self::GetConversation(_)

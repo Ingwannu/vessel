@@ -54,7 +54,7 @@ pub enum CompactionTrigger {
     Manual,
 }
 
-/// Adjacent compaction lifecycle events update the current compaction row.
+/// Completion updates the earliest outstanding loading row, even across other events.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Compaction {

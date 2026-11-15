@@ -81,11 +81,21 @@ impl Queue {
         self.0.entries.is_empty()
     }
 
-    /// Append a prompt; the new entry's id.
+    #[cfg(test)]
     pub(crate) fn push(
         &mut self,
         content: Vec<ContentBlock>,
         by: Creator,
+    ) -> Result<QueueEntryId, QueueError> {
+        self.push_identified(content, by, None)
+    }
+
+    /// Append a prompt; the new entry's id.
+    pub(crate) fn push_identified(
+        &mut self,
+        content: Vec<ContentBlock>,
+        by: Creator,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<QueueEntryId, QueueError> {
         let entry = QueuedPrompt {
             id: QueueEntryId::random(),
@@ -94,7 +104,7 @@ impl Queue {
             revision: 0,
             by,
 
-            client_message_id: None,
+            client_message_id,
         };
         let id = entry.id;
         self.insert(self.0.entries.len(), entry)?;
@@ -102,12 +112,13 @@ impl Queue {
     }
 
     /// Put a prompt first; the new entry's id.
-    pub(crate) fn push_first(
+    pub(crate) fn push_first_identified(
         &mut self,
         content: Vec<ContentBlock>,
         by: Creator,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<QueueEntryId, QueueError> {
-        let id = self.push(content, by)?;
+        let id = self.push_identified(content, by, client_message_id)?;
         let _first = self.relocate(id, self.0.entries.first().map(|first| first.id))?;
         Ok(id)
     }

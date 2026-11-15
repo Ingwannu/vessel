@@ -4,11 +4,14 @@ use vessel_proto::conversation::{ChoiceOption, FieldKind, QuestionField};
 use vessel_proto::{Question, QuestionId, QuestionOutcome};
 fn form() -> Question {
     Question {
+        lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
+        delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
         id: QuestionId::random(),
         message: "Choose a route.".to_owned(),
         tool_call: None,
         fields: (0..32)
             .map(|field| QuestionField {
+                presentation: None,
                 name: format!("field-{field}").parse().unwrap(),
                 title: Some(format!("Field {field}")),
                 description: None,

@@ -49,6 +49,7 @@ use crate::structured::StructuredActor;
 #[derive(Debug)]
 pub(crate) struct Deliver {
     pub(crate) content: Vec<ContentBlock>,
+    pub(crate) client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     pub(crate) delivery: Delivery,
     pub(crate) by: Creator,
     /// Told which turn it started or joined (protocol 11, `tickets`).
@@ -201,13 +202,14 @@ impl StructuredActor {
     /// Carry out a `session.prompt` and answer it.
     pub(crate) async fn deliver(&mut self, order: Deliver) {
         let Deliver {
+            client_message_id,
             content,
             delivery,
             by,
             turn,
             reply,
         } = order;
-        let result = self.send_as(content, delivery, by).await;
+        let result = self.send_as(content, delivery, by, client_message_id).await;
         if let (Ok(delivered), Some(ticket)) = (&result, turn) {
             let started = self.desk.started();
             self.desk.tickets.give(ticket, *delivered, started);
@@ -244,15 +246,22 @@ impl StructuredActor {
         content: Vec<ContentBlock>,
         delivery: Delivery,
         by: Creator,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<Delivered, SessionError> {
         match delivery {
-            Delivery::Start => self.start(content).await.map(|()| Delivered::Started),
+            Delivery::Start => self
+                .start(content, client_message_id)
+                .await
+                .map(|()| Delivered::Started),
             // A prompt the node delivers on its own (pull request feedback,
             // a schedule, a starter's notice) does not try again a wake that
             // failed (protocol 12): it waits, the queue held, for a person.
             Delivery::Queue if self.wake_failed() => {
                 self.check_attachments(&content)?;
-                let entry = self.desk.queue.push(content, by)?;
+                let entry = self
+                    .desk
+                    .queue
+                    .push_identified(content, by, client_message_id)?;
                 let _held = self.desk.queue.hold(QueueHold::Failed);
                 self.publish_queue().await;
                 Ok(Delivered::Queued { entry })
@@ -260,36 +269,52 @@ impl StructuredActor {
             Delivery::Queue => {
                 let idle = !self.desk.running() && self.desk.queue.is_empty();
                 if idle && !self.desk.queue.is_held() {
-                    return self.start(content).await.map(|()| Delivered::Started);
+                    return self
+                        .start(content, client_message_id)
+                        .await
+                        .map(|()| Delivered::Started);
                 }
                 self.check_attachments(&content)?;
-                let entry = self.desk.queue.push(content, by)?;
+                let entry = self
+                    .desk
+                    .queue
+                    .push_identified(content, by, client_message_id)?;
                 self.publish_queue().await;
                 Ok(Delivered::Queued { entry })
             }
-            Delivery::Steer => self.steer(content, by).await,
-            Delivery::Interrupt => self.interrupt(content).await,
+            Delivery::Steer => self.steer(content, by, client_message_id).await,
+            Delivery::Interrupt => self.interrupt(content, client_message_id).await,
         }
     }
 
     /// Start a turn with `content`, its attachments loaded first.
-    async fn start(&mut self, content: Vec<ContentBlock>) -> Result<(), SessionError> {
+    async fn start(
+        &mut self,
+        content: Vec<ContentBlock>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+    ) -> Result<(), SessionError> {
         let attachments = self.load_attachments(&content).await?;
-        self.start_loaded(content, attachments).await
+        self.start_loaded(content, attachments, client_message_id)
+            .await
     }
 
     async fn start_loaded(
         &mut self,
         content: Vec<ContentBlock>,
         attachments: Attachments,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<(), SessionError> {
         // Every prompt reaches the agent here: a parked one is started
         // again first (protocol 12).
         self.wake().await?;
         let input = self.input.clone();
-        self.pump(async move { input.prompt_with(content, attachments).await })
-            .await
-            .map_err(|_stopped| SessionError::Ended)??;
+        self.pump(async move {
+            input
+                .prompt_identified(content, attachments, client_message_id)
+                .await
+        })
+        .await
+        .map_err(|_stopped| SessionError::Ended)??;
         self.desk.started_one();
         Ok(())
     }
@@ -298,11 +323,15 @@ impl StructuredActor {
         &mut self,
         content: Vec<ContentBlock>,
         by: Creator,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<Delivered, SessionError> {
         // With no turn running a steer starts one, whatever the agent can
         // do (also while it starts and has not said yet).
         if !self.desk.running() {
-            return self.start(content).await.map(|()| Delivered::Started);
+            return self
+                .start(content, client_message_id)
+                .await
+                .map(|()| Delivered::Started);
         }
         if !self.desk.abilities.steer {
             return Err(InputError::CannotSteer.into());
@@ -310,30 +339,45 @@ impl StructuredActor {
         let attachments = self.load_attachments(&content).await?;
         let input = self.input.clone();
         let sent = content.clone();
+        let steering_identity = client_message_id.clone();
         let outcome = self
-            .pump(async move { input.steer_with(sent, attachments).await })
+            .pump(async move {
+                input
+                    .steer_identified(sent, attachments, steering_identity)
+                    .await
+            })
             .await
             .map_err(|_stopped| SessionError::Ended)??;
         match outcome {
             SteerOutcome::Injected => Ok(Delivered::Steered),
             // The turn ended first: the message starts the next one, or,
             // if one started meanwhile, goes first in the queue.
-            SteerOutcome::PromptRequired => match self.start(content.clone()).await {
-                Ok(()) => Ok(Delivered::Started),
-                Err(SessionError::Input(InputError::TurnInProgress)) => {
-                    let entry = self.desk.queue.push_first(content, by)?;
-                    self.publish_queue().await;
-                    Ok(Delivered::Queued { entry })
+            SteerOutcome::PromptRequired => {
+                match self.start(content.clone(), client_message_id.clone()).await {
+                    Ok(()) => Ok(Delivered::Started),
+                    Err(SessionError::Input(InputError::TurnInProgress)) => {
+                        let entry = self.desk.queue.push_first_identified(
+                            content,
+                            by,
+                            client_message_id,
+                        )?;
+                        self.publish_queue().await;
+                        Ok(Delivered::Queued { entry })
+                    }
+                    Err(error) => Err(error),
                 }
-                Err(error) => Err(error),
-            },
+            }
         }
     }
 
     /// Cancel the running turn, wait (bounded) for its end, then start
     /// `content`. The queue is not held by this cancel. Its attachments are
     /// loaded first, so a prompt refused for them cancels nothing.
-    async fn interrupt(&mut self, content: Vec<ContentBlock>) -> Result<Delivered, SessionError> {
+    async fn interrupt(
+        &mut self,
+        content: Vec<ContentBlock>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+    ) -> Result<Delivered, SessionError> {
         let attachments = self.load_attachments(&content).await?;
         if self.desk.running() {
             self.desk.interrupting = true;
@@ -343,7 +387,7 @@ impl StructuredActor {
                 return Err(DeliveryError::TurnDidNotEnd.into());
             }
         }
-        self.start_loaded(content, attachments)
+        self.start_loaded(content, attachments, client_message_id)
             .await
             .map(|()| Delivered::Started)
     }

@@ -29,8 +29,8 @@ pub use marks::{
     TidiedWorktree,
 };
 pub use question::{
-    AnswerValue, ChoiceOption, FieldKind, InvalidAnswer, Question, QuestionAnswer, QuestionField,
-    QuestionOutcome, TextFormat,
+    AnswerValue, ChoiceOption, FieldKind, InvalidAnswer, InvalidQuestionPresentation, Question,
+    QuestionAnswer, QuestionField, QuestionOutcome, QuestionPresentationError, TextFormat,
 };
 pub use queue::{
     Delivered, Delivery, PromptQueue, QueueChange, QueueChanged, QueueHold, QueuedPrompt,

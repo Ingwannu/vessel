@@ -108,3 +108,10 @@ pub(crate) async fn history(
 ) -> Result<HistoryPage, HistoryError> {
     Err(HistoryError::CannotList)
 }
+
+/// Pure native input validation, shared with identified-prompt preflight.
+pub(crate) fn validate_prompt(
+    content: &[vessel_proto::ContentBlock],
+) -> Result<(), crate::InputError> {
+    mapper::user_input(content).map(|_input| ())
+}

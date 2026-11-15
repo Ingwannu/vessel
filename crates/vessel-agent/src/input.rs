@@ -1,5 +1,7 @@
 //! [`AgentInput`]: the cloneable command side of an agent session.
 
+mod identified;
+
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::{
     ContentBlock, OptionChoice, PermissionId, PermissionOutcome, QuestionAnswer, QuestionId,
@@ -32,6 +34,7 @@ pub enum SteerOutcome {
 #[derive(Debug)]
 pub(crate) enum Command {
     Prompt {
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         attachments: Attachments,
         context: Option<crate::PromptContext>,
@@ -41,6 +44,7 @@ pub(crate) enum Command {
         reply: Reply,
     },
     Steer {
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         content: Vec<ContentBlock>,
         attachments: Attachments,
         reply: SteerReply,
@@ -110,6 +114,7 @@ impl AgentInput {
         attachments: Attachments,
     ) -> Result<(), InputError> {
         self.call(|reply| Command::Prompt {
+            client_message_id: None,
             content,
             attachments,
             context: None,
@@ -135,6 +140,7 @@ impl AgentInput {
             text: question.as_str().to_owned(),
         }];
         self.call(|reply| Command::Prompt {
+            client_message_id: None,
             content,
             attachments: Attachments::new(),
             context: Some(prefix),
@@ -178,6 +184,7 @@ impl AgentInput {
     ) -> Result<SteerOutcome, InputError> {
         let (reply, result) = oneshot::channel();
         let steer = Command::Steer {
+            client_message_id: None,
             content,
             attachments,
             reply,

@@ -78,6 +78,7 @@ impl Driver {
         cx: &ConnectionTo<Agent>,
         content: Vec<ContentBlock>,
         mut attachments: Attachments,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         reply: SteerReply,
     ) {
         if !self.abilities.steer {
@@ -131,6 +132,7 @@ impl Driver {
                 &inbound,
                 Inbound::Steered {
                     content,
+                    client_message_id,
                     result,
                     reply,
                 },
@@ -150,6 +152,7 @@ impl Driver {
         &mut self,
         content: Vec<ContentBlock>,
         result: Result<serde_json::Value, Error>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         reply: SteerReply,
     ) {
         let answer = match result.map(serde_json::from_value::<Answer>) {
@@ -158,7 +161,7 @@ impl Driver {
             })) => {
                 self.emit(AgentEvent::Steered {
                     content,
-                    client_message_id: None,
+                    client_message_id,
                 })
                 .await;
                 Ok(SteerOutcome::Injected)

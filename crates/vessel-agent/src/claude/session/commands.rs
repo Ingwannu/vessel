@@ -16,9 +16,10 @@ impl Session {
             Command::Prompt {
                 content,
                 context: side,
+                client_message_id,
                 reply,
                 ..
-            } => self.prompt(content, side, reply).await,
+            } => self.prompt(content, side, client_message_id, reply).await,
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
@@ -56,6 +57,7 @@ impl Session {
         &mut self,
         content: Vec<ContentBlock>,
         side: Option<crate::PromptContext>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
         reply: Reply,
     ) {
         if self.turn != Turn::Idle {
@@ -111,7 +113,7 @@ impl Session {
         };
         self.emit(AgentEvent::TurnStarted {
             content,
-            client_message_id: None,
+            client_message_id,
         })
         .await;
         answer(reply, Ok(()));
@@ -181,7 +183,7 @@ impl Session {
 /// # Errors
 /// [`InputError::AttachmentNotTaken`] for an attachment (this driver takes
 /// none yet), [`InputError::InvalidContent`] for an opaque block.
-fn prompt_blocks(content: &[ContentBlock]) -> Result<Vec<OutgoingBlock>, InputError> {
+pub(super) fn prompt_blocks(content: &[ContentBlock]) -> Result<Vec<OutgoingBlock>, InputError> {
     content
         .iter()
         .map(|block| match block {

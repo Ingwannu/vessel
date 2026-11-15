@@ -52,6 +52,7 @@ impl SessionHandle {
                 let _started = self
                     .order(route, |reply| {
                         Control::Deliver(Deliver {
+                            client_message_id: None,
                             content,
                             delivery: Delivery::Start,
                             by: Creator::Owner,
@@ -105,12 +106,44 @@ impl SessionHandle {
         delivery: Delivery,
         by: Creator,
     ) -> Result<Delivered, SessionError> {
+        self.prompt_identified(content, delivery, by, None).await
+    }
+
+    /// Pure provider-owned content validation before durable replay admission.
+    ///
+    /// # Errors
+    /// Ended/terminal sessions or provider-specific unsupported input.
+    pub fn validate_prompt(&self, content: &[ContentBlock]) -> Result<(), SessionError> {
+        let _route = self.structured("an identified prompt")?;
+        if content.is_empty() {
+            return Err(DeliveryError::Empty.into());
+        }
+        let abilities = self.conversation()?.abilities.unwrap_or_default();
+        Ok(vessel_agent::validate_prompt(
+            self.driver(),
+            content,
+            abilities,
+        )?)
+    }
+
+    /// Deliver a keyed prompt using the existing serialized actor/queue owner.
+    ///
+    /// # Errors
+    /// The same validation, queue and provider errors as `prompt`.
+    pub async fn prompt_identified(
+        &self,
+        content: Vec<ContentBlock>,
+        delivery: Delivery,
+        by: Creator,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+    ) -> Result<Delivered, SessionError> {
         if content.is_empty() {
             return Err(DeliveryError::Empty.into());
         }
         let route = self.structured("a queue")?;
         self.order(route, |reply| {
             Control::Deliver(Deliver {
+                client_message_id,
                 content,
                 delivery,
                 by,
@@ -144,6 +177,7 @@ impl SessionHandle {
         let delivered = self
             .order(route, |reply| {
                 Control::Deliver(Deliver {
+                    client_message_id: None,
                     content,
                     delivery,
                     by,

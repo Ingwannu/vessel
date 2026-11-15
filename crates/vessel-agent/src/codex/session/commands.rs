@@ -17,12 +17,22 @@ impl Session {
                 reply,
                 ..
             } => answer(reply, Err(InputError::ContextNotTaken)),
-            Command::Prompt { content, reply, .. } => self.prompt(content, reply).await,
+            Command::Prompt {
+                content,
+                client_message_id,
+                reply,
+                ..
+            } => self.prompt(content, client_message_id, reply).await,
             Command::CancelTurn { reply } => {
                 self.cancel().await;
                 answer(reply, Ok(()));
             }
-            Command::Steer { content, reply, .. } => self.steer(content, reply).await,
+            Command::Steer {
+                content,
+                client_message_id,
+                reply,
+                ..
+            } => self.steer(content, client_message_id, reply).await,
             Command::Answer { id, outcome, reply } => {
                 let result = match self.approvals.answer(id, &outcome) {
                     Ok(settled) => {
@@ -74,7 +84,12 @@ impl Session {
         }
     }
 
-    pub(super) async fn prompt(&mut self, content: Vec<ContentBlock>, reply: Reply) {
+    pub(super) async fn prompt(
+        &mut self,
+        content: Vec<ContentBlock>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        reply: Reply,
+    ) {
         if self.turn != TurnState::Idle {
             answer(reply, Err(InputError::TurnInProgress));
             return;
@@ -111,7 +126,7 @@ impl Session {
         self.before = self.total;
         self.emit(AgentEvent::TurnStarted {
             content,
-            client_message_id: None,
+            client_message_id,
         })
         .await;
         answer(reply, Ok(()));
@@ -145,7 +160,12 @@ impl Session {
             .await;
     }
 
-    pub(super) async fn steer(&mut self, content: Vec<ContentBlock>, reply: SteerReply) {
+    pub(super) async fn steer(
+        &mut self,
+        content: Vec<ContentBlock>,
+        client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
+        reply: SteerReply,
+    ) {
         let (thread, turn) = match (&self.thread, &self.turn) {
             (_, TurnState::Idle) => {
                 let _gone = reply.send(Ok(SteerOutcome::PromptRequired));
@@ -177,7 +197,14 @@ impl Session {
         };
         let id = self.next_id();
         if self.out.request(id, "turn/steer", &params).await {
-            let _none = self.pending.insert(id, Pending::Steer { content, reply });
+            let _none = self.pending.insert(
+                id,
+                Pending::Steer {
+                    content,
+                    client_message_id,
+                    reply,
+                },
+            );
         } else {
             let _gone = reply.send(Err(InputError::Closed));
         }
