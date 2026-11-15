@@ -1008,3 +1008,12 @@ require their own combined run; a green earlier dependency is not this result.
   existing guarded paths. Pure model and real-engine silent-replacement barriers
   pin preservation, no automatic overwrite and late-frame behavior. They do not
   prove every OS input-method event ordering; execution on this union is owed.
+
+
+Strict26 on exact84bfede5 stopped before tests on a borrowed recovery callback
+and a render argument mismatch, plus a presentation fixture reaching W12's now
+private maximized field. The callback now captures its owned original FileKey;
+the fixture invokes the canonical ToggleFocus action instead. Unused imports
+and one redundant token qualification are removed. No assertion or production
+layout visibility policy changed. The queued same-source tests8 was verified
+queued and cancelled terminal143 before one corrected-source replacement.

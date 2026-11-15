@@ -76,7 +76,7 @@ pub(super) fn body(
         )
         .children(editing.find.clone())
         .children(conflict_bar(shell, editing, key, tokens, cx))
-        .children(write_recovery(shell, editing, key.clone(), tokens, cx))
+        .children(write_recovery(shell, editing, key, tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()
 }
@@ -92,6 +92,7 @@ fn write_recovery(
     use vessel_app_view::workspace::editor::WriteState;
     let labels = shell.words().labels();
     let state = editing.model.write_state()?;
+    let key = key.clone();
     let content = match state {
         WriteState::Pending => return None,
         WriteState::Uncertain => div().child(labels.editor_write_unconfirmed),

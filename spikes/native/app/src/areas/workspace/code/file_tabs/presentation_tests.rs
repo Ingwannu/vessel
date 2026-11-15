@@ -3,7 +3,7 @@ use super::*;
 use crate::areas::layout::registry::PanelFocus;
 use crate::areas::workspace::code::{editing, files, io_tests};
 use gpui::{AppContext as _, TestAppContext};
-use vessel_app_kit::ui::{Entity, IntoElement, ParentElement as _, Render, Styled as _, div};
+use vessel_app_kit::ui::{Entity, IntoElement, Render, div};
 use vessel_app_view::layout::{PaneId, Placement};
 
 struct Probe {
@@ -54,7 +54,7 @@ impl Probe {
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.shell.update(cx, |shell, cx| {
-            let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+            let tokens = Tokens::of(vessel_app_kit::Scheme::Dark);
             let file = &shell
                 .areas
                 .workspace
@@ -211,7 +211,7 @@ fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestApp
                     .find_state(cx),
                 FindState::Closed
             );
-            let pane = shell
+            shell
                 .update_layout(
                     &probe.workspace,
                     |layout| {
@@ -227,7 +227,11 @@ fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestApp
                     cx,
                 )
                 .unwrap();
-            shell.areas.layout.maximized = Some((probe.workspace.clone(), pane));
+            assert!(shell.run_layout_action(
+                vessel_app_view::layout::LayoutAction::ToggleFocus,
+                window,
+                cx
+            ));
             assert!(
                 !shell.file_find_at_focus(window, cx),
                 "hidden old focus cannot claim central Find"
