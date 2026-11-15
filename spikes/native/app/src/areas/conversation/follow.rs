@@ -4,6 +4,7 @@
 //! renames and forgets.
 
 use vessel_app_kit::ui::Context;
+use vessel_app_link::sessions::{Access, Read};
 use vessel_app_link::{Act, ActAnswer, ActKind, Acted, Command};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::ConversationDisplay;
@@ -29,7 +30,6 @@ impl Shell {
         self.areas.conversation.open(machine, session);
         // Opened again: a fork's origin that could not be read is read.
         self.origin_read();
-        use vessel_app_link::sessions::{Access, Read};
         for (act, read) in [
             (Act::Info, Read::Info),
             (Act::Conversation, Read::Conversation),
