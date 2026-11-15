@@ -462,6 +462,33 @@ fn root_defaults_keep_canonical_settings_and_search_only_legacy_destinations(
 }
 
 #[gpui::test]
+fn nested_backspace_uses_reference_blank_query_semantics(cx: &mut TestAppContext) {
+    let (view, cx) = harness(cx);
+    for (query, should_leave) in [("\u{feff}", true), ("\u{85}", false)] {
+        update(&view, cx, |shell, window, cx| {
+            shell.palette_page(
+                vessel_app_view::palette::pages::ChoiceLocation::group(
+                    "native-Theme".parse().unwrap(),
+                ),
+                window,
+                cx,
+            );
+        });
+        cx.run_until_parked();
+        cx.simulate_input(query);
+        cx.run_until_parked();
+        update(&view, cx, |shell, _, _| {
+            assert_eq!(shell.areas.palette.query, query);
+        });
+        cx.simulate_keystrokes("backspace");
+        cx.run_until_parked();
+        update(&view, cx, |shell, _, _| {
+            assert_eq!(shell.areas.palette.page.is_none(), should_leave);
+        });
+    }
+}
+
+#[gpui::test]
 fn center_navigation_precedes_global_rebinding_and_escape_closes_nested_page(
     cx: &mut TestAppContext,
 ) {

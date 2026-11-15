@@ -59,7 +59,7 @@ pub(super) fn key(
         return;
     }
     if event.keystroke.key == "backspace"
-        && shell.areas.palette.query.trim().is_empty()
+        && vessel_app_view::matcher::Query::new(&shell.areas.palette.query).is_empty()
         && shell.areas.palette.page.is_some()
     {
         shell.palette_back(window, cx);
@@ -79,7 +79,7 @@ impl Shell {
                 event.keystroke.key.as_str(),
                 "up" | "down" | "enter" | "escape"
             ) || (event.keystroke.key == "backspace"
-                && self.areas.palette.query.trim().is_empty()
+                && vessel_app_view::matcher::Query::new(&self.areas.palette.query).is_empty()
                 && self.areas.palette.page.is_some()))
     }
 }

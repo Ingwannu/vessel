@@ -620,3 +620,13 @@ no product behavior or lint setting changed. The already queued same-source
 App/Kit test job123242-db95665d was verified by its ticket and local submit PID,
 then canceled queued-only to avoid spending a slot on the known compile failure.
 Replacement waits for that exact job's terminal state; all original logs remain.
+
+Reference workspace-file-search.ts116 uses JavaScript trim to choose immediate
+listing vs100ms debounce, and command-center.tsx364 uses it for empty-scope Back.
+Files UI parsing and nested-page Backspace now reuse matcher::Query::is_empty
+instead of Rust trim or byte emptiness. This shares the existing ECMAScript
+whitespace predicate without changing matcher visibility/body/scoring or adding
+a helper. BOM is blank; NEL remains nonblank and the stricter existing FindQuery
+grammar refuses that control character instead of inventing All. Pure Files and
+actual GPUI nested-page fixtures cover both. Parsing stays UI-owned when W13's
+canonical FileQuery values leaf replaces the temporary local enum.

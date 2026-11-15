@@ -23,7 +23,7 @@ impl FileQuery {
     /// # Errors
     /// Nonempty text must satisfy the file owner's bounded query grammar.
     pub fn from_text(text: &str) -> Result<Self, InvalidText> {
-        if text.is_empty() {
+        if crate::matcher::Query::new(text).is_empty() {
             Ok(Self::All)
         } else {
             text.parse().map(Self::Matching)
@@ -186,6 +186,16 @@ mod tests {
     type Search = FileSearch<&'static str, u8, &'static str>;
     fn query(text: &str) -> FileQuery {
         FileQuery::from_text(text).unwrap()
+    }
+    #[test]
+    fn blank_listing_uses_reference_whitespace_without_weakening_wire_queries() {
+        for text in ["", " \t", "\u{feff}"] {
+            assert_eq!(query(text), FileQuery::All);
+        }
+        // ECMAScript does not trim NEL; the existing one-line protocol grammar
+        // refuses it rather than silently turning that query into a listing.
+        assert!(!crate::matcher::Query::new("\u{85}").is_empty());
+        assert!(FileQuery::from_text("\u{85}").is_err());
     }
     #[test]
     fn input_invalidates_before_debounce_and_keeps_same_scope_rows() {
