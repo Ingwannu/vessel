@@ -2,6 +2,7 @@
 
 mod agent;
 mod duration;
+mod identifier;
 pub(crate) mod output;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};

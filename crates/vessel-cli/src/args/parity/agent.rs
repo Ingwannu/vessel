@@ -11,6 +11,7 @@ pub(crate) enum AgentCommand {
     Ls(AgentList),
     Run(Box<AgentRun>),
     Import {
+        #[arg(value_parser = super::identifier::conversation)]
         id: vessel_proto::HarnessSessionId,
         #[arg(long)]
         provider: HarnessRef,
@@ -31,6 +32,7 @@ pub(crate) enum AgentCommand {
     Wait(Wait),
     Mode {
         id: SessionSelector,
+        #[arg(value_parser = super::identifier::option)]
         mode: Option<OptionValueId>,
         #[arg(long, conflicts_with = "mode")]
         list: bool,
@@ -52,7 +54,7 @@ pub(crate) enum AgentCommand {
         id: SessionSelector,
         #[arg(long)]
         name: Option<SessionTitle>,
-        #[arg(long)]
+        #[arg(long, value_parser = super::identifier::option)]
         thinking: Option<OptionValueId>,
     },
 }
@@ -65,7 +67,7 @@ pub(crate) struct AgentList {
     pub(crate) all: bool,
     #[arg(long)]
     pub(crate) background: bool,
-    #[arg(long)]
+    #[arg(long, value_parser = super::identifier::option)]
     pub(crate) thinking: Option<OptionValueId>,
     #[arg(long)]
     pub(crate) label: Vec<String>,
@@ -125,15 +127,15 @@ pub(crate) struct AgentRun {
     pub(crate) prompt: String,
     #[arg(long)]
     pub(crate) provider: HarnessRef,
-    #[arg(long)]
+    #[arg(long, value_parser = super::identifier::model)]
     pub(crate) model: Option<vessel_proto::ModelId>,
     #[arg(long)]
     pub(crate) cwd: Option<PathBuf>,
     #[arg(long, alias = "name")]
     pub(crate) title: Option<SessionTitle>,
-    #[arg(long)]
+    #[arg(long, value_parser = super::identifier::option)]
     pub(crate) mode: Option<OptionValueId>,
-    #[arg(long)]
+    #[arg(long, value_parser = super::identifier::option)]
     pub(crate) thinking: Option<OptionValueId>,
     #[arg(long)]
     pub(crate) label: Vec<String>,
