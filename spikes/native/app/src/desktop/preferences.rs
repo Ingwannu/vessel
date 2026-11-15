@@ -11,7 +11,11 @@ pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_,
         return;
     };
     let (client, mut updates) = desktop.preferences.client();
+    let previous = shell.prefs.layouts.clone();
+    let initial = updates.borrow_and_update().clone();
     shell.areas.desktop.preferences = Some(client);
+    // Creation may have captured an older snapshot than this new subscription.
+    apply_with_layouts(shell, &initial, &previous, window, cx);
     cx.spawn_in(window, async move |this, cx| {
         while updates.changed().await.is_ok() {
             let snapshot = updates.borrow_and_update().clone();
@@ -81,6 +85,25 @@ pub(crate) fn rollback(shell: &mut Shell, window: &mut Window, cx: &mut Context<
 }
 
 fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let Some(previous) = shell
+        .areas
+        .desktop
+        .preferences
+        .as_ref()
+        .map(vessel_app_link::desktop::preferences::Client::canonical_preferences)
+    else {
+        return;
+    };
+    apply_with_layouts(shell, snapshot, &previous.layouts, window, cx);
+}
+
+fn apply_with_layouts(
+    shell: &mut Shell,
+    snapshot: &Snapshot,
+    previous: &[vessel_app_view::layout::RememberedLayout],
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     let Some(client) = &shell.areas.desktop.preferences else {
         return;
     };
@@ -93,6 +116,10 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
             prefs
         }
     };
+    let canonical = snapshot.preferences();
+    if previous != canonical.layouts.as_slice() {
+        shell.layout_preferences_applied(previous, &canonical.layouts, cx);
+    }
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
     }
@@ -129,3 +156,6 @@ fn apply_preferences(
     }
     window.refresh();
 }
+
+#[cfg(test)]
+mod startup_tests;

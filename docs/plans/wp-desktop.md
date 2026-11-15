@@ -245,7 +245,12 @@ borrow runtime proof from root54. The root must be rebuilt on an announced head
 containing portable b37 checked-wait, not land the earlier 622 ancestry.
 
 The desktop-shell source552 receipt packet, later b0cef test-only portable
-waiter and source15ffa serial geometry checkpoint fix are provisionally consumed.
+waiter, source15ffa serial geometry checkpoint fix and the bounded ec90 initial
+subscription/layout rebase correction are provisionally consumed. Subscription
+seeds immediately through the same apply path; its first layout baseline is the
+actual window snapshot, later ones are the Client's prior canonical snapshot.
+This consumes the already-landed layout owner rebase hook, preserving dirty and
+owner-held trees rather than keeping another cache or copying layout policy.
 The writer fix retains newer accepted geometry when an older captured flush is
 enqueued late, including after debounce; explicit Final still forces its supplied
 snapshot and closes before acknowledgement. The immediate App currentness fence
