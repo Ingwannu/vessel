@@ -543,3 +543,11 @@ revocation/freshness on every payload poll. Tests model canonical authority
 and accepted-peer/scheme evidence; real mode refuses without dialing.
 Budgets live beside the API in preview/budget.rs. The absent canonical
 producers and final runtime/package gate remain explicit prerequisites.
+
+### Safe staged worker diagnostics
+
+Preview inspection and helper resolution now share a typed worker failure
+that privately retains Tokio's original cause but excludes panic payloads
+from every public formatter and source. Raw task failures in other areas
+are outside this change. This changes no helper input, process ownership,
+approval, cancellation or network admission policy; both callers stay A10.

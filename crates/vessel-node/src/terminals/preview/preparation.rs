@@ -51,7 +51,9 @@ pub(super) async fn connect(
         .tasks
         .spawn_blocking(move || worker.inspect());
     // Dropping this JoinHandle does not drop the closure's actual owners.
-    let prepared = task.await.map_err(PreviewError::Worker)??;
+    let prepared = task
+        .await
+        .map_err(|source| PreviewError::Worker(source.into()))??;
     prepared.attempt.lease.validate()?;
     let socket = TcpStream::from_std(prepared.socket).map_err(PreviewError::Socket)?;
     Ok(PreviewConnection::new(socket, prepared.attempt))

@@ -96,3 +96,21 @@ No lint suppression, placeholder wait, assertion or budget was changed.
 
 The loopback transport regression also checks read_exact's returned byte
 count before comparing payload bytes; no meaningful I/O result is ignored.
+
+### Returned diagnostic edge
+
+The source review found raw Tokio panic text reachable through Worker
+Debug/source even behind a fixed outer Display. Existing task-error types
+also retain this raw public link; the secret-name boundary handles another
+validator and is not a worker error API. A new narrow shared worker_failure
+module therefore retains JoinError privately, reports only its typed class,
+and intentionally stops the public source chain. Both owned staged callers
+(Preview inspection and helper path resolution) reuse that one boundary.
+
+Three new actual Tokio-task tests check static and owned panic canaries,
+cancellation class/concrete-cause retention, complete enclosing/error/IO
+formatting and sources. These are authored, not executed. The process-wide
+panic hook is neither replaced nor claimed sanitized. Existing physical
+worker/stream cleanup tests and socket/permit/drain field order are intact.
+The returned finding must pass re-review and exact changed-source narrow
+checks before any source-ready statement; product/engine grants stay off.

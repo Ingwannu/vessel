@@ -36,6 +36,9 @@ pub(crate) mod preview;
 mod registry;
 mod scripts;
 mod subscribe;
+// Staged with the helper/Preview callers until their qualified runtime wiring.
+#[cfg(test)]
+mod worker_failure;
 
 use std::ffi::OsString;
 use std::sync::Arc;

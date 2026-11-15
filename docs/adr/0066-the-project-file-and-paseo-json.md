@@ -1110,3 +1110,26 @@ No helper is launched and no registry API is adopted by this contract change.
   operating service or qualified browser. Removing staging requires the
   real canonical source/inspection/scheme backend and its package gate;
   neither pending protocol assignment nor a passing fixture supplies it.
+
+### Worker failure diagnostic boundary (staged)
+
+[Decision Log]
+
+- Purpose: inspection and helper-resolution diagnostics must not echo panic
+  input through Debug, Display, nested errors or an I/O wrapper.
+- Existing constraint: Tokio JoinError formats string panic payloads. A
+  fixed outer message and a derived Debug/source chain are not redaction.
+  Existing task errors expose that cause directly. The secret-name wrapper
+  is specific to its validator and cannot own a Tokio worker cause.
+- Choice: one terminals::worker_failure boundary shared by Preview and
+  helper resolution retains the concrete JoinError in a private field.
+  Its formatters expose cancellation/panic class only; Error::source ends
+  at this safe typed boundary instead of exposing the raw panic payload.
+- Why: flattening to a string or dropping the cause loses evidence, while
+  returning the raw source recreates the leak. There is no public raw-cause
+  accessor, serialization or automatic Debug of the retained field.
+- Consequences: literal and owned synthetic panic canaries, cancellation,
+  enclosing Preview/helper errors, full public sources and I/O wrappers
+  must all preserve this diagnostic boundary. Worker/socket/permit/drain
+  ownership is unchanged. This does not sanitize the process-wide panic
+  hook or qualify any real service/Preview backend. All callers remain A10.

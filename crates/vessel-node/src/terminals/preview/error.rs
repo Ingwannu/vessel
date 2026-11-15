@@ -4,6 +4,7 @@ use tokio::sync::TryAcquireError;
 use vessel_proto::workspace::InvalidServicePort;
 
 use super::PreviewBudget;
+use crate::terminals::worker_failure::WorkerFailure;
 
 /// Missing dependencies never turn metadata into a private-origin permission.
 #[derive(Debug, Clone, Copy)]
@@ -59,7 +60,7 @@ pub(crate) enum PreviewError {
     #[error("service Preview connection failed")]
     Socket(#[source] std::io::Error),
     #[error("service Preview inspection did not finish")]
-    Worker(#[source] tokio::task::JoinError),
+    Worker(#[source] WorkerFailure),
     #[error("service Preview operation exceeded its budget")]
     Deadline(#[source] tokio::time::error::Elapsed),
 }

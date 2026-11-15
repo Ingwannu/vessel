@@ -17,6 +17,7 @@ use vessel_proto::scripts::ScriptName;
 use vessel_proto::workspace::{InvalidServicePort, PortScript, ServicePort};
 use vessel_workspace::paths::PathError;
 
+use crate::terminals::worker_failure::WorkerFailure;
 use crate::workspace::ScriptRoot;
 
 /// Bound the complete invocation, including checked path resolution.
@@ -46,7 +47,7 @@ pub(super) enum PortScriptError {
     #[error("the port-script path cannot be resolved")]
     Resolve(#[source] io::Error),
     #[error("resolving the port-script path stopped")]
-    Join(#[source] tokio::task::JoinError),
+    Join(#[source] WorkerFailure),
     #[error("the port script could not be started")]
     Spawn(#[source] vessel_proc::SpawnError),
     #[error("waiting for the port script failed")]
@@ -119,7 +120,7 @@ async fn prepare(
     let (program, folder) =
         tokio::task::spawn_blocking(move || program::resolve(&folder, &program))
             .await
-            .map_err(PortScriptError::Join)??;
+            .map_err(|source| PortScriptError::Join(source.into()))??;
     let branch = root.branch.as_ref().map_or("", |branch| branch.as_str());
     let values = [
         ("VESSEL_SCRIPT_NAME", OsString::from(name.as_str())),
