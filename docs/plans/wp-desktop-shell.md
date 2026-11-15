@@ -161,12 +161,17 @@ reused. Pure tests never touch the real registry. Disabled transactions have a
 specific translated refusal. The release installer owns corresponding cleanup.
 
 The safe GPUI Windows WM_SETTINGCHANGE producer is now on base 6. Only the
-Windows binary entry names its platform crate; a typed host callback runs after
-successful PATH mutation on background work, never in the UI callback. Its
+Windows binary entry names its platform crate. Installation and rc setup return
+Changed/Unchanged, so only a real environment write schedules notification.
+The completed Snapshot returns immediately; a detached background task runs the
+host callback without holding the panel or onboarding continuation. Its
 named5s timeout is per nonresponding receiver. Failure preserves the completed
 installation and Configured fresh-terminal/login guidance rather than pretending
 the registry write rolled back. No native unsafe or script bypass is added.
-Real Windows execution remains unverified; Wine packaging checks are separate.
+The release owner's739db8f2 follow-up clears stale last-error and represents a
+zero-return/success-code result as Unconfirmed, mapped honestly to Other at the
+binary bridge. Real Windows execution remains unverified; Wine packaging checks
+are separate.
 
 ## Canonical preferences and feature caches
 

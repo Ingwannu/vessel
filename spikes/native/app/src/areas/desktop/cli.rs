@@ -10,7 +10,7 @@ use vessel_app_link::desktop::{
     DesktopError,
     bundle::{BundledTool, bundled_tool_path},
     cli::{
-        Installation,
+        Change, Installation,
         path_setup::{PathSetup, Platform},
     },
 };
@@ -113,42 +113,63 @@ pub(crate) fn set_installed(
     cx: &gpui::App,
 ) -> gpui::Task<Result<Snapshot, DesktopError>> {
     let broadcast = crate::desktop::environment_broadcast(cx);
+    let executor = cx.background_executor().clone();
     cx.background_executor().spawn(async move {
         let (installation, path) = prepare()?;
-        perform(&installation, &path, operation, broadcast)
+        let applied = perform(&installation, &path, operation)?;
+        Ok(finish(applied, broadcast, &executor))
     })
+}
+
+struct Applied {
+    snapshot: Snapshot,
+    environment: Change,
 }
 
 fn perform(
     installation: &Installation,
     path: &PathSetup,
     operation: Operation,
-    broadcast: Option<crate::desktop::EnvironmentBroadcast>,
-) -> Result<Snapshot, DesktopError> {
-    let status = match operation {
-        Operation::Install => {
-            let _installed = installation.install()?;
-            match path.ensure() {
-                Ok(status) => status,
-                Err(error) => {
-                    tracing::warn!(%error,"CLI installed; PATH requires manual configuration");
-                    PathStatus::Manual
-                }
+) -> Result<Applied, DesktopError> {
+    let mutation = installation.mutate(operation)?;
+    let (status, path_change) = match operation {
+        Operation::Install => match path.ensure_change() {
+            Ok(changed) => (changed.status, changed.change),
+            Err(error) => {
+                tracing::warn!(%error,"CLI installed; PATH requires manual configuration");
+                (PathStatus::Manual, Change::Unchanged)
             }
-        }
-        Operation::Remove => {
-            let _removed = installation.uninstall()?;
-            path_status(path)
-        }
+        },
+        Operation::Remove => (path_status(path), Change::Unchanged),
     };
-    let snapshot = facts(installation, status)?;
-    if let Some(broadcast) = broadcast
-        && let Err(error) = broadcast()
+    let environment = if cfg!(windows) {
+        mutation.change
+    } else {
+        path_change
+    };
+    Ok(Applied {
+        snapshot: facts(installation, status)?,
+        environment,
+    })
+}
+
+fn finish(
+    applied: Applied,
+    broadcast: Option<crate::desktop::EnvironmentBroadcast>,
+    executor: &gpui::BackgroundExecutor,
+) -> Snapshot {
+    if applied.environment == Change::Changed
+        && let Some(broadcast) = broadcast
     {
-        // The registry edit succeeded; do not misreport it as rolled back.
-        tracing::warn!(%error,"CLI PATH changed; environment notification needs a fresh login");
+        executor.spawn(async move {
+            if let Err(error) = broadcast() {
+                tracing::warn!(%error,"CLI PATH changed; environment notification needs a fresh login");
+            }
+        }).detach();
     }
-    Ok(snapshot)
+    // Snapshot reports the completed mutation immediately. Configured guidance
+    // always includes a fresh terminal/login; notification is separate advice.
+    applied.snapshot
 }
 
 fn failed(error: &DesktopError) -> State {
@@ -200,9 +221,11 @@ impl Shell {
         panel.state = State::Working(operation);
         cx.notify();
         let broadcast = crate::desktop::environment_broadcast(cx);
-        let work = cx
-            .background_executor()
-            .spawn(async move { perform(&installation, &path, operation, broadcast) });
+        let executor = cx.background_executor().clone();
+        let work = cx.background_executor().spawn(async move {
+            let applied = perform(&installation, &path, operation)?;
+            Ok(finish(applied, broadcast, &executor))
+        });
         cx.spawn(async move |this, cx| {
             let result = work.await;
             let _closed = this.update(cx, |shell, cx| {
@@ -325,45 +348,61 @@ mod broadcast_tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
     static NOTIFICATIONS: AtomicUsize = AtomicUsize::new(0);
-
+    struct Home(std::path::PathBuf);
+    impl Drop for Home {
+        fn drop(&mut self) {
+            let _cleanup = std::fs::remove_dir_all(&self.0);
+        }
+    }
     fn timed_out_notification() -> Result<(), std::io::Error> {
         let _previous = NOTIFICATIONS.fetch_add(1, Ordering::SeqCst);
         Err(std::io::ErrorKind::TimedOut.into())
     }
-
-    #[test]
-    fn failed_notification_never_misreports_an_install_as_rolled_back() {
+    #[gpui::test]
+    fn snapshot_does_not_wait_for_notification_and_unchanged_path_does_not_notify(
+        cx: &mut gpui::TestAppContext,
+    ) {
         NOTIFICATIONS.store(0, Ordering::SeqCst);
-        let home = std::env::temp_dir().join(format!(
+        let home = Home(std::env::temp_dir().join(format!(
             "vessel-cli-broadcast-{}",
             vessel_proto::SessionId::random()
-        ));
-        std::fs::create_dir_all(&home).unwrap();
-        let source = home.join("bundled-cli");
+        )));
+        std::fs::create_dir_all(&home.0).unwrap();
+        let source = home.0.join("bundled-cli");
         let installation =
-            Installation::new(source.clone(), home.join(".local/bin/vessel")).unwrap();
-        let path = PathSetup::new(&home, None, Platform::Unix, std::ffi::OsString::new()).unwrap();
-        assert!(matches!(
-            perform(
-                &installation,
-                &path,
-                Operation::Install,
-                Some(timed_out_notification)
-            ),
-            Err(DesktopError::MissingCli)
-        ));
-        assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 0);
-        std::fs::write(source, b"nonexecuted CLI fixture").unwrap();
-        let result = perform(
-            &installation,
-            &path,
-            Operation::Install,
-            Some(timed_out_notification),
+            Installation::new(source.clone(), home.0.join(".local/bin/vessel")).unwrap();
+        let path = PathSetup::new(
+            &home.0,
+            Some(std::path::Path::new("/bin/bash")),
+            Platform::Unix,
+            std::ffi::OsString::new(),
         )
         .unwrap();
-        assert_eq!(result.status, Status::Installed);
-        assert_eq!(installation.status().unwrap(), Status::Installed);
+        assert!(matches!(
+            perform(&installation, &path, Operation::Install),
+            Err(DesktopError::MissingCli)
+        ));
+        std::fs::write(source, b"nonexecuted CLI fixture").unwrap();
+        let applied = perform(&installation, &path, Operation::Install).unwrap();
+        assert_eq!(applied.environment, Change::Changed);
+        let snapshot = finish(
+            applied,
+            Some(timed_out_notification),
+            &cx.background_executor,
+        );
+        assert_eq!(snapshot.status, Status::Installed);
+        assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 0);
+        cx.run_until_parked();
         assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 1);
-        std::fs::remove_dir_all(home).unwrap();
+        assert_eq!(installation.status().unwrap(), Status::Installed);
+        let unchanged = perform(&installation, &path, Operation::Install).unwrap();
+        assert_eq!(unchanged.environment, Change::Unchanged);
+        let _snapshot = finish(
+            unchanged,
+            Some(timed_out_notification),
+            &cx.background_executor,
+        );
+        cx.run_until_parked();
+        assert_eq!(NOTIFICATIONS.load(Ordering::SeqCst), 1);
     }
 }

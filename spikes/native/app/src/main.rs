@@ -62,6 +62,7 @@ fn main() -> std::process::ExitCode {
 fn notify_environment() -> Result<(), std::io::Error> {
     gpui_windows::broadcast_environment_changed().map_err(|error| match error {
         gpui_windows::EnvironmentBroadcastError::TimedOut => std::io::ErrorKind::TimedOut.into(),
+        gpui_windows::EnvironmentBroadcastError::Unconfirmed => std::io::ErrorKind::Other.into(),
         gpui_windows::EnvironmentBroadcastError::Failed(error) => std::io::Error::other(error),
     })
 }

@@ -11,6 +11,24 @@ use super::DesktopError;
 
 pub use vessel_app_view::desktop::cli::Status;
 
+/// A completed OS mutation distinguishes a real write from an idempotent request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Change {
+    /// This operation changed its owned OS state.
+    Changed,
+    /// The requested state was already present; no write occurred.
+    Unchanged,
+}
+
+/// Ownership facts and the actual write result are separate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Mutation {
+    /// Ownership after the operation.
+    pub status: Status,
+    /// Whether this operation wrote or removed its owned entry.
+    pub change: Change,
+}
+
 /// Both paths are supplied explicitly so onboarding cannot accidentally use root's home.
 #[derive(Debug, Clone)]
 pub struct Installation {
@@ -83,11 +101,20 @@ impl Installation {
     /// # Errors
     /// Refuses missing source, foreign ownership and OS errors.
     pub fn install(&self) -> Result<Status, DesktopError> {
+        self.install_change().map(|mutation| mutation.status)
+    }
+
+    fn install_change(&self) -> Result<Mutation, DesktopError> {
         if !self.source.is_file() {
             return Err(DesktopError::MissingCli);
         }
         match self.status()? {
-            Status::Installed => return Ok(Status::Installed),
+            Status::Installed => {
+                return Ok(Mutation {
+                    status: Status::Installed,
+                    change: Change::Unchanged,
+                });
+            }
             Status::Foreign => return Err(DesktopError::ForeignCli),
             Status::Absent => {}
         }
@@ -95,18 +122,21 @@ impl Installation {
         if let Some(parent) = self.target.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        self.create()?;
-        self.status()
+        let change = self.create()?;
+        Ok(Mutation {
+            status: self.status()?,
+            change,
+        })
     }
 
     #[cfg(unix)]
-    fn create(&self) -> Result<(), DesktopError> {
+    fn create(&self) -> Result<Change, DesktopError> {
         std::os::unix::fs::symlink(&self.source, &self.target)?;
-        Ok(())
+        Ok(Change::Changed)
     }
 
     #[cfg(windows)]
-    fn create(&self) -> Result<(), DesktopError> {
+    fn create(&self) -> Result<Change, DesktopError> {
         windows_path::apply(
             &self.target,
             vessel_app_view::desktop::cli::Operation::Install,
@@ -118,18 +148,45 @@ impl Installation {
     /// # Errors
     /// Foreign ownership and OS failures are reported explicitly.
     pub fn uninstall(&self) -> Result<Status, DesktopError> {
+        self.uninstall_change().map(|mutation| mutation.status)
+    }
+
+    /// Report the actual transaction/file mutation without changing legacy status APIs.
+    ///
+    /// # Errors
+    /// Missing/foreign entries and OS failures retain the same refusal policy.
+    pub fn mutate(
+        &self,
+        operation: vessel_app_view::desktop::cli::Operation,
+    ) -> Result<Mutation, DesktopError> {
+        match operation {
+            vessel_app_view::desktop::cli::Operation::Install => self.install_change(),
+            vessel_app_view::desktop::cli::Operation::Remove => self.uninstall_change(),
+        }
+    }
+
+    fn uninstall_change(&self) -> Result<Mutation, DesktopError> {
         match self.status()? {
-            Status::Absent => Ok(Status::Absent),
+            Status::Absent => Ok(Mutation {
+                status: Status::Absent,
+                change: Change::Unchanged,
+            }),
             Status::Foreign => Err(DesktopError::ForeignCli),
             Status::Installed => {
                 #[cfg(unix)]
-                std::fs::remove_file(&self.target)?;
+                let change = {
+                    std::fs::remove_file(&self.target)?;
+                    Change::Changed
+                };
                 #[cfg(windows)]
-                windows_path::apply(
+                let change = windows_path::apply(
                     &self.target,
                     vessel_app_view::desktop::cli::Operation::Remove,
                 )?;
-                Ok(Status::Absent)
+                Ok(Mutation {
+                    status: Status::Absent,
+                    change,
+                })
             }
         }
     }
@@ -148,8 +205,26 @@ mod tests {
         let install = Installation::new(source.clone(), target.clone()).unwrap();
         assert!(matches!(install.install(), Err(DesktopError::MissingCli)));
         std::fs::write(&source, "bundled").unwrap();
-        assert_eq!(install.install().unwrap(), Status::Installed);
+        let changed = install
+            .mutate(vessel_app_view::desktop::cli::Operation::Install)
+            .unwrap();
+        assert_eq!(changed.status, Status::Installed);
+        assert_eq!(changed.change, Change::Changed);
+        assert_eq!(
+            install
+                .mutate(vessel_app_view::desktop::cli::Operation::Install)
+                .unwrap()
+                .change,
+            Change::Unchanged
+        );
         assert_eq!(install.uninstall().unwrap(), Status::Absent);
+        assert_eq!(
+            install
+                .mutate(vessel_app_view::desktop::cli::Operation::Remove)
+                .unwrap()
+                .change,
+            Change::Unchanged
+        );
         std::fs::write(&target, "foreign").unwrap();
         assert!(matches!(install.install(), Err(DesktopError::ForeignCli)));
         assert!(matches!(install.uninstall(), Err(DesktopError::ForeignCli)));

@@ -51,7 +51,10 @@ pub(in super::super) fn status(path: &Path) -> Result<Status, DesktopError> {
     })
 }
 
-pub(in super::super) fn apply(path: &Path, operation: Operation) -> Result<(), DesktopError> {
+pub(in super::super) fn apply(
+    path: &Path,
+    operation: Operation,
+) -> Result<super::super::Change, DesktopError> {
     let entry = entry(path)?;
     let transaction = Transaction::new().map_err(DesktopError::UserPathTransaction)?;
     let (key, _disposition) = RegKey::predef(HKEY_CURRENT_USER)
@@ -67,8 +70,8 @@ pub(in super::super) fn apply(path: &Path, operation: Operation) -> Result<(), D
             },
         )?;
         transaction.commit()?;
+        Ok(super::super::Change::Changed)
+    } else {
+        Ok(super::super::Change::Unchanged)
     }
-    // The safe GPUI broadcast seam is supplied by the platform owner. Until
-    // then Configured explicitly asks for a new terminal or a new login.
-    Ok(())
 }

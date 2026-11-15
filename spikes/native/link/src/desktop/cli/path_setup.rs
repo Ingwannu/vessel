@@ -23,6 +23,15 @@ pub enum Platform {
 
 pub use vessel_app_view::desktop::cli::PathStatus;
 
+/// PATH readiness and whether the known startup file was actually changed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PathMutation {
+    /// A fresh terminal may still need manual configuration.
+    pub status: PathStatus,
+    /// Idempotent status reads never pretend they wrote an rc file.
+    pub change: super::Change,
+}
+
 /// All paths and inherited PATH data come explicitly from the host binary.
 #[derive(Clone)]
 pub struct PathSetup {
@@ -116,12 +125,26 @@ impl PathSetup {
     /// # Errors
     /// Bounded reads, append and permission failures are explicit.
     pub fn ensure(&self) -> Result<PathStatus, DesktopError> {
+        self.ensure_change().map(|mutation| mutation.status)
+    }
+
+    /// Preserve the existing policy while reporting actual PATH writes separately.
+    ///
+    /// # Errors
+    /// The same bounded read and permission failures remain explicit.
+    pub fn ensure_change(&self) -> Result<PathMutation, DesktopError> {
         let status = self.status()?;
         if status != PathStatus::Manual {
-            return Ok(status);
+            return Ok(PathMutation {
+                status,
+                change: super::Change::Unchanged,
+            });
         }
         let Some((rc, line)) = &self.rc else {
-            return Ok(PathStatus::Manual);
+            return Ok(PathMutation {
+                status: PathStatus::Manual,
+                change: super::Change::Unchanged,
+            });
         };
         if let Some(parent) = rc.parent() {
             std::fs::create_dir_all(parent)?;
@@ -134,7 +157,10 @@ impl PathSetup {
             Err(error) => return Err(error.into()),
         };
         file.write_all(format!("\n{MARKER}\n{line}\n").as_bytes())?;
-        Ok(PathStatus::Configured)
+        Ok(PathMutation {
+            status: PathStatus::Configured,
+            change: super::Change::Changed,
+        })
     }
 }
 
@@ -159,9 +185,15 @@ mod tests {
             std::fs::read_to_string(home.join(".bashrc")).unwrap(),
             "# My settings\n"
         );
-        assert_eq!(plan.ensure().unwrap(), PathStatus::Configured);
+        let changed = plan.ensure_change().unwrap();
+        assert_eq!(changed.status, PathStatus::Configured);
+        assert_eq!(changed.change, super::super::Change::Changed);
         assert_eq!(plan.status().unwrap(), PathStatus::Configured);
         let first = std::fs::read(home.join(".bashrc")).unwrap();
+        assert_eq!(
+            plan.ensure_change().unwrap().change,
+            super::super::Change::Unchanged
+        );
         assert_eq!(plan.ensure().unwrap(), PathStatus::Configured);
         assert_eq!(std::fs::read(home.join(".bashrc")).unwrap(), first);
         assert!(
