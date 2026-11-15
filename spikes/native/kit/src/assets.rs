@@ -27,6 +27,11 @@ pub use icon::{IconError, window_icon};
 /// asks for.
 const MARK: &str = include_str!("../../../../docs/design/brand/vessel-mark-mono.svg");
 
+// The vectors travel inside the executable, so their upstream notice must
+// travel there too, rather than relying only on a source checkout's docs.
+const LUCIDE_NOTICE: &str = include_str!("../../../../docs/design/brand/lucide-LICENSE.txt");
+const LUCIDE_NOTICE_PATH: &str = "kit/licenses/lucide.txt";
+
 /// The brand colour (`docs/design/brand/README.md`): the mark's colour on
 /// light surfaces and its icon's tile; never the interface's.
 pub const BRAND: u32 = 0x001a_5868;
@@ -425,6 +430,9 @@ pub struct Assets;
 
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> gpui::Result<Option<Cow<'static, [u8]>>> {
+        if path == LUCIDE_NOTICE_PATH {
+            return Ok(Some(Cow::Borrowed(LUCIDE_NOTICE.as_bytes())));
+        }
         // The agents' marks are not here: `agent_mark` rasterises its own
         // embedded drawings at the display's pixels.
         let glyph = ALL.into_iter().find(|glyph| glyph.path() == path);
@@ -435,6 +443,7 @@ impl AssetSource for Assets {
         Ok(ALL
             .into_iter()
             .map(Glyph::path)
+            .chain(std::iter::once(LUCIDE_NOTICE_PATH))
             .filter(|asset| asset.starts_with(path))
             .map(SharedString::from)
             .collect())
@@ -445,6 +454,17 @@ impl AssetSource for Assets {
 mod tests {
     use super::{Assets, Glyph, MARK, view_box, window_icon};
     use gpui::AssetSource as _;
+
+    #[test]
+    fn lucide_notice_is_embedded_beside_the_vectors_in_released_assets() {
+        let notice = Assets.load(super::LUCIDE_NOTICE_PATH).unwrap().unwrap();
+        assert_eq!(notice.as_ref(), super::LUCIDE_NOTICE.as_bytes());
+        assert!(super::LUCIDE_NOTICE.contains("ISC License"));
+        assert_eq!(
+            Assets.list("kit/licenses/").unwrap(),
+            [gpui::SharedString::from(super::LUCIDE_NOTICE_PATH)]
+        );
+    }
 
     #[test]
     fn the_icon_is_drawn_from_the_marks_own_view_box() {

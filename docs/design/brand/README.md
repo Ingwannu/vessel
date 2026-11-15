@@ -114,3 +114,7 @@ the original Vessel mark and window drawings. No Gauge vector is added here;
 it remains the existing shared producer's responsibility.
 
 Primary source: [Lucide 1.50.0 icons](https://github.com/lucide-icons/lucide/tree/1.50.0/icons).
+
+The shared asset source also embeds the complete Lucide notice as
+`kit/licenses/lucide.txt`, so compiled distributions retain the attribution
+with their embedded vectors. This asset is separate from the glyph inventory.
