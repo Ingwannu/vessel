@@ -2,6 +2,7 @@
 use crate::*;
 use base64::Engine as _;
 use sha2::{Digest as _, Sha256};
+use std::fmt::Write as _;
 
 #[derive(serde::Deserialize)]
 struct Corpus {
@@ -88,10 +89,9 @@ fn golden_cells(screen: &Screen) -> String {
             });
         }
     }
-    use std::fmt::Write as _;
     let digest = Sha256::digest(serde_json::to_vec(&cells).unwrap());
     let mut hash = String::new();
-    for byte in digest.iter() {
+    for byte in &digest {
         write!(&mut hash, "{byte:02x}").unwrap();
     }
     hash
@@ -100,7 +100,7 @@ fn feed(screen: &mut Screen, mut bytes: &[u8]) {
     while !bytes.is_empty() {
         let consumed = screen.feed(bytes).consumed.get();
         assert!(consumed > 0);
-        bytes = bytes.get(consumed..).unwrap();
+        bytes = &bytes[consumed..];
     }
 }
 #[test]

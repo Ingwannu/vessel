@@ -126,6 +126,16 @@ refuses that input before allocation, rather than accepting a width on which
 upstream wide-cell arithmetic is invalid. The existing geometry regression
 checks the named floor. This preserves honest PTY/screen size agreement.
 
+The wide-padding correction passed all eleven tests: all original eight real
+checkpoints, seven actual-cat resize checkpoints, thirteen synthetic resize
+checkpoints and three independent-attribute checkpoints match raw cell hashes,
+text, widths, cursor, buffer and history. Seven query oracle cases and bound/
+snapshot tests also pass. This evidence is exact59a180ee, preceding the minimum
+width guard and announced node-head merge. Exact10404 strict checking passed
+product compilation but caught three test-helper style lints; imports/reference
+iteration/direct test slicing correct them without changing any expectation.
+Final changed-source checks, whole gate and review remain owed.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure
