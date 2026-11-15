@@ -24,7 +24,11 @@ fi
 for weight in Light Regular Medium SemiBold; do
   cp "$scratch/package/dist/fonts/geist-sans/Geist-$weight.ttf" "$out/"
 done
-cp "$scratch/package/dist/fonts/geist-mono/GeistMono-Regular.ttf" "$out/"
+# The code face's regular, and its bold and italics for the terminal's
+# SGR 1 and 3 (ADR 0073; GPUI synthesizes neither).
+for face in Regular Bold Italic BoldItalic; do
+  cp "$scratch/package/dist/fonts/geist-mono/GeistMono-$face.ttf" "$out/"
+done
 
 if [ ! -d "$web/pretendard" ]; then
   echo "run npm ci in web/ first (Pretendard comes from the page's packages)" >&2

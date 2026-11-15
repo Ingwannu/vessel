@@ -20,8 +20,13 @@
 //! - Alternative: the kit resolving colours from its tokens (the rules
 //!   would sit untested in a drawing crate).
 
+mod rows;
+#[cfg(test)]
+mod rows_tests;
 #[cfg(test)]
 mod tests;
+
+pub use rows::{PaintedFill, PaintedRow, PaintedRun, RunInk, rows};
 
 use super::grid::{Colour, Concealment, Pen, Polarity, Rgb, Weight};
 
