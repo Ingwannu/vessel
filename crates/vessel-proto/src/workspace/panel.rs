@@ -1,5 +1,5 @@
-//! Pending ADR 0087 contract. These types do not register a method or change
-//! legacy `DiffScope`: admission belongs to the single Quality B method table.
+//! ADR 0087 contract: methods register pending in the single Quality B table.
+//! Legacy `DiffScope` stays unchanged; only the integrator assigns admission.
 //!
 //! [Decision Log]
 //! - Purpose: committed-only must exclude the index and worktree, unlike Base.
@@ -12,6 +12,27 @@
 use serde::{Deserialize, Serialize};
 
 use super::{CommitId, RelPath, WorkspaceRoot, WorktreeBase};
+
+/// Pending until the integrator assigns the completed git panel package.
+/// This registers methods through Quality B without inventing a version.
+pub const GIT_PANEL: Option<crate::ProtocolVersion> = None;
+
+/// A successful read distinguishes absent comparison, bounded refusal and data.
+/// Partial coverage stays in the existing summary's `more` field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum GitCompared<T> {
+    /// No registered or explicit base exists for this comparison.
+    NoBase,
+    /// The protected reader refused a complete result past its output budget.
+    TooLarge,
+    /// The typed bounded summary or body, preserving all of its fields.
+    Ready {
+        /// Payload from the existing git parser, not text interpreted by a UI.
+        data: T,
+    },
+}
 
 /// Which two versions a git document compares.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,5 +179,45 @@ mod tests {
             serde_json::from_str::<CompareGitFile>(&encoded.replace("src/main.rs", "../outside"))
                 .is_err()
         );
+    }
+    #[test]
+    fn pending_comparisons_have_read_scope_unary_shape_and_no_assigned_protocol() {
+        use crate::{Method, MethodShape, Request, Scope};
+        assert_eq!(CompareGit::METHOD, Method::GitCompare);
+        assert_eq!(CompareGitFile::METHOD, Method::GitCompareFile);
+        for method in [Method::GitCompare, Method::GitCompareFile] {
+            assert_eq!(method.scope(), Some(Scope::Read));
+            assert_eq!(method.shape(), MethodShape::Unary);
+            assert_eq!(method.since(), None);
+        }
+    }
+
+    #[test]
+    fn no_base_limit_and_an_empty_success_have_different_wire_results() {
+        use super::super::DiffSummary;
+        let values = [
+            GitCompared::NoBase,
+            GitCompared::TooLarge,
+            GitCompared::Ready {
+                data: DiffSummary {
+                    from: None,
+                    files: vec![],
+                    more: false,
+                },
+            },
+        ];
+        let encoded: Vec<_> = values
+            .iter()
+            .map(|value| serde_json::to_string(value).unwrap())
+            .collect();
+        for (value, text) in values.iter().zip(&encoded) {
+            assert_eq!(
+                &serde_json::from_str::<GitCompared<DiffSummary>>(text).unwrap(),
+                value
+            );
+        }
+        assert_ne!(encoded[0], encoded[1]);
+        assert_ne!(encoded[0], encoded[2]);
+        assert_ne!(encoded[1], encoded[2]);
     }
 }

@@ -73,3 +73,30 @@ Latest executed staged result at614d8026: workspace library111 passed,0 failed,
 source, not proof of the later complete-read entry points or their node caller.
 The complete-read API adds real-git tests for paired summary/body cleanup and
 cancellation after index preparation; those changed-source tests are pending.
+
+
+## Owned comparison caller and pending registration
+
+The next coherent source connects complete comparison reads to the node's
+existing root authority, TaskTracker and shutdown token. Its separate admission
+bound is64 including queued reads, with4 executing snapshots. A dropped reply
+receiver never drops a running cleanup future. Shutdown refuses queued work,
+cancels every executing git helper and waits for their cleanup. Barrier tests
+cover receiver loss, execution/admission limits, queued cancellation and cleanup
+ordering; real repositories cover node-level comparison semantics, invalid roots
+and unchanged index bytes. These new tests have not been executed yet.
+
+`git.compare` and `git.compare_file` have Read/unary rows in the one Quality B
+table, pending `workspace::GIT_PANEL = None`. They route real workspace methods;
+no dummy version, admission claim or stub success is added. NoBase, TooLarge
+and a genuinely empty Ready remain distinct typed values. Partial summary
+coverage is retained. The client in-memory transport test asserts no frame is
+sent while pending. Agent access is explicitly refused like the existing git
+calls. Request/reply, older projection, fake handler and alias metadata changes
+are the minimal exhaustive registration consequences.
+
+The previous complete-read narrow check (0a391e7f) returned only an unquoted
+DiffScope name in documentation. The current source quotes it and needs its own
+changed-source check. Revision/cache/observation/history and write policy are
+still incomplete, and the package is neither built nor passed. The web wire
+must be regenerated from the protocol generator before package closure.

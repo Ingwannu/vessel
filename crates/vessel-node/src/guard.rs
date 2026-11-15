@@ -291,6 +291,8 @@ untargeted!(
     vessel_proto::workspace::ListSnapshots,
     vessel_proto::workspace::DropSnapshot,
     vessel_proto::workspace::GetStatus,
+    vessel_proto::workspace::CompareGit,
+    vessel_proto::workspace::CompareGitFile,
     vessel_proto::workspace::GetChanges,
     vessel_proto::workspace::GetFileDiff,
     vessel_proto::workspace::ShowFile,

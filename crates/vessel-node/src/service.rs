@@ -52,6 +52,7 @@ mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
+mod git_comparison;
 mod projects;
 mod worktrees;
 // Protocol 11's calls: pull requests (`forge`, ADR 0029).

@@ -308,6 +308,10 @@ macro_rules! method_table {
             GitStatus / git_status / "git.status" [Read, 10, unary]: $crate::workspace::GetStatus => $crate::workspace::GitStatus;
             /// The changed files of a diff scope (protocol 10).
             GitChanges / git_changes / "git.changes" [Read, 10, unary]: $crate::workspace::GetChanges => $crate::workspace::DiffSummary;
+            /// Distinct committed/All comparison summary (ADR 0087, pending).
+            GitCompare / git_compare / "git.compare" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
+            /// A bounded file in the same comparison (ADR 0087, pending).
+            GitCompareFile / git_compare_file / "git.compare_file" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
             /// One file's diff (protocol 10).
             GitDiff / git_diff / "git.diff" [Read, 10, unary]: $crate::workspace::GetFileDiff => $crate::workspace::FileDiff;
             /// A page of a file at a commit (protocol 10).

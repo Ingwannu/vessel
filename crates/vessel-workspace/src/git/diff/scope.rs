@@ -11,7 +11,7 @@ use crate::git::{Git, GitError};
 
 impl Git {
     /// ADR 0087's comparison resolver. Separate pending methods keep the
-    /// existing admitted DiffScope calls and older peers unchanged.
+    /// existing admitted `DiffScope` calls and older peers unchanged.
     pub(crate) async fn resolve_comparison(
         &self,
         dir: &Path,

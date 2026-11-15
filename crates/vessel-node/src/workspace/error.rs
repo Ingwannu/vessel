@@ -1,10 +1,12 @@
 //! What a workspace call can fail with, mapped to the wire once.
 
+use super::comparison::JobError;
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ErrorCode, ProjectId, WireError, WorktreeId};
 use vessel_store::StoreError;
 use vessel_workspace::GitError;
 use vessel_workspace::files::FileError;
+use vessel_workspace::git::ComparisonError;
 use vessel_workspace::paths::PathError;
 
 /// A workspace call's failure.
@@ -41,6 +43,12 @@ pub(crate) enum WorkspaceError {
     /// git failed in a way no refusal covers.
     #[error("git failed")]
     Git(#[source] GitError),
+    /// Private comparison index preparation or cleanup failed.
+    #[error("the comparison could not be completed")]
+    Comparison(#[source] ComparisonError),
+    /// Comparison admission, shutdown or reply delivery failed.
+    #[error("{0}")]
+    ComparisonJob(#[from] JobError),
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
@@ -68,6 +76,24 @@ impl From<GitError> for WorkspaceError {
             return Self::Busy("another git is changing this repository; try again".to_owned());
         }
         Self::Git(error)
+    }
+}
+
+impl From<ComparisonError> for WorkspaceError {
+    fn from(error: ComparisonError) -> Self {
+        match error {
+            ComparisonError::Git(GitError::Unexpected { what: "base" }) => {
+                Self::Invalid("the requested comparison base does not resolve".to_owned())
+            }
+            ComparisonError::Git(error) => Self::from(error),
+            error @ (ComparisonError::Io(_)
+            | ComparisonError::Task(_)
+            | ComparisonError::Utf8(_)
+            | ComparisonError::Object(_)
+            | ComparisonError::Path(_)
+            | ComparisonError::Cleanup { .. }
+            | ComparisonError::CleanupTask { .. }) => Self::Comparison(error),
+        }
     }
 }
 
@@ -117,8 +143,14 @@ impl WorkspaceError {
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
             Self::Conflict(_) => ErrorCode::Conflict,
-            Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
-            Self::Git(_) | Self::Store(_) | Self::Io(_) => ErrorCode::Internal,
+            Self::Busy(_)
+            | Self::Git(GitError::TimedOut { .. })
+            | Self::ComparisonJob(JobError::Busy | JobError::Closed) => ErrorCode::Unavailable,
+            Self::Git(_)
+            | Self::Store(_)
+            | Self::Io(_)
+            | Self::Comparison(_)
+            | Self::ComparisonJob(JobError::Worker(_)) => ErrorCode::Internal,
         };
         if code == ErrorCode::Internal {
             tracing::warn!(error = %self, source = ?std::error::Error::source(self), "workspace call failed");

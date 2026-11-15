@@ -1,6 +1,8 @@
 //! The node's workspace calls against temporary repositories, with the
 //! machine's real git isolated from its configuration.
 
+mod comparison;
+
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;

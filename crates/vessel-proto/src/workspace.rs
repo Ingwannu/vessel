@@ -45,7 +45,9 @@ pub use git::{
     RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction, StashChanges, StashEntry,
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
-pub use panel::{CompareGit, CompareGitFile, GitComparison, GitHunkOffset, GitWhitespace};
+pub use panel::{
+    CompareGit, CompareGitFile, GIT_PANEL, GitCompared, GitComparison, GitHunkOffset, GitWhitespace,
+};
 pub use path::{InvalidRelPath, RelPath, is_git_dir};
 pub use port_range::{InvalidPortRange, PortRange};
 pub use port_script::{InvalidPortScript, PortScript, PortScriptPath};

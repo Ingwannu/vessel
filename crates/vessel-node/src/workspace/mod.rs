@@ -22,6 +22,7 @@
 //!   any folder holding the node's data folder (a read-only device could
 //!   otherwise read the node's token and become its owner).
 
+mod comparison;
 mod error;
 mod files;
 mod forge;
@@ -162,6 +163,8 @@ pub(crate) struct Workspaces {
     places: Places,
     state: Mutex<State>,
     indexes: Arc<Indexes>,
+    /// Comparison reservations outlive disconnected reply receivers.
+    comparisons: comparison::Jobs,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
     searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
@@ -233,6 +236,7 @@ impl Workspaces {
             places,
             state: Mutex::new(State::default()),
             indexes: Arc::new(Indexes::default()),
+            comparisons: comparison::Jobs::default(),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
             removed,
