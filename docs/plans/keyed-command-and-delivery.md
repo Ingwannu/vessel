@@ -69,3 +69,21 @@ agent/provider-registry-wrap.test.ts:229 (ambiguous failure does not interrupt),
 providers/codex-app-server-agent.ts:5166-5287 (native commands without a model turn).
 Finite durable reservations/refusal tombstones and explicit transport uncertainty
 are deliberate Vessel safety floors; external execution is not claimed exactly once.
+
+## Actor preparation checkpoint (unverified, wire unchanged)
+
+SessionHandle::submit_identified now sends one ordered submission through the
+existing control channel. Prompt policies reuse send_as/start_loaded/cancel_and_wait;
+no second queue, transport or client capability decision exists. The typed fallback
+loads/validates before cancel, observes the actual cancellation reason, and reports
+InterruptedAndStarted only for a real canceled held turn. Natural completion before
+cancel yields Started. Failure after a possible cancel stays OutcomeUnknown. The
+queue's existing interruption suppression and legacy tickets are unchanged.
+
+Native intent currently returns explicit Unsupported before any provider operation;
+there is no advertised native capability or simulated command success. W22's checked
+transport must replace this refusal after the common carrier/metadata review.
+The current wire SubmitPrompt/receipt are still prompt-only and do not call this new
+entry point until the joint attachment is finished. Private fake tests cover steer
+available/absent and unsupported native intent with exact message echoes; execution
+and failure/race/saturation proof remain owed.

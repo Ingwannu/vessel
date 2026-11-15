@@ -29,6 +29,7 @@
 //! queue's changes and its moving after a turn.
 
 mod moves;
+pub(crate) mod submission;
 mod tickets;
 
 pub(crate) use tickets::TurnTicket;
@@ -103,6 +104,8 @@ pub(crate) struct Desk {
     /// An interrupt waits for the turn it cancelled; that turn's end is
     /// the interrupt's, not the queue's.
     interrupting: bool,
+    /// The exact observed terminal reason, including while queue advancement is suppressed.
+    last_end: Option<TurnEnd>,
     /// Who waits to learn which turn their prompt started (`tickets`).
     pub(crate) tickets: tickets::Tickets,
 }
@@ -195,6 +198,7 @@ impl Desk {
     }
 
     fn over(&mut self, end: TurnEnd) {
+        self.last_end = Some(end);
         self.turn = None;
         self.ended_turns = self.ended_turns.saturating_add(1);
         if !self.interrupting {

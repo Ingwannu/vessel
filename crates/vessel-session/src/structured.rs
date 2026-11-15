@@ -128,6 +128,7 @@ impl StructuredActor {
                     match control {
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
+                        Some(Control::Submit(order)) => self.submit_identified(order).await,
                         Some(Control::Plugin(order)) => self.append_plugin(order).await,
                         Some(Control::Question(order)) => self.answer_durable_question(order).await,
                         Some(Control::SideQuestion(order)) => self.side_question(order).await,

@@ -24,6 +24,20 @@ impl Sessions {
         request: RespondPermission,
     ) -> Result<RespondPermissionReply, ServiceError> {
         let permission = request.permission;
+        match tokio::time::timeout(RESOLUTION_TIMEOUT, self.respond_permission_inner(request)).await
+        {
+            Ok(reply) => reply,
+            Err(_elapsed) => {
+                Ok(vessel_proto::timeline::RespondPermissionReply::OutcomeUnknown { permission })
+            }
+        }
+    }
+
+    async fn respond_permission_inner(
+        &self,
+        request: RespondPermission,
+    ) -> Result<RespondPermissionReply, ServiceError> {
+        let permission = request.permission;
         let Found::Live {
             handle,
             mut durability,

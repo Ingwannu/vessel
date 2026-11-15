@@ -163,3 +163,5 @@ pub use vessel_agent::Probed;
 pub use vessel_agent::{AttachmentBody, Attachments};
 
 mod plugin_timeline;
+
+pub use delivery::submission::SubmissionDispatch;

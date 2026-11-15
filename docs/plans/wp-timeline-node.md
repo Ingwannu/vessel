@@ -399,3 +399,11 @@ are reported. Otherwise the ordinary actor association map may retain a unique
 known old scope or an unassociated Record, never whichever turn happens to run.
 No request/answer authority is inferred from that display scope. This complements
 the existing exact native async scope requirement and durable SourceKey storage.
+
+The rich permission/question node reply budget now covers driver dispatch as well
+as waiting for the committed resolution. Timeout returns OutcomeUnknown and leaves
+the existing in-flight actor/driver ownership intact; it never cancels a possible
+provider effect, releases a durable claim or automatically resends. The durable
+question stays Answering until a late real settlement, process loss or restart
+recovery classifies it. This bounds a connection call slot even if the provider
+stays connected without acknowledging, without admitting a second provider command.

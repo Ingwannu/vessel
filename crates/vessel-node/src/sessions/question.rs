@@ -18,6 +18,20 @@ impl Sessions {
         request: RespondQuestion,
     ) -> Result<RespondQuestionReply, ServiceError> {
         let question = request.question;
+        match tokio::time::timeout(QUESTION_ACK_TIMEOUT, self.respond_question_inner(request)).await
+        {
+            Ok(reply) => reply,
+            Err(_elapsed) => {
+                Ok(vessel_proto::timeline::RespondQuestionReply::OutcomeUnknown { question })
+            }
+        }
+    }
+
+    async fn respond_question_inner(
+        &self,
+        request: RespondQuestion,
+    ) -> Result<RespondQuestionReply, ServiceError> {
+        let question = request.question;
         let Found::Live {
             handle,
             mut durability,
