@@ -1,4 +1,4 @@
-//! The actual NodeClient framing against an in-memory peer; never a real node.
+//! The actual `NodeClient` framing against an in-memory peer; never a real node.
 
 use super::*;
 use chrono::DateTime;
@@ -19,7 +19,7 @@ async fn read(stream: &mut DuplexStream) -> ClientFrame {
     let length = usize::try_from(stream.read_u32().await.unwrap()).unwrap();
     assert!(length <= FRAME_LIMIT);
     let mut bytes = vec![0; length];
-    stream.read_exact(&mut bytes).await.unwrap();
+    let _read = stream.read_exact(&mut bytes).await.unwrap();
     serde_json::from_slice(&bytes).unwrap()
 }
 async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
