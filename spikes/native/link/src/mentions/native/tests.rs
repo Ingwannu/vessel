@@ -17,13 +17,13 @@ struct Fake {
     found: Mutex<Vec<FindFiles>>,
 }
 impl Source for Fake {
-    async fn list(&self, ask: ListDir) -> Result<DirListing, Failure> {
+    fn list(&self, ask: ListDir) -> impl Future<Output = Result<DirListing, Failure>> + Send {
         self.listed.lock().unwrap().push(ask);
-        self.list.clone()
+        std::future::ready(self.list.clone())
     }
-    async fn find(&self, ask: FindFiles) -> Result<FoundFiles, Failure> {
+    fn find(&self, ask: FindFiles) -> impl Future<Output = Result<FoundFiles, Failure>> + Send {
         self.found.lock().unwrap().push(ask);
-        self.files.clone()
+        std::future::ready(self.files.clone())
     }
 }
 fn fake() -> Fake {

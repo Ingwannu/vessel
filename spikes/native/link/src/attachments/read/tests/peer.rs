@@ -18,7 +18,7 @@ async fn receive(stream: &mut DuplexStream) -> Option<ClientFrame> {
     };
     assert!(length <= FRAME_BOUND);
     let mut bytes = vec![0; length];
-    stream.read_exact(&mut bytes).await.unwrap();
+    let _received = stream.read_exact(&mut bytes).await.unwrap();
     Some(serde_json::from_slice(&bytes).unwrap())
 }
 
