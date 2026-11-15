@@ -113,3 +113,14 @@ The temporary selected-resource adapter must be replaced by W12's sole resident
 context after its checked producer arrives; it creates no additional registry.
 Fullscreen send availability reuses current attachment/create admission. W6's newer
 context-only admission must be consumed before claiming context-only send parity.
+
+The existing autocomplete now projects typed client/provider rows from the shared
+catalog. Client rows execute immediately only through the attachment-free guard;
+drafts hide their rows while reserving their names and aliases. Inline entries start
+from provider entries directly (reference use-agent-autocomplete.ts:231-244), so a
+future explicitly typed skill may reuse a root-only built-in name. The current old
+wire has no kind metadata and remains root-only until the canonical producer merge.
+Mouse selection checks the drawn DraftKey, text, caret and row label before acting,
+preventing a stale menu from archiving a replacement selected session. Presentation
+was extracted to its own module to keep the root below the500-line cap. New menu,
+context-suppression and theme-preservation tests are prepared, still unrun.

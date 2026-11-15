@@ -102,9 +102,13 @@ pub(crate) fn render(
                 .child(send),
         );
     Some(
-        deferred(anchored().position(point(px(spacing::S0), px(spacing::S0))).child(overlay))
-            .with_priority(2)
-            .into_any_element(),
+        deferred(
+            anchored()
+                .position(point(px(spacing::S0), px(spacing::S0)))
+                .child(overlay),
+        )
+        .with_priority(2)
+        .into_any_element(),
     )
 }
 

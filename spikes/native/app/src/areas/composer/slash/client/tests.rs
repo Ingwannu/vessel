@@ -1,0 +1,76 @@
+//! Real shell dispatch with canonical attachment/context storage and no transport.
+use super::*;
+use crate::shell::language_tests;
+use gpui::TestAppContext;
+use vessel_app_view::composer::context::{
+    ContextAttachment, ContextId, ContextKind, ContextText, ContextTitle, Payload,
+};
+use vessel_app_view::composer::tray::Origin;
+
+#[gpui::test]
+fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_lifecycle(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    cx.run_until_parked();
+    for case in 0..3 {
+        shell.update_in(cx, |shell, window, cx| {
+            let session = vessel_proto::SessionId::random();
+            let target = DraftKey::Session { session };
+            shell.route = Route::Session;
+            shell.areas.session.open = Some(crate::areas::session::Open {
+                machine: "fixture".to_owned(),
+                session,
+                title: String::new(),
+                agent: String::new(),
+                structured: true,
+                live: true,
+                archived_at: None,
+                binding: None,
+            });
+            shell
+                .areas
+                .session
+                .composer
+                .replace_all("/exit", window, cx);
+            shell.notice = None;
+            if case == 0 {
+                let item = shell.areas.composer.trays.tray(target).add(
+                    "image.png",
+                    1,
+                    Origin::Pasted(vec![1].into()),
+                );
+                assert!(item.is_some());
+            } else if case == 1 {
+                shell
+                    .areas
+                    .composer
+                    .contexts
+                    .tray(target)
+                    .add(ContextAttachment::Snapshot {
+                        kind: ContextKind::ChatHistory,
+                        payload: Payload {
+                            id: ContextId::parse("fixture").unwrap(),
+                            title: ContextTitle::parse("History").unwrap(),
+                            text: ContextText::parse("retained context").unwrap(),
+                            url: None,
+                        },
+                    })
+                    .unwrap();
+            }
+            assert!(!shell.composer_client_command("/exit arguments", window, cx));
+            let handled = shell.composer_client_command(" /exit ", window, cx);
+            assert_eq!(handled, case == 2);
+            assert_eq!(shell.areas.session.composer.text(cx), "/exit");
+            assert_eq!(shell.areas.session.open.as_ref().unwrap().session, session);
+            if case == 2 {
+                // No admitted binding: lifecycle refuses visibly, with no navigation.
+                assert!(shell.notice.is_some());
+                assert_eq!(shell.route, Route::Session);
+            } else {
+                assert!(shell.notice.is_none());
+            }
+        });
+    }
+}

@@ -48,3 +48,6 @@ impl Shell {
         true
     }
 }
+
+#[cfg(test)]
+mod tests;

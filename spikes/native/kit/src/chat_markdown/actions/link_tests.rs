@@ -8,6 +8,25 @@ use gpui::{
 };
 use gpui_base::text::{TextView, TextViewState};
 
+#[gpui::test]
+fn direct_engine_keeps_the_component_installed_theme(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        crate::init(cx, crate::SchemeChoice::Fixed(crate::Scheme::Dark)).unwrap();
+        let defaults = gpui_base::TextViewDefaults::global(cx);
+        let installed = defaults.style().unwrap();
+        let tokens = crate::Tokens::of(crate::Scheme::Dark);
+        let actual =
+            crate::chat_markdown::presentation(crate::chat_markdown::Look::of(&tokens), cx);
+        assert_eq!(actual.foreground(), installed.foreground());
+        assert_eq!(actual.link(), installed.link());
+        assert_eq!(actual.selection(), installed.selection());
+        assert_eq!(actual.inline_code(), installed.inline_code());
+        assert_eq!(actual.paragraph_gap(), installed.paragraph_gap());
+        assert_eq!(actual.is_dark(), installed.is_dark());
+        assert_eq!(actual.code_block().overflow.x, Some(gpui::Overflow::Scroll));
+    });
+}
+
 use super::{Actions, CopyStyle, InlineLinkKind, RecognizedLink, Source, finish};
 
 const PATH: &str = "src/lib.rs:4";
