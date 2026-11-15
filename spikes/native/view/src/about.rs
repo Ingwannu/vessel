@@ -11,7 +11,9 @@
 //!   its crate declares it (`cargo metadata`), the faces' from their OFL
 //!   texts beside them.
 
-/// What a part does in the app (its words are in `text/settings.rs`).
+mod words;
+
+/// What a part does in the app (its words are in `locales/*/about.ftl`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
     /// The windows' drawing.

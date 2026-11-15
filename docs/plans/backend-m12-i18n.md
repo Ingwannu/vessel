@@ -1,5 +1,75 @@
 # Track L: the app's words as translation data
 
+## Resume point (2026-11-15)
+
+Published build 0.0.0.0.17 (`56a7cbd3`) is merged without rebasing. The
+engine (`5834962`), partial-language fixture boundary (`4b3e180`), merge
+preparation (`466ca256`), pairing/language model (`8da03f18`) and its final
+evidence record (`4b9c0029`) are all ancestors of that build. Their old
+gate and captures remain historical evidence, not checks of today's tree.
+The additional instructed merge to `46ff1c13` retains the terminal parser
+and width dependencies added to the About inventory after the published build.
+
+The next slice is About's licence vocabulary: 22 messages per language,
+including 19 inventory roles. Existing assets: the embedded Fluent catalog,
+English-generated getters, warmed plain-label cache, generic coverage gate
+and existing About renderer. Decision: **modify/reuse** those assets; no
+new dependency, parser, control, wire call or architecture decision.
+An exhaustive `Role` adapter chooses cached plain getters rather than a
+dynamic Fluent selector, because a selector would allocate on each row draw.
+The original strings, including the two new terminal rows, move verbatim.
+The five Fluent rows and UUID still retain their old Data role in this
+refactor; correcting those meanings is a separate follow-up commit.
+
+References read: Paseo 0.15.4 `packages/app/src/screens/settings-screen.tsx`
+lines 473–499 (About card, connected hosts); Vessel's existing
+`web/src/features/settings/about.tsx` lines 78–105 (licence inventory),
+`web/src/data/about.test.ts` (runtime inventory and licence checks).
+The inventory is Vessel's existing addition beyond Paseo's About sections;
+this migration changes neither its row layout nor its scope. Update,
+connected-machine and trademark sections retain their owners' tables.
+This slice therefore migrates the licence vocabulary, not the whole About
+screen; pseudo-language will still expose those unmoved shared sections.
+
+Ownership while this slice is open: About's old table, its new locale files,
+role adapter, and `view/src/about.rs`'s Role and Fluent/UUID inventory rows.
+The app renderer changes only three expressions: obtain `shell.words.about()`,
+call `licence_note()` and call `software()`. Removing `AboutText` changes the
+two view export lists. No other area table is edited.
+
+Added checks compare all 22 whole messages in English and Korean, extend the
+warmed zero-allocation test across every bundled role, and assert that a
+key present only in English **or** only in Korean fails the shared validator.
+The latter pins both directions of the already-existing contract; partial
+candidate languages still retain the separate accepted fallback contract.
+
+Verification: source-only format, size, boundary and token checks pass.
+Native file budget: 547 files, 15 listed; boundaries: four crates, seven
+external owners, two name rules; tokens: 418 step pixels, 79 other pixels,
+45 hex colours, no new allowance. Narrow view all-target Clippy passed;
+813 library tests and ten localization-contract tests passed. Coverage:
+English/Korean complete, zero missing each. Changed view source was actually
+recompiled. All four short-lane commands exited zero, without a timeout.
+Root format passed; its size check has 28 existing violations and its
+boundary check still lacks `vessel-node -> vessel-agent`. Root sources,
+manifests, checking scripts and the architecture's crate tables are identical
+to `46ff1c13`; this slice does not fix or waive those baseline failures.
+No local
+whole-native gate is run under the current build-machine constraint; the
+remote native gate command and current-source captures are still pending.
+No new UI, fleet or display process has been started. Status: **source ready,
+gate owed**, not a complete review submission. The whole native gate and
+screen checks will cover the batch once the remote command is available.
+Next: the separate role correction, then title-bar/update words and the
+newer screens, each area's ownership confirmed before its source changes.
+
+Remaining scope: updater/title-bar vocabulary, legacy area tables and newly
+added conversation rewind/fork, sidebar Display, settings, file-editor and
+attachment words. Composer and pull-request resources already exist on the
+merged line. Inventory each area's callers and current owner before moving
+it, one area per commit. Full English/Korean parity of the app is not yet
+achieved by catalog coverage alone.
+
 ## Contract (slice 1)
 
 ADR 0039 is the decision. Existing Rust area tables stay in place during
