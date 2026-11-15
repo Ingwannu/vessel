@@ -3,6 +3,34 @@ use super::*;
 use vessel_session::terminals::{CleanupFact, CleanupObservation};
 
 #[tokio::test]
+async fn attempted_spawn_failure_is_not_a_no_child_cleanup_certificate() {
+    within(async {
+        let fixture = Fixture::new();
+        let run = start_script(ScriptStart {
+            info: info(script_kind(false), fixture.folder.path()),
+            spec: CommandSpec::new(fixture.folder.path().join("missing-program")),
+            leftover: Leftover::default(),
+            service: false,
+            approved: || true,
+            scrollback: Scrollback::DEFAULT,
+            shutdown: fixture.shutdown.clone(),
+            tasks: fixture.tasks.clone(),
+        });
+        let CleanupObservation::Finished(report) = run.cleanup().await else {
+            panic!("runner lost")
+        };
+        assert!(matches!(run.info().status, SessionStatus::Failed { .. }));
+        assert_eq!(report.process(), CleanupFact::Unconfirmed);
+        assert_eq!(report.descendants(), CleanupFact::Unconfirmed);
+        assert_eq!(report.io(), CleanupFact::Unconfirmed);
+        assert!(!report.is_confirmed());
+        fixture.tasks.close();
+        fixture.tasks.wait().await;
+    })
+    .await;
+}
+
+#[tokio::test]
 async fn no_spawn_completion_certifies_no_child_and_waits_for_auxiliary_cleanup() {
     within(async {
         let fixture = Fixture::new();

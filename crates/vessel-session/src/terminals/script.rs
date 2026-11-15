@@ -99,7 +99,7 @@ where
         service,
         approved,
         restarting,
-        spawned: false,
+        attempted: false,
         process_cleanup: CleanupFact::Confirmed,
         io_cleanup: CleanupFact::Confirmed,
     };
@@ -124,7 +124,7 @@ struct ScriptActor<A> {
     approved: A,
     restarting: mpsc::Receiver<()>,
     /// Once a process existed, status alone cannot prove descendant/I/O cleanup.
-    spawned: bool,
+    attempted: bool,
     process_cleanup: CleanupFact,
     io_cleanup: CleanupFact,
 }
@@ -229,7 +229,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             },
             None => CleanupFact::Confirmed,
         };
-        let mut facts = if self.spawned {
+        let mut facts = if self.attempted {
             Facts::unconfirmed()
         } else {
             Facts::not_started()
@@ -269,6 +269,9 @@ impl<A: Fn() -> bool> ScriptActor<A> {
 
     /// Run the command once, to its end, a stop or a restart.
     async fn once(&mut self, first: &mut bool, attempt: u32) -> Ended {
+        // A spawn error can follow partial child/pipe setup. Only never
+        // attempting a spawn proves that no child or worker could exist.
+        self.attempted = true;
         let Ok(Spawned {
             mut child,
             stdin,
@@ -276,12 +279,13 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             stderr,
         }) = vessel_proc::spawn(&self.spec)
         else {
+            self.process_cleanup = CleanupFact::Unconfirmed;
+            self.io_cleanup = CleanupFact::Unconfirmed;
             // A service backs off and tries again; its state says so.
             self.log
                 .notice("vessel: the command could not be started".to_owned());
             return Ended::Spawn;
         };
-        self.spawned = true;
         drop(stdin);
         self.log.running(Some(child.lifetime()));
         if *first {

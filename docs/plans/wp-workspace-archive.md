@@ -238,6 +238,13 @@ is implemented here; the production adapter waits for the reviewed producer.
 
 ## Strict terminal drain: actual completion versus logical status
 
+Only skipping spawn entirely can certify that no child existed. A spawn error
+may follow partial child/pipe setup (`MissingPipe`, `NoPid` or `NotLeader`), so
+any attempted spawn that fails retains unconfirmed process, descendant and I/O
+facts. A later service retry cannot erase that uncertainty. The actual missing
+program regression verifies this conservative boundary; refusal before any spawn
+remains the separate positively observed no-child case.
+
 [Decision Log]
 - Purpose and intent: a workspace member stop must not authorize backing cleanup
   merely because a close RPC returned or a terminal status became ended.
