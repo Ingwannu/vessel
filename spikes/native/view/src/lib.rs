@@ -14,6 +14,7 @@ pub mod agent_mark;
 pub mod agent_status;
 pub mod ago;
 pub mod alert;
+pub mod attention;
 pub mod audio;
 pub mod badge;
 pub mod board;

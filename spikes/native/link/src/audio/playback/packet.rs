@@ -89,7 +89,7 @@ impl fmt::Debug for Packet {
             .field("bytes", &self.pcm.len())
             .field("rate", &self.rate)
             .field("duration", &self.duration)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
