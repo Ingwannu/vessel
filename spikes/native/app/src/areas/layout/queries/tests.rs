@@ -60,10 +60,10 @@ fn retargeted_tab_keeps_its_id_but_refuses_the_original_resource_callback(cx: &m
 fn retained_agent(
     _shell: &Shell,
     _tokens: &vessel_app_kit::Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> gpui::Div {
-    cx.defer(|shell, _cx| {
+    cx.defer_in(window, |shell, _window, _cx| {
         shell
             .notice
             .get_or_insert_with(String::new)
