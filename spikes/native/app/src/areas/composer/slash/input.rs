@@ -120,7 +120,7 @@ fn inline(
         .top(px(spacing::S0))
         .right(px(-spacing::S1_5))
         .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
-            window.prevent_default()
+            window.prevent_default();
         })
         .on_click(
             cx.listener(move |shell, _, window, cx| shell.composer_expand(target, window, cx)),

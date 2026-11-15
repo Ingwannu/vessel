@@ -56,12 +56,12 @@ pub(crate) fn render(
     .role(gpui::Role::Button)
     .aria_label(shell.words.composer_shell().exit_fullscreen().to_owned())
     .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
-        window.prevent_default()
+        window.prevent_default();
     })
     .on_click(cx.listener(move |shell, _, window, cx| shell.composer_collapse(target, window, cx)));
     let send = send_button("fullscreen-send", SendKind::Send, enabled, true, tokens).on_click(
         cx.listener(move |shell, _, window, cx| {
-            shell.composer_submit_fullscreen(target, window, cx)
+            shell.composer_submit_fullscreen(target, window, cx);
         }),
     );
     let overlay = div()
