@@ -404,6 +404,9 @@ No row of the crate table changes.
   The subsequent accessor head is merged before implementation begins. Its
   existing Log export stays, with the LogMode export appended; no head
   protocol, schema or expectation is changed.
+  The later follow/display head is merged at another clean boundary. Its
+  grouped Log/LogMode export wins the formatting-only argument conflict,
+  and its workspace display source and expectations remain unchanged.
 - Slice 2b keeps creation/current labels separately in durable storage.
   `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
   hidden in direct replies, lists, subscriptions, saved/scheduled specs,
