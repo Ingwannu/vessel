@@ -38,3 +38,11 @@ part of this control and are not proved by its tests.
 This commit is source only until exact remote Kit narrow checks complete.
 The previous Agents narrow runs were signalled143 before compilation; those
 are not a control pass. No whole A9 gate or first-use capture is claimed.
+
+
+First exact Kit Clippy on e2afa5df returned101 (remote step result1): this
+base has no icon::XS token, and children-bounds observation belongs to Div
+before `.id()` creates Stateful<Div>. Corrected to one named source12
+constant and the same observer before stateful wrapping; no test assertion,
+geometry, glyph, callback or reference value changed. The red log is retained
+at the track's external-link-20261115T104331Z run. Corrected narrow is pending.

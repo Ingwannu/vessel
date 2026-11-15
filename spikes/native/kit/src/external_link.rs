@@ -12,18 +12,14 @@
 //!   the reference specifies size12 and leaves line height to the platform.
 //! - Cost: accessibility/keyboard link semantics remain the kit-wide gap; this
 //!   control does not claim to supply an accessibility tree or an OS opener.
-use crate::{
-    Tokens, Type, TypeExt as _,
-    assets::Glyph,
-    theme::{icon, spacing},
-};
+use crate::{Tokens, Type, TypeExt as _, assets::Glyph, theme::spacing};
 use gpui::prelude::*;
 use gpui::{Div, ElementId, Hsla, MouseButton, SharedString, Stateful, div, px, svg};
 
 // Source values occur once; the hit is the visual plus this inset each side.
 const SLOP: f32 = spacing::S2;
 const GROUP: &str = "external-link";
-const ARROW: f32 = icon::XS;
+const ARROW: f32 = 12.0;
 const GAP: f32 = spacing::S1;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
