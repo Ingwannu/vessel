@@ -1,6 +1,7 @@
 # Session residents behind workspace panes
 
-Status: proposed. This contract needs review before its registry implementation.
+Status: contract-only review passed. Registry implementation and runtime evidence
+remain separate work; this approval does not establish two-pane behavior.
 It extends the workspace layout contract; it does not add another panel manager.
 
 ## Decision Log
@@ -78,7 +79,11 @@ supply workspace ownership or root/child close authority.
 
 `app::residents::SessionResidents` owns `SessionView` and `ConversationArea`
 resources per session, plus the per-session editor/composer resource handle.
-The shared provider/option catalog remains shared. Standalone `TerminalId`
+The shared provider/option catalog remains shared. The existing global message
+search controller (`ConversationArea.search`, `search::Searching`) is intentionally
+window-scoped and survives session changes; its search/palette owner extracts it
+once before ConversationArea becomes resident-owned. It is not instantiated or
+cloned per resident; only a search result's navigation captures resident context. Standalone `TerminalId`
 resources remain the terminal area's; a SessionId TUI session is a distinct
 presentation variant and delegates its grid to that owner.
 
@@ -114,6 +119,8 @@ Named policy constants are defined once in `view::residents`:
 - `MAX_RESIDENT_SESSIONS = 64`, an additional admission bound per app window.
 - `UNCLAIMED_RESIDENT_TTL = ten minutes`, reusing the reference's inactive TTL.
 - `RESIDENT_ATTACH_DEADLINE = thirty seconds`, a finite client attach/read bound.
+- `MAX_RESIDENT_OPERATIONS = 64`, an additional bound on simultaneous admitted
+  effects per resident. Capacity refusal sends nothing and preserves prior tickets.
 
 The per-pane target is soft: visible, focused or modified resources are retained
 first. A hidden retained resident keeps its text, caret/selection, scroll,
@@ -178,9 +185,11 @@ loading/error state, timeline, input, focus or lifecycle.
 
 Every operation additionally captures an opaque `OperationTicket` allocated by
 its owning adapter and admitted against that exact binding and operation kind.
-An action reply must match both the current binding and its outstanding ticket;
+The owning adapter obtains its ticket from the sole registry admission API, whose
+monotonic private ordinal prevents readmission of a consumed ticket. An action
+reply must match both the current binding and its outstanding ticket;
 completion consumes the ticket once. Timeline/composer/attachments/permissions/
-lifecycle owners own their tickets; layout owns binding validation and retirement,
+lifecycle owners own their returned tickets; layout owns binding validation and retirement,
 and link owns connection-lease validity. No owner may route a network event through
 `receive_local` or recreate admission from a received reply. Retiring admission
 marks an already-sent mutation uncertain and preserves protected input; a late

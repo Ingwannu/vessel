@@ -15,6 +15,8 @@ use super::StartAsk;
 /// What a workspace screen asks of a machine.
 #[derive(Debug)]
 pub enum Ask {
+    /// Correlated backing-entity actions from workspace tabs.
+    Layout(super::layout::Ask),
     /// About its projects.
     Project(ProjectAsk),
     /// About worktrees and snapshots.
