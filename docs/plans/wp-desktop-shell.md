@@ -353,6 +353,14 @@ encoder returns Vec<u8>. The owned conversion now uses Into without copying or
 changing UTF-16 policy. Run wp-desktop-shell-win-check-20261115T124451Z-36d11faa
 ended rc1/native-windows-check101; the corrected source needs another typecheck.
 This is not a Windows runtime or root-crate cross-check result.
+Unit16 exact1eb reached compilation and stopped before tests on stale session
+fixtures: Machine lacked connection_epoch, and old Connected/State literals
+bypassed the current admission constructor and new state fields. The session
+owner supplied the exact4af fixture blob: shared testing::state plus canonical
+State::admit_connection using a credential-free local fake peer entry. Only that
+test blob and connection_epoch=None in the view fixture are mirrored here; no
+moving session runtime branch, fabricated validity or alias fallback is adopted.
+The source repair still needs same-head compile/test execution.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

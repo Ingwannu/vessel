@@ -63,6 +63,7 @@ fn machine(name: &str, when: &str, title: &str, archived: bool) -> crate::Machin
     }
     crate::Machine {
         node: None,
+        connection_epoch: None,
         name: name.to_owned(),
         reach: crate::Reach::Online,
         sessions: vec![crate::Card::from_session(name, &info)],
