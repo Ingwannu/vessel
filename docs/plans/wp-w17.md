@@ -829,3 +829,30 @@ client/src/terminals/index.ts resolves exactly the eleven existing CLI key token
 MCP's richer key grammar), which W17 already matches. A real fake-node process regression
 creates four projects and checks default table, headerless table, object JSON and quiet
 against node acknowledgements. It is drafted, not an executed latest-head pass.
+
+### CLI unit evidence after lint corrections (2026-11-15 12:55 UTC)
+
+Exact source0656af27d416232f2fb864d22805cd2a4d014d20 completed remote
+wp-cli-narrow-20261115T120656Z-0656af27 at 12:54 UTC, all four steps rc0.
+`cargo test -p vessel-cli --bin vessel --features vessel-proto/ts,vessel-web/ts`:
+134 passed / 0 failed / 0 ignored; actual tests took 5.44 seconds after compilation.
+Retained /tmp/work/wp-cli/cli-unit-head42 includes spec, cargo.log and steps.tsv.
+This executes the offline schema/retry, parser, output, option ACK and typed-error
+regressions on that source. It excludes later native init --home, gate44 merge,
+public host inventory and table corrections, and does not execute CLI process tests.
+
+Latest product-source dd33c5d7af96 (includes public inventory c6bd390be + field
+rejection02305b878) has exactly one strict affected-crate run queued:
+wp-cli-narrow-20261115T125525Z-dd33c5d7, public-host-cli-clippy. No result claimed.
+
+### Raw attach reply-authority integration boundary (2026-11-15 12:55 UTC)
+
+Read-only audit of C2's staged core e792e217 (not adopted) found a consumer boundary
+for NodeAuthority query replies: native interpreters default Silent, but existing
+`vessel shell attach` writes raw output to a real terminal and forwards raw input
+(attach/mod.rs::attach_terminal, attach/terminal.rs). A real emulator can therefore
+also answer DSR/DA unless one policy suppresses those replies. Sent exact paths to
+C2 before activation; no second parser/filter or new protocol was invented. The
+Windows PTY startup query is already answered and removed by pty/startup.rs, so
+that startup case is distinct. Actor glue still waits for the reviewed core/API
+and a single reply-authority policy for this legacy raw consumer.
