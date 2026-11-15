@@ -11,6 +11,7 @@ mod tests;
 
 use std::sync::Arc;
 
+use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::creation::{Failure, Stage, Ticket};
 use vessel_app_view::machine_book::Name;
 use vessel_proto::{NodeId, SessionId, SessionInfo, SessionSpec};
@@ -45,6 +46,8 @@ impl std::fmt::Debug for FirstInput {
 /// A validated machine/spec and one local submission's identity.
 #[derive(Debug, Clone)]
 pub struct Ask {
+    /// The payload owner; tickets are local to this exact draft.
+    pub source: DraftKey,
     /// Local correlation, not a connection's request counter.
     pub ticket: Ticket,
     /// Canonical first-input identity retained across preparation and child retry.
@@ -64,6 +67,8 @@ pub struct Ask {
 pub enum Answer {
     /// Creation committed; failures from here belong to this resource.
     Registered {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Node-book identity, retained even after navigation.
@@ -75,15 +80,19 @@ pub enum Answer {
     },
     /// Progress of the matching payload.
     Progress {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Side effect currently awaited.
         stage: Stage,
     },
     /// The legacy flow finished; deferred files remain their owner's concern.
-    Complete(Ticket),
+    Complete(DraftKey, Ticket),
     /// A known refusal or uncertain side effect, without raw server text.
     Failed {
+        /// Exact draft whose local ticket this reply settles.
+        source: DraftKey,
         /// Local submission identity.
         ticket: Ticket,
         /// Last attempted side effect.
@@ -91,6 +100,19 @@ pub enum Answer {
         /// Safe typed presentation reason.
         failure: Failure,
     },
+}
+
+impl Answer {
+    /// A reply cannot settle another draft with the same local ticket.
+    #[must_use]
+    pub const fn source(&self) -> DraftKey {
+        match self {
+            Self::Registered { source, .. }
+            | Self::Progress { source, .. }
+            | Self::Failed { source, .. }
+            | Self::Complete(source, _) => *source,
+        }
+    }
 }
 
 impl Ask {
@@ -102,6 +124,7 @@ impl Ask {
             Target::Registered(_) => Stage::InitialInput,
         };
         Answer::Failed {
+            source: self.source,
             ticket: self.ticket,
             stage,
             failure,

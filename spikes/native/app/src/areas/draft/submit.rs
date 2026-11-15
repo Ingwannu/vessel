@@ -84,6 +84,7 @@ impl Shell {
             return;
         }
         let ask = Ask {
+            source: vessel_app_view::composer::drafts::DraftKey::New,
             ticket,
             message,
             machine: machine.clone(),

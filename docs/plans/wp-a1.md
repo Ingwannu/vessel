@@ -212,3 +212,12 @@ unsupported without clearing text. Two narrowly documented dead-code
 expectations apply only to the staged cross-worker accessors/intake and must
 be removed with their actual consumers. This producer is not a working fork,
 attachment, persistence or creation flow and must not be advertised as ready.
+
+The link's Ask and every Answer now carry the canonical DraftKey in addition
+to the local Ticket. Per-draft counters may legitimately allocate the same
+ticket, so node pinning alone cannot distinguish their payload owners. The
+legacy New consumer ignores other keys; its worktree adapter preserves the
+New key. Duplex tests check the captured source on every reply and a shell
+regression prevents another draft's equal ticket from completing New. Actual
+workspace dispatch/settlement awaits W6's keyed preparation bridge and the
+reviewed workspace runtime; this correlation change performs no new RPC.
