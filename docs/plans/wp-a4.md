@@ -44,3 +44,24 @@ format/size/boundary checks. Narrow checks and child integration are ongoing.
 No full A4, provider extraction, UI capture or end-to-end parity claim is made.
 One complete package native gate/capture review follows implementation, with
 node security deltas separately reviewed under A14.
+
+## Text-fork producer checkpoint
+
+view::history::fork_summary prepares an ephemeral snapshot from canonical
+projected timeline rows. Full SessionRef+entry key+revision identifies a selected
+boundary, including inherited rows from different sources. It refuses missing
+or changed checkpoints and unavailable history, and discloses retained-only
+history separately from budget omissions. It owns no draft/context persistence;
+conversion to W6 ChatHistory/ContextText and W3 DraftSeed is still required.
+
+Source read: server/agent/activity-curator.ts:308-375 and tests520-550. The full
+wrapper measures100000 UTF-16 units, metadata1000, tool summary200. Recent whole
+messages win; a single oversized last message retains beginning/end with an
+explicit middle omission. Rust preserves Unicode scalars at boundaries rather
+than slicing half a surrogate. User/assistant/tool summaries are included;
+thoughts/debug logs/raw external tool input are excluded, as in Paseo's fork.
+The current native ToolView title supplies a tool's readable summary; detailed
+W10/W23 tool presentation can enrich this once their common type is integrated.
+Tests cover the full wrapper, Unicode, recent selection, near-budget last
+message retention, source identity/revision, metadata bounds and excluded raw
+input. Source/fixtures are staged pending narrow execution; no fork UI claim.
