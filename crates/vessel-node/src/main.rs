@@ -277,7 +277,7 @@ async fn main() -> ExitCode {
     let attaching = matches!(args.command, Some(Command::Attach));
     desktop_logging::init(
         attaching,
-        args.command.is_none() && args.run.mode.desktop_managed(),
+        args.command.is_none() && args.run.launch.desktop_managed(),
         args.data_dir.as_ref(),
     );
 
