@@ -114,3 +114,15 @@ git-panel-problem-keys = 요청을 안전하게 구분할 수 없습니다. Vess
 
 # Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
 git-panel-partial = 목록에 없는 변경 파일이 있습니다. 새로고침하거나 비교 범위를 줄이세요.
+
+# Label before the exact original identity in a diagnostic code block.
+git-panel-detail-expected = 요청한 값
+
+# Label before the exact peer identity in a diagnostic code block.
+git-panel-detail-received = 받은 값
+
+# Label before the exact recorded worktree base ref; no particle follows its name.
+git-panel-detail-stored-base = 저장된 기준 브랜치
+
+# Label before the exact requested branch or commit base in a diagnostic code block.
+git-panel-detail-requested-base = 요청한 비교 기준

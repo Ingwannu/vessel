@@ -286,27 +286,7 @@ fn failure(
         vessel_app_kit::alert::Size::Small,
         tokens,
     );
-    let detail = match why {
-        vessel_app_view::workspace::git::panel::ReadFailure::Call(
-            vessel_app_view::workspace::problem::Problem::Node { message, .. }
-            | vessel_app_view::workspace::problem::Problem::Gone(message),
-        ) => Some(message.as_str()),
-        vessel_app_view::workspace::git::panel::ReadFailure::Call(
-            vessel_app_view::workspace::problem::Problem::Unsent
-            | vessel_app_view::workspace::problem::Problem::Older,
-        )
-        | vessel_app_view::workspace::git::panel::ReadFailure::WorkspaceUnavailable
-        | vessel_app_view::workspace::git::panel::ReadFailure::KeysExhausted
-        | vessel_app_view::workspace::git::panel::ReadFailure::DestinationClosed
-        | vessel_app_view::workspace::git::panel::ReadFailure::Capacity
-        | vessel_app_view::workspace::git::panel::ReadFailure::TimedOut
-        | vessel_app_view::workspace::git::panel::ReadFailure::DestinationChanged
-        | vessel_app_view::workspace::git::panel::ReadFailure::UnexpectedNode { .. }
-        | vessel_app_view::workspace::git::panel::ReadFailure::UnexpectedSession { .. }
-        | vessel_app_view::workspace::git::panel::ReadFailure::UnexpectedFile { .. }
-        | vessel_app_view::workspace::git::panel::ReadFailure::BaseMismatch { .. }
-        | vessel_app_view::workspace::git::panel::ReadFailure::ComparisonUnavailable => None,
-    };
+    let detail = why.detail(shell.words);
     div()
         .flex()
         .flex_col()
@@ -316,7 +296,7 @@ fn failure(
         .children(detail.map(|text| {
             vessel_app_kit::output_box(
                 "git-panel-detail",
-                text,
+                &text,
                 vessel_app_kit::output::Start::Top,
                 tokens,
                 window,

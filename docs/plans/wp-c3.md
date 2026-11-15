@@ -678,3 +678,13 @@ this is an approved queue cancellation, not a compiler result. Their evidence
 is retained. One latest union App/Kit source batch follows rustfmt, file budget,
 boundary/token checks and import/doc-markdown inspection. Values194, nodee103
 and fa1 Clippy remain untouched. No whole package pass or capture is implied.
+
+## Retained mismatch diagnostics
+
+The provisional body kept typed base/path/node/session mismatches in state but
+only displayed a recovery sentence. The view now projects both original and
+returned identities (or stored/requested bases) into separate code detail with
+EN/KO catalog labels. Git's redacted own output is retained verbatim; no string
+selects a failure policy. Whole-output fixtures cover Korean/spaced paths and
+ref-versus-commit mismatch. This source correction is not covered by the earlier
+queued0af check and has no inspected screen proof yet.

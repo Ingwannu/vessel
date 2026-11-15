@@ -115,3 +115,15 @@ git-panel-problem-keys = No more requests can be identified safely. Restart Vess
 
 # Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
 git-panel-partial = Some changed files are not listed. Refresh or narrow the comparison.
+
+# Label before the exact original identity in a diagnostic code block.
+git-panel-detail-expected = Expected
+
+# Label before the exact peer identity in a diagnostic code block.
+git-panel-detail-received = Received
+
+# Label before the exact recorded worktree base ref; no particle follows its name.
+git-panel-detail-stored-base = Stored base branch
+
+# Label before the exact requested branch or commit base in a diagnostic code block.
+git-panel-detail-requested-base = Requested comparison base

@@ -130,6 +130,57 @@ impl ReadIssue {
     }
 }
 
+impl ReadFailure {
+    /// Retain every peer identity and diagnostic beneath the recovery sentence.
+    /// Labels come from the catalog; raw values never choose recovery policy.
+    #[must_use]
+    pub fn detail(&self, catalog: &Translator) -> Option<String> {
+        let words = catalog.git_panel();
+        let pair = |expected: String, received: String| {
+            format!(
+                "{}\n{expected}\n{}\n{received}",
+                words.detail_expected(),
+                words.detail_received()
+            )
+        };
+        match self {
+            Self::Call(Problem::Node { message, .. } | Problem::Gone(message)) => {
+                Some(message.clone())
+            }
+            Self::UnexpectedNode { expected, received } => {
+                Some(pair(expected.to_string(), received.to_string()))
+            }
+            Self::UnexpectedSession {
+                requested,
+                received,
+            } => Some(pair(requested.to_string(), received.to_string())),
+            Self::UnexpectedFile {
+                requested,
+                received,
+            } => Some(pair(requested.to_string(), received.to_string())),
+            Self::BaseMismatch { stored, requested } => {
+                let requested = match requested {
+                    vessel_proto::workspace::WorktreeBase::Ref { name } => name.to_string(),
+                    vessel_proto::workspace::WorktreeBase::Commit { id } => id.to_string(),
+                };
+                Some(format!(
+                    "{}\n{stored}\n{}\n{requested}",
+                    words.detail_stored_base(),
+                    words.detail_requested_base()
+                ))
+            }
+            Self::Call(Problem::Unsent | Problem::Older)
+            | Self::WorkspaceUnavailable
+            | Self::KeysExhausted
+            | Self::DestinationClosed
+            | Self::Capacity
+            | Self::TimedOut
+            | Self::DestinationChanged
+            | Self::ComparisonUnavailable => None,
+        }
+    }
+}
+
 impl<'a> GitPanel<'a> {
     /// One label per place; no conditionals or strings in drawing code.
     #[must_use]
@@ -327,5 +378,49 @@ mod tests {
             assert_eq!(en.quick_success(action), english);
             assert_eq!(ko.quick_success(action), korean);
         }
+    }
+    #[test]
+    fn mismatch_details_keep_both_facts_with_whole_catalog_labels() {
+        let en = Translator::get(ENGLISH).unwrap();
+        let ko = Translator::get(resolve_language(
+            LanguagePreference::System,
+            Some("ko"),
+            None,
+        ))
+        .unwrap();
+        let mismatch = ReadFailure::UnexpectedFile {
+            requested: "long/원래 파일.rs".parse().unwrap(),
+            received: "other/actual.rs".parse().unwrap(),
+        };
+        assert_eq!(
+            mismatch.detail(en).as_deref(),
+            Some("Expected\nlong/원래 파일.rs\nReceived\nother/actual.rs")
+        );
+        assert_eq!(
+            mismatch.detail(ko).as_deref(),
+            Some("요청한 값\nlong/원래 파일.rs\n받은 값\nother/actual.rs")
+        );
+        let base = ReadFailure::BaseMismatch {
+            stored: "refs/remotes/origin/main".parse().unwrap(),
+            requested: vessel_proto::workspace::WorktreeBase::Commit {
+                id: "a".repeat(40).parse().unwrap(),
+            },
+        };
+        assert_eq!(
+            base.detail(en).unwrap(),
+            format!(
+                "Stored base branch\nrefs/remotes/origin/main\nRequested comparison base\n{}",
+                "a".repeat(40)
+            )
+        );
+        assert_eq!(
+            base.detail(ko).unwrap(),
+            format!(
+                "저장된 기준 브랜치\nrefs/remotes/origin/main\n요청한 비교 기준\n{}",
+                "a".repeat(40)
+            )
+        );
+        assert_eq!(ReadFailure::Capacity.detail(en), None);
+        assert_eq!(ReadFailure::Call(Problem::Unsent).detail(ko), None);
     }
 }
