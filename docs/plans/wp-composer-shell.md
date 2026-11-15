@@ -202,3 +202,14 @@ W13's real-engine changed-selection/captured-opening fixture is retained verbati
 This permits a scoped resident constructor without an extra callback model/entity
 or reentrant weak-Shell update. K's future Legacy/Windowed integration must retain
 this boxed submit and the one guarded invocation. Combined compile is pending.
+
+W12-approved constructor factor moves only SessionView + construction into
+areas/session/resource.rs and shrinks session.rs604→570 product lines. Existing
+productnew constructs exactly one legacy field and delegates with_composer; no
+Open/Pending/lifecycle/submit behavior is changed. Test-only new_scoped captures
+SessionContext and refreshes the same resident+claim before submit, requiring
+current Visible+Focused. It never resolves selected route or retargets a network
+reply. A real GPUI harness draws that retained field and tests hidden/released
+Enter refusal, move refresh, independent other draft, and unchanged field/selection.
+W12 exact1d93 staged registry is adopted with W1's checked global-search prerequisite;
+its literal cfg(test) boundaries remain intact. No live cutover/admission claim.
