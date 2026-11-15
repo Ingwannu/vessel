@@ -12,10 +12,14 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
+// Host callbacks are an open extension point. A retained capture binds submit
+// to its original owner instead of looking up today's selected form.
+pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
+
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
-    pub(super) on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+    pub(super) on_submit: Submit<V>,
     pub(super) submit_press: Rc<Cell<Option<super::SubmitPress>>>,
     pub(super) on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
     pub(super) focused: Rc<Cell<bool>>,

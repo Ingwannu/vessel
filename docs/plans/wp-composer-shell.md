@@ -193,3 +193,12 @@ unneeded duplicate all-document AST reconstruction. New source awaits rerun.
 The obsolete retained source clone and private finish source argument are removed:
 the same versioned TextViewState already owns source and parsed selection. Find
 marks, revision updates and the public Options/Actions API remain unchanged.
+
+With W13's explicit staged-consumer approval, only267d's captured on_submit
+widening is consumed: existing factories accept immutable Fn and box it once in
+the existing Handlers. No older factory/style/root extraction is restored. The
+same listener and SubmitPress guard own invocation; edit/focus/blur stay unchanged.
+W13's real-engine changed-selection/captured-opening fixture is retained verbatim.
+This permits a scoped resident constructor without an extra callback model/entity
+or reentrant weak-Shell update. K's future Legacy/Windowed integration must retain
+this boxed submit and the one guarded invocation. Combined compile is pending.

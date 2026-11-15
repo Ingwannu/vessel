@@ -114,7 +114,7 @@ impl TextField {
     /// `on_submit` on its owner with the text it holds.
     pub fn new<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -125,7 +125,7 @@ impl TextField {
     /// (to say what is wrong with it beside the field as it is typed).
     pub fn with_change<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         on_change: fn(&mut V, String, &mut Context<'_, V>),
         window: &mut Window,
         cx: &mut Context<'_, V>,
@@ -144,7 +144,7 @@ impl TextField {
     /// sending).
     pub fn composer<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -157,7 +157,7 @@ impl TextField {
     /// textarea supplies the 68 / 80-point minimum and 256-point cap.
     pub fn form_multiline<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -167,7 +167,7 @@ impl TextField {
     fn multiline<V: 'static>(
         style: MultilineStyle,
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -196,7 +196,7 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 submit_press: Rc::clone(&submit_press),
                 // A growing form changes the surrounding dialog's layout
                 // and submit availability; its owner must see each edit.
@@ -222,7 +222,7 @@ impl TextField {
 
     fn line<V: 'static>(
         placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
         on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
         window: &mut Window,
         cx: &mut Context<'_, V>,
@@ -234,7 +234,7 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit,
+                on_submit: Box::new(on_submit),
                 submit_press: Rc::clone(&submit_press),
                 on_change,
                 focused: Rc::clone(&focused),
@@ -514,3 +514,5 @@ mod composing_tests {
 
 #[cfg(test)]
 mod form_tests;
+#[cfg(test)]
+mod submit_tests;
