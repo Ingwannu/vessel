@@ -147,9 +147,9 @@ alive after the app exited; its process ancestry was verified against that
 private fleet. This is legacy-call evidence only, not the final capture/gate.
 
 Browser delivery is unverified: the initial desktop MIME handler selected a
-different installed application, so the QA environment now uses its own data
-and MIME directories to select a real isolated Chromium profile. No operator
-MIME/profile setting is changed. Restart/stop are also not yet proved by this
+different installed application. The current QA environment uses private data
+and MIME directories and a fake opener; it does not launch a real browser. No
+operator MIME/profile setting is changed. Restart/stop are also not yet proved by this
 smoke; state-only debug messages distinguish a stale/view-refused click from
 a dispatched intention without logging a command, host or credential.
 
