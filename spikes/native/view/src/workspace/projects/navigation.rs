@@ -170,7 +170,7 @@ enum DraftKey {
     Clone(ProjectTarget, CloneUrl),
 }
 
-/// Page state and draft retention only; submission correlation remains ProjectActions'.
+/// Page state and draft retention only; submission correlation remains `ProjectActions`'.
 #[derive(Debug, Default)]
 pub struct ProjectNavigationModel {
     current: Option<ProjectPage>,
