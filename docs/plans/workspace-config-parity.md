@@ -207,6 +207,10 @@ shown and a partial comparison cannot claim the commands are unchanged.
   port ranges and terminal entries. Their existing tests and digest vectors
   are unchanged; a shared-rule test pins BOM, NEL and Unicode line/paragraph
   separators. No accepted input, approval bytes or execution path changes.
+- Before port fields: ADR 0066 now defines the `ScriptEntry` construction
+  invariant and complete borrowed display view. The native lead owns its
+  constructor/getter and exhaustive-card adaptation; web coverage and
+  comparison must name nested entry fields too. No implementation yet.
 - Then: add the nonempty allocation block and project-relative program
   path described in ADR 0066. Reuse `RelPath`, `ExecPath` and validated
   serde through private owners and the shared trim rule. A relative bare
