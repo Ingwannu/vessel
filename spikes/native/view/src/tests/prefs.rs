@@ -295,8 +295,20 @@ fn an_agents_choices_are_bounded() {
     assert!(Choices::try_from(eight).is_ok());
     let nine: BTreeMap<_, _> = (0..9).map(choice).collect();
     assert!(Choices::try_from(nine).is_err());
+    // Provider choice text now has its explicitly assigned256-byte bound.
+    // Keep literal boundary cases here: a shared constant must not let the
+    // production limit and its only expectation drift together unnoticed.
+    for bytes in [65, 67, 256] {
+        let fits: BTreeMap<_, _> = [(
+            OptionId::new("x".repeat(bytes)),
+            ChoiceValue::Toggle { on: true },
+        )]
+        .into_iter()
+        .collect();
+        assert!(Choices::try_from(fits).is_ok(), "{bytes} bytes must fit");
+    }
     let long: BTreeMap<_, _> = [(
-        OptionId::new("x".repeat(65)),
+        OptionId::new("x".repeat(257)),
         ChoiceValue::Toggle { on: true },
     )]
     .into_iter()

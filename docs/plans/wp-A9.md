@@ -442,3 +442,14 @@ All this consumer source is unverified until the changed-head remote narrow and
 final A9 gate/captures. Earlier039c runtime evidence excludes these new controls,
 messages and tests. Modern provider24 remains uncallable pending canonical base;
 no profile/account binding is inferred and A10 remains unstarted.
+
+
+The039c View/Link runtime narrow returned RED:1113 passed/1 failed. Link110/0
+included the real67-byte save/load and257-byte visible refusal/prior-file tests.
+View1003/1 failed only the pre-existing prefs::an_agents_choices_are_bounded case
+which still expected65-byte option ids to be rejected. The assigned common bound
+is256 for both option ids and selected opaque values. Retain its8/9 choice-count
+assertions and replace the obsolete65 rejection with literal65/67/256 acceptance
+and257 rejection. No product limit or assertion is weakened to mask a failure.
+Corrected current-source runtime remains owed; neither this red run nor the
+new consumer's queued Clippy is a whole A9 or current-feature pass.
