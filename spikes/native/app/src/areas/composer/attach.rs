@@ -91,6 +91,7 @@ pub(super) enum LocalFileProblem {
 /// A prompt waiting for its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Waiting {
+    pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
     pub(super) text: String,
@@ -104,6 +105,7 @@ pub(crate) struct Waiting {
 /// A new chat started for its files, until its session exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Starting {
+    pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
     pub(super) text: String,
@@ -243,6 +245,7 @@ impl Shell {
     /// for the files (`true`: the send is taken; the composer empties).
     pub(crate) fn session_sends_files(
         &mut self,
+        message: vessel_proto::timeline::ClientMessageId,
         text: &str,
         delivery: Delivery,
         window: &mut Window,
@@ -273,6 +276,7 @@ impl Shell {
             return true;
         };
         let waiting = Waiting {
+            message,
             local_files: self.retained_local_files(DraftKey::Session { session }),
             phase: super::transmission::Phase::Preparing,
             context,
@@ -293,6 +297,7 @@ impl Shell {
     /// text and tray if resuming fails. No plain-text prompt escapes first.
     pub(crate) fn resume_attachment_prompt(
         &mut self,
+        message: vessel_proto::timeline::ClientMessageId,
         text: &str,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -326,6 +331,7 @@ impl Shell {
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
+                message,
                 local_files,
                 phase: super::transmission::Phase::Preparing,
                 context,
@@ -411,6 +417,7 @@ impl Shell {
                 vessel_app_view::composer::context::ContextTray::captured(context);
         }
         let waiting = Waiting {
+            message: starting.message,
             local_files,
             phase: super::transmission::Phase::Preparing,
             context: starting.context,
