@@ -1,4 +1,4 @@
-## 호스트별 작업공간 라벨. 세션 메타데이터 편집과 구분합니다.
+## 호스트별 작업공간 라벨. 세션 메타데이터와 구분합니다.
 # Label manager title text; shown inside the adaptive dialog.
 labels-title = 라벨
 # Label manager manage text; shown inside the adaptive dialog.

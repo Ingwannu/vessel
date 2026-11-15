@@ -1,4 +1,4 @@
-## Host-local workspace labels. Session metadata is a separate editor.
+## Host-local workspace labels. Session metadata is a separate domain.
 # Label manager title text; shown inside the adaptive dialog.
 labels-title = Labels
 # Label manager manage text; shown inside the adaptive dialog.

@@ -38,6 +38,7 @@ pub(super) fn mark(color: Color, tokens: &Tokens) -> Div {
 pub(super) fn choices(
     shell: &Shell,
     selected: Color,
+    target: &super::actions::Target,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -46,6 +47,7 @@ pub(super) fn choices(
         .flex_wrap()
         .gap(px(S2))
         .children(Color::ALL.into_iter().map(|color| {
+            let target = target.clone();
             let button = button_with_kind(
                 ElementId::Name(format!("label-swatch-{color:?}").into()),
                 name(shell, color),
@@ -71,6 +73,9 @@ pub(super) fn choices(
                         return;
                     }
                     let state = &mut shell.areas.labels;
+                    if !target.matches(state.opening, &state.manager) {
+                        return;
+                    }
                     if let Some(draft) = state.manager.draft_mut()
                         && draft.color() != color
                     {

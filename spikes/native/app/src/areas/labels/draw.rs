@@ -21,7 +21,7 @@ pub(crate) fn overlay(
     let state = &shell.areas.labels;
     let opening = state.opening?;
     let dismiss = super::surface::Dismiss::capture(opening, state.manager.state());
-    let body = body(shell, tokens, cx);
+    let body = body(shell, opening, tokens, cx);
     Some(dialog(
         &state.dialog,
         DialogContent {
@@ -51,7 +51,12 @@ fn title(shell: &Shell) -> String {
     }
 }
 
-fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+fn body(
+    shell: &Shell,
+    opening: super::surface::Opening,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let state = &shell.areas.labels;
     let words = shell.words.labels();
     let mut body = div().flex().flex_col().gap(px(S3)).type_(Type::Body);
@@ -80,7 +85,9 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         | ManagerState::Inspecting { draft, .. }
         | ManagerState::Confirming { draft, .. }
         | ManagerState::Deleting { draft, .. } => {
-            body.child(super::form::editor(shell, host, draft, tokens, cx))
+            let target =
+                super::actions::Target::new(opening, host.key, draft.original().name.clone());
+            body.child(super::form::editor(shell, host, draft, target, tokens, cx))
         }
     }
 }

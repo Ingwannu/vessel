@@ -11,13 +11,14 @@ use vessel_app_view::{
     localization::Number,
 };
 
-use super::actions::Action;
+use super::actions::{Action, Target};
 use crate::shell::Shell;
 
 pub(super) fn editor(
     shell: &Shell,
     host: &Host,
     draft: &Draft,
+    target: Target,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
@@ -29,7 +30,13 @@ pub(super) fn editor(
         .gap(px(S3))
         .type_(Type::Body)
         .child(state.name.element(tokens, false, cx))
-        .child(super::colors::choices(shell, draft.color(), tokens, cx))
+        .child(super::colors::choices(
+            shell,
+            draft.color(),
+            &target,
+            tokens,
+            cx,
+        ))
         .child(
             button_with_kind(
                 "labels-back",
@@ -39,7 +46,11 @@ pub(super) fn editor(
                 tokens,
             )
             .when(!state.manager.state().busy(), |button| {
-                button.on_click(cx.listener(|shell, _, _window, cx| {
+                let target = target.clone();
+                button.on_click(cx.listener(move |shell, _, _window, cx| {
+                    if !target.matches(shell.areas.labels.opening, &shell.areas.labels.manager) {
+                        return;
+                    }
                     if let Err(failure) = shell.areas.labels.manager.back() {
                         shell.areas.labels.error = Some(failure);
                     }
@@ -48,10 +59,16 @@ pub(super) fn editor(
                 }))
             }),
         )
-        .child(actions(shell, host, tokens, cx))
+        .child(actions(shell, host, &target, tokens, cx))
 }
 
-fn actions(shell: &Shell, host: &Host, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+fn actions(
+    shell: &Shell,
+    host: &Host,
+    target: &Target,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let words = shell.words.labels();
     let row = div().flex().flex_col().gap(px(S3));
     match shell.areas.labels.manager.state() {
@@ -71,9 +88,10 @@ fn actions(shell: &Shell, host: &Host, tokens: &Tokens, cx: &mut Context<'_, She
                     tokens,
                 )
                 .when(can_save, |button| {
-                    button.on_click(
-                        cx.listener(|shell, _, _window, cx| shell.label_action(Action::Save, cx)),
-                    )
+                    let target = target.clone();
+                    button.on_click(cx.listener(move |shell, _, _window, cx| {
+                        shell.label_action(Action::Save(target.clone()), cx);
+                    }))
                 }),
             )
             .child(
@@ -85,15 +103,18 @@ fn actions(shell: &Shell, host: &Host, tokens: &Tokens, cx: &mut Context<'_, She
                     tokens,
                 )
                 .when(can_delete, |button| {
-                    button.on_click(cx.listener(|shell, _, _window, cx| {
-                        shell.label_action(Action::Inspect, cx);
+                    let target = target.clone();
+                    button.on_click(cx.listener(move |shell, _, _window, cx| {
+                        shell.label_action(Action::Inspect(target.clone()), cx);
                     }))
                 }),
             )
         }
         ManagerState::Saving { .. } | ManagerState::Deleting { .. } => row.child(words.pending()),
         ManagerState::Inspecting { .. } => row.child(words.inspecting()),
-        ManagerState::Confirming { count, .. } => confirmation(shell, host, *count, tokens, cx),
+        ManagerState::Confirming { count, ticket, .. } => {
+            confirmation(shell, host, *count, target.clone(), *ticket, tokens, cx)
+        }
     }
 }
 
@@ -101,10 +122,16 @@ fn confirmation(
     shell: &Shell,
     host: &Host,
     count: Count,
+    target: Target,
+    inspection: vessel_app_view::labels::Ticket,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.words.labels();
+    let cancel = super::surface::Dismiss::Confirmation {
+        opening: target.opening(),
+        inspection,
+    };
     div()
         .flex()
         .flex_col()
@@ -123,10 +150,8 @@ fn confirmation(
                 ButtonState::Enabled,
                 tokens,
             )
-            .on_click(cx.listener(|shell, _, _window, cx| {
-                let _cancelled = shell.areas.labels.manager.cancel_delete();
-                shell.settle_labels(cx);
-                cx.notify();
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                shell.labels_close(cancel, window, cx);
             })),
         )
         .child(
@@ -138,9 +163,15 @@ fn confirmation(
                 tokens,
             )
             .when(host.state.connected(), |button| {
-                button.on_click(
-                    cx.listener(|shell, _, _window, cx| shell.label_action(Action::Delete, cx)),
-                )
+                button.on_click(cx.listener(move |shell, _, _window, cx| {
+                    shell.label_action(
+                        Action::Delete {
+                            target: target.clone(),
+                            inspection,
+                        },
+                        cx,
+                    );
+                }))
             }),
         )
 }

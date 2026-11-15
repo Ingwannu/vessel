@@ -209,3 +209,18 @@ make that replacement look like the deletion target. The existing inspection
 regression now retains an unsaved rename through inspection and verifies that
 only the original label is submitted for deletion. Edit/delete headers use
 whole Fluent messages in both languages.
+
+Action callbacks retain the displayed opening, host and normalized catalog
+target. Delete additionally retains the inspection ticket. Save/inspection,
+swatch input, Back and final deletion cannot be retargeted by a newer editor
+or confirmation before the old callback runs; stale actions are ignored before
+ticket allocation or queue submission. Cancel uses the same captured-dismiss
+policy as Escape/scrim/close. Added pure regressions for changed openings,
+host/target switches, async phase changes and replaced deletion inspections.
+
+Scoped verification: `c266d9b6` passed 38 tests matching labels across app,
+link and view, including 24 tests in the owned view label module and both
+queue/refusal tests. This predates the final binding and captured-surface/action
+regressions. Node `e764f8a6` strict alltarget proto/store/node clippy passed.
+The newest native strict check and the added regressions are still pending;
+no whole gate, review or inspected capture is claimed.
