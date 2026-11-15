@@ -491,3 +491,21 @@ fn aliases_of_one_node_keep_one_stable_read_admission_without_double_counting() 
             .0
     );
 }
+
+#[test]
+fn bounded_background_admission_rotates_every_machine_to_the_head() {
+    let sources: Vec<_> = ["one", "two", "three", "four"]
+        .into_iter()
+        .map(|name| FakeNode::new(name).source)
+        .collect();
+    let mut inbox = Inbox::default();
+    for expected in &sources {
+        let order = inbox.poll_routes(sources.clone());
+        assert_eq!(order.first(), Some(expected));
+        assert_eq!(order.len(), sources.len());
+        assert!(sources.iter().all(|source| order.contains(source)));
+    }
+    assert_eq!(inbox.poll_routes(sources.clone()).first(), sources.first());
+    assert!(inbox.poll_routes(Vec::new()).is_empty());
+    assert_eq!(inbox.poll_routes(sources.clone()).first(), sources.first());
+}

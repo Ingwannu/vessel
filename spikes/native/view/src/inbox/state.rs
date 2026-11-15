@@ -73,6 +73,7 @@ pub struct Node {
 pub struct Inbox {
     nodes: Vec<Node>,
     serial: u64,
+    poll_start: usize,
     selected: Option<Key>,
     terminal_notices: Vec<(Source, vessel_proto::notifications::TerminalAttention)>,
     terminal_coalescing: super::notices::Coalescing,
@@ -103,6 +104,27 @@ impl Inbox {
             }
         }
         routes
+    }
+
+    /// Rotate only background admission order. A fixed first batch must not
+    /// starve later machines when the link's bounded concurrency is saturated.
+    /// The node list's presentation order and pending effects stay unchanged.
+    #[must_use]
+    pub fn poll_routes(&mut self, mut sources: Vec<Source>) -> Vec<Source> {
+        if sources.is_empty() {
+            self.poll_start = 0;
+            return sources;
+        }
+        let start = self
+            .poll_start
+            .checked_rem(sources.len())
+            .unwrap_or_default();
+        sources.rotate_left(start);
+        self.poll_start = start
+            .checked_add(1)
+            .filter(|index| *index < sources.len())
+            .unwrap_or_default();
+        sources
     }
 
     /// Expand a node's loaded prefix only between reads.

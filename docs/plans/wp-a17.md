@@ -229,3 +229,9 @@ Execution account verified ubuntu UID/GID 1000. New proof roots/cookies use
 0700/0600; shared root binaries are read-only consumers. No production ownership,
 permissions, service configuration or infrastructure changed. Stop only verified
 owned PIDs after matching their command line and private data path.
+
+Background read admission rotates source order independently of presentation.
+With the link's bounded concurrency, a fixed first batch could otherwise starve
+later machines on every refresh. The pure regression proves every candidate
+reaches the head even if only the first admission succeeds; no effect is replayed
+or retargeted and the visible machine order stays unchanged.

@@ -194,60 +194,68 @@ impl Shell {
             super::place::clear_cards(&mut self.areas.inbox.conversation);
         }
         self.areas.inbox.problem = None;
-        for target in &targets {
-            if let Target::Online(source) = target {
-                let source = source.clone();
-                let id = source.node();
-                let changed = self.areas.inbox.store.nodes().iter().any(|node| {
+        let sources = targets
+            .iter()
+            .filter_map(|target| match target {
+                Target::Online(source) => Some(source.clone()),
+                Target::Offline(_) => None,
+            })
+            .collect();
+        for source in self.areas.inbox.store.poll_routes(sources) {
+            let id = source.node();
+            let changed =
+                self.areas.inbox.store.nodes().iter().any(|node| {
                     node.source.node() == id && node.source.context() != source.context()
                 });
-                let connected = self
-                    .areas
-                    .inbox
-                    .store
-                    .nodes()
-                    .iter()
-                    .any(|node| node.source == source);
-                self.areas.inbox.store.connect(source.clone());
-                if !connected {
-                    self.command(Command::Inbox(Ask::Presence {
-                        source: source.clone(),
-                        report: self.areas.inbox.presence.snapshot(),
-                    }));
-                }
-                if changed
-                    && let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id)
-                {
-                    self.areas.inbox.detail.retire();
-                    self.inbox_select(key, cx);
-                }
-                match self.areas.inbox.store.begin(id) {
-                    Ok(Some(request)) => {
-                        let pages = self
-                            .areas
-                            .inbox
-                            .store
-                            .nodes()
-                            .iter()
-                            .find(|node| node.source.node() == id)
-                            .map(|node| node.pages)
-                            .unwrap_or_default();
-                        self.command(Command::Inbox(Ask::List {
-                            source,
-                            pages,
-                            request,
-                        }));
-                    }
-                    Ok(None) => {}
-                    Err(problem) => self.areas.inbox.problem = Some(problem),
-                }
-            } else if let Some(node) = self
+            let connected = self
                 .areas
                 .inbox
                 .store
                 .nodes()
                 .iter()
-                .find(|node| node.source.name() == target.route())
+                .any(|node| node.source == source);
+            self.areas.inbox.store.connect(source.clone());
+            if !connected {
+                self.command(Command::Inbox(Ask::Presence {
+                    source: source.clone(),
+                    report: self.areas.inbox.presence.snapshot(),
+                }));
+            }
+            if changed && let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id)
+            {
+                self.areas.inbox.detail.retire();
+                self.inbox_select(key, cx);
+            }
+            match self.areas.inbox.store.begin(id) {
+                Ok(Some(request)) => {
+                    let pages = self
+                        .areas
+                        .inbox
+                        .store
+                        .nodes()
+                        .iter()
+                        .find(|node| node.source.node() == id)
+                        .map(|node| node.pages)
+                        .unwrap_or_default();
+                    self.command(Command::Inbox(Ask::List {
+                        source,
+                        pages,
+                        request,
+                    }));
+                }
+                Ok(None) => {}
+                Err(problem) => self.areas.inbox.problem = Some(problem),
+            }
+        }
+        for target in &targets {
+            if matches!(target, Target::Offline(_))
+                && let Some(node) = self
+                    .areas
+                    .inbox
+                    .store
+                    .nodes()
+                    .iter()
+                    .find(|node| node.source.name() == target.route())
             {
                 let id = node.source.node();
                 self.areas.inbox.store.disconnect(id);
