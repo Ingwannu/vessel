@@ -585,3 +585,48 @@ coordinator's minimal typed shared Alert presentation for the schedules
 partial-host-error banner; its first-use UI captures belong to its consumer.
 The separately archived Diagnostics draft remains uncompiled and outside
 the resumed slice.
+
+## Shared Alert host-errors presentation: contract first
+
+[Decision Log]
+- Purpose and intent: the schedules consumer needs Paseo's partial-host
+  error banner without painting another notice in its area.
+- Existing assets and constraints: `kit/alert.rs` already owns one notice
+  frame, five semantic variants and four density sizes. Default/ExtraSmall
+  has vertical padding 8, no stack gap and muted text; Error adds an icon
+  and an accent border. Neither matches the source. `status.red_300`,
+  `Type::Meta`, the spacing scale and radius tokens already exist.
+- Alternatives considered: an area-specific div, caller style overrides,
+  a second renderer, or another semantic error variant. These duplicate
+  ownership or conflate a presentation with the meaning chosen in view.
+- Choice: modify the existing Alert. A private typed presentation chooses
+  ordinary Notice versus HostErrors; both use the same frame. The narrow
+  public entry `alert::host_errors(messages, tokens)` accepts one localized
+  whole message per host. The kit owns their vertical stack and wrapping;
+  it accepts no arbitrary colour, padding, icon or size override.
+- Why: the partial-load banner has no title, icon, action or indentation.
+  Its host messages are siblings with spacing 4, not one opaque description
+  whose internal spacing the screen must recreate. The ordinary `alert`
+  entry and every existing caller retain their behavior and defaults.
+- Costs and effects: one additional named presentation and helper, no
+  dependency, token, glyph, view semantic variant, wire or application change.
+  The consumer remains responsible for whether it is shown and its words.
+
+Reference: Paseo 0.15.4
+`packages/app/src/screens/schedules-screen.tsx:334–347,400–417`
+(`ScheduleHostErrorsBanner`, `errorsBanner`, `errorsBannerText`). Its frame
+is transparent, neutral border 1, radius 12, padding 12 on every side, gap 4,
+normal text 12 in palette red 300, with no icon. The outer responsive margin
+belongs to the schedules layout and is not added to Alert. Compare also
+the full `components/ui/alert.tsx`, whose default description and actions
+must stay unchanged, and `styles/theme.ts:71–78`, red 300 `#fca5a5` in both
+themes. No intentional visual difference is planned for this profile.
+
+Verification planned: exact profile geometry/colour/type in both themes,
+the existing variants/sizes preserved, then A13 native gate on the changed
+committed source. G2 owns first-use captures with long messages, several
+hosts, phone width, both themes and languages in its separate consumer
+slice. A source/gate pass here will not claim those UI states passed.
+
+Resume point: Devices is with V1; this contract has no implementation yet.
+Next implement only the shared Alert profile and its tests/README entry.
