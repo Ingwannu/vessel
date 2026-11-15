@@ -475,3 +475,14 @@ the new named aliases were inserted out of global order, invalidating the
 existing binary-search classifier. Restore sorted positions of only those3
 rows, leaving the classifier and prior aliases unchanged. These initial
 failures remain recorded; a corrected-head result is still owed.
+
+### Real RPC upload is blocked on a shared writer cancellation edge
+
+Read the existing client PendingCall Drop and driver Command::Call branch:
+Cancel is best-effort through the same bounded command queue, while a queued
+Call is fed without a per-call fence. The fake Adapter.upload future's drop
+semantics do not establish this real transport behavior. Before implementing
+its adapter, obtain one shared-writer owner for a typed cancellation/admission
+edge and full-queue/held-sink tests. ADR0080 records the commitment and partial
+framing proof obligations. No shared RPC edit, real upload or activation has
+occurred; do not weaken local Stop or claim already committed bytes retract.

@@ -746,3 +746,28 @@ are not native/ABI/model tests. T's importer remains pending and no VM transfer
 has happened. A separate private dependency-preparation branch records only
 the exact ort DEV manifest candidate; offline lock/feature receipt and V3
 acceptance must precede any compilation/build-script execution.
+
+## Real upload transport prerequisite discovered before wiring
+
+The current native uploader is a typed fake-adapter composition, not evidence
+that generic client RPC retracts queued audio. The shared RPC PendingCall drop
+only tries to enqueue Cancel; a full command queue can lose that request. Its
+writer currently handles an already queued Command::Call without an independent
+per-call validity check. Cancelling the waiting future therefore cannot by
+itself prove that uncommitted PCM has been discarded at the real writer.
+
+Do not wire voice upload through ordinary Client.call on that assumption. A
+single shared transport owner must provide and review typed cancellation at
+the writer admission boundary, independent of the full data/control queue.
+The proof must hold a transport/sink, fill queues, drop/Stop/mute the call and
+show queued uncommitted PCM is never fed later. Define the exact commitment
+point and distinguish bytes already admitted to a transport from retractable
+local audio; do not claim remote receipt timing can undo in-flight bytes.
+Any cancellation during partial framing must retire the affected transport
+safely rather than corrupt a subsequent frame or silently restart capture.
+
+Ownership has been requested from the coordinator; no shared RPC source has
+been edited and real voice transport remains unconnected. This prerequisite
+adds no call, protocol number, fallback or permission to activate voice. The
+existing local device/upload fences and uncertain remote cleanup remain
+required in addition to the transport proof.
