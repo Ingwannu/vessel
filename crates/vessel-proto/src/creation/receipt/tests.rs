@@ -105,7 +105,7 @@ fn known_prompt_failure_retries_only_prompt_and_retains_the_same_reserved_agent(
         advance(&mut receipt, Advance::Begin(stage));
         advance(&mut receipt, Advance::Finished(stage));
     }
-    let reserved = receipt.snapshot().reserved;
+    let reserved = receipt.snapshot().reserved.clone();
     advance(&mut receipt, Advance::Begin(Stage::Prompt));
     advance(
         &mut receipt,
@@ -133,7 +133,7 @@ fn invalid_resource_combinations_and_duplicate_stage_starts_are_refused() {
     let mut receipt = receipt(None, FirstInput::Absent);
     let invalid = Reservation {
         first_input: FirstInput::Present,
-        ..receipt.snapshot().reserved
+        ..receipt.snapshot().reserved.clone()
     };
     assert!(Receipt::admitted(Kind::Workspace, invalid, receipt.fingerprint()).is_err());
     advance(&mut receipt, Advance::Begin(Stage::Workspace));
@@ -181,7 +181,12 @@ fn forged_inflight_markers_and_resource_kind_mismatches_do_not_decode() {
 #[test]
 fn canonical_first_input_id_survives_known_retry_serialization_and_unknown_restart() {
     let message = crate::timeline::ClientMessageId::random();
-    let mut receipt = receipt(Some(resource()), FirstInput::Identified { message });
+    let mut receipt = receipt(
+        Some(resource()),
+        FirstInput::Identified {
+            message: message.clone(),
+        },
+    );
     for stage in [Stage::Workspace, Stage::Resource] {
         advance(&mut receipt, Advance::Begin(stage));
         advance(&mut receipt, Advance::Finished(stage));
@@ -200,14 +205,14 @@ fn canonical_first_input_id_survives_known_retry_serialization_and_unknown_resta
     advance(&mut restarted, Advance::Recover);
     assert_eq!(
         restarted.snapshot().reserved.first_input.message(),
-        Some(message)
+        Some(&message)
     );
     assert!(
         restarted
             .advance(restarted.snapshot().revision, Advance::Begin(Stage::Prompt))
             .is_err()
     );
-    let mut terminal = restarted.snapshot().reserved;
+    let mut terminal = restarted.snapshot().reserved.clone();
     terminal.resource = Some(Resource::Terminal {
         terminal: crate::TerminalId::random(),
     });

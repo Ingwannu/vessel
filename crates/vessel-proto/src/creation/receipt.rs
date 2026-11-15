@@ -47,7 +47,7 @@ pub enum WorkspaceClaim {
 }
 
 /// Message presence is retained without putting its text into the receipt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum FirstInput {
@@ -65,13 +65,13 @@ pub enum FirstInput {
 impl FirstInput {
     /// Receipt observation retains unkeyed historical rows without fabricating ids.
     #[must_use]
-    pub const fn message(self) -> Option<crate::timeline::ClientMessageId> {
+    pub const fn message(&self) -> Option<&crate::timeline::ClientMessageId> {
         match self {
             Self::Identified { message } => Some(message),
             Self::Absent | Self::Present => None,
         }
     }
-    const fn required(self) -> bool {
+    const fn required(&self) -> bool {
         match self {
             Self::Absent => false,
             Self::Present | Self::Identified { .. } => true,
@@ -80,7 +80,7 @@ impl FirstInput {
 }
 
 /// Resource identities reserved durably before any provision or spawn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Reservation {
     /// Shared operation identity from ADR 0082, not an alternate workspace id.
@@ -179,9 +179,12 @@ impl TryFrom<ReceiptWire> for Receipt {
     type Error = CreationError;
 
     fn try_from(wire: ReceiptWire) -> Result<Self, Self::Error> {
-        let mut receipt =
-            Self::admitted(wire.snapshot.kind, wire.snapshot.reserved, wire.fingerprint)?;
-        let reserved = wire.snapshot.reserved;
+        let mut receipt = Self::admitted(
+            wire.snapshot.kind,
+            wire.snapshot.reserved.clone(),
+            wire.fingerprint,
+        )?;
+        let reserved = &wire.snapshot.reserved;
         let valid_phase = match wire.snapshot.phase {
             Phase::Accepted | Phase::Completed => true,
             Phase::WorkspaceReady => reserved.workspace_claim == WorkspaceClaim::Create,

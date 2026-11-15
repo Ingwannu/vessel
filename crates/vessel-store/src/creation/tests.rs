@@ -49,7 +49,7 @@ pub(crate) fn any_candidate(key: &str) -> Admission {
 async fn concurrent_same_key_intent_returns_one_reserved_operation() {
     let (_temp, _dir, store) = open().await;
     let first = any_candidate("same-key");
-    let reserved = first.receipt.snapshot().reserved;
+    let reserved = first.receipt.snapshot().reserved.clone();
     let second = any_candidate("same-key");
     let (one, two) = tokio::join!(store.admit_creation(first), store.admit_creation(second));
     assert_eq!(one.unwrap().snapshot().reserved, reserved);

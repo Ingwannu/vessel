@@ -157,7 +157,7 @@ fn admit(connection: &Connection, admission: Admission, budget: Budget) -> Resul
     }
     reserve_capacity(connection, budget)?;
     let encoded = encode(&receipt, budget.row)?;
-    let reserved = receipt.snapshot().reserved;
+    let reserved = &receipt.snapshot().reserved;
     if operation(connection, reserved.operation)?.is_some() {
         return Err(CreationError::ResourceClaimed.into());
     }

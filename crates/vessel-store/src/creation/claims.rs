@@ -20,7 +20,7 @@ impl Claim {
         }
     }
 }
-fn required(reserved: Reservation) -> impl Iterator<Item = Claim> {
+fn required(reserved: &Reservation) -> impl Iterator<Item = Claim> {
     let workspace = match reserved.workspace_claim {
         WorkspaceClaim::Create => Some(Claim::Workspace(reserved.workspace)),
         WorkspaceClaim::Existing => None,
@@ -41,7 +41,7 @@ fn owner(db: &Connection, claim: Claim) -> Result<Option<String>, StoreError> {
     .optional()
     .map_err(StoreError::from)
 }
-pub(super) fn reserve(db: &Connection, reserved: Reservation) -> Result<(), StoreError> {
+pub(super) fn reserve(db: &Connection, reserved: &Reservation) -> Result<(), StoreError> {
     for claim in required(reserved) {
         if owner(db, claim)?.is_some() {
             return Err(CreationError::ResourceClaimed.into());
@@ -67,7 +67,7 @@ pub(super) fn reserve(db: &Connection, reserved: Reservation) -> Result<(), Stor
     Ok(())
 }
 pub(super) fn validate(db: &Connection, receipt: &Receipt) -> Result<(), StoreError> {
-    let reserved = receipt.snapshot().reserved;
+    let reserved = &receipt.snapshot().reserved;
     for claim in required(reserved) {
         if owner(db, claim)?.as_deref() != Some(reserved.operation.to_string().as_str()) {
             return Err(CreationError::ClaimsCorrupt.into());

@@ -65,7 +65,7 @@ fn count_and_byte_saturation_keep_existing_keys_and_refuse_new_keys_without_clai
         let mut db = database();
         let first = candidate("first");
         let identity = first.identity.clone();
-        let original = first.receipt.snapshot().reserved;
+        let original = first.receipt.snapshot().reserved.clone();
         apply_committed(&mut db, Write::Admit(first), limits).unwrap();
         for index in 1..count {
             apply_committed(

@@ -15,7 +15,7 @@ fn seed_before_last_slot(dir: &DataDir) -> Result<(), StoreError> {
     );
     for index in 0..slots.saturating_sub(1) {
         let admission = any_candidate(&format!("retained-{index}"));
-        let reserved = admission.receipt.snapshot().reserved;
+        let reserved = admission.receipt.snapshot().reserved.clone();
         let _changed = tx.execute(
             "INSERT INTO creation_receipts(key_hash,operation,reserved_bytes,receipt) VALUES (?1,?2,?3,?4)",
             rusqlite::params![admission.identity.digest().to_string(), reserved.operation.to_string(),
@@ -111,7 +111,7 @@ async fn deleting_a_completed_resource_does_not_release_its_key_or_claim() {
     let (_temp, dir, store) = open().await;
     let admission = any_candidate("completed");
     let identity = admission.identity.clone();
-    let reserved = admission.receipt.snapshot().reserved;
+    let reserved = admission.receipt.snapshot().reserved.clone();
     let Some(Resource::Agent { session }) = reserved.resource else {
         panic!("agent fixture required");
     };
