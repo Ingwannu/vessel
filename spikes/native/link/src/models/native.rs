@@ -5,8 +5,8 @@ use super::{Answer, Ask, ModelsError};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{Semaphore, mpsc};
 use vessel_app_view::models::page::{Listed, Snapshot};
-use vessel_client::NodeClient;
-use vessel_proto::{ListModels, ListProfiles, Method, agents::ListAgents};
+use vessel_client::{CallError, NodeClient, Unary};
+use vessel_proto::{ListModels, ListProfiles, agents::ListAgents};
 
 const MAX_READS: usize = 4;
 const READ_TIMEOUT: Duration = Duration::from_secs(15);
@@ -53,21 +53,11 @@ async fn emit(events: &mpsc::Sender<crate::Event>, answer: Answer) {
     let _closed = events.send(crate::Event::Models(answer)).await;
 }
 async fn read(client: &NodeClient) -> Result<Snapshot, ModelsError> {
-    let protocol = client.protocol();
-    let routes = if protocol >= Method::ListModels.since() {
-        Listed::Available(client.call(ListModels).await?)
-    } else {
-        Listed::OlderNode
-    };
-    let profiles = if protocol >= Method::ListProfiles.since() {
-        Listed::Available(client.call(ListProfiles { harness: None }).await?)
-    } else {
-        Listed::OlderNode
-    };
-    let agents = if protocol >= Method::ListAgents.since() {
-        client.call(ListAgents {}).await?
-    } else {
-        Vec::new()
+    let routes = listed(client, ListModels).await?;
+    let profiles = listed(client, ListProfiles { harness: None }).await?;
+    let agents = match listed(client, ListAgents {}).await? {
+        Listed::Available(agents) => agents,
+        Listed::OlderNode => Vec::new(),
     };
     Ok(Snapshot {
         node: client.node().id,
@@ -75,6 +65,20 @@ async fn read(client: &NodeClient) -> Result<Snapshot, ModelsError> {
         profiles,
         agents,
     })
+}
+
+// The typed client owns admission before any frame/id is sent. Only its
+// definite older-protocol refusal is an absent list; pending/unassigned
+// contracts and actual failures retain their typed error instead of emptiness.
+async fn listed<R, T>(client: &NodeClient, request: R) -> Result<Listed<T>, ModelsError>
+where
+    R: Unary<Response = Vec<T>>,
+{
+    match client.call(request).await {
+        Ok(rows) => Ok(Listed::Available(rows)),
+        Err(CallError::NotInProtocol { .. }) => Ok(Listed::OlderNode),
+        Err(error) => Err(error.into()),
+    }
 }
 
 #[cfg(test)]

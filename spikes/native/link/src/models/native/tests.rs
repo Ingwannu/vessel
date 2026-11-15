@@ -76,15 +76,27 @@ async fn one_connection_keeps_routes_profiles_and_added_agent_labels_in_node_ord
 #[tokio::test]
 async fn unsupported_methods_are_not_sent_and_successful_empty_is_available() {
     safety(async {
-        let before_profiles =
-            ProtocolVersion::new(Method::ListProfiles.since().get().checked_sub(1).unwrap());
-        let before_models =
-            ProtocolVersion::new(Method::ListModels.since().get().checked_sub(1).unwrap());
+        let before_profiles = ProtocolVersion::new(
+            Method::ListProfiles
+                .since()
+                .unwrap()
+                .get()
+                .checked_sub(1)
+                .unwrap(),
+        );
+        let before_models = ProtocolVersion::new(
+            Method::ListModels
+                .since()
+                .unwrap()
+                .get()
+                .checked_sub(1)
+                .unwrap(),
+        );
         for (protocol, models, profiles, expected) in [
             (before_profiles, false, false, vec![]),
             (before_models, false, true, vec![Method::ListProfiles]),
             (
-                Method::ListModels.since(),
+                Method::ListModels.since().unwrap(),
                 true,
                 true,
                 vec![Method::ListModels, Method::ListProfiles],

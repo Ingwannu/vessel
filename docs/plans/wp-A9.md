@@ -188,3 +188,19 @@ earlier Models/catalog source.
 The next Clippy pass reached App and required the default-save helper's
 machine/agent arguments to be borrowed. Its caller already owns those local
 values; the correction changes neither context checks nor persistence order.
+
+## Package base 3 integration
+
+Merged the assigned `6c782cb6` (Quality B and the owner-supplied web race
+fix). The previous exact-source narrow check remains attributed to its
+older commit, not this merged tree. Root changes belong to that assigned
+base; this app package does not edit node behavior or web tests.
+
+Models no longer repeats the version table: the typed client owns protocol
+admission before a frame/request id. A small private list adapter turns only
+its definite NotInProtocol refusal into OlderNode; unassigned contracts,
+permission/transport failures and actual node refusals stay typed failures.
+No missing version is replaced by a dummy number. The existing no-frame
+older-peer tests and request order are retained. The removal worker already
+has its separate explicit protocol guard and typed-client refusal handling;
+no removal product code or deadline changes in this compatibility update.

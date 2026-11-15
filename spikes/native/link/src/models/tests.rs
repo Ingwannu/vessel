@@ -54,9 +54,14 @@ fn transport_page_and_protocol_failures_are_not_successful_empty_lists() {
         (
             ModelsError::Call(CallError::NotInProtocol {
                 method: Method::ListModels,
-                needs: Method::ListModels.since(),
+                needs: Method::ListModels.since().unwrap(),
                 negotiated: ProtocolVersion::new(
-                    Method::ListModels.since().get().checked_sub(1).unwrap(),
+                    Method::ListModels
+                        .since()
+                        .unwrap()
+                        .get()
+                        .checked_sub(1)
+                        .unwrap(),
                 ),
             }),
             Problem::Unsupported,
