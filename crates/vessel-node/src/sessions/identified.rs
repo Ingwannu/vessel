@@ -19,7 +19,26 @@ impl Sessions {
         by: Creator,
     ) -> Result<SubmitPromptReply, ServiceError> {
         let found = self.find(request.session).await?;
-        // Resolve upload references before hashing, without provider/queue effects.
+        // Replay binds the original submitted payload, not attachment records
+        // that may have been pruned since acceptance. Lookup still follows the
+        // ordinary authorized session lookup and never loads or sends anything.
+        if let Some(reply) = self
+            .store
+            .prompt_receipt(request.clone(), by.clone())
+            .await?
+        {
+            return Ok(reply);
+        }
+        let original = request.clone();
+        let Found::Live { handle, durability } = found else {
+            return Ok(not_admitted(&request, SubmissionRefusal::SessionEnded));
+        };
+        if handle.info().spec.side_question_of.is_some() {
+            return Err(crate::side_questions::SideError::PromptOnly.into());
+        }
+        // Only fresh work resolves caller references to trusted store metadata.
+        // That resolved content reaches the provider, while replay/conflict stays
+        // bound to the exact retained client payload, including every reference.
         if request
             .content
             .iter()
@@ -29,23 +48,10 @@ impl Sessions {
                 crate::attachments::load::resolve(&self.store, request.session, request.content)
                     .await?;
         }
-        if let Some(reply) = self
-            .store
-            .prompt_receipt(request.clone(), by.clone())
-            .await?
-        {
-            return Ok(reply);
-        }
-        let Found::Live { handle, durability } = found else {
-            return Ok(not_admitted(&request, SubmissionRefusal::SessionEnded));
-        };
-        if handle.info().spec.side_question_of.is_some() {
-            return Err(crate::side_questions::SideError::PromptOnly.into());
-        }
         if let Some(reason) = preflight(&handle, &request).await? {
             return Ok(not_admitted(&request, reason));
         }
-        let token = match self.store.admit_prompt(request.clone(), by.clone()).await? {
+        let token = match self.store.admit_prompt(original, by.clone()).await? {
             ReceiptAdmission::New(token) => token,
             ReceiptAdmission::Existing(reply) => return Ok(reply),
         };

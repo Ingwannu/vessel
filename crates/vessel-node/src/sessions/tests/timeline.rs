@@ -431,3 +431,98 @@ async fn plugin_observation_uses_the_owning_actor_and_existing_persistence_barri
     handle.kill();
     fixture.settle().await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn retained_receipts_replay_before_loading_old_attachment_metadata() {
+    let fixture = Fixture::new().await;
+    let session = create(&fixture).await;
+    let mut request = prompt(session, "historical attachment");
+    // Model a retained receipt after the old attachment metadata was removed.
+    // The trusted store seed is deliberately independent of provider execution.
+    request.content.push(ContentBlock::Attachment {
+        attachment: vessel_proto::AttachmentRef {
+            id: vessel_proto::AttachmentId::random(),
+            name: "historical.txt".parse().unwrap(),
+            mime: "text/plain".parse().unwrap(),
+            kind: vessel_proto::AttachmentKind::File,
+            size: 1,
+        },
+    });
+    let vessel_store::ReceiptAdmission::New(token) = fixture
+        .store
+        .admit_prompt(request.clone(), Creator::Owner)
+        .await
+        .unwrap()
+    else {
+        panic!("fresh fixture receipt")
+    };
+    let receipt = fixture
+        .store
+        .accept_prompt(
+            token,
+            vessel_proto::timeline::SubmissionAcceptedKind::Prompt {
+                disposition: vessel_proto::timeline::PromptDisposition::Started,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        fixture
+            .sessions
+            .submit_prompt(request.clone(), Creator::Owner)
+            .await
+            .unwrap(),
+        SubmitPromptReply::Accepted { receipt }
+    );
+    let mut conflict = request.clone();
+    conflict.content.push(ContentBlock::Text {
+        text: "changed".into(),
+    });
+    assert!(matches!(
+        fixture
+            .sessions
+            .submit_prompt(conflict, Creator::Owner)
+            .await
+            .unwrap(),
+        SubmitPromptReply::KeyConflict { .. }
+    ));
+    request.message = ClientMessageId::random();
+    let vessel_store::ReceiptAdmission::New(token) = fixture
+        .store
+        .admit_prompt(request.clone(), Creator::Owner)
+        .await
+        .unwrap()
+    else {
+        panic!("fresh pending fixture")
+    };
+    drop(token);
+    assert!(matches!(
+        fixture
+            .sessions
+            .submit_prompt(request.clone(), Creator::Owner)
+            .await
+            .unwrap(),
+        SubmitPromptReply::OutcomeUnknown { .. }
+    ));
+    request.message = ClientMessageId::random();
+    assert!(
+        fixture
+            .sessions
+            .submit_prompt(request, Creator::Owner)
+            .await
+            .is_err()
+    );
+    let page = fixture
+        .sessions
+        .read(session, EventSeq::ZERO, 128)
+        .await
+        .unwrap();
+    assert!(!page.records.iter().any(|record| matches!(
+        record.event,
+        SessionEvent::Agent {
+            event: AgentEvent::TurnStarted { .. }
+        }
+    )));
+    fixture.sessions.live(session).unwrap().kill();
+    fixture.settle().await;
+}

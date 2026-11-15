@@ -515,3 +515,23 @@ remain independent of ordinary read presence. These are conservative client
 rules, not additional response authority or a new wire revision. New regressions
 are prepared for equal-watermark updates, stale read completion, pruned request
 state and actual canonical reset; execution remains owed.
+
+Replay lookup binds the canonical serialization of the original submitted
+content, including attachment references and metadata, before fresh-work
+attachment resolution. Accepted/Pending outcomes must still resolve when an old
+attachment's metadata is no longer present. Only a fresh identity resolves those
+references against trusted store metadata before validation/admission/provider
+work; that trusted resolved content is dispatched, never client-supplied file
+metadata. Changing submitted reference metadata under an existing key conflicts
+rather than being silently normalized into a different request. A seeded retained
+Accepted/Pending/conflict regression with unavailable attachment metadata checks
+that ordering and that fresh unavailable references cannot dispatch. It is
+prepared but unexecuted; this is not external execution exactly-once proof.
+
+CLI permission listing currently has no guaranteed original provider operation
+name in retained presentation. PermissionPresentation.title is a request title,
+which is semantically distinct from Paseo AgentPermissionRequest.name. A client
+uses a safe generic category when no actual retained operation name is supplied;
+it must not reconstruct that name from a display label, pruned tool record or
+opaque JSON. This display difference does not delay the minimal body vocabulary
+and adds no new response authority or RPC.
