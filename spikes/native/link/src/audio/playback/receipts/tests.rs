@@ -24,7 +24,7 @@ fn final_callback_copy_drains_until_the_predicted_last_sample_time() {
     let tail = reader.next().unwrap().unwrap();
     assert_eq!(tail.valid_frames(), 1);
     assert_eq!(tail.mono().len(), 240);
-    assert_eq!(tail.mono()[0], 0.25);
+    assert_eq!(tail.mono()[0].to_bits(), 0.25_f32.to_bits());
     assert!(tail.mono()[1..].iter().all(|sample| *sample == 0.0));
     assert!(tail.last());
     assert!(reader.next().unwrap().is_none());
@@ -36,7 +36,7 @@ fn final_callback_copy_drains_until_the_predicted_last_sample_time() {
     book.scheduled(lease, now, Some(drain)).unwrap();
     assert_eq!(*status.borrow(), State::Draining);
     assert_eq!(book.next_deadline(), Some(now + drain));
-    book.advance(now + drain - Duration::from_nanos(1));
+    book.advance((now + drain).checked_sub(Duration::from_nanos(1)).unwrap());
     assert_eq!(*status.borrow(), State::Draining);
     book.advance(now + drain);
     assert_eq!(*status.borrow(), State::Played);
@@ -92,7 +92,7 @@ fn bad_clock_or_lost_device_is_failed_and_never_played() {
     let (mut book, _fence) = setup();
     for after in [None, Some(MAX_DEVICE_DRAIN + Duration::from_nanos(1))] {
         let handle = book.submit(packet(&[0, 0])).unwrap();
-        book.begin(handle.lease()).unwrap();
+        assert!(book.begin(handle.lease()).unwrap().is_some());
         assert_eq!(
             book.scheduled(handle.lease(), Instant::now(), after),
             Err(Refusal::Clock)
@@ -118,8 +118,14 @@ fn handle_drop_and_another_capture_cannot_complete_old_output() {
     assert!(matches!(reader.next(), Err(Refusal::Stopped)));
     let mut slot = CaptureSlot::default();
     let previous = slot.reserve(CapturePurpose::Conversation).unwrap();
-    slot.stopping(previous).unwrap();
-    slot.released(previous).unwrap();
+    assert_eq!(
+        slot.stopping(previous).unwrap(),
+        vessel_app_view::audio::CaptureCompletion::Current
+    );
+    assert_eq!(
+        slot.released(previous).unwrap(),
+        vessel_app_view::audio::CaptureCompletion::Current
+    );
     let other = slot.reserve(CapturePurpose::Conversation).unwrap();
     let mut other_book = Book::new(other, Arc::new(Fence::default())).unwrap();
     assert!(other_book.begin(lease).unwrap().is_none());
@@ -160,12 +166,12 @@ fn a_silent_device_and_never_started_segment_have_finite_failure_deadlines() {
     let (mut book, _fence) = setup();
     let queued = book.submit(packet(&[0, 0])).unwrap();
     let deadline = book.next_deadline().unwrap();
-    book.advance(deadline - Duration::from_nanos(1));
+    book.advance(deadline.checked_sub(Duration::from_nanos(1)).unwrap());
     assert_eq!(*queued.status().borrow(), State::Queued);
     book.advance(deadline);
     assert_eq!(*queued.status().borrow(), State::Failed);
     let active = book.submit(packet(&[0, 0])).unwrap();
-    book.begin(active.lease()).unwrap();
+    assert!(book.begin(active.lease()).unwrap().is_some());
     book.advance(book.next_deadline().unwrap());
     assert_eq!(*active.status().borrow(), State::Failed);
     let slow_pcm = Bytes::from(vec![0; 8 * 1024 * 1024]);

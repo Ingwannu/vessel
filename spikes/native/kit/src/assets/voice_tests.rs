@@ -7,7 +7,10 @@ fn raster(glyph: Glyph) -> image::RgbaImage {
     let mut pixels = resvg::tiny_skia::Pixmap::new(20, 20).unwrap();
     resvg::render(
         &tree,
-        resvg::tiny_skia::Transform::from_scale(20.0 / 24.0, 20.0 / 24.0),
+        resvg::tiny_skia::Transform::from_scale(
+            20.0_f32.mul_add(24.0_f32.recip(), 0.0),
+            20.0_f32.mul_add(24.0_f32.recip(), 0.0),
+        ),
         &mut pixels.as_mut(),
     );
     image::RgbaImage::from_raw(20, 20, pixels.take()).unwrap()

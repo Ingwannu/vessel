@@ -246,3 +246,11 @@ SquareFilled; the new assets use pinned Lucide1.50.0/9d9418a2 with source2.5
 stroke and intrinsic filled square, preserving existing outline Stop. Full
 ISC/Feather MIT notice and provenance are adjacent to embedded SVGs. Distribution
 notice inclusion and final inspected UI remain owed.
+
+Narrow99539cabe returned8 link lints plus the kit fixture arithmetic lint.
+The intentionally hidden Block fields and ignored watch/map returns had already
+been corrected in the subsequent source slice. Remaining fixture fixes compare
+float bits, use checked time subtraction, assert returned transitions/readers,
+and express fractional geometry via mul_add. No lint allowance was added.
+Node strict at57ee128a8 passed (remote23s); node voice runtime suite on merged
+d5487770f is queued separately, not yet a runtime pass.

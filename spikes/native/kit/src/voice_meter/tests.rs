@@ -63,7 +63,7 @@ fn horizontal_bars_keep_reference_geometry_in_both_themes(cx: &mut TestAppContex
             {
                 assert_eq!(bounds.origin.x, px(x));
                 assert_eq!(bounds.size, size(px(8.0), px(height)));
-                assert!((f32::from(bounds.origin.y) - y).abs() <= 0.5);
+                assert!(f32::from(bounds.origin.y).mul_add(-1.0, y).abs() <= 0.5);
             }
         }
     }
