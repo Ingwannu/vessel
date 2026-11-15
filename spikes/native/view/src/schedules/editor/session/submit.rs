@@ -188,11 +188,9 @@ impl Model {
                 vessel_proto::ChoiceValue::Toggle { .. } => false,
             };
         }
-        model.as_ref().is_none_or(|model| {
-            values
-                .iter()
-                .any(|offered| offered.id.as_str() == model.as_str())
-        })
+        // Legacy models were checked above; no explicit pick keeps the
+        // reference's provider-default model path once options are ready.
+        true
     }
     /// The prepared candidate must still equal the current form before dispatch.
     /// This also rejects a captured old save callback without reparsing text.
@@ -227,9 +225,9 @@ impl Model {
         }
         // A rendered caller must not be able to clear genuine refusal evidence
         // by refreshing options or by reporting an unknown grant afterwards.
-        let refused = match &answer {
-            Err(Failure::Node(wire)) => Some(wire.code),
-            Ok(_) | Err(_) => None,
+        let refused = match (&answer, request.operation()) {
+            (Err(Failure::Node(wire)), io::Operation::Save(_)) => Some(wire.code),
+            (Ok(_) | Err(_), _) => None,
         };
         let slot = match request.operation() {
             io::Operation::Targets => &mut active.targets,

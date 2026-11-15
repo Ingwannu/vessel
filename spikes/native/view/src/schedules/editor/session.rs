@@ -76,7 +76,9 @@ impl Active {
                 .filter_map(io::Mailbox::failure)
                 .any(|failure| match failure {
                     Failure::ConnectionChanged | Failure::Unconfirmed => true,
-                    Failure::Node(error) => error.code == vessel_proto::ErrorCode::Forbidden,
+                    // A read refusal is not evidence about Operate. Only a
+                    // real write refusal is recorded in authority above.
+                    Failure::Node(_) => false,
                     Failure::Older
                     | Failure::NotEnabled
                     | Failure::Offline

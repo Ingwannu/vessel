@@ -259,7 +259,8 @@ fn recurring_edit_has_fixed_machine_and_only_cadence_changes() {
 #[test]
 fn actual_forbidden_blocks_editing_and_retry_for_the_remaining_visit() {
     let (mut model, opened) = active();
-    let request = model.preview(opened.visit, at()).unwrap().unwrap();
+    let candidate = ready(&mut model, opened.visit);
+    let request = model.save(opened.visit, candidate).unwrap();
     assert!(matches!(
         model.received(
             &request,
@@ -317,7 +318,8 @@ fn known_grants_and_actual_refusal_are_preserved_without_guessing_missing_scopes
         assert_eq!(model.authority(), Some(&authority));
     }
     let (mut model, opened) = active();
-    let request = model.preview(opened.visit, at()).unwrap().unwrap();
+    let candidate = ready(&mut model, opened.visit);
+    let request = model.save(opened.visit, candidate).unwrap();
     assert!(matches!(
         model.received(
             &request,
@@ -361,4 +363,25 @@ fn an_old_visit_cannot_change_grants_or_the_archive_switch() {
         model.draft().unwrap().target().unwrap().finish(),
         Finish::Archive
     );
+}
+
+#[test]
+fn a_preview_read_refusal_cannot_claim_that_this_device_lacks_operate() {
+    let (mut model, opened) = active();
+    let request = model.preview(opened.visit, at()).unwrap().unwrap();
+    assert!(matches!(
+        model.received(
+            &request,
+            Err(Failure::Node(vessel_proto::WireError::new(
+                vessel_proto::ErrorCode::Forbidden,
+                "private read refusal"
+            )))
+        ),
+        Received::Changed
+    ));
+    assert_eq!(model.authority(), Some(&Authority::Unknown));
+    assert!(!model.blocked());
+    assert!(model.field(opened.visit, FieldChange::Name("Retain editing".into())));
+    assert!(matches!(model.prepare_save(), Err(Issue::Preview)));
+    assert!(model.preview(opened.visit, at()).unwrap().is_some());
 }

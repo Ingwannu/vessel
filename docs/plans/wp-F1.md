@@ -990,3 +990,17 @@ whole/matrix is requested. FieldId remains editor origin only; final consumer
 proves original form visit/context/authority, focused fields, native OS/IME and
 its own full package/UI. G2's moving F1 source and later View/App work are not
 covered by this isolated producer disposition.
+
+
+### Read refusal does not manufacture write authority evidence
+
+The form owner now records OperationForbidden only from an actual Save
+operation, like the list's explicit writes. A Forbidden preview/options/target
+read remains a visible typed failure of that original slot, not a claim that
+Operate is missing or that this device can only view schedules. Known scope
+insufficiency still blocks actions, and real write Forbidden still persists for
+this connection; physical retirement/uncertain write still blocks the form.
+A failed preview cannot authorize save, but permits editing/retrying that read.
+Regression source distinguishes the two actual methods rather than fabricating
+a write refusal on a preview request. The queued older snapshots remain their
+own evidence; this later correction has not been compiled or reviewed yet.
