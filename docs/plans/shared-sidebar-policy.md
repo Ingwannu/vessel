@@ -66,3 +66,30 @@ five style diagnostics in policy_tests only (semicolons and redundant closures).
 Use the existing Shell::toggle_sidebar method directly and terminate unit
 statements; assertions, panel values and product logic remain unchanged.
 This corrects the actual failed run, not a claimed successful check.
+
+## Verified portable source checkpoint
+
+Exact source5901da6a passed strict View/App all-target Clippy (fonts0/cargo0)
+and App+View tests on the build machine:1187 passed,0 failed,2 existing ignored.
+App96/0/2, View959/0/0, contracts10+3, page117 and docs2 are the raw groups.
+The four actual root/toggle GPUI cases and three pure sidebar-budget cases are
+explicitly successful. View/Kit/Link/App were actually compiled in the test run.
+The earlier c8 test-style failure remains separate; the original queued test
+run was cancelled before acquisition under explicit scheduling authorization
+and retained terminal143, then the exact same source/command ran once in the
+priority lane. Cancellation is not a compiler failure or a pass.
+
+Runs: shell2-narrow-20261115T165454Z-5901da6a (strict) and
+shell2-narrow-20261115T174716Z-5901da6a (tests). Source pins/diff and complete
+raw logs are retained in the review packet. This docs-only result commit has
+no native source difference from590. No whole native gate, captures, physical
+shortcut, OS behavior, canonical Explorer, workspace identity or full F4 pass
+is inferred. Settings' current exceptions remain until its atomic frame
+consumer; the registry owner must remove the staged dead-code expectation
+when installing the actual ToggleBoth caller.
+
+Boundary-check provenance correction: earlier local boundary invocations used
+Cargo metadata internally; they are not VM-only validation and are not promoted
+as fresh VM boundary evidence. No local compilation was performed. Future
+boundary/quality checks run only on the build machine; direct pinned rustfmt,
+size, tokens and text/import/doc scans do not invoke Cargo.
