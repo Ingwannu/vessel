@@ -4,6 +4,7 @@ mod controller;
 mod data;
 mod draw;
 mod filters;
+mod history;
 mod overlays;
 mod row;
 mod state;
@@ -40,6 +41,8 @@ pub(super) struct Ui {
     selected: Option<Rc<Intent>>,
     deleting: Option<Rc<DeletePrompt>>,
     dialog: DialogState,
+    history: Option<vessel_app_view::schedules::history::reader::Visit>,
+    history_dialog: DialogState,
     anchors: BTreeMap<RowKey, RowControl>,
     pending_focus: BTreeSet<Popup>,
 }
@@ -71,6 +74,8 @@ impl Area {
                 selected: None,
                 deleting: None,
                 dialog: DialogState::new(cx),
+                history: None,
+                history_dialog: DialogState::new(cx),
                 anchors: BTreeMap::new(),
                 pending_focus: BTreeSet::new(),
             },

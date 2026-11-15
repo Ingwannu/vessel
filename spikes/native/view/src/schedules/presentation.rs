@@ -71,6 +71,14 @@ pub struct PreparedRow {
     /// Read-only history entry, including ended and read-only rows.
     pub history: Option<Arc<str>>,
 }
+impl PreparedRow {
+    /// A read-only inspection entry keeps the menu available without inventing
+    /// write authority for an ended/read-only row.
+    #[must_use]
+    pub fn has_menu(&self) -> bool {
+        !self.menu.is_empty() || self.history.is_some()
+    }
+}
 /// Prepare all visible rows using cached target facts and the viewer calendar.
 #[must_use]
 pub fn rows(

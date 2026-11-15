@@ -46,11 +46,22 @@ impl Area {
             label: locale::failure(failure, catalog).into(),
             variant: failure.variant(),
         });
-        let changed = self.data.rows != rows
+        let history = vessel_app_view::schedules::history::presentation::prepare(
+            &self.data.history,
+            clock,
+            catalog,
+        )
+        .map_err(|error| Notice {
+            label: error.label(catalog).into(),
+            variant: vessel_app_view::alert::Variant::Info,
+        });
+        let changed = self.data.history_cache != history
+            || self.data.rows != rows
             || self.data.body != body
             || self.data.host_errors != host_errors
             || self.data.blocking != blocking
             || self.data.local != local;
+        self.data.history_cache = history;
         self.data.rows = rows;
         self.data.body = body;
         self.data.host_errors = host_errors;
@@ -64,7 +75,7 @@ impl Area {
                         .data
                         .rows
                         .iter()
-                        .any(|row| row.key == *intent.key() && !row.menu.is_empty())
+                        .any(|row| row.key == *intent.key() && row.has_menu())
             }) {
                 ui.selected = None;
                 if ui.menu.is_open() {

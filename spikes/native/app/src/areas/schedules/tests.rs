@@ -217,3 +217,49 @@ fn a_form_submission_refused_by_the_local_queue_settles_its_original_mailbox() {
         assert!(data.editor.value().is_none());
     }
 }
+
+#[test]
+fn an_unsent_history_lookup_settles_only_the_original_read_family() {
+    for why in [Rejected::Full, Rejected::Closed] {
+        let (mut data, list) = initial().unwrap();
+        let info: vessel_proto::automation::ScheduleInfo = serde_json::from_str(include_str!(
+            "../../../../view/tests/fixtures/schedules/info.json"
+        ))
+        .unwrap();
+        let key = vessel_app_view::schedules::page::RowKey {
+            machine: list.machine().clone(),
+            schedule: info.id,
+        };
+        data.page.listed(
+            &list,
+            Ok(vessel_app_view::schedules::page::Snapshot {
+                schedules: vec![info],
+                scopes: Ok(vec![vessel_proto::Scope::Read]),
+                read_at: chrono::DateTime::UNIX_EPOCH,
+                projects: Ok(vec![]),
+                worktrees: Ok(vec![]),
+            }),
+        );
+        let request = data.history.open(&data.page.row(&key).unwrap()).unwrap();
+        let returned = Unsent::new(why, Command::Schedules(request.clone().into()));
+        let crate::unsent::Settle::Answer(event) =
+            crate::unsent::settle(returned, "unused diagnostic")
+        else {
+            panic!("no answer")
+        };
+        let vessel_app_link::Event::Schedules(Message::HistoryReplied(answer)) = *event else {
+            panic!("wrong family")
+        };
+        assert_eq!(answer.request, request);
+        assert!(data.message(Message::HistoryReplied(answer)));
+        assert_eq!(data.history.body(), Some(Body::Failed));
+        assert!(data.history.runs().is_empty());
+        assert_eq!(
+            data.history.failure(),
+            Some(&match why {
+                Rejected::Full => Failure::Busy,
+                Rejected::Closed => Failure::Offline,
+            })
+        );
+    }
+}

@@ -122,7 +122,7 @@ impl Shell {
                 .data
                 .rows
                 .iter()
-                .any(|row| row.key == *intent.key() && !row.menu.is_empty())
+                .any(|row| row.key == *intent.key() && row.has_menu())
         {
             return;
         }
@@ -215,6 +215,10 @@ pub(crate) fn leaving(
         ui.picker.close_and_restore(window, cx);
         if ui.deleting.take().is_some() || ui.pending_focus.contains(&Popup::Delete) {
             ui.dialog.dismissed(window, cx);
+        }
+        if let Some(visit) = ui.history.take() {
+            let _closed = shell.areas.schedules.data.history.close(visit);
+            ui.history_dialog.dismissed(window, cx);
         }
         ui.pending_focus.clear();
     }

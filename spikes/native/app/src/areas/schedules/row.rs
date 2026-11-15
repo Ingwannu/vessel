@@ -131,7 +131,7 @@ fn trailing(
         .gap(px(spacing::S2))
         .flex_none()
         .child(badge);
-    if !row.menu.is_empty()
+    if row.has_menu()
         && let Some(intent) = &row.intent
     {
         {

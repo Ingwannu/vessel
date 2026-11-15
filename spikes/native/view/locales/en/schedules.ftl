@@ -337,3 +337,6 @@ schedules-history-run-unavailable = A service needed by this run was unavailable
 
 # Historical Internal; no private diagnostic.
 schedules-history-run-internal = The machine could not complete this run.
+
+# History fallback heading when a typed calendar/catalog error prevents prepared rows.
+schedules-history-heading = Run history

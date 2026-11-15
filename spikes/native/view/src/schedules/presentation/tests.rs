@@ -164,3 +164,40 @@ fn old_paused_rows_and_empty_filters_unsubscribe_but_active_countdowns_keep_a_cl
     page.bucket = super::super::Bucket::Ended;
     assert_eq!(refresh_tier(&page, now), None);
 }
+
+#[test]
+fn history_is_a_read_only_entry_without_changing_write_authority() {
+    let mut page = setup();
+    let en = Translator::get(ENGLISH).unwrap();
+    let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
+    let row = page.visible_rows().remove(0).key;
+    let request = page.act(&row, Action::Pause).unwrap();
+    page.written(
+        &request,
+        Err(super::super::load::Failure::Node(
+            vessel_proto::WireError::new(vessel_proto::ErrorCode::Forbidden, "private diagnostic"),
+        )),
+    );
+    for (catalog, label) in [(en, "View runs"), (ko, "실행 기록 보기")] {
+        let prepared = rows(
+            &page,
+            &Fleet::default(),
+            DateTime::UNIX_EPOCH,
+            &Clock::unknown(),
+            catalog,
+        );
+        assert!(prepared[0].menu.is_empty());
+        assert_eq!(prepared[0].history.as_deref(), Some(label));
+        assert!(prepared[0].has_menu());
+    }
+    page.connected(&row.machine);
+    let offline = rows(
+        &page,
+        &Fleet::default(),
+        DateTime::UNIX_EPOCH,
+        &Clock::unknown(),
+        en,
+    );
+    assert_eq!(offline[0].history, None);
+    assert!(!offline[0].has_menu());
+}

@@ -77,6 +77,9 @@ pub(crate) fn render(
     if let Some(dialog) = super::overlays::deletion(shell, tokens, window, touch, cx) {
         root = root.child(dialog);
     }
+    if let Some(history) = super::history::render(shell, tokens, window, touch, cx) {
+        root = root.child(history);
+    }
     root.into_any_element()
 }
 fn body(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>) -> AnyElement {

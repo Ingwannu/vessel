@@ -13,6 +13,11 @@ use vessel_app_kit::{
 };
 use vessel_app_view::schedules::{Action, page::EntryState};
 const ACTION_MENU_WIDTH: f32 = 220.0;
+#[derive(Clone, Copy)]
+enum Choice {
+    Write(Action),
+    History,
+}
 fn glyph(action: Action) -> kit::assets::Glyph {
     use kit::assets::Glyph;
     match action {
@@ -39,7 +44,7 @@ pub(super) fn menu(
         .rows
         .iter()
         .find(|row| row.key == *selected.key())?;
-    let items: Vec<_> = row
+    let mut items: Vec<_> = row
         .menu
         .iter()
         .map(|entry| {
@@ -64,7 +69,18 @@ pub(super) fn menu(
             item
         })
         .collect();
-    let actions: Vec<_> = row.menu.iter().map(|entry| entry.action).collect();
+    let mut actions: Vec<_> = row
+        .menu
+        .iter()
+        .map(|entry| Choice::Write(entry.action))
+        .collect();
+    if let Some(label) = &row.history {
+        items.push(
+            MenuItem::new(SharedString::from(Arc::clone(label)))
+                .with_leading(kit::assets::Glyph::CalendarClock),
+        );
+        actions.push(Choice::History);
+    }
     let selected = Rc::clone(selected);
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.schedules.ui.menu,
@@ -80,10 +96,12 @@ pub(super) fn menu(
                 return;
             }
             if let Some(action) = actions.get(index) {
-                if *action == Action::Delete {
-                    shell.schedule_delete_prompt(&selected, window, cx);
-                } else {
-                    shell.schedule_act(&selected, *action, cx);
+                match *action {
+                    Choice::Write(Action::Delete) => {
+                        shell.schedule_delete_prompt(&selected, window, cx)
+                    }
+                    Choice::Write(action) => shell.schedule_act(&selected, action, cx),
+                    Choice::History => super::history::open(shell, &selected, window, cx),
                 }
             }
             cx.notify();

@@ -14,6 +14,8 @@ pub(super) struct Data {
     pub(super) page: Page,
     pub(super) editor: vessel_app_view::schedules::editor::io::Mailbox,
     pub(super) history: vessel_app_view::schedules::history::reader::Reader,
+    pub(super) history_cache:
+        Result<Option<vessel_app_view::schedules::history::presentation::Page>, Notice>,
     pub(super) rows: Vec<PreparedRow>,
     pub(super) host_errors: Vec<SharedString>,
     pub(super) blocking: Vec<Notice>,
@@ -27,6 +29,7 @@ impl Default for Data {
             page: Page::default(),
             editor: vessel_app_view::schedules::editor::io::Mailbox::default(),
             history: vessel_app_view::schedules::history::reader::Reader::default(),
+            history_cache: Ok(None),
             rows: Vec::new(),
             host_errors: Vec::new(),
             blocking: Vec::new(),

@@ -64,10 +64,13 @@ pub fn prepare(
         .iter()
         .map(|run| prepared_run(reader, visit, run, clock, catalog))
         .collect::<Result<_, _>>()?;
-    let notice = reader.failure().map(|failure| Notice {
-        label: crate::schedules::locale::failure(failure, catalog).into(),
-        variant: failure.variant(),
-    });
+    let notice = reader
+        .failure()
+        .or(reader.local_failure.as_ref())
+        .map(|failure| Notice {
+            label: crate::schedules::locale::failure(failure, catalog).into(),
+            variant: failure.variant(),
+        });
     Ok(Some(Page {
         visit,
         title: title.into(),

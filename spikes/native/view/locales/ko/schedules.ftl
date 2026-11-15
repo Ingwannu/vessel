@@ -337,3 +337,6 @@ schedules-history-run-unavailable = 이 실행에 필요한 서비스를 사용�
 
 # Historical Internal; no private diagnostic.
 schedules-history-run-internal = 머신에서 이 실행을 완료하지 못했습니다.
+
+# History fallback heading when a typed calendar/catalog error prevents prepared rows.
+schedules-history-heading = 실행 기록

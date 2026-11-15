@@ -772,3 +772,34 @@ Shell::open_session/Card fallback is forbidden for these historical links.
 F1 will retain an admitted GetSession candidate and exact identity until that
 shared live opener/delivery-capability seam is checked; no phantom resident or
 second session registry/renderer is added just to make a button appear wired.
+
+
+## Run-history read screen wiring (unverified source)
+
+The menu now consumes the read-only history label and opens the same history
+Reader through the existing schedules hub. It does not add a write action or
+infer Operate from a successful read. Current visit guards protect close/refresh
+and late responses; route exit ACKs the actual shared Dialog dismissal. History
+is cached outside painting, including typed calendar failure feedback. New App
+unsent cases ensure Full/Closed settle History only as failed reads without
+fabricated rows or uncertain-write warnings; those cases have not run.
+
+Reference boundary: no Paseo/GOAT full run-history screen was found. This requested
+extension uses existing kit settings card/rows, badge and adaptive Dialog. It is
+not called a copied Paseo history UI. The added read-only menu entry uses the
+existing CalendarClock glyph, rather than duplicating the reserved History
+asset. Loading is the neutral36 indicator; empty/failed/content stay distinct;
+explicit refresh and close are the only footer actions. Original typed error
+records stay available in Reader; the screen shows localized typed reasons.
+
+The session link remains PREPARED DATA ONLY. The session owner explicitly
+rejected legacy alias-only open_session/Card for an original historical context
+and has no checked live admit-before-open path yet. No nonworking Open chat
+button is drawn; no Fleet-only fallback, phantom resident or alternate session
+renderer is introduced. Staging a guarded GetSession candidate is next, and
+actual navigation remains a shared dependency, not a stated parity difference.
+
+Proof limits: source formatting, native size/token scripts only; no new compile,
+framed tests, UI captures, focus/native OS, read-only authority or package PASS.
+The queued c41d checks predate this UI source. Menu cycle correction is still
+owned by S2 and must land before final F1 interaction/capture proof.

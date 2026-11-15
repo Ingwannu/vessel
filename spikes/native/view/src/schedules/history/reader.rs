@@ -122,18 +122,23 @@ impl Reader {
     /// work; unsupported/exhausted failures need an external fix rather than retry.
     pub fn retry(&mut self, expected: Visit) -> Option<Request> {
         let selection = self.selection.as_ref()?;
-        if selection.visit != expected
-            || matches!(selection.outcome, Outcome::Waiting(_))
-            || self.failure().is_some_and(|failure| {
-                !failure.retryable() || *failure == Failure::ConnectionChanged
-            })
-        {
+        if !self.can_retry(expected) {
             return None;
         }
         let mut request = selection.outcome.request().clone();
         request.ticket = self.ticket()?;
         self.selection.as_mut()?.outcome = Outcome::Waiting(request.clone());
         Some(request)
+    }
+    /// Drawing and dispatch use the same pending/retired/failure retry rule.
+    #[must_use]
+    pub fn can_retry(&self, expected: Visit) -> bool {
+        self.visit() == Some(expected)
+            && self.body() != Some(Body::Loading)
+            && self.local_failure.is_none()
+            && self
+                .failure()
+                .is_none_or(|failure| failure.retryable() && *failure != Failure::ConnectionChanged)
     }
     /// No partial, duplicate, ascending or oversized payload is installed.
     #[must_use]
