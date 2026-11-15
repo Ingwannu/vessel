@@ -266,9 +266,12 @@ pub(crate) fn render_panel(
             card.into_any_element()
         }
         // Terminal input uses this retained field without agent affordances.
-        Mode::Terminal => field
-            .element(tokens, vessel_app_kit::breakpoint::phone(window), cx)
-            .into_any_element(),
+        Mode::Terminal => {
+            match crate::areas::composer::workspace_text(shell, source, tokens, window, cx) {
+                Some(element) => element,
+                None => return unavailable(shell),
+            }
+        }
     };
     div()
         .size_full()

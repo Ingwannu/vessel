@@ -72,7 +72,8 @@ impl Shell {
                     | Target::CommitDiff(_) => None,
                 }
             }
-            crate::routes::Route::Board
+            crate::routes::Route::Sessions
+            | crate::routes::Route::Board
             | crate::routes::Route::Archive
             | crate::routes::Route::Settings
             | crate::routes::Route::Pair => None,
