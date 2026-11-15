@@ -32,13 +32,13 @@ impl Default for CreationState {
 impl CreationState {
     /// A rejected first input retains its identity when retried on the same child.
     pub(super) fn message(&mut self, ticket: Ticket) -> vessel_proto::timeline::ClientMessageId {
-        if let Some((current, message)) = self.input
-            && current == ticket
+        if let Some((current, message)) = &self.input
+            && *current == ticket
         {
-            return message;
+            return message.clone();
         }
         let message = vessel_proto::timeline::ClientMessageId::random();
-        self.input = Some((ticket, message));
+        self.input = Some((ticket, message.clone()));
         message
     }
     pub(super) fn allocate(&mut self) -> Option<Ticket> {
