@@ -1,8 +1,8 @@
 //! Every independent allowance gets one shared kit meter and its actual reset.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{
     Tokens, Type, TypeExt as _,

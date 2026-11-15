@@ -39,7 +39,9 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let navigation = &self.prefs.settings.sidebar_navigation;
-        let current = navigation.resolve(Section::Footer, &[]);
+        let current = navigation
+            .entries(Section::Footer)
+            .resolve(Section::Footer, &[]);
         let visibility = if shown {
             Visibility::Shown
         } else {

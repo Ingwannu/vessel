@@ -1,8 +1,8 @@
 //! Sidebar summaries use the one navigation preference and only available quota values.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     Tokens, Type, TypeExt as _,
