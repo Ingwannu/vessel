@@ -566,3 +566,11 @@ refused before Ready, and individually readable catalogues whose aggregate is
 too large. They are drafted, not executed. No wire shape, protocol number or
 existing assertion changes. The main whole is not active; this source will enter
 the planned merged-head narrow check before the approved final whole.
+
+The c2c3 strict run actually reached two unnecessary qualifications in the
+previously unit-tested metadata counter: size_of is already in the Rust2024
+prelude. Remove only the std::mem qualification; no counter arithmetic or
+assertion changes. Original red134s log remains provider-core-strict-fixed.
+The next immutable merged-head strict selection also includes vessel-rpc, and
+the newly added encoded-budget regressions must run before the final whole.
+No rerun of unchanged c2c3 and no whole submission is made on a known-red head.

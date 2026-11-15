@@ -67,13 +67,11 @@ impl NativeModel {
             .as_ref()
             .map_or(0, |efforts| {
                 efforts.iter().fold(
-                    efforts
-                        .capacity()
-                        .saturating_mul(std::mem::size_of::<Effort>()),
+                    efforts.capacity().saturating_mul(size_of::<Effort>()),
                     |bytes, effort| bytes.saturating_add(effort.reasoning_effort.capacity()),
                 )
             });
-        std::mem::size_of::<Self>()
+        size_of::<Self>()
             .saturating_add(self.id.capacity())
             .saturating_add(self.display_name.as_ref().map_or(0, String::capacity))
             .saturating_add(
