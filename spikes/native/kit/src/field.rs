@@ -150,6 +150,9 @@ pub struct TextField {
     send: Rc<Cell<SendOn>>,
 }
 
+mod editability;
+pub use editability::Editability;
+
 impl TextField {
     /// A form field showing `placeholder` while empty. Enter in it calls
     /// `on_submit` on its owner with the text it holds.
@@ -161,7 +164,6 @@ impl TextField {
     ) -> Self {
         Self::line(placeholder, on_submit, None, window, cx)
     }
-
     /// The same, also calling `on_change` with the text after every edit
     /// (to say what is wrong with it beside the field as it is typed).
     pub fn with_change<V: 'static>(
@@ -173,7 +175,6 @@ impl TextField {
     ) -> Self {
         Self::line(placeholder, on_submit, Some(on_change), window, cx)
     }
-
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
     /// `on_submit` with the text, Shift+Enter starts a new line.
@@ -191,7 +192,6 @@ impl TextField {
     ) -> Self {
         Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
     }
-
     /// A multiline form field on the one-line form field's surface.
     /// Enter starts a line; Mod+Enter submits. It grows from three to
     /// twelve lines, then the existing text engine scrolls. GOAT's small

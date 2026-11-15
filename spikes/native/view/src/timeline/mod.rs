@@ -78,7 +78,8 @@ pub use question::{
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
 };
 pub use question_step::{
-    Choice, Pick, box_is_other, choices, pick, picked, step_header, step_prompt, text_target, typed,
+    Choice, Pick, box_is_other, choices, empty_drafts, pick, picked, step_after_pick, step_header,
+    step_prompt, text_target, typed,
 };
 pub use rewind::rewind_point;
 pub use rows::Rows;
