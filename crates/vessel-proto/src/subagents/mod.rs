@@ -2,11 +2,13 @@
 //! Creator is immutable audit data; current parentage applies a durable detach.
 
 pub mod bounds;
+mod identity;
 mod older;
 mod parentage;
 mod provider;
 mod values;
 
+pub use identity::ProviderChildRef;
 pub use parentage::{
     DetachDisposition, DetachReceipt, DetachSession, DetachedSession, InvalidParentage, Parentage,
 };

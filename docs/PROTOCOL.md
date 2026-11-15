@@ -52,6 +52,16 @@ or `envelope` (`fleet.forward`, `fleet.relay`, `fleet.deliver`: answered
 once with the carried call's reply, whose outcome it is). No pending method
 is registered by this foundation.
 
+A staged method (2026-11-15) is a pending method whose request and response
+types land before any node serves it: `[Scope, (staged FEATURE), shape]`.
+It is refused on every connection the same way (its constant is None, which
+the row's generated code asserts at compile time). Its `Handler` method has
+a default body answering `Unsupported` without the request's values, and
+the node's guard generates nothing for it, so a values-only package needs
+no runtime to compile. The package that serves the method changes `staged`
+to `pending` in the commit that adds its handler; from then on the guard
+requires the handler, as for every assigned or pending row.
+
 ## Pending A2 lifecycle actions
 
 `workspace::WORKSPACE_LIFECYCLE` is None until integration assigns one protocol
