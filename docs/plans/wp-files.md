@@ -715,3 +715,41 @@ predicate as well as the original active scope; a closed host cannot act on
 its queued input. This predicate explicitly does not claim typed Explorer
 mounting or multi-pane visibility. The owner fixture also pins closed-host
 refusal, without OS opening or node I/O.
+
+## Explicit session bridge for real file tabs
+
+[Decision Log]
+- Purpose and intent: open files in the sole layout registry without waiting
+  for or inventing a logical Workspace ownership projection.
+- Existing assets and constraints: the file owner already holds an exact
+  installed session root receipt (ConnectionContext, SessionId, FileTicket,
+  WorkspaceRoot). Layout supplies explicit compatibility Session keys and
+  returns actual TabIds. The runtime Workspace registry and typed Explorer
+  mount are still unavailable; a mutable alias cannot supply node ownership.
+- Alternatives: infer WorkspaceId/node from cwd or alias (invalid authority),
+  build another pane manager (duplicates the shared owner), or keep file
+  targets permanently unavailable despite an existing original root receipt.
+- Choice: capture FileOpenContext with the original scope, session and root
+  receipt ticket before queued UI dispatch. Require the exact receipt unchanged
+  before opening. Use only LayoutKey::Session with that original alias/session;
+  bind the actual returned (LayoutKey,TabId) to the existing FileKey/owner.
+  Restored or unbound file targets remain unavailable until a real receipt is
+  explicitly supplied. This compatibility placement is not Workspace ownership.
+- Why: actual node/root/path identity and G4 admission remain with the existing
+  file owner; layout remains the only source of panes, tabs and close plans.
+  Buffer identity excludes renderer, cursor and connection epoch, while every
+  attempted effect still retains its original scope/ticket.
+- Costs and effects: bound resources cannot be evicted as disposable cache.
+  Dirty, pending and uncertain effects must publish to that same layout tab
+  before yielding. Layout absence never releases a protected owner. The file
+  owner exposes a typed close-request handler; the sole layout dispatcher will
+  call it, then keyed completion only after definitive save or explicit safe
+  discard. No uncertain original effect can close. This source is not wired or
+  checked yet; no File-target consumer-ready claim follows from this decision.
+
+The legacy outer Explorer may remain tree-only while real File targets render
+through the one main registry arm. That is not proof of a typed Explorer mount.
+The existing Viewer/CodeEditor, saved-file observer and one retained buffer map
+are extended; no editor engine, transfer loop, tab allocator or connection cache
+is added. New UI activations must capture the full opening context, rather than
+reconstructing the original session from whichever session is selected later.
