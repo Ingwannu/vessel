@@ -220,10 +220,10 @@ impl Engine {
         if context.admission != Admission::Available
             || (matches!(
                 context.focus,
-                FocusScope::MessageInput | FocusScope::Editable
-            ) && input.editing_chord().is_some_and(|chord| {
-                super::refusal(chord, context.platform) == Some(super::Refusal::Editing)
-            }))
+                FocusScope::MessageInput | FocusScope::Editable | FocusScope::CommandCenter
+            ) && input
+                .editing_chord()
+                .is_some_and(|chord| super::keys::native_editing(chord, context.platform)))
         {
             self.reset();
             return Resolution::Pass;

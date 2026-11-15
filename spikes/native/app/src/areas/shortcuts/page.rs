@@ -81,7 +81,12 @@ fn row_acts(shell: &Shell, id: &ActionId) -> Vec<(RowAct, MenuItem)> {
     }
     let migrated =
         vessel_app_view::shortcuts::migrated_overrides(&shell.prefs.settings.shortcuts, context);
-    if migrated.contains_key(id) {
+    let has_default = vessel_app_view::shortcuts::definitions().is_ok_and(|definitions| {
+        definitions
+            .iter()
+            .any(|definition| &definition.id == id && definition.default_keys.is_some())
+    });
+    if migrated.contains_key(id) && has_default {
         acts.push((RowAct::Reset, MenuItem::new(words.reset())));
     }
     acts

@@ -160,14 +160,10 @@ fn capture_text(steps: &[Chord]) -> String {
 }
 
 fn capture_refusal(chord: &Chord, context: ShortcutContext) -> Option<CaptureFault> {
-    let (primary, extra) = match context.platform {
-        Platform::Mac => (chord.primary || chord.meta, chord.ctrl),
-        Platform::Other => (chord.primary || chord.ctrl, chord.meta),
-    };
-    if !primary || extra || chord.alt {
+    if !super::keys::primary_command(chord, context.platform) {
         return None;
     }
-    if !chord.shift && ["A", "C", "V", "X", "Z"].contains(&chord.key.as_str()) {
+    if super::keys::native_editing(chord, context.platform) {
         return Some(CaptureFault::Editing);
     }
     let host_reserved = chord.key == "Q"

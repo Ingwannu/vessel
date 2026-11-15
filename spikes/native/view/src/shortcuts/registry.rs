@@ -227,11 +227,13 @@ pub fn binding_id(action: Action, context: ShortcutContext) -> Option<ActionId> 
 pub fn visible_definitions(
     context: ShortcutContext,
 ) -> Result<Vec<&'static Definition<Action>>, RegistryError> {
-    Ok(specs()
-        .iter()
-        .zip(definitions()?)
-        .filter(|(spec, _)| spec.help == HelpVisibility::Visible && spec.when.on_platform(context))
-        .map(|(_, definition)| definition)
+    let definitions = definitions()?;
+    Ok(Action::ALL
+        .into_iter()
+        .filter_map(|action| {
+            let id = binding_id(action, context)?;
+            definitions.iter().find(|definition| definition.id == id)
+        })
         .collect())
 }
 

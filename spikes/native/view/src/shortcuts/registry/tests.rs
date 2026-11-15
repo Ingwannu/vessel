@@ -115,3 +115,47 @@ fn non_mac_terminal_predicate_survives_rebinding() {
         );
     }
 }
+
+#[test]
+fn settings_rows_share_help_order_and_one_primary_binding_per_action() {
+    for platform in [Platform::Mac, Platform::Other] {
+        let rows = visible_definitions(default_context(platform)).unwrap();
+        let actions: BTreeSet<_> = rows.iter().map(|row| row.action).collect();
+        assert_eq!(actions.len(), rows.len());
+        let general: Vec<_> = rows
+            .iter()
+            .filter(|row| row.action.group() == ShortcutGroup::General)
+            .take(3)
+            .map(|row| row.action)
+            .collect();
+        assert_eq!(
+            general,
+            [Action::Palette, Action::SearchFiles, Action::Help]
+        );
+    }
+}
+
+#[test]
+fn native_editing_floor_resolves_primary_aliases_in_every_text_focus() {
+    for (platform, literal) in [(Platform::Mac, "Meta+V"), (Platform::Other, "Ctrl+V")] {
+        let mut context = default_context(platform);
+        let id = binding_id(Action::Palette, context).unwrap();
+        let overrides = BTreeMap::from([(
+            id,
+            Bindings::try_from(vec![literal.parse().unwrap()]).unwrap(),
+        )]);
+        assert_eq!(
+            action(resolve(literal, context, &overrides)),
+            Some(Action::Palette)
+        );
+        for focus in [
+            FocusScope::Editable,
+            FocusScope::MessageInput,
+            FocusScope::CommandCenter,
+        ] {
+            context.focus = focus;
+            assert_eq!(resolve(literal, context, &overrides), Resolution::Pass);
+            assert_eq!(resolve("Mod+V", context, &overrides), Resolution::Pass);
+        }
+    }
+}

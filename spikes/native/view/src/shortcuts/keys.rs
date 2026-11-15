@@ -234,6 +234,22 @@ const fn held(chord: &Chord, platform: Platform) -> [bool; 4] {
     [command, control, chord.alt, chord.shift]
 }
 
+/// Primary-command identity after Mod/Ctrl/Meta resolution; Shift is separate
+/// because host-reserved chords and editing chords have different shift rules.
+pub(super) fn primary_command(chord: &Chord, platform: Platform) -> bool {
+    let [command, control, alt, _shift] = held(chord, platform);
+    match platform {
+        Platform::Mac => command && !control && !alt,
+        Platform::Other => control && !command && !alt,
+    }
+}
+
+pub(super) fn native_editing(chord: &Chord, platform: Platform) -> bool {
+    primary_command(chord, platform)
+        && !chord.shift
+        && ["A", "C", "V", "X", "Z"].contains(&chord.key.as_str())
+}
+
 /// Whether two chords are the same keys on `platform`.
 #[must_use]
 pub fn same_chord(one: &Chord, two: &Chord, platform: Platform) -> bool {
