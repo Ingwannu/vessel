@@ -63,7 +63,7 @@ These are source-only observations; no real Paseo daemon was exercised.
 |---|---|---|---|
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
 | D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
-| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source implemented; 27 focused tests passed, inventory-only narrow build cut off before tests; whole remote gate pending |
+| D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; staged-source review pending |
 | D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Blocked on consuming the shared accessor and common RPC method metadata |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
@@ -181,9 +181,9 @@ uses checked decimal accumulation against its named ceiling rather than
 creating and discarding a parser error.
 
 D2's exact values commit has passed V1. D3 owner mechanisms are installed
-under `cfg(test)` and have focused evidence; its whole gate and staged-source
-review are pending. Run the approved remote whole gate on the clean candidate
-commit. Keep all staged code private and unreachable from a product API. No Request, method, guard,
+under `cfg(test)` and gated at `fbfd3ad8`; staged-source review is pending.
+Submit the immutable source and remote evidence to V1. Keep all staged code
+private and unreachable from a product API. No Request, method, guard,
 client, CLI or bridge registration is added before consuming the shared
 admission accessor and common RPC method metadata. No runtime diagnostic
 result or native integration is claimed.
@@ -266,7 +266,7 @@ an exported error type name, unchecked fixture write results and a redundant
 conversion; these are corrected before running its tests. The node mechanisms
 passed focused Clippy and ten tests; the store passed focused Clippy and five
 actual SQLite tests. The later combined owner checks passed Clippy and 27 tests;
-the D3 whole gate remains pending. These are staged component checks, not product
+the later whole gate includes all 29 new component cases. These are staged component checks, not product
 report or wire evidence. D2's accepted immutable source is not
 changed by the working collector code.
 
@@ -302,12 +302,53 @@ also staged in the node: it borrows configured definitions, includes known
 builtins and refuses a list exceeding the named report limit before metadata
 lookups or row construction. Its Clippy check passed; its separate narrow test
 build was stopped at the build lane's time cap (status 124) while linking,
-before either test ran. That is not a test pass. The final whole remote gate
-will run both boundary cases. No report assembly or public service is implied.
+before either test ran. That is not a test pass. The later whole remote gate ran and passed both boundary cases. No report assembly or public service is implied.
 
 
-The D3 candidate is committed before remote execution so the runner receives
-only immutable repository inputs; its complete gate is still unverified until
-the recorded run completes. No untracked asset, dependency folder or local
+The D3 candidate was committed before remote execution so the runner received
+only immutable repository inputs. Its recorded complete gate has now passed;
+the earlier unexecuted narrow cases remain distinct from that later proof. No untracked asset, dependency folder or local
 artifact is part of that commit. The source stays on the track branch until
 the wiring commit activates it and passes the product gate.
+
+
+### D3 whole-gate evidence and resume checkpoint
+
+Source commit `fbfd3ad88c8eed25b1d63535340301c81dbbe57d` was tested by remote
+run `diagnostics-20261115T014448Z-fbfd3ad8`. The runner returned zero; all
+applicable steps passed. The 18 recorded step entries include two explicitly
+skipped forge-fixture steps because this commit has no `forge-fixture`
+feature; they are not fixture-test passes. The actual run took 14 minutes
+19 seconds after admission, with eight compiler jobs and eight Rust test
+threads. Every step records its return code and front/back load.
+
+- Whole workspace: 112 result summaries, 2,004 passed, zero failed, twelve
+  ignored. All 29 new D3 component tests passed; the twelve accepted D2
+  diagnostic tests passed again. All five changed source crates compiled.
+- Formatter, size and boundary checks, full all-target Clippy, TS-enabled
+  Clippy and both TypeScript freshness tests passed.
+- Bundled binaries and both prescribed nested-build prebuilds passed before
+  the workspace tests. Web lint/typecheck/fonts/build, 417 unit tests and
+  62 E2E tests passed (E2E 2.4 minutes). No A9 replay or waiver was needed.
+- The selected input manifest has 1,738 files and SHA-256
+  `df33983422db12af49cbc2c8cd6025810c15f62fa16a892dedbaef71f5ba519e`;
+  every selected blob matches the immutable source commit. This covers
+  repository inputs, not ignored environment/configuration or the whole
+  build machine. The approved runner transported only the commit.
+
+The relay change is exactly the test-gated declaration at `link.rs:29–31`
+and its new private 80-line projection/tests file. No existing relay API,
+variant, dependency or non-exhaustive attribute changed. Local preflight
+failures and the last linking cutoff remain recorded separately; no failed
+or unexecuted run is relabelled green. No local owned process identities
+remained before remote submission; remote execution uses the approved runner,
+without a direct login or an independent live cleanup attestation.
+
+Next: obtain staged-source review for this immutable D3 checkpoint. It stays
+on this branch until D4's real caller removes staging. The actual collector
+assembly and its five-second response budget, bind observation publication,
+current-default-profile selection, configured/callback relay aggregation,
+authority/compatibility checks, one registered call, client and CLI remain
+owed. Registration still waits for the shared compatibility accessor and RPC
+method metadata on a consumed node head. Native diagnostics is another
+owner's work; these components do not make a machine answer a report yet.
