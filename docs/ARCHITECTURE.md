@@ -1554,3 +1554,13 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+### Process observation boundary
+
+ADR 0066 defines a runner-issued `ProcessLifetime`: Proc and PTY own its
+revocation; AgentProcess and session/terminal handles pass read-only
+observations to node consumers. A checked `ProcessId` is only an OS value.
+Neither PID equality nor the observation alone proves socket ownership or
+authorizes Preview. Fresh complete inspection and workspace/session policy
+remain at the node boundary. This carrier introduces no dependency
+edge or wire type.
