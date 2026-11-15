@@ -79,6 +79,7 @@ fn complete(
     namespace: SnapshotNamespace,
     references: &mut References<Binding>,
 ) -> Result<Snapshot, SnapshotError> {
+    references.check_namespace(namespace)?;
     graph.validate()?;
     let content = render::render(&graph)?;
     let count = retain(&graph, namespace, references)?;

@@ -131,3 +131,19 @@ fn escaped_unicode_output_reserves_a_complete_visible_truncation_marker() {
             .ends_with("\n- text: \"Snapshot truncated.\"")
     );
 }
+
+#[test]
+fn a_late_graph_without_any_ref_cannot_bypass_the_namespace_fence() {
+    let mut refs = References::default();
+    let old = refs.begin_snapshot().unwrap();
+    let _new = refs.begin_snapshot().unwrap();
+    let input = encoded(
+        vec![element(0, "document", "Old private page", None)],
+        1,
+        false,
+    );
+    assert!(matches!(
+        finish(&input, old, &mut refs),
+        Err(SnapshotError::Reference(ReferenceError::Stale))
+    ));
+}

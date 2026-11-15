@@ -112,6 +112,18 @@ impl<T> References<T> {
         Ok(namespace)
     }
 
+    /// A result with no refs must still prove it belongs to the current traversal.
+    pub(crate) fn check_namespace(
+        &self,
+        namespace: SnapshotNamespace,
+    ) -> Result<(), ReferenceError> {
+        if namespace.generation == self.generation {
+            Ok(())
+        } else {
+            Err(ReferenceError::Stale)
+        }
+    }
+
     /// Only the decoder may retain a graph binding from its current reserved range.
     pub(crate) fn retain(
         &mut self,
@@ -119,9 +131,7 @@ impl<T> References<T> {
         reference: ElementRef,
         value: T,
     ) -> Result<(), ReferenceError> {
-        if namespace.generation != self.generation {
-            return Err(ReferenceError::Stale);
-        }
+        self.check_namespace(namespace)?;
         let ordinal = reference
             .as_str()
             .strip_prefix("@e")
