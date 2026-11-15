@@ -54,7 +54,13 @@ fn eligible(current: &SessionInfo, expected: &SessionTitle) -> bool {
         }
         | vessel_proto::SessionMode::Terminal { .. } => false,
     };
+    let fresh_origin = match current.origin.as_ref() {
+        None | Some(vessel_proto::SessionOrigin::Remote { .. }) => true,
+        Some(vessel_proto::SessionOrigin::Imported { .. }) => false,
+    };
     current.status.is_live()
+        && current.parked.is_none()
+        && fresh_origin
         && fresh_mode
         && current.spec.title.is_none()
         && current.title_origin == TitleOrigin::Given
@@ -65,7 +71,7 @@ impl SessionHandle {
     /// Propose a generated replacement. The actor compares both the
     /// expected title and its given origin before publishing, so even a
     /// person's rename to identical words takes precedence. Explicitly
-    /// titled, terminal and resuming specifications are kept too.
+    /// titled, terminal, resuming, parked and imported sessions are kept too.
     ///
     /// # Errors
     /// [`SessionError::Ended`] if the actor has ended.
@@ -168,5 +174,27 @@ mod tests {
         let mut info = current(TitleOrigin::Given);
         info.title = None;
         rejected(&info);
+    }
+
+    #[test]
+    fn parked_and_imported_are_kept_but_fresh_remote_is_eligible() {
+        let mut info = current(TitleOrigin::Given);
+        assert!(info.status.is_live());
+        info.parked = Some(vessel_proto::parking::Parked {
+            since: chrono::Utc::now(),
+            reason: vessel_proto::parking::ParkReason::Asked,
+        });
+        rejected(&info);
+        info.parked = None;
+        info.origin = Some(vessel_proto::SessionOrigin::Imported {
+            node: vessel_proto::NodeId::random(),
+            session: vessel_proto::SessionId::random(),
+        });
+        rejected(&info);
+        info.origin = Some(vessel_proto::SessionOrigin::Remote {
+            node: vessel_proto::NodeId::random(),
+            by: vessel_proto::RemoteCreator::Owner,
+        });
+        assert!(proposal("Seed").resolve(&info).is_some());
     }
 }

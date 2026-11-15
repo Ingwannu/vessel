@@ -361,3 +361,10 @@ Remote creates eligible and manual rename behavior unchanged. Adjacent
 rule tests must cover parked, imported and remote states before porting
 the actor API. No new queue, call, bound or dependency is needed. This
 contract precedes its small code correction; node arming is still absent.
+
+Late-proposal correction checkpoint: the actor now checks unparked state
+and an exhaustive origin match before accepting a generated change. A
+rule test keeps parked/imported sessions and permits a fresh Remote create;
+manual rename is unchanged. Narrow all-targets Clippy and all session
+library/fake generated-title tests pass. No node task is armed yet and the
+actor slice still owes its exact-commit whole gate before port/report.
