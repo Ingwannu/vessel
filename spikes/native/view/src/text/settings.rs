@@ -4,7 +4,7 @@
 //! page" made "Vessel" where the app is meant.
 
 use super::Lang;
-use crate::prefs::{ContentWidth, Kept, LaunchOnly, Theme, TurnDelivery};
+use crate::prefs::{ContentWidth, Kept, LaunchOnly, Theme};
 use crate::settings::{Group, Section};
 
 impl Lang {
@@ -30,17 +30,7 @@ pub struct SettingsText {
     pub no_machines: &'static str,
     pub switch_machine: &'static str,
     // General.
-    pub general_lead: &'static str,
-    pub sending: &'static str,
-    pub send_shortcut: &'static str,
-    pub default_send: &'static str,
-    pub queue: &'static str,
-    pub steer: &'static str,
-    pub interrupt: &'static str,
-    pub kept: &'static str,
-    pub preferences: &'static str,
     pub kept_note: &'static str,
-    pub this_launch: &'static str,
     pub path_copied: &'static str,
     pub refused: &'static str,
     // Appearance.
@@ -89,17 +79,7 @@ const EN: SettingsText = SettingsText {
     machine: "Machine",
     no_machines: "No machines yet.",
     switch_machine: "Switch machine",
-    general_lead: "How the composer sends, and where Vessel keeps what you choose.",
-    sending: "Sending",
-    send_shortcut: "Send shortcut",
-    default_send: "Default send",
-    queue: "Queue",
-    steer: "Steer",
-    interrupt: "Interrupt",
-    kept: "Kept",
-    preferences: "Preferences",
     kept_note: "Kept by Vessel on this computer, so every launch opens with them.",
-    this_launch: "This launch only",
     path_copied: "The path was copied.",
     refused: "That change was not kept",
     appearance_lead: "How Vessel looks on this computer.",
@@ -154,17 +134,7 @@ const KO: SettingsText = SettingsText {
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
     switch_machine: "머신 바꾸기",
-    general_lead: "작성창이 보내는 방식과, 고른 설정을 Vessel이 보관하는 곳.",
-    sending: "전송",
-    send_shortcut: "전송 단축키",
-    default_send: "기본 전송",
-    queue: "대기열",
-    steer: "지시",
-    interrupt: "중단",
-    kept: "보관",
-    preferences: "환경설정",
     kept_note: "Vessel이 이 컴퓨터에 보관하므로, 실행할 때마다 그대로 열립니다.",
-    this_launch: "이번 실행에만",
     path_copied: "경로를 복사했습니다.",
     refused: "그 변경은 보관되지 않았습니다",
     appearance_lead: "이 컴퓨터에서 Vessel이 보이는 방식.",
@@ -240,7 +210,7 @@ impl SettingsText {
         catalog: &'static crate::localization::Translator,
     ) -> &'static str {
         match (self.lang, section) {
-            (Lang::En, Section::General) => "General",
+            (_, Section::General) => catalog.general().title(),
             (Lang::En, Section::Appearance) => "Appearance",
             (Lang::En, Section::Sidebar) => "Sidebar",
             (_, Section::Chat) => catalog.chat().title(),
@@ -268,7 +238,6 @@ impl SettingsText {
             (Lang::En, Section::Plugins) => "Plugins",
             (Lang::En, Section::Models) => "Models",
             (Lang::En, Section::Sync) => "Sync",
-            (Lang::Ko, Section::General) => "일반",
             (Lang::Ko, Section::Appearance) => "모양",
             (Lang::Ko, Section::Sidebar) => "사이드바",
             (Lang::Ko, Section::Browser) => "브라우저",
@@ -322,41 +291,6 @@ impl SettingsText {
             Theme::Claude => self.claude,
             Theme::Ghostty => self.ghostty,
             Theme::PureBlack => self.pure_black,
-        }
-    }
-
-    /// A delivery's name.
-    #[must_use]
-    pub const fn delivery(&self, delivery: TurnDelivery) -> &'static str {
-        match delivery {
-            TurnDelivery::Queue => self.queue,
-            TurnDelivery::Steer => self.steer,
-            TurnDelivery::Interrupt => self.interrupt,
-        }
-    }
-
-    /// What a delivery does (General's note under Default send).
-    #[must_use]
-    pub const fn delivery_note(&self, delivery: TurnDelivery) -> &'static str {
-        match (self.lang, delivery) {
-            (Lang::En, TurnDelivery::Queue) => {
-                "A message sent while the agent works waits, and goes when its turn ends; while a permission request waits, it stops the turn instead."
-            }
-            (Lang::En, TurnDelivery::Steer) => {
-                "A message sent while the agent works joins its turn, where the agent can take one; otherwise it stops the turn and starts the next."
-            }
-            (Lang::En, TurnDelivery::Interrupt) => {
-                "A message sent while the agent works stops its turn and starts the next."
-            }
-            (Lang::Ko, TurnDelivery::Queue) => {
-                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다. 권한 요청이 기다리는 동안에는 지금 차례를 멈추고 갑니다."
-            }
-            (Lang::Ko, TurnDelivery::Steer) => {
-                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 지금 차례를 멈추고 다음 차례를 시작합니다."
-            }
-            (Lang::Ko, TurnDelivery::Interrupt) => {
-                "에이전트가 일하는 동안 보낸 메시지는 지금 차례를 멈추고 다음 차례를 시작합니다."
-            }
         }
     }
 

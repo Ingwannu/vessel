@@ -26,7 +26,6 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::prefs::Kept;
-use vessel_app_view::settings::Section;
 
 use super::applied;
 use super::choices::{self, List};
@@ -39,7 +38,8 @@ pub(crate) fn render(
     compact: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let words = shell.t.lang.settings();
+    let words = shell.words.general();
+    let legacy = shell.t.lang.settings();
     let composer = &shell.prefs.settings.composer;
     let general = settings::card(tokens).child(super::language::row(shell, tokens, compact, cx));
     // Each row once the composer reads its value (`super::applied`). The
@@ -49,7 +49,7 @@ pub(crate) fn render(
     let sending = settings::card(tokens)
         .when(send_shown, |card| {
             card.child(settings::row_at(
-                words.send_shortcut,
+                words.send_shortcut(),
                 None,
                 None,
                 Some(select_for(List::Send, shell, compact, tokens, cx)),
@@ -60,7 +60,7 @@ pub(crate) fn render(
         })
         .when(applied(List::Delivery), |card| {
             card.child(settings::row_at(
-                words.default_send,
+                words.default_send(),
                 Some(words.delivery_note(composer.delivery).into()),
                 None,
                 Some(select_for(List::Delivery, shell, compact, tokens, cx)),
@@ -87,22 +87,22 @@ pub(crate) fn render(
                 cx.notify();
             }));
             (
-                format!("{}\n{path}", words.kept_note),
+                format!("{}\n{path}", legacy.kept_note),
                 copy.into_any_element(),
             )
         }
         Kept::ThisLaunch { .. } => (
-            words.kept_why(kept).unwrap_or_default(),
+            legacy.kept_why(kept).unwrap_or_default(),
             div()
                 .flex_shrink_0()
                 .type_(Type::Body)
                 .text_color(tokens.neutral.foreground_muted)
-                .child(words.this_launch)
+                .child(words.this_launch())
                 .into_any_element(),
         ),
     };
     let kept_card = settings::card(tokens).child(settings::row_at(
-        words.preferences,
+        words.preferences(),
         Some(hint.into()),
         None,
         Some(control),
@@ -114,15 +114,11 @@ pub(crate) fn render(
     div()
         .flex()
         .flex_col()
-        .child(settings::section(
-            words.section(Section::General, shell.words),
-            general,
-            tokens,
-        ))
+        .child(settings::section(words.title(), general, tokens))
         .when(shown, |page| {
-            page.child(settings::section(words.sending, sending, tokens))
+            page.child(settings::section(words.sending(), sending, tokens))
         })
-        .child(settings::section(words.kept, kept_card, tokens))
+        .child(settings::section(words.kept(), kept_card, tokens))
         .into_any_element()
 }
 

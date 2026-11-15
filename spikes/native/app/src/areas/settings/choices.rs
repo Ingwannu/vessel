@@ -77,7 +77,9 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
         List::Machine => chosen_machine(shell)
             .map_or_else(|| words.machine.to_owned(), |machine| machine.name.clone()),
         List::Send => send_key_label(shell.prefs.settings.composer.send, primary()),
-        List::Delivery => words
+        List::Delivery => shell
+            .words
+            .general()
             .delivery(shell.prefs.settings.composer.delivery)
             .to_owned(),
         List::Interface => words.points(appearance.interface_size.get()),
@@ -132,7 +134,7 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
             .into_iter()
             .map(|delivery| {
                 row(
-                    words.delivery(delivery).to_owned(),
+                    shell.words.general().delivery(delivery).to_owned(),
                     delivery == settings.composer.delivery,
                 )
             })
