@@ -85,9 +85,9 @@ impl Owned {
 
     pub(crate) async fn wait(&mut self) -> Result<ProcessExit, LaunchError> {
         self.child
-            .wait()
+            .wait_checked()
             .await
-            .map(ProcessExit)
+            .map(|receipt| ProcessExit(receipt.code()))
             .map_err(LaunchError::Wait)
     }
 

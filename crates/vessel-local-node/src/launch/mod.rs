@@ -33,9 +33,9 @@ pub enum LaunchError {
     /// Platform range cannot represent the named protocol limit.
     #[error("local readiness read bound is unsupported")]
     ReadLimit,
-    /// The OS did not confirm the exact owned child's exit.
-    #[error("local node process wait failed")]
-    Wait(#[source] vessel_proc::WaitError),
+    /// Leader exit or the first original-group cleanup request was not confirmed.
+    #[error("local node owned cleanup was not confirmed")]
+    Wait(#[source] vessel_proc::CheckedWaitError),
     /// Release capability was refused; the controller retains its owned child.
     /// Proc's refusal has only this policy cause; its recovered Child stays internal.
     #[error("local node release capability was refused")]

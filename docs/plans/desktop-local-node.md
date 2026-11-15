@@ -140,3 +140,15 @@ successful lease, and log requests prefer it. The existing real managed-node
 restart fixture now also requires the replacement observer; the failed-restart
 log path itself still needs runtime/capture verification. No PID or extra spawn
 contract is introduced, and ordinary restart delegates to the same method.
+
+### Checked owned cleanup joins the controller
+
+The V3-source-reviewed W16 seam 7d4b23bb +622465a9 is merged provisionally for
+combined verification, not treated as runtime-qualified. Owned::wait now accepts
+only Child::wait_checked's private receipt and projects its leader exit code to
+ProcessExit. Typed Wait/Sweep/Unrecorded causes remain inside LaunchError::Wait;
+uncertainty prevents stop/restart acknowledgement and retains the lease. The
+receipt covers actual leader reaping plus acceptance/already-absence of the first
+original group/job cleanup request. It does not certify observed OS death of all
+descendants or escaped children. KeptNode remains direct-child observation only:
+explicit release cannot regain a cleanup receipt or signalling authority.
