@@ -27,7 +27,7 @@ use crate::{
 pub struct Supervisor {
     handle: RuntimeHandle,
     stop: CancellationToken,
-    task: Option<tokio::task::JoinHandle<Result<(), RuntimeError>>>,
+    task: tokio::task::JoinHandle<Result<vessel_proc::OwnedGroupExit, RuntimeError>>,
 }
 
 impl Supervisor {
@@ -68,11 +68,7 @@ impl Supervisor {
             published,
         };
         let task = tokio::spawn(actor.run());
-        Ok(Self {
-            handle,
-            stop,
-            task: Some(task),
-        })
+        Ok(Self { handle, stop, task })
     }
 
     /// Typed callbacks/catalog observation; no install/settings authority.
@@ -81,19 +77,21 @@ impl Supervisor {
         self.handle.clone()
     }
 
-    /// Withdraw, cancel and reap the entire owned group, then join pipe workers.
+    /// Withdraw, cancel and join pipe workers after checked owned cleanup.
+    /// The receipt proves leader reap and accepted first cleanup request, not
+    /// observed death of every descendant or escaped process.
     ///
     /// # Errors
     /// Reports process/protocol/cleanup failures; never acknowledges an unproved
     /// reap as a successful lifecycle change.
-    pub async fn shutdown(mut self) -> Result<(), RuntimeError> {
+    pub async fn shutdown(self) -> Result<vessel_proc::OwnedGroupExit, RuntimeError> {
         self.stop.cancel();
-        if let Some(task) = self.task.take() {
-            task.await
-                .map_err(|cause| RuntimeError::Task(TaskFailure::new(cause)))?
-        } else {
-            Ok(())
-        }
+        // Borrowing the task preserves cancellation-on-owner-drop while await
+        // remains cancel safe; no handle is moved out of this Drop owner.
+        let mut owner = self;
+        (&mut owner.task)
+            .await
+            .map_err(|cause| RuntimeError::Task(TaskFailure::new(cause)))?
     }
 }
 
@@ -114,7 +112,7 @@ struct Actor {
 }
 
 impl Actor {
-    async fn run(self) -> Result<(), RuntimeError> {
+    async fn run(self) -> Result<vessel_proc::OwnedGroupExit, RuntimeError> {
         let Self {
             spawned,
             mut requests,
@@ -171,8 +169,8 @@ impl Actor {
         let cleanup = shutdown::reap(&mut child, &writer).await;
         workers.abort_all();
         while workers.join_next().await.is_some() {}
-        cleanup?;
-        result
+        let receipt = cleanup?;
+        result.map(|()| receipt)
     }
 }
 
