@@ -286,8 +286,12 @@ Successor246f1ba28 separates latest-root DISPLAY from the complete aggregate of
 all workspace-relative roots and working same-workspace descendants. Independent
 typed icon activity/attention replaces the lossy Bucket input. Missing timestamps
 block display/order facts, not an aggregate whose coverage is otherwise complete.
-Changed-source portable strict/tests are queued; consumer/whole/host evidence
-and the source correction verdict remain owed. W11 owns role/membership coverage.
+Exact246 portable tests passed3/0/0 (67s) and View all-target Clippy passed
+with -D warnings (50s). V4 row234 passed bounded checked source adoption;
+both source findings are closed. W11 received this exact three-file producer.
+The lead merged its identical source as76674f1b; the line gate is still pending.
+Consumer/whole/host evidence remains owed. W11 owns role/membership coverage;
+this is neither full A5 nor a registry admission/runtime approval.
 
 The pre-adoption app DTO conflated explicit unknown and serde(other), so the Row
 adapter stayed conservative until c2dcebea's V3/integrator handoff below. Current

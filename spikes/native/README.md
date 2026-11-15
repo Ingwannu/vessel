@@ -1271,8 +1271,9 @@ icon facts. The canonical workspace owner supplies every eligible root and
 working descendant, exact membership and explicit coverage; a latest-root
 activity display is a separate projection and cannot select aggregate urgency.
 Unknown facts do not become empty/Done. Known uninstrumented shells are neutral
-only in workspace aggregation. The corrected shared producer still awaits its
-own checks/review; this is not a completed workspace or OS badge integration.
+only in workspace aggregation. The corrected shared producer passed bounded
+source adoption review and its own narrow checks; consumer/line gates remain
+separate. This is not a completed workspace or OS badge integration.
 Inbox's manual session-open control stays unavailable until the session owner
 provides a reviewed original-connection-bound opener; notification activation
 retains exact Inbox selection or its generic fallback.
