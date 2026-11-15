@@ -365,3 +365,28 @@ Paseo's error text uses its base size, whereas the inherited native error
 uses Type::Meta. The selection/profile subfeature does not fix these or
 claim complete host-dialog parity. Preserve them in the E1 remaining-work
 list rather than interpreting pending-input evidence as a full UI pass.
+
+
+## Managed local presentation and retained-operation fencing
+
+When the announced producer adds explicit Machine provenance, the one
+host-label formatter must display ManagedLocal with the cached translated
+local-node title. Its desktop-UUID remains an internal lookup key. Book
+and Unknown keep their existing display behavior initially. Picker,
+search and Overview reuse that formatter; action targets retain the exact
+original Name/connection context. Namespace recognition never supplies
+provenance. No BookLabel write, fake Book entry or second appearance store
+is introduced for the local controller. Local-first ordering must not
+retarget an explicit selection. No formatter/provenance source is wired yet.
+
+Before retained local book operations are implemented, extend completion
+correlation beyond the existing Edit-value equality: cancellation/reopen
+can create the same edit in a newer view, so a non-reused operation ticket
+must fence late completion. A receipt for an old Book source must not
+rename/forget a later ManagedLocal admission with the same internal key.
+Keep the original book preimage and caller/admission generation through
+actual worker completion, even after the caller's wait deadline. Apply
+successful local effects only to the matching explicit source/generation;
+failed ordinary edits preserve selection and admissions. Partial credential
+or commit-uncertain outcomes remain distinct and need their actual receipt.
+These are implementation obligations, not a new API or tested runtime.
