@@ -4,7 +4,10 @@ use gpui::{
     AppContext as _, Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton,
     MouseUpEvent, Render, TestAppContext,
 };
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 use vessel_app_kit::ui::{IntoElement as _, MouseDownEvent, div, px};
 use vessel_app_kit::{Scheme, SchemeChoice, Tokens};
 use vessel_app_link::Link;
