@@ -26,7 +26,9 @@ pub use capacity::{
 };
 
 pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
-pub(crate) use read::{load, reservation, resource_owner, workspace, workspace_memberships};
+pub(crate) use read::{
+    load, memberships as workspace_memberships, reservation, resource_owner, workspace,
+};
 pub(crate) use write::apply;
 
 /// Whether a transaction changed the durable snapshot version.

@@ -81,11 +81,12 @@ fn unknown_selected_resource_kind_is_refused_without_leaking_another_workspaces_
     put(&mut db, second, None).unwrap();
     db.execute_batch("PRAGMA ignore_check_constraints=ON;")
         .unwrap();
-    db.execute(
+    let changed = db.execute(
         "INSERT INTO workspace_registry_resources(kind,resource,workspace) VALUES ('future',?1,?2)",
         rusqlite::params![SessionId::random().to_string(), a.to_string()],
     )
     .unwrap();
+    assert_eq!(changed, 1);
     assert!(matches!(
         workspace_memberships(&db, a),
         Err(StoreError::RegistryConflict)
