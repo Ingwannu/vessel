@@ -2,16 +2,28 @@
 //! Values remain separate from legacy root-based script calls (ADR 0066).
 
 mod control;
+mod env_peer;
+mod environment;
 mod gateway;
 mod observation;
 mod origin;
+mod page;
 mod row;
 mod settings;
 
 pub use control::{ServiceRefusal, ServiceSettingsApplication, ServiceSettingsOutcome};
+pub use env_peer::{InvalidServiceEnvPeer, ServiceEnvPeer, ServiceEnvPeerView};
+pub use environment::{
+    GetWorkspaceServiceEnv, InvalidReadyServiceEnv, ReadyServiceEnv, ReadyServiceEnvView,
+    ServiceBindHost, ServiceEnvPlan,
+};
 pub use gateway::{
     InvalidPublicServiceBase, InvalidServiceListenEndpoint, PublicServiceBase, ServiceGateway,
     ServiceListenEndpoint,
+};
+pub use page::{
+    InvalidServicePage, ServiceApproval, ServiceConfiguration, ServiceCursor, ServicePage,
+    ServicePageView, ServiceQuery, WorkspaceScriptQuery, WorkspaceScriptQueryResult,
 };
 pub use settings::{
     GetServiceSettings, InvalidServicesAdminSettings, MAX_PUBLIC_SERVICE_CHOICES,

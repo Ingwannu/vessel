@@ -9,6 +9,7 @@ use super::ScriptName;
 /// The normalized suffix shared by peer-port and peer-URL variables.
 /// Construct it only from `ScriptName`, whose ASCII grammar prevents an empty key.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct ServiceEnvName(Arc<str>);
 
 impl ServiceEnvName {
@@ -43,6 +44,12 @@ impl ServiceEnvName {
 impl fmt::Display for ServiceEnvName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+impl serde::Serialize for ServiceEnvName {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
     }
 }
 

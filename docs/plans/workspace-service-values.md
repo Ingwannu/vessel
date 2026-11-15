@@ -102,3 +102,29 @@ isolated values package because it is absent from the announced node base.
 Its normalization body and tests are byte-identical to the existing owner;
 helper/allocator/parser execution paths are not copied. Environment DTOs
 will derive keys through that owner, never normalize a second time.
+
+
+Snapshot/environment values now use the exact merged shared command bound.
+Pages privately enforce bounded/strictly ordered unique names and matching
+continuation snapshot/final row; cursor access creates no archive. A compact
+configuration summary cannot establish full approval display, so its digest
+and approved flag are conservatively hidden through PROJECT_FILE_KEYS even
+when only legacy file fields would be present. The complete commands owner
+remains the approval surface; all new reply adapters must call projection.
+
+The cached environment DTO derives peer keys through ServiceEnvName, refuses
+normalized collisions/missing self/inconsistent self fields and bounds peer
+counts through the same owner. Private raw key text exists only at the decode
+edge and must equal that derivation. The existing normalizer gains only
+serialization/TS support, no separate text-to-name constructor. Ready has
+only generated loopback host/port/URL/peers; inherited maps and helper/start
+requests cannot decode. It is not a launch/admission owner. Paseo env31-63
+requires the selected service in peers and obtains its own port from it;
+these consistency checks reproduce that contract without copying code.
+
+Six page/env regressions plus the carried normalizer test are authored;
+all current execution remains owed. No method rows/client wrappers/handler
+or runtime cache/wait/alloc/env effects are wired yet. The announced next
+node head is merged after this clean value boundary, retaining precursor
+ancestry rather than copying it. ConnectionLife expectations remain until
+an actual real consumer is wired, not this values package.
