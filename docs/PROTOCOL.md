@@ -1863,3 +1863,28 @@ on every negotiated connection. This also covers a terminal-bearing prior
 approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
+
+## Pending independent workspace registry (ADR 0082)
+
+The registry dependency declares workspace.registry, workspace.list,
+workspace.get, workspace.rename, workspace.pin and workspace.release_automation
+in the single method table with PROJECT_WORKSPACE_REGISTRY = None. No wire
+number is assigned here. Clients/forwarded calls refuse pending methods before
+routing; existing session/project replies are unchanged.
+
+The atomic snapshot carries node identity, a monotonic registry revision,
+independent workspace descriptors and explicit session/terminal ownership. Cwd
+and a node-book alias never identify a workspace. Empty workspaces are retained.
+Foreground/background visibility belongs to the workspace; bound session listing
+must be derived from this authority, while legacy unbound sessions remain a
+separate compatibility surface.
+
+Descriptors expose Active, Archiving, Restoring or Archived, exact local/managed
+backing, explicit title and pin, and the retained automation gate. Source release
+requires both the expected revision and exact typed external source; it changes
+only that gate. Person-only policy and Read/Operate scope checks apply. Archive,
+restoration, resource launch and create receipts are separate orchestration
+packages using the same durable registry/start-lease fence. Complete snapshots
+are bounded by the store's descriptor and retained resource budgets below the
+existing RPC frame limit. No cwd inference, implicit trust, replay or teardown
+occurs in a presentation mutation.
