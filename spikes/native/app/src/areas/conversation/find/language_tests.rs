@@ -263,7 +263,32 @@ fn a_missing_destination_loads_then_fails_and_a_closed_target_cannot_fail_a_new_
             FindPhase::Loading
         );
     });
-    cx.executor().advance_clock(super::REVEAL_DEADLINE);
+    let half = super::REVEAL_DEADLINE.checked_div(2).unwrap();
+    cx.executor().advance_clock(half);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.find_at("needle", vessel_proto::EventSeq::new(10), window, cx);
+        });
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(half);
+    cx.run_until_parked();
+    probe.update(cx, |probe, cx| {
+        assert_eq!(
+            probe
+                .shell
+                .read(cx)
+                .areas
+                .conversation
+                .find
+                .as_ref()
+                .unwrap()
+                .phase,
+            FindPhase::Loading,
+            "reselecting the same destination owns a fresh deadline"
+        );
+    });
+    cx.executor().advance_clock(half);
     cx.run_until_parked();
     probe.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
