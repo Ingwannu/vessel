@@ -349,11 +349,19 @@ async fn errors_after_possible_dispatch_cannot_prove_no_effect() {
             Stage::Resource,
         ),
         (
+            Scenario::RefuseCreate(ErrorCode::SpawnFailed),
+            Stage::Resource,
+        ),
+        (
             Scenario::RefusePrompt(ErrorCode::Internal),
             Stage::InitialInput,
         ),
         (
             Scenario::RefusePrompt(ErrorCode::Unavailable),
+            Stage::InitialInput,
+        ),
+        (
+            Scenario::RefusePrompt(ErrorCode::SpawnFailed),
             Stage::InitialInput,
         ),
     ] {

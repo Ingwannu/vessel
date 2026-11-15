@@ -335,3 +335,12 @@ fixture unwrap expectations to the four literal test constructors. Production
 does not gain a panic path or lint exemption; the actual input semantics and
 bounded retention checks stay unchanged. The next exact source check must
 also include the attachment owner's separate corrections from that run.
+
+The legacy SpawnFailed code is conservatively unknown as well. In
+vessel-proc/src/child.rs:49-68, OS spawn precedes pipe, pid and process-group
+checks; their errors become SessionError::StartAgent/SpawnFailed. A generic
+wire code therefore cannot prove no program executed, even though a missing
+executable usually fails before effects. The existing duplex regression now
+covers both create and first-input replies for this code. A future durable
+before-effect receipt may permit a narrower safe retry without weakening
+this legacy boundary.
