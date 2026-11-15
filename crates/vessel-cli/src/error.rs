@@ -25,6 +25,11 @@ pub(crate) enum CliError {
     /// A newer key is display-only and cannot be changed or read here.
     #[error(transparent)]
     SettingKey(#[from] vessel_proto::settings::UnknownSettingKey),
+
+
+    /// File observations refuse unsafe reads before a shutdown request.
+    #[error(transparent)]
+    ServiceFile(#[from] crate::init::ServiceFileError),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),
@@ -50,6 +55,9 @@ pub(crate) enum CliError {
     /// A lost identity result cannot bind local observations.
     #[error("node identity reader exited before reporting its result")]
     IdentityReader(#[source] tokio::sync::oneshot::error::RecvError),
+    /// A lost service observation cannot be treated as a missing file.
+    #[error("node service observer exited before reporting its result")]
+    ServiceReader(#[source] tokio::sync::oneshot::error::RecvError),
     /// Local lifecycle checks preserve the store's original I/O cause.
     #[error("cannot inspect the node lock")]
     NodeLock(#[source] vessel_node::StoreError),
