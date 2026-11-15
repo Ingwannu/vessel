@@ -902,3 +902,38 @@ Restore checks original parent window/node/session; W2 additionally restores its
 matching child identity/revision and retains its dispatch fences. This helper
 never reinstates an old transport operation. The public crate reexport remains
 literal cfg(test) until the coordinated product owner/caller cutover.
+
+### Canonical tool-scope activation requirements (waiting checked ADR0084 DTOs)
+
+Existing EntryKey::Tool and tools/PlanDisclosures maps use raw ToolCallId. W23's
+source contract explicitly does not promise whole-session uniqueness, so merely
+copying detail fields into ToolView would leave cross-turn updates, Plan outcomes
+and rebased sheet choices unsound. The same activation must change projection
+identity, permission lookup and local disclosure together, using canonical
+ToolCallScope paired with the raw ID. Provider scope includes BOTH actual thread
+and turn; Record scope is an unassociated observation, never a current-turn guess.
+This is a consumer design requirement, not a claim that those DTOs are adopted.
+
+A scope-aware internal lookup must also keep conservative older-peer behavior:
+an unscoped update can use only one unambiguous retained announcement. A repeated
+unscoped ID permanently loses that association; missing/ambiguous updates remain
+separate record-keyed observations, never whichever turn is currently running.
+An update before an announcement cannot retroactively manufacture attribution.
+Identical EventSeq replay remains skipped by the existing projection watermark.
+The authoritative typed scope is not inferred from tool names or provider JSON.
+
+All dependent consumers must migrate together: ToolView/source fields and update
+precedence, append/find_tool/public tool_call, PermissionRequest.tool_scope title
+and Plan outcome resolution, PlanDisclosures' entry identity, and EntryKey-based
+sheet/run/bookmark rebasing. A permission lacking scope can resolve only an
+unambiguous retained source, not the latest same-name tool. Canonical known detail
+survives Unknown/absent updates; completed/canceled status cannot regress to late
+progress. Explicit failure/provenance stay separate from raw output.
+
+Required regressions on the checked DTO union: same raw ID in two provider turns
+with a late update to the first; same turn ID in a new thread; Record orphan
+isolation; unique older announcement/update versus repeated ambiguous ID; update
+before announcement; scoped Plan permission/disclosure isolation; retained sheet
+and source cursor/fork boundary staying on the original entry. This remains
+unimplemented field/scope activation until W23's exact checked source handoff.
+No local copy of ToolCallScope, node association tracker or numeric gate is added.
