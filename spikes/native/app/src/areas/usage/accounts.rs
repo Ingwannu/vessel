@@ -31,7 +31,7 @@ pub(super) fn render(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .children(draw::read_query_status(
+        .children(draw::read_host_status(
             state.inventory.phase(),
             shell,
             tokens,
