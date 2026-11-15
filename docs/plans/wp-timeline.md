@@ -716,3 +716,14 @@ when no detail was supplied. This prepares field adoption without activating it.
 A typed fake regression covers canonical Plan with broad kind Other/no raw input,
 canonical non-Plan precedence, empty canonical Plan and unchanged legacy fallback.
 The shared Plan card renderer and approval semantics are unchanged.
+
+
+W2's staged child projection_revision changes per accepted page, including a
+same-query prepend, and its navigation-lifetime ticket source does not reset on
+A→B→A reopen. The future keyed Seat must capture that revision so queued old
+numeric-row callbacks cannot target a different entry after replacement.
+Read-only replacement also rebases an open detail sheet by key and group choices
+to the group's new lead. Removed targets enter the existing actual-dismissal path,
+preserving dialog focus restoration and generation fencing rather than dropping
+an open sheet silently. These UI rules have additional native regressions; actual
+child context/callback integration remains held for checked W2/W12 producers.

@@ -40,18 +40,18 @@ impl ConversationArea {
     pub(super) fn install_projection(&mut self, timeline: Timeline) {
         let bookmark = self.reading_bookmark();
         let previous = self.timeline.entries();
-        self.disclosures.rebase(previous, &timeline);
-        rebase_open(&mut self.open_runs, previous, &timeline);
-        if let Some(turns) = &mut self.turns {
-            rebase_open(&mut turns.open, previous, &timeline);
-        }
-        // UI holds are checked by the source owner. Keep the generation counter
-        // so an already queued dismissal cannot match a future sheet lifetime.
-        self.tool_sheet.clear();
-        self.timeline = timeline;
-        self.folds = self
+        let folds = self
             .collapse
-            .then(|| Folds::with_reasoning(self.timeline.entries(), self.reasoning.expanded()));
+            .then(|| Folds::with_reasoning(timeline.entries(), self.reasoning.expanded()));
+        self.disclosures.rebase(previous, &timeline);
+        rebase_open(&mut self.open_runs, previous, &timeline, folds.as_ref());
+        if let Some(turns) = &mut self.turns {
+            rebase_open(&mut turns.open, previous, &timeline, None);
+        }
+        self.tool_sheet
+            .rebase(&timeline, folds.as_ref(), self.reasoning);
+        self.timeline = timeline;
+        self.folds = folds;
         self.logs = Logs::of(self.timeline.entries());
         self.outline = outline(self.timeline.entries());
         let timeline = &self.timeline;
@@ -64,10 +64,22 @@ impl ConversationArea {
     }
 }
 
-fn rebase_open(open: &mut HashSet<usize>, previous: &[Entry], next: &Timeline) {
+fn rebase_open(
+    open: &mut HashSet<usize>,
+    previous: &[Entry],
+    next: &Timeline,
+    folds: Option<&Folds>,
+) {
     *open = std::mem::take(open)
         .into_iter()
-        .filter_map(|index| next.index_of(&previous.get(index)?.key))
+        .filter_map(|index| {
+            let index = next.index_of(&previous.get(index)?.key)?;
+            Some(
+                folds
+                    .and_then(|folds| folds.run_of(index))
+                    .map_or(index, |run| run.lead),
+            )
+        })
         .collect();
 }
 

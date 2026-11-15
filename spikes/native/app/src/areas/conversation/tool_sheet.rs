@@ -13,15 +13,24 @@ use vessel_app_kit::{
     DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, dialog, output_box,
     skeleton,
 };
-use vessel_app_view::timeline::{EntryKey, EntryKind, plan_text};
+use vessel_app_view::prefs::ReasoningExpansion;
+use vessel_app_view::timeline::{EntryKey, EntryKind, Folds, Timeline, plan_text};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Generation(u64);
 
 #[derive(Debug, Clone)]
 enum Selection {
-    Entry { index: usize, key: EntryKey },
-    Run { lead: usize, key: EntryKey },
+    /// Its former identity vanished; the existing overlay dismisses normally.
+    Unavailable,
+    Entry {
+        index: usize,
+        key: EntryKey,
+    },
+    Run {
+        lead: usize,
+        key: EntryKey,
+    },
 }
 
 #[derive(Debug)]
@@ -48,6 +57,39 @@ impl SheetState {
             .is_some_and(|shown| matches!(shown.selection, Selection::Run { .. }))
     }
 
+    /// Preserve an open detail by key across a rebuilt prefix. A vanished target
+    /// remains a pending dismissal so the shared dialog restores focus normally.
+    pub(super) fn rebase(
+        &mut self,
+        timeline: &Timeline,
+        folds: Option<&Folds>,
+        reasoning: ReasoningExpansion,
+    ) {
+        let next = self
+            .shown
+            .as_ref()
+            .and_then(|shown| match &shown.selection {
+                Selection::Entry { key, .. } => {
+                    entry_selection(timeline, reasoning, timeline.index_of(key)?)
+                }
+                Selection::Run { key, .. } => {
+                    let index = timeline.index_of(key)?;
+                    if timeline.rewound(index) {
+                        return None;
+                    }
+                    let run = folds?.run_of(index)?;
+                    Some(Selection::Run {
+                        lead: run.lead,
+                        key: timeline.entries().get(run.lead)?.key.clone(),
+                    })
+                }
+                Selection::Unavailable => None,
+            });
+        if let Some(shown) = &mut self.shown {
+            shown.selection = next.unwrap_or(Selection::Unavailable);
+        }
+    }
+
     fn take(&mut self, generation: Generation) -> Option<Shown> {
         if self.shown.as_ref()?.generation != generation {
             return None;
@@ -68,11 +110,18 @@ impl SheetState {
     }
 }
 
-fn entry_selection(area: &ConversationArea, index: usize) -> Option<Selection> {
-    let entry = area.timeline.entries().get(index)?;
+fn entry_selection(
+    timeline: &Timeline,
+    reasoning: ReasoningExpansion,
+    index: usize,
+) -> Option<Selection> {
+    if timeline.rewound(index) {
+        return None;
+    }
+    let entry = timeline.entries().get(index)?;
     let eligible = match &entry.kind {
         EntryKind::Tool(tool) => plan_text(tool).is_none(),
-        EntryKind::Thought { .. } => !area.reasoning.expanded(),
+        EntryKind::Thought { .. } => !reasoning.expanded(),
         EntryKind::Ready { .. }
         | EntryKind::Prompt(_)
         | EntryKind::Steer { .. }
@@ -113,7 +162,7 @@ impl Shell {
         let Some(area) = seat.get_mut(self) else {
             return false;
         };
-        let Some(selection) = entry_selection(area, index) else {
+        let Some(selection) = entry_selection(&area.timeline, area.reasoning, index) else {
             return false;
         };
         if !area.tool_sheet.show(selection) {
@@ -216,6 +265,7 @@ fn content(
     cx: &mut Context<'_, Shell>,
 ) -> Option<(String, AnyElement)> {
     match selection {
+        Selection::Unavailable => None,
         Selection::Entry { index, key } => entry_content(paint, area, *index, key, window, cx),
         Selection::Run { lead, key } => run_content(paint, area, *lead, key, window, cx),
     }
@@ -363,5 +413,62 @@ mod generation_tests {
         assert_eq!(state.shown.as_ref().unwrap().generation, current);
         assert!(state.take(current).is_some());
         assert!(state.take(current).is_none());
+    }
+    #[test]
+    fn a_sheet_rebases_its_key_and_keeps_normal_dismissal_when_that_key_disappears() {
+        use super::ReasoningExpansion;
+        use chrono::DateTime;
+        use vessel_app_view::timeline::Timeline;
+        use vessel_proto::{AgentEvent, ContentBlock, EventRecord, SessionEvent};
+        let mut timeline = Timeline::default();
+        let records = [2, 10].map(|seq| EventRecord {
+            seq: EventSeq::new(seq),
+            at: DateTime::UNIX_EPOCH,
+            event: SessionEvent::Agent {
+                event: AgentEvent::ThoughtChunk {
+                    content: ContentBlock::Text {
+                        text: "Thinking".to_owned(),
+                    },
+                },
+            },
+        });
+        // Different logical reasoning rows need a real content boundary.
+        let mut records = records.to_vec();
+        records.insert(
+            1,
+            EventRecord {
+                seq: EventSeq::new(3),
+                at: DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::MessageChunk {
+                        content: ContentBlock::Text {
+                            text: "Boundary".to_owned(),
+                        },
+                    },
+                },
+            },
+        );
+        let _change = timeline.apply(&records);
+        let mut state = SheetState::default();
+        assert!(state.show(Selection::Entry {
+            index: 0,
+            key: EntryKey::Record(EventSeq::new(10))
+        }));
+        let generation = state.shown.as_ref().unwrap().generation;
+        state.rebase(&timeline, None, ReasoningExpansion::Collapsed);
+        assert!(matches!(
+            &state.shown.as_ref().unwrap().selection,
+            Selection::Entry { index: 2, .. }
+        ));
+        assert_eq!(state.shown.as_ref().unwrap().generation, generation);
+        state.rebase(&Timeline::default(), None, ReasoningExpansion::Collapsed);
+        assert!(matches!(
+            state.shown.as_ref().unwrap().selection,
+            Selection::Unavailable
+        ));
+        assert!(
+            state.take(generation).is_some(),
+            "normal actual-close path still owns focus restoration"
+        );
     }
 }

@@ -19,7 +19,7 @@ fn projection(prefix: bool) -> Timeline {
     if prefix {
         records.push(record(
             2,
-            AgentEvent::MessageChunk {
+            AgentEvent::ThoughtChunk {
                 content: ContentBlock::Text {
                     text: "Earlier".to_owned(),
                 },
@@ -85,5 +85,24 @@ fn managed_receiver_returns_the_projection_without_mutating_either_side(
         assert_eq!(unapplied.timeline.entries().len(), 2);
         assert!(area.timeline.entries().is_empty());
         assert!(area.shown.is_some());
+    });
+}
+
+#[gpui::test]
+fn an_open_group_keeps_its_intent_when_an_earlier_member_becomes_the_host(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        let mut area = ConversationArea::new(cx);
+        area.turns = None;
+        area.collapse = true;
+        assert!(area.replace_readonly_projection(projection(false)).is_ok());
+        area.toggle_run(0);
+        assert!(area.open_runs.contains(&0));
+        assert!(area.replace_readonly_projection(projection(true)).is_ok());
+        assert_eq!(area.folds.as_ref().unwrap().run_of(1).unwrap().lead, 0);
+        assert!(area.open_runs.contains(&0));
+        assert!(!area.open_runs.contains(&1));
+        assert_eq!(area.rows.len(), 3);
     });
 }
