@@ -55,11 +55,6 @@ async fn reap(peer: &mut peer::Peer, name: &'static str) -> Result<(), tokio::ta
     let _reaped = peer.task.take();
     result
 }
-async fn failed_join_unwind(mut owned: Fixture) {
-    let failed = tokio::time::timeout(FAILED_JOIN_PROBE, owned.peer.task.as_mut().unwrap()).await;
-    assert!(failed.is_err());
-    panic!("intentional failed-join owner unwind");
-}
 
 #[tokio::test]
 async fn active_unary_guard_survives_task_completion_but_does_not_retain_transport() {
@@ -340,12 +335,19 @@ async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
 #[tokio::test]
 async fn failed_bounded_join_and_unwind_still_abort_owned_peer_task() {
     within(async {
-        let owned = fixture(false).await;
+        let mut owned = fixture(false).await;
         let observer = owned.selected.lease.client.clone();
         let peer_task = owned.peer.task.as_ref().unwrap().abort_handle();
-        let failing = tokio::spawn(failed_join_unwind(owned));
-        let result = phase("catch failed peer-join owner unwind", failing).await;
-        assert!(result.unwrap_err().is_panic());
+        let failed =
+            tokio::time::timeout(FAILED_JOIN_PROBE, owned.peer.task.as_mut().unwrap()).await;
+        assert!(failed.is_err());
+        // No extra spawned task can detach on an outer phase timeout.
+        let unwound: std::thread::Result<()> =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+                let _owned = owned;
+                panic!("intentional failed-join owner unwind");
+            }));
+        assert!(unwound.is_err());
         phase(
             "unwind abort closes retained observer transport",
             observer.closed(),
