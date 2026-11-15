@@ -4,7 +4,7 @@
 
 use std::{ffi::OsString, path::PathBuf};
 
-use vessel_app_updater::{ArtifactPath, Channel, Label, Packaging, Target};
+use vessel_app_updater::{ArtifactPath, Channel, Label, Packaging, Role, Target};
 
 pub(crate) const USAGE: &str = "\
 usage:
@@ -12,6 +12,8 @@ usage:
   vessel-app-feed publish --key FILE --feed DIR --channel NAME --label LABEL
                           [--notes FILE] [--published TEXT]
                           --artifact TARGET:PACKAGING:PATH ...
+                          [--companion TARGET:PACKAGING:ROLE:PATH ...]
+                          [--compressed gzip]
   vessel-app-feed sums --key FILE --label LABEL DIR
   vessel-app-feed check --feed DIR --public KEY --channel NAME
   vessel-app-feed check-sums --public KEY DIR";
@@ -21,6 +23,16 @@ usage:
 pub(crate) struct ArtifactArg {
     pub(crate) target: Target,
     pub(crate) packaging: Packaging,
+    pub(crate) path: ArtifactPath,
+    /// The programs shipped and replaced with it (ADR 0094), from the
+    /// `--companion` options naming its target and packaging.
+    pub(crate) companions: Vec<CompanionArg>,
+}
+
+/// One companion named on the command line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CompanionArg {
+    pub(crate) role: Role,
     pub(crate) path: ArtifactPath,
 }
 
@@ -34,6 +46,9 @@ pub(crate) struct Publish {
     pub(crate) notes: Option<PathBuf>,
     pub(crate) published: Option<String>,
     pub(crate) artifacts: Vec<ArtifactArg>,
+    /// `--compressed gzip`: every artifact and companion also has
+    /// `<path>.gz`, offered to the apps that read it.
+    pub(crate) gzip: bool,
 }
 
 /// A command.
@@ -105,10 +120,19 @@ pub(crate) fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command,
                 label: parse_value("label", &options.required("label")?)?,
                 notes: options.notes.take().map(PathBuf::from),
                 published: options.published.take(),
-                artifacts: std::mem::take(&mut options.artifacts)
-                    .iter()
-                    .map(|text| artifact(text))
-                    .collect::<Result<_, _>>()?,
+                artifacts: with_companions(
+                    &std::mem::take(&mut options.artifacts),
+                    &std::mem::take(&mut options.companions),
+                )?,
+                gzip: match options.compressed.take().as_deref() {
+                    None => false,
+                    Some("gzip") => true,
+                    Some(other) => {
+                        return Err(bad(format!(
+                            "--compressed {other:?}: only gzip is made and read"
+                        )));
+                    }
+                },
             };
             options.none_left()?;
             if publish.artifacts.is_empty() {
@@ -156,12 +180,16 @@ struct Options {
     notes: Option<String>,
     published: Option<String>,
     artifacts: Vec<String>,
+    companions: Vec<String>,
+    compressed: Option<String>,
 }
 
 impl Options {
     fn set(&mut self, name: &str, value: String) -> Result<(), ArgsError> {
         match name {
             "artifact" => self.artifacts.push(value),
+            "companion" => self.companions.push(value),
+            "compressed" => self.compressed = Some(value),
             "notes" => self.notes = Some(value),
             "published" => self.published = Some(value),
             "key" | "feed" | "channel" | "label" | "public" => {
@@ -192,6 +220,8 @@ impl Options {
             .chain(self.notes.as_ref().map(|_| "notes"))
             .chain(self.published.as_ref().map(|_| "published"))
             .chain((!self.artifacts.is_empty()).then_some("artifact"))
+            .chain((!self.companions.is_empty()).then_some("companion"))
+            .chain(self.compressed.as_ref().map(|_| "compressed"))
             .next();
         match unused {
             Some(name) => Err(bad(format!("--{name} does not apply to this command"))),
@@ -226,7 +256,50 @@ fn artifact(text: &str) -> Result<ArtifactArg, ArgsError> {
         target: parse_value("artifact target", target)?,
         packaging: parse_value("artifact packaging", packaging)?,
         path: parse_value("artifact path", path)?,
+        companions: Vec::new(),
     })
+}
+
+/// The `--artifact` options, each with the `--companion` options naming
+/// its target and packaging. A companion with no such artifact, or a role
+/// given twice for one, is refused here, before anything is measured.
+fn with_companions(
+    artifacts: &[String],
+    companions: &[String],
+) -> Result<Vec<ArtifactArg>, ArgsError> {
+    let mut artifacts = artifacts
+        .iter()
+        .map(|text| artifact(text))
+        .collect::<Result<Vec<_>, _>>()?;
+    for text in companions {
+        let mut parts = text.splitn(4, ':');
+        let (Some(target), Some(packaging), Some(role), Some(path)) =
+            (parts.next(), parts.next(), parts.next(), parts.next())
+        else {
+            return Err(bad(format!(
+                "--companion {text:?} is not TARGET:PACKAGING:ROLE:PATH"
+            )));
+        };
+        let target: Target = parse_value("companion target", target)?;
+        let packaging: Packaging = parse_value("companion packaging", packaging)?;
+        let role: Role = parse_value("companion role", role)?;
+        let path: ArtifactPath = parse_value("companion path", path)?;
+        let owner = artifacts
+            .iter_mut()
+            .find(|artifact| artifact.target == target && artifact.packaging == packaging)
+            .ok_or_else(|| {
+                bad(format!(
+                    "--companion {text:?} names no --artifact of {target} {packaging}"
+                ))
+            })?;
+        if owner.companions.iter().any(|known| known.role == role) {
+            return Err(bad(format!(
+                "--companion {role} given twice for {target} {packaging}"
+            )));
+        }
+        owner.companions.push(CompanionArg { role, path });
+    }
+    Ok(artifacts)
 }
 
 #[cfg(test)]
@@ -251,6 +324,42 @@ mod tests {
         assert_eq!(publish.artifacts.len(), 2);
         assert_eq!(publish.artifacts[1].packaging, Packaging::AppImage);
         assert_eq!(publish.notes, Some(PathBuf::from("n")));
+        assert!(
+            publish
+                .artifacts
+                .iter()
+                .all(|artifact| artifact.companions.is_empty())
+        );
+        assert!(!publish.gzip);
+    }
+
+    #[test]
+    fn companions_join_the_artifact_of_their_target_and_packaging() {
+        let command = run(
+            "publish --key k --feed f --channel preview --label 0.0.0.0.20 \
+             --artifact windows-x86_64:executable:0.0.0.0.20/app.exe \
+             --artifact linux-x86_64:executable:0.0.0.0.20/app \
+             --companion linux-x86_64:executable:node:0.0.0.0.20/vesseld \
+             --companion windows-x86_64:executable:cli:0.0.0.0.20/vessel.exe \
+             --companion linux-x86_64:executable:cli:0.0.0.0.20/vessel",
+        )
+        .unwrap();
+        let Command::Publish(publish) = command else {
+            panic!("{command:?}");
+        };
+        let roles = |index: usize| -> Vec<Role> {
+            publish.artifacts[index]
+                .companions
+                .iter()
+                .map(|companion| companion.role.clone())
+                .collect()
+        };
+        assert_eq!(roles(0), [Role::Cli]);
+        assert_eq!(roles(1), [Role::Node, Role::Cli]);
+        assert_eq!(
+            publish.artifacts[1].companions[0].path.as_str(),
+            "0.0.0.0.20/vesseld"
+        );
     }
 
     #[test]
@@ -266,6 +375,13 @@ mod tests {
             "publish --key k --feed f --channel Preview --label 1 --artifact linux-x86_64:executable:a",
             "publish --key k --feed f --channel preview --label 1 --artifact linux:executable:a",
             "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:../a",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion windows-x86_64:executable:cli:b",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion linux-x86_64:executable:cli:b --companion linux-x86_64:executable:cli:c",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion linux-x86_64:executable:b",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion linux-x86_64:executable:Cli:b",
+            "check --feed f --public p --channel preview --companion linux-x86_64:executable:cli:b",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --compressed zstd",
+            "check --feed f --public p --channel preview --compressed gzip",
             "check --feed f --public p",
             "sums --key",
             "sums --key k d",

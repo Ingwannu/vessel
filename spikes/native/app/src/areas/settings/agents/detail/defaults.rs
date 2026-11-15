@@ -238,7 +238,7 @@ impl Shell {
             .keep_choices(machine.as_str(), agent, choices.as_slice());
         self.areas.settings.agents.defaults_problem = None;
         self.areas.settings.agents.defaults.close();
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         cx.notify();
     }
 
@@ -246,7 +246,7 @@ impl Shell {
         self.areas.settings.agents.defaults_problem = None;
         if let Some(machine) = self.areas.settings.agents.machine.clone() {
             self.prefs.keep_choices(machine.as_str(), agent, &[]);
-            self.command(Command::SavePrefs(self.prefs.clone()));
+            self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         }
         cx.notify();
     }

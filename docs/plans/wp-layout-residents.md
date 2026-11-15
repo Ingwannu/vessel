@@ -3,6 +3,39 @@
 Status: contract-only review passed. Registry implementation and runtime evidence
 remain separate work; this approval does not establish two-pane behavior.
 It extends the workspace layout contract; it does not add another panel manager.
+The proposed first product step is recorded in
+`wp-layout-single-slot.md`; it requires review before code and does not enable the
+staged resource map or approve legacy unbound ingress.
+
+The staged concrete owner is `app::areas::layout::residents::SessionResidents`,
+behind a literal `cfg(test)` module while legacy globals remain the only product
+path. Its private map holds each `SessionView` and `ConversationArea` exactly once;
+the existing pure `Residents` table is its admission component, not another live
+manager. Claim validates capacity before a scoped owner factory, view borrows check
+the full current context, hidden stream ingress checks `FollowBinding`, and effect
+settlement consumes the owner ticket before mutation. Clean retirement retires
+metadata before returning resources to snapshot/cancel/drop. This foundation does
+not authorize a transport or implement the production cutover. W1's window-global
+search extraction and scoped composer constructors are prerequisites; the legacy
+selected-session composer callback must never become a resident input callback.
+The claim key itself must match the expected node (workspace form) or session
+(older-session bridge) before allocation. This consistency check is additional
+to authoritative workspace membership and the live connection lease; the staged
+resource map alone grants neither. The final product admission caller must check
+the current layout's agent target and authoritative registry membership before
+claiming, and must release a claim on guarded retarget/close.
+The staged owner retires admission in two phases: `retire_current` first invalidates
+the binding/tickets and returns bounded `FollowRetirement` data; a required owner
+callback updates matching pending UI to uncertain before replacement follow begins.
+The callback precedes generation-allocation failure as well, so exhaustion cannot
+leave an obsolete Sending indicator. Notices cannot mint or readmit operations.
+
+Provider-child resources have their own `ResourceOwner::Subagents` vote and
+`OperationKind::Subagents` ticket namespace. The parent bundle retains the one
+concrete child query/readonly area. Main/origin Timeline Ready cannot erase a child
+query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
+This extends the closed owner set instead of relying on last-writer aggregation;
+the six concrete owners must all supply clean snapshots before dehydration.
 
 ## Decision Log
 
@@ -234,3 +267,12 @@ link resolution, a stale epoch after eviction/recreation, handoff to another nod
 same-node reconnect with queued old attach metadata/error/action replies, observed
 alias A→B→A, duplicate operation replies, pending upload/send/IME eviction holds,
 hard-cap refusal, cancelled attach and stale close acknowledgement. Tests use typed fakes and no real agent or live node.
+
+## Independent provider-child owner
+
+Provider-child resources have their own `ResourceOwner::Subagents` vote and
+`OperationKind::Subagents` ticket namespace. The parent bundle retains the one
+concrete child query/readonly area. Main/origin Timeline Ready cannot erase a child
+query/find/confirmation hold, and a timeline reply cannot consume a child ticket.
+The closed owner set requires six concrete clean snapshots before dehydration;
+this value seam neither enables child resources nor promotes a live stream.
