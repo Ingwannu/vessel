@@ -13,6 +13,8 @@ use crate::workspace::git_quick::GitAction;
 pub enum ReadIssue {
     /// The app cannot fence a retired git view until its owner initializes.
     Owner,
+    /// Received pages do not form the prefix the person was reading.
+    Page,
     /// No comparison base exists; never present it as an empty successful diff.
     NoBase,
     /// The complete bounded comparison cannot fit the preview.
@@ -77,6 +79,7 @@ impl ReadIssue {
     pub fn for_failure(failure: &ReadFailure) -> Self {
         match failure {
             ReadFailure::OwnerUnavailable { .. } => Self::Owner,
+            ReadFailure::Page(_) => Self::Page,
             ReadFailure::NoBase => Self::NoBase,
             ReadFailure::TooLarge => Self::TooLarge,
             ReadFailure::WorkspaceUnavailable => Self::Workspace,
@@ -103,6 +106,7 @@ impl ReadIssue {
                 crate::alert::Variant::Info
             }
             Self::Owner
+            | Self::Page
             | Self::Keys
             | Self::Unsent
             | Self::Connection
@@ -124,6 +128,7 @@ impl ReadIssue {
         let words = catalog.git_panel();
         match self {
             Self::Owner => words.problem_owner(),
+            Self::Page => words.problem_page(),
             Self::NoBase => words.problem_no_base(),
             Self::TooLarge => words.problem_too_large(),
             Self::Workspace => words.problem_workspace(),
@@ -185,6 +190,7 @@ impl ReadFailure {
                 ))
             }
             Self::OwnerUnavailable { .. }
+            | Self::Page(_)
             | Self::NoBase
             | Self::TooLarge
             | Self::Call(Problem::Unsent | Problem::Older)

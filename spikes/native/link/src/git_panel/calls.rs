@@ -7,9 +7,7 @@ use tokio::sync::Semaphore;
 use vessel_app_view::connection::Refusal;
 use vessel_app_view::layout::LayoutKey;
 use vessel_app_view::workspace::git::panel::ReadFailure;
-use vessel_proto::workspace::{
-    CompareGitFile, GetChanges, GetFileDiff, GetStatus, GitCompared, GitHunkOffset,
-};
+use vessel_proto::workspace::{CompareGitFile, GetChanges, GetFileDiff, GetStatus, GitCompared};
 
 /// Bound outstanding work including a response held by UI backpressure.
 const MAX_CALLS: usize = 8;
@@ -143,7 +141,7 @@ async fn file(
                 scope,
                 path: ticket.path().clone(),
                 ignore_whitespace: comparison.whitespace().ignored(),
-                from_hunk: None,
+                from_hunk: Some(ticket.from_hunk().get()),
             })
             .await
             .map_err(failure)
@@ -155,7 +153,7 @@ async fn file(
                     ticket.comparison().reason(),
                 ),
                 path: ticket.path().clone(),
-                from_hunk: GitHunkOffset::default(),
+                from_hunk: ticket.from_hunk(),
             })
             .await
             .map_err(failure)

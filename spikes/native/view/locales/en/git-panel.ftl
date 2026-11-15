@@ -138,3 +138,6 @@ git-panel-problem-too-large = This comparison is too large to preview. Narrow th
 
 # Advisory toast when the drawn legacy repository has no original authenticated read receipt; no write was attempted.
 git-panel-unverified-view = The repository shown here cannot be verified. Reopen the workspace before changing it.
+
+# Complete recovery when a file continuation has changed metadata or invalid hunk order; never silently append it.
+git-panel-problem-page = The received changes do not match. Refresh and try again.

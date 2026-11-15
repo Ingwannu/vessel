@@ -1016,3 +1016,38 @@ is prior source, not a result for the new owner/startup union. Node34bb TS
 generation stopped on the missing CommitAbbreviation classification; the
 4be successor adds the display-only alias and a filter-matching regression.
 Its one TS run is queued; no generated artifact or freshness is claimed yet.
+
+## Bounded file-page lineage before document mounting
+
+[Decision Log]
+- Assets read: web use-changes.ts want/inflight/generation and diff-rows.test.ts
+  stable hunk keys; existing PanelReads, ReadState, FileDiff, GitHunkOffset and
+  Link selected typed calls. Keep the same transport and row projection.
+- Choice: each accepted FilePages retains its complete assembled FileDiff and
+  original FileTicket. A continuation activation captures the accepted summary
+  generation AND previous body request key, and may start only from Ready data.
+  Loading removes continuation admission immediately. Initial paint callbacks
+  cannot supersede an in-flight read or restart ready data; failed data may
+  restart from zero, and explicit lower-level reads remain explicit.
+- FileTicket now echoes from_hunk to both legacy git.diff and canonical
+  git.compare_file. Link no longer resets a requested continuation to zero.
+  A refusal still carries that exact original ticket and physical context.
+- Admission checks path, old path, status, mode, content kind, prefix hunk count
+  and advancing contiguous more_from before appending. A malformed or changed
+  prefix settles a typed PageMismatch cause, using a complete EN/KO mismatch/retry
+  sentence. It never silently joins a changed file to an old prefix.
+- Payload limits per assembled file: eight MiB of UTF-8 field bytes,32768 hunks
+  and100000 typed lines. Saturating sums refuse overflow; they do not admit it.
+  This bounds retained data, including empty-line/hunk overhead, not transport
+  decoding, editor allocations, total process memory or a global cache. Existing
+  node patch limit is four MiB raw. Global retention/admission remains required
+  before a body renderer can be mounted; no parity or full memory bound claim.
+- Preserve every FileDiff field and line cut/no-newline marker. Reusing the
+  existing row projection produces stable hunk0/hunk1 keys after assembly.
+  Local request lineage still does not promise an atomic working-tree snapshot
+  across separate calls. The feature constant remains None on staged nodes.
+- Tests written: full two-page payload/key parity, duplicate/malformed progress,
+  metadata/content mismatch, equal-summary refresh, failed continuation/retry,
+  per-page and combined budgets, complete EN/KO recovery, and a real framed
+  original-client nonzero offset with echoed failure. They are UNEXECUTED until
+  the next meaningful changed-source batch; no queued480 outcome covers them.

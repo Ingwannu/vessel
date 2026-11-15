@@ -135,3 +135,7 @@ pub(crate) use calls::Hub;
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests;
+
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod page_tests;

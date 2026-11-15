@@ -6,7 +6,7 @@ use vessel_proto::workspace::{
 };
 use vessel_proto::{NodeId, ProjectId};
 
-fn reads() -> PanelReads {
+pub(super) fn reads() -> PanelReads {
     PanelReads::new(
         RepositoryKey {
             node: NodeId::random(),
@@ -17,7 +17,7 @@ fn reads() -> PanelReads {
         Comparison::default(),
     )
 }
-fn path() -> RelPath {
+pub(super) fn path() -> RelPath {
     "src/한글 file.rs".parse().unwrap()
 }
 fn summary() -> DiffSummary {
@@ -44,7 +44,7 @@ fn file() -> FileDiff {
         more_from: None,
     }
 }
-fn load(reads: &mut PanelReads, keys: &mut RequestKeys) -> FileReadTarget {
+pub(super) fn load(reads: &mut PanelReads, keys: &mut RequestKeys) -> FileReadTarget {
     let status = reads.begin_status(keys.issue().unwrap());
     assert!(reads.finish_status(status, Ok(fixtures::status(Vec::new()))));
     let ticket = reads.begin_summary(keys.issue().unwrap());

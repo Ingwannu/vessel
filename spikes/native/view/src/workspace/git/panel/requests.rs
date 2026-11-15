@@ -12,11 +12,14 @@
 //!   filesystem snapshot guarantees remain their respective owners' concern.
 
 use super::{
-    Body, Comparison, Demand, DiffRead, PanelRead, ReadFailure, RepositoryKey, RepositoryRead, body,
+    Body, Comparison, Demand, DiffRead, FilePages, PanelRead, ReadFailure, RepositoryKey,
+    RepositoryRead, body,
 };
 use crate::workspace::git::RequestKey;
 use std::collections::HashMap;
-use vessel_proto::workspace::{DiffSummary, FileDiff, GitReadReason, GitStatus, RelPath};
+use vessel_proto::workspace::{
+    DiffSummary, FileDiff, GitHunkOffset, GitReadReason, GitStatus, RelPath,
+};
 
 /// A status belongs to a repository, independently of comparison selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,9 +79,20 @@ pub struct FileTicket {
     comparison: ComparisonTicket,
     path: RelPath,
     summary_key: Option<RequestKey>,
+    from_hunk: GitHunkOffset,
 }
 
 impl FileTicket {
+    pub(super) const fn request_key(&self) -> RequestKey {
+        self.comparison.key
+    }
+
+    /// Requested continuation, echoed intact even for a rejected send.
+    #[must_use]
+    pub const fn from_hunk(&self) -> GitHunkOffset {
+        self.from_hunk
+    }
+
     pub(super) const fn stamp(&self) -> FileStamp {
         FileStamp {
             repository: self.comparison.repository,
@@ -107,7 +121,7 @@ pub struct PanelReads {
     status: PanelRead<GitStatus>,
     summary: PanelRead<DiffSummary>,
     accepted_summary: Option<ComparisonTicket>,
-    files: HashMap<RelPath, PanelRead<FileDiff>>,
+    files: HashMap<RelPath, PanelRead<FilePages>>,
 }
 
 impl PanelReads {
@@ -221,6 +235,15 @@ impl PanelReads {
     /// start another request. Issuing again supersedes this file's old read.
     #[must_use]
     pub fn begin_file(&mut self, path: RelPath, key: RequestKey) -> FileTicket {
+        self.begin_file_at(path, key, GitHunkOffset::default())
+    }
+
+    fn begin_file_at(
+        &mut self,
+        path: RelPath,
+        key: RequestKey,
+        from_hunk: GitHunkOffset,
+    ) -> FileTicket {
         self.files.entry(path.clone()).or_default().start(key);
         FileTicket {
             comparison: ComparisonTicket {
@@ -231,6 +254,7 @@ impl PanelReads {
             },
             path,
             summary_key: self.accepted_summary.as_ref().map(|ticket| ticket.key),
+            from_hunk,
         }
     }
 
@@ -246,9 +270,15 @@ impl PanelReads {
         {
             return false;
         }
+        let Some(read) = self.files.get_mut(&ticket.path) else {
+            return false;
+        };
+        if read.outstanding() != Some(ticket.comparison.key) {
+            return false;
+        }
         let answer = answer.and_then(|file| {
             if file.path == ticket.path {
-                Ok(file)
+                FilePages::accept(read.shown(), ticket, file)
             } else {
                 Err(ReadFailure::UnexpectedFile {
                     requested: ticket.path.clone(),
@@ -256,9 +286,7 @@ impl PanelReads {
                 })
             }
         });
-        self.files
-            .get_mut(&ticket.path)
-            .is_some_and(|read| read.accept(ticket.comparison.key, answer))
+        read.accept(ticket.comparison.key, answer)
     }
 
     /// Read lifecycle for ordered body-state projection.
@@ -301,7 +329,7 @@ impl PanelReads {
 
     /// No entry means not requested; it never means unchanged or empty.
     #[must_use]
-    pub fn file(&self, path: &RelPath) -> Option<&PanelRead<FileDiff>> {
+    pub fn file(&self, path: &RelPath) -> Option<&PanelRead<FilePages>> {
         self.files.get(path)
     }
 
@@ -321,7 +349,20 @@ impl PanelReads {
         Some(FileReadTarget {
             comparison: ticket.clone(),
             path: path.clone(),
+            previous: None,
+            from_hunk: GitHunkOffset::default(),
         })
+    }
+
+    /// Only a Ready body's exact receipt offers its next page. A queued
+    /// continuation cannot restart after another body with the same path.
+    #[must_use]
+    pub fn next_file_target(&self, path: &RelPath) -> Option<FileReadTarget> {
+        let mut target = self.file_target(path)?;
+        let previous = self.files.get(path)?.ready()?;
+        target.previous = Some(previous.key());
+        target.from_hunk = GitHunkOffset::new(previous.file().more_from?);
+        Some(target)
     }
 
     /// A deferred row callback must recheck this immediately before issuing a
@@ -329,7 +370,12 @@ impl PanelReads {
     /// make a callback from a retired summary current again.
     #[must_use]
     pub fn file_target_is_current(&self, target: &FileReadTarget) -> bool {
-        self.file_target(&target.path).as_ref() == Some(target)
+        let current = if target.previous.is_some() {
+            self.next_file_target(&target.path)
+        } else {
+            self.file_target(&target.path)
+        };
+        current.as_ref() == Some(target)
     }
 
     /// Start only the exact captured generation. This rechecks even if the
@@ -340,8 +386,21 @@ impl PanelReads {
         target: &FileReadTarget,
         key: RequestKey,
     ) -> Option<FileTicket> {
-        self.file_target_is_current(target)
-            .then(|| self.begin_file(target.path.clone(), key))
+        if !self.file_target_is_current(target) {
+            return None;
+        }
+        // Repainting the same first-page row is not an explicit refresh.
+        // Failed pages may retry; ready/loading data must not be restarted by
+        // a second queued paint callback. Direct reads retain begin_file.
+        if target.previous.is_none()
+            && self
+                .files
+                .get(&target.path)
+                .is_some_and(|read| read.ready().is_some() || read.outstanding().is_some())
+        {
+            return None;
+        }
+        Some(self.begin_file_at(target.path.clone(), key, target.from_hunk))
     }
 
     fn matches(&self, ticket: &ComparisonTicket) -> bool {
@@ -356,4 +415,6 @@ impl PanelReads {
 pub struct FileReadTarget {
     comparison: ComparisonTicket,
     path: RelPath,
+    previous: Option<RequestKey>,
+    from_hunk: GitHunkOffset,
 }

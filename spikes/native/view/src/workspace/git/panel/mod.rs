@@ -15,6 +15,7 @@ mod document;
 mod failure;
 mod history;
 mod options;
+mod pages;
 mod projection;
 mod requests;
 mod tree;
@@ -37,6 +38,7 @@ pub use options::{
     DisplayPreferences, Fold, FormFactor, InlineDiff, Layout, PanelState, PanelTarget,
     Presentation, TreeVisibility, Wrap,
 };
+pub use pages::{FilePages, MAX_FILE_HUNKS, MAX_FILE_LINES, MAX_FILE_TEXT_BYTES, PageMismatch};
 pub use projection::{Body, Demand, DiffRead, EmptyAction, RepositoryRead, body, empty_action};
 pub use requests::{ComparisonTicket, FileReadTarget, FileTicket, PanelReads, StatusTicket};
 pub use tree::{
@@ -55,3 +57,6 @@ mod requests_tests;
 
 #[cfg(test)]
 mod file_target_tests;
+
+#[cfg(test)]
+mod pages_tests;

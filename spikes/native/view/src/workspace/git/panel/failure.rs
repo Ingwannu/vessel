@@ -14,6 +14,9 @@ pub type PanelRead<T> = ReadState<T, ReadFailure>;
 /// A recovery is chosen from the typed failure, never a diagnostic substring.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ReadFailure {
+    /// A continuation cannot safely extend the accepted file prefix.
+    #[error("the diff pages no longer form one file")]
+    Page(#[source] super::PageMismatch),
     /// The sole layout retirement callback was not registered. Its original
     /// typed failure is retained; uninitialized fixtures have no failure yet.
     #[error("the git view owner is unavailable")]

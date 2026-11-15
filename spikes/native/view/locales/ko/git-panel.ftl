@@ -137,3 +137,6 @@ git-panel-problem-too-large = 비교 결과가 너무 커서 미리 볼 수 없�
 
 # Advisory toast when the drawn legacy repository has no original authenticated read receipt; no write was attempted.
 git-panel-unverified-view = 여기에 표시된 저장소를 확인할 수 없습니다. 변경하기 전에 워크스페이스를 다시 여세요.
+
+# Complete recovery when a file continuation has changed metadata or invalid hunk order; never silently append it.
+git-panel-problem-page = 받은 변경 사항이 서로 맞지 않습니다. 새로고침하고 다시 시도하세요.
