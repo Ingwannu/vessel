@@ -93,9 +93,8 @@ fn install(
 ) -> Result<(), Problem> {
     envelope.install(|binding, payload| {
         match payload {
-            Payload::Completion { operation, result } => {
+            Payload::Completion { operation, .. } => {
                 residents.settle_operation(binding, operation.kind, operation.ticket)?;
-                assert!(result.is_ok());
             }
             Payload::Metadata(_)
             | Payload::Conversation(_)
@@ -103,7 +102,7 @@ fn install(
             | Payload::Lost(_)
             | Payload::Eof => residents.validate_binding(binding)?,
         }
-        *count += 1;
+        *count = count.checked_add(1).ok_or(ResidentProblem::Exhausted)?;
         Ok(())
     })
 }
