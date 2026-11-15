@@ -43,8 +43,46 @@ pub fn reset_label(
         Some(at) if at <= now => text.reset_past().to_owned(),
         Some(at) => {
             let instant = timestamp(at, offset, words);
-            text.reset_at(&instant).unwrap_or(instant)
+            let duration = reset_duration(at, now, words);
+            text.reset_in(&duration, &instant).unwrap_or(instant)
         }
+    }
+}
+fn reset_duration(at: DateTime<Utc>, now: DateTime<Utc>, words: &'static Translator) -> String {
+    const MINUTES_PER_HOUR: i64 = 60;
+    const HOURS_PER_DAY: i64 = 24;
+    let minutes = at.signed_duration_since(now).num_minutes().max(0);
+    let hours = minutes / MINUTES_PER_HOUR;
+    let days = hours / HOURS_PER_DAY;
+    let text = words.usage();
+    let (major, minor) = if days > 0 {
+        (
+            text.duration_days(&days.to_string())
+                .unwrap_or_else(|_| days.to_string()),
+            (hours % HOURS_PER_DAY > 0).then(|| {
+                text.duration_hours(&(hours % HOURS_PER_DAY).to_string())
+                    .unwrap_or_else(|_| (hours % HOURS_PER_DAY).to_string())
+            }),
+        )
+    } else if hours > 0 {
+        (
+            text.duration_hours(&hours.to_string())
+                .unwrap_or_else(|_| hours.to_string()),
+            (minutes % MINUTES_PER_HOUR > 0).then(|| {
+                text.duration_minutes(&(minutes % MINUTES_PER_HOUR).to_string())
+                    .unwrap_or_else(|_| (minutes % MINUTES_PER_HOUR).to_string())
+            }),
+        )
+    } else {
+        (
+            text.duration_minutes(&minutes.to_string())
+                .unwrap_or_else(|_| minutes.to_string()),
+            None,
+        )
+    };
+    match minor {
+        Some(minor) => text.duration_pair(&major, &minor).unwrap_or(major),
+        None => major,
     }
 }
 
@@ -152,5 +190,22 @@ mod tests {
             ),
             words.usage().reset_past()
         );
+    }
+    #[test]
+    fn reset_countdown_floors_two_units_and_never_invents_a_renewed_quota() {
+        let words = Translator::get(ENGLISH).unwrap();
+        let now = DateTime::UNIX_EPOCH;
+        for (seconds, expected) in [
+            (59, "0m"),
+            (60, "1m"),
+            (3600, "1h"),
+            (3660, "1h 1m"),
+            (172860, "2d"),
+        ] {
+            assert_eq!(
+                reset_duration(now + chrono::TimeDelta::seconds(seconds), now, words),
+                expected
+            );
+        }
     }
 }

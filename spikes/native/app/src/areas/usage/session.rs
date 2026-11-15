@@ -38,6 +38,12 @@ impl Shell {
             .open
             .as_ref()
             .filter(|_| self.route == Route::Session)
+            .filter(|open| {
+                self.fleet.machines.iter().any(|machine| {
+                    machine.name == open.machine
+                        && matches!(machine.reach, vessel_app_view::Reach::Online)
+                })
+            })
             .map(|open| SessionSelection {
                 machine: MachineKey::from_book(&open.machine),
                 session: open.session,
@@ -159,6 +165,8 @@ pub(crate) fn session_card(
                     .iter()
                     .map(|window| super::windows::draw(shell, window, None, tokens, cx)),
             );
+        let at = timestamp(snapshot.at, state.offset, shell.words);
+        card = card.child(message(text.refreshed_at(&at).unwrap_or(at), tokens));
     }
     let selection = state.session.selection().cloned();
     let enabled = !matches!(state.session.phase(), Phase::Loading { .. });

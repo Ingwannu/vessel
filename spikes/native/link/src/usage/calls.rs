@@ -132,7 +132,8 @@ async fn inventory(
         .call(ListProfiles { harness: None })
         .await
         .map_err(problem)?;
-    let accounts = configured_accounts(&profiles);
+    let accounts =
+        configured_accounts(&profiles).map_err(|_invalid| RequestFailure::InvalidReply)?;
     let mut matched = refresh.is_none();
     let mut reports = Vec::with_capacity(accounts.len());
     for account in accounts {

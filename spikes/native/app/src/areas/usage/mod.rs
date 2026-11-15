@@ -2,6 +2,7 @@
 mod accounts;
 mod actions;
 mod answers;
+mod clock;
 mod sidebar;
 pub(crate) use sidebar::sidebar_summary;
 mod draw;
@@ -61,6 +62,7 @@ impl State {
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut vessel_app_kit::ui::Context<'_, crate::shell::Shell>,
     ) -> Self {
+        clock::start(cx);
         Self {
             modal: false,
             dialog: vessel_app_kit::DialogState::new(cx),

@@ -37,5 +37,5 @@ fn queue_refusals_preserve_the_exact_inventory_lifetime() {
             ..
         }
     ));
-    assert!(configured_accounts(&[]).is_empty());
+    assert!(configured_accounts(&[]).unwrap().is_empty());
 }

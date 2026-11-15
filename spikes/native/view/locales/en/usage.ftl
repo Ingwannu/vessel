@@ -174,6 +174,16 @@ usage-disable-lookup = Disable account checks
 usage-scoped-window = { $scope } · { $period }
 # Account limits: explicit policy action or whole window label, with provider-supplied data.
 usage-duration-window = Reported window ({ $milliseconds } ms)
+# Countdown beside the independently reported absolute reset instant.
+usage-reset-in = Resets in { $duration } · { $time }
+# Short duration units are displayed only for an explicitly reported reset instant.
+usage-duration-days = { $value }d
+# Short hour component of the countdown, paired with days or minutes.
+usage-duration-hours = { $value }h
+# Short minute component of the countdown, rounded down.
+usage-duration-minutes = { $value }m
+# Join a major and a nonzero minor countdown component.
+usage-duration-pair = { $first } { $second }
 # Explicit vendor account fact; absence is not false.
 usage-has-credits = Credits available
 # Explicit vendor account fact; absence is not false.

@@ -174,6 +174,16 @@ usage-disable-lookup = 계정 조회 끄기
 usage-scoped-window = { $scope } · { $period }
 # Account limits: explicit policy action or whole window label, with provider-supplied data.
 usage-duration-window = 보고된 한도 ({ $milliseconds }ms)
+# 보고된 절대 초기화 시각과 나란히 표시하는 남은 시간.
+usage-reset-in = { $duration } 후 초기화 · { $time }
+# 명시적으로 보고된 초기화 시각에만 사용하는 짧은 기간 단위.
+usage-duration-days = { $value }일
+# 일 또는 분과 나란히 표시하는 남은 시간의 시간 단위.
+usage-duration-hours = { $value }시간
+# 내림하여 표시하는 남은 시간의 분 단위.
+usage-duration-minutes = { $value }분
+# 큰 단위와 0보다 큰 작은 단위의 남은 시간을 연결합니다.
+usage-duration-pair = { $first } { $second }
 # Explicit vendor account fact; absence is not false.
 usage-has-credits = 크레딧 사용 가능
 # Explicit vendor account fact; absence is not false.

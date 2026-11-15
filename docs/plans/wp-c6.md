@@ -90,3 +90,24 @@ this complete package. Results are recorded after they run.
 The usage preference section is boxed within the shared preference document.
 Its JSON stays unchanged; the indirection keeps `Command::SavePrefs` below the
 shared enum's size threshold as the preference document gains feature sections.
+
+### Cached clock, bounds and reset presentation
+
+[Decision Log]
+- Purpose: visible account/session/summary facts can change while another client
+  explicitly refreshes them; reset labels must keep advancing without claiming
+  renewed quota.
+- Reuse: the existing typed Reader and limits Cached mode already provide bounded
+  admission and retain original successful timestamps; no new transport or timer
+  framework is needed. One shell clock uses the existing GPUI task pattern.
+- Choice: every sixty seconds only selected visible surfaces reread Cached; a
+  pending policy mutation or active read defers that surface. No passive tick
+  selects Refresh. The same minute tick repaints floored two-unit countdowns,
+  beside the independently reported absolute reset time.
+- Tradeoff: this explicit native cache tick replaces React Query's stale-query
+  lifecycle. It performs no credential or vendor access, even on cache misses.
+  Offlines close session publishing rights; session success timestamps remain
+  separate from current attempt state.
+- Bounds: the broader profile API is validated before per-account calls. More
+  than 256 profiles or invalid whole account labels refuse the entire usage
+  inventory; no configured account is silently omitted or relabelled.

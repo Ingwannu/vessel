@@ -4,7 +4,9 @@
 //! The reader bounds admission to one active read and the newest queued choice.
 
 mod accounts;
-pub use accounts::{Account, configured_accounts};
+pub use accounts::{
+    Account, InvalidAccountInventory, MAX_CONFIGURED_USAGE_ACCOUNTS, configured_accounts,
+};
 mod display;
 pub use display::{DisplayAs, DisplayPercent, timestamp};
 mod range;
