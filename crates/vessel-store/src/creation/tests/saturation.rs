@@ -1,0 +1,102 @@
+//! Last-slot concurrency runs through the production writer after a full restart.
+
+use super::*;
+use vessel_proto::creation::{MAX_RECEIPTS, MAX_RETAINED_BYTES, RESERVED_BYTES_PER_RECEIPT};
+
+/// Fixture bulk loading avoids an admission scan for every preparatory row.
+fn seed_before_last_slot(dir: &DataDir) -> Result<(), StoreError> {
+    let mut db = rusqlite::Connection::open(dir.database_path())?;
+    let tx = db.transaction()?;
+    let slots = MAX_RECEIPTS.min(MAX_RETAINED_BYTES / RESERVED_BYTES_PER_RECEIPT);
+    for index in 0..slots.saturating_sub(1) {
+        let admission = any_candidate(&format!("retained-{index}"));
+        let reserved = admission.receipt.snapshot().reserved;
+        tx.execute(
+            "INSERT INTO creation_receipts(key_hash,operation,reserved_bytes,receipt) VALUES (?1,?2,?3,?4)",
+            rusqlite::params![admission.identity.digest().to_string(), reserved.operation.to_string(),
+                i64::try_from(RESERVED_BYTES_PER_RECEIPT).map_err(|_overflow| CreationError::CapacityCorrupt)?,
+                crate::codec::encode(&admission.receipt)?],
+        )?;
+        for (kind, resource) in [
+            ("workspace", reserved.workspace.to_string()),
+            (
+                "agent",
+                match reserved.resource {
+                    Some(Resource::Agent { session }) => session.to_string(),
+                    Some(Resource::Terminal { terminal }) => terminal.to_string(),
+                    None => return Err(CreationError::InvalidTransition.into()),
+                },
+            ),
+        ] {
+            tx.execute(
+                "INSERT INTO creation_claims(kind,resource,operation) VALUES (?1,?2,?3)",
+                rusqlite::params![kind, resource, reserved.operation.to_string()],
+            )?;
+        }
+    }
+    tx.commit()?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn concurrent_last_slot_has_one_winner_and_reconciliation_survives_full_restart() {
+    let (_temp, dir, store) = open().await;
+    store.close().await;
+    drop(store);
+    seed_before_last_slot(&dir).unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let one = any_candidate("last-one");
+    let two = any_candidate("last-two");
+    let identities = [one.identity.clone(), two.identity.clone()];
+    let (one, two) = tokio::join!(store.admit_creation(one), store.admit_creation(two));
+    let (winner, identity, loser) = match (one, two) {
+        (Ok(winner), Err(StoreError::Creation(CreationError::Full))) => {
+            (winner, &identities[0], &identities[1])
+        }
+        (Err(StoreError::Creation(CreationError::Full)), Ok(winner)) => {
+            (winner, &identities[1], &identities[0])
+        }
+        other => panic!("one slot must admit exactly one candidate: {other:?}"),
+    };
+    assert_eq!(store.creation(loser).await.unwrap(), None);
+    let operation = winner.snapshot().reserved.operation;
+    store
+        .advance_creation(
+            operation,
+            winner.snapshot().revision,
+            Advance::Begin(Stage::Workspace),
+        )
+        .await
+        .unwrap();
+    store.close().await;
+    drop(store);
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let retained = store.creation_operation(operation).await.unwrap().unwrap();
+    assert_eq!(retained.snapshot().reserved, winner.snapshot().reserved);
+    assert!(matches!(
+        retained.snapshot().phase,
+        Phase::Failed {
+            certainty: Certainty::Unknown,
+            ..
+        }
+    ));
+    let retried = store
+        .admit_creation(Admission {
+            identity: identity.clone(),
+            receipt: any_candidate("unused").receipt,
+        })
+        .await
+        .unwrap();
+    assert_eq!(retried, retained);
+    assert!(matches!(
+        store.admit_creation(any_candidate("after-restart")).await,
+        Err(StoreError::Creation(CreationError::Full))
+    ));
+    store.close().await;
+}

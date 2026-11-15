@@ -1,6 +1,6 @@
 # 0091: Durable creation operations and terminal launch profiles
 
-Status: proposed
+Status: contract accepted; receipt/runtime implementation pending review.
 
 ## Purpose and intent
 

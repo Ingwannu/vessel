@@ -8,6 +8,8 @@ use vessel_proto::creation::{
 };
 use vessel_proto::{BlobHash, ErrorCode, SessionId, WorkspaceId};
 
+mod saturation;
+
 fn candidate(key: &str, fingerprint: u8, workspace: WorkspaceId, session: SessionId) -> Admission {
     let identity = Identity::new(Kind::Workspace, Key::parse(key).unwrap());
     let receipt = Receipt::admitted(
@@ -229,10 +231,11 @@ fn corrupt_receipts_are_refused_instead_of_skipped_or_treated_as_absent() {
     );
     connection
         .execute(
-            "INSERT INTO creation_receipts(key_hash,operation,receipt) VALUES (?1,?2,?3)",
+            "INSERT INTO creation_receipts(key_hash,operation,reserved_bytes,receipt) VALUES (?1,?2,?3,?4)",
             rusqlite::params![
                 identity.digest().to_string(),
                 WorkspaceOperationId::random().to_string(),
+                i64::try_from(vessel_proto::creation::RESERVED_BYTES_PER_RECEIPT).unwrap(),
                 "broken"
             ],
         )

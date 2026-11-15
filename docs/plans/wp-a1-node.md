@@ -23,20 +23,29 @@ instead of deriving identity from cwd or persisting another registry.
 - Existing method table: pending rows only after Quality B; no alternate
   dispatch or provisional version number.
 
-## Resume point
+## Implementation and evidence
 
-Done: profile values at 5c39da5f passed six narrow tests and strict proto
-Clippy. Native pure-state tests passed five cases. Shared registry types were
-consumed for development only with their owner's approval; source is not yet
-reviewed. Node head Quality B was merged after the first receipt/store WIP.
+The existing writer/savepoint was extended: creating another database, async
+mutex or workspace registry would split admission authority. No external
+storage dependency is needed. A new receipt reserves its full 8 KiB logical
+budget and all resource claims before the transaction returns. Each bounded
+4 KiB row is encoded before replacement; count/byte refusal precedes claims.
+Existing-key reconciliation precedes capacity checks, including after restart.
+Keys and claims are never removed when runtime resources disappear.
 
-Review row 125 returned the proposed receipt capacity contract, with no profile
-source finding. The contract now defines atomic retained count/byte admission,
-worst-case growth reservation, permanent key/claim retention and refusal at
-capacity. Receipt/store code remains WIP and is not submitted as compliant:
-the initial count-only implementation still needs the byte reservation and
-adversarial tests before any service/RPC/launch integration.
+Profile values at 5c39da5f passed six narrow tests and strict proto Clippy;
+row125 found no profile-source issue but returned the capacity contract.
+Contract revision295281a2 passed row129. The earlier count-only store slice
+b4353ae6 passed five real-writer tests; those results do not validate the new
+byte accounting. Current byte enforcement, corruption checks, saturation,
+concurrent last-slot, bounded growth and full-restart tests are staged for
+narrow checks and source review. No receipt service, RPC or launch is approved.
 
-Next: capacity contract re-review; implement byte reservations and receipt
-tests; narrow checks; receipt source review; then service orchestration,
-pending-method registration, native integration, package gates and reviews.
+Approved shared identitye45a5d89 is merged. Unreviewed registry producer code
+was removed; registry ownership/provisioning remains behind the planned typed
+boundary until its producer passes review. Source-created change requests
+must carry ADR0082's explicit blocked-automation gate before provisioning.
+
+Next: narrow proto/store checks; receipt source review; service orchestration
+with typed registry/runtime fake; pending-method registration; native
+integration, package gates and reviews.

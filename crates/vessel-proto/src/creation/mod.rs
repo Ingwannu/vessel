@@ -49,6 +49,12 @@ pub enum CreationError {
     /// Receipt and claims are retained; admission fails instead of evicting keys.
     #[error("creation receipt limit of {MAX_RECEIPTS} reached")]
     Full,
+    /// A receipt cannot consume another operation's reserved growth allowance.
+    #[error("creation receipt exceeds {MAX_RECEIPT_BYTES} bytes")]
+    ReceiptTooLarge,
+    /// Damaged reservation accounting fails closed before any effects.
+    #[error("creation capacity accounting is invalid")]
+    CapacityCorrupt,
     /// Observation of a missing receipt is distinct from uncertain work.
     #[error("creation receipt not found")]
     NotFound,
@@ -66,7 +72,9 @@ impl CreationError {
             | Self::ResourceClaimed
             | Self::StaleRevision
             | Self::InvalidTransition => crate::ErrorCode::Conflict,
-            Self::RevisionExhausted => crate::ErrorCode::Internal,
+            Self::RevisionExhausted | Self::ReceiptTooLarge | Self::CapacityCorrupt => {
+                crate::ErrorCode::Internal
+            }
             Self::Full => crate::ErrorCode::Unavailable,
             Self::NotFound => crate::ErrorCode::NotFound,
         }

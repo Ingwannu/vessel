@@ -1451,6 +1451,22 @@ returning the existing non-serializable `ResolvedValue` for internal header
 consumers. The `secret_value` wire-copy wrapper delegates to it; no new RPC
 can read a secret and storage/refusal behaviour is unchanged.
 
+## Durable creation admission (ADR 0091)
+
+`vessel-proto::creation` holds validated caller keys, reserved identities and
+the receipt transition rules. `vessel-store::creation` uses the existing
+SQLite writer savepoint for count/byte admission, identity claims and CAS
+transitions. One retained logical reservation covers the hashed key, bounded
+receipt and future phase/error growth; capacity refusal happens before a new
+claim. Existing keys are reconciled before capacity and never evicted, even
+when the referenced runtime resource no longer exists. Recovery marks an
+interrupted side effect unknown rather than replaying it. This ledger does
+not provision or replace ADR 0082's workspace registry/start leases.
+
+The pure receipt/store path is staged; service authorization, receipt
+subscription and launch adapters remain separate integration work. The
+logical retained-byte budget excludes SQLite pages, WAL and backups.
+
 ## Session creation labels (ADR 0063)
 
 `vessel-proto::labels` validates the bounded label map before creation.
