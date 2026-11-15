@@ -360,3 +360,21 @@ exercise this exact production wrapper: zero operation polls when already revoke
 and a barrier-started pending operation's Drop on revocation. No endpoint or real
 credential is used. This new correction requires changed-source checks; the earlier
 strict and functional snapshots do not prove it.
+
+### Revocation corrections and next admission boundary
+
+Exact merged d918c8ba narrow strict all-target Clippy passed for proto, harness,
+store, node and web, including ts and usage-fixture features. The focused report
+suite passed node 16 + proto 13 = 29 tests, including both durable-Off/drop-setter
+regressions. TS7 ran 5 tests successfully but returned stale generated proto;
+its verified normal-generator artifacts were recovered in d9c41e3c. Current-head
+freshness and the whole package gate remain owed.
+
+Fresh read-only review found a neighboring saved-report admission gap: a request
+captured before Off/On could reach the legacy actor after On and begin physical
+work before final publication refusal. The actor now accepts an optional existing
+Observation for generic reports and refuses stale admission. Direct legacy reads
+keep their existing API. A barrier regression with actual actors and a recorded
+synthetic success control is authored; it is not yet execution evidence. The old
+A/B fixture's ignored home reader is corrected with an explicit distinct-proof
+assertion; earlier runs must not be counted as proof of that distinction.

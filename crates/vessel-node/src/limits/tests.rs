@@ -39,6 +39,7 @@ fn rpc_cancellation_does_not_admit_replacement_blocking_reads() {
                     account: account(),
                     binding: Ok(binding.clone()),
                     refresh: LimitRefresh::Refresh,
+                    observed: None,
                     reply,
                 })
                 .await
@@ -60,6 +61,7 @@ fn rpc_cancellation_does_not_admit_replacement_blocking_reads() {
                     account: another.clone(),
                     binding: Ok(binding.clone()),
                     refresh: LimitRefresh::Refresh,
+                    observed: None,
                     reply,
                 })
                 .await

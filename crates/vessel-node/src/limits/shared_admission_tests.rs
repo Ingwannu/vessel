@@ -105,6 +105,7 @@ async fn queue(
             account: binding.account().clone(),
             binding: Ok(binding),
             refresh: LimitRefresh::Refresh,
+            observed: None,
             reply,
         })
         .await

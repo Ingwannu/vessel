@@ -528,3 +528,27 @@ The corrected assertion requires no Cursor source account/id and no successful
 or retained values in any returned entry. It preserves the no-fetch check and
 new-id/Available explicit-refresh control. This remains a failed run, with the
 corrected exact execution and strict check still owed; production code is unchanged.
+
+### Saved report admission retains the captured policy
+
+[Decision Log]
+- Purpose: an old generic report request must not start saved-login work by
+  borrowing a later On after an intervening Off.
+- Constraint: identity registration and actual legacy actor admission have an
+  await between them. A final publication check prevents a result escaping but
+  cannot undo a credential read or vendor operation already admitted.
+- Choice: the internal generic-report read carries the existing policy
+  Observation into the serialized limits actor. It refuses a revoked observation
+  before consulting the cache or starting work. Direct legacy `usage.limits`
+  keeps admission-time policy semantics; no wire or new policy generation exists.
+- Alternative: another service-side precheck leaves the same queueing race.
+- Regression: pause the real pipeline after identity registration, complete
+  Off/On in the actual actor, then release admission. The stale request must
+  conflict and leave the cache NotRequested; a new request must read the same
+  synthetic recorded sign-in/body successfully. No real sign-in or HTTP is used.
+
+The earlier A/B fixture incorrectly supplied CODEX_HOME to the route-fact reader,
+which does not capture harness-home variables. It now uses HarnessEnv's existing
+home reader and asserts that A and B proofs differ while their account identity
+is equal. Earlier passing executions did not prove distinct resolved homes;
+stronger corrected execution is owed.

@@ -29,7 +29,7 @@ pub(crate) fn snapshot(plan: &str) -> LimitSnapshot {
 }
 fn binding(root: &Path, side: &str) -> LimitBinding {
     let home = root.join(side);
-    let environment = LimitEnvironment::from_vars(|key| {
+    let homes = HarnessEnv::from_vars(root.to_owned(), |key| {
         if key == "CODEX_HOME" {
             Some(OsString::from(&home))
         } else {
@@ -37,16 +37,23 @@ fn binding(root: &Path, side: &str) -> LimitBinding {
         }
     });
     vessel_harness::limits_binding(
-        &environment,
-        &HarnessEnv::new(root.to_owned()),
+        &LimitEnvironment::new(),
+        &homes,
         &Profile::default_for(HarnessKind::Codex),
     )
     .unwrap()
 }
 impl Cached {
     pub(crate) fn start(root: &Path, state_a: AccountLimitState) -> Self {
+        Self::with_probe(root, state_a, LimitProbe::Disabled)
+    }
+    pub(crate) fn with_probe(root: &Path, state_a: AccountLimitState, probe: LimitProbe) -> Self {
         let a = binding(root, "a");
         let b = binding(root, "b");
+        assert_ne!(
+            a, b,
+            "the same account must have distinct resolved login homes"
+        );
         let account = a.account().clone();
         assert_eq!(account, *b.account());
         let stop = CancellationToken::new();
@@ -55,7 +62,7 @@ impl Cached {
         let owner = Owner {
             dir: DataDir::new(root),
             policy: ExternalLookup::On,
-            probe: LimitProbe::Disabled,
+            probe,
             cache: vec![
                 Entry {
                     account: account.clone(),

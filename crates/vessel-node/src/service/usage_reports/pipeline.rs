@@ -45,7 +45,12 @@ pub(super) async fn saved_report(
     // capture A and the after-check returning to A. This read receives A itself.
     let limits = reader
         .limits()
-        .read(binding.account.clone(), binding.proof.clone(), refresh)
+        .read_observed(
+            binding.account.clone(),
+            binding.proof.clone(),
+            refresh,
+            policy,
+        )
         .await?;
     let (after, _) = reader.capture(binding.scope.clone()).await?;
     if after != binding || limits.account != binding.account || !policy.still_current() {

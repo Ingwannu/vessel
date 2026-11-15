@@ -133,3 +133,5 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
         .expect("capture barriers did not settle");
     }
 }
+
+mod global_revocation;

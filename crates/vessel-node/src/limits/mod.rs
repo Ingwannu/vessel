@@ -13,6 +13,7 @@
 //!   snapshots never enter the database or policy file.
 mod notice;
 pub(crate) mod policy;
+mod read;
 use chrono::Utc;
 use tokio::{
     sync::{mpsc, oneshot},
@@ -49,6 +50,7 @@ enum Command {
         account: LimitAccount,
         binding: Result<LimitBinding, LimitFailure>,
         refresh: LimitRefresh,
+        observed: Option<policy::Observation>,
         reply: oneshot::Sender<Result<UsageLimits, WireError>>,
     },
     Policy {
@@ -109,23 +111,6 @@ impl Limits {
             sources: crate::usage_reports::Sources::default(),
         }
     }
-    pub(crate) async fn read(
-        &self,
-        account: LimitAccount,
-        binding: Result<LimitBinding, LimitFailure>,
-        refresh: LimitRefresh,
-    ) -> Result<UsageLimits, WireError> {
-        let (reply, response) = oneshot::channel();
-        self.commands
-            .try_send(Command::Read {
-                account,
-                binding,
-                refresh,
-                reply,
-            })
-            .map_err(|_full| busy())?;
-        response.await.map_err(|_closed| stopped())?
-    }
     pub(crate) async fn policy(&self, policy: ExternalLookup) -> Result<ExternalLookup, WireError> {
         let (reply, response) = oneshot::channel();
         self.commands
@@ -166,7 +151,7 @@ impl Owner {
                 result = self.jobs.join_next(), if !self.jobs.is_empty() => if let Some(result) = result { match result { Ok(result) => self.completed(result), Err(_panic) => { self.generation.cancel(); self.generation = CancellationToken::new(); self.cache.clear(); tracing::error!("a usage limits worker ended unexpectedly"); } } },
                 command = commands.recv() => match command {
                     Some(Command::Observe {reply}) => { drop(reply.send(policy::Observation {policy:self.policy,generation:self.generation.child_token()})); },
-                    Some(Command::Read { account, binding, refresh, reply }) => self.read(account, binding, refresh, reply),
+                    Some(Command::Read { account, binding, refresh, observed, reply }) => self.read(account, binding, refresh, observed.as_ref(), reply),
                     Some(Command::Policy { policy, reply }) => {
                         let result = self.change(policy).await;
                         // A caller may have cancelled; the saved decision has
@@ -211,8 +196,18 @@ impl Owner {
         account: LimitAccount,
         binding: Result<LimitBinding, LimitFailure>,
         refresh: LimitRefresh,
+        observed: Option<&policy::Observation>,
         reply: oneshot::Sender<Result<UsageLimits, WireError>>,
     ) {
+        // A report admitted before Off cannot borrow a later On generation.
+        // This check is serialized with policy changes, before any probe/cache use.
+        if observed.is_some_and(|value| !value.still_current() || value.policy != self.policy) {
+            drop(reply.send(Err(WireError::new(
+                ErrorCode::Conflict,
+                "usage lookup changed; check the report again",
+            ))));
+            return;
+        }
         let source = binding.as_ref().ok().map(LimitBinding::source);
         if self.policy == ExternalLookup::Off {
             drop(reply.send(Ok(self.report(account, source, AccountLimitState::Off))));
