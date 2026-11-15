@@ -3,6 +3,18 @@ use super::{Fingerprint, LaunchError};
 use sha2::{Digest as _, Sha256};
 use std::path::Path;
 
+enum Kind {
+    Directory,
+    File,
+}
+impl Kind {
+    const fn tag(self) -> u8 {
+        match self {
+            Self::Directory => b'D',
+            Self::File => b'F',
+        }
+    }
+}
 pub(super) struct ManifestHash(Sha256);
 impl ManifestHash {
     pub(super) fn new() -> Self {
@@ -12,7 +24,7 @@ impl ManifestHash {
     }
     fn entry(&mut self, kind: u8, path: &Path, mode: u32) -> Result<(), LaunchError> {
         let name = path.as_os_str().as_encoded_bytes();
-        self.0.update([kind]);
+        self.0.update([kind.tag()]);
         self.0.update(
             u64::try_from(name.len())
                 .map_err(|_overflow| LaunchError::Identity)?
@@ -23,7 +35,7 @@ impl ManifestHash {
         Ok(())
     }
     pub(super) fn directory(&mut self, path: &Path, mode: u32) -> Result<(), LaunchError> {
-        self.entry(b'D', path, mode)
+        self.entry(Kind::Directory, path, mode)
     }
     pub(super) fn file(
         &mut self,
@@ -32,7 +44,7 @@ impl ManifestHash {
         length: u64,
         digest: [u8; 32],
     ) -> Result<(), LaunchError> {
-        self.entry(b'F', path, mode)?;
+        self.entry(Kind::File, path, mode)?;
         self.0.update(length.to_le_bytes());
         self.0.update(digest);
         Ok(())
