@@ -200,7 +200,7 @@ mod tests {
             (60, "1m"),
             (3600, "1h"),
             (3660, "1h 1m"),
-            (172860, "2d"),
+            (172_860, "2d"),
         ] {
             assert_eq!(
                 reset_duration(now + chrono::TimeDelta::seconds(seconds), now, words),
