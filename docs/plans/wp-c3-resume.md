@@ -180,3 +180,39 @@ an unresolved renderer-mount follow-up requiring a lead+V1 plan first, then
 synchronized display-only header rows, action-capture source copy and the four
 reference fixtures. No second selection engine or patch7 copy change. The bounded
 control packet may proceed with this exclusion; full C3 remains skeleton.
+
+## Current correction union, 14:55 UTC
+
+The original b011 App check returned cargo101 (six fixture API errors); the
+original27194 Kit test returned cargo101 (one E0277 and three lifetime warnings),
+with NO test execution. Both full logs/hashes are frozen in
+fixture-api-actual-returns.json. These remain red, not superseded into a pass.
+
+Corrections: isolated2f09848c1 / app1a49ebda4 names Context lifetimes and passes
+AnyElement to the public window helper; app9758a0581 supplies the existing status
+fixture's explicit empty entry vector. No assertion, geometry or production state
+is weakened. The next producer08b1f5bbc additionally includes the same existing-
+decoration header foreground code as appd7fee2bff, so one coherent changed-source
+union can check it instead of preserving a knowingly incomplete old producer.
+All16 owned Kit/vendor blobs are byte-identical across producer08b1 and the app
+correction (fixture-correction-preflight.json). The old separate future branch
+is not the candidate. Split spanning-header/source-copy parity remains excluded
+per the lead's unmounted-renderer ruling.
+
+Current active immutable runs, short/no priority:
+- wp-git-narrow-20261115T145258Z-bdeed2a1: queued, four native crates all-target
+  Clippy; includes the header code and all six fixture API corrections.
+- wp-git-consumer-tests-20261115T145527Z-08b1f5bb: queued, same terminal-label
+  warm target; public Kit code_editor::diff selection, now including header
+  UTF-8/unchanged-theme notification regressions. No result yet.
+- wp-git-root-fence-tests-20261115T142936Z-6e927990: queued, Node workspace tests
+  with sibling-project cache source and corrected live-root/shutdown fixture.
+The exactaf78 Node all-target Clippy is green; all other older scoped evidence
+keeps its original source assignment. No final C3 gate/review/captures exists.
+
+Preflight for this correction was standalone rustfmt6 app/5 producer files,
+pure size676/656 (14 listed), pure token ratchet no new, import/doc/bare Context
+scan and diffcheck0. Boundary was NOT rerun locally after discovering it invokes
+Cargo metadata; the workflow violation/correction is recorded above and disclosed.
+No uncommitted work, new local compiler, fake fleet, display or real node session
+was started. C3 remains skeleton; C4 has not started.
