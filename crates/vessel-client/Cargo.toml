@@ -34,6 +34,7 @@ toml_edit.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+vessel-testkit = { path = "../vessel-testkit" }
 bytes.workspace = true
 chrono.workspace = true
 tempfile.workspace = true

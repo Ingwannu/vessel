@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Shareable diagnostic output must not print the private source chain.
+    #[error(transparent)]
+    Diagnostics(#[from] crate::diagnostics::CommandError),
     /// Service input and reads must never expose unit environment contents.
     #[error(transparent)]
     Service(#[from] crate::init::ServiceError),

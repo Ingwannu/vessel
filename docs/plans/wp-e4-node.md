@@ -50,7 +50,8 @@ Existing assets and reuse decision:
 
 The pending diagnostic method and `NodeClient::diagnostics()` are now wired
 as an unverified product checkpoint. The number remains unassigned, so no
-successful wire request is claimed. CLI and package-level validation remain.
+successful wire request is claimed. CLI rendering and refusal/privacy fixtures are present but unverified;
+package-level validation remains.
 
 ## Contract and canonical wiring
 

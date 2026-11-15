@@ -1438,3 +1438,9 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+`vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
+report over that node's existing authenticated connection. Its feature is
+pending a protocol assignment, so this checkpoint explicitly refuses before
+sending instead of pretending a local report came from the selected node.
+The command's safe error output omits private connection/source details.

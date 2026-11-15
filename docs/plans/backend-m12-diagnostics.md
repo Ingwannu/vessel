@@ -64,7 +64,7 @@ These are source-only observations; no real Paseo daemon was exercised.
 | D1 | ADR 0074 and this node plan | Reference quotes, bounds/privacy/authority, unassigned seam, docs checks and immutable review commit | Contract/docs passed at `b6d0e93d`; implementation still proposed |
 | D2 | Value types and DIAGNOSTICS_PROTOCOL=None | Valid round trips; reject excess agent rows/recent records, malformed units/versions and oversized report; errors never echo supplied text; no Request/method/guard registration | Values gated: root 1975/0/12, TS freshness 2/2, web 417 units and 62 E2E; V1 value-types-only passed at `2cdeea97` / `f1e7e5e0` |
 | D3 | Staged owner projections, inventory selection, bounded journal and collection leases | Actual SQLite counts/schema, borrowed runtime/cache/lifecycle facts, metadata-only lookup, exhaustive relay state; privacy, loss/window, bounds and cancellation fixtures; whole gate | Private staged source gated at `fbfd3ad8`: whole root 2004/0/12 includes all 29 new tests; source-reviewed/staged accepted at `5235023a` / `9ef6f31c`; remains private on this branch |
-| D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Shared accessor consumed at `ec1e4121`; common envelope/observation metadata still blocks product plumbing |
+| D4 | After shared accessor/metadata land: compose the collector and wire one node call, client, CLI and bridge admission | Unassigned no-frame/no-dispatch; assigned direct and all nested older-peer refusals; supported call; Read/no-Read/revoked/delegated/agent fixtures; CLI selected remote node text/JSON/refusal | Quality B consumed at `ef4ed750`; product source/CLI wiring checkpoint is unverified and package gate/review remain |
 | D5 | Testkit/fake fleet and consumer handoff | Two nodes/devices, one offline/older/refused node, exact safe fields, no addresses/env/keys even in failure; generated TypeScript freshness; whole gate; current docs | Not implemented |
 | App handoff | Existing native Diagnostics consumes the gated call | App-owned per-machine load/refresh/copy/stale-result fixtures and screen gates; no node-track native edits | Not implemented by this track |
 
@@ -646,3 +646,42 @@ local. At actual API handoff, the native owner plans to adapt the existing
 link ticket/admitted-identity mechanism with connection/request generations
 and node-id checks, rather than add a second transport. This is a reported
 integration boundary and future plan, not verified native runtime behavior.
+
+## E4 correction checkpoint after Quality B
+
+The product narrow run `diagnostics-20261115T065500Z-19fb9fe9` is red,
+not a pass: Cargo rc 101, runner rc 1, 12 seconds after 982 seconds queued.
+It found three Proc lints (similar pid/parent names, redundant qualification,
+unused read byte count) and the required explicit Diagnostics arm in the
+older-agent reply projection. The nonexistent Busy error variant was also
+confirmed by source review before execution, but compilation stopped earlier.
+All red logs stay under `/tmp/work/m12-diag/e4-wiring-clippy/`.
+
+The correction reuses Unavailable plus a closed Diagnostics ErrorDetail with
+Busy/Stopping and the single MAX_DIAGNOSTIC_COLLECTIONS constant. Existing
+workspace policy already permits direct Read agents (its false arm); no
+policy arm is moved. The earlier statement that they were refused was wrong.
+The generated guard is tested with no-Read calls while all collection leases
+are occupied, and direct agent Read is tested against actual source collection.
+
+Blocking metadata, runtime and relay observations share a retained source job.
+Store and journal source timestamps are recorded at completion, before the
+whole report joins. Source cancellation and response timeout retain queued
+real work; shutdown still waits for those leases. No deadline or assertion
+in an existing shared test is weakened. New pure client/RPC fixtures use the
+existing testkit only as dev dependencies and named safety/phase clocks.
+
+The CLI entry is `vessel [--node NAME] node diagnostics [--json]`. It uses the
+existing connection and checks report identity against the admitted node.
+Complete text/JSON export has MAX_EXPORT_BYTES beside the renderer. This
+command disables debug logging and prints only the safe root Display of its
+typed error wrapper; source chains remain available internally, while other
+commands keep their established output. Hostile source messages never enter
+shareable output. Assigned wire success and complete package validation are
+still pending; the feature constant remains None.
+
+Provider diagnostics row 568 belongs to A9/W22. The separate process-lifetime
+owner will supply the canonical root Proc ProcessId; after its reviewed
+integration hash arrives, self-process facts reuse that observation type.
+No unchecked carrier branch is consumed and no process-control authority is
+obtained from a diagnostic pid.

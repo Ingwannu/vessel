@@ -12,8 +12,8 @@ use tokio_util::{
     task::{TaskTracker, task_tracker::TaskTrackerToken},
 };
 
-/// Node-wide cap includes work whose caller was cancelled or timed out.
-const COLLECTION_PERMITS: usize = 2;
+// Node-wide cap includes work whose caller was cancelled or timed out.
+use vessel_proto::diagnostics::MAX_DIAGNOSTIC_COLLECTIONS as COLLECTION_PERMITS;
 
 #[derive(Debug, thiserror::Error)]
 pub(super) enum Refused {

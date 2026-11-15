@@ -7,7 +7,9 @@
 //! raw log/text block. No request or method may be added before the shared
 //! unassigned-protocol admission accessor reaches the node line.
 
+mod admission;
 mod bounded;
+pub use admission::{DiagnosticRefusal, MAX_DIAGNOSTIC_COLLECTIONS};
 mod error;
 mod process;
 mod protocol;

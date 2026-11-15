@@ -5,7 +5,9 @@ use super::{
 };
 use crate::{Config, Node};
 use vessel_harness::HarnessEnv;
-use vessel_proto::diagnostics::{MAX_DIAGNOSTIC_AGENTS, MAX_DIAGNOSTIC_REPORT_BYTES};
+use vessel_proto::diagnostics::{
+    DiagnosticHome, DiagnosticSection, MAX_DIAGNOSTIC_AGENTS, MAX_DIAGNOSTIC_REPORT_BYTES,
+};
 use vessel_store::DataDir;
 
 const PRIVATE: &str = "PRIVATE-DIAGNOSTIC-NODE-CANARY";
@@ -19,7 +21,27 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
         );
         config.bind = None;
         config.name = Some(PRIVATE.to_owned());
-        config.harness_lookup = Lookup::new(Vec::<std::path::PathBuf>::new());
+        let bin = temp.path().join("bin");
+        std::fs::create_dir(&bin).unwrap();
+        let forbidden = temp.path().join("must-not-execute");
+        vessel_testkit::write_executable(
+            &forbidden,
+            "#!/bin/sh\nprintf 'executed\\n' >> \"$0.invocations\"\nexit 97\n",
+        )
+        .unwrap();
+        for role in [
+            vessel_harness::fakes::Role::Structured,
+            vessel_harness::fakes::Role::Terminal,
+        ] {
+            let _installed = vessel_harness::fakes::install(
+                &bin,
+                vessel_proto::HarnessKind::ClaudeCode,
+                role,
+                &forbidden,
+            )
+            .unwrap();
+        }
+        config.harness_lookup = Lookup::new([bin.clone()]);
         let node = phase("start real diagnostic node", Node::start(config))
             .await
             .unwrap();
@@ -60,6 +82,13 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
                 ..
             }
         ));
+        for entry in std::fs::read_dir(&bin).unwrap() {
+            assert_ne!(
+                entry.unwrap().path().extension(),
+                Some(std::ffi::OsStr::new("invocations")),
+                "diagnostic collection must not execute an agent/version command"
+            );
+        }
         phase("stop diagnostic node", node.stop()).await.unwrap();
     })
     .await;

@@ -2,12 +2,17 @@
 //! Admission leases outlive caller cancellation and blocking jobs retain them.
 //! The report contains no source paths, free messages or credentials (ADR 0074).
 mod admission;
+#[cfg(test)]
+mod authority;
 mod collect;
 #[cfg(test)]
 mod deadline;
 mod inventory;
 mod journal;
+#[cfg(test)]
+mod lifetime;
 mod process;
+mod sources;
 
 use crate::{profiles::NodeProfiles, readiness::Readiness, relays::Relays};
 use admission::Admission;
@@ -17,7 +22,10 @@ use std::sync::{Arc, Weak};
 use tokio::{sync::watch, time::Instant};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_harness::Lookup;
-use vessel_proto::{Method, MethodShape, WireError, diagnostics::*};
+use vessel_proto::{
+    Method, MethodShape, WireError,
+    diagnostics::{DiagnosticBinding, DiagnosticListeners, DiagnosticLocalKind},
+};
 use vessel_session::SessionRuntime;
 use vessel_store::Store;
 

@@ -178,17 +178,17 @@ fn unique<T>(slot: &mut Option<T>, value: T, field: Field) -> Result<(), Snapsho
     Ok(())
 }
 #[cfg(any(target_os = "linux", test))]
-fn decode(reader: impl std::io::Read, expected: ProcessId) -> Result<Snapshot, SnapshotError> {
+fn decode(reader: impl io::Read, expected: ProcessId) -> Result<Snapshot, SnapshotError> {
     let limit = u64::try_from(MAX_STATUS_BYTES)
         .map_err(SnapshotError::Limit)?
         .saturating_add(1);
     let mut bytes = Vec::new();
-    reader.take(limit).read_to_end(&mut bytes)?;
+    let _read_bytes = reader.take(limit).read_to_end(&mut bytes)?;
     if bytes.len() > MAX_STATUS_BYTES {
         return Err(SnapshotError::TooLarge);
     }
     let text = std::str::from_utf8(&bytes)?;
-    let (mut pid, mut ppid, mut rss, mut virtual_size) = (None, None, None, None);
+    let (mut pid, mut parent_id, mut rss, mut virtual_size) = (None, None, None, None);
     for line in text.lines() {
         let Some((key, raw)) = line.split_once(':') else {
             continue;
@@ -197,7 +197,7 @@ fn decode(reader: impl std::io::Read, expected: ProcessId) -> Result<Snapshot, S
         // Raw kernel field labels are decoded only at this format edge.
         match key {
             "Pid" => unique(&mut pid, id(raw, Field::Pid)?, Field::Pid)?,
-            "PPid" => unique(&mut ppid, parent(raw)?, Field::Parent)?,
+            "PPid" => unique(&mut parent_id, parent(raw)?, Field::Parent)?,
             "VmRSS" => unique(&mut rss, memory(raw, Field::Resident)?, Field::Resident)?,
             "VmSize" => unique(
                 &mut virtual_size,
@@ -208,7 +208,7 @@ fn decode(reader: impl std::io::Read, expected: ProcessId) -> Result<Snapshot, S
         }
     }
     let pid = pid.ok_or(SnapshotError::Missing(Field::Pid))?;
-    let parent = ppid.ok_or(SnapshotError::Missing(Field::Parent))?;
+    let parent = parent_id.ok_or(SnapshotError::Missing(Field::Parent))?;
     if pid != expected {
         return Err(SnapshotError::WrongProcess);
     }

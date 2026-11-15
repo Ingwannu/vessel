@@ -1,0 +1,166 @@
+//! Actual generated guard; direct calls intentionally bypass pending wire admission.
+use super::{
+    deadline::{self, phase},
+    *,
+};
+use crate::{Config, Node, principal::Principal, service::Connection};
+use vessel_harness::HarnessEnv;
+use vessel_proto::diagnostics::{DiagnosticRefusal, GetDiagnostics, MAX_DIAGNOSTIC_COLLECTIONS};
+use vessel_proto::{ClientInfo, DeviceId, ErrorCode, Handler as _, Scope, SessionId};
+use vessel_rpc::{ClientConfig, Peer, Server, ServerConfig};
+use vessel_store::DataDir;
+
+#[tokio::test]
+async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read() {
+    deadline::run(async {
+        let temp = tempfile::tempdir().unwrap();
+        let mut config = Config::new(
+            DataDir::new(temp.path().join("data")),
+            HarnessEnv::new(temp.path().join("user")),
+        );
+        config.bind = None;
+        config.harness_lookup = Lookup::new(Vec::<std::path::PathBuf>::new());
+        let node = phase("start authority fixture", Node::start(config))
+            .await
+            .unwrap();
+        let guard = Arc::clone(&node.secure.service);
+        let (client_end, server_end) =
+            vessel_rpc::memory::pair(std::num::NonZeroUsize::new(4).unwrap());
+        let shutdown = tokio_util::sync::CancellationToken::new();
+        let server = Server::new(
+            Arc::clone(&guard),
+            node.secure.lifecycle.watch_info(),
+            ServerConfig::default(),
+            shutdown.clone(),
+        );
+        let (sender, captured) = tokio::sync::oneshot::channel();
+        let sender = std::sync::Mutex::new(Some(sender));
+        let task = tokio::spawn(async move {
+            server
+                .serve(server_end, |peer| {
+                    let copy = Peer {
+                        client: peer.client.clone(),
+                        protocol: peer.protocol,
+                        outbound: peer.outbound.clone(),
+                    };
+                    if let Some(sender) = sender.lock().unwrap().take() {
+                        sender.send(copy).unwrap();
+                    }
+                    Connection::new(peer, Principal::Owner)
+                })
+                .await
+        });
+        let client = phase(
+            "admit authority fixture",
+            vessel_client::NodeClient::over(
+                client_end,
+                ClientInfo {
+                    name: "diagnostic-authority".to_owned(),
+                    version: "0".to_owned(),
+                },
+                &ClientConfig::default(),
+            ),
+        )
+        .await
+        .unwrap();
+        let peer = phase("capture admitted peer", captured).await.unwrap();
+        let context = |principal| {
+            Connection::new(
+                Peer {
+                    client: peer.client.clone(),
+                    protocol: peer.protocol,
+                    outbound: peer.outbound.clone(),
+                },
+                principal,
+            )
+        };
+        let id = node.info().id;
+        let mut leases = Vec::new();
+        for _ in 0..MAX_DIAGNOSTIC_COLLECTIONS {
+            leases.push(guard.0.diagnostics.admission.admit().unwrap());
+        }
+        for principal in [
+            Principal::Device {
+                id: DeviceId::random(),
+                scopes: vec![Scope::Operate],
+            },
+            Principal::Agent {
+                node: id,
+                session: SessionId::random(),
+                scopes: vec![Scope::Operate],
+            },
+        ] {
+            let error = phase(
+                "no Read before source admission",
+                guard.diagnostics(&context(principal), GetDiagnostics {}),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(error.code, ErrorCode::Forbidden);
+        }
+        for principal in [
+            Principal::Owner,
+            Principal::Device {
+                id: DeviceId::random(),
+                scopes: vec![Scope::Read],
+            },
+            Principal::Agent {
+                node: id,
+                session: SessionId::random(),
+                scopes: vec![Scope::Read],
+            },
+        ] {
+            let error = phase(
+                "Read reaches bounded collector",
+                guard.diagnostics(&context(principal), GetDiagnostics {}),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(error.code, ErrorCode::Unavailable);
+            assert_eq!(
+                error.detail,
+                Some(vessel_proto::ErrorDetail::Diagnostics {
+                    reason: DiagnosticRefusal::Busy
+                })
+            );
+        }
+        leases.clear();
+        let report = phase(
+            "agent Read collects real source report",
+            guard.diagnostics(
+                &context(Principal::Agent {
+                    node: id,
+                    session: SessionId::random(),
+                    scopes: vec![Scope::Read],
+                }),
+                GetDiagnostics {},
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(report.fields().node.id, id);
+        let error = phase(
+            "self wrapper is not forwardable",
+            guard.forward(
+                &context(Principal::Owner),
+                vessel_proto::Forward {
+                    node: id,
+                    call: Box::new(vessel_proto::Request::into_call(GetDiagnostics {})),
+                },
+            ),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, ErrorCode::InvalidRequest);
+        shutdown.cancel();
+        drop(client);
+        phase("authority transport shuts down", task)
+            .await
+            .unwrap()
+            .unwrap();
+        phase("authority node shuts down", node.stop())
+            .await
+            .unwrap();
+    })
+    .await;
+}

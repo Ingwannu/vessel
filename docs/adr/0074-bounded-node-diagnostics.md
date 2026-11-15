@@ -199,7 +199,7 @@ The pending `node.diagnostics` row is now registered through Quality B's one
 No assigned number is invented. `Method::shape()` excludes Envelope from the
 code/time-only failure journal; the generated guard observes the complete
 local outcome including authority refusal. Diagnostics is not fleet-forwardable
-and agents are refused by the existing node policy. The node's startup clock
+and direct agents retain effective Read admission, like `node.info`. The node's startup clock
 is captured before configuration/store I/O and listener state is published only
 after successful binding. A weak relay reference prevents a service cycle.
 
@@ -218,6 +218,7 @@ running jobs and keep shutdown tracking/capacity until completion. The typed
 client has a separate end-to-end `DIAGNOSTIC_REQUEST_TIMEOUT`. Typed source
 errors retain their causes internally; only closed reasons enter the report.
 
-This checkpoint has not completed CLI rendering, assigned-protocol successful
-wire execution, full package tests or review. Provider diagnostics belongs to
+The CLI now has a bounded text/JSON renderer and a safe error boundary.
+Assigned-protocol successful wire execution, compilation of this correction,
+full package tests and review remain unverified. Provider diagnostics belongs to
 A9/W22 and is not implemented or registered by E4.
