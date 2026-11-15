@@ -154,6 +154,10 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment)?);
+    crate::update::install(
+        !cx.global::<Desktop>().preferences.current().manual_updates,
+        cx,
+    );
     cx.set_quit_mode(gpui::QuitMode::Explicit);
     crate::areas::desktop::listen(cx);
     cx.on_window_closed(|cx, closed| {

@@ -132,3 +132,19 @@ explicit returned-value handling, borrowed worker state and documented public
 fields. The public error type is `DesktopError` to identify its boundary.
 Bundle-path tests cover both tools on Linux/Windows, relative-path refusal and
 unassigned macOS layout; no test executes a companion or assumes it exists.
+
+## Window actions and process update owner
+
+Zoom rules now live in `view::desktop::zoom`, preserving the half-level changes
+from `packages/desktop/src/features/menu.ts:119-143`. The screen applies a
+bounded multiplier to its own native scale; pure tests cover inverse steps,
+reset and both saturation endpoints. Native startup installs the shared update
+owner before opening any window; each window follows a fresh watch receiver.
+Focus-triggered checks are silent and honor automatic-update preferences. The
+existing signed updater and its timer stay unchanged. W15 still owns managed-node
+finalization and the canonical preferences flush before actual restart.
+
+A deterministic kernel-lock test waits for the failed-acquisition signal before
+releasing the old primary lock; no scheduling sleep is used. An oversized-link
+regression tests the named byte boundary before route/identifier parsing.
+These additions await the current narrow compile/test runs.

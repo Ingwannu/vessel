@@ -2,16 +2,12 @@
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
+use vessel_app_view::desktop::zoom::{ZoomChange, ZoomLevel};
 use vessel_app_view::shortcuts::desktop::DesktopAction;
-
-const MIN_STEP: i8 = -16;
-const MAX_STEP: i8 = 16;
-const HALF_LEVEL: f32 = 0.5;
-const ZOOM_BASE: f32 = 1.2;
 
 #[derive(Default)]
 pub(super) struct Zoom {
-    step: i8,
+    level: ZoomLevel,
     native: Option<f32>,
 }
 
@@ -41,15 +37,15 @@ impl Shell {
 impl Zoom {
     fn apply(&mut self, action: DesktopAction, window: &mut Window) {
         let native = *self.native.get_or_insert_with(|| window.scale_factor());
-        self.step = match action {
-            DesktopAction::ZoomIn => self.step.saturating_add(1).min(MAX_STEP),
-            DesktopAction::ZoomOut => self.step.saturating_sub(1).max(MIN_STEP),
-            DesktopAction::ActualSize => 0,
+        let change = match action {
+            DesktopAction::ZoomIn => ZoomChange::In,
+            DesktopAction::ZoomOut => ZoomChange::Out,
+            DesktopAction::ActualSize => ZoomChange::Reset,
             DesktopAction::NewWindow | DesktopAction::CloseWindow | DesktopAction::Fullscreen => {
                 return;
             }
         };
-        let level = f32::from(self.step).mul_add(HALF_LEVEL, 0.0);
-        window.set_scale_factor(ZOOM_BASE.powf(level).mul_add(native, 0.0));
+        self.level.adjust(change);
+        window.set_scale_factor(self.level.factor().mul_add(native, 0.0));
     }
 }

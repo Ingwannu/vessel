@@ -19,7 +19,7 @@
 //!   updater offers a watch, which wakes the UI only on a change); the
 //!   notes read again from the feed after the restart (a request at every
 //!   start for one line of text).
-//! - Choice: the updater lives on the shell ([`Updates`]), on a one-thread
+//! - Choice: the updater lives in an App Global ([`Updates`]), on a one-thread
 //!   runtime of its own, and a GPUI task follows its watch into
 //!   `UpdateUi::state`. "Update automatically" is the updater's own
 //!   switch (`Updater::set_automatic`, track R's): off, its timer does not
@@ -41,7 +41,7 @@ use crate::shell::Shell;
 struct SharedUpdates(Option<std::rc::Rc<Updates>>);
 impl gpui::Global for SharedUpdates {}
 
-/// The updater and what it runs on, owned by the shell.
+/// The updater and what it runs on, owned by the application.
 pub(crate) struct Updates {
     /// Dropped before the runtime (its task runs there).
     updater: Option<Updater>,
@@ -135,13 +135,20 @@ impl Updates {
     }
 }
 
-/// Start updates for this build, and follow them into the shell.
-pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+/// Initialize before the first native window; later windows only share this owner.
+pub(crate) fn install(automatic: bool, cx: &mut gpui::App) {
     if !cx.has_global::<SharedUpdates>() {
         cx.set_global(SharedUpdates(
-            Updates::start(!shell.prefs.manual_updates).map(std::rc::Rc::new),
+            Updates::start(automatic).map(std::rc::Rc::new),
         ));
     }
+}
+
+/// Follow the single process updater in this window.
+pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    // Standalone test shells lack the desktop startup owner. They use the same
+    // idempotent initialization; real native startup has already installed it.
+    install(!shell.prefs.manual_updates, cx);
     let Some(updates) = cx
         .global::<SharedUpdates>()
         .0
@@ -152,6 +159,19 @@ pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
     };
     shell.updates.runtime = Some(updates);
     follow_current(shell, cx);
+}
+
+/// Focus checks are silent and respect the same automatic-update preference.
+pub(crate) fn check_on_focus(shell: &Shell) {
+    if !shell.prefs.manual_updates
+        && let Some(updater) = shell
+            .updates
+            .runtime
+            .as_ref()
+            .and_then(|owner| owner.updater.as_ref())
+    {
+        let _accepted = updater.check_now();
+    }
 }
 
 /// Follow the state of the shell's current updater.

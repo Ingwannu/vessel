@@ -106,4 +106,17 @@ mod tests {
             assert!(NavigationTarget::parse(&bad).is_err());
         }
     }
+
+    #[test]
+    fn oversized_os_input_is_refused_before_route_or_identifier_parsing() {
+        let input = "x".repeat(MAX_LINK_BYTES.saturating_add(1));
+        assert_eq!(
+            NavigationTarget::parse(&input),
+            Err(NavigationError::TooLong)
+        );
+        assert_eq!(
+            NavigationTarget::parse(&input[..MAX_LINK_BYTES]),
+            Err(NavigationError::Route)
+        );
+    }
 }

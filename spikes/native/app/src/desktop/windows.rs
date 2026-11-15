@@ -80,6 +80,12 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
             shell: shell.downgrade(),
         });
         shell.update(cx, |shell, cx| {
+            cx.observe_window_activation(window, |shell, window, _cx| {
+                if window.is_window_active() {
+                    crate::update::check_on_focus(shell);
+                }
+            })
+            .detach();
             if primary {
                 watch_window(shell, window, cx);
             }

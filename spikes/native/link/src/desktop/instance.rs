@@ -294,6 +294,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn relaunch_lock_waiter_waits_in_the_kernel_until_the_old_lock_is_released() {
+        let path =
+            std::env::temp_dir().join(format!("vessel-restart-lock-{}", SessionId::random()));
+        let old = std::fs::OpenOptions::new()
+            .create_new(true)
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        old.try_lock().unwrap();
+        let next = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .unwrap();
+        let LockWait { result, waiting } = lock_waiter(next).unwrap();
+        // This signal is sent only after try_lock saw the still-owned old lock.
+        // It proves the waiting branch without scheduling sleeps or races.
+        waiting.recv_timeout(REQUEST_DEADLINE).unwrap();
+        assert!(matches!(
+            result.try_recv(),
+            Err(std::sync::mpsc::TryRecvError::Empty)
+        ));
+        drop(old);
+        let acquired = result.recv_timeout(REQUEST_DEADLINE).unwrap().unwrap();
+        drop(acquired);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn normal_second_launch_forwards_and_relaunch_waits_for_the_old_guard() {
         let root = std::env::temp_dir().join(format!("vessel-instance-{}", SessionId::random()));
         let Instance::Primary {
