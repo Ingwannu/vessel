@@ -1,5 +1,6 @@
 //! Actual provider admission and owned settings cancellation while wire assignment is pending.
 use super::*;
+use crate::recovery::CASE_DEADLINE;
 use crate::{Config, Node};
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -19,7 +20,6 @@ use vessel_testkit::Fake;
 /// Test-only safety nets; these do not change product admission deadlines.
 const EVENT_PAGE: u32 = 128;
 const WAIT: Duration = Duration::from_secs(20);
-const CASE_DEADLINE: Duration = Duration::from_secs(60);
 
 struct Fixture {
     _temp: TempDir,

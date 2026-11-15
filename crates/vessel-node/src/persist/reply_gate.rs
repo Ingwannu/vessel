@@ -46,7 +46,10 @@ pub(super) fn hold(
     committed: bool,
 ) -> Result<(), Reply> {
     if matches!(change, RestartCheckpoint::Arm { .. })
-        && let Some(entered) = gates().lock().unwrap().remove(&session)
+        && let Some(entered) = gates()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&session)
     {
         // Only run after the actual Store call returned this exact result.
         // Drop also releases it when a test panics or its receiver disappears.

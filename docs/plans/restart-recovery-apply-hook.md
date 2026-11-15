@@ -146,3 +146,12 @@ source chains from both canonical snapshot and compatibility reads of an
 invalid private recovery value. Private typed-cause and actual startup logger
 canaries remain at their shared codec/Opening owners. These source cases still
 need the joint field/engine assembly and execution.
+
+
+The canonical settings wire regressions reuse the existing recovery CASE_DEADLINE
+through one recovery-owned test constant; the duration and every prior caller
+remain unchanged. Their RPC_STEP_DEADLINE is the original websocket request/frame
+budget, independent of the common writer's physical I/O safety net. Coincident
+numeric durations do not bind those different operations or change either limit.
+The real-ACK observer's three strict lint findings are corrected without changing
+admission, barriers or assertions. Corrected strict/runtime proof is still owed.

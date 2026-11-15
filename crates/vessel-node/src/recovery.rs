@@ -9,6 +9,10 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{ErrorCode, SessionId, WireError};
 
+/// Shared recovery test safety net, including canonical settings wire cases.
+#[cfg(test)]
+pub(crate) const CASE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(60);
+
 /// Boot attempts and ordinary operations have separate fixed pools. These maps are
 /// transient admission counters, never another source of session state.
 #[derive(Debug)]

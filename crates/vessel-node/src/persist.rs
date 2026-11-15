@@ -83,9 +83,11 @@ pub(crate) async fn run(
                 if let Some(Some(next)) = next {
                     durability.send_modify(|state| *state = Durability::Through(next));
                 }
-                if let Some((_change, reply)) = batch.barrier {
+                if let Some((change, reply)) = batch.barrier {
+                    #[cfg(not(test))]
+                    let _checkpoint = change;
                     #[cfg(test)]
-                    let reply = match reply_gate::hold(session, _change, reply, changed) {
+                    let reply = match reply_gate::hold(session, change, reply, changed) {
                         Ok(()) => continue,
                         Err(reply) => reply,
                     };

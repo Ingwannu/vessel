@@ -1,5 +1,6 @@
 //! Actual server encode of Get and legacy parking/driver mutation replies.
 //! The only new policy input is the local durable file, never a staged RPC.
+use crate::recovery::CASE_DEADLINE;
 use futures_util::{SinkExt as _, StreamExt as _};
 use std::future::Future;
 use std::time::Duration;
@@ -170,8 +171,9 @@ async fn raw_owner(data: &DataDir, node: &crate::Node, version: ProtocolVersion)
     socket
 }
 
-const CASE_DEADLINE: Duration = Duration::from_secs(60);
-const STEP_TIMEOUT: Duration = Duration::from_secs(10);
+// A websocket request/frame budget, independent of physical writer settlement.
+// It deliberately preserves this regression's existing socket deadline.
+const RPC_STEP_DEADLINE: Duration = Duration::from_secs(10);
 
 async fn within<F: Future<Output = ()> + Send>(future: F) {
     vessel_testkit::within(CASE_DEADLINE, Box::pin(future))
@@ -179,7 +181,7 @@ async fn within<F: Future<Output = ()> + Send>(future: F) {
         .unwrap();
 }
 async fn step<F: Future>(name: &str, future: F) -> F::Output {
-    tokio::time::timeout(STEP_TIMEOUT, future)
+    tokio::time::timeout(RPC_STEP_DEADLINE, future)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }
