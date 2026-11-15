@@ -96,29 +96,31 @@ impl ToolbarButton {
 
     /// Pinned pane toolbar profile: desktop-only, bottom/eight/300ms, using the
     /// existing screen-owned controller rather than a second toolbar overlay.
-    pub fn tooltip(mut self, tips: &Tooltips, place: &Place) -> Self {
-        self.element = tips.on_configured(
-            self.element,
-            place,
-            self.label.clone(),
-            crate::tooltip::Configuration::toolbar(),
-            self.config.sizing(),
-        );
-        self
+    pub fn tooltip(self, tips: &Tooltips, place: &Place) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, crate::tooltip::Side::Bottom)
     }
 
     /// Keep the same source timing/offset while selecting an explicit side,
     /// such as the usage card refresh's top freshness tooltip.
-    pub fn tooltip_at(
+    pub fn tooltip_at(self, tips: &Tooltips, place: &Place, side: crate::tooltip::Side) -> Self {
+        let label = self.label.clone();
+        self.tooltip_text(tips, place, label, side)
+    }
+
+    /// Source tooltip words may describe freshness/status while the accessibility
+    /// label remains the action. The owner supplies already-resolved display text.
+    pub fn tooltip_text(
         mut self,
         tips: &Tooltips,
         place: &Place,
+        text: impl Into<SharedString>,
         side: crate::tooltip::Side,
     ) -> Self {
         self.element = tips.on_configured(
             self.element,
             place,
-            self.label.clone(),
+            text,
             crate::tooltip::Configuration::toolbar().side(side),
             self.config.sizing(),
         );
