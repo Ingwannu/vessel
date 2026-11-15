@@ -25,7 +25,7 @@ impl Demo {
                         weight: FontWeight::NORMAL,
                         style: FontStyle::Normal,
                         underline: Underline::None,
-                        strike: Strike::No,
+                        strike: Strike::None,
                     },
                 }],
             }]),
