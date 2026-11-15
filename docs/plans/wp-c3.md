@@ -1,0 +1,75 @@
+# C3: git panel parity
+
+Status: skeleton in progress. Source specification: Paseo 0.15.4,
+`parts/p2-git.md` (all sections), feature rows 366–416. C4 follows separately.
+
+## Decision Log
+
+- Purpose: the three Changes/working-diff/commit-diff targets and their full
+  git behaviour share one typed state and one node observation owner.
+- Existing assets: retain `workspace::git` action preparation/request keys,
+  `workspace::changes`/`diff_rows`, the existing git area, workspace RPC calls,
+  kit virtual list/code rows/menu/dialog/tooltip, and the node's protected git
+  runner. File explorer/editor state remains its owner's; no pane manager is
+  introduced. W12 supplies layout and W11 supplies registry identity.
+- Alternatives: another session-bound code panel; parsing patch text in the
+  app; a new diff/docking dependency. These duplicate ownership or bypass the
+  typed node boundary. Standard collections and existing dependencies suffice.
+- Choice: extend view/link/git area. Pure view comparison, presentation,
+  demand, read/write lifecycle and document state; typed link commands/results;
+  hidden staged screen until real calls work. Node additions are ADR 0087 in
+  a separate node checkout. No user-visible placeholder or false empty state.
+- Effects: root I/O correlation uses NodeId + WorkspaceRoot; persistence uses
+  W11 WorkspaceId and W12 TabId only. The current selected session is not a
+  workspace identity. B0 is merged only after its announced green base.
+
+## Reference and defaults
+
+- `git/working-diff-comparison/state.ts`: default All, workspace identity key,
+  non-persisted override. Uncommitted = HEAD vs worktree; Committed = merge-base
+  vs HEAD; All = merge-base vs worktree. Legacy Vessel Base is All, never
+  silently substituted for Committed.
+- `panels/changes/state.ts`, `hooks/use-changes-preferences/storage.ts`:
+  unified, no wrap, show whitespace, tree hidden, separate diff, commits closed.
+- `git/diff-pane.tsx:1077–1180,1455–1660`: status loading/error/not-git precede
+  diff loading/too-large/error/empty/data. Empty mode action is suppressed
+  under ignored whitespace; committed+dirty offers Uncommitted; uncommitted
+  with branch commits offers Committed. Discard is uncommitted-only, including
+  both paths of a rename. No stage/unstage/amend/message field in Paseo.
+- `git/commits-section/*`, `use-commits-query.ts`: lazy expanded demand, unsupported/
+  idle/connecting/loading/error/loaded states; branch commits precede ten base
+  history entries, base entries hidden from the section; commit file bodies
+  immutable once present, binary fallback for null; five-minute cache.
+- `git/diff-tree.ts`, `file-header.tsx`: directory-first code-unit order,
+  compressed single-child folders, subtree totals, filename has width priority.
+- `git/diff-document/*`: virtualized rows and lazy measurement, unified/split,
+  wrap, collapse, typed anchors, selection/copy, binary/too-large status rows.
+- `hooks/use-branch-switcher.ts`: stash-and-switch then offer restore for the
+  target branch; existing node stashes lack ownership/branch metadata.
+- `git/policy.ts`, `actions-store.ts`, `use-actions.tsx`: primary/secondary order,
+  unavailable Info toast 3200 ms, pending then success 1000 ms, per-root dedupe,
+  ship default PR, archive promotion, generated commit message and add-all.
+- Server read/cache/watch limits: diff debounce 150 ms; LRU 64; fresh 15 s,
+  suppression 2 s; snapshot concurrency 4, observation setup 2; recovery
+  30–300 s; degraded polling 5–60 s; background fetch 180 s without prompting.
+  Existing safety/credential floors remain stronger where needed, stated in ADR.
+
+## Structure and node gaps
+
+`view::workspace::git::panel` holds target/comparison/preferences/read projection,
+commits/tree/document state. `link::git_panel` holds typed commands/results and
+finite deadlines. `areas::git::panel` draws through existing kit controls and
+W12's registry. ADR 0087 owns committed-only queries, merge to/from base,
+atomic generated commit, status/diff observation/cache, classified history and
+owned branch-stash metadata. Pending calls stay unregistered until Quality B.
+No second transport, WorkspaceId, layout tree, file editor or attachment format.
+
+## Package verification / resume
+
+Per-commit narrow checks only; one whole native gate and one package review at
+completion. Node work receives its root gate and V3 review; security-sensitive
+boundaries retain per-commit review. Captures once at package close, using fake
+nodes and authenticated owned displays. No real agent, preview or real forge.
+Current: reference/assets audit complete, node gap ADR assigned; view/link/screen
+skeleton next, with the new entry hidden until useful. No C3 parity row is yet
+claimed built or passed. Existing bounded Git/PR approval is not package parity.
