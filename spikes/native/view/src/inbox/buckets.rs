@@ -6,29 +6,9 @@ use crate::prefs::SidebarView;
 use crate::{Card, Fleet};
 use vessel_proto::{DisplayStatus, inbox_attention::SessionAttention};
 
-/// Highest-priority current state of a session or workspace rollup.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Bucket {
-    /// A current permission/question remains pending, even when seen.
-    NeedsInput,
-    /// A current failed turn or process, independently of read state.
-    Failed,
-    /// Active work.
-    Working,
-    /// Finished attention remains unseen.
-    Review,
-    /// Nothing pending or unseen.
-    Done,
-}
+pub use crate::attention::Bucket;
+
 impl Bucket {
-    /// Stable sidebar priority; shortcuts consume the same groups.
-    pub const ALL: [Self; 5] = [
-        Self::NeedsInput,
-        Self::Failed,
-        Self::Working,
-        Self::Review,
-        Self::Done,
-    ];
     /// A current request wins over failure; work wins over finished attention.
     #[must_use]
     pub fn of(card: &Card, attention: Option<SessionAttention>) -> Self {
